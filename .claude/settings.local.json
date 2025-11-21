@@ -1,14 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(cat:*)",
-      "Bash(git rm:*)",
-      "Bash(npm install:*)",
-      "Bash(npm run build:*)",
-      "Bash(yarn --version:*)",
-      "Bash(yarn install)",
-      "Bash(yarn build)",
-      "Bash(yarn add:*)"
+      "Bash(mkdir:*)",
+      "Bash(del \"C:\\Users\\pacif\\OneDrive\\Desktop\\My_projects\\connekt-dashboard\\app\\pages\\photographers\\dashboard.tsx\")",
+      "Bash(npm run dev:*)"
     ],
     "deny": [],
     "ask": []

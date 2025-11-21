@@ -16,7 +16,7 @@ interface NavigationItem {
 // Role-based navigation configurations
 const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
   photographer: [
-    { name: "Home", href: "/", icon: "bi-house" },
+    { name: "Home", href: "/user/photographers/dashboard", icon: "bi-house" },
     { name: "Transactions", href: "/transactions", icon: "bi-arrow-repeat" },
     { name: "Gallery", href: "/gallery", icon: "bi-image" },
     { name: "Streams", href: "/streams", icon: "bi-broadcast" },
