@@ -1,5 +1,5 @@
 import react from 'react';
-import PhotographerDashboard from '@/app/pages/photographers/dashboard';
+import PhotographerDashboard from '@/app/pages/client/home';
 export default function Page() {
   return <PhotographerDashboard />;
 }
