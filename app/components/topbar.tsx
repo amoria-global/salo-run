@@ -4,40 +4,130 @@ import Image from "next/image";
 
 export default function Topbar() {
   return (
-    <div className="flex items-center justify-between px-6 py-2 bg-white rounded-full mx-6 my-3 border border-gray-200 shadow-sm">
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingLeft: '1.2rem',
+      paddingRight: '1.2rem',
+      paddingTop: '0.4rem',
+      paddingBottom: '0.4rem',
+      backgroundColor: 'white',
+      borderRadius: '9999px',
+      marginLeft: '1.5rem',
+      marginRight: '1.5rem',
+      marginTop: '0.75rem',
+      marginBottom: '0.75rem',
+      border: '1px solid #E5E7EB',
+      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+    }}>
       {/* Left side - Dashboard title */}
-      <h1 className="text-xl font-semibold text-gray-900">Dashboard</h1>
+      <h1 style={{
+        fontSize: '1.35rem',
+        lineHeight: '1.75rem',
+        color: '#4B5563'
+      }}>Dashboard</h1>
 
       {/* Right side - Notification, Bonus, and Profile */}
-      <div className="flex items-center gap-4">
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '1rem'
+      }}>
         {/* Notification Bell */}
-        <div className="relative cursor-pointer">
-          <i className="bi bi-bell text-xl text-gray-700"></i>
-          <span className="absolute -top-1 -right-1 bg-pink-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+        <div style={{
+          position: 'relative',
+          cursor: 'pointer'
+        }}>
+          <i style={{
+            fontSize: '1.35rem',
+            lineHeight: '1.75rem',
+            color: '#374151'
+          }} className="bi bi-bell"></i>
+          <span style={{
+            position: 'absolute',
+            top: '-0.55rem',
+            right: '-0.45rem',
+            backgroundColor: '#EC4899',
+            color: 'white',
+            fontSize: '15px',
+            fontWeight: 'bold',
+            borderRadius: '9999px',
+            width: '1.3rem',
+            height: '1.2rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
             9+
           </span>
         </div>
 
         {/* Bonus */}
-        <div className="flex items-center gap-2">
-          <span className="text-base font-semibold text-gray-900">Bonus:</span>
-          <span className="text-base font-semibold text-gray-900">$3.00</span>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem'
+        }}>
+          <span style={{
+            fontSize: '1.12rem',
+            lineHeight: '1.5rem',
+            fontWeight: '600',
+            color: '#111827'
+          }}>Bonus:</span>
+          <span style={{
+            fontSize: '1.15rem',
+            lineHeight: '1.5rem',
+            fontWeight: '600',
+            color: '#083A85'
+          }}>$3.00</span>
         </div>
 
         {/* Profile */}
-        <div className="flex items-center gap-3 cursor-pointer">
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          cursor: 'pointer'
+        }}>
           <Image
-            src="https://i.pinimg.com/1200x/bb/6a/ef/bb6aef8c1bd48cd8b3b41725eaba18e3.jpg"
+            src="https://randomuser.me/api/portraits/women/65.jpg"
             alt="Profile"
             width={40}
             height={40}
-            className="rounded-full object-cover w-10 h-10"
+            style={{
+              borderRadius: '9999px',
+              objectFit: 'cover',
+              width: '2.5rem',
+              height: '2.5rem'
+            }}
           />
-          <div className="flex flex-col">
-            <span className="text-sm font-semibold text-blue-700">Moise caicedo</span>
-            <div className="flex items-center gap-4">
-              <span className="text-xs font-semibold text-gray-900">$0.00</span>
-              <i className="bi bi-chevron-down text-xs text-gray-700"></i>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            <span style={{
+              fontSize: '1.12rem',
+              lineHeight: '1.5rem',
+              fontWeight: '700',
+              color: '#083A85'
+            }}>Diane Mary</span>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}>
+              <span style={{
+                fontSize: '1rem',
+                lineHeight: '1.5rem',
+                fontWeight: '600',
+                color: '#111827'
+              }}>$0.00</span>
+              <i style={{
+                fontSize: '0.75rem',
+                lineHeight: '1rem',
+                color: '#374151'
+              }} className="bi bi-chevron-down"></i>
             </div>
           </div>
         </div>

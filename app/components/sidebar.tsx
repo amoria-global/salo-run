@@ -16,7 +16,7 @@ interface NavigationItem {
 // Role-based navigation configurations
 const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
   photographer: [
-    { name: "Home", href: "/user/photographers/dashboard", icon: "bi-house" },
+    { name: "Home", href: "/user/client/home", icon: "bi-house" },
     { name: "Transactions", href: "/transactions", icon: "bi-arrow-repeat" },
     { name: "Gallery", href: "/gallery", icon: "bi-image" },
     { name: "Streams", href: "/streams", icon: "bi-broadcast" },
@@ -62,18 +62,60 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className={`flex h-screen flex-col bg-[#f5f5f5] transition-all duration-300 rounded-r-[18px] ${isCollapsed ? 'w-16' : 'w-56'}`}>
+    <aside style={{
+      display: 'flex',
+      height: '100vh',
+      flexDirection: 'column',
+      backgroundColor: '#f5f5f5',
+      transition: 'all 0.3s',
+      borderTopRightRadius: '18px',
+      borderBottomRightRadius: '18px',
+      width: isCollapsed ? '4rem' : '14rem'
+    }}>
       {/* Logo */}
-      <div className="flex items-center justify-between px-6 py-5">
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingLeft: '1.5rem',
+        paddingRight: '1.5rem',
+        paddingTop: '1.25rem',
+        paddingBottom: '1.25rem'
+      }}>
         {!isCollapsed && (
-          <Link href="/" className="flex items-center cursor-pointer">
-            <span className="text-2xl font-bold text-gray-900 leading-none">Amoria</span>
-            <Image src="/logo.png" alt="Logo" width={32} height={32} className="-ml-2" />
+          <Link href="/" style={{
+            display: 'flex',
+            alignItems: 'center',
+            cursor: 'pointer',
+            textDecoration: 'none'
+          }}>
+            <span style={{
+              fontSize: '1.5rem',
+              fontWeight: '700',
+              color: '#111827',
+              lineHeight: '1'
+            }}>Amoria</span>
+            <Image
+              src="/logo.png"
+              alt="Logo"
+              width={48}
+              height={59}
+              style={{
+                marginLeft: '-0.625rem'
+              }}
+            />
           </Link>
         )}
         <button
           onClick={toggleSidebar}
-          className="text-black hover:text-black transition-colors cursor-pointer"
+          style={{
+            color: 'black',
+            transition: 'color 0.3s',
+            cursor: 'pointer',
+            border: 'none',
+            background: 'none',
+            padding: 0
+          }}
         >
           <svg
             width="20"
@@ -92,7 +134,15 @@ export default function Sidebar() {
       </div>
 
       {/* Main Navigation */}
-      <nav className="flex-1 space-y-0.5 px-3 pt-2">
+      <nav style={{
+        flex: 1,
+        paddingLeft: '0.75rem',
+        paddingRight: '0.75rem',
+        paddingTop: '0.5rem',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.125rem'
+      }}>
         {navigationItems.map((item) => {
           const isActive = pathname === item.href;
 
@@ -100,14 +150,49 @@ export default function Sidebar() {
             <Link
               key={item.name}
               href={item.href}
-              className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} rounded-md px-3 py-2.5 text-[15px] font-normal transition-all duration-200 ${
-                isActive
-                  ? "bg-[#083A85] text-white shadow-sm"
-                  : "text-gray-700 hover:bg-gray-200 hover:text-gray-900 active:bg-gray-300"
-              }`}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: isCollapsed ? 'center' : 'flex-start',
+                gap: isCollapsed ? '0' : '0.75rem',
+                borderRadius: '0.375rem',
+                paddingLeft: '0.75rem',
+                paddingRight: '0.75rem',
+                paddingTop: '0.625rem',
+                paddingBottom: '0.625rem',
+                fontSize: '15px',
+                fontWeight: '400',
+                transition: 'all 0.2s',
+                backgroundColor: isActive ? '#083A85' : 'transparent',
+                color: isActive ? 'white' : '#15191F',
+                boxShadow: isActive ? '0 1px 2px 0 rgba(0, 0, 0, 0.05)' : 'none',
+                textDecoration: 'none'
+              }}
               title={isCollapsed ? item.name : undefined}
+              onMouseEnter={(e) => {
+                if (!isActive) {
+                  e.currentTarget.style.backgroundColor = '#E5E7EB';
+                  e.currentTarget.style.color = '#111827';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isActive) {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = '#374151';
+                }
+              }}
+              onMouseDown={(e) => {
+                if (!isActive) {
+                  e.currentTarget.style.backgroundColor = '#D1D5DB';
+                }
+              }}
+              onMouseUp={(e) => {
+                if (!isActive) {
+                  e.currentTarget.style.backgroundColor = '#E5E7EB';
+                }
+              }}
             >
-              <i className={`bi ${item.icon} text-[18px]`}></i>
+              <i style={{ fontSize: '18px' }} className={`bi ${item.icon}`}></i>
               {!isCollapsed && <span>{item.name}</span>}
             </Link>
           );
@@ -115,7 +200,16 @@ export default function Sidebar() {
       </nav>
 
       {/* Bottom Navigation */}
-      <nav className="space-y-0.5 border-t border-gray-300 px-3 py-3">
+      <nav style={{
+        paddingLeft: '0.75rem',
+        paddingRight: '0.75rem',
+        paddingTop: '0.75rem',
+        paddingBottom: '0.75rem',
+        borderTop: '1px solid #D1D5DB',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.125rem'
+      }}>
         {bottomNavigationItems.map((item) => {
           const isActive = pathname === item.href;
 
@@ -123,14 +217,49 @@ export default function Sidebar() {
             <Link
               key={item.name}
               href={item.href}
-              className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} rounded-md px-3 py-2.5 text-[15px] font-normal transition-all duration-200 ${
-                isActive
-                  ? "bg-[#083A85] text-white shadow-sm"
-                  : "text-gray-700 hover:bg-gray-200 hover:text-gray-900 active:bg-gray-300"
-              }`}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: isCollapsed ? 'center' : 'flex-start',
+                gap: isCollapsed ? '0' : '0.75rem',
+                borderRadius: '0.375rem',
+                paddingLeft: '0.75rem',
+                paddingRight: '0.75rem',
+                paddingTop: '0.625rem',
+                paddingBottom: '0.625rem',
+                fontSize: '15px',
+                fontWeight: '400',
+                transition: 'all 0.2s',
+                backgroundColor: isActive ? '#083A85' : 'transparent',
+                color: isActive ? 'white' : '#374151',
+                boxShadow: isActive ? '0 1px 2px 0 rgba(0, 0, 0, 0.05)' : 'none',
+                textDecoration: 'none'
+              }}
               title={isCollapsed ? item.name : undefined}
+              onMouseEnter={(e) => {
+                if (!isActive) {
+                  e.currentTarget.style.backgroundColor = '#E5E7EB';
+                  e.currentTarget.style.color = '#111827';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isActive) {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = '#374151';
+                }
+              }}
+              onMouseDown={(e) => {
+                if (!isActive) {
+                  e.currentTarget.style.backgroundColor = '#D1D5DB';
+                }
+              }}
+              onMouseUp={(e) => {
+                if (!isActive) {
+                  e.currentTarget.style.backgroundColor = '#E5E7EB';
+                }
+              }}
             >
-              <i className={`bi ${item.icon} text-[18px]`}></i>
+              <i style={{ fontSize: '18px' }} className={`bi ${item.icon}`}></i>
               {!isCollapsed && <span>{item.name}</span>}
             </Link>
           );

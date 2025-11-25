@@ -21,41 +21,89 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
   const yAxisLabels = [roundedMax, roundedMax * 0.75, roundedMax * 0.5, roundedMax * 0.25, 0];
 
   return (
-    <div className="w-full">
-      <div className="flex">
+    <div style={{ width: '100%' }}>
+      <div style={{ display: 'flex' }}>
         {/* Y-axis labels */}
-        <div className="flex flex-col justify-between pr-3 text-right" style={{ height: `${height}px` }}>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          paddingRight: '0.75rem',
+          textAlign: 'right',
+          height: `${height}px`
+        }}>
           {yAxisLabels.map((label, index) => (
-            <span key={index} className="text-xs text-gray-400">{Math.round(label)}</span>
+            <span key={index} style={{
+              fontSize: '0.85rem',
+              lineHeight: '1rem',
+              color: '#9CA3AF',
+              fontWeight: '500'
+            }}>{Math.round(label)}</span>
           ))}
         </div>
 
         {/* Chart area */}
-        <div className="flex-1 relative">
+        <div style={{ flex: 1, position: 'relative' }}>
           {/* Grid lines */}
-          <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            pointerEvents: 'none'
+          }}>
             {yAxisLabels.map((_, index) => (
-              <div key={index} className="border-b border-gray-100 w-full h-0"></div>
+              <div key={index} style={{
+                borderBottom: '1px solid #F3F4F6',
+                width: '100%',
+                height: 0
+              }}></div>
             ))}
           </div>
 
           {/* Bars */}
-          <div className="flex justify-between items-end gap-2 relative" style={{ height: `${height}px` }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-end',
+            gap: '0.5rem',
+            position: 'relative',
+            height: `${height}px`
+          }}>
             {data.map((item, index) => (
-              <div key={index} className="flex-1 flex flex-col items-center">
-                <div className="flex gap-1 items-end" style={{ height: `${height}px` }}>
+              <div key={index} style={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  gap: '0.25rem',
+                  alignItems: 'flex-end',
+                  height: `${height}px`
+                }}>
                   <div
-                    className="w-4 rounded-t transition-all"
                     style={{
+                      width: '1.25rem',
+                      borderTopLeftRadius: '0.25rem',
+                      borderTopRightRadius: '0.25rem',
+                      transition: 'all 0.3s',
                       height: `${item.value1 * scale}px`,
-                      background: 'linear-gradient(180deg, #3B82F6 0%, #93C5FD 100%)'
+                      background: 'linear-gradient(180deg, #3B82F6 0%, #93C5FD 100%)',
+                      boxShadow: '0 2px 4px rgba(59, 130, 246, 0.2)'
                     }}
                   />
                   <div
-                    className="w-4 rounded-t transition-all"
                     style={{
+                      width: '1.25rem',
+                      borderTopLeftRadius: '0.25rem',
+                      borderTopRightRadius: '0.25rem',
+                      transition: 'all 0.3s',
                       height: `${item.value2 * scale}px`,
-                      background: 'linear-gradient(180deg, #F59E0B 0%, #FDE68A 100%)'
+                      background: 'linear-gradient(180deg, #F59E0B 0%, #FDE68A 100%)',
+                      boxShadow: '0 2px 4px rgba(245, 158, 11, 0.2)'
                     }}
                   />
                 </div>
@@ -66,11 +114,22 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
       </div>
 
       {/* X-axis labels */}
-      <div className="flex mt-2">
-        <div className="w-8"></div>
-        <div className="flex-1 flex justify-between">
+      <div style={{ display: 'flex', marginTop: '0.5rem' }}>
+        <div style={{ width: '2rem' }}></div>
+        <div style={{
+          flex: 1,
+          display: 'flex',
+          justifyContent: 'space-between'
+        }}>
           {data.map((item, index) => (
-            <span key={index} className="flex-1 text-center text-xs text-gray-400 font-medium">{item.day}</span>
+            <span key={index} style={{
+              flex: 1,
+              textAlign: 'center',
+              fontSize: '0.85rem',
+              lineHeight: '1rem',
+              color: '#9CA3AF',
+              fontWeight: '600'
+            }}>{item.day}</span>
           ))}
         </div>
       </div>
