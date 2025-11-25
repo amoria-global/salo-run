@@ -16,34 +16,34 @@ interface NavigationItem {
 // Role-based navigation configurations
 const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
   photographer: [
-    { name: "Home", href: "/user/client/home", icon: "bi-house" },
-    { name: "Transactions", href: "/transactions", icon: "bi-arrow-repeat" },
-    { name: "Gallery", href: "/gallery", icon: "bi-image" },
-    { name: "Streams", href: "/streams", icon: "bi-broadcast" },
-    { name: "Inbox", href: "/inbox", icon: "bi-chat-dots" },
-    { name: "Clients", href: "/clients", icon: "bi-people" },
+    { name: "Home", href: "/user/photographer/home", icon: "bi-house" },
+    { name: "Transactions", href: "/user/photographer/transactions", icon: "bi-arrow-repeat" },
+    { name: "Gallery", href: "/user/photographer/gallery", icon: "bi-image" },
+    { name: "Streams", href: "/user/photographer/streams", icon: "bi-broadcast" },
+    { name: "Inbox", href: "/user/photographer/inbox", icon: "bi-chat-dots" },
+    { name: "Clients", href: "/user/photographer/clients", icon: "bi-people" },
   ],
   client: [
-    { name: "Home", href: "/", icon: "bi-house" },
-    { name: "My Photos", href: "/my-photos", icon: "bi-image" },
-    { name: "Photographers", href: "/photographers", icon: "bi-camera" },
-    { name: "Bookings", href: "/bookings", icon: "bi-calendar-check" },
-    { name: "Payments", href: "/payments", icon: "bi-credit-card" },
-    { name: "Inbox", href: "/inbox", icon: "bi-chat-dots" },
+    { name: "Home", href: "/user/client/home", icon: "bi-house" },
+    { name: "Transactions", href: "/user/client/transactions", icon: "bi-arrow-repeat" },
+    { name: "Gallery", href: "/user/client/my-photos", icon: "bi-image" },
+    { name: "Photographers", href: "/user/client/photographers", icon: "bi-camera" },
+    { name: "Streams", href: "/user/client/streams", icon: "bi-broadcast" },
+    { name: "Inbox", href: "/user/client/inbox", icon: "bi-chat-dots" },
   ],
   freelancer: [
-    { name: "Home", href: "/", icon: "bi-house" },
-    { name: "Projects", href: "/projects", icon: "bi-folder" },
-    { name: "Clients", href: "/clients", icon: "bi-people" },
-    { name: "Invoices", href: "/invoices", icon: "bi-file-text" },
-    { name: "Transactions", href: "/transactions", icon: "bi-arrow-repeat" },
-    { name: "Portfolio", href: "/portfolio", icon: "bi-image" },
-    { name: "Inbox", href: "/inbox", icon: "bi-chat-dots" },
+    { name: "Home", href: "/user/freelancer/home", icon: "bi-house" },
+    { name: "Projects", href: "/user/freelancer/projects", icon: "bi-folder" },
+    { name: "Clients", href: "/user/freelancer/clients", icon: "bi-people" },
+    { name: "Invoices", href: "/user/freelancer/invoices", icon: "bi-file-text" },
+    { name: "Transactions", href: "/user/freelancer/transactions", icon: "bi-arrow-repeat" },
+    { name: "Portfolio", href: "/user/freelancer/portfolio", icon: "bi-image" },
+    { name: "Inbox", href: "/user/freelancer/inbox", icon: "bi-chat-dots" },
   ],
 };
 
 const bottomNavigationItems: NavigationItem[] = [
-  { name: "Profile", href: "/profile", icon: "bi-person" },
+  { name: "Profile", href: "/user/client/profile", icon: "bi-person" },
   { name: "Preferences", href: "/preferences", icon: "bi-sliders" },
   { name: "Logout", href: "/logout", icon: "bi-box-arrow-right" },
 ];
@@ -51,8 +51,8 @@ const bottomNavigationItems: NavigationItem[] = [
 export default function Sidebar() {
   const pathname = usePathname();
 
-  // Local state for role - change "photographer" to "client" or "freelancer" to test different roles
-  const [currentRole, setCurrentRole] = useState<UserRole>("photographer");
+  // Local state for role - change "client" to "photographer" or "freelancer" to test different roles
+  const [currentRole, setCurrentRole] = useState<UserRole>("client");
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const navigationItems = roleNavigationMap[currentRole];
