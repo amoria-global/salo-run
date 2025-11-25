@@ -20,23 +20,86 @@ export const StatCard: React.FC<StatCardProps> = ({
   href
 }) => {
   return (
-    <div className="bg-white rounded-lg p-3.5 shadow-sm h-full">
-      <div className="flex items-start justify-between mb-2 min-h-[36px]">
-        <span className="text-2xl text-gray-600 font-medium">{title}</span>
-        <div className="w-9 h-9 flex items-center justify-center text-xl flex-shrink-0">
+    <div style={{
+      backgroundColor: 'white',
+      borderRadius: '0.5rem',
+      padding: '0.875rem',
+      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+      height: '100%'
+    }}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        marginBottom: '0.5rem',
+        minHeight: '2.25rem'
+      }}>
+        <span style={{
+          fontSize: '0.9rem',
+          lineHeight: '1rem',
+          color: '#6B7280'
+        }}>{title}</span>
+        <div style={{
+          width: '2.25rem',
+          height: '2.25rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '1.25rem',
+          lineHeight: '1.75rem',
+          flexShrink: 0
+        }}>
           {icon}
         </div>
       </div>
-      <div className="text-xl font-extrabold mb-1.5" style={{ color: '#000000' }}>{value}</div>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <span className={`text-xs font-semibold ${trend === 'up' ? 'text-green-500' : 'text-red-500'}`}>
+      <div style={{
+        fontSize: '1.5rem',
+        lineHeight: '2rem',
+        fontWeight: '700',
+        marginBottom: '0.375rem',
+        color: '#000000'
+      }}>{value}</div>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between'
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.375rem'
+        }}>
+          <span style={{
+            fontSize: '0.85rem',
+            lineHeight: '1rem',
+            fontWeight: '600',
+            color: trend === 'up' ? '#059669' : '#DC2626'
+          }}>
             {trend === 'up' ? '+' : ''}{percentage}
           </span>
-          <span className="text-[0.7rem] text-gray-400">{timeframe}</span>
+          <span style={{
+            fontSize: '0.85rem',
+            lineHeight: '1rem',
+            color: '#9CA3AF'
+          }}>{timeframe}</span>
         </div>
-        <a href={href || '#'} className="p-1 hover:opacity-80 transition-opacity cursor-pointer" title="View details">
-          <i className="bi bi-box-arrow-up-right text-sm" style={{ color: '#0267FF' }}></i>
+        <a
+          href={href || '#'}
+          style={{
+            padding: '0.25rem',
+            cursor: 'pointer',
+            transition: 'opacity 0.3s',
+            textDecoration: 'none'
+          }}
+          title="View details"
+          onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+          onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+        >
+          <i style={{
+            fontSize: '0.875rem',
+            lineHeight: '1.25rem',
+            color: '#0267FF'
+          }} className="bi bi-box-arrow-up-right"></i>
         </a>
       </div>
     </div>

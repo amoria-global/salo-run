@@ -34,7 +34,7 @@ export default function NotFound() {
             {/* Action Buttons */}
             <div className="flex gap-4 justify-center">
               <Link
-                href="/user/photographers/dashboard"
+                href="/user/client/home"
                 className="px-4 py-2 rounded-md text-white text-sm font-medium transition-all hover:opacity-90 hover:scale-105"
                 style={{ background: 'linear-gradient(135deg, #F20C8F 0%, #083A85 100%)' }}
               >
