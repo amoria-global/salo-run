@@ -30,52 +30,52 @@ const ClientDashboard = () => {
   ];
 
   const recentActivities = [
-    { label: 'Customer', value: 'Joseph Mugabo' },
-    { label: 'Transaction', value: '-450', valueColor: '#ff0066' },
-    { label: 'Archive', value: 'jsm_wedd.mp4' },
-    { label: 'Package', value: 'Tier 1' },
-    { label: 'Referral', value: 'Pacific Uwitonze',  valueColor: '#083A85' },
-    { label: 'Logs', value: 'Today, 14. July 2025' }
+    { label: 'Photographer', value: 'John Studio' },
+    { label: 'Payment', value: '-$450', valueColor: '#ff0066' },
+    { label: 'Photos', value: 'wedding_gallery.zip' },
+    { label: 'Package', value: 'Premium' },
+    { label: 'Booking', value: 'Wedding Shoot',  valueColor: '#083A85' },
+    { label: 'Last Activity', value: 'Today, 14. July 2025' }
   ];
 
-  const clients = [
+  const photographers = [
     {
-      name: 'Kalisa Aime',
+      name: 'John Studio',
       event: 'Wedding',
       status: 'In Progress' as const,
       avatar: 'https://randomuser.me/api/portraits/men/75.jpg'
     },
     {
-      name: 'Ketty Bashabe',
+      name: 'Mary Shots',
       event: 'Birthday',
       status: 'Completed' as const,
       avatar: 'https://randomuser.me/api/portraits/women/68.jpg'
     },
     {
-      name: 'Juno Kizigenza',
+      name: 'Alex Frames',
       event: 'Festival',
       status: 'Pending' as const,
-      avatar: 'https://randomuser.me/api/portraits/women/44.jpg'
+      avatar: 'https://randomuser.me/api/portraits/men/44.jpg'
     }
   ];
 
   const recentPayments = [
     {
-      name: 'Kalisa Aime',
-      type: 'Earnings',
+      name: 'John Studio',
+      type: 'Booking Payment',
       amount: '$1,950',
       avatar: 'https://randomuser.me/api/portraits/men/75.jpg'
     },
     {
-      name: 'Amoria',
-      type: 'Archive commission',
-      amount: '$50.80',
-      logo: '/logo.png'
+      name: 'Mary Shots',
+      type: 'Photo Package',
+      amount: '$850',
+      avatar: 'https://randomuser.me/api/portraits/women/68.jpg'
     },
     {
       name: 'Amoria',
-      type: 'Referral bonus',
-      amount: '$3.0',
+      type: 'Platform Fee',
+      amount: '$25.00',
       logo: '/logo.png'
     }
   ];
@@ -143,7 +143,7 @@ const ClientDashboard = () => {
                   fontWeight: '600',
                   marginBottom: '0.25rem',
                   color: '#083A85'
-                }}>Earnings</span>
+                }}>Spent</span>
                 <span style={{
                   fontSize: '1.25rem',
                   lineHeight: '1.75rem',
@@ -162,13 +162,13 @@ const ClientDashboard = () => {
                   fontWeight: '600',
                   marginBottom: '0.25rem',
                   color: '#083A85'
-                }}>Clients</span>
+                }}>Bookings</span>
                 <span style={{
                   fontSize: '1.25rem',
                   lineHeight: '1.75rem',
                   fontWeight: '700',
                   color: '#111827'
-                }}>26</span>
+                }}>12</span>
               </div>
               <div style={{
                 display: 'flex',
@@ -181,13 +181,13 @@ const ClientDashboard = () => {
                   fontWeight: '600',
                   marginBottom: '0.25rem',
                   color: '#083A85'
-                }}>Accuracy</span>
+                }}>Photos</span>
                 <span style={{
                   fontSize: '1.25rem',
                   lineHeight: '1.75rem',
                   fontWeight: '700',
                   color: '#111827'
-                }}>73.5%</span>
+                }}>248</span>
               </div>
             </div>
           </header>
@@ -282,13 +282,13 @@ const ClientDashboard = () => {
         marginBottom: '1rem'
       }}>
         <StatCard
-          title="Total Earnings"
+          title="Total Spent"
           value="$2,600"
           percentage="52.76%"
           timeframe="last week"
           icon={<MoneyIcon />}
           trend="up"
-          href="/client/earnings"
+          href="/user/client/transactions"
         />
         <StatCard
           title="Pending"
@@ -297,34 +297,34 @@ const ClientDashboard = () => {
           timeframe="last week"
           icon={<ClockIcon />}
           trend="down"
-          href="/client/pending-payments"
+          href="/user/client/bookings"
         />
         <StatCard
-          title="Total clients"
-          value="5.0"
+          title="Bookings"
+          value="12"
           percentage="5.4%"
           timeframe="last week"
           icon={<UsersIcon />}
           trend="up"
-          href="/client/clients"
+          href="/user/client/bookings"
         />
         <StatCard
-          title="Bonuses"
-          value="$3.05"
+          title="Photos"
+          value="248"
           percentage="47.38%"
           timeframe="last week"
           icon={<GiftIcon />}
-          trend="down"
-          href="/client/bonuses"
+          trend="up"
+          href="/user/client/my-photos"
         />
         <StatCard
-          title="Ratings"
-          value="3.9/5"
+          title="Favorites"
+          value="8"
           percentage="8%"
-          timeframe="last 120 reviews"
+          timeframe="photographers"
           icon={<StarIcon />}
           trend="up"
-          href="/client/reviews"
+          href="/user/client/photographers"
         />
       </div>
 
@@ -342,7 +342,7 @@ const ClientDashboard = () => {
             marginBottom: '1rem'
           }}>
             <h2 style={{
-              fontSize: '1.5rem',
+              fontSize: '1.2rem',
               lineHeight: '1.25rem',
               fontWeight: '100',
               color: '#111827',
@@ -364,13 +364,13 @@ const ClientDashboard = () => {
               marginBottom: '0.75rem'
             }}>
               <h2 style={{
-                fontSize: '1.5rem',
+                fontSize: '1.2rem',
                 lineHeight: '1.25rem',
                 fontWeight: '100',
                 color: '#111827'
-              }}>Clients</h2>
+              }}>Photographers</h2>
               <a href="#" style={{
-                fontSize: '1.12rem',
+                fontSize: '1rem',
                 lineHeight: '1rem',
                 color: '#2563EB',
                 fontWeight: '500',
@@ -382,8 +382,8 @@ const ClientDashboard = () => {
               flexDirection: 'column',
               gap: '0.625rem'
             }}>
-              {clients.map((client, index) => (
-                <ClientItem key={index} {...client} />
+              {photographers.map((photographer, index) => (
+                <ClientItem key={index} {...photographer} />
               ))}
             </div>
           </section>
@@ -398,7 +398,7 @@ const ClientDashboard = () => {
             marginBottom: '1rem'
           }}>
             <h2 style={{
-              fontSize: '1.5rem',
+              fontSize: '1.2rem',
               lineHeight: '1.25rem',
               fontWeight: '100',
               color: '#111827',
@@ -428,13 +428,13 @@ const ClientDashboard = () => {
               marginBottom: '0.75rem'
             }}>
               <h2 style={{
-                fontSize: '1.5rem',
+                fontSize: '1.2rem',
                 lineHeight: '1.25rem',
                 fontWeight: '100',
                 color: '#111827'
               }}>Recent payments</h2>
               <a href="#" style={{
-                fontSize: '1.12rem',
+                fontSize: '1rem',
                 lineHeight: '1rem',
                 color: '#2563EB',
                 fontWeight: '500',
