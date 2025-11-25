@@ -16,16 +16,73 @@ export const PaymentItem: React.FC<PaymentItemProps> = ({
   logo
 }) => {
   return (
-    <div className="flex justify-between items-center p-2 rounded-md hover:bg-gray-50 transition-colors">
-      <div className="flex items-center gap-2.5">
-        {avatar && <img src={avatar} alt={name} className="w-9 h-9 rounded-full object-cover" />}
-        {logo && <img src={logo} alt={name} className="w-9 h-9 rounded-full object-cover p-1.5 bg-gray-100" />}
-        <div className="flex flex-col gap-0.5">
-          <span className="text-sm font-semibold text-gray-900">{name}</span>
-          <span className="text-xs text-gray-600">{type}</span>
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '0.5rem',
+        borderRadius: '0.375rem',
+        transition: 'background-color 0.3s'
+      }}
+      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F9FAFB'}
+      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+    >
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.625rem'
+      }}>
+        {avatar && (
+          <img
+            src={avatar}
+            alt={name}
+            style={{
+              width: '2.25rem',
+              height: '2.25rem',
+              borderRadius: '9999px',
+              objectFit: 'cover'
+            }}
+          />
+        )}
+        {logo && (
+          <img
+            src={logo}
+            alt={name}
+            style={{
+              width: '2.25rem',
+              height: '2.25rem',
+              borderRadius: '9999px',
+              objectFit: 'cover',
+              padding: '0.375rem',
+              backgroundColor: '#F3F4F6'
+            }}
+          />
+        )}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.125rem'
+        }}>
+          <span style={{
+            fontSize: '1rem',
+            lineHeight: '1.25rem',
+            fontWeight: '700',
+            color: '#111827'
+          }}>{name}</span>
+          <span style={{
+            fontSize: '0.85rem',
+            lineHeight: '1rem',
+            color: '#6B7280'
+          }}>{type}</span>
         </div>
       </div>
-      <span className="text-sm font-bold text-gray-900">{amount}</span>
+      <span style={{
+        fontSize: '1rem',
+        lineHeight: '1.25rem',
+        fontWeight: '700',
+        color: '#111827'
+      }}>{amount}</span>
     </div>
   );
 };
