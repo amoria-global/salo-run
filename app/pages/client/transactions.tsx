@@ -4,19 +4,6 @@ import React, { useState } from 'react';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 
-const BankIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M3 21H21M3 10H21M5 6L12 3L19 6M4 10V21M20 10V21M8 14V17M12 14V17M16 14V17" stroke="#083A85" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
-
-const EyeIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    <circle cx="12" cy="12" r="3" stroke="#9CA3AF" strokeWidth="2"/>
-  </svg>
-);
-
 const DownloadIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M21 15V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V15M7 10L12 15M12 15L17 10M12 15V3" stroke="#F20C8F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -44,14 +31,6 @@ const CopyIcon = () => (
   </svg>
 );
 
-const MoreIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="12" cy="6" r="1.5" fill="#6B7280"/>
-    <circle cx="12" cy="12" r="1.5" fill="#6B7280"/>
-    <circle cx="12" cy="18" r="1.5" fill="#6B7280"/>
-  </svg>
-);
-
 const ChevronLeftIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M15 18L9 12L15 6" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -64,12 +43,392 @@ const ChevronRightIcon = () => (
   </svg>
 );
 
-const VisaIcon = () => (
-  <svg width="32" height="20" viewBox="0 0 32 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect width="32" height="20" rx="2" fill="#1A1F71"/>
-    <path d="M13.5 13.5L14.5 6.5H16.5L15.5 13.5H13.5ZM11.5 6.5L9.5 11.5L9.3 10.5L8.5 7.2C8.5 7.2 8.4 6.5 7.5 6.5H4.5L4.5 6.7C4.5 6.7 5.5 6.9 6.7 7.6L8.5 13.5H10.7L13.5 6.5H11.5ZM24.5 13.5H26.5L24.8 6.5H23.2C22.5 6.5 22.3 7 22.3 7L19.2 13.5H21.4L21.8 12.3H24.5L24.5 13.5ZM22.4 10.7L23.5 7.8L24.1 10.7H22.4ZM19.5 8.5L19.8 6.7C19.8 6.7 18.7 6.3 17.5 6.3C16.2 6.3 13.5 6.9 13.5 9.3C13.5 11.5 16.5 11.6 16.5 12.7C16.5 13.8 13.8 13.5 12.8 12.7L12.5 14.6C12.5 14.6 13.6 15 15.1 15C16.6 15 19.5 14.1 19.5 11.8C19.5 9.4 16.5 9.2 16.5 8.3C16.5 7.4 18.6 7.6 19.5 8.5Z" fill="white"/>
+const CloseIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M18 6L6 18M6 6L18 18" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
+
+const PrintIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M6 9V2H18V9M6 18H4C2.89543 18 2 17.1046 2 16V11C2 9.89543 2.89543 9 4 9H20C21.1046 9 22 9.89543 22 11V16C22 17.1046 21.1046 18 20 18H18M6 14H18V22H6V14Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const CheckCircleIcon = () => (
+  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="12" cy="12" r="10" stroke="#10B981" strokeWidth="2"/>
+    <path d="M8 12L11 15L16 9" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+// Modal Component
+interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+  maxWidth?: string;
+}
+
+const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidth = '500px' }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000,
+    }} onClick={onClose}>
+      <div style={{
+        backgroundColor: 'white',
+        borderRadius: '0.75rem',
+        padding: '1.5rem',
+        maxWidth: maxWidth,
+        width: '90%',
+        maxHeight: '90vh',
+        overflowY: 'auto',
+        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+      }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#111827', margin: 0 }}>{title}</h3>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}>
+            <CloseIcon />
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+};
+
+// View Report Modal Content
+interface ViewReportModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const ViewReportModal: React.FC<ViewReportModalProps> = ({ isOpen, onClose }) => {
+  const reportData = {
+    period: '13 - 18 July 2025',
+    initial: 1200.13,
+    pending: 350.13,
+    paid: 949.87,
+    totalTransactions: 45,
+    completedTransactions: 32,
+    pendingTransactions: 8,
+    failedTransactions: 5,
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleDownload = () => {
+    const reportContent = `
+Payment Summary Report
+Period: ${reportData.period}
+Generated: ${new Date().toLocaleDateString()}
+
+Financial Summary:
+- Bookings: $${reportData.initial.toFixed(2)}
+- Pending Amount: $${reportData.pending.toFixed(2)}
+- Completed: $${reportData.paid.toFixed(2)}
+- Total: $${(reportData.initial + reportData.pending + reportData.paid).toFixed(2)}
+
+Transaction Summary:
+- Total Transactions: ${reportData.totalTransactions}
+- Completed: ${reportData.completedTransactions}
+- Pending: ${reportData.pendingTransactions}
+- Failed: ${reportData.failedTransactions}
+    `;
+    const blob = new Blob([reportContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `payment-report-${reportData.period.replace(/ /g, '-')}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Payment Report" maxWidth="520px">
+      <div style={{ marginBottom: '1rem' }}>
+        <div style={{ fontSize: '0.8rem', color: '#6B7280', marginBottom: '0.75rem' }}>
+          Report Period: <span style={{ fontWeight: '600', color: '#111827' }}>{reportData.period}</span>
+        </div>
+
+        {/* Financial & Transaction Summary Side by Side */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+          {/* Financial Summary */}
+          <div style={{ backgroundColor: '#F9FAFB', borderRadius: '0.5rem', padding: '0.75rem' }}>
+            <h4 style={{ fontSize: '0.8rem', fontWeight: '600', color: '#111827', margin: 0, marginBottom: '0.5rem' }}>Financial Summary</h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#3B82F6' }} />
+                  <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>Initial</span>
+                </div>
+                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>${reportData.initial.toFixed(2)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#FBBF24' }} />
+                  <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>Pending</span>
+                </div>
+                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>${reportData.pending.toFixed(2)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981' }} />
+                  <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>Paid</span>
+                </div>
+                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>${reportData.paid.toFixed(2)}</span>
+              </div>
+              <div style={{ borderTop: '1px solid #E5E7EB', marginTop: '0.35rem', paddingTop: '0.35rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: '500', color: '#6B7280' }}>Total</span>
+                <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#083A85' }}>${(reportData.initial + reportData.pending + reportData.paid).toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Transaction Summary */}
+          <div style={{ backgroundColor: '#F9FAFB', borderRadius: '0.5rem', padding: '0.75rem' }}>
+            <h4 style={{ fontSize: '0.8rem', fontWeight: '600', color: '#111827', margin: 0, marginBottom: '0.5rem' }}>Transaction Summary</h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>Total</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#111827' }}>{reportData.totalTransactions}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '0.75rem', color: '#10B981' }}>Completed</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#10B981' }}>{reportData.completedTransactions}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '0.75rem', color: '#F59E0B' }}>Pending</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#F59E0B' }}>{reportData.pendingTransactions}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '0.75rem', color: '#EF4444' }}>Failed</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#EF4444' }}>{reportData.failedTransactions}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <button onClick={handleDownload} style={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.5rem',
+          backgroundColor: '#083A85',
+          color: 'white',
+          border: 'none',
+          borderRadius: '0.5rem',
+          padding: '0.6rem 1rem',
+          fontSize: '0.85rem',
+          fontWeight: '600',
+          cursor: 'pointer'
+        }}>
+          <DownloadIcon />
+          Download
+        </button>
+        <button onClick={handlePrint} style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.5rem',
+          backgroundColor: 'white',
+          color: '#6B7280',
+          border: '1px solid #E5E7EB',
+          borderRadius: '0.5rem',
+          padding: '0.6rem 1rem',
+          fontSize: '0.85rem',
+          fontWeight: '500',
+          cursor: 'pointer'
+        }}>
+          <PrintIcon />
+          Print
+        </button>
+      </div>
+    </Modal>
+  );
+};
+
+// Transaction Details Modal
+interface Transaction {
+  id: number;
+  date: string;
+  name: string;
+  type: 'Booking Payment' | 'Service Fee' | 'Refund' | 'Deposit' | 'Tip';
+  avatar: string;
+  method: string;
+  amount: string;
+  status: 'Completed' | 'Pending' | 'In progress' | 'Initiated' | 'Failed';
+  requestId: string;
+}
+
+interface TransactionDetailsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  transaction: Transaction | null;
+}
+
+const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({ isOpen, onClose, transaction }) => {
+  if (!transaction) return null;
+
+  const handleDownloadReceipt = () => {
+    const receiptContent = `
+=====================================
+        TRANSACTION RECEIPT
+=====================================
+
+Transaction ID: ${transaction.requestId}
+Date: ${transaction.date}
+Status: ${transaction.status}
+
+From: ${transaction.name}
+Type: ${transaction.type}
+Payment Method: ${transaction.method}
+
+Amount: ${transaction.amount}
+
+=====================================
+    Thank you for using Connekt
+=====================================
+    `;
+    const blob = new Blob([receiptContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `receipt-${transaction.requestId}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'Completed': return '#10B981';
+      case 'Pending': return '#F59E0B';
+      case 'In progress': return '#3B82F6';
+      case 'Initiated': return '#6B7280';
+      case 'Failed': return '#EF4444';
+      default: return '#6B7280';
+    }
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Transaction Details" maxWidth="480px">
+      {/* Status Icon */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '1.5rem' }}>
+        {transaction.status === 'Completed' ? (
+          <CheckCircleIcon />
+        ) : (
+          <div style={{
+            width: '48px',
+            height: '48px',
+            borderRadius: '50%',
+            backgroundColor: getStatusColor(transaction.status) + '20',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: '0.5rem'
+          }}>
+            <span style={{ color: getStatusColor(transaction.status), fontWeight: '700', fontSize: '1.25rem' }}>
+              {transaction.status === 'Failed' ? '!' : transaction.status === 'Pending' ? '...' : '~'}
+            </span>
+          </div>
+        )}
+        <span style={{
+          fontSize: '0.9rem',
+          fontWeight: '600',
+          color: getStatusColor(transaction.status),
+          marginTop: '0.5rem'
+        }}>
+          {transaction.status}
+        </span>
+        <span style={{ fontSize: '1.75rem', fontWeight: '700', color: '#111827', marginTop: '0.5rem' }}>
+          {transaction.amount}
+        </span>
+      </div>
+
+      {/* Transaction Info */}
+      <div style={{ backgroundColor: '#F9FAFB', borderRadius: '0.5rem', padding: '1rem', marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid #E5E7EB' }}>
+          <img src={transaction.avatar} alt={transaction.name} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
+          <div>
+            <div style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>{transaction.name}</div>
+            <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>{transaction.type}</div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>Transaction ID</span>
+            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>{transaction.requestId}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>Date & Time</span>
+            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>{transaction.date}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>Payment Method</span>
+            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>{transaction.method}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>Type</span>
+            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>{transaction.type}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div style={{ display: 'flex', gap: '0.75rem' }}>
+        <button onClick={handleDownloadReceipt} style={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.5rem',
+          backgroundColor: '#083A85',
+          color: 'white',
+          border: 'none',
+          borderRadius: '0.5rem',
+          padding: '0.75rem 1rem',
+          fontSize: '0.9rem',
+          fontWeight: '600',
+          cursor: 'pointer'
+        }}>
+          <DownloadIcon />
+          Download Receipt
+        </button>
+        <button onClick={onClose} style={{
+          backgroundColor: 'white',
+          color: '#6B7280',
+          border: '1px solid #E5E7EB',
+          borderRadius: '0.5rem',
+          padding: '0.75rem 1rem',
+          fontSize: '0.9rem',
+          fontWeight: '500',
+          cursor: 'pointer'
+        }}>
+          Close
+        </button>
+      </div>
+    </Modal>
+  );
+};
 
 // Chart Type Icons
 const LineChartIcon = ({ active }: { active: boolean }) => (
@@ -99,13 +458,13 @@ const ScatterChartIcon = ({ active }: { active: boolean }) => (
 
 type ChartType = 'line' | 'bar' | 'scatter';
 
-interface EarningsChartProps {
+interface SpendingChartProps {
   data: { date: string; value: number }[];
   height?: number;
   chartType: ChartType;
 }
 
-const EarningsChart: React.FC<EarningsChartProps> = ({ data, height = 140, chartType }) => {
+const SpendingChart: React.FC<SpendingChartProps> = ({ data, height = 140, chartType }) => {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const maxValue = Math.max(...data.map(d => d.value));
   const minValue = Math.min(...data.map(d => d.value));
@@ -217,14 +576,14 @@ const EarningsChart: React.FC<EarningsChartProps> = ({ data, height = 140, chart
         return (
           <>
             <defs>
-              <linearGradient id="earningsAreaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <linearGradient id="spendingAreaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
                 <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.15" />
                 <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.02" />
               </linearGradient>
             </defs>
 
             {/* Area fill */}
-            <path d={areaPath} fill="url(#earningsAreaGradient)" />
+            <path d={areaPath} fill="url(#spendingAreaGradient)" />
 
             {/* Line */}
             <path
@@ -321,7 +680,7 @@ const EarningsChart: React.FC<EarningsChartProps> = ({ data, height = 140, chart
               }}>
                 <span style={{ color: 'white', fontSize: '0.7rem', fontWeight: '600' }}>$</span>
               </div>
-              <span style={{ fontSize: '0.9rem', color: '#6B7280' }}>Earnings</span>
+              <span style={{ fontSize: '0.9rem', color: '#6B7280' }}>Spending</span>
               <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#111827' }}>
                 ${(points[hoveredIndex].value / 1000).toFixed(1)}k
               </span>
@@ -356,15 +715,15 @@ const EarningsChart: React.FC<EarningsChartProps> = ({ data, height = 140, chart
   );
 };
 
-interface PayrollGaugeProps {
-  initial: number;
+interface PaymentGaugeProps {
+  bookings: number;
   pending: number;
-  paid: number;
+  completed: number;
 }
 
-const PayrollGauge: React.FC<PayrollGaugeProps> = ({ initial, pending, paid }) => {
-  const total = initial + pending + paid;
-  const initialAngle = (initial / total) * 180;
+const PaymentGauge: React.FC<PaymentGaugeProps> = ({ bookings, pending, completed }) => {
+  const total = bookings + pending + completed;
+  const bookingsAngle = (bookings / total) * 180;
   const pendingAngle = (pending / total) * 180;
 
   const createArc = (startAngle: number, endAngle: number, color: string) => {
@@ -394,9 +753,9 @@ const PayrollGauge: React.FC<PayrollGaugeProps> = ({ initial, pending, paid }) =
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <svg width="160" height="90" viewBox="0 0 160 90">
-        {createArc(0, initialAngle, '#3B82F6')}
-        {createArc(initialAngle, initialAngle + pendingAngle, '#FBBF24')}
-        {createArc(initialAngle + pendingAngle, 180, '#10B981')}
+        {createArc(0, bookingsAngle, '#3B82F6')}
+        {createArc(bookingsAngle, bookingsAngle + pendingAngle, '#FBBF24')}
+        {createArc(bookingsAngle + pendingAngle, 180, '#10B981')}
       </svg>
     </div>
   );
@@ -426,17 +785,17 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
 };
 
 interface TransactionTypeBadgeProps {
-  type: 'Referral Bonus' | 'Earnings' | 'Archive Commission' | 'Bonus' | 'Withdrawal';
+  type: 'Booking Payment' | 'Service Fee' | 'Refund' | 'Deposit' | 'Tip';
 }
 
 const TransactionTypeBadge: React.FC<TransactionTypeBadgeProps> = ({ type }) => {
   const getColor = () => {
     switch (type) {
-      case 'Referral Bonus': return '#F20C8F';
-      case 'Earnings': return '#10B981';
-      case 'Archive Commission': return '#8B5CF6';
-      case 'Bonus': return '#F59E0B';
-      case 'Withdrawal': return '#EF4444';
+      case 'Booking Payment': return '#3B82F6';
+      case 'Service Fee': return '#8B5CF6';
+      case 'Refund': return '#10B981';
+      case 'Deposit': return '#F59E0B';
+      case 'Tip': return '#F20C8F';
       default: return '#6B7280';
     }
   };
@@ -452,8 +811,45 @@ const TransactionsPage = () => {
   const [activeTimeFilter, setActiveTimeFilter] = useState<'1W' | '1M' | '3M' | '6M' | '1Y'>('1W');
   const [currentPage, setCurrentPage] = useState(1);
   const [chartType, setChartType] = useState<ChartType>('line');
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [showTransactionModal, setShowTransactionModal] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
-  const earningsData = [
+  const handleViewTransaction = (transaction: Transaction) => {
+    setSelectedTransaction(transaction);
+    setShowTransactionModal(true);
+  };
+
+  const handleDownloadReceipt = (transaction: Transaction) => {
+    const receiptContent = `
+=====================================
+        TRANSACTION RECEIPT
+=====================================
+
+Transaction ID: ${transaction.requestId}
+Date: ${transaction.date}
+Status: ${transaction.status}
+
+From: ${transaction.name}
+Type: ${transaction.type}
+Payment Method: ${transaction.method}
+
+Amount: ${transaction.amount}
+
+=====================================
+    Thank you for using Connekt
+=====================================
+    `;
+    const blob = new Blob([receiptContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `receipt-${transaction.requestId}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const spendingData = [
     { date: 'July 13', value: 5200 },
     { date: 'July 14', value: 5100 },
     { date: 'July 15', value: 5300 },
@@ -464,19 +860,19 @@ const TransactionsPage = () => {
   ];
 
   const transactions = [
-    { id: 1, date: 'July, 13 20:05 PM', name: 'Amoria Pay', type: 'Referral Bonus' as const, avatar: '/logo.png', method: 'Mobile Money', amount: '$250.0', status: 'Completed' as const, requestId: 'AX23412' },
-    { id: 2, date: 'July, 2 18:46 PM', name: 'Kagabo Innocent', type: 'Earnings' as const, avatar: 'https://randomuser.me/api/portraits/men/32.jpg', method: 'Mobile Money', amount: '$5,500.0', status: 'Pending' as const, requestId: 'AX23412' },
-    { id: 3, date: 'July, 15 20:05 PM', name: 'Amoria Pay', type: 'Archive Commission' as const, avatar: '/logo.png', method: 'Master Card', amount: '$50.0', status: 'In progress' as const, requestId: 'AX23412' },
-    { id: 4, date: 'July, 13 20:05 PM', name: 'Penny Gloria', type: 'Earnings' as const, avatar: 'https://randomuser.me/api/portraits/women/44.jpg', method: 'Mobile Money', amount: '$200.0', status: 'Completed' as const, requestId: 'AX23412' },
-    { id: 5, date: 'July, 13 20:05 PM', name: 'Amoria Bonus', type: 'Bonus' as const, avatar: '/logo.png', method: 'Bank Transfer', amount: '$250.0', status: 'Initiated' as const, requestId: 'AX23412' },
-    { id: 6, date: 'July, 13 20:05 PM', name: 'Diane Marry', type: 'Withdrawal' as const, avatar: 'https://randomuser.me/api/portraits/women/68.jpg', method: 'Visa Card', amount: '$250.0', status: 'Failed' as const, requestId: 'AX23412' },
-    { id: 7, date: 'July, 13 20:05 PM', name: 'Amoria Pay', type: 'Referral Bonus' as const, avatar: '/logo.png', method: 'Mobile Money', amount: '$250.0', status: 'Completed' as const, requestId: 'AX23412' },
-    { id: 8, date: 'July, 7 14:44 PM', name: 'Kagabo Innocent', type: 'Earnings' as const, avatar: 'https://randomuser.me/api/portraits/men/32.jpg', method: 'Mobile Money', amount: '$5,500.0', status: 'Pending' as const, requestId: 'AX23412' },
-    { id: 9, date: 'July, 19 20:03 PM', name: 'Amoria Pay', type: 'Archive Commission' as const, avatar: '/logo.png', method: 'Mobile Money', amount: '$50.0', status: 'Completed' as const, requestId: 'AX23412' },
-    { id: 10, date: 'July, 7 14:44 PM', name: 'Kagabo Innocent', type: 'Earnings' as const, avatar: 'https://randomuser.me/api/portraits/men/32.jpg', method: 'Mobile Money', amount: '$5,500.0', status: 'Pending' as const, requestId: 'AX23412' },
-    { id: 11, date: 'July, 13 20:05 PM', name: 'Amoria Pay', type: 'Archive Commission' as const, avatar: '/logo.png', method: 'Mobile Card', amount: '$50.0', status: 'In progress' as const, requestId: 'AX23412' },
-    { id: 12, date: 'July, 13 20:05 PM', name: 'Penny Gloria', type: 'Earnings' as const, avatar: 'https://randomuser.me/api/portraits/women/44.jpg', method: 'Mobile Money', amount: '$200.0', status: 'Completed' as const, requestId: 'AX23412' },
-    { id: 13, date: 'July, 13 20:05 PM', name: 'Amoria Bonus', type: 'Bonus' as const, avatar: '/logo.png', method: 'Bank Transfer', amount: '$250.0', status: 'Pending' as const, requestId: 'AX23412' }
+    { id: 1, date: 'July, 13 20:05 PM', name: 'James Photography', type: 'Booking Payment' as const, avatar: 'https://randomuser.me/api/portraits/men/32.jpg', method: 'Mobile Money', amount: '$250.0', status: 'Completed' as const, requestId: 'AX23412' },
+    { id: 2, date: 'July, 2 18:46 PM', name: 'Kagabo Studios', type: 'Booking Payment' as const, avatar: 'https://randomuser.me/api/portraits/men/45.jpg', method: 'Mobile Money', amount: '$5,500.0', status: 'Pending' as const, requestId: 'AX23413' },
+    { id: 3, date: 'July, 15 20:05 PM', name: 'Connekt Platform', type: 'Service Fee' as const, avatar: '/logo.png', method: 'Master Card', amount: '$50.0', status: 'In progress' as const, requestId: 'AX23414' },
+    { id: 4, date: 'July, 13 20:05 PM', name: 'Penny Gloria Photo', type: 'Booking Payment' as const, avatar: 'https://randomuser.me/api/portraits/women/44.jpg', method: 'Mobile Money', amount: '$200.0', status: 'Completed' as const, requestId: 'AX23415' },
+    { id: 5, date: 'July, 13 20:05 PM', name: 'James Photography', type: 'Deposit' as const, avatar: 'https://randomuser.me/api/portraits/men/32.jpg', method: 'Bank Transfer', amount: '$250.0', status: 'Initiated' as const, requestId: 'AX23416' },
+    { id: 6, date: 'July, 13 20:05 PM', name: 'Diane Studios', type: 'Booking Payment' as const, avatar: 'https://randomuser.me/api/portraits/women/68.jpg', method: 'Visa Card', amount: '$250.0', status: 'Failed' as const, requestId: 'AX23417' },
+    { id: 7, date: 'July, 13 20:05 PM', name: 'Kagabo Studios', type: 'Refund' as const, avatar: 'https://randomuser.me/api/portraits/men/45.jpg', method: 'Mobile Money', amount: '$150.0', status: 'Completed' as const, requestId: 'AX23418' },
+    { id: 8, date: 'July, 7 14:44 PM', name: 'Elite Photography', type: 'Booking Payment' as const, avatar: 'https://randomuser.me/api/portraits/men/22.jpg', method: 'Mobile Money', amount: '$5,500.0', status: 'Pending' as const, requestId: 'AX23419' },
+    { id: 9, date: 'July, 19 20:03 PM', name: 'Connekt Platform', type: 'Service Fee' as const, avatar: '/logo.png', method: 'Mobile Money', amount: '$50.0', status: 'Completed' as const, requestId: 'AX23420' },
+    { id: 10, date: 'July, 7 14:44 PM', name: 'James Photography', type: 'Tip' as const, avatar: 'https://randomuser.me/api/portraits/men/32.jpg', method: 'Mobile Money', amount: '$50.0', status: 'Completed' as const, requestId: 'AX23421' },
+    { id: 11, date: 'July, 13 20:05 PM', name: 'Connekt Platform', type: 'Service Fee' as const, avatar: '/logo.png', method: 'Mobile Card', amount: '$50.0', status: 'In progress' as const, requestId: 'AX23422' },
+    { id: 12, date: 'July, 13 20:05 PM', name: 'Penny Gloria Photo', type: 'Deposit' as const, avatar: 'https://randomuser.me/api/portraits/women/44.jpg', method: 'Mobile Money', amount: '$200.0', status: 'Completed' as const, requestId: 'AX23423' },
+    { id: 13, date: 'July, 13 20:05 PM', name: 'Elite Photography', type: 'Booking Payment' as const, avatar: 'https://randomuser.me/api/portraits/men/22.jpg', method: 'Bank Transfer', amount: '$350.0', status: 'Pending' as const, requestId: 'AX23424' }
   ];
 
   const totalPages = 10;
@@ -502,10 +898,10 @@ const TransactionsPage = () => {
             <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
                 <div>
-                  <div style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '0.25rem' }}>Total Earnings</div>
+                  <div style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '0.25rem' }}>Total Spending</div>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '1rem' }}>
                     <span style={{ fontSize: '1.75rem', fontWeight: '700', color: '#111827' }}>$18,500.04</span>
-                    <span style={{ fontSize: '0.85rem', color: '#10B981', fontWeight: '500' }}>+23% vs last week</span>
+                    <span style={{ fontSize: '0.85rem', color: '#6B7280', fontWeight: '500' }}>This period</span>
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -590,23 +986,23 @@ const TransactionsPage = () => {
                   </div>
                 </div>
               </div>
-              <EarningsChart data={earningsData} height={150} chartType={chartType} />
+              <SpendingChart data={spendingData} height={150} chartType={chartType} />
             </div>
 
-            {/* Payroll Summary */}
+            {/* Payment Summary */}
             <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                 <div>
-                  <div style={{ fontSize: '0.9rem', fontWeight: '600', color: '#111827' }}>Payroll summary</div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: '600', color: '#111827' }}>Payment summary</div>
                   <div style={{ fontSize: '0.75rem', color: '#6B7280' }}>From 13 - 18 July 2025</div>
                 </div>
-                <a href="#" style={{ fontSize: '0.85rem', color: '#2563EB', textDecoration: 'none', fontWeight: '500' }}>View report</a>
+                <button onClick={() => setShowReportModal(true)} style={{ fontSize: '0.85rem', color: '#2563EB', textDecoration: 'none', fontWeight: '500', background: 'none', border: 'none', cursor: 'pointer' }}>View report</button>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#3B82F6' }} />
-                    <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>Initial</span>
+                    <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>Bookings</span>
                   </div>
                   <div style={{ fontSize: '1rem', fontWeight: '700', color: '#111827' }}>$1,200.13</div>
                 </div>
@@ -620,55 +1016,12 @@ const TransactionsPage = () => {
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10B981' }} />
-                    <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>Paid</span>
+                    <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>Completed</span>
                   </div>
                   <div style={{ fontSize: '1rem', fontWeight: '700', color: '#111827' }}>$949.87</div>
                 </div>
               </div>
-              <PayrollGauge initial={1200.13} pending={350.13} paid={949.87} />
-            </div>
-          </div>
-
-          {/* Available to Withdraw Card */}
-          <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)', marginBottom: '1rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div style={{ width: '48px', height: '48px', backgroundColor: '#F3F4F6', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <BankIcon />
-                </div>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ fontSize: '1.5rem', fontWeight: '700', color: '#111827' }}>$2,849.80</span>
-                    <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}>
-                      <EyeIcon />
-                    </button>
-                  </div>
-                  <div style={{ fontSize: '0.85rem', color: '#6B7280' }}>Available to withdraw</div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                <div>
-                  <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>Previous Deposit: </span>
-                  <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>$450.00</span>
-                </div>
-                <div>
-                  <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>Last Withdraw: </span>
-                  <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>$1,345.00</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>Active Account:</span>
-                  <VisaIcon />
-                  <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>*****980</span>
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <button style={{ backgroundColor: '#083A85', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.75rem 1.5rem', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>
-                  Withdraw
-                </button>
-                <button style={{ background: 'none', border: '1px solid #E5E7EB', borderRadius: '0.5rem', padding: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <MoreIcon />
-                </button>
-              </div>
+              <PaymentGauge bookings={1200.13} pending={350.13} completed={949.87} />
             </div>
           </div>
 
@@ -718,8 +1071,8 @@ const TransactionsPage = () => {
                     </td>
                     <td style={{ padding: '0.875rem 1.25rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}><DownloadIcon /></button>
-                        <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}><ViewIcon /></button>
+                        <button onClick={() => handleDownloadReceipt(transaction)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }} title="Download Receipt"><DownloadIcon /></button>
+                        <button onClick={() => handleViewTransaction(transaction)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }} title="View Details"><ViewIcon /></button>
                       </div>
                     </td>
                   </tr>
@@ -751,6 +1104,14 @@ const TransactionsPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Modals */}
+      <ViewReportModal isOpen={showReportModal} onClose={() => setShowReportModal(false)} />
+      <TransactionDetailsModal
+        isOpen={showTransactionModal}
+        onClose={() => setShowTransactionModal(false)}
+        transaction={selectedTransaction}
+      />
     </div>
   );
 };
