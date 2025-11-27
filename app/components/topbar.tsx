@@ -30,15 +30,69 @@ const LogoutIcon = () => (
   </svg>
 );
 
+const CheckIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const CloseIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M18 6L6 18M6 6L18 18" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+// Sample notifications data
+const notificationsData = [
+  { id: 1, type: 'payment', title: 'Payment Received', message: 'You received $250.00 from Kagabo Innocent', time: '2 min ago', read: false },
+  { id: 2, type: 'booking', title: 'New Booking', message: 'Wedding photography session booked for Dec 15', time: '15 min ago', read: false },
+  { id: 3, type: 'system', title: 'Profile Updated', message: 'Your profile information was successfully updated', time: '1 hour ago', read: false },
+  { id: 4, type: 'payment', title: 'Bonus Credited', message: 'Referral bonus of $3.00 has been credited', time: '2 hours ago', read: true },
+  { id: 5, type: 'booking', title: 'Booking Reminder', message: 'Upcoming session with Penny Gloria tomorrow', time: '3 hours ago', read: true },
+  { id: 6, type: 'system', title: 'New Feature', message: 'Check out the new transaction reports feature', time: '5 hours ago', read: true },
+  { id: 7, type: 'payment', title: 'Payment Pending', message: 'Payment of $500.00 is awaiting approval', time: '1 day ago', read: true },
+  { id: 8, type: 'booking', title: 'Session Completed', message: 'Corporate event photography marked complete', time: '1 day ago', read: true },
+  { id: 9, type: 'system', title: 'Security Alert', message: 'New login detected from Chrome on Windows', time: '2 days ago', read: true },
+];
+
 export default function Topbar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState(notificationsData);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const notificationsRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown when clicking outside
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const markAsRead = (id: number) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  };
+
+  const markAllAsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  };
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'payment':
+        return { bg: '#DCFCE7', color: '#16A34A', icon: '$' };
+      case 'booking':
+        return { bg: '#DBEAFE', color: '#2563EB', icon: '📅' };
+      case 'system':
+        return { bg: '#F3E8FF', color: '#9333EA', icon: '⚙' };
+      default:
+        return { bg: '#F3F4F6', color: '#6B7280', icon: '•' };
+    }
+  };
+
+  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false);
+      }
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
+        setIsNotificationsOpen(false);
       }
     };
 
@@ -80,32 +134,236 @@ export default function Topbar() {
         gap: '1rem'
       }}>
         {/* Notification Bell */}
-        <div style={{
-          position: 'relative',
-          cursor: 'pointer'
-        }}>
-          <i style={{
-            fontSize: '1.35rem',
-            lineHeight: '1.75rem',
-            color: '#374151'
-          }} className="bi bi-bell"></i>
-          <span style={{
-            position: 'absolute',
-            top: '-0.55rem',
-            right: '-0.45rem',
-            backgroundColor: '#EC4899',
-            color: 'white',
-            fontSize: '15px',
-            fontWeight: 'bold',
-            borderRadius: '9999px',
-            width: '1.3rem',
-            height: '1.2rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            9+
-          </span>
+        <div
+          ref={notificationsRef}
+          style={{
+            position: 'relative'
+          }}
+        >
+          <div
+            onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+            style={{
+              position: 'relative',
+              cursor: 'pointer'
+            }}
+          >
+            <i style={{
+              fontSize: '1.35rem',
+              lineHeight: '1.75rem',
+              color: '#374151'
+            }} className="bi bi-bell"></i>
+            {unreadCount > 0 && (
+              <span style={{
+                position: 'absolute',
+                top: '-0.55rem',
+                right: '-0.45rem',
+                backgroundColor: '#EC4899',
+                color: 'white',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                borderRadius: '9999px',
+                minWidth: '1.2rem',
+                height: '1.2rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '0 0.25rem'
+              }}>
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </div>
+
+          {/* Notifications Dropdown */}
+          {isNotificationsOpen && (
+            <div style={{
+              position: 'absolute',
+              top: 'calc(100% + 0.75rem)',
+              right: '-100px',
+              backgroundColor: 'white',
+              borderRadius: '0.75rem',
+              boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15)',
+              border: '1px solid #E5E7EB',
+              width: '360px',
+              maxHeight: '480px',
+              zIndex: 50,
+              overflow: 'hidden'
+            }}>
+              {/* Header */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '1rem',
+                borderBottom: '1px solid #E5E7EB'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <h3 style={{ fontSize: '1rem', fontWeight: '600', color: '#111827', margin: 0 }}>Notifications</h3>
+                  {unreadCount > 0 && (
+                    <span style={{
+                      backgroundColor: '#FEE2E2',
+                      color: '#DC2626',
+                      fontSize: '0.75rem',
+                      fontWeight: '600',
+                      padding: '0.125rem 0.5rem',
+                      borderRadius: '9999px'
+                    }}>
+                      {unreadCount} new
+                    </span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={markAllAsRead}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#2563EB',
+                        fontSize: '0.8rem',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem'
+                      }}
+                    >
+                      <CheckIcon />
+                      Mark all read
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setIsNotificationsOpen(false)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}
+                  >
+                    <CloseIcon />
+                  </button>
+                </div>
+              </div>
+
+              {/* Notifications List */}
+              <div style={{
+                maxHeight: '380px',
+                overflowY: 'auto'
+              }}>
+                {notifications.length === 0 ? (
+                  <div style={{
+                    padding: '2rem',
+                    textAlign: 'center',
+                    color: '#6B7280'
+                  }}>
+                    No notifications
+                  </div>
+                ) : (
+                  notifications.map((notification) => {
+                    const iconStyle = getNotificationIcon(notification.type);
+                    return (
+                      <div
+                        key={notification.id}
+                        onClick={() => markAsRead(notification.id)}
+                        style={{
+                          display: 'flex',
+                          gap: '0.75rem',
+                          padding: '0.875rem 1rem',
+                          borderBottom: '1px solid #F3F4F6',
+                          backgroundColor: notification.read ? 'white' : '#F0F9FF',
+                          cursor: 'pointer',
+                          transition: 'background-color 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = notification.read ? '#F9FAFB' : '#E0F2FE';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = notification.read ? 'white' : '#F0F9FF';
+                        }}
+                      >
+                        {/* Icon */}
+                        <div style={{
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '50%',
+                          backgroundColor: iconStyle.bg,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0
+                        }}>
+                          <span style={{ color: iconStyle.color, fontSize: '0.9rem', fontWeight: '600' }}>
+                            {iconStyle.icon}
+                          </span>
+                        </div>
+
+                        {/* Content */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'flex-start',
+                            gap: '0.5rem'
+                          }}>
+                            <span style={{
+                              fontSize: '0.875rem',
+                              fontWeight: notification.read ? '500' : '600',
+                              color: '#111827'
+                            }}>
+                              {notification.title}
+                            </span>
+                            {!notification.read && (
+                              <div style={{
+                                width: '8px',
+                                height: '8px',
+                                borderRadius: '50%',
+                                backgroundColor: '#3B82F6',
+                                flexShrink: 0,
+                                marginTop: '0.25rem'
+                              }} />
+                            )}
+                          </div>
+                          <p style={{
+                            fontSize: '0.8rem',
+                            color: '#6B7280',
+                            margin: '0.25rem 0 0 0',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            {notification.message}
+                          </p>
+                          <span style={{
+                            fontSize: '0.7rem',
+                            color: '#9CA3AF',
+                            marginTop: '0.25rem',
+                            display: 'block'
+                          }}>
+                            {notification.time}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Footer */}
+              <div style={{
+                padding: '0.75rem',
+                borderTop: '1px solid #E5E7EB',
+                textAlign: 'center'
+              }}>
+                <a
+                  href="/notifications"
+                  style={{
+                    color: '#2563EB',
+                    fontSize: '0.85rem',
+                    fontWeight: '500',
+                    textDecoration: 'none'
+                  }}
+                >
+                  View all notifications
+                </a>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Bonus */}
