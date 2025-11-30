@@ -16,12 +16,12 @@ interface NavigationItem {
 // Role-based navigation configurations
 const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
   photographer: [
-    { name: "Home", href: "/user/photographer/home", icon: "bi-house" },
-    { name: "Transactions", href: "/user/photographer/transactions", icon: "bi-arrow-repeat" },
-    { name: "Gallery", href: "/user/photographer/gallery", icon: "bi-image" },
-    { name: "Streams", href: "/user/photographer/streams", icon: "bi-broadcast" },
-    { name: "Inbox", href: "/user/photographer/inbox", icon: "bi-chat-dots" },
-    { name: "Clients", href: "/user/photographer/clients", icon: "bi-people" },
+    { name: "Home", href: "/user/photographers/dashboard", icon: "bi-house" },
+    { name: "Transactions", href: "/transactions", icon: "bi-arrow-repeat" },
+    { name: "Gallery", href: "/gallery", icon: "bi-image" },
+    { name: "Streams", href: "/streams", icon: "bi-broadcast" },
+    { name: "Inbox", href: "/inbox", icon: "bi-chat-dots" },
+    { name: "Clients", href: "/clients", icon: "bi-people" },
   ],
   client: [
     { name: "Home", href: "/user/client/home", icon: "bi-house" },
