@@ -16,17 +16,17 @@ interface NavigationItem {
 // Role-based navigation configurations
 const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
   photographer: [
-    { name: "Home", href: "/user/photographer/home", icon: "bi-house" },
-    { name: "Transactions", href: "/user/photographer/transactions", icon: "bi-arrow-repeat" },
-    { name: "Gallery", href: "/user/photographer/gallery", icon: "bi-image" },
-    { name: "Streams", href: "/user/photographer/streams", icon: "bi-broadcast" },
-    { name: "Inbox", href: "/user/photographer/inbox", icon: "bi-chat-dots" },
-    { name: "Clients", href: "/user/photographer/clients", icon: "bi-people" },
+    { name: "Home", href: "/user/photographers/dashboard", icon: "bi-house" },
+    { name: "Transactions", href: "/user/photographers/transaction", icon: "bi-arrow-repeat" },
+    { name: "Gallery", href: "/user/photographers/gallery", icon: "bi-image" },
+    { name: "Streams", href: "/user/photographers/streams", icon: "bi-broadcast" },
+    { name: "Inbox", href: "/user/photographers/inbox", icon: "bi-chat-dots" },
+    { name: "Clients", href: "/user/photographers/clients", icon: "bi-people" },
   ],
   client: [
     { name: "Home", href: "/user/client/home", icon: "bi-house" },
     { name: "Transactions", href: "/user/client/transactions", icon: "bi-arrow-repeat" },
-    { name: "Gallery", href: "/user/client/my-photos", icon: "bi-image" },
+    { name: "Gallery", href: "/user/clients/gallery", icon: "bi-image" },
     { name: "Photographers", href: "/user/client/photographers", icon: "bi-camera" },
     { name: "Streams", href: "/user/client/streams", icon: "bi-broadcast" },
     { name: "Inbox", href: "/user/client/inbox", icon: "bi-chat-dots" },
@@ -52,7 +52,7 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   // Local state for role - change "client" to "photographer" or "freelancer" to test different roles
-  const [currentRole, setCurrentRole] = useState<UserRole>("client");
+  const [currentRole, setCurrentRole] = useState<UserRole>("photographer");
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const navigationItems = roleNavigationMap[currentRole];
