@@ -114,10 +114,77 @@ const Gallery = () => {
   const [showViewModal, setShowViewModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
 
+  // Upload form state
+  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+  const [uploadTitle, setUploadTitle] = useState('');
+  const [uploadCategory, setUploadCategory] = useState('');
+  const [uploadClient, setUploadClient] = useState('');
+  const [uploadDescription, setUploadDescription] = useState('');
+  const [uploadFeatured, setUploadFeatured] = useState(false);
+  const [uploadShared, setUploadShared] = useState(true);
+
   const toggleShareStatus = (photoId: number) => {
     setPhotos(photos.map(photo =>
       photo.id === photoId ? { ...photo, sharedWithClient: !photo.sharedWithClient } : photo
     ));
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setSelectedFiles(e.target.files);
+    }
+  };
+
+  const resetUploadForm = () => {
+    setSelectedFiles(null);
+    setUploadTitle('');
+    setUploadCategory('');
+    setUploadClient('');
+    setUploadDescription('');
+    setUploadFeatured(false);
+    setUploadShared(true);
+  };
+
+  const handleUpload = () => {
+    if (!selectedFiles || selectedFiles.length === 0) {
+      alert('Please select at least one file to upload');
+      return;
+    }
+    if (!uploadTitle.trim()) {
+      alert('Please enter a title');
+      return;
+    }
+    if (!uploadCategory) {
+      alert('Please select a category');
+      return;
+    }
+    if (!uploadClient.trim()) {
+      alert('Please enter a client name');
+      return;
+    }
+
+    // Create new photo entries
+    const newPhotos = Array.from(selectedFiles).map((file, index) => ({
+      id: photos.length + index + 1,
+      title: selectedFiles.length > 1 ? `${uploadTitle} ${index + 1}` : uploadTitle,
+      category: uploadCategory.charAt(0).toUpperCase() + uploadCategory.slice(1),
+      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      client: uploadClient,
+      views: 0,
+      likes: 0,
+      thumbnail: URL.createObjectURL(file),
+      featured: uploadFeatured,
+      sharedWithClient: uploadShared
+    }));
+
+    // Add new photos to the gallery
+    setPhotos([...newPhotos, ...photos]);
+
+    // Reset form and close modal
+    resetUploadForm();
+    setShowUploadModal(false);
+
+    alert(`Successfully uploaded ${selectedFiles.length} photo(s)!`);
   };
 
   const categories = ['All', 'Wedding', 'Portrait', 'Event', 'Product', 'Fashion', 'Architecture'];
@@ -1049,24 +1116,35 @@ const Gallery = () => {
             </div>
 
             {/* Upload Area */}
-            <div style={{
-              border: '2px dashed #D1D5DB',
-              borderRadius: '0.75rem',
-              padding: '3rem 1.5rem',
-              textAlign: 'center',
-              marginBottom: '1.5rem',
-              backgroundColor: '#F9FAFB',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = '#083A85';
-              e.currentTarget.style.backgroundColor = '#EFF6FF';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = '#D1D5DB';
-              e.currentTarget.style.backgroundColor = '#F9FAFB';
-            }}
+            <input
+              type="file"
+              id="file-upload"
+              multiple
+              accept="image/*"
+              onChange={handleFileSelect}
+              style={{ display: 'none' }}
+            />
+            <label
+              htmlFor="file-upload"
+              style={{
+                display: 'block',
+                border: '2px dashed #D1D5DB',
+                borderRadius: '0.75rem',
+                padding: '3rem 1.5rem',
+                textAlign: 'center',
+                marginBottom: '1.5rem',
+                backgroundColor: '#F9FAFB',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = '#083A85';
+                e.currentTarget.style.backgroundColor = '#EFF6FF';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = '#D1D5DB';
+                e.currentTarget.style.backgroundColor = '#F9FAFB';
+              }}
             >
               <i className="bi bi-cloud-upload" style={{ fontSize: '3rem', color: '#9CA3AF', marginBottom: '1rem' }}></i>
               <p style={{
@@ -1074,13 +1152,17 @@ const Gallery = () => {
                 color: '#374151',
                 margin: '0 0 0.5rem 0',
                 fontWeight: '500'
-              }}>Click to upload or drag and drop</p>
+              }}>
+                {selectedFiles && selectedFiles.length > 0
+                  ? `${selectedFiles.length} file(s) selected`
+                  : 'Click to upload or drag and drop'}
+              </p>
               <p style={{
                 fontSize: '0.75rem',
                 color: '#6B7280',
                 margin: 0
-              }}>PNG, JPG, GIF up to 10MB</p>
-            </div>
+              }}>PNG, JPG, GIF up to 10MB (Multiple files allowed)</p>
+            </label>
 
             {/* Form Fields */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -1091,10 +1173,12 @@ const Gallery = () => {
                   fontWeight: '500',
                   color: '#374151',
                   marginBottom: '0.5rem'
-                }}>Title</label>
+                }}>Title *</label>
                 <input
                   type="text"
                   placeholder="Enter photo title"
+                  value={uploadTitle}
+                  onChange={(e) => setUploadTitle(e.target.value)}
                   style={{
                     width: '100%',
                     padding: '0.625rem 0.75rem',
@@ -1122,8 +1206,10 @@ const Gallery = () => {
                   fontWeight: '500',
                   color: '#374151',
                   marginBottom: '0.5rem'
-                }}>Category</label>
+                }}>Category *</label>
                 <select
+                  value={uploadCategory}
+                  onChange={(e) => setUploadCategory(e.target.value)}
                   style={{
                     width: '100%',
                     padding: '0.625rem 0.75rem',
@@ -1160,9 +1246,44 @@ const Gallery = () => {
                   fontWeight: '500',
                   color: '#374151',
                   marginBottom: '0.5rem'
+                }}>Client Name *</label>
+                <input
+                  type="text"
+                  placeholder="Enter client name"
+                  value={uploadClient}
+                  onChange={(e) => setUploadClient(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.625rem 0.75rem',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.875rem',
+                    outline: 'none',
+                    transition: 'all 0.2s',
+                    color: '#111827',
+                    backgroundColor: 'white'
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = '#083A85';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = '#D1D5DB';
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
+                  color: '#374151',
+                  marginBottom: '0.5rem'
                 }}>Description (Optional)</label>
                 <textarea
                   placeholder="Enter photo description"
+                  value={uploadDescription}
+                  onChange={(e) => setUploadDescription(e.target.value)}
                   rows={3}
                   style={{
                     width: '100%',
@@ -1188,7 +1309,9 @@ const Gallery = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <input
                   type="checkbox"
-                  id="featured"
+                  id="upload-featured"
+                  checked={uploadFeatured}
+                  onChange={(e) => setUploadFeatured(e.target.checked)}
                   style={{
                     width: '18px',
                     height: '18px',
@@ -1197,7 +1320,7 @@ const Gallery = () => {
                   }}
                 />
                 <label
-                  htmlFor="featured"
+                  htmlFor="upload-featured"
                   style={{
                     fontSize: '0.875rem',
                     color: '#374151',
@@ -1205,6 +1328,38 @@ const Gallery = () => {
                   }}
                 >
                   Mark as featured
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <input
+                  type="checkbox"
+                  id="upload-shared"
+                  checked={uploadShared}
+                  onChange={(e) => setUploadShared(e.target.checked)}
+                  style={{
+                    width: '18px',
+                    height: '18px',
+                    cursor: 'pointer',
+                    accentColor: '#059669'
+                  }}
+                />
+                <label
+                  htmlFor="upload-shared"
+                  style={{
+                    fontSize: '0.875rem',
+                    color: '#374151',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.375rem'
+                  }}
+                >
+                  <i className={`bi ${uploadShared ? 'bi-check-circle-fill' : 'bi-lock-fill'}`} style={{
+                    fontSize: '0.875rem',
+                    color: uploadShared ? '#059669' : '#D97706'
+                  }}></i>
+                  {uploadShared ? 'Share with client immediately' : 'Keep private (not shared)'}
                 </label>
               </div>
             </div>
@@ -1218,7 +1373,10 @@ const Gallery = () => {
               borderTop: '1px solid #E5E7EB'
             }}>
               <button
-                onClick={() => setShowUploadModal(false)}
+                onClick={() => {
+                  resetUploadForm();
+                  setShowUploadModal(false);
+                }}
                 style={{
                   flex: 1,
                   padding: '0.625rem 1rem',
@@ -1241,6 +1399,7 @@ const Gallery = () => {
                 Cancel
               </button>
               <button
+                onClick={handleUpload}
                 style={{
                   flex: 1,
                   padding: '0.625rem 1rem',
@@ -1251,7 +1410,11 @@ const Gallery = () => {
                   fontWeight: '500',
                   color: 'white',
                   cursor: 'pointer',
-                  transition: 'all 0.2s'
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem'
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = '#062D6B';
@@ -1259,13 +1422,9 @@ const Gallery = () => {
                 onMouseLeave={(e) => {
                   e.currentTarget.style.backgroundColor = '#083A85';
                 }}
-                onClick={() => {
-                  // Handle upload logic here
-                  console.log('Uploading photos...');
-                  setShowUploadModal(false);
-                }}
               >
-                Upload
+                <i className="bi bi-upload"></i>
+                Upload {selectedFiles && selectedFiles.length > 0 ? `(${selectedFiles.length})` : ''}
               </button>
             </div>
           </div>
