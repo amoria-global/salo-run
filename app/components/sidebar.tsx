@@ -25,10 +25,9 @@ const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
   ],
   client: [
     { name: "Home", href: "/user/client/home", icon: "bi-house" },
-    { name: "Transactions", href: "/user/client/transactions", icon: "bi-arrow-repeat" },
-    { name: "Gallery", href: "/user/clients/gallery", icon: "bi-image" },
+    { name: "My Events", href: "/user/client/events", icon: "bi-calendar-event" },
     { name: "Photographers", href: "/user/client/photographers", icon: "bi-camera" },
-    { name: "Streams", href: "/user/client/streams", icon: "bi-broadcast" },
+    { name: "Payments", href: "/user/client/payments", icon: "bi-credit-card" },
     { name: "Inbox", href: "/user/client/inbox", icon: "bi-chat-dots" },
   ],
   freelancer: [
@@ -52,7 +51,7 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   // Local state for role - change "client" to "photographer" or "freelancer" to test different roles
-  const [currentRole, setCurrentRole] = useState<UserRole>("photographer");
+  const [currentRole, setCurrentRole] = useState<UserRole>("freelancer");
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const navigationItems = roleNavigationMap[currentRole];
