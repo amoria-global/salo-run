@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 
+// Icons
 const DownloadIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M21 15V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V15M7 10L12 15M12 15L17 10M12 15V3" stroke="#F20C8F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -59,6 +61,20 @@ const CheckCircleIcon = () => (
   <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <circle cx="12" cy="12" r="10" stroke="#10B981" strokeWidth="2"/>
     <path d="M8 12L11 15L16 9" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const RefreshIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M1 4V10H7M23 20V14H17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14L18.36 18.36A9 9 0 0 1 3.51 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const CreditCardIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="1" y="4" width="22" height="16" rx="2" stroke="currentColor" strokeWidth="2"/>
+    <line x1="1" y1="10" x2="23" y2="10" stroke="currentColor" strokeWidth="2"/>
   </svg>
 );
 
@@ -118,9 +134,9 @@ interface ViewReportModalProps {
 const ViewReportModal: React.FC<ViewReportModalProps> = ({ isOpen, onClose }) => {
   const reportData = {
     period: '13 - 18 July 2025',
-    initial: 1200.13,
+    totalPaid: 1200.13,
     pending: 350.13,
-    paid: 949.87,
+    failed: 200.00,
     totalTransactions: 45,
     completedTransactions: 32,
     pendingTransactions: 8,
@@ -138,10 +154,10 @@ Period: ${reportData.period}
 Generated: ${new Date().toLocaleDateString()}
 
 Financial Summary:
-- Bookings: $${reportData.initial.toFixed(2)}
+- Total Paid: $${reportData.totalPaid.toFixed(2)}
 - Pending Amount: $${reportData.pending.toFixed(2)}
-- Completed: $${reportData.paid.toFixed(2)}
-- Total: $${(reportData.initial + reportData.pending + reportData.paid).toFixed(2)}
+- Failed: $${reportData.failed.toFixed(2)}
+- Total: $${(reportData.totalPaid + reportData.pending + reportData.failed).toFixed(2)}
 
 Transaction Summary:
 - Total Transactions: ${reportData.totalTransactions}
@@ -173,10 +189,10 @@ Transaction Summary:
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#3B82F6' }} />
-                  <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>Initial</span>
+                  <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981' }} />
+                  <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>Paid</span>
                 </div>
-                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>${reportData.initial.toFixed(2)}</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>${reportData.totalPaid.toFixed(2)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
@@ -187,14 +203,14 @@ Transaction Summary:
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981' }} />
-                  <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>Paid</span>
+                  <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#EF4444' }} />
+                  <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>Failed</span>
                 </div>
-                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>${reportData.paid.toFixed(2)}</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>${reportData.failed.toFixed(2)}</span>
               </div>
               <div style={{ borderTop: '1px solid #E5E7EB', marginTop: '0.35rem', paddingTop: '0.35rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.75rem', fontWeight: '500', color: '#6B7280' }}>Total</span>
-                <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#083A85' }}>${(reportData.initial + reportData.pending + reportData.paid).toFixed(2)}</span>
+                <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#083A85' }}>${(reportData.totalPaid + reportData.pending + reportData.failed).toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -266,43 +282,52 @@ Transaction Summary:
   );
 };
 
-// Transaction Details Modal
-interface Transaction {
+// Payment Details Modal
+type PaymentStatus = 'paid' | 'pending' | 'failed' | 'refunded' | 'partially_paid';
+
+interface Payment {
   id: number;
   date: string;
-  name: string;
-  type: 'Booking Payment' | 'Service Fee' | 'Refund' | 'Deposit' | 'Tip';
-  avatar: string;
+  eventName: string;
+  eventType: string;
+  photographerName: string;
+  photographerImage: string;
   method: string;
   amount: string;
-  status: 'Completed' | 'Pending' | 'In progress' | 'Initiated' | 'Failed';
-  requestId: string;
+  amountNum: number;
+  paidAmount: number;
+  status: PaymentStatus;
+  invoiceNumber: string;
 }
 
-interface TransactionDetailsModalProps {
+interface PaymentDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  transaction: Transaction | null;
+  payment: Payment | null;
 }
 
-const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({ isOpen, onClose, transaction }) => {
-  if (!transaction) return null;
+const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({ isOpen, onClose, payment }) => {
+  if (!payment) return null;
+
+  const handlePrintReceipt = () => {
+    window.print();
+  };
 
   const handleDownloadReceipt = () => {
     const receiptContent = `
 =====================================
-        TRANSACTION RECEIPT
+        PAYMENT RECEIPT
 =====================================
 
-Transaction ID: ${transaction.requestId}
-Date: ${transaction.date}
-Status: ${transaction.status}
+Invoice: ${payment.invoiceNumber}
+Date: ${payment.date}
+Status: ${payment.status}
 
-From: ${transaction.name}
-Type: ${transaction.type}
-Payment Method: ${transaction.method}
+Event: ${payment.eventName}
+Photographer: ${payment.photographerName}
+Payment Method: ${payment.method}
 
-Amount: ${transaction.amount}
+Amount: ${payment.amount}
 
 =====================================
     Thank you for using Connekt
@@ -312,83 +337,84 @@ Amount: ${transaction.amount}
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `receipt-${transaction.requestId}.txt`;
+    a.download = `receipt-${payment.invoiceNumber}.txt`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: PaymentStatus) => {
     switch (status) {
-      case 'Completed': return '#10B981';
-      case 'Pending': return '#F59E0B';
-      case 'In progress': return '#3B82F6';
-      case 'Initiated': return '#6B7280';
-      case 'Failed': return '#EF4444';
+      case 'paid': return '#10B981';
+      case 'pending': return '#F59E0B';
+      case 'partially_paid': return '#3B82F6';
+      case 'failed': return '#EF4444';
+      case 'refunded': return '#6B7280';
       default: return '#6B7280';
     }
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Transaction Details" maxWidth="480px">
+    <Modal isOpen={isOpen} onClose={onClose} title="Payment Details" maxWidth="480px">
       {/* Status Icon */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '1.5rem' }}>
-        {transaction.status === 'Completed' ? (
+        {payment.status === 'paid' ? (
           <CheckCircleIcon />
         ) : (
           <div style={{
             width: '48px',
             height: '48px',
             borderRadius: '50%',
-            backgroundColor: getStatusColor(transaction.status) + '20',
+            backgroundColor: getStatusColor(payment.status) + '20',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             marginBottom: '0.5rem'
           }}>
-            <span style={{ color: getStatusColor(transaction.status), fontWeight: '700', fontSize: '1.25rem' }}>
-              {transaction.status === 'Failed' ? '!' : transaction.status === 'Pending' ? '...' : '~'}
+            <span style={{ color: getStatusColor(payment.status), fontWeight: '700', fontSize: '1.25rem' }}>
+              {payment.status === 'failed' ? '!' : payment.status === 'pending' ? '...' : '~'}
             </span>
           </div>
         )}
         <span style={{
           fontSize: '0.9rem',
           fontWeight: '600',
-          color: getStatusColor(transaction.status),
-          marginTop: '0.5rem'
+          color: getStatusColor(payment.status),
+          marginTop: '0.5rem',
+          textTransform: 'capitalize'
         }}>
-          {transaction.status}
+          {payment.status.replace('_', ' ')}
         </span>
         <span style={{ fontSize: '1.75rem', fontWeight: '700', color: '#111827', marginTop: '0.5rem' }}>
-          {transaction.amount}
+          {payment.amount}
         </span>
       </div>
 
-      {/* Transaction Info */}
+      {/* Payment Info */}
       <div style={{ backgroundColor: '#F9FAFB', borderRadius: '0.5rem', padding: '1rem', marginBottom: '1rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid #E5E7EB' }}>
-          <img src={transaction.avatar} alt={transaction.name} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
+          <Image src={payment.photographerImage} alt={payment.photographerName} width={40} height={40} style={{ borderRadius: '50%', objectFit: 'cover' }} />
           <div>
-            <div style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>{transaction.name}</div>
-            <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>{transaction.type}</div>
+            <div style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>{payment.photographerName}</div>
+            <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>{payment.eventName}</div>
           </div>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>Transaction ID</span>
-            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>{transaction.requestId}</span>
+            <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>Invoice Number</span>
+            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>{payment.invoiceNumber}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>Date & Time</span>
-            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>{transaction.date}</span>
+            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>{payment.date}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>Payment Method</span>
-            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>{transaction.method}</span>
+            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>{payment.method}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>Type</span>
-            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>{transaction.type}</span>
+            <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>Event Type</span>
+            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>{payment.eventType}</span>
           </div>
         </div>
       </div>
@@ -411,7 +437,24 @@ Amount: ${transaction.amount}
           cursor: 'pointer'
         }}>
           <DownloadIcon />
-          Download Receipt
+          Download
+        </button>
+        <button onClick={handlePrintReceipt} style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.5rem',
+          backgroundColor: 'white',
+          color: '#6B7280',
+          border: '1px solid #E5E7EB',
+          borderRadius: '0.5rem',
+          padding: '0.75rem 1rem',
+          fontSize: '0.9rem',
+          fontWeight: '500',
+          cursor: 'pointer'
+        }}>
+          <PrintIcon />
+          Print
         </button>
         <button onClick={onClose} style={{
           backgroundColor: 'white',
@@ -425,6 +468,195 @@ Amount: ${transaction.amount}
         }}>
           Close
         </button>
+      </div>
+    </Modal>
+  );
+};
+
+// Pay Now Modal
+interface PayNowModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  payment: Payment | null;
+}
+
+const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) => {
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('card');
+
+  if (!payment) return null;
+
+  const amountDue = payment.amountNum - payment.paidAmount;
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title={payment.status === 'failed' ? 'Retry Payment' : 'Complete Payment'} maxWidth="450px">
+      <div>
+        {/* Amount Summary */}
+        <div style={{ backgroundColor: '#F9FAFB', borderRadius: '0.5rem', padding: '1rem', marginBottom: '1.25rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+            <span style={{ fontSize: '0.9rem', color: '#6B7280' }}>Event</span>
+            <span style={{ fontSize: '0.9rem', fontWeight: '500', color: '#111827' }}>{payment.eventName}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+            <span style={{ fontSize: '0.9rem', color: '#6B7280' }}>Photographer</span>
+            <span style={{ fontSize: '0.9rem', fontWeight: '500', color: '#111827' }}>{payment.photographerName}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: '1px solid #E5E7EB' }}>
+            <span style={{ fontSize: '1rem', fontWeight: '600', color: '#374151' }}>Amount Due</span>
+            <span style={{ fontSize: '1.25rem', fontWeight: '700', color: '#083A85' }}>
+              ${amountDue.toLocaleString()}
+            </span>
+          </div>
+        </div>
+
+        {/* Payment Method Selection */}
+        <div style={{ marginBottom: '1.25rem' }}>
+          <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.75rem' }}>
+            Payment Method
+          </label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {[
+              { id: 'card', label: 'Credit/Debit Card', icon: '💳' },
+              { id: 'mobile', label: 'Mobile Money (MTN, Airtel)', icon: '📱' },
+              { id: 'bank', label: 'Bank Transfer', icon: '🏦' }
+            ].map((method) => (
+              <label
+                key={method.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  padding: '0.875rem',
+                  border: selectedPaymentMethod === method.id ? '2px solid #083A85' : '1px solid #E5E7EB',
+                  borderRadius: '0.5rem',
+                  cursor: 'pointer',
+                  backgroundColor: selectedPaymentMethod === method.id ? '#EFF6FF' : 'white'
+                }}
+              >
+                <input
+                  type="radio"
+                  name="payment-method"
+                  value={method.id}
+                  checked={selectedPaymentMethod === method.id}
+                  onChange={() => setSelectedPaymentMethod(method.id)}
+                  style={{ width: '16px', height: '16px' }}
+                />
+                <span style={{ fontSize: '1.25rem' }}>{method.icon}</span>
+                <span style={{ fontSize: '0.9rem', fontWeight: '500', color: '#374151' }}>{method.label}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Card Details (shown when card is selected) */}
+        {selectedPaymentMethod === 'card' && (
+          <div style={{ marginBottom: '1.25rem' }}>
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                Card Number
+              </label>
+              <input
+                type="text"
+                placeholder="1234 5678 9012 3456"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid #E5E7EB',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.9rem'
+                }}
+              />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                  Expiry Date
+                </label>
+                <input
+                  type="text"
+                  placeholder="MM/YY"
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    border: '1px solid #E5E7EB',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.9rem'
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                  CVV
+                </label>
+                <input
+                  type="text"
+                  placeholder="123"
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    border: '1px solid #E5E7EB',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.9rem'
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Mobile Money (shown when mobile is selected) */}
+        {selectedPaymentMethod === 'mobile' && (
+          <div style={{ marginBottom: '1.25rem' }}>
+            <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+              Phone Number
+            </label>
+            <input
+              type="tel"
+              placeholder="+250 78X XXX XXX"
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                border: '1px solid #E5E7EB',
+                borderRadius: '0.5rem',
+                fontSize: '0.9rem'
+              }}
+            />
+          </div>
+        )}
+
+        {/* Actions */}
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <button
+            onClick={onClose}
+            style={{
+              flex: 1,
+              padding: '0.75rem 1rem',
+              border: '1px solid #E5E7EB',
+              borderRadius: '0.5rem',
+              background: 'white',
+              color: '#374151',
+              fontSize: '0.9rem',
+              fontWeight: '500',
+              cursor: 'pointer'
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            style={{
+              flex: 1,
+              padding: '0.75rem 1rem',
+              border: 'none',
+              borderRadius: '0.5rem',
+              background: payment.status === 'failed' ? '#F20C8F' : '#083A85',
+              color: 'white',
+              fontSize: '0.9rem',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
+          >
+            {payment.status === 'failed' ? 'Retry Payment' : 'Pay'} ${amountDue.toLocaleString()}
+          </button>
+        </div>
       </div>
     </Modal>
   );
@@ -506,8 +738,8 @@ const SpendingChart: React.FC<SpendingChartProps> = ({ data, height = 140, chart
           <>
             <defs>
               <linearGradient id="barGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#3B82F6" />
-                <stop offset="100%" stopColor="#60A5FA" />
+                <stop offset="0%" stopColor="#083A85" />
+                <stop offset="100%" stopColor="#3B82F6" />
               </linearGradient>
             </defs>
             {points.map((point, index) => {
@@ -520,7 +752,7 @@ const SpendingChart: React.FC<SpendingChartProps> = ({ data, height = 140, chart
                     y={point.y}
                     width={barWidth}
                     height={barHeight}
-                    fill={hoveredIndex === index ? '#2563EB' : 'url(#barGradient)'}
+                    fill={hoveredIndex === index ? '#F20C8F' : 'url(#barGradient)'}
                     rx={4}
                     ry={4}
                     style={{ cursor: 'pointer', transition: 'fill 0.2s' }}
@@ -551,7 +783,7 @@ const SpendingChart: React.FC<SpendingChartProps> = ({ data, height = 140, chart
                   cx={point.x}
                   cy={point.y}
                   r={hoveredIndex === index ? 10 : 8}
-                  fill={hoveredIndex === index ? '#2563EB' : '#3B82F6'}
+                  fill={hoveredIndex === index ? '#F20C8F' : '#083A85'}
                   stroke="white"
                   strokeWidth="3"
                   style={{ cursor: 'pointer', transition: 'all 0.2s' }}
@@ -577,8 +809,8 @@ const SpendingChart: React.FC<SpendingChartProps> = ({ data, height = 140, chart
           <>
             <defs>
               <linearGradient id="spendingAreaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.15" />
-                <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.02" />
+                <stop offset="0%" stopColor="#083A85" stopOpacity="0.15" />
+                <stop offset="100%" stopColor="#083A85" stopOpacity="0.02" />
               </linearGradient>
             </defs>
 
@@ -589,7 +821,7 @@ const SpendingChart: React.FC<SpendingChartProps> = ({ data, height = 140, chart
             <path
               d={pathD}
               fill="none"
-              stroke="#3B82F6"
+              stroke="#083A85"
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -630,7 +862,7 @@ const SpendingChart: React.FC<SpendingChartProps> = ({ data, height = 140, chart
                   cy={points[hoveredIndex].y}
                   r={6}
                   fill="white"
-                  stroke="#3B82F6"
+                  stroke="#083A85"
                   strokeWidth="3"
                 />
               </>
@@ -643,7 +875,7 @@ const SpendingChart: React.FC<SpendingChartProps> = ({ data, height = 140, chart
   return (
     <div style={{ position: 'relative', width: '100%' }}>
       {/* Frame label */}
-      <div style={{ fontSize: '0.75rem', color: '#D1D5DB', marginBottom: '0.5rem' }}>Frame</div>
+      <div style={{ fontSize: '0.75rem', color: '#D1D5DB', marginBottom: '0.5rem' }}>Spending Trend</div>
 
       <div style={{ position: 'relative', width: '100%', height: `${height}px` }}>
         <svg width="100%" height={height} viewBox={`0 0 ${chartWidth} ${height}`} preserveAspectRatio="none">
@@ -666,14 +898,14 @@ const SpendingChart: React.FC<SpendingChartProps> = ({ data, height = 140, chart
             border: '1px solid #F3F4F6'
           }}>
             <div style={{ fontSize: '0.8rem', color: '#6B7280', marginBottom: '6px', fontWeight: '500' }}>
-              Wednesday, {points[hoveredIndex].date.replace('July ', '')} July 2025
+              {points[hoveredIndex].date}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{
                 width: '24px',
                 height: '24px',
                 borderRadius: '50%',
-                backgroundColor: '#3B82F6',
+                backgroundColor: '#083A85',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
@@ -682,7 +914,7 @@ const SpendingChart: React.FC<SpendingChartProps> = ({ data, height = 140, chart
               </div>
               <span style={{ fontSize: '0.9rem', color: '#6B7280' }}>Spending</span>
               <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#111827' }}>
-                ${(points[hoveredIndex].value / 1000).toFixed(1)}k
+                ${points[hoveredIndex].value.toLocaleString()}
               </span>
             </div>
           </div>
@@ -716,14 +948,14 @@ const SpendingChart: React.FC<SpendingChartProps> = ({ data, height = 140, chart
 };
 
 interface PaymentGaugeProps {
-  bookings: number;
+  paid: number;
   pending: number;
-  completed: number;
+  failed: number;
 }
 
-const PaymentGauge: React.FC<PaymentGaugeProps> = ({ bookings, pending, completed }) => {
-  const total = bookings + pending + completed;
-  const bookingsAngle = (bookings / total) * 180;
+const PaymentGauge: React.FC<PaymentGaugeProps> = ({ paid, pending, failed }) => {
+  const total = paid + pending + failed;
+  const paidAngle = (paid / total) * 180;
   const pendingAngle = (pending / total) * 180;
 
   const createArc = (startAngle: number, endAngle: number, color: string) => {
@@ -753,49 +985,49 @@ const PaymentGauge: React.FC<PaymentGaugeProps> = ({ bookings, pending, complete
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <svg width="160" height="90" viewBox="0 0 160 90">
-        {createArc(0, bookingsAngle, '#3B82F6')}
-        {createArc(bookingsAngle, bookingsAngle + pendingAngle, '#FBBF24')}
-        {createArc(bookingsAngle + pendingAngle, 180, '#10B981')}
+        {createArc(0, paidAngle, '#10B981')}
+        {createArc(paidAngle, paidAngle + pendingAngle, '#FBBF24')}
+        {createArc(paidAngle + pendingAngle, 180, '#EF4444')}
       </svg>
     </div>
   );
 };
 
 interface StatusBadgeProps {
-  status: 'Completed' | 'Pending' | 'In progress' | 'Initiated' | 'Failed';
+  status: PaymentStatus;
 }
 
 const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
   const getColor = () => {
     switch (status) {
-      case 'Completed': return '#10B981';
-      case 'Pending': return '#F59E0B';
-      case 'In progress': return '#3B82F6';
-      case 'Initiated': return '#6B7280';
-      case 'Failed': return '#EF4444';
+      case 'paid': return '#10B981';
+      case 'pending': return '#F59E0B';
+      case 'partially_paid': return '#3B82F6';
+      case 'failed': return '#EF4444';
+      case 'refunded': return '#6B7280';
       default: return '#6B7280';
     }
   };
 
   return (
-    <span style={{ fontSize: '0.85rem', fontWeight: '500', color: getColor() }}>
-      {status}
+    <span style={{ fontSize: '0.85rem', fontWeight: '500', color: getColor(), textTransform: 'capitalize' }}>
+      {status.replace('_', ' ')}
     </span>
   );
 };
 
-interface TransactionTypeBadgeProps {
-  type: 'Booking Payment' | 'Service Fee' | 'Refund' | 'Deposit' | 'Tip';
+interface EventTypeBadgeProps {
+  type: string;
 }
 
-const TransactionTypeBadge: React.FC<TransactionTypeBadgeProps> = ({ type }) => {
+const EventTypeBadge: React.FC<EventTypeBadgeProps> = ({ type }) => {
   const getColor = () => {
     switch (type) {
-      case 'Booking Payment': return '#3B82F6';
-      case 'Service Fee': return '#8B5CF6';
-      case 'Refund': return '#10B981';
-      case 'Deposit': return '#F59E0B';
-      case 'Tip': return '#F20C8F';
+      case 'Wedding': return '#F20C8F';
+      case 'Birthday': return '#8B5CF6';
+      case 'Corporate': return '#3B82F6';
+      case 'Festival': return '#10B981';
+      case 'Portrait': return '#F59E0B';
       default: return '#6B7280';
     }
   };
@@ -807,34 +1039,41 @@ const TransactionTypeBadge: React.FC<TransactionTypeBadgeProps> = ({ type }) => 
   );
 };
 
-const TransactionsPage = () => {
+const PaymentsPage = () => {
   const [activeTimeFilter, setActiveTimeFilter] = useState<'1W' | '1M' | '3M' | '6M' | '1Y'>('1W');
   const [currentPage, setCurrentPage] = useState(1);
   const [chartType, setChartType] = useState<ChartType>('line');
   const [showReportModal, setShowReportModal] = useState(false);
-  const [showTransactionModal, setShowTransactionModal] = useState(false);
-  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showPayNowModal, setShowPayNowModal] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [payNowPayment, setPayNowPayment] = useState<Payment | null>(null);
 
-  const handleViewTransaction = (transaction: Transaction) => {
-    setSelectedTransaction(transaction);
-    setShowTransactionModal(true);
+  const handleViewPayment = (payment: Payment) => {
+    setSelectedPayment(payment);
+    setShowPaymentModal(true);
   };
 
-  const handleDownloadReceipt = (transaction: Transaction) => {
+  const handlePayNow = (payment: Payment) => {
+    setPayNowPayment(payment);
+    setShowPayNowModal(true);
+  };
+
+  const handleDownloadReceipt = (payment: Payment) => {
     const receiptContent = `
 =====================================
-        TRANSACTION RECEIPT
+        PAYMENT RECEIPT
 =====================================
 
-Transaction ID: ${transaction.requestId}
-Date: ${transaction.date}
-Status: ${transaction.status}
+Invoice: ${payment.invoiceNumber}
+Date: ${payment.date}
+Status: ${payment.status}
 
-From: ${transaction.name}
-Type: ${transaction.type}
-Payment Method: ${transaction.method}
+Event: ${payment.eventName}
+Photographer: ${payment.photographerName}
+Payment Method: ${payment.method}
 
-Amount: ${transaction.amount}
+Amount: ${payment.amount}
 
 =====================================
     Thank you for using Connekt
@@ -844,40 +1083,40 @@ Amount: ${transaction.amount}
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `receipt-${transaction.requestId}.txt`;
+    a.download = `receipt-${payment.invoiceNumber}.txt`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
   const spendingData = [
-    { date: 'July 13', value: 5200 },
-    { date: 'July 14', value: 5100 },
-    { date: 'July 15', value: 5300 },
-    { date: 'July 16', value: 5400 },
-    { date: 'July 17', value: 5600 },
-    { date: 'July 18', value: 5500 },
-    { date: 'July 19', value: 5400 }
+    { date: 'Nov 13', value: 450 },
+    { date: 'Nov 14', value: 300 },
+    { date: 'Nov 15', value: 500 },
+    { date: 'Nov 16', value: 350 },
+    { date: 'Nov 17', value: 200 },
+    { date: 'Nov 18', value: 400 },
+    { date: 'Nov 19', value: 150 }
   ];
 
-  const transactions = [
-    { id: 1, date: 'July, 13 20:05 PM', name: 'James Photography', type: 'Booking Payment' as const, avatar: 'https://randomuser.me/api/portraits/men/32.jpg', method: 'Mobile Money', amount: '$250.0', status: 'Completed' as const, requestId: 'AX23412' },
-    { id: 2, date: 'July, 2 18:46 PM', name: 'Kagabo Studios', type: 'Booking Payment' as const, avatar: 'https://randomuser.me/api/portraits/men/45.jpg', method: 'Mobile Money', amount: '$5,500.0', status: 'Pending' as const, requestId: 'AX23413' },
-    { id: 3, date: 'July, 15 20:05 PM', name: 'Connekt Platform', type: 'Service Fee' as const, avatar: '/logo.png', method: 'Master Card', amount: '$50.0', status: 'In progress' as const, requestId: 'AX23414' },
-    { id: 4, date: 'July, 13 20:05 PM', name: 'Penny Gloria Photo', type: 'Booking Payment' as const, avatar: 'https://randomuser.me/api/portraits/women/44.jpg', method: 'Mobile Money', amount: '$200.0', status: 'Completed' as const, requestId: 'AX23415' },
-    { id: 5, date: 'July, 13 20:05 PM', name: 'James Photography', type: 'Deposit' as const, avatar: 'https://randomuser.me/api/portraits/men/32.jpg', method: 'Bank Transfer', amount: '$250.0', status: 'Initiated' as const, requestId: 'AX23416' },
-    { id: 6, date: 'July, 13 20:05 PM', name: 'Diane Studios', type: 'Booking Payment' as const, avatar: 'https://randomuser.me/api/portraits/women/68.jpg', method: 'Visa Card', amount: '$250.0', status: 'Failed' as const, requestId: 'AX23417' },
-    { id: 7, date: 'July, 13 20:05 PM', name: 'Kagabo Studios', type: 'Refund' as const, avatar: 'https://randomuser.me/api/portraits/men/45.jpg', method: 'Mobile Money', amount: '$150.0', status: 'Completed' as const, requestId: 'AX23418' },
-    { id: 8, date: 'July, 7 14:44 PM', name: 'Elite Photography', type: 'Booking Payment' as const, avatar: 'https://randomuser.me/api/portraits/men/22.jpg', method: 'Mobile Money', amount: '$5,500.0', status: 'Pending' as const, requestId: 'AX23419' },
-    { id: 9, date: 'July, 19 20:03 PM', name: 'Connekt Platform', type: 'Service Fee' as const, avatar: '/logo.png', method: 'Mobile Money', amount: '$50.0', status: 'Completed' as const, requestId: 'AX23420' },
-    { id: 10, date: 'July, 7 14:44 PM', name: 'James Photography', type: 'Tip' as const, avatar: 'https://randomuser.me/api/portraits/men/32.jpg', method: 'Mobile Money', amount: '$50.0', status: 'Completed' as const, requestId: 'AX23421' },
-    { id: 11, date: 'July, 13 20:05 PM', name: 'Connekt Platform', type: 'Service Fee' as const, avatar: '/logo.png', method: 'Mobile Card', amount: '$50.0', status: 'In progress' as const, requestId: 'AX23422' },
-    { id: 12, date: 'July, 13 20:05 PM', name: 'Penny Gloria Photo', type: 'Deposit' as const, avatar: 'https://randomuser.me/api/portraits/women/44.jpg', method: 'Mobile Money', amount: '$200.0', status: 'Completed' as const, requestId: 'AX23423' },
-    { id: 13, date: 'July, 13 20:05 PM', name: 'Elite Photography', type: 'Booking Payment' as const, avatar: 'https://randomuser.me/api/portraits/men/22.jpg', method: 'Bank Transfer', amount: '$350.0', status: 'Pending' as const, requestId: 'AX23424' }
+  const payments: Payment[] = [
+    { id: 1, date: 'Nov, 20 14:05 PM', eventName: 'Sarah & James Wedding', eventType: 'Wedding', photographerName: 'John Studio', photographerImage: 'https://randomuser.me/api/portraits/men/75.jpg', method: 'Credit Card', amount: '$450.0', amountNum: 450, paidAmount: 450, status: 'paid', invoiceNumber: 'INV-2024-001' },
+    { id: 2, date: 'Nov, 18 10:30 AM', eventName: 'Emily\'s 5th Birthday', eventType: 'Birthday', photographerName: 'Mary Shots', photographerImage: 'https://randomuser.me/api/portraits/women/68.jpg', method: 'Mobile Money', amount: '$300.0', amountNum: 300, paidAmount: 150, status: 'partially_paid', invoiceNumber: 'INV-2024-002' },
+    { id: 3, date: 'Nov, 25 09:00 AM', eventName: 'MTN Annual Conference', eventType: 'Corporate', photographerName: 'Elite Photography', photographerImage: 'https://randomuser.me/api/portraits/men/22.jpg', method: '-', amount: '$500.0', amountNum: 500, paidAmount: 0, status: 'pending', invoiceNumber: 'INV-2024-003' },
+    { id: 4, date: 'Sep, 15 16:00 PM', eventName: 'Nyege Nyege Festival', eventType: 'Festival', photographerName: 'Alex Frames', photographerImage: 'https://randomuser.me/api/portraits/men/44.jpg', method: 'Bank Transfer', amount: '$350.0', amountNum: 350, paidAmount: 350, status: 'paid', invoiceNumber: 'INV-2024-004' },
+    { id: 5, date: 'Nov, 25 14:00 PM', eventName: 'Personal Photoshoot', eventType: 'Portrait', photographerName: 'Sarah Lens', photographerImage: 'https://randomuser.me/api/portraits/women/44.jpg', method: 'Credit Card', amount: '$200.0', amountNum: 200, paidAmount: 0, status: 'failed', invoiceNumber: 'INV-2024-005' },
+    { id: 6, date: 'Oct, 01 11:00 AM', eventName: 'Product Launch Event', eventType: 'Corporate', photographerName: 'Elite Photography', photographerImage: 'https://randomuser.me/api/portraits/men/22.jpg', method: 'Credit Card', amount: '$400.0', amountNum: 400, paidAmount: 400, status: 'refunded', invoiceNumber: 'INV-2024-006' },
+    { id: 7, date: 'Nov, 12 15:30 PM', eventName: 'Baby Shower', eventType: 'Birthday', photographerName: 'Mary Shots', photographerImage: 'https://randomuser.me/api/portraits/women/68.jpg', method: 'Mobile Money', amount: '$250.0', amountNum: 250, paidAmount: 250, status: 'paid', invoiceNumber: 'INV-2024-007' },
+    { id: 8, date: 'Nov, 28 10:00 AM', eventName: 'Team Headshots', eventType: 'Corporate', photographerName: 'Elite Photography', photographerImage: 'https://randomuser.me/api/portraits/men/22.jpg', method: '-', amount: '$350.0', amountNum: 350, paidAmount: 0, status: 'pending', invoiceNumber: 'INV-2024-008' },
   ];
 
-  const totalPages = 10;
-  const resultsPerPage = 5;
-  const totalResults = 25;
+  // Calculate totals
+  const totalPaid = payments.filter(p => p.status === 'paid').reduce((sum, p) => sum + p.amountNum, 0);
+  const totalPending = payments.filter(p => p.status === 'pending' || p.status === 'partially_paid').reduce((sum, p) => sum + (p.amountNum - p.paidAmount), 0);
+  const totalFailed = payments.filter(p => p.status === 'failed').reduce((sum, p) => sum + p.amountNum, 0);
+
+  const totalPages = 5;
+  const resultsPerPage = 8;
+  const totalResults = payments.length;
 
   return (
     <div style={{ display: 'flex', height: '100vh', backgroundColor: '#F9FAFB' }}>
@@ -888,19 +1127,22 @@ Amount: ${transaction.amount}
 
           {/* Header */}
           <header style={{ marginBottom: '1.5rem' }}>
-            <h1 style={{ fontSize: '1.8rem', lineHeight: '2rem', color: '#111827', fontWeight: '600' }}>Transactions</h1>
+            <h1 style={{ fontSize: '1.8rem', lineHeight: '2rem', color: '#111827', fontWeight: '600' }}>Payments</h1>
+            <p style={{ fontSize: '0.95rem', color: '#6B7280', marginTop: '0.25rem' }}>
+              Manage your payments and view transaction history
+            </p>
           </header>
 
-          {/* Top Row - Earnings Chart and Payroll Summary */}
+          {/* Top Row - Spending Chart and Payment Summary */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '1rem', marginBottom: '1rem' }}>
 
-            {/* Earnings Chart */}
+            {/* Spending Chart */}
             <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
                 <div>
                   <div style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '0.25rem' }}>Total Spending</div>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '1rem' }}>
-                    <span style={{ fontSize: '1.75rem', fontWeight: '700', color: '#111827' }}>$18,500.04</span>
+                    <span style={{ fontSize: '1.75rem', fontWeight: '700', color: '#111827' }}>${(totalPaid + totalPending + totalFailed).toLocaleString()}</span>
                     <span style={{ fontSize: '0.85rem', color: '#6B7280', fontWeight: '500' }}>This period</span>
                   </div>
                 </div>
@@ -993,45 +1235,45 @@ Amount: ${transaction.amount}
             <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                 <div>
-                  <div style={{ fontSize: '0.9rem', fontWeight: '600', color: '#111827' }}>Payment summary</div>
-                  <div style={{ fontSize: '0.75rem', color: '#6B7280' }}>From 13 - 18 July 2025</div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: '600', color: '#111827' }}>Payment Summary</div>
+                  <div style={{ fontSize: '0.75rem', color: '#6B7280' }}>Current Period</div>
                 </div>
                 <button onClick={() => setShowReportModal(true)} style={{ fontSize: '0.85rem', color: '#2563EB', textDecoration: 'none', fontWeight: '500', background: 'none', border: 'none', cursor: 'pointer' }}>View report</button>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#3B82F6' }} />
-                    <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>Bookings</span>
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10B981' }} />
+                    <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>Paid</span>
                   </div>
-                  <div style={{ fontSize: '1rem', fontWeight: '700', color: '#111827' }}>$1,200.13</div>
+                  <div style={{ fontSize: '1rem', fontWeight: '700', color: '#111827' }}>${totalPaid.toLocaleString()}</div>
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#FBBF24' }} />
                     <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>Pending</span>
                   </div>
-                  <div style={{ fontSize: '1rem', fontWeight: '700', color: '#111827' }}>$350.13</div>
+                  <div style={{ fontSize: '1rem', fontWeight: '700', color: '#111827' }}>${totalPending.toLocaleString()}</div>
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10B981' }} />
-                    <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>Completed</span>
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#EF4444' }} />
+                    <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>Failed</span>
                   </div>
-                  <div style={{ fontSize: '1rem', fontWeight: '700', color: '#111827' }}>$949.87</div>
+                  <div style={{ fontSize: '1rem', fontWeight: '700', color: '#111827' }}>${totalFailed.toLocaleString()}</div>
                 </div>
               </div>
-              <PaymentGauge bookings={1200.13} pending={350.13} completed={949.87} />
+              <PaymentGauge paid={totalPaid} pending={totalPending} failed={totalFailed} />
             </div>
           </div>
 
-          {/* Transactions History Table */}
+          {/* Payments History Table */}
           <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)', overflow: 'hidden' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderBottom: '1px solid #E5E7EB' }}>
-              <h2 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#111827' }}>Transactions History</h2>
+              <h2 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#111827' }}>Payment History</h2>
               <button style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'white', border: '1px solid #E5E7EB', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', fontSize: '0.85rem', color: '#6B7280', cursor: 'pointer' }}>
                 <CalendarIcon />
-                19 Jun - 29 July 2024
+                19 Nov - 29 Nov 2024
               </button>
             </div>
 
@@ -1039,40 +1281,84 @@ Amount: ${transaction.amount}
               <thead>
                 <tr style={{ backgroundColor: '#F9FAFB' }}>
                   <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>Date</th>
-                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>Transaction</th>
+                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>Event / Photographer</th>
                   <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>Method</th>
                   <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>Amount</th>
                   <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>Status</th>
-                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>Request Id</th>
+                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>Invoice</th>
                   <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
-                {transactions.map((transaction) => (
-                  <tr key={transaction.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
-                    <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.85rem', color: '#6B7280' }}>{transaction.date}</td>
+                {payments.map((payment) => (
+                  <tr key={payment.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                    <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.85rem', color: '#6B7280' }}>{payment.date}</td>
                     <td style={{ padding: '0.875rem 1.25rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <img src={transaction.avatar} alt={transaction.name} style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} />
+                        <Image src={payment.photographerImage} alt={payment.photographerName} width={32} height={32} style={{ borderRadius: '50%', objectFit: 'cover' }} />
                         <div>
-                          <div style={{ fontSize: '0.9rem', fontWeight: '500', color: '#111827' }}>{transaction.name}</div>
-                          <TransactionTypeBadge type={transaction.type} />
+                          <div style={{ fontSize: '0.9rem', fontWeight: '500', color: '#111827' }}>{payment.eventName}</div>
+                          <EventTypeBadge type={payment.eventType} />
                         </div>
                       </div>
                     </td>
-                    <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.85rem', color: '#6B7280' }}>{transaction.method}</td>
-                    <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.9rem', fontWeight: '600', color: '#111827' }}>{transaction.amount}</td>
-                    <td style={{ padding: '0.875rem 1.25rem' }}><StatusBadge status={transaction.status} /></td>
+                    <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.85rem', color: '#6B7280' }}>{payment.method}</td>
+                    <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.9rem', fontWeight: '600', color: '#111827' }}>{payment.amount}</td>
+                    <td style={{ padding: '0.875rem 1.25rem' }}><StatusBadge status={payment.status} /></td>
                     <td style={{ padding: '0.875rem 1.25rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>{transaction.requestId}</span>
+                        <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>{payment.invoiceNumber}</span>
                         <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}><CopyIcon /></button>
                       </div>
                     </td>
                     <td style={{ padding: '0.875rem 1.25rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <button onClick={() => handleDownloadReceipt(transaction)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }} title="Download Receipt"><DownloadIcon /></button>
-                        <button onClick={() => handleViewTransaction(transaction)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }} title="View Details"><ViewIcon /></button>
+                        {(payment.status === 'pending' || payment.status === 'partially_paid') && (
+                          <button
+                            onClick={() => handlePayNow(payment)}
+                            style={{
+                              backgroundColor: '#083A85',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '0.375rem',
+                              padding: '0.375rem 0.75rem',
+                              fontSize: '0.75rem',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.25rem'
+                            }}
+                          >
+                            <CreditCardIcon />
+                            Pay Now
+                          </button>
+                        )}
+                        {payment.status === 'failed' && (
+                          <button
+                            onClick={() => handlePayNow(payment)}
+                            style={{
+                              backgroundColor: '#F20C8F',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '0.375rem',
+                              padding: '0.375rem 0.75rem',
+                              fontSize: '0.75rem',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.25rem'
+                            }}
+                          >
+                            <RefreshIcon />
+                            Retry
+                          </button>
+                        )}
+                        {payment.status === 'paid' && (
+                          <button onClick={() => handleDownloadReceipt(payment)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }} title="Download Receipt"><DownloadIcon /></button>
+                        )}
+                        <button onClick={() => handleViewPayment(payment)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }} title="View Details"><ViewIcon /></button>
                       </div>
                     </td>
                   </tr>
@@ -1107,13 +1393,18 @@ Amount: ${transaction.amount}
 
       {/* Modals */}
       <ViewReportModal isOpen={showReportModal} onClose={() => setShowReportModal(false)} />
-      <TransactionDetailsModal
-        isOpen={showTransactionModal}
-        onClose={() => setShowTransactionModal(false)}
-        transaction={selectedTransaction}
+      <PaymentDetailsModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        payment={selectedPayment}
+      />
+      <PayNowModal
+        isOpen={showPayNowModal}
+        onClose={() => setShowPayNowModal(false)}
+        payment={payNowPayment}
       />
     </div>
   );
 };
 
-export default TransactionsPage;
+export default PaymentsPage;
