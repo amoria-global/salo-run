@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
-type UserRole = "photographer" | "client" | "freelancer";
+type UserRole = "photographer" | "client";
 
 interface NavigationItem {
   name: string;
@@ -30,31 +30,32 @@ const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
     { name: "Payments", href: "/user/client/payments", icon: "bi-credit-card" },
     { name: "Inbox", href: "/user/client/inbox", icon: "bi-chat-dots" },
   ],
-  freelancer: [
-    { name: "Home", href: "/user/freelancer/home", icon: "bi-house" },
-    { name: "Projects", href: "/user/freelancer/projects", icon: "bi-folder" },
-    { name: "Clients", href: "/user/freelancer/clients", icon: "bi-people" },
-    { name: "Invoices", href: "/user/freelancer/invoices", icon: "bi-file-text" },
-    { name: "Transactions", href: "/user/freelancer/transactions", icon: "bi-arrow-repeat" },
-    { name: "Portfolio", href: "/user/freelancer/portfolio", icon: "bi-image" },
-    { name: "Inbox", href: "/user/freelancer/inbox", icon: "bi-chat-dots" },
-  ],
 };
 
-const bottomNavigationItems: NavigationItem[] = [
-  { name: "Profile", href: "/user/client/profile", icon: "bi-person" },
-  { name: "Preferences", href: "/preferences", icon: "bi-sliders" },
-  { name: "Logout", href: "/logout", icon: "bi-box-arrow-right" },
+// Role-based bottom navigation
+const getBottomNavigationItems = (role: UserRole): NavigationItem[] => [
+  { name: "Profile", href: role === "photographer" ? "/user/photographers/profile" : "/user/client/profile", icon: "bi-person" },
+  { name: "Preferences", href: role === "photographer" ? "/user/photographers/preferences" : "/user/client/preferences", icon: "bi-sliders" },
+  { name: "Logout", href: "/", icon: "bi-box-arrow-right" },
 ];
+
+// Function to detect role from pathname
+const detectRoleFromPath = (pathname: string): UserRole => {
+  if (pathname.includes("/user/photographers")) {
+    return "photographer";
+  }
+  return "client";
+};
 
 export default function Sidebar() {
   const pathname = usePathname();
-
-  // Local state for role - change "client" to "photographer" or "freelancer" to test different roles
-  const [currentRole, setCurrentRole] = useState<UserRole>("freelancer");
   const [isCollapsed, setIsCollapsed] = useState(false);
 
+  // Automatically detect role from current URL path
+  const currentRole = useMemo(() => detectRoleFromPath(pathname), [pathname]);
+
   const navigationItems = roleNavigationMap[currentRole];
+  const bottomNavigationItems = getBottomNavigationItems(currentRole);
 
   const toggleSidebar = () => {
     setIsCollapsed(!isCollapsed);
