@@ -1,5 +1,6 @@
-import TransactionsPage from '@/app/pages/client/transactions';
+import { redirect } from 'next/navigation';
 
 export default function Page() {
-  return <TransactionsPage />;
+  // Transactions functionality is now part of Payments page
+  redirect('/user/client/payments');
 }
