@@ -115,7 +115,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
       }} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
           <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#111827', margin: 0 }}>{title}</h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}>
+          <button className="no-print" onClick={onClose} style={{ background: '#F3F4F6', border: '2px solid #D1D5DB', cursor: 'pointer', padding: '0.5rem', borderRadius: '0.375rem', color: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <CloseIcon />
           </button>
         </div>
@@ -241,7 +241,7 @@ Transaction Summary:
       </div>
 
       {/* Actions */}
-      <div style={{ display: 'flex', gap: '0.5rem' }}>
+      <div className="no-print" style={{ display: 'flex', gap: '0.5rem' }}>
         <button onClick={handleDownload} style={{
           flex: 1,
           display: 'flex',
@@ -250,7 +250,7 @@ Transaction Summary:
           gap: '0.5rem',
           backgroundColor: '#083A85',
           color: 'white',
-          border: 'none',
+          border: '2px solid #062a63',
           borderRadius: '0.5rem',
           padding: '0.6rem 1rem',
           fontSize: '0.85rem',
@@ -265,13 +265,13 @@ Transaction Summary:
           alignItems: 'center',
           justifyContent: 'center',
           gap: '0.5rem',
-          backgroundColor: 'white',
-          color: '#6B7280',
-          border: '1px solid #E5E7EB',
+          backgroundColor: '#F3F4F6',
+          color: '#374151',
+          border: '2px solid #D1D5DB',
           borderRadius: '0.5rem',
           padding: '0.6rem 1rem',
           fontSize: '0.85rem',
-          fontWeight: '500',
+          fontWeight: '600',
           cursor: 'pointer'
         }}>
           <PrintIcon />
@@ -420,7 +420,7 @@ Amount: ${payment.amount}
       </div>
 
       {/* Actions */}
-      <div style={{ display: 'flex', gap: '0.75rem' }}>
+      <div className="no-print" style={{ display: 'flex', gap: '0.75rem' }}>
         <button onClick={handleDownloadReceipt} style={{
           flex: 1,
           display: 'flex',
@@ -429,7 +429,7 @@ Amount: ${payment.amount}
           gap: '0.5rem',
           backgroundColor: '#083A85',
           color: 'white',
-          border: 'none',
+          border: '2px solid #062a63',
           borderRadius: '0.5rem',
           padding: '0.75rem 1rem',
           fontSize: '0.9rem',
@@ -444,26 +444,26 @@ Amount: ${payment.amount}
           alignItems: 'center',
           justifyContent: 'center',
           gap: '0.5rem',
-          backgroundColor: 'white',
-          color: '#6B7280',
-          border: '1px solid #E5E7EB',
+          backgroundColor: '#F3F4F6',
+          color: '#374151',
+          border: '2px solid #D1D5DB',
           borderRadius: '0.5rem',
           padding: '0.75rem 1rem',
           fontSize: '0.9rem',
-          fontWeight: '500',
+          fontWeight: '600',
           cursor: 'pointer'
         }}>
           <PrintIcon />
           Print
         </button>
         <button onClick={onClose} style={{
-          backgroundColor: 'white',
-          color: '#6B7280',
-          border: '1px solid #E5E7EB',
+          backgroundColor: '#F3F4F6',
+          color: '#374151',
+          border: '2px solid #D1D5DB',
           borderRadius: '0.5rem',
           padding: '0.75rem 1rem',
           fontSize: '0.9rem',
-          fontWeight: '500',
+          fontWeight: '600',
           cursor: 'pointer'
         }}>
           Close
@@ -526,7 +526,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
                   alignItems: 'center',
                   gap: '0.75rem',
                   padding: '0.875rem',
-                  border: selectedPaymentMethod === method.id ? '2px solid #083A85' : '1px solid #E5E7EB',
+                  border: selectedPaymentMethod === method.id ? '2px solid #083A85' : '2px solid #D1D5DB',
                   borderRadius: '0.5rem',
                   cursor: 'pointer',
                   backgroundColor: selectedPaymentMethod === method.id ? '#EFF6FF' : 'white'
@@ -538,7 +538,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
                   value={method.id}
                   checked={selectedPaymentMethod === method.id}
                   onChange={() => setSelectedPaymentMethod(method.id)}
-                  style={{ width: '16px', height: '16px' }}
+                  style={{ width: '16px', height: '16px', cursor: 'pointer' }}
                 />
                 <span style={{ fontSize: '1.25rem' }}>{method.icon}</span>
                 <span style={{ fontSize: '0.9rem', fontWeight: '500', color: '#374151' }}>{method.label}</span>
@@ -560,7 +560,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
                 style={{
                   width: '100%',
                   padding: '0.75rem',
-                  border: '1px solid #E5E7EB',
+                  border: '2px solid #D1D5DB',
                   borderRadius: '0.5rem',
                   fontSize: '0.9rem'
                 }}
@@ -577,7 +577,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
                   style={{
                     width: '100%',
                     padding: '0.75rem',
-                    border: '1px solid #E5E7EB',
+                    border: '2px solid #D1D5DB',
                     borderRadius: '0.5rem',
                     fontSize: '0.9rem'
                   }}
@@ -593,7 +593,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
                   style={{
                     width: '100%',
                     padding: '0.75rem',
-                    border: '1px solid #E5E7EB',
+                    border: '2px solid #D1D5DB',
                     borderRadius: '0.5rem',
                     fontSize: '0.9rem'
                   }}
@@ -615,7 +615,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
               style={{
                 width: '100%',
                 padding: '0.75rem',
-                border: '1px solid #E5E7EB',
+                border: '2px solid #D1D5DB',
                 borderRadius: '0.5rem',
                 fontSize: '0.9rem'
               }}
@@ -630,12 +630,12 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
             style={{
               flex: 1,
               padding: '0.75rem 1rem',
-              border: '1px solid #E5E7EB',
+              border: '2px solid #D1D5DB',
               borderRadius: '0.5rem',
-              background: 'white',
+              background: '#F3F4F6',
               color: '#374151',
               fontSize: '0.9rem',
-              fontWeight: '500',
+              fontWeight: '600',
               cursor: 'pointer'
             }}
           >
@@ -645,7 +645,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
             style={{
               flex: 1,
               padding: '0.75rem 1rem',
-              border: 'none',
+              border: payment.status === 'failed' ? '2px solid #c00a72' : '2px solid #062a63',
               borderRadius: '0.5rem',
               background: payment.status === 'failed' ? '#F20C8F' : '#083A85',
               color: 'white',
@@ -1403,6 +1403,15 @@ Amount: ${payment.amount}
         onClose={() => setShowPayNowModal(false)}
         payment={payNowPayment}
       />
+
+      {/* Print Styles */}
+      <style>{`
+        @media print {
+          .no-print {
+            display: none !important;
+          }
+        }
+      `}</style>
     </div>
   );
 };
