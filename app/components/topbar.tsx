@@ -85,7 +85,7 @@ export default function Topbar() {
     }
   };
 
-  // Close dropdowns when clicking outside
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
