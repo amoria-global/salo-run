@@ -32,7 +32,7 @@ const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
   ],
 };
 
-// Role-based bottom navigation
+// Role-based bottom navigations
 const getBottomNavigationItems = (role: UserRole): NavigationItem[] => [
   { name: "Profile", href: role === "photographer" ? "/user/photographers/profile" : "/user/client/profile", icon: "bi-person" },
   { name: "Preferences", href: role === "photographer" ? "/user/photographers/preferences" : "/user/client/preferences", icon: "bi-sliders" },
@@ -40,8 +40,8 @@ const getBottomNavigationItems = (role: UserRole): NavigationItem[] => [
 ];
 
 // Function to detect role from pathname
-const detectRoleFromPath = (pathname: string): UserRole => {
-  if (pathname.includes("/user/photographers")) {
+const detectRoleFromPath = (pathname: string | null): UserRole => {
+  if (pathname && pathname.includes("/user/photographers")) {
     return "photographer";
   }
   return "client";
