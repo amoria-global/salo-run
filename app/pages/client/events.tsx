@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 
@@ -138,6 +139,7 @@ const QRCodeIcon = () => (
   </svg>
 );
 
+// Types
 interface Event {
   id: string;
   title: string;
@@ -218,6 +220,21 @@ const MyEventsPage = () => {
   const [shareEvent, setShareEvent] = useState<Event | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteEvent, setDeleteEvent] = useState<Event | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editEvent, setEditEvent] = useState<Event | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  // Edit form state
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editEventType, setEditEventType] = useState('');
+  const [editDate, setEditDate] = useState('');
+  const [editTime, setEditTime] = useState('');
+  const [editDuration, setEditDuration] = useState('');
+  const [editAddress, setEditAddress] = useState('');
+  const [editCity, setEditCity] = useState('');
+  const [editCountry, setEditCountry] = useState('');
+  const [editMaxGuests, setEditMaxGuests] = useState('');
 
   const [events, setEvents] = useState<Event[]>([
     {
@@ -323,6 +340,55 @@ const MyEventsPage = () => {
       setDeleteEvent(null);
       setShowDeleteModal(false);
     }
+  };
+
+  const openEditModal = (event: Event) => {
+    setEditEvent(event);
+    setEditTitle(event.title);
+    setEditDescription(event.description);
+    setEditEventType(event.eventType);
+    setEditDate(event.date);
+    setEditTime(event.time);
+    setEditDuration(event.duration);
+    setEditAddress(event.location.address);
+    setEditCity(event.location.city);
+    setEditCountry(event.location.country);
+    setEditMaxGuests(event.maxGuests.toString());
+    setShowEditModal(true);
+  };
+
+  const handleEditEvent = () => {
+    if (!editEvent || !editTitle || !editEventType || !editDate || !editTime) return;
+
+    setEvents(prev => prev.map(event => {
+      if (event.id === editEvent.id) {
+        return {
+          ...event,
+          title: editTitle,
+          description: editDescription,
+          eventType: editEventType,
+          date: editDate,
+          time: editTime,
+          duration: editDuration,
+          location: {
+            address: editAddress,
+            city: editCity,
+            country: editCountry
+          },
+          maxGuests: parseInt(editMaxGuests) || event.maxGuests
+        };
+      }
+      return event;
+    }));
+
+    setShowEditModal(false);
+    setEditEvent(null);
+  };
+
+  const handleCopyLink = (link: string) => {
+    navigator.clipboard.writeText(link);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
   };
 
   const formatDate = (dateStr: string) => {
@@ -555,6 +621,25 @@ const MyEventsPage = () => {
                       }}>
                         <CameraIcon />
                         {event.photographerName}
+                        <Link
+                          href="/user/client/photographers"
+                          style={{
+                            marginLeft: '0.5rem',
+                            padding: '0.25rem 0.5rem',
+                            backgroundColor: '#083A85',
+                            color: 'white',
+                            borderRadius: '0.25rem',
+                            fontSize: '0.7rem',
+                            fontWeight: '600',
+                            textDecoration: 'none',
+                            border: '1px solid rgba(255, 255, 255, 0.3)',
+                            transition: 'background 0.2s'
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#062a63'}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#083A85'}
+                        >
+                          View
+                        </Link>
                       </div>
                     )}
                   </div>
@@ -600,7 +685,7 @@ const MyEventsPage = () => {
                             gap: '0.375rem',
                             backgroundColor: '#F3F4F6',
                             color: '#374151',
-                            border: 'none',
+                            border: '2px solid #D1D5DB',
                             borderRadius: '0.375rem',
                             padding: '0.5rem 0.75rem',
                             fontSize: '0.8rem',
@@ -618,7 +703,7 @@ const MyEventsPage = () => {
                             justifyContent: 'center',
                             backgroundColor: '#F3F4F6',
                             color: '#374151',
-                            border: 'none',
+                            border: '2px solid #D1D5DB',
                             borderRadius: '0.375rem',
                             padding: '0.5rem',
                             cursor: 'pointer'
@@ -631,13 +716,14 @@ const MyEventsPage = () => {
                       {event.status === 'upcoming' && (
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                           <button
+                            onClick={() => openEditModal(event)}
                             style={{
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              backgroundColor: 'white',
+                              backgroundColor: '#F3F4F6',
                               color: '#374151',
-                              border: '1px solid #E5E7EB',
+                              border: '2px solid #D1D5DB',
                               borderRadius: '0.375rem',
                               padding: '0.5rem',
                               cursor: 'pointer'
@@ -652,14 +738,14 @@ const MyEventsPage = () => {
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              backgroundColor: 'white',
+                              backgroundColor: '#FEF2F2',
                               color: '#DC2626',
-                              border: '1px solid #FEE2E2',
+                              border: '2px solid #FECACA',
                               borderRadius: '0.375rem',
                               padding: '0.5rem',
                               cursor: 'pointer'
                             }}
-                            title="Cancel Event"
+                            title="Delete Event"
                           >
                             <TrashIcon />
                           </button>
@@ -689,7 +775,8 @@ const MyEventsPage = () => {
                 padding: '0.75rem',
                 border: '1px solid #E5E7EB',
                 borderRadius: '0.5rem',
-                fontSize: '0.9rem'
+                fontSize: '0.9rem',
+                color: '#111827'
               }}
             />
           </div>
@@ -704,7 +791,8 @@ const MyEventsPage = () => {
               border: '1px solid #E5E7EB',
               borderRadius: '0.5rem',
               fontSize: '0.9rem',
-              backgroundColor: 'white'
+              backgroundColor: 'white',
+              color: '#111827'
             }}>
               <option value="">Select event type</option>
               {eventTypes.map(type => <option key={type} value={type}>{type}</option>)}
@@ -723,7 +811,8 @@ const MyEventsPage = () => {
                   padding: '0.75rem',
                   border: '1px solid #E5E7EB',
                   borderRadius: '0.5rem',
-                  fontSize: '0.9rem'
+                  fontSize: '0.9rem',
+                  color: '#111827'
                 }}
               />
             </div>
@@ -738,7 +827,8 @@ const MyEventsPage = () => {
                   padding: '0.75rem',
                   border: '1px solid #E5E7EB',
                   borderRadius: '0.5rem',
-                  fontSize: '0.9rem'
+                  fontSize: '0.9rem',
+                  color: '#111827'
                 }}
               />
             </div>
@@ -756,7 +846,8 @@ const MyEventsPage = () => {
                 padding: '0.75rem',
                 border: '1px solid #E5E7EB',
                 borderRadius: '0.5rem',
-                fontSize: '0.9rem'
+                fontSize: '0.9rem',
+                color: '#111827'
               }}
             />
           </div>
@@ -774,7 +865,8 @@ const MyEventsPage = () => {
                   padding: '0.75rem',
                   border: '1px solid #E5E7EB',
                   borderRadius: '0.5rem',
-                  fontSize: '0.9rem'
+                  fontSize: '0.9rem',
+                  color: '#111827'
                 }}
               />
             </div>
@@ -788,7 +880,8 @@ const MyEventsPage = () => {
                 border: '1px solid #E5E7EB',
                 borderRadius: '0.5rem',
                 fontSize: '0.9rem',
-                backgroundColor: 'white'
+                backgroundColor: 'white',
+                color: '#111827'
               }}>
                 <option value="Rwanda">Rwanda</option>
                 <option value="Kenya">Kenya</option>
@@ -811,7 +904,8 @@ const MyEventsPage = () => {
                 padding: '0.75rem',
                 border: '1px solid #E5E7EB',
                 borderRadius: '0.5rem',
-                fontSize: '0.9rem'
+                fontSize: '0.9rem',
+                color: '#111827'
               }}
             />
           </div>
@@ -829,7 +923,8 @@ const MyEventsPage = () => {
                 borderRadius: '0.5rem',
                 fontSize: '0.9rem',
                 minHeight: '80px',
-                resize: 'vertical'
+                resize: 'vertical',
+                color: '#111827'
               }}
             />
           </div>
@@ -869,17 +964,78 @@ const MyEventsPage = () => {
       </Modal>
 
       {/* Event Details Modal */}
-      <Modal isOpen={!!showEventDetails} onClose={() => setShowEventDetails(null)} title="Event Details" maxWidth="600px">
-        {showEventDetails && (
-          <div>
-            {/* Cover Image */}
-            <div style={{ position: 'relative', height: '180px', margin: '-1.5rem -1.5rem 1.25rem -1.5rem', overflow: 'hidden' }}>
-              <Image
-                src={showEventDetails.coverImage}
-                alt={showEventDetails.title}
-                fill
-                style={{ objectFit: 'cover' }}
-              />
+      {showEventDetails && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+        }} onClick={() => setShowEventDetails(null)}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '0 0 0.75rem 0.75rem',
+            maxWidth: '600px',
+            width: '90%',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+          }} onClick={(e) => e.stopPropagation()}>
+            {/* Cover Image with overlay */}
+            <div style={{ position: 'relative', height: '160px', overflow: 'hidden' }}>
+              <div style={{
+                width: '100%',
+                height: '160px',
+                backgroundImage: `url(${showEventDetails.coverImage})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center'
+              }}>
+                <div style={{
+                  position: 'absolute',
+                  inset: 0,
+                  backgroundColor: 'rgba(13, 27, 42, 0.3)'
+                }} />
+              </div>
+              {/* Close Button */}
+              <button
+                onClick={() => setShowEventDetails(null)}
+                style={{
+                  position: 'absolute',
+                  top: '1rem',
+                  right: '1rem',
+                  backgroundColor: 'rgba(255,255,255,0.95)',
+                  border: '2px solid #D1D5DB',
+                  borderRadius: '50%',
+                  width: '36px',
+                  height: '36px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#374151',
+                  zIndex: 5,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#ffffff';
+                  e.currentTarget.style.color = '#111827';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.95)';
+                  e.currentTarget.style.color = '#374151';
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+                }}
+              >
+                <CloseIcon />
+              </button>
+              {/* Status Badge */}
               <div style={{
                 position: 'absolute',
                 top: '1rem',
@@ -889,12 +1045,15 @@ const MyEventsPage = () => {
                 borderRadius: '9999px',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                textTransform: 'capitalize'
+                textTransform: 'capitalize',
+                zIndex: 5
               }}>
                 {showEventDetails.status}
               </div>
             </div>
 
+            {/* Content */}
+            <div style={{ padding: '1.5rem' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#111827', marginBottom: '0.75rem' }}>
               {showEventDetails.title}
             </h2>
@@ -948,17 +1107,36 @@ const MyEventsPage = () => {
             {showEventDetails.hasPhotographer && (
               <div style={{ backgroundColor: '#F0F9FF', borderRadius: '0.5rem', padding: '1rem', marginBottom: '1.25rem' }}>
                 <div style={{ fontSize: '0.85rem', color: '#0369A1', marginBottom: '0.5rem', fontWeight: '600' }}>Booked Photographer</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <Image
-                    src={showEventDetails.photographerImage || ''}
-                    alt={showEventDetails.photographerName || ''}
-                    width={40}
-                    height={40}
-                    style={{ borderRadius: '50%' }}
-                  />
-                  <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>
-                    {showEventDetails.photographerName}
-                  </span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <Image
+                      src={showEventDetails.photographerImage || ''}
+                      alt={showEventDetails.photographerName || ''}
+                      width={40}
+                      height={40}
+                      style={{ borderRadius: '50%' }}
+                    />
+                    <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>
+                      {showEventDetails.photographerName}
+                    </span>
+                  </div>
+                  <Link
+                    href="/user/client/photographers"
+                    style={{
+                      padding: '0.375rem 0.75rem',
+                      backgroundColor: '#083A85',
+                      color: 'white',
+                      borderRadius: '0.375rem',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      textDecoration: 'none',
+                      transition: 'background 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#062a63'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#083A85'}
+                  >
+                    View
+                  </Link>
                 </div>
               </div>
             )}
@@ -1002,14 +1180,12 @@ const MyEventsPage = () => {
                     border: '1px solid #E5E7EB',
                     borderRadius: '0.375rem',
                     fontSize: '0.9rem',
-                    backgroundColor: '#F9FAFB'
+                    backgroundColor: '#F9FAFB',
+                    color: '#111827'
                   }}
                 />
                 <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(showEventDetails.shareLink);
-                    alert('Link copied to clipboard!');
-                  }}
+                  onClick={() => handleCopyLink(showEventDetails.shareLink)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -1017,15 +1193,16 @@ const MyEventsPage = () => {
                     padding: '0.625rem 1rem',
                     border: 'none',
                     borderRadius: '0.375rem',
-                    background: '#083A85',
+                    background: copiedLink ? '#10B981' : '#083A85',
                     color: 'white',
                     fontSize: '0.9rem',
                     fontWeight: '500',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    transition: 'background 0.2s'
                   }}
                 >
                   <CopyIcon />
-                  Copy
+                  {copiedLink ? 'Copied!' : 'Copy'}
                 </button>
               </div>
             </div>
@@ -1035,15 +1212,16 @@ const MyEventsPage = () => {
               {showEventDetails.status === 'upcoming' && (
                 <>
                   <button
+                    onClick={() => { setShowEventDetails(null); openEditModal(showEventDetails); }}
                     style={{
                       flex: 1,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '0.5rem',
-                      backgroundColor: 'white',
+                      backgroundColor: '#F3F4F6',
                       color: '#374151',
-                      border: '1px solid #E5E7EB',
+                      border: '2px solid #D1D5DB',
                       borderRadius: '0.5rem',
                       padding: '0.75rem 1rem',
                       fontSize: '0.9rem',
@@ -1061,9 +1239,9 @@ const MyEventsPage = () => {
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '0.5rem',
-                      backgroundColor: 'white',
+                      backgroundColor: '#FEF2F2',
                       color: '#DC2626',
-                      border: '1px solid #FEE2E2',
+                      border: '2px solid #FECACA',
                       borderRadius: '0.5rem',
                       padding: '0.75rem 1rem',
                       fontSize: '0.9rem',
@@ -1072,7 +1250,7 @@ const MyEventsPage = () => {
                     }}
                   >
                     <TrashIcon />
-                    Cancel
+                    Delete
                   </button>
                 </>
               )}
@@ -1094,9 +1272,10 @@ const MyEventsPage = () => {
                 </button>
               )}
             </div>
+            </div>
           </div>
-        )}
-      </Modal>
+        </div>
+      )}
 
       {/* Share Modal */}
       <Modal isOpen={showShareModal} onClose={() => setShowShareModal(false)} title="Share Event">
@@ -1124,10 +1303,8 @@ const MyEventsPage = () => {
                   key={option.name}
                   onClick={() => {
                     if (option.name === 'Copy Link') {
-                      navigator.clipboard.writeText(shareEvent.shareLink);
-                      alert('Link copied to clipboard!');
+                      handleCopyLink(shareEvent.shareLink);
                     } else if (option.name === 'QR Code') {
-                      // QR Code would require a library, show alert for now
                       alert('QR Code feature coming soon!');
                     } else {
                       const url = option.getUrl(shareEvent.shareLink, shareEvent.title);
@@ -1136,13 +1313,13 @@ const MyEventsPage = () => {
                   }}
                   style={{
                     padding: '1rem',
-                    border: '1px solid #E5E7EB',
+                    border: option.name === 'Copy Link' && copiedLink ? '1px solid #10B981' : '1px solid #E5E7EB',
                     borderRadius: '0.5rem',
-                    background: 'white',
+                    background: option.name === 'Copy Link' && copiedLink ? '#ECFDF5' : 'white',
                     cursor: 'pointer',
                     fontSize: '0.85rem',
                     fontWeight: '500',
-                    color: '#374151',
+                    color: option.name === 'Copy Link' && copiedLink ? '#10B981' : '#374151',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
@@ -1150,16 +1327,20 @@ const MyEventsPage = () => {
                     transition: 'all 0.2s'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = option.color;
-                    e.currentTarget.style.color = option.color;
+                    if (!(option.name === 'Copy Link' && copiedLink)) {
+                      e.currentTarget.style.borderColor = option.color;
+                      e.currentTarget.style.color = option.color;
+                    }
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = '#E5E7EB';
-                    e.currentTarget.style.color = '#374151';
+                    if (!(option.name === 'Copy Link' && copiedLink)) {
+                      e.currentTarget.style.borderColor = '#E5E7EB';
+                      e.currentTarget.style.color = '#374151';
+                    }
                   }}
                 >
                   <span>{option.icon}</span>
-                  <span>{option.name}</span>
+                  <span>{option.name === 'Copy Link' && copiedLink ? 'Copied!' : option.name}</span>
                 </button>
               ))}
             </div>
@@ -1179,27 +1360,29 @@ const MyEventsPage = () => {
                     borderRadius: '0.375rem',
                     fontSize: '0.9rem',
                     fontWeight: '500',
-                    color: '#374151',
+                    color: '#111827',
                     backgroundColor: '#F9FAFB'
                   }}
                 />
                 <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(shareEvent.shareLink);
-                    alert('Link copied to clipboard!');
-                  }}
+                  onClick={() => handleCopyLink(shareEvent.shareLink)}
                   style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.375rem',
                     padding: '0.625rem 1rem',
                     border: 'none',
                     borderRadius: '0.375rem',
-                    background: '#083A85',
+                    background: copiedLink ? '#10B981' : '#083A85',
                     color: 'white',
                     fontSize: '0.9rem',
                     fontWeight: '500',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    transition: 'background 0.2s'
                   }}
                 >
-                  Copy
+                  <CopyIcon />
+                  {copiedLink ? 'Copied!' : 'Copy'}
                 </button>
               </div>
             </div>
@@ -1251,6 +1434,262 @@ const MyEventsPage = () => {
           </div>
         )}
       </Modal>
+
+      {/* Edit Event Modal */}
+      <Modal isOpen={showEditModal} onClose={() => { setShowEditModal(false); setEditEvent(null); }} title="Edit Event" maxWidth="600px">
+        {editEvent && (
+          <div>
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                Event Title *
+              </label>
+              <input
+                type="text"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '2px solid #D1D5DB',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.9rem',
+                  color: '#111827'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                Event Type *
+              </label>
+              <select
+                value={editEventType}
+                onChange={(e) => setEditEventType(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '2px solid #D1D5DB',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.9rem',
+                  backgroundColor: 'white',
+                  color: '#111827',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="">Select event type</option>
+                {eventTypes.map(type => <option key={type} value={type}>{type}</option>)}
+              </select>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                  Date *
+                </label>
+                <input
+                  type="date"
+                  value={editDate}
+                  onChange={(e) => setEditDate(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    border: '2px solid #D1D5DB',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.9rem',
+                    color: '#111827',
+                    cursor: 'pointer'
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                  Time *
+                </label>
+                <input
+                  type="time"
+                  value={editTime}
+                  onChange={(e) => setEditTime(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    border: '2px solid #D1D5DB',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.9rem',
+                    color: '#111827',
+                    cursor: 'pointer'
+                  }}
+                />
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                Duration
+              </label>
+              <input
+                type="text"
+                value={editDuration}
+                onChange={(e) => setEditDuration(e.target.value)}
+                placeholder="e.g., 4 hours"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '2px solid #D1D5DB',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.9rem',
+                  color: '#111827'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                Location *
+              </label>
+              <input
+                type="text"
+                value={editAddress}
+                onChange={(e) => setEditAddress(e.target.value)}
+                placeholder="Enter venue address"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '2px solid #D1D5DB',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.9rem',
+                  color: '#111827'
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                  City *
+                </label>
+                <input
+                  type="text"
+                  value={editCity}
+                  onChange={(e) => setEditCity(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    border: '2px solid #D1D5DB',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.9rem',
+                    color: '#111827'
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                  Country *
+                </label>
+                <select
+                  value={editCountry}
+                  onChange={(e) => setEditCountry(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    border: '2px solid #D1D5DB',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.9rem',
+                    backgroundColor: 'white',
+                    color: '#111827',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="Rwanda">Rwanda</option>
+                  <option value="Kenya">Kenya</option>
+                  <option value="Uganda">Uganda</option>
+                  <option value="Tanzania">Tanzania</option>
+                  <option value="Burundi">Burundi</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                Maximum Guests
+              </label>
+              <input
+                type="number"
+                value={editMaxGuests}
+                onChange={(e) => setEditMaxGuests(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '2px solid #D1D5DB',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.9rem',
+                  color: '#111827'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                Description
+              </label>
+              <textarea
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                placeholder="Tell your guests about this event..."
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '2px solid #D1D5DB',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.9rem',
+                  minHeight: '80px',
+                  resize: 'vertical',
+                  color: '#111827'
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => { setShowEditModal(false); setEditEvent(null); }}
+                style={{
+                  padding: '0.75rem 1.25rem',
+                  border: '2px solid #D1D5DB',
+                  borderRadius: '0.5rem',
+                  background: '#F3F4F6',
+                  color: '#374151',
+                  fontSize: '0.9rem',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEditEvent}
+                style={{
+                  padding: '0.75rem 1.25rem',
+                  border: '2px solid #062a63',
+                  borderRadius: '0.5rem',
+                  background: '#083A85',
+                  color: 'white',
+                  fontSize: '0.9rem',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <style jsx global>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+      `}</style>
     </div>
   );
 };
