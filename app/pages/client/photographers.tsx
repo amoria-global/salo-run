@@ -73,16 +73,6 @@ const MessageIcon = () => (
   </svg>
 );
 
-const ShareIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="18" cy="5" r="3" stroke="currentColor" strokeWidth="2"/>
-    <circle cx="6" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
-    <circle cx="18" cy="19" r="3" stroke="currentColor" strokeWidth="2"/>
-    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" stroke="currentColor" strokeWidth="2"/>
-    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" stroke="currentColor" strokeWidth="2"/>
-  </svg>
-);
-
 const CalendarIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2"/>
@@ -244,7 +234,29 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
         {title && (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#111827', margin: 0 }}>{title}</h3>
-            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}>
+            <button
+              onClick={onClose}
+              style={{
+                background: '#F3F4F6',
+                border: '2px solid #D1D5DB',
+                cursor: 'pointer',
+                padding: '0.5rem',
+                borderRadius: '0.375rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#374151',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#E5E7EB';
+                e.currentTarget.style.color = '#111827';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#F3F4F6';
+                e.currentTarget.style.color = '#374151';
+              }}
+            >
               <CloseIcon />
             </button>
           </div>
@@ -261,8 +273,6 @@ const BookedPhotographersPage = () => {
   const [selectedSpecialization, setSelectedSpecialization] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedPhotographer, setSelectedPhotographer] = useState<BookedPhotographer | null>(null);
-  const [showShareModal, setShowShareModal] = useState(false);
-  const [sharePhotographer, setSharePhotographer] = useState<BookedPhotographer | null>(null);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportPhotographer, setReportPhotographer] = useState<BookedPhotographer | null>(null);
   const [showRebookModal, setShowRebookModal] = useState(false);
@@ -673,6 +683,11 @@ const BookedPhotographersPage = () => {
     }
   };
 
+  // Check if photographer has any completed events (reviews only allowed for past events)
+  const hasCompletedEvent = (photographer: BookedPhotographer) => {
+    return photographer.bookings.some(booking => booking.status === 'completed');
+  };
+
   // Close context menu when clicking outside
   React.useEffect(() => {
     const handleClick = () => setContextMenu(null);
@@ -957,7 +972,7 @@ const BookedPhotographersPage = () => {
                   key={photographer.id}
                   style={{
                     backgroundColor: 'white',
-                    borderRadius: '0.75rem',
+                    borderRadius: '17px',
                     overflow: 'hidden',
                     boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
                     border: '1px solid #E5E7EB',
@@ -968,14 +983,23 @@ const BookedPhotographersPage = () => {
                   onClick={() => setSelectedPhotographer(photographer)}
                   onContextMenu={(e) => handleContextMenu(e, photographer)}
                 >
-                  {/* Cover Image */}
-                  <div style={{ position: 'relative', height: '140px' }}>
-                    <Image
-                      src={photographer.coverImage}
-                      alt={`${photographer.firstName}'s work`}
-                      fill
-                      style={{ objectFit: 'cover' }}
-                    />
+                  {/* Cover Image with overlay */}
+                  <div style={{ position: 'relative', height: '160px' }}>
+                    <div style={{
+                      width: '100%',
+                      height: '160px',
+                      backgroundImage: `url(${photographer.coverImage})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      borderRadius: '17px 17px 0 0'
+                    }}>
+                      <div style={{
+                        position: 'absolute',
+                        inset: 0,
+                        backgroundColor: 'rgba(13, 27, 42, 0.3)',
+                        borderRadius: '17px 17px 0 0'
+                      }} />
+                    </div>
                     {/* Bookings Badge */}
                     <div style={{
                       position: 'absolute',
@@ -989,12 +1013,13 @@ const BookedPhotographersPage = () => {
                       fontWeight: '600',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.25rem'
+                      gap: '0.25rem',
+                      zIndex: 5
                     }}>
                       <CalendarIcon /> {photographer.totalBookingsWithClient} booking{photographer.totalBookingsWithClient > 1 ? 's' : ''}
                     </div>
                     {/* Action Buttons */}
-                    <div style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', display: 'flex', gap: '0.375rem' }}>
+                    <div style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', display: 'flex', gap: '0.375rem', zIndex: 5 }}>
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleFavorite(photographer.id); }}
                         style={{
@@ -1013,31 +1038,44 @@ const BookedPhotographersPage = () => {
                         <HeartIcon filled={photographer.isFavorite} />
                       </button>
                     </div>
-                  </div>
-
-                  {/* Profile Info */}
-                  <div style={{ padding: '1rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', marginTop: '-2.5rem' }}>
+                    {/* Profile Image - positioned to overlap */}
+                    <div style={{
+                      position: 'absolute',
+                      top: '125px',
+                      left: '20px',
+                      width: '70px',
+                      height: '70px',
+                      zIndex: 10
+                    }}>
                       <Image
                         src={photographer.profileImage}
                         alt={photographer.firstName}
-                        width={60}
-                        height={60}
-                        style={{ borderRadius: '50%', border: '3px solid white', objectFit: 'cover' }}
+                        width={70}
+                        height={70}
+                        style={{
+                          borderRadius: '50%',
+                          border: '2px solid white',
+                          objectFit: 'cover',
+                          objectPosition: 'center'
+                        }}
                       />
-                      <div style={{ marginTop: '1.75rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                          <h3 style={{ fontSize: '1rem', fontWeight: '600', color: '#111827', margin: 0 }}>
-                            {photographer.firstName} {photographer.lastName}
-                          </h3>
-                          {photographer.verified && <VerifiedIcon />}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
-                          <LocationIcon />
-                          <span style={{ fontSize: '0.8rem', color: '#6B7280' }}>
-                            {photographer.location.city}, {photographer.location.country}
-                          </span>
-                        </div>
+                    </div>
+                  </div>
+
+                  {/* Profile Info - with padding to account for overlapping profile image */}
+                  <div style={{ padding: '1rem', paddingTop: '38px' }}>
+                    <div style={{ marginLeft: '0px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                        <h3 style={{ fontSize: '1rem', fontWeight: '600', color: '#111827', margin: 0 }}>
+                          {photographer.firstName} {photographer.lastName}
+                        </h3>
+                        {photographer.verified && <VerifiedIcon />}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
+                        <LocationIcon />
+                        <span style={{ fontSize: '0.8rem', color: '#6B7280' }}>
+                          {photographer.location.city}, {photographer.location.country}
+                        </span>
                       </div>
                     </div>
 
@@ -1329,8 +1367,7 @@ const BookedPhotographersPage = () => {
             { icon: <MessageIcon />, label: 'Send Message', action: () => {} },
             { icon: <CameraIcon />, label: 'View Profile', action: () => setSelectedPhotographer(contextMenu.photographer) },
             { icon: <HeartIcon filled={contextMenu.photographer.isFavorite} />, label: contextMenu.photographer.isFavorite ? 'Remove from Favorites' : 'Add to Favorites', action: () => toggleFavorite(contextMenu.photographer.id) },
-            { icon: <StarIcon filled={true} />, label: contextMenu.photographer.myReview ? 'Edit Review' : 'Leave a Review', action: () => { setReviewPhotographer(contextMenu.photographer); setReviewRating(contextMenu.photographer.myRating || 5); setReviewText(contextMenu.photographer.myReview || ''); setShowReviewModal(true); } },
-            { icon: <ShareIcon />, label: 'Share Profile', action: () => { setSharePhotographer(contextMenu.photographer); setShowShareModal(true); } },
+            ...(hasCompletedEvent(contextMenu.photographer) ? [{ icon: <StarIcon filled={true} />, label: contextMenu.photographer.myReview ? 'Edit Review' : 'Leave a Review', action: () => { setReviewPhotographer(contextMenu.photographer); setReviewRating(contextMenu.photographer.myRating || 5); setReviewText(contextMenu.photographer.myReview || ''); setShowReviewModal(true); } }] : []),
             { icon: <ReportIcon />, label: 'Report', action: () => { setReportPhotographer(contextMenu.photographer); setShowReportModal(true); }, danger: true }
           ].map((item, idx) => (
             <button
@@ -1368,58 +1405,91 @@ const BookedPhotographersPage = () => {
       >
         {selectedPhotographer && (
           <div>
-            {/* Cover */}
-            <div style={{ position: 'relative', height: '180px', margin: '-1.5rem -1.5rem 0 -1.5rem', borderRadius: '0.75rem 0.75rem 0 0', overflow: 'hidden' }}>
-              <Image
-                src={selectedPhotographer.coverImage}
-                alt="Cover"
-                fill
-                style={{ objectFit: 'cover' }}
-              />
+            {/* Cover with overlay */}
+            <div style={{ position: 'relative', height: '160px', margin: '-1.5rem -1.5rem 0 -1.5rem', overflow: 'visible' }}>
+              <div style={{
+                width: '100%',
+                height: '160px',
+                backgroundImage: `url(${selectedPhotographer.coverImage})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center'
+              }}>
+                <div style={{
+                  position: 'absolute',
+                  inset: 0,
+                  backgroundColor: 'rgba(13, 27, 42, 0.3)'
+                }} />
+              </div>
               <button
                 onClick={() => setSelectedPhotographer(null)}
                 style={{
                   position: 'absolute',
                   top: '1rem',
                   right: '1rem',
-                  backgroundColor: 'rgba(0,0,0,0.5)',
-                  border: 'none',
+                  backgroundColor: 'rgba(255,255,255,0.95)',
+                  border: '2px solid #D1D5DB',
                   borderRadius: '50%',
-                  width: '32px',
-                  height: '32px',
+                  width: '36px',
+                  height: '36px',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: 'white'
+                  color: '#374151',
+                  zIndex: 5,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#ffffff';
+                  e.currentTarget.style.color = '#111827';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.95)';
+                  e.currentTarget.style.color = '#374151';
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
                 }}
               >
                 <CloseIcon />
               </button>
+              {/* Profile Image - positioned to overlap */}
+              <div style={{
+                position: 'absolute',
+                top: '125px',
+                left: '20px',
+                width: '70px',
+                height: '70px',
+                zIndex: 10
+              }}>
+                <Image
+                  src={selectedPhotographer.profileImage}
+                  alt={selectedPhotographer.firstName}
+                  width={70}
+                  height={70}
+                  style={{
+                    borderRadius: '50%',
+                    border: '2px solid white',
+                    objectFit: 'cover',
+                    objectPosition: 'center'
+                  }}
+                />
+              </div>
             </div>
 
-            {/* Profile */}
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: '1rem', marginTop: '-40px', marginBottom: '1rem', paddingLeft: '1rem' }}>
-              <Image
-                src={selectedPhotographer.profileImage}
-                alt={selectedPhotographer.firstName}
-                width={90}
-                height={90}
-                style={{ borderRadius: '50%', border: '4px solid white', objectFit: 'cover' }}
-              />
-              <div style={{ paddingBottom: '0.5rem', flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#111827', margin: 0 }}>
-                    {selectedPhotographer.firstName} {selectedPhotographer.lastName}
-                  </h2>
-                  {selectedPhotographer.verified && <VerifiedIcon />}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
-                  <LocationIcon />
-                  <span style={{ fontSize: '0.9rem', color: '#6B7280' }}>
-                    {selectedPhotographer.location.city}, {selectedPhotographer.location.country}
-                  </span>
-                </div>
+            {/* Profile Info - with padding to account for overlapping profile image */}
+            <div style={{ paddingTop: '38px', paddingLeft: '1rem', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#111827', margin: 0 }}>
+                  {selectedPhotographer.firstName} {selectedPhotographer.lastName}
+                </h2>
+                {selectedPhotographer.verified && <VerifiedIcon />}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
+                <LocationIcon />
+                <span style={{ fontSize: '0.9rem', color: '#6B7280' }}>
+                  {selectedPhotographer.location.city}, {selectedPhotographer.location.country}
+                </span>
               </div>
             </div>
 
@@ -1527,9 +1597,9 @@ const BookedPhotographersPage = () => {
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '0.5rem',
-                  backgroundColor: 'white',
+                  backgroundColor: '#F3F4F6',
                   color: '#374151',
-                  border: '1px solid #E5E7EB',
+                  border: '2px solid #D1D5DB',
                   borderRadius: '0.5rem',
                   padding: '0.75rem',
                   cursor: 'pointer'
@@ -1537,51 +1607,36 @@ const BookedPhotographersPage = () => {
               >
                 <HeartIcon filled={selectedPhotographer.isFavorite} />
               </button>
-              <button
-                onClick={() => { setSharePhotographer(selectedPhotographer); setShowShareModal(true); }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                  backgroundColor: 'white',
-                  color: '#374151',
-                  border: '1px solid #E5E7EB',
-                  borderRadius: '0.5rem',
-                  padding: '0.75rem',
-                  cursor: 'pointer'
-                }}
-              >
-                <ShareIcon />
-              </button>
-              <button
-                onClick={() => { setReviewPhotographer(selectedPhotographer); setReviewRating(selectedPhotographer.myRating || 5); setReviewText(selectedPhotographer.myReview || ''); setShowReviewModal(true); }}
-                style={{
-                  flex: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                  backgroundColor: 'white',
-                  color: '#374151',
-                  border: '1px solid #E5E7EB',
-                  borderRadius: '0.5rem',
-                  padding: '0.75rem 1rem',
-                  fontSize: '0.9rem',
-                  fontWeight: '600',
-                  cursor: 'pointer'
-                }}
-              >
-                <StarIcon filled={true} />
-                {selectedPhotographer.myReview ? 'Edit Review' : 'Leave Review'}
-              </button>
+              {hasCompletedEvent(selectedPhotographer) && (
+                <button
+                  onClick={() => { setReviewPhotographer(selectedPhotographer); setReviewRating(selectedPhotographer.myRating || 5); setReviewText(selectedPhotographer.myReview || ''); setShowReviewModal(true); }}
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    backgroundColor: '#F3F4F6',
+                    color: '#374151',
+                    border: '2px solid #D1D5DB',
+                    borderRadius: '0.5rem',
+                    padding: '0.75rem 1rem',
+                    fontSize: '0.9rem',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <StarIcon filled={true} />
+                  {selectedPhotographer.myReview ? 'Edit Review' : 'Leave Review'}
+                </button>
+              )}
               <button
                 onClick={() => { setRebookPhotographer(selectedPhotographer); setShowRebookModal(true); setSelectedPhotographer(null); }}
                 style={{
                   flex: 1,
                   backgroundColor: '#F20C8F',
                   color: 'white',
-                  border: 'none',
+                  border: '2px solid #c00a72',
                   borderRadius: '0.5rem',
                   padding: '0.75rem 1rem',
                   fontSize: '0.9rem',
@@ -1634,10 +1689,12 @@ const BookedPhotographersPage = () => {
               <select style={{
                 width: '100%',
                 padding: '0.75rem',
-                border: '1px solid #E5E7EB',
+                border: '2px solid #D1D5DB',
                 borderRadius: '0.5rem',
                 fontSize: '0.9rem',
-                backgroundColor: 'white'
+                backgroundColor: 'white',
+                color: '#111827',
+                cursor: 'pointer'
               }}>
                 <option>Select event type</option>
                 {rebookPhotographer.specializations.map(s => <option key={s}>{s}</option>)}
@@ -1654,9 +1711,11 @@ const BookedPhotographersPage = () => {
                   style={{
                     width: '100%',
                     padding: '0.75rem',
-                    border: '1px solid #E5E7EB',
+                    border: '2px solid #D1D5DB',
                     borderRadius: '0.5rem',
-                    fontSize: '0.9rem'
+                    fontSize: '0.9rem',
+                    color: '#111827',
+                    cursor: 'pointer'
                   }}
                 />
               </div>
@@ -1669,9 +1728,11 @@ const BookedPhotographersPage = () => {
                   style={{
                     width: '100%',
                     padding: '0.75rem',
-                    border: '1px solid #E5E7EB',
+                    border: '2px solid #D1D5DB',
                     borderRadius: '0.5rem',
-                    fontSize: '0.9rem'
+                    fontSize: '0.9rem',
+                    color: '#111827',
+                    cursor: 'pointer'
                   }}
                 />
               </div>
@@ -1687,9 +1748,10 @@ const BookedPhotographersPage = () => {
                 style={{
                   width: '100%',
                   padding: '0.75rem',
-                  border: '1px solid #E5E7EB',
+                  border: '2px solid #D1D5DB',
                   borderRadius: '0.5rem',
-                  fontSize: '0.9rem'
+                  fontSize: '0.9rem',
+                  color: '#111827'
                 }}
               />
             </div>
@@ -1703,11 +1765,12 @@ const BookedPhotographersPage = () => {
                 style={{
                   width: '100%',
                   padding: '0.75rem',
-                  border: '1px solid #E5E7EB',
+                  border: '2px solid #D1D5DB',
                   borderRadius: '0.5rem',
                   fontSize: '0.9rem',
                   minHeight: '80px',
-                  resize: 'vertical'
+                  resize: 'vertical',
+                  color: '#111827'
                 }}
               />
             </div>
@@ -1718,12 +1781,12 @@ const BookedPhotographersPage = () => {
                 style={{
                   flex: 1,
                   padding: '0.75rem 1rem',
-                  border: '1px solid #E5E7EB',
+                  border: '2px solid #D1D5DB',
                   borderRadius: '0.5rem',
-                  background: 'white',
+                  background: '#F3F4F6',
                   color: '#374151',
                   fontSize: '0.9rem',
-                  fontWeight: '500',
+                  fontWeight: '600',
                   cursor: 'pointer'
                 }}
               >
@@ -1733,7 +1796,7 @@ const BookedPhotographersPage = () => {
                 style={{
                   flex: 1,
                   padding: '0.75rem 1rem',
-                  border: 'none',
+                  border: '2px solid #c00a72',
                   borderRadius: '0.5rem',
                   background: '#F20C8F',
                   color: 'white',
@@ -1805,11 +1868,12 @@ const BookedPhotographersPage = () => {
                 style={{
                   width: '100%',
                   padding: '0.75rem',
-                  border: '1px solid #E5E7EB',
+                  border: '2px solid #D1D5DB',
                   borderRadius: '0.5rem',
                   fontSize: '0.9rem',
                   minHeight: '120px',
-                  resize: 'vertical'
+                  resize: 'vertical',
+                  color: '#111827'
                 }}
               />
             </div>
@@ -1820,12 +1884,12 @@ const BookedPhotographersPage = () => {
                 style={{
                   flex: 1,
                   padding: '0.75rem 1rem',
-                  border: '1px solid #E5E7EB',
+                  border: '2px solid #D1D5DB',
                   borderRadius: '0.5rem',
-                  background: 'white',
+                  background: '#F3F4F6',
                   color: '#374151',
                   fontSize: '0.9rem',
-                  fontWeight: '500',
+                  fontWeight: '600',
                   cursor: 'pointer'
                 }}
               >
@@ -1836,7 +1900,7 @@ const BookedPhotographersPage = () => {
                 style={{
                   flex: 1,
                   padding: '0.75rem 1rem',
-                  border: 'none',
+                  border: '2px solid #062a63',
                   borderRadius: '0.5rem',
                   background: '#083A85',
                   color: 'white',
@@ -1847,78 +1911,6 @@ const BookedPhotographersPage = () => {
               >
                 {reviewPhotographer.myReview ? 'Update Review' : 'Submit Review'}
               </button>
-            </div>
-          </div>
-        )}
-      </Modal>
-
-      {/* Share Modal */}
-      <Modal
-        isOpen={showShareModal}
-        onClose={() => setShowShareModal(false)}
-        title="Share Photographer"
-      >
-        {sharePhotographer && (
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem', padding: '0.75rem', backgroundColor: '#F9FAFB', borderRadius: '0.5rem' }}>
-              <Image src={sharePhotographer.profileImage} alt={sharePhotographer.firstName} width={48} height={48} style={{ borderRadius: '50%' }} />
-              <div>
-                <div style={{ fontWeight: '600', color: '#111827' }}>{sharePhotographer.firstName} {sharePhotographer.lastName}</div>
-                <div style={{ fontSize: '0.85rem', color: '#6B7280' }}>{sharePhotographer.location.city}, {sharePhotographer.location.country}</div>
-              </div>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '1.25rem' }}>
-              {['WhatsApp', 'Facebook', 'Twitter', 'Email', 'Copy Link', 'QR Code'].map((option) => (
-                <button
-                  key={option}
-                  style={{
-                    padding: '1rem',
-                    border: '1px solid #E5E7EB',
-                    borderRadius: '0.5rem',
-                    background: 'white',
-                    cursor: 'pointer',
-                    fontSize: '0.85rem',
-                    fontWeight: '500',
-                    color: '#374151'
-                  }}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
-            <div style={{ borderTop: '1px solid #E5E7EB', paddingTop: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
-                Share Link
-              </label>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <input
-                  type="text"
-                  value={`https://connekt.app/photographer/${sharePhotographer.id}`}
-                  readOnly
-                  style={{
-                    flex: 1,
-                    padding: '0.625rem 0.875rem',
-                    border: '1px solid #E5E7EB',
-                    borderRadius: '0.375rem',
-                    fontSize: '0.9rem',
-                    backgroundColor: '#F9FAFB'
-                  }}
-                />
-                <button
-                  style={{
-                    padding: '0.625rem 1rem',
-                    border: 'none',
-                    borderRadius: '0.375rem',
-                    background: '#083A85',
-                    color: 'white',
-                    fontSize: '0.9rem',
-                    fontWeight: '500',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Copy
-                </button>
-              </div>
             </div>
           </div>
         )}
@@ -1937,7 +1929,7 @@ const BookedPhotographersPage = () => {
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.25rem' }}>
               {['Inappropriate content', 'Fake profile', 'Spam or scam', 'Unprofessional behavior', 'Other'].map((reason) => (
-                <label key={reason} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', border: '1px solid #E5E7EB', borderRadius: '0.5rem', cursor: 'pointer' }}>
+                <label key={reason} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', border: '2px solid #D1D5DB', borderRadius: '0.5rem', cursor: 'pointer' }}>
                   <input type="radio" name="report-reason" style={{ width: '16px', height: '16px' }} />
                   <span style={{ fontSize: '0.9rem', color: '#374151' }}>{reason}</span>
                 </label>
@@ -1948,12 +1940,13 @@ const BookedPhotographersPage = () => {
               style={{
                 width: '100%',
                 padding: '0.75rem',
-                border: '1px solid #E5E7EB',
+                border: '2px solid #D1D5DB',
                 borderRadius: '0.5rem',
                 fontSize: '0.9rem',
                 minHeight: '80px',
                 resize: 'vertical',
-                marginBottom: '1rem'
+                marginBottom: '1rem',
+                color: '#111827'
               }}
             />
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
@@ -1961,11 +1954,12 @@ const BookedPhotographersPage = () => {
                 onClick={() => setShowReportModal(false)}
                 style={{
                   padding: '0.625rem 1.25rem',
-                  border: '1px solid #E5E7EB',
+                  border: '2px solid #D1D5DB',
                   borderRadius: '0.5rem',
-                  background: 'white',
+                  background: '#F3F4F6',
                   color: '#374151',
                   fontSize: '0.9rem',
+                  fontWeight: '600',
                   cursor: 'pointer'
                 }}
               >
@@ -1975,7 +1969,7 @@ const BookedPhotographersPage = () => {
                 onClick={() => setShowReportModal(false)}
                 style={{
                   padding: '0.625rem 1.25rem',
-                  border: 'none',
+                  border: '2px solid #b91c1c',
                   borderRadius: '0.5rem',
                   background: '#DC2626',
                   color: 'white',
@@ -2101,9 +2095,10 @@ const BookedPhotographersPage = () => {
                     style={{
                       width: '100%',
                       padding: '0.75rem',
-                      border: '1px solid #E5E7EB',
+                      border: '2px solid #D1D5DB',
                       borderRadius: '0.5rem',
-                      fontSize: '0.9rem'
+                      fontSize: '0.9rem',
+                      color: '#111827'
                     }}
                   />
                 </div>
@@ -2118,9 +2113,10 @@ const BookedPhotographersPage = () => {
                       style={{
                         width: '100%',
                         padding: '0.75rem',
-                        border: '1px solid #E5E7EB',
+                        border: '2px solid #D1D5DB',
                         borderRadius: '0.5rem',
-                        fontSize: '0.9rem'
+                        fontSize: '0.9rem',
+                        color: '#111827'
                       }}
                     />
                   </div>
@@ -2134,9 +2130,10 @@ const BookedPhotographersPage = () => {
                       style={{
                         width: '100%',
                         padding: '0.75rem',
-                        border: '1px solid #E5E7EB',
+                        border: '2px solid #D1D5DB',
                         borderRadius: '0.5rem',
-                        fontSize: '0.9rem'
+                        fontSize: '0.9rem',
+                        color: '#111827'
                       }}
                     />
                   </div>
@@ -2156,7 +2153,7 @@ const BookedPhotographersPage = () => {
                   style={{
                     width: '100%',
                     padding: '0.75rem',
-                    border: '1px solid #E5E7EB',
+                    border: '2px solid #D1D5DB',
                     borderRadius: '0.5rem',
                     fontSize: '0.9rem'
                   }}
@@ -2171,12 +2168,12 @@ const BookedPhotographersPage = () => {
                 style={{
                   flex: 1,
                   padding: '0.75rem 1rem',
-                  border: '1px solid #E5E7EB',
+                  border: '2px solid #D1D5DB',
                   borderRadius: '0.5rem',
-                  background: 'white',
+                  background: '#F3F4F6',
                   color: '#374151',
                   fontSize: '0.9rem',
-                  fontWeight: '500',
+                  fontWeight: '600',
                   cursor: 'pointer'
                 }}
               >
@@ -2186,7 +2183,7 @@ const BookedPhotographersPage = () => {
                 style={{
                   flex: 1,
                   padding: '0.75rem 1rem',
-                  border: 'none',
+                  border: paymentBooking.booking.paymentStatus === 'failed' ? '2px solid #c00a72' : '2px solid #062a63',
                   borderRadius: '0.5rem',
                   background: paymentBooking.booking.paymentStatus === 'failed' ? '#F20C8F' : '#083A85',
                   color: 'white',

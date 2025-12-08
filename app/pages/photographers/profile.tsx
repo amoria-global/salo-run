@@ -13,11 +13,8 @@ const CameraIcon = () => (
   </svg>
 );
 
-const ProfilePage = () => {
+const PhotographerProfilePage = () => {
   const [isEditEnabled, setIsEditEnabled] = useState(false);
-
-  // User role - can be 'client', 'photographer', or 'freelancer'
-  const userRole: 'client' | 'photographer' | 'freelancer' = 'client';
 
   // East African countries with phone codes
   const eastAfricanCountries = [
@@ -29,29 +26,24 @@ const ProfilePage = () => {
     { name: 'South Sudan', code: '+211', flag: '🇸🇸' },
   ];
 
-  // Form state
+  // Form state for photographer
   const [formData, setFormData] = useState({
-    fullName: 'Diane Marry',
-    username: 'diane_marry',
-    email: 'dianemarry@gmail.com',
+    fullName: 'John Smith',
+    username: 'john_photographer',
+    email: 'johnsmith@gmail.com',
     phoneCode: '+250',
-    phoneNumber: '788 123 456',
-    title: 'Client',
+    phoneNumber: '788 456 789',
+    title: 'Professional Photographer',
     country: 'Rwanda',
-    location: 'Kigali, Rwanda',
-    // Fields only for photographers/freelancers
-    companyName: 'Personal',
+    companyName: 'Smith Photography',
     workLocation: 'Kigali, Rwanda',
-    availabilityDays: 'Weekends',
-    availableTime: '10:00 AM - 6:00 PM',
-    bio: 'Passionate about capturing life\'s precious moments. Looking for talented photographers for weddings, events, and family portraits.'
+    availabilityDays: 'Monday - Saturday',
+    availableTime: '8:00 AM - 6:00 PM',
+    bio: 'Professional photographer with over 10 years of experience specializing in weddings, corporate events, and portrait photography. Passionate about capturing life\'s precious moments with creativity and precision.'
   });
 
-  // Check if user is photographer or freelancer
-  const isPhotographerOrFreelancer = userRole === 'photographer' || userRole === 'freelancer';
-
   // Profile and cover image state
-  const [profileImage, setProfileImage] = useState<string>('https://randomuser.me/api/portraits/women/65.jpg');
+  const [profileImage, setProfileImage] = useState<string>('https://randomuser.me/api/portraits/men/32.jpg');
   const [coverImage, setCoverImage] = useState<string | null>(null);
 
   // File input refs
@@ -189,48 +181,44 @@ const ProfilePage = () => {
                   accept="image/*"
                   style={{ display: 'none' }}
                 />
-                {isPhotographerOrFreelancer && (
-                  <input
-                    type="file"
-                    ref={coverInputRef}
-                    onChange={handleCoverImageUpload}
-                    accept="image/*"
-                    style={{ display: 'none' }}
-                  />
-                )}
+                <input
+                  type="file"
+                  ref={coverInputRef}
+                  onChange={handleCoverImageUpload}
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                />
 
-                {/* Cover Photo - only for photographers/freelancers */}
-                {isPhotographerOrFreelancer && (
-                  <div style={{
-                    height: '100px',
-                    background: coverImage ? `url(${coverImage}) center/cover no-repeat` : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    position: 'relative'
-                  }}>
-                    <button
-                      onClick={() => coverInputRef.current?.click()}
-                      style={{
-                        position: 'absolute',
-                        top: '0.75rem',
-                        right: '0.75rem',
-                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                        border: '2px solid rgba(255, 255, 255, 0.5)',
-                        borderRadius: '0.375rem',
-                        padding: '0.5rem',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}>
-                      <CameraIcon />
-                    </button>
-                  </div>
-                )}
+                {/* Cover Photo */}
+                <div style={{
+                  height: '100px',
+                  background: coverImage ? `url(${coverImage}) center/cover no-repeat` : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  position: 'relative'
+                }}>
+                  <button
+                    onClick={() => coverInputRef.current?.click()}
+                    style={{
+                      position: 'absolute',
+                      top: '0.75rem',
+                      right: '0.75rem',
+                      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                      border: '2px solid rgba(255, 255, 255, 0.5)',
+                      borderRadius: '0.375rem',
+                      padding: '0.5rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                    <CameraIcon />
+                  </button>
+                </div>
 
                 {/* Avatar */}
                 <div style={{
                   display: 'flex',
                   justifyContent: 'center',
-                  marginTop: isPhotographerOrFreelancer ? '-50px' : '1.5rem',
+                  marginTop: '-50px',
                   position: 'relative'
                 }}>
                   <div style={{ position: 'relative' }}>
@@ -276,34 +264,32 @@ const ProfilePage = () => {
                     fontWeight: '700',
                     color: '#083A85',
                     marginBottom: '0.25rem'
-                  }}>Diane Marry</h2>
+                  }}>{formData.fullName}</h2>
                   <p style={{
                     fontSize: '0.95rem',
                     color: '#6B7280'
-                  }}>Client</p>
+                  }}>Photographer</p>
                 </div>
 
-                {/* About Section - only for photographers/freelancers */}
-                {isPhotographerOrFreelancer && (
-                  <div style={{
-                    borderTop: '1px solid #E5E7EB',
-                    padding: '1.25rem'
+                {/* About Section */}
+                <div style={{
+                  borderTop: '1px solid #E5E7EB',
+                  padding: '1.25rem'
+                }}>
+                  <h3 style={{
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    color: '#111827',
+                    marginBottom: '0.75rem'
+                  }}>About</h3>
+                  <p style={{
+                    fontSize: '0.9rem',
+                    color: '#6B7280',
+                    lineHeight: '1.5'
                   }}>
-                    <h3 style={{
-                      fontSize: '1rem',
-                      fontWeight: '600',
-                      color: '#111827',
-                      marginBottom: '0.75rem'
-                    }}>About</h3>
-                    <p style={{
-                      fontSize: '0.9rem',
-                      color: '#6B7280',
-                      lineHeight: '1.5'
-                    }}>
-                      {formData.bio}
-                    </p>
-                  </div>
-                )}
+                    {formData.bio}
+                  </p>
+                </div>
 
                 {/* Account Activity */}
                 <div style={{
@@ -521,93 +507,69 @@ const ProfilePage = () => {
                   </select>
                 </div>
 
-                {/* Location - for clients */}
-                {!isPhotographerOrFreelancer && (
-                  <div>
-                    <label style={labelStyle}>Location</label>
-                    <input
-                      type="text"
-                      value={formData.location}
-                      onChange={(e) => handleInputChange('location', e.target.value)}
-                      disabled={!isEditEnabled}
-                      style={inputStyle}
-                    />
-                  </div>
-                )}
+                {/* Company Name */}
+                <div>
+                  <label style={labelStyle}>Company Name</label>
+                  <input
+                    type="text"
+                    value={formData.companyName}
+                    onChange={(e) => handleInputChange('companyName', e.target.value)}
+                    disabled={!isEditEnabled}
+                    style={inputStyle}
+                  />
+                </div>
 
-                {/* Company Name - only for photographers/freelancers */}
-                {isPhotographerOrFreelancer && (
-                  <div>
-                    <label style={labelStyle}>Company Name</label>
-                    <input
-                      type="text"
-                      value={formData.companyName}
-                      onChange={(e) => handleInputChange('companyName', e.target.value)}
-                      disabled={!isEditEnabled}
-                      style={inputStyle}
-                    />
-                  </div>
-                )}
+                {/* Work Location */}
+                <div>
+                  <label style={labelStyle}>Work Location</label>
+                  <input
+                    type="text"
+                    value={formData.workLocation}
+                    onChange={(e) => handleInputChange('workLocation', e.target.value)}
+                    disabled={!isEditEnabled}
+                    style={inputStyle}
+                  />
+                </div>
 
-                {/* Work Location - only for photographers/freelancers */}
-                {isPhotographerOrFreelancer && (
-                  <div>
-                    <label style={labelStyle}>Work Location</label>
-                    <input
-                      type="text"
-                      value={formData.workLocation}
-                      onChange={(e) => handleInputChange('workLocation', e.target.value)}
-                      disabled={!isEditEnabled}
-                      style={inputStyle}
-                    />
-                  </div>
-                )}
+                {/* Availability Days */}
+                <div>
+                  <label style={labelStyle}>Availability Days</label>
+                  <input
+                    type="text"
+                    value={formData.availabilityDays}
+                    onChange={(e) => handleInputChange('availabilityDays', e.target.value)}
+                    disabled={!isEditEnabled}
+                    style={inputStyle}
+                  />
+                </div>
 
-                {/* Availability Days - only for photographers/freelancers */}
-                {isPhotographerOrFreelancer && (
-                  <div>
-                    <label style={labelStyle}>Availability Days</label>
-                    <input
-                      type="text"
-                      value={formData.availabilityDays}
-                      onChange={(e) => handleInputChange('availabilityDays', e.target.value)}
-                      disabled={!isEditEnabled}
-                      style={inputStyle}
-                    />
-                  </div>
-                )}
+                {/* Available Time */}
+                <div>
+                  <label style={labelStyle}>Available Time</label>
+                  <input
+                    type="text"
+                    value={formData.availableTime}
+                    onChange={(e) => handleInputChange('availableTime', e.target.value)}
+                    disabled={!isEditEnabled}
+                    style={inputStyle}
+                  />
+                </div>
 
-                {/* Available Time - only for photographers/freelancers */}
-                {isPhotographerOrFreelancer && (
-                  <div>
-                    <label style={labelStyle}>Available Time</label>
-                    <input
-                      type="text"
-                      value={formData.availableTime}
-                      onChange={(e) => handleInputChange('availableTime', e.target.value)}
-                      disabled={!isEditEnabled}
-                      style={inputStyle}
-                    />
-                  </div>
-                )}
-
-                {/* Bio - Full Width - only for photographers/freelancers */}
-                {isPhotographerOrFreelancer && (
-                  <div style={{ gridColumn: 'span 2' }}>
-                    <label style={labelStyle}>Bio</label>
-                    <textarea
-                      value={formData.bio}
-                      onChange={(e) => handleInputChange('bio', e.target.value)}
-                      disabled={!isEditEnabled}
-                      rows={4}
-                      style={{
-                        ...inputStyle,
-                        resize: 'vertical',
-                        minHeight: '100px'
-                      }}
-                    />
-                  </div>
-                )}
+                {/* Bio - Full Width */}
+                <div style={{ gridColumn: 'span 2' }}>
+                  <label style={labelStyle}>Bio</label>
+                  <textarea
+                    value={formData.bio}
+                    onChange={(e) => handleInputChange('bio', e.target.value)}
+                    disabled={!isEditEnabled}
+                    rows={4}
+                    style={{
+                      ...inputStyle,
+                      resize: 'vertical',
+                      minHeight: '100px'
+                    }}
+                  />
+                </div>
               </div>
 
               {/* Update Button */}
@@ -651,4 +613,4 @@ const ProfilePage = () => {
   );
 };
 
-export default ProfilePage;
+export default PhotographerProfilePage;
