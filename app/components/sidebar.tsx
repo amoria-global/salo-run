@@ -39,7 +39,7 @@ const getBottomNavigationItems = (role: UserRole): NavigationItem[] => [
   { name: "Logout", href: "/", icon: "bi-box-arrow-right" },
 ];
 
-// Function to detect role from pathname
+//Function to detect role from pathname
 const detectRoleFromPath = (pathname: string): UserRole => {
   if (pathname.includes("/user/photographers")) {
     return "photographer";
