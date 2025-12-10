@@ -1329,7 +1329,7 @@ Amount: ${transaction.amount}
     <div style={{ display: 'flex', height: '100vh', backgroundColor: '#F9FAFB' }}>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar userRole={userType} />
+        <Topbar userRole={userType} bonusAmount={725.00} balanceAmount={3975.00} />
         <div style={{ flex: 1, overflowY: 'auto', backgroundColor: '#F9FAFB', paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
 
           {/* Header with Withdraw Button */}

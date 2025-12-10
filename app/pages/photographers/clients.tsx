@@ -261,7 +261,7 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
       lastName: 'Johnson',
       email: 'sarah.j@email.com',
       phone: '+1 234 567 8900',
-      profileImage: 'https://randomuser.me/api/portraits/women/75.jpg',
+      profileImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
       coverImage: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800',
       location: { city: 'New York', country: 'USA' },
       totalBookings: 12,
@@ -632,6 +632,19 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
     return sum + c.tipsAndBonuses.reduce((tipSum, t) => tipSum + t.amount, 0);
   }, 0);
 
+  // Calculate total paid (unwithdrawn) amount from all bookings
+  const totalPaidAmount = clients.reduce((sum, c) => {
+    return sum + c.bookings.reduce((bookingSum, b) => {
+      if (b.paymentStatus === 'paid') {
+        return bookingSum + b.paidAmount;
+      }
+      return bookingSum;
+    }, 0);
+  }, 0);
+
+  // Total balance = paid amount + tips and bonuses (simulating unwithdrawn balance)
+  const totalBalance = totalPaidAmount + totalTipsAndBonuses;
+
   // Filter clients based on search query and active filter
   const filteredClients = clients.filter(client => {
     const matchesSearch = `${client.firstName} ${client.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -690,7 +703,7 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
         flexDirection: 'column',
         overflow: 'hidden'
       }}>
-        <Topbar bonusAmount={totalTipsAndBonuses} userRole={userType} />
+        <Topbar bonusAmount={totalTipsAndBonuses} balanceAmount={totalBalance} userRole={userType} />
 
         <div style={{ flex: 1, overflowY: 'auto', backgroundColor: '#F9FAFB', paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
           {/* Header */}

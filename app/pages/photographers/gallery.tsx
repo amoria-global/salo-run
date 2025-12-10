@@ -562,7 +562,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
       <Sidebar />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar userRole={userType} />
+        <Topbar userRole={userType} bonusAmount={725.00} balanceAmount={3975.00} />
 
         {/* Main Content */}
         <div style={{

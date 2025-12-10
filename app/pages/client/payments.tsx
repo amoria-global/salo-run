@@ -78,6 +78,33 @@ const CreditCardIcon = () => (
   </svg>
 );
 
+const GiftIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="3" y="8" width="18" height="13" rx="2" stroke="#16A34A" strokeWidth="2"/>
+    <path d="M12 8V21" stroke="#16A34A" strokeWidth="2"/>
+    <path d="M3 12H21" stroke="#16A34A" strokeWidth="2"/>
+    <path d="M12 8C12 8 12 5 9.5 5C7 5 7 8 9.5 8C10.5 8 11.5 8 12 8Z" stroke="#16A34A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M12 8C12 8 12 5 14.5 5C17 5 17 8 14.5 8C13.5 8 12.5 8 12 8Z" stroke="#16A34A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const LiveStreamIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="12" cy="12" r="3" fill="#EF4444"/>
+    <path d="M4.93 4.93a10 10 0 0 1 14.14 0M7.76 7.76a6 6 0 0 1 8.48 0M9.17 9.17a3 3 0 0 1 4.24 0" stroke="#EF4444" strokeWidth="2" strokeLinecap="round"/>
+    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M16.24 7.76a6 6 0 0 1 0 8.48M14.83 9.17a3 3 0 0 1 0 4.24" stroke="#EF4444" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
+
+const UsersIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="9" cy="7" r="3" stroke="currentColor" strokeWidth="2"/>
+    <path d="M3 18C3 15.2386 5.23858 13 8 13H10C12.7614 13 15 15.2386 15 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    <circle cx="17" cy="9" r="2.5" stroke="currentColor" strokeWidth="2"/>
+    <path d="M21 18C21 16.3431 19.6569 15 18 15H16.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
+
 // Modal Component
 interface ModalProps {
   isOpen: boolean;
@@ -1114,6 +1141,65 @@ Amount: ${payment.amount}
   const totalPending = payments.filter(p => p.status === 'pending' || p.status === 'partially_paid').reduce((sum, p) => sum + (p.amountNum - p.paidAmount), 0);
   const totalFailed = payments.filter(p => p.status === 'failed').reduce((sum, p) => sum + p.amountNum, 0);
 
+  // Gifts data - organized by stream/event with gifters list
+  const giftStreams = [
+    {
+      id: 1,
+      streamTitle: 'Behind the Lens: Wedding Shoot',
+      date: 'Dec 08, 2024',
+      platform: 'ConnektLive',
+      gifters: [
+        { name: 'Michael K.', amount: 25.00 },
+        { name: 'Anonymous', amount: 10.00 },
+        { name: 'David W.', amount: 15.00 },
+        { name: 'Lisa P.', amount: 5.00 },
+      ]
+    },
+    {
+      id: 2,
+      streamTitle: 'Live Q&A: Photography Tips',
+      date: 'Dec 07, 2024',
+      platform: 'ConnektLive',
+      gifters: [
+        { name: 'Sarah M.', amount: 15.00 },
+        { name: 'Emily R.', amount: 30.00 },
+        { name: 'John D.', amount: 20.00 },
+      ]
+    },
+    {
+      id: 3,
+      streamTitle: 'Editing Session: Portrait Retouch',
+      date: 'Dec 05, 2024',
+      platform: 'ConnektLive',
+      gifters: [
+        { name: 'James L.', amount: 50.00 },
+        { name: 'Maria G.', amount: 25.00 },
+      ]
+    },
+    {
+      id: 4,
+      streamTitle: 'Studio Tour & Equipment Review',
+      date: 'Dec 01, 2024',
+      platform: 'ConnektLive',
+      gifters: [
+        { name: 'Alex T.', amount: 10.00 },
+        { name: 'Chris B.', amount: 8.00 },
+        { name: 'Anonymous', amount: 12.00 },
+      ]
+    },
+  ];
+
+  const totalGifts = giftStreams.reduce((sum, stream) => sum + stream.gifters.reduce((s, g) => s + g.amount, 0), 0);
+
+  // State for gift senders modal
+  const [showGiftSendersModal, setShowGiftSendersModal] = useState(false);
+  const [selectedGiftStream, setSelectedGiftStream] = useState<typeof giftStreams[0] | null>(null);
+
+  const handleViewGiftSenders = (stream: typeof giftStreams[0]) => {
+    setSelectedGiftStream(stream);
+    setShowGiftSendersModal(true);
+  };
+
   const totalPages = 5;
   const resultsPerPage = 8;
   const totalResults = payments.length;
@@ -1122,7 +1208,7 @@ Amount: ${payment.amount}
     <div style={{ display: 'flex', height: '100vh', backgroundColor: '#F9FAFB' }}>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar userRole="client" />
+        <Topbar userRole="client" giftAmount={totalGifts} />
         <div style={{ flex: 1, overflowY: 'auto', backgroundColor: '#F9FAFB', paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
 
           {/* Header */}
@@ -1267,6 +1353,106 @@ Amount: ${payment.amount}
             </div>
           </div>
 
+          {/* Gifts Section */}
+          <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)', overflow: 'hidden', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderBottom: '1px solid #E5E7EB' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '0.5rem',
+                  backgroundColor: '#DCFCE7',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <GiftIcon />
+                </div>
+                <div>
+                  <h2 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#111827', margin: 0 }}>Gifts Received</h2>
+                  <p style={{ fontSize: '0.8rem', color: '#6B7280', margin: 0 }}>From live-stream viewers on ConnektLive</p>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#6B7280' }}>Total Gifts</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>${totalGifts.toFixed(2)}</div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ padding: '1rem 1.25rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
+                {giftStreams.map((stream) => {
+                  const streamTotal = stream.gifters.reduce((s, g) => s + g.amount, 0);
+                  return (
+                    <div
+                      key={stream.id}
+                      style={{
+                        backgroundColor: '#F0FDF4',
+                        borderRadius: '0.75rem',
+                        border: '1px solid #BBF7D0',
+                        padding: '1rem',
+                        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <LiveStreamIcon />
+                          <span style={{
+                            fontSize: '0.7rem',
+                            color: '#EF4444',
+                            backgroundColor: '#FEE2E2',
+                            padding: '0.15rem 0.4rem',
+                            borderRadius: '0.25rem',
+                            fontWeight: '500'
+                          }}>
+                            {stream.platform}
+                          </span>
+                        </div>
+                        <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>{stream.date}</span>
+                      </div>
+
+                      <h3 style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827', margin: '0 0 0.5rem 0' }}>
+                        {stream.streamTitle}
+                      </h3>
+
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                          <span style={{ color: '#6B7280' }}><UsersIcon /></span>
+                          <span style={{ fontSize: '0.8rem', color: '#6B7280' }}>{stream.gifters.length} gifters</span>
+                        </div>
+                        <span style={{ fontSize: '1.1rem', fontWeight: '700', color: '#16A34A' }}>${streamTotal.toFixed(2)}</span>
+                      </div>
+
+                      <button
+                        onClick={() => handleViewGiftSenders(stream)}
+                        style={{
+                          width: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.5rem',
+                          backgroundColor: '#16A34A',
+                          color: 'white',
+                          border: '2px solid #15803D',
+                          borderRadius: '0.5rem',
+                          padding: '0.5rem 0.75rem',
+                          fontSize: '0.85rem',
+                          fontWeight: '600',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <UsersIcon />
+                        View Gift Senders
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
           {/* Payments History Table */}
           <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)', overflow: 'hidden' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderBottom: '1px solid #E5E7EB' }}>
@@ -1403,6 +1589,107 @@ Amount: ${payment.amount}
         onClose={() => setShowPayNowModal(false)}
         payment={payNowPayment}
       />
+
+      {/* Gift Senders Modal */}
+      <Modal
+        isOpen={showGiftSendersModal}
+        onClose={() => setShowGiftSendersModal(false)}
+        title="Gift Senders"
+        maxWidth="450px"
+      >
+        {selectedGiftStream && (
+          <div>
+            {/* Stream Info */}
+            <div style={{
+              backgroundColor: '#F0FDF4',
+              borderRadius: '0.5rem',
+              padding: '1rem',
+              marginBottom: '1rem',
+              border: '1px solid #BBF7D0'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <LiveStreamIcon />
+                <span style={{
+                  fontSize: '0.7rem',
+                  color: '#EF4444',
+                  backgroundColor: '#FEE2E2',
+                  padding: '0.15rem 0.4rem',
+                  borderRadius: '0.25rem',
+                  fontWeight: '500'
+                }}>
+                  {selectedGiftStream.platform}
+                </span>
+                <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>{selectedGiftStream.date}</span>
+              </div>
+              <h3 style={{ fontSize: '1rem', fontWeight: '600', color: '#111827', margin: 0 }}>
+                {selectedGiftStream.streamTitle}
+              </h3>
+            </div>
+
+            {/* Gift Senders List */}
+            <div style={{ marginBottom: '1rem' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.75rem' }}>
+                {selectedGiftStream.gifters.length} Viewers Gifted
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {selectedGiftStream.gifters.map((gifter, index) => (
+                  <div
+                    key={index}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.75rem',
+                      backgroundColor: '#F9FAFB',
+                      borderRadius: '0.5rem',
+                      border: '1px solid #E5E7EB'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <div style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        backgroundColor: '#DCFCE7',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.8rem',
+                        fontWeight: '600',
+                        color: '#16A34A'
+                      }}>
+                        {gifter.name === 'Anonymous' ? '?' : gifter.name.charAt(0)}
+                      </div>
+                      <span style={{ fontSize: '0.9rem', fontWeight: '500', color: '#111827' }}>
+                        {gifter.name}
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#16A34A' }}>
+                      ${gifter.amount.toFixed(2)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Total */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '0.75rem 1rem',
+              backgroundColor: '#DCFCE7',
+              borderRadius: '0.5rem',
+              border: '1px solid #BBF7D0'
+            }}>
+              <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#374151' }}>Total from this stream</span>
+              <span style={{ fontSize: '1.25rem', fontWeight: '700', color: '#16A34A' }}>
+                ${selectedGiftStream.gifters.reduce((s, g) => s + g.amount, 0).toFixed(2)}
+              </span>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* Print Styles */}
       <style>{`

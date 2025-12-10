@@ -89,7 +89,7 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
       <Sidebar />
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Topbar userRole={userType} />
+        <Topbar userRole={userType} bonusAmount={725.00} balanceAmount={3975.00} />
 
         <div className="flex-1 overflow-y-auto bg-gray-50 px-5 py-4">
           <header className="flex justify-between items-center mt-0.5">

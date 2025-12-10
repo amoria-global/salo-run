@@ -294,7 +294,7 @@ const BookedPhotographersPage = () => {
       id: '1',
       firstName: 'John',
       lastName: 'Studio',
-      profileImage: 'https://randomuser.me/api/portraits/men/75.jpg',
+      profileImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
       coverImage: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800',
       portfolioImages: [
         'https://images.unsplash.com/photo-1519741497674-611481863552?w=400',
@@ -357,7 +357,7 @@ const BookedPhotographersPage = () => {
       id: '2',
       firstName: 'Mary',
       lastName: 'Shots',
-      profileImage: 'https://randomuser.me/api/portraits/women/68.jpg',
+      profileImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg',
       coverImage: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=800',
       portfolioImages: [
         'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=400',
@@ -418,7 +418,7 @@ const BookedPhotographersPage = () => {
       id: '3',
       firstName: 'Alex',
       lastName: 'Frames',
-      profileImage: 'https://randomuser.me/api/portraits/men/44.jpg',
+      profileImage: 'https://i.pinimg.com/1200x/09/23/45/092345eac1919407e0c49f67e285b831.jpg',
       coverImage: 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=800',
       portfolioImages: [
         'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=400',
@@ -467,7 +467,7 @@ const BookedPhotographersPage = () => {
       id: '4',
       firstName: 'Elite',
       lastName: 'Photography',
-      profileImage: 'https://randomuser.me/api/portraits/men/22.jpg',
+      profileImage: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg',
       coverImage: 'https://images.unsplash.com/photo-1560439514-4e9645039924?w=800',
       portfolioImages: [
         'https://images.unsplash.com/photo-1560439514-4e9645039924?w=400',
@@ -525,54 +525,8 @@ const BookedPhotographersPage = () => {
           status: 'upcoming'
         }
       ]
-    },
-    {
-      id: '5',
-      firstName: 'Sarah',
-      lastName: 'Lens',
-      profileImage: 'https://randomuser.me/api/portraits/women/44.jpg',
-      coverImage: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=800',
-      portfolioImages: [
-        'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=400',
-        'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=400',
-        'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400'
-      ],
-      bio: 'Fashion and portrait photographer with an eye for detail and beauty. Published in multiple magazines including Vogue Africa and Elle.',
-      specializations: ['Fashion', 'Portraits', 'Editorial'],
-      experience: 7,
-      location: { city: 'Bujumbura', country: 'Burundi' },
-      rating: 4.9,
-      reviewCount: 78,
-      completedBookings: 124,
-      verified: false,
-      startingPrice: 400,
-      responseTime: '2 hours',
-      isFavorite: false,
-      isAvailable: true,
-      languages: ['English', 'French', 'Kirundi'],
-      equipment: ['Hasselblad X2D', 'Sony A1'],
-      lastBookingDate: '2024-08-15',
-      lastEventType: 'Portraits',
-      lastEventName: 'Personal Photoshoot',
-      totalBookingsWithClient: 1,
-      totalSpent: 400,
-      bookings: [
-        {
-          id: 'BK-005',
-          eventName: 'Personal Photoshoot',
-          eventType: 'Portraits',
-          eventDate: '2024-08-15',
-          eventTime: '14:00',
-          duration: '2 hours',
-          location: 'Studio, Bujumbura',
-          packageName: 'Portrait Session',
-          totalAmount: 400,
-          paidAmount: 400,
-          paymentStatus: 'paid',
-          status: 'completed'
-        }
-      ]
     }
+    
   ]);
 
   const specializations = ['Weddings', 'Events', 'Portraits', 'Birthdays', 'Corporate', 'Fashion', 'Festivals', 'Concerts'];
@@ -699,7 +653,7 @@ const BookedPhotographersPage = () => {
     <div style={{ display: 'flex', height: '100vh', backgroundColor: '#F9FAFB' }}>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar userRole="client" />
+        <Topbar userRole="client" giftAmount={225.00} />
         <div style={{ flex: 1, overflowY: 'auto', backgroundColor: '#F9FAFB', paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
 
           {/* Header */}
@@ -1051,38 +1005,51 @@ const BookedPhotographersPage = () => {
                     {/* Profile Image - positioned to overlap */}
                     <div style={{
                       position: 'absolute',
-                      top: '125px',
+                      top: '122px',
                       left: '20px',
                       width: '70px',
                       height: '70px',
-                      zIndex: 10,
-                      borderRadius: '50%',
-                      overflow: 'hidden',
-                      border: '2px solid white'
+                      zIndex: 10
                     }}>
-                      <Image
+                      <img
                         src={photographer.profileImage}
                         alt={photographer.firstName}
-                        width={70}
-                        height={70}
                         style={{
-                          objectFit: 'cover',
-                          objectPosition: 'center',
                           width: '100%',
-                          height: '100%'
+                          height: '100%',
+                          borderRadius: '50%',
+                          border: '2px solid white',
+                          objectFit: 'cover',
+                          objectPosition: 'center'
                         }}
                       />
+                      {photographer.verified && (
+                        <div style={{
+                          position: 'absolute',
+                          bottom: '0px',
+                          right: '0px',
+                          background: 'white',
+                          borderRadius: '50%',
+                          width: '24px',
+                          height: '24px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15)'
+                        }}>
+                          <i className="bi bi-patch-check-fill" style={{ color: '#3b82f6', fontSize: '1rem' }} />
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   {/* Profile Info - with padding to account for overlapping profile image */}
-                  <div style={{ padding: '1rem', paddingTop: '38px' }}>
+                  <div style={{ padding: '1rem', paddingTop: '55px' }}>
                     <div style={{ marginLeft: '0px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                         <h3 style={{ fontSize: '1rem', fontWeight: '600', color: '#111827', margin: 0 }}>
                           {photographer.firstName} {photographer.lastName}
                         </h3>
-                        {photographer.verified && <VerifiedIcon />}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
                         <LocationIcon />
@@ -1206,36 +1173,34 @@ const BookedPhotographersPage = () => {
                     e.currentTarget.style.backgroundColor = 'white';
                   }}
                 >
-                  <div style={{ position: 'relative' }}>
-                    <div style={{
-                      width: '80px',
-                      height: '80px',
-                      borderRadius: '0.5rem',
-                      overflow: 'hidden',
-                      position: 'relative'
-                    }}>
-                      <Image
-                        src={photographer.profileImage}
-                        alt={photographer.firstName}
-                        width={80}
-                        height={80}
-                        style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                      />
-                    </div>
-                    {photographer.isFavorite && (
+                  <div style={{ position: 'relative', width: '70px', height: '70px' }}>
+                    <img
+                      src={photographer.profileImage}
+                      alt={photographer.firstName}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        borderRadius: '50%',
+                        border: '2px solid white',
+                        objectFit: 'cover',
+                        objectPosition: 'center'
+                      }}
+                    />
+                    {photographer.verified && (
                       <div style={{
                         position: 'absolute',
-                        top: '-4px',
-                        right: '-4px',
-                        backgroundColor: '#F20C8F',
+                        bottom: '0px',
+                        right: '0px',
+                        background: 'white',
                         borderRadius: '50%',
-                        width: '20px',
-                        height: '20px',
+                        width: '24px',
+                        height: '24px',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center'
+                        justifyContent: 'center',
+                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15)'
                       }}>
-                        <HeartIcon filled={true} />
+                        <i className="bi bi-patch-check-fill" style={{ color: '#3b82f6', fontSize: '1rem' }} />
                       </div>
                     )}
                   </div>
@@ -1246,7 +1211,6 @@ const BookedPhotographersPage = () => {
                           <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#111827', margin: 0 }}>
                             {photographer.firstName} {photographer.lastName}
                           </h3>
-                          {photographer.verified && <VerifiedIcon />}
                           <span style={{
                             fontSize: '0.7rem',
                             fontWeight: '600',
@@ -1484,37 +1448,50 @@ const BookedPhotographersPage = () => {
               {/* Profile Image - positioned to overlap */}
               <div style={{
                 position: 'absolute',
-                top: '125px',
+                top: '105px',
                 left: '20px',
                 width: '70px',
                 height: '70px',
-                zIndex: 10,
-                borderRadius: '50%',
-                overflow: 'hidden',
-                border: '2px solid white'
+                zIndex: 10
               }}>
-                <Image
+                <img
                   src={selectedPhotographer.profileImage}
                   alt={selectedPhotographer.firstName}
-                  width={70}
-                  height={70}
                   style={{
-                    objectFit: 'cover',
-                    objectPosition: 'center',
                     width: '100%',
-                    height: '100%'
+                    height: '100%',
+                    borderRadius: '50%',
+                    border: '2px solid white',
+                    objectFit: 'cover',
+                    objectPosition: 'center'
                   }}
                 />
+                {selectedPhotographer.verified && (
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '0px',
+                    right: '0px',
+                    background: 'white',
+                    borderRadius: '50%',
+                    width: '24px',
+                    height: '24px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15)'
+                  }}>
+                    <i className="bi bi-patch-check-fill" style={{ color: '#3b82f6', fontSize: '1rem' }} />
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Profile Info - with padding to account for overlapping profile image */}
-            <div style={{ paddingTop: '38px', paddingLeft: '1rem', marginBottom: '1rem' }}>
+            <div style={{ paddingTop: '55px', paddingLeft: '1rem', marginBottom: '1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#111827', margin: 0 }}>
                   {selectedPhotographer.firstName} {selectedPhotographer.lastName}
                 </h2>
-                {selectedPhotographer.verified && <VerifiedIcon />}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
                 <LocationIcon />
@@ -1697,8 +1674,36 @@ const BookedPhotographersPage = () => {
         {rebookPhotographer && (
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem', padding: '0.75rem', backgroundColor: '#FDF2F8', borderRadius: '0.5rem' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
-                <Image src={rebookPhotographer.profileImage} alt={rebookPhotographer.firstName} width={48} height={48} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+              <div style={{ position: 'relative', width: '48px', height: '48px', flexShrink: 0 }}>
+                <img
+                  src={rebookPhotographer.profileImage}
+                  alt={rebookPhotographer.firstName}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    borderRadius: '50%',
+                    border: '2px solid white',
+                    objectFit: 'cover',
+                    objectPosition: 'center'
+                  }}
+                />
+                {rebookPhotographer.verified && (
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '0px',
+                    right: '0px',
+                    background: 'white',
+                    borderRadius: '50%',
+                    width: '18px',
+                    height: '18px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15)'
+                  }}>
+                    <i className="bi bi-patch-check-fill" style={{ color: '#3b82f6', fontSize: '0.75rem' }} />
+                  </div>
+                )}
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: '600', color: '#111827' }}>{rebookPhotographer.firstName} {rebookPhotographer.lastName}</div>
@@ -1706,7 +1711,6 @@ const BookedPhotographersPage = () => {
                   You&apos;ve booked {rebookPhotographer.totalBookingsWithClient} time{rebookPhotographer.totalBookingsWithClient > 1 ? 's' : ''} before
                 </div>
               </div>
-              {rebookPhotographer.verified && <VerifiedIcon />}
             </div>
 
             <div style={{ backgroundColor: '#F9FAFB', borderRadius: '0.5rem', padding: '0.75rem', marginBottom: '1rem' }}>
@@ -1859,8 +1863,36 @@ const BookedPhotographersPage = () => {
         {reviewPhotographer && (
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
-                <Image src={reviewPhotographer.profileImage} alt={reviewPhotographer.firstName} width={48} height={48} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+              <div style={{ position: 'relative', width: '48px', height: '48px', flexShrink: 0 }}>
+                <img
+                  src={reviewPhotographer.profileImage}
+                  alt={reviewPhotographer.firstName}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    borderRadius: '50%',
+                    border: '2px solid white',
+                    objectFit: 'cover',
+                    objectPosition: 'center'
+                  }}
+                />
+                {reviewPhotographer.verified && (
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '0px',
+                    right: '0px',
+                    background: 'white',
+                    borderRadius: '50%',
+                    width: '18px',
+                    height: '18px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15)'
+                  }}>
+                    <i className="bi bi-patch-check-fill" style={{ color: '#3b82f6', fontSize: '0.75rem' }} />
+                  </div>
+                )}
               </div>
               <div>
                 <div style={{ fontWeight: '600', color: '#111827' }}>{reviewPhotographer.firstName} {reviewPhotographer.lastName}</div>
@@ -2039,8 +2071,36 @@ const BookedPhotographersPage = () => {
 
             {/* Photographer Info */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', padding: '0.75rem', backgroundColor: '#F9FAFB', borderRadius: '0.5rem' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
-                <Image src={paymentBooking.photographer.profileImage} alt={paymentBooking.photographer.firstName} width={48} height={48} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+              <div style={{ position: 'relative', width: '48px', height: '48px', flexShrink: 0 }}>
+                <img
+                  src={paymentBooking.photographer.profileImage}
+                  alt={paymentBooking.photographer.firstName}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    borderRadius: '50%',
+                    border: '2px solid white',
+                    objectFit: 'cover',
+                    objectPosition: 'center'
+                  }}
+                />
+                {paymentBooking.photographer.verified && (
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '0px',
+                    right: '0px',
+                    background: 'white',
+                    borderRadius: '50%',
+                    width: '18px',
+                    height: '18px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15)'
+                  }}>
+                    <i className="bi bi-patch-check-fill" style={{ color: '#3b82f6', fontSize: '0.75rem' }} />
+                  </div>
+                )}
               </div>
               <div>
                 <div style={{ fontWeight: '600', color: '#111827' }}>{paymentBooking.photographer.firstName} {paymentBooking.photographer.lastName}</div>
