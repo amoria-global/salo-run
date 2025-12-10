@@ -431,7 +431,7 @@ const MyEventsPage = () => {
     <div style={{ display: 'flex', height: '100vh', backgroundColor: '#F9FAFB' }}>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar />
+        <Topbar userRole="client" />
         <div style={{ flex: 1, overflowY: 'auto', backgroundColor: '#F9FAFB', paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
 
           {/* Header */}
@@ -477,7 +477,7 @@ const MyEventsPage = () => {
                 style={{
                   width: '100%',
                   padding: '0.75rem 1rem 0.75rem 2.75rem',
-                  border: '1px solid #E5E7EB',
+                  border: '2px solid #D1D5DB',
                   borderRadius: '0.5rem',
                   fontSize: '0.95rem',
                   fontWeight: '500',
@@ -543,7 +543,7 @@ const MyEventsPage = () => {
                   gap: '0.5rem',
                   backgroundColor: '#083A85',
                   color: 'white',
-                  border: 'none',
+                  border: '2px solid #062a63',
                   borderRadius: '0.5rem',
                   padding: '0.75rem 1.25rem',
                   fontSize: '0.9rem',
@@ -773,7 +773,7 @@ const MyEventsPage = () => {
               style={{
                 width: '100%',
                 padding: '0.75rem',
-                border: '1px solid #E5E7EB',
+                border: '2px solid #D1D5DB',
                 borderRadius: '0.5rem',
                 fontSize: '0.9rem',
                 color: '#111827'
@@ -788,11 +788,12 @@ const MyEventsPage = () => {
             <select style={{
               width: '100%',
               padding: '0.75rem',
-              border: '1px solid #E5E7EB',
+              border: '2px solid #D1D5DB',
               borderRadius: '0.5rem',
               fontSize: '0.9rem',
               backgroundColor: 'white',
-              color: '#111827'
+              color: '#111827',
+              cursor: 'pointer'
             }}>
               <option value="">Select event type</option>
               {eventTypes.map(type => <option key={type} value={type}>{type}</option>)}
@@ -809,10 +810,11 @@ const MyEventsPage = () => {
                 style={{
                   width: '100%',
                   padding: '0.75rem',
-                  border: '1px solid #E5E7EB',
+                  border: '2px solid #D1D5DB',
                   borderRadius: '0.5rem',
                   fontSize: '0.9rem',
-                  color: '#111827'
+                  color: '#111827',
+                  cursor: 'pointer'
                 }}
               />
             </div>
@@ -825,10 +827,11 @@ const MyEventsPage = () => {
                 style={{
                   width: '100%',
                   padding: '0.75rem',
-                  border: '1px solid #E5E7EB',
+                  border: '2px solid #D1D5DB',
                   borderRadius: '0.5rem',
                   fontSize: '0.9rem',
-                  color: '#111827'
+                  color: '#111827',
+                  cursor: 'pointer'
                 }}
               />
             </div>
@@ -844,7 +847,7 @@ const MyEventsPage = () => {
               style={{
                 width: '100%',
                 padding: '0.75rem',
-                border: '1px solid #E5E7EB',
+                border: '2px solid #D1D5DB',
                 borderRadius: '0.5rem',
                 fontSize: '0.9rem',
                 color: '#111827'
@@ -863,7 +866,7 @@ const MyEventsPage = () => {
                 style={{
                   width: '100%',
                   padding: '0.75rem',
-                  border: '1px solid #E5E7EB',
+                  border: '2px solid #D1D5DB',
                   borderRadius: '0.5rem',
                   fontSize: '0.9rem',
                   color: '#111827'
@@ -877,11 +880,12 @@ const MyEventsPage = () => {
               <select style={{
                 width: '100%',
                 padding: '0.75rem',
-                border: '1px solid #E5E7EB',
+                border: '2px solid #D1D5DB',
                 borderRadius: '0.5rem',
                 fontSize: '0.9rem',
                 backgroundColor: 'white',
-                color: '#111827'
+                color: '#111827',
+                cursor: 'pointer'
               }}>
                 <option value="Rwanda">Rwanda</option>
                 <option value="Kenya">Kenya</option>
@@ -902,7 +906,7 @@ const MyEventsPage = () => {
               style={{
                 width: '100%',
                 padding: '0.75rem',
-                border: '1px solid #E5E7EB',
+                border: '2px solid #D1D5DB',
                 borderRadius: '0.5rem',
                 fontSize: '0.9rem',
                 color: '#111827'
@@ -919,7 +923,7 @@ const MyEventsPage = () => {
               style={{
                 width: '100%',
                 padding: '0.75rem',
-                border: '1px solid #E5E7EB',
+                border: '2px solid #D1D5DB',
                 borderRadius: '0.5rem',
                 fontSize: '0.9rem',
                 minHeight: '80px',
@@ -934,12 +938,12 @@ const MyEventsPage = () => {
               onClick={() => setShowCreateModal(false)}
               style={{
                 padding: '0.75rem 1.25rem',
-                border: '1px solid #E5E7EB',
+                border: '2px solid #D1D5DB',
                 borderRadius: '0.5rem',
-                background: 'white',
+                background: '#F3F4F6',
                 color: '#374151',
                 fontSize: '0.9rem',
-                fontWeight: '500',
+                fontWeight: '600',
                 cursor: 'pointer'
               }}
             >
@@ -948,7 +952,7 @@ const MyEventsPage = () => {
             <button
               style={{
                 padding: '0.75rem 1.25rem',
-                border: 'none',
+                border: '2px solid #062a63',
                 borderRadius: '0.5rem',
                 background: '#083A85',
                 color: 'white',
@@ -1177,7 +1181,7 @@ const MyEventsPage = () => {
                   style={{
                     flex: 1,
                     padding: '0.625rem 0.875rem',
-                    border: '1px solid #E5E7EB',
+                    border: '2px solid #D1D5DB',
                     borderRadius: '0.375rem',
                     fontSize: '0.9rem',
                     backgroundColor: '#F9FAFB',
@@ -1191,14 +1195,14 @@ const MyEventsPage = () => {
                     alignItems: 'center',
                     gap: '0.375rem',
                     padding: '0.625rem 1rem',
-                    border: 'none',
+                    border: copiedLink ? '2px solid #059669' : '2px solid #062a63',
                     borderRadius: '0.375rem',
                     background: copiedLink ? '#10B981' : '#083A85',
                     color: 'white',
                     fontSize: '0.9rem',
                     fontWeight: '500',
                     cursor: 'pointer',
-                    transition: 'background 0.2s'
+                    transition: 'all 0.2s'
                   }}
                 >
                   <CopyIcon />
@@ -1356,7 +1360,7 @@ const MyEventsPage = () => {
                   style={{
                     flex: 1,
                     padding: '0.625rem 0.875rem',
-                    border: '1px solid #E5E7EB',
+                    border: '2px solid #D1D5DB',
                     borderRadius: '0.375rem',
                     fontSize: '0.9rem',
                     fontWeight: '500',
@@ -1371,7 +1375,7 @@ const MyEventsPage = () => {
                     alignItems: 'center',
                     gap: '0.375rem',
                     padding: '0.625rem 1rem',
-                    border: 'none',
+                    border: copiedLink ? '2px solid #059669' : '2px solid #062a63',
                     borderRadius: '0.375rem',
                     background: copiedLink ? '#10B981' : '#083A85',
                     color: 'white',
@@ -1405,7 +1409,7 @@ const MyEventsPage = () => {
                 onClick={() => setShowDeleteModal(false)}
                 style={{
                   padding: '0.625rem 1.25rem',
-                  border: '1px solid #E5E7EB',
+                  border: '2px solid #D1D5DB',
                   borderRadius: '0.5rem',
                   background: 'white',
                   color: '#374151',
@@ -1419,7 +1423,7 @@ const MyEventsPage = () => {
                 onClick={handleDeleteEvent}
                 style={{
                   padding: '0.625rem 1.25rem',
-                  border: 'none',
+                  border: '2px solid #B91C1C',
                   borderRadius: '0.5rem',
                   background: '#DC2626',
                   color: 'white',
