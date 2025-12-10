@@ -57,10 +57,12 @@ const notificationsData = [
 
 interface TopbarProps {
   bonusAmount?: number;
+  giftAmount?: number;
+  balanceAmount?: number; // For photographer/freelancer - unwithdrawn paid amount + bonuses
   userRole?: 'client' | 'photographer' | 'freelancer' | 'admin';
 }
 
-export default function Topbar({ bonusAmount, userRole = 'client' }: TopbarProps) {
+export default function Topbar({ bonusAmount, giftAmount, balanceAmount, userRole = 'client' }: TopbarProps) {
   const getRoleDisplayName = (role: string) => {
     switch (role) {
       case 'photographer':
@@ -149,7 +151,7 @@ export default function Topbar({ bonusAmount, userRole = 'client' }: TopbarProps
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '1rem'
+        gap: '1.5rem'
       }}>
         {/* Notification Bell */}
         <div
@@ -384,7 +386,29 @@ export default function Topbar({ bonusAmount, userRole = 'client' }: TopbarProps
           )}
         </div>
 
-        {/* Bonus */}
+        {/* Balance - Shows for photographer/freelancer only */}
+        {(userRole === 'photographer' || userRole === 'freelancer') && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}>
+            <span style={{
+              fontSize: '1.12rem',
+              lineHeight: '1.5rem',
+              fontWeight: '600',
+              color: '#111827'
+            }}>Balance:</span>
+            <span style={{
+              fontSize: '1.15rem',
+              lineHeight: '1.5rem',
+              fontWeight: '700',
+              color: balanceAmount && balanceAmount > 0 ? '#083A85' : '#6B7280'
+            }}>${balanceAmount !== undefined ? balanceAmount.toFixed(2) : '0.00'}</span>
+          </div>
+        )}
+
+        {/* Bonus/Gift - Shows Gift for clients, Bonus for others */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -395,13 +419,17 @@ export default function Topbar({ bonusAmount, userRole = 'client' }: TopbarProps
             lineHeight: '1.5rem',
             fontWeight: '600',
             color: '#111827'
-          }}>Bonus:</span>
+          }}>{userRole === 'client' ? 'Gifts:' : 'Bonus:'}</span>
           <span style={{
             fontSize: '1.15rem',
             lineHeight: '1.5rem',
             fontWeight: '600',
-            color: bonusAmount && bonusAmount > 0 ? '#16A34A' : '#083A85'
-          }}>${bonusAmount !== undefined ? bonusAmount.toFixed(2) : '0.00'}</span>
+            color: userRole === 'client'
+              ? (giftAmount && giftAmount > 0 ? '#16A34A' : '#083A85')
+              : (bonusAmount && bonusAmount > 0 ? '#16A34A' : '#083A85')
+          }}>${userRole === 'client'
+            ? (giftAmount !== undefined ? giftAmount.toFixed(2) : '0.00')
+            : (bonusAmount !== undefined ? bonusAmount.toFixed(2) : '0.00')}</span>
         </div>
 
         {/* Profile with Dropdown */}
@@ -452,7 +480,9 @@ export default function Topbar({ bonusAmount, userRole = 'client' }: TopbarProps
                   lineHeight: '1.5rem',
                   fontWeight: '600',
                   color: '#111827'
-                }}>$0.00</span>
+                }}>${userRole === 'client'
+                  ? (giftAmount !== undefined ? giftAmount.toFixed(2) : '0.00')
+                  : (balanceAmount !== undefined ? balanceAmount.toFixed(2) : '0.00')}</span>
                 <i style={{
                   fontSize: '0.75rem',
                   lineHeight: '1rem',

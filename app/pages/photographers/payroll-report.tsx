@@ -137,7 +137,7 @@ const PayrollReport = ({ userType = 'photographer' }: PayrollReportProps) => {
 
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <div className="no-print">
-            <Topbar userRole={userType} />
+            <Topbar userRole={userType} bonusAmount={725.00} balanceAmount={3975.00} />
           </div>
 
           {/* Main Content */}
