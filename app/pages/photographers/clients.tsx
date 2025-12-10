@@ -950,17 +950,26 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                 >
                   {/* Header Row - Profile Image, Name, Actions */}
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', marginBottom: '0.625rem' }}>
-                    <Image
-                      src={client.profileImage}
-                      alt={client.firstName}
-                      width={50}
-                      height={50}
-                      style={{
-                        borderRadius: '50%',
-                        objectFit: 'cover',
-                        flexShrink: 0
-                      }}
-                    />
+                    <div style={{
+                      width: '50px',
+                      height: '50px',
+                      borderRadius: '50%',
+                      overflow: 'hidden',
+                      flexShrink: 0,
+                      position: 'relative'
+                    }}>
+                      <Image
+                        src={client.profileImage}
+                        alt={client.firstName}
+                        width={50}
+                        height={50}
+                        style={{
+                          objectFit: 'cover',
+                          width: '100%',
+                          height: '100%'
+                        }}
+                      />
+                    </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                         <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#111827', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -1204,13 +1213,22 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                   }}
                 >
                   {/* Avatar */}
-                  <Image
-                    src={client.profileImage}
-                    alt={client.firstName}
-                    width={56}
-                    height={56}
-                    style={{ borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
-                  />
+                  <div style={{
+                    width: '56px',
+                    height: '56px',
+                    borderRadius: '50%',
+                    overflow: 'hidden',
+                    flexShrink: 0,
+                    position: 'relative'
+                  }}>
+                    <Image
+                      src={client.profileImage}
+                      alt={client.firstName}
+                      width={56}
+                      height={56}
+                      style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                    />
+                  </div>
 
                   {/* Name & Location */}
                   <div style={{ flex: '1 1 200px', minWidth: 0 }}>
@@ -1418,13 +1436,22 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
           <div>
             {/* Client Header */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-              <Image
-                src={selectedClient.profileImage}
-                alt={selectedClient.firstName}
-                width={80}
-                height={80}
-                style={{ borderRadius: '50%', objectFit: 'cover' }}
-              />
+              <div style={{
+                width: '80px',
+                height: '80px',
+                borderRadius: '50%',
+                overflow: 'hidden',
+                flexShrink: 0,
+                position: 'relative'
+              }}>
+                <Image
+                  src={selectedClient.profileImage}
+                  alt={selectedClient.firstName}
+                  width={80}
+                  height={80}
+                  style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                />
+              </div>
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#111827', margin: 0 }}>
@@ -1659,13 +1686,22 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
               backgroundColor: '#F9FAFB',
               borderRadius: '0.5rem'
             }}>
-              <Image
-                src={tipsClient.profileImage}
-                alt={tipsClient.firstName}
-                width={48}
-                height={48}
-                style={{ borderRadius: '50%', objectFit: 'cover' }}
-              />
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                overflow: 'hidden',
+                flexShrink: 0,
+                position: 'relative'
+              }}>
+                <Image
+                  src={tipsClient.profileImage}
+                  alt={tipsClient.firstName}
+                  width={48}
+                  height={48}
+                  style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                />
+              </div>
               <div>
                 <div style={{ fontWeight: '600', color: '#111827', fontSize: '0.95rem' }}>
                   {tipsClient.firstName} {tipsClient.lastName}
