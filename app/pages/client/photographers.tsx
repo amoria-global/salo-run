@@ -1055,7 +1055,10 @@ const BookedPhotographersPage = () => {
                       left: '20px',
                       width: '70px',
                       height: '70px',
-                      zIndex: 10
+                      zIndex: 10,
+                      borderRadius: '50%',
+                      overflow: 'hidden',
+                      border: '2px solid white'
                     }}>
                       <Image
                         src={photographer.profileImage}
@@ -1063,10 +1066,10 @@ const BookedPhotographersPage = () => {
                         width={70}
                         height={70}
                         style={{
-                          borderRadius: '50%',
-                          border: '2px solid white',
                           objectFit: 'cover',
-                          objectPosition: 'center'
+                          objectPosition: 'center',
+                          width: '100%',
+                          height: '100%'
                         }}
                       />
                     </div>
@@ -1204,13 +1207,21 @@ const BookedPhotographersPage = () => {
                   }}
                 >
                   <div style={{ position: 'relative' }}>
-                    <Image
-                      src={photographer.profileImage}
-                      alt={photographer.firstName}
-                      width={80}
-                      height={80}
-                      style={{ borderRadius: '0.5rem', objectFit: 'cover' }}
-                    />
+                    <div style={{
+                      width: '80px',
+                      height: '80px',
+                      borderRadius: '0.5rem',
+                      overflow: 'hidden',
+                      position: 'relative'
+                    }}>
+                      <Image
+                        src={photographer.profileImage}
+                        alt={photographer.firstName}
+                        width={80}
+                        height={80}
+                        style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                      />
+                    </div>
                     {photographer.isFavorite && (
                       <div style={{
                         position: 'absolute',
@@ -1477,7 +1488,10 @@ const BookedPhotographersPage = () => {
                 left: '20px',
                 width: '70px',
                 height: '70px',
-                zIndex: 10
+                zIndex: 10,
+                borderRadius: '50%',
+                overflow: 'hidden',
+                border: '2px solid white'
               }}>
                 <Image
                   src={selectedPhotographer.profileImage}
@@ -1485,10 +1499,10 @@ const BookedPhotographersPage = () => {
                   width={70}
                   height={70}
                   style={{
-                    borderRadius: '50%',
-                    border: '2px solid white',
                     objectFit: 'cover',
-                    objectPosition: 'center'
+                    objectPosition: 'center',
+                    width: '100%',
+                    height: '100%'
                   }}
                 />
               </div>
@@ -1683,7 +1697,9 @@ const BookedPhotographersPage = () => {
         {rebookPhotographer && (
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem', padding: '0.75rem', backgroundColor: '#FDF2F8', borderRadius: '0.5rem' }}>
-              <Image src={rebookPhotographer.profileImage} alt={rebookPhotographer.firstName} width={48} height={48} style={{ borderRadius: '50%' }} />
+              <div style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
+                <Image src={rebookPhotographer.profileImage} alt={rebookPhotographer.firstName} width={48} height={48} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+              </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: '600', color: '#111827' }}>{rebookPhotographer.firstName} {rebookPhotographer.lastName}</div>
                 <div style={{ fontSize: '0.85rem', color: '#6B7280' }}>
@@ -1843,7 +1859,9 @@ const BookedPhotographersPage = () => {
         {reviewPhotographer && (
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
-              <Image src={reviewPhotographer.profileImage} alt={reviewPhotographer.firstName} width={48} height={48} style={{ borderRadius: '50%' }} />
+              <div style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
+                <Image src={reviewPhotographer.profileImage} alt={reviewPhotographer.firstName} width={48} height={48} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+              </div>
               <div>
                 <div style={{ fontWeight: '600', color: '#111827' }}>{reviewPhotographer.firstName} {reviewPhotographer.lastName}</div>
                 <div style={{ fontSize: '0.85rem', color: '#6B7280' }}>{reviewPhotographer.lastEventName}</div>
@@ -2021,7 +2039,9 @@ const BookedPhotographersPage = () => {
 
             {/* Photographer Info */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', padding: '0.75rem', backgroundColor: '#F9FAFB', borderRadius: '0.5rem' }}>
-              <Image src={paymentBooking.photographer.profileImage} alt={paymentBooking.photographer.firstName} width={48} height={48} style={{ borderRadius: '50%' }} />
+              <div style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
+                <Image src={paymentBooking.photographer.profileImage} alt={paymentBooking.photographer.firstName} width={48} height={48} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+              </div>
               <div>
                 <div style={{ fontWeight: '600', color: '#111827' }}>{paymentBooking.photographer.firstName} {paymentBooking.photographer.lastName}</div>
                 <div style={{ fontSize: '0.85rem', color: '#6B7280' }}>{paymentBooking.booking.eventName}</div>
