@@ -151,7 +151,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
       }} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
           <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#111827', margin: 0 }}>{title}</h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}>
+          <button className="no-print" onClick={onClose} style={{ background: '#F3F4F6', border: '2px solid #D1D5DB', cursor: 'pointer', padding: '0.5rem', borderRadius: '0.375rem', color: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <CloseIcon />
           </button>
         </div>
@@ -277,7 +277,7 @@ Transaction Summary:
       </div>
 
       {/* Actions */}
-      <div style={{ display: 'flex', gap: '0.5rem' }}>
+      <div className="no-print" style={{ display: 'flex', gap: '0.5rem' }}>
         <button onClick={handleDownload} style={{
           flex: 1,
           display: 'flex',
@@ -286,7 +286,7 @@ Transaction Summary:
           gap: '0.5rem',
           backgroundColor: '#083A85',
           color: 'white',
-          border: 'none',
+          border: '2px solid #062a63',
           borderRadius: '0.5rem',
           padding: '0.6rem 1rem',
           fontSize: '0.85rem',
@@ -301,13 +301,13 @@ Transaction Summary:
           alignItems: 'center',
           justifyContent: 'center',
           gap: '0.5rem',
-          backgroundColor: 'white',
-          color: '#6B7280',
-          border: '1px solid #E5E7EB',
+          backgroundColor: '#F3F4F6',
+          color: '#374151',
+          border: '2px solid #D1D5DB',
           borderRadius: '0.5rem',
           padding: '0.6rem 1rem',
           fontSize: '0.85rem',
-          fontWeight: '500',
+          fontWeight: '600',
           cursor: 'pointer'
         }}>
           <PrintIcon />
@@ -461,7 +461,7 @@ Amount: ${transaction.amount}
       </div>
 
       {/* Actions */}
-      <div style={{ display: 'flex', gap: '0.75rem' }}>
+      <div className="no-print" style={{ display: 'flex', gap: '0.75rem' }}>
         <button onClick={handleDownloadReceipt} style={{
           flex: 1,
           display: 'flex',
@@ -470,7 +470,7 @@ Amount: ${transaction.amount}
           gap: '0.5rem',
           backgroundColor: '#083A85',
           color: 'white',
-          border: 'none',
+          border: '2px solid #062a63',
           borderRadius: '0.5rem',
           padding: '0.75rem 1rem',
           fontSize: '0.9rem',
@@ -485,26 +485,26 @@ Amount: ${transaction.amount}
           alignItems: 'center',
           justifyContent: 'center',
           gap: '0.5rem',
-          backgroundColor: 'white',
-          color: '#6B7280',
-          border: '1px solid #E5E7EB',
+          backgroundColor: '#F3F4F6',
+          color: '#374151',
+          border: '2px solid #D1D5DB',
           borderRadius: '0.5rem',
           padding: '0.75rem 1rem',
           fontSize: '0.9rem',
-          fontWeight: '500',
+          fontWeight: '600',
           cursor: 'pointer'
         }}>
           <PrintIcon />
           Print
         </button>
         <button onClick={onClose} style={{
-          backgroundColor: 'white',
-          color: '#6B7280',
-          border: '1px solid #E5E7EB',
+          backgroundColor: '#F3F4F6',
+          color: '#374151',
+          border: '2px solid #D1D5DB',
           borderRadius: '0.5rem',
           padding: '0.75rem 1rem',
           fontSize: '0.9rem',
-          fontWeight: '500',
+          fontWeight: '600',
           cursor: 'pointer'
         }}>
           Close
@@ -599,7 +599,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
             onClick={onClose}
             style={{
               background: '#F3F4F6',
-              border: 'none',
+              border: '2px solid #D1D5DB',
               cursor: 'pointer',
               padding: '0.5rem',
               borderRadius: '0.5rem',
@@ -825,17 +825,17 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
               style={{
                 flex: 1,
                 padding: '0.875rem 1rem',
-                border: '1px solid #E5E7EB',
+                border: '2px solid #D1D5DB',
                 borderRadius: '0.75rem',
-                background: 'white',
+                background: '#F3F4F6',
                 color: '#374151',
                 fontSize: '0.9rem',
                 fontWeight: '600',
                 cursor: 'pointer',
                 transition: 'all 0.2s'
               }}
-              onMouseEnter={(e) => e.currentTarget.style.background = '#F9FAFB'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+              onMouseEnter={(e) => e.currentTarget.style.background = '#E5E7EB'}
+              onMouseLeave={(e) => e.currentTarget.style.background = '#F3F4F6'}
             >
               Cancel
             </button>
@@ -845,7 +845,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
               style={{
                 flex: 1,
                 padding: '0.875rem 1rem',
-                border: 'none',
+                border: !withdrawAmount || !selectedAccount ? '2px solid #9CA3AF' : '2px solid #062a63',
                 borderRadius: '0.75rem',
                 background: !withdrawAmount || !selectedAccount ? '#9CA3AF' : '#083A85',
                 color: 'white',
@@ -1246,7 +1246,11 @@ const ServiceTypeBadge: React.FC<ServiceTypeBadgeProps> = ({ type }) => {
   );
 };
 
-const TransactionsPage = () => {
+interface TransactionsPageProps {
+  userType?: 'photographer' | 'freelancer';
+}
+
+const TransactionsPage = ({ userType = 'photographer' }: TransactionsPageProps) => {
   const [activeTimeFilter, setActiveTimeFilter] = useState<'1W' | '1M' | '3M' | '6M' | '1Y'>('1W');
   const [currentPage, setCurrentPage] = useState(1);
   const [chartType, setChartType] = useState<ChartType>('line');
@@ -1325,7 +1329,7 @@ Amount: ${transaction.amount}
     <div style={{ display: 'flex', height: '100vh', backgroundColor: '#F9FAFB' }}>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar />
+        <Topbar userRole={userType} />
         <div style={{ flex: 1, overflowY: 'auto', backgroundColor: '#F9FAFB', paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
 
           {/* Header with Withdraw Button */}
@@ -1524,7 +1528,7 @@ Amount: ${transaction.amount}
           <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)', overflow: 'hidden' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderBottom: '1px solid #E5E7EB' }}>
               <h2 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#111827' }}>Transaction History</h2>
-              <button style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'white', border: '1px solid #E5E7EB', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', fontSize: '0.85rem', color: '#6B7280', cursor: 'pointer' }}>
+              <button style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'white', border: '2px solid #D1D5DB', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', fontSize: '0.85rem', color: '#6B7280', cursor: 'pointer' }}>
                 <CalendarIcon />
                 19 Nov - 29 Nov 2024
               </button>
@@ -1581,19 +1585,19 @@ Amount: ${transaction.amount}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderTop: '1px solid #E5E7EB' }}>
               <div style={{ fontSize: '0.85rem', color: '#6B7280' }}>Showing {resultsPerPage} of {totalResults} Results</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <button onClick={() => setCurrentPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1} style={{ background: 'none', border: '1px solid #E5E7EB', borderRadius: '0.375rem', padding: '0.5rem', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', opacity: currentPage === 1 ? 0.5 : 1 }}>
+                <button onClick={() => setCurrentPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1} style={{ background: 'none', border: '2px solid #D1D5DB', borderRadius: '0.375rem', padding: '0.5rem', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', opacity: currentPage === 1 ? 0.5 : 1 }}>
                   <ChevronLeftIcon />
                 </button>
                 {[1, 2, 3].map((page) => (
-                  <button key={page} onClick={() => setCurrentPage(page)} style={{ width: '32px', height: '32px', border: currentPage === page ? '1px solid #083A85' : '1px solid #E5E7EB', borderRadius: '0.375rem', backgroundColor: currentPage === page ? '#083A85' : 'white', color: currentPage === page ? 'white' : '#6B7280', fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer' }}>
+                  <button key={page} onClick={() => setCurrentPage(page)} style={{ width: '32px', height: '32px', border: currentPage === page ? '2px solid #062a63' : '2px solid #D1D5DB', borderRadius: '0.375rem', backgroundColor: currentPage === page ? '#083A85' : 'white', color: currentPage === page ? 'white' : '#6B7280', fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer' }}>
                     {page}
                   </button>
                 ))}
                 <span style={{ padding: '0 0.5rem', color: '#6B7280' }}>...</span>
-                <button onClick={() => setCurrentPage(totalPages)} style={{ width: '32px', height: '32px', border: currentPage === totalPages ? '1px solid #083A85' : '1px solid #E5E7EB', borderRadius: '0.375rem', backgroundColor: currentPage === totalPages ? '#083A85' : 'white', color: currentPage === totalPages ? 'white' : '#6B7280', fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer' }}>
+                <button onClick={() => setCurrentPage(totalPages)} style={{ width: '32px', height: '32px', border: currentPage === totalPages ? '2px solid #062a63' : '2px solid #D1D5DB', borderRadius: '0.375rem', backgroundColor: currentPage === totalPages ? '#083A85' : 'white', color: currentPage === totalPages ? 'white' : '#6B7280', fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer' }}>
                   {totalPages}
                 </button>
-                <button onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages} style={{ background: 'none', border: '1px solid #E5E7EB', borderRadius: '0.375rem', padding: '0.5rem', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', opacity: currentPage === totalPages ? 0.5 : 1 }}>
+                <button onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages} style={{ background: 'none', border: '2px solid #D1D5DB', borderRadius: '0.375rem', padding: '0.5rem', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', opacity: currentPage === totalPages ? 0.5 : 1 }}>
                   <ChevronRightIcon />
                 </button>
               </div>
@@ -1614,6 +1618,15 @@ Amount: ${transaction.amount}
         onClose={() => setShowWithdrawModal(false)}
         availableBalance={availableBalance}
       />
+
+      {/* Print Styles */}
+      <style>{`
+        @media print {
+          .no-print {
+            display: none !important;
+          }
+        }
+      `}</style>
     </div>
   );
 };

@@ -8,7 +8,7 @@ import Image from 'next/image';
 // Icons
 const HeartIcon = ({ filled }: { filled: boolean }) => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill={filled ? '#F20C8F' : 'none'} xmlns="http://www.w3.org/2000/svg">
-    <path d="M20.84 4.61C20.3292 4.09924 19.7228 3.6929 19.0554 3.41524C18.3879 3.13757 17.6725 2.99414 16.95 2.99414C16.2275 2.99414 15.5121 3.13757 14.8446 3.41524C14.1772 3.6929 13.5708 4.09924 13.06 4.61L12 5.67L10.94 4.61C9.9083 3.57831 8.50903 2.99479 7.05 2.99479C5.59096 2.99479 4.19169 3.57831 3.16 4.61C2.1283 5.6417 1.54478 7.04097 1.54478 8.5C1.54478 9.95903 2.1283 11.3583 3.16 12.39L4.22 13.45L12 21.23L19.78 13.45L20.84 12.39C21.3508 11.8792 21.7571 11.2728 22.0348 10.6054C22.3124 9.93789 22.4559 9.22249 22.4559 8.5C22.4559 7.77751 22.3124 7.06211 22.0348 6.39464C21.7571 5.72718 21.3508 5.12075 20.84 4.61Z" stroke={filled ? '#F20C8F' : 'white'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M20.84 4.61C20.3292 4.09924 19.7228 3.6929 19.0554 3.41524C18.3879 3.13757 17.6725 2.99414 16.95 2.99414C16.2275 2.99414 15.5121 3.13757 14.8446 3.41524C14.1772 3.6929 13.5708 4.09924 13.06 4.61L12 5.67L10.94 4.61C9.9083 3.57831 8.50903 2.99479 7.05 2.99479C5.59096 2.99479 4.19169 3.57831 3.16 4.61C2.1283 5.6417 1.54478 7.04097 1.54478 8.5C1.54478 9.95903 2.1283 11.3583 3.16 12.39L4.22 13.45L12 21.23L19.78 13.45L20.84 12.39C21.3508 11.8792 21.7571 11.2728 22.0348 10.6054C22.3124 9.93789 22.4559 9.22249 22.4559 8.5C22.4559 7.77751 22.3124 7.06211 22.0348 6.39464C21.7571 5.72718 21.3508 5.12075 20.84 4.61Z" stroke={filled ? '#F20C8F' : '#6B7280'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
@@ -66,6 +66,93 @@ const CloseIcon = () => (
   </svg>
 );
 
+const CopyIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="2"/>
+    <path d="M5 15H4C2.89543 15 2 14.1046 2 13V4C2 2.89543 2.89543 2 4 2H13C14.1046 2 15 2.89543 15 4V5" stroke="currentColor" strokeWidth="2"/>
+  </svg>
+);
+
+// Social Media Icons with Brand Colors
+const WhatsAppIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="#25D366" xmlns="http://www.w3.org/2000/svg">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+  </svg>
+);
+
+const FacebookIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="#1877F2" xmlns="http://www.w3.org/2000/svg">
+    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+  </svg>
+);
+
+const TwitterIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="#000000" xmlns="http://www.w3.org/2000/svg">
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+  </svg>
+);
+
+const EmailIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#EA4335" strokeWidth="2" xmlns="http://www.w3.org/2000/svg">
+    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+    <polyline points="22,6 12,13 2,6"/>
+  </svg>
+);
+
+const LinkIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" xmlns="http://www.w3.org/2000/svg">
+    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+  </svg>
+);
+
+const QRCodeIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" xmlns="http://www.w3.org/2000/svg">
+    <rect x="3" y="3" width="7" height="7"/>
+    <rect x="14" y="3" width="7" height="7"/>
+    <rect x="3" y="14" width="7" height="7"/>
+    <rect x="14" y="14" width="3" height="3"/>
+    <rect x="18" y="14" width="3" height="3"/>
+    <rect x="14" y="18" width="3" height="3"/>
+    <rect x="18" y="18" width="3" height="3"/>
+  </svg>
+);
+
+// Navigation Icons for Image Viewer
+const ChevronLeftIcon = () => (
+  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const ChevronRightIcon = () => (
+  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const ImageIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2"/>
+    <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
+    <path d="M21 15L16 10L5 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const ZoomInIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2"/>
+    <path d="M21 21L16.65 16.65" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    <path d="M11 8V14M8 11H14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
+
+const FullscreenIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M8 3H5C3.89543 3 3 3.89543 3 5V8M21 8V5C21 3.89543 20.1046 3 19 3H16M16 21H19C20.1046 21 21 20.1046 21 19V16M3 16V19C3 20.1046 3.89543 21 5 21H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
 // Sample gallery data with real images
 const galleryData = [
   {
@@ -81,7 +168,18 @@ const galleryData = [
     thumbnail: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800',
     featured: true,
     sharedWithClient: true,
-    photoCount: 156
+    photoCount: 156,
+    liked: true,
+    images: [
+      'https://images.unsplash.com/photo-1519741497674-611481863552?w=1200',
+      'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=1200',
+      'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=1200',
+      'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=1200',
+      'https://images.unsplash.com/photo-1606216794074-735e91aa2c92?w=1200',
+      'https://images.unsplash.com/photo-1591604466107-ec97de577aff?w=1200',
+      'https://images.unsplash.com/photo-1529636798458-92182e662485?w=1200',
+      'https://images.unsplash.com/photo-1544078751-58fee2d8a03b?w=1200'
+    ]
   },
   {
     id: 2,
@@ -96,7 +194,16 @@ const galleryData = [
     thumbnail: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=800',
     featured: false,
     sharedWithClient: true,
-    photoCount: 48
+    photoCount: 48,
+    liked: false,
+    images: [
+      'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=1200',
+      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=1200',
+      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1200',
+      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=1200',
+      'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=1200',
+      'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=1200'
+    ]
   },
   {
     id: 3,
@@ -111,7 +218,17 @@ const galleryData = [
     thumbnail: 'https://images.unsplash.com/photo-1560439514-4e9645039924?w=800',
     featured: true,
     sharedWithClient: false,
-    photoCount: 234
+    photoCount: 234,
+    liked: false,
+    images: [
+      'https://images.unsplash.com/photo-1560439514-4e9645039924?w=1200',
+      'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200',
+      'https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200',
+      'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200',
+      'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200',
+      'https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200',
+      'https://images.unsplash.com/photo-1591115765373-5207764f72e7?w=1200'
+    ]
   },
   {
     id: 4,
@@ -126,7 +243,16 @@ const galleryData = [
     thumbnail: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800',
     featured: false,
     sharedWithClient: true,
-    photoCount: 67
+    photoCount: 67,
+    liked: true,
+    images: [
+      'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200',
+      'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=1200',
+      'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=1200',
+      'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=1200',
+      'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=1200',
+      'https://images.unsplash.com/photo-1560343090-f0409e92791a?w=1200'
+    ]
   },
   {
     id: 5,
@@ -141,7 +267,15 @@ const galleryData = [
     thumbnail: 'https://images.unsplash.com/photo-1511895426328-dc8714191300?w=800',
     featured: false,
     sharedWithClient: false,
-    photoCount: 89
+    photoCount: 89,
+    liked: false,
+    images: [
+      'https://images.unsplash.com/photo-1511895426328-dc8714191300?w=1200',
+      'https://images.unsplash.com/photo-1606216794074-735e91aa2c92?w=1200',
+      'https://images.unsplash.com/photo-1581579438747-1dc8d17bbce4?w=1200',
+      'https://images.unsplash.com/photo-1609220136736-443140cffec6?w=1200',
+      'https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=1200'
+    ]
   },
   {
     id: 6,
@@ -156,7 +290,18 @@ const galleryData = [
     thumbnail: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800',
     featured: true,
     sharedWithClient: true,
-    photoCount: 312
+    photoCount: 312,
+    liked: true,
+    images: [
+      'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=1200',
+      'https://images.unsplash.com/photo-1519741497674-611481863552?w=1200',
+      'https://images.unsplash.com/photo-1529636798458-92182e662485?w=1200',
+      'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=1200',
+      'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=1200',
+      'https://images.unsplash.com/photo-1591604466107-ec97de577aff?w=1200',
+      'https://images.unsplash.com/photo-1544078751-58fee2d8a03b?w=1200',
+      'https://images.unsplash.com/photo-1583939003579-730e3918a45a?w=1200'
+    ]
   },
   {
     id: 7,
@@ -171,7 +316,17 @@ const galleryData = [
     thumbnail: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=800',
     featured: true,
     sharedWithClient: true,
-    photoCount: 145
+    photoCount: 145,
+    liked: false,
+    images: [
+      'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=1200',
+      'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200',
+      'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=1200',
+      'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=1200',
+      'https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=1200',
+      'https://images.unsplash.com/photo-1495385794356-15371f348c31?w=1200',
+      'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1200'
+    ]
   },
   {
     id: 8,
@@ -186,7 +341,16 @@ const galleryData = [
     thumbnail: 'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=800',
     featured: false,
     sharedWithClient: false,
-    photoCount: 78
+    photoCount: 78,
+    liked: false,
+    images: [
+      'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=1200',
+      'https://images.unsplash.com/photo-1487958449943-2429e8be8625?w=1200',
+      'https://images.unsplash.com/photo-1488972685288-c3fd157d7c7a?w=1200',
+      'https://images.unsplash.com/photo-1511818966892-d7d671e672a2?w=1200',
+      'https://images.unsplash.com/photo-1479839672679-a46483c0e7c8?w=1200',
+      'https://images.unsplash.com/photo-1518005020951-eccb494ad742?w=1200'
+    ]
   },
   {
     id: 9,
@@ -201,11 +365,24 @@ const galleryData = [
     thumbnail: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=800',
     featured: false,
     sharedWithClient: true,
-    photoCount: 98
+    photoCount: 98,
+    liked: false,
+    images: [
+      'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=1200',
+      'https://images.unsplash.com/photo-1464349153735-7db50ed83c84?w=1200',
+      'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=1200',
+      'https://images.unsplash.com/photo-1504196606672-aef5c9cefc92?w=1200',
+      'https://images.unsplash.com/photo-1527529482837-4698179dc6ce?w=1200',
+      'https://images.unsplash.com/photo-1496843916299-590492c751f4?w=1200'
+    ]
   }
 ];
 
-const Gallery = () => {
+interface GalleryProps {
+  userType?: 'photographer' | 'freelancer';
+}
+
+const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
   const [photos, setPhotos] = useState(galleryData);
   const [filterCategory, setFilterCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -214,6 +391,14 @@ const Gallery = () => {
   const [selectedPhoto, setSelectedPhoto] = useState<typeof galleryData[0] | null>(null);
   const [showViewModal, setShowViewModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [sharePhoto, setSharePhoto] = useState<typeof galleryData[0] | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  // Image Viewer State
+  const [showImageViewer, setShowImageViewer] = useState(false);
+  const [viewerAlbum, setViewerAlbum] = useState<typeof galleryData[0] | null>(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   // Upload form state
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
@@ -226,7 +411,7 @@ const Gallery = () => {
 
   const toggleLike = (photoId: number) => {
     setPhotos(photos.map(photo =>
-      photo.id === photoId ? { ...photo, likes: photo.likes + 1 } : photo
+      photo.id === photoId ? { ...photo, liked: !photo.liked, likes: photo.liked ? photo.likes - 1 : photo.likes + 1 } : photo
     ));
   };
 
@@ -252,6 +437,16 @@ const Gallery = () => {
     setUploadShared(true);
   };
 
+  const handleCopyLink = (link: string) => {
+    navigator.clipboard.writeText(link);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
+
+  const getShareLink = (photo: typeof galleryData[0]) => {
+    return `https://connekt.app/gallery/${photo.id}/${photo.title.toLowerCase().replace(/\s+/g, '-')}`;
+  };
+
   const handleUpload = () => {
     if (!selectedFiles || selectedFiles.length === 0) {
       alert('Please select at least one file to upload');
@@ -271,6 +466,7 @@ const Gallery = () => {
     }
 
     // Create new photo entries
+    const uploadedImages = Array.from(selectedFiles).map(file => URL.createObjectURL(file));
     const newPhotos = Array.from(selectedFiles).map((file, index) => ({
       id: photos.length + index + 1,
       title: selectedFiles.length > 1 ? `${uploadTitle} ${index + 1}` : uploadTitle,
@@ -284,7 +480,9 @@ const Gallery = () => {
       thumbnail: URL.createObjectURL(file),
       featured: uploadFeatured,
       sharedWithClient: uploadShared,
-      photoCount: selectedFiles.length
+      photoCount: selectedFiles.length,
+      liked: false,
+      images: uploadedImages
     }));
 
     // Add new photos to the gallery
@@ -298,6 +496,41 @@ const Gallery = () => {
   };
 
   const categories = ['All', 'Wedding', 'Portrait', 'Event', 'Product', 'Fashion', 'Architecture'];
+
+  // Image Viewer Functions
+  const openImageViewer = (album: typeof galleryData[0], startIndex: number = 0) => {
+    setViewerAlbum(album);
+    setCurrentImageIndex(startIndex);
+    setShowImageViewer(true);
+  };
+
+  const closeImageViewer = () => {
+    setShowImageViewer(false);
+    setViewerAlbum(null);
+    setCurrentImageIndex(0);
+  };
+
+  const goToPrevImage = () => {
+    if (viewerAlbum) {
+      setCurrentImageIndex((prev) =>
+        prev === 0 ? viewerAlbum.images.length - 1 : prev - 1
+      );
+    }
+  };
+
+  const goToNextImage = () => {
+    if (viewerAlbum) {
+      setCurrentImageIndex((prev) =>
+        prev === viewerAlbum.images.length - 1 ? 0 : prev + 1
+      );
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowLeft') goToPrevImage();
+    if (e.key === 'ArrowRight') goToNextImage();
+    if (e.key === 'Escape') closeImageViewer();
+  };
 
   const filteredPhotos = photos.filter(photo => {
     const matchesCategory = filterCategory === 'All' || photo.category === filterCategory;
@@ -329,7 +562,7 @@ const Gallery = () => {
       <Sidebar />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar />
+        <Topbar userRole={userType} />
 
         {/* Main Content */}
         <div style={{
@@ -484,7 +717,7 @@ const Gallery = () => {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   style={{
                     padding: '0.625rem 1rem 0.625rem 2.75rem',
-                    border: '1px solid #E5E7EB',
+                    border: '2px solid #D1D5DB',
                     borderRadius: '0.5rem',
                     fontSize: '0.9rem',
                     outline: 'none',
@@ -498,7 +731,7 @@ const Gallery = () => {
                     e.currentTarget.style.boxShadow = '0 0 0 3px rgba(8, 58, 133, 0.1)';
                   }}
                   onBlur={(e) => {
-                    e.currentTarget.style.borderColor = '#E5E7EB';
+                    e.currentTarget.style.borderColor = '#D1D5DB';
                     e.currentTarget.style.boxShadow = 'none';
                   }}
                 />
@@ -569,11 +802,11 @@ const Gallery = () => {
                   key={photo.id}
                   style={{
                     backgroundColor: 'white',
-                    borderRadius: '0.75rem',
+                    borderRadius: '1rem',
                     overflow: 'hidden',
-                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                    border: '1px solid #E5E7EB',
-                    transition: 'all 0.3s',
+                    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                    border: '1px solid rgba(0, 0, 0, 0.1)',
+                    transition: 'all 0.3s ease',
                     cursor: 'pointer'
                   }}
                   onClick={() => {
@@ -582,11 +815,13 @@ const Gallery = () => {
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = 'translateY(-4px)';
-                    e.currentTarget.style.boxShadow = '0 12px 24px rgba(0, 0, 0, 0.15)';
+                    e.currentTarget.style.boxShadow = '0 35px 60px -15px rgba(0, 0, 0, 0.2), 0 15px 30px -10px rgba(0, 0, 0, 0.15)';
+                    e.currentTarget.style.borderColor = '#083A85';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
+                    e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)';
+                    e.currentTarget.style.borderColor = 'rgba(0, 0, 0, 0.1)';
                   }}
                 >
                   {/* Image Container */}
@@ -664,8 +899,8 @@ const Gallery = () => {
                           toggleLike(photo.id);
                         }}
                         style={{
-                          backgroundColor: 'rgba(255,255,255,0.9)',
-                          border: 'none',
+                          backgroundColor: photo.liked ? '#FDF2F8' : 'rgba(255,255,255,0.9)',
+                          border: photo.liked ? '2px solid #F20C8F' : '2px solid #D1D5DB',
                           borderRadius: '50%',
                           width: '32px',
                           height: '32px',
@@ -676,7 +911,7 @@ const Gallery = () => {
                           transition: 'all 0.2s'
                         }}
                       >
-                        <HeartIcon filled={photo.likes > 200} />
+                        <HeartIcon filled={photo.liked} />
                       </button>
                     </div>
 
@@ -721,7 +956,7 @@ const Gallery = () => {
                     {/* Title & Client */}
                     <div style={{ marginBottom: '0.75rem' }}>
                       <h3 style={{
-                        fontSize: '1rem',
+                        fontSize: '1.1rem',
                         fontWeight: '600',
                         color: '#111827',
                         margin: 0,
@@ -738,7 +973,7 @@ const Gallery = () => {
                           height={24}
                           style={{ borderRadius: '50%', objectFit: 'cover' }}
                         />
-                        <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>{photo.client}</span>
+                        <span style={{ fontSize: '0.9rem', color: '#6B7280' }}>{photo.client}</span>
                       </div>
                     </div>
 
@@ -750,7 +985,7 @@ const Gallery = () => {
                       paddingTop: '0.75rem',
                       borderTop: '1px solid #F3F4F6'
                     }}>
-                      <span style={{ fontSize: '0.8rem', color: '#9CA3AF' }}>{photo.date}</span>
+                      <span style={{ fontSize: '0.85rem', color: '#9CA3AF' }}>{photo.date}</span>
                       <div style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -758,7 +993,7 @@ const Gallery = () => {
                         backgroundColor: photo.sharedWithClient ? '#D1FAE5' : '#FEF3C7',
                         padding: '0.25rem 0.625rem',
                         borderRadius: '9999px',
-                        fontSize: '0.75rem',
+                        fontSize: '0.8rem',
                         fontWeight: '500',
                         color: photo.sharedWithClient ? '#065F46' : '#92400E'
                       }}>
@@ -776,17 +1011,43 @@ const Gallery = () => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          toggleShareStatus(photo.id);
+                          openImageViewer(photo);
                         }}
                         style={{
                           flex: 1,
                           padding: '0.5rem',
                           borderRadius: '0.375rem',
-                          border: 'none',
-                          backgroundColor: photo.sharedWithClient ? '#D1FAE5' : '#083A85',
-                          color: photo.sharedWithClient ? '#065F46' : 'white',
-                          fontSize: '0.8rem',
+                          border: '2px solid #062a63',
+                          backgroundColor: '#083A85',
+                          color: 'white',
+                          fontSize: '0.85rem',
                           fontWeight: '500',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.375rem',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        <ImageIcon />
+                        Browse
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSharePhoto(photo);
+                          setShowShareModal(true);
+                        }}
+                        style={{
+                          flex: 1,
+                          padding: '0.5rem',
+                          borderRadius: '0.375rem',
+                          border: '2px solid #9CA3AF',
+                          backgroundColor: '#F3F4F6',
+                          color: '#111827',
+                          fontSize: '0.85rem',
+                          fontWeight: '600',
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
@@ -796,7 +1057,7 @@ const Gallery = () => {
                         }}
                       >
                         <ShareIcon />
-                        {photo.sharedWithClient ? 'Shared' : 'Share'}
+                        Share
                       </button>
                       <button
                         onClick={(e) => {
@@ -805,24 +1066,24 @@ const Gallery = () => {
                           setShowEditModal(true);
                         }}
                         style={{
-                          flex: 1,
+                          width: '36px',
+                          height: '36px',
                           padding: '0.5rem',
                           borderRadius: '0.375rem',
-                          border: '1px solid #E5E7EB',
-                          backgroundColor: 'white',
-                          color: '#6B7280',
-                          fontSize: '0.8rem',
-                          fontWeight: '500',
+                          border: '2px solid #9CA3AF',
+                          backgroundColor: '#F3F4F6',
+                          color: '#111827',
+                          fontSize: '0.85rem',
+                          fontWeight: '600',
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          gap: '0.375rem',
                           transition: 'all 0.2s'
                         }}
+                        title="Edit Album"
                       >
-                        <i className="bi bi-pencil" style={{ fontSize: '0.875rem' }}></i>
-                        Edit
+                        <i className="bi bi-pencil" style={{ fontSize: '0.9rem' }}></i>
                       </button>
                     </div>
                   </div>
@@ -833,9 +1094,10 @@ const Gallery = () => {
             /* List View */
             <div style={{
               backgroundColor: 'white',
-              borderRadius: '0.75rem',
+              borderRadius: '1rem',
               overflow: 'hidden',
-              border: '1px solid #E5E7EB'
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+              border: '1px solid rgba(0, 0, 0, 0.1)'
             }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
@@ -954,22 +1216,45 @@ const Gallery = () => {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              toggleShareStatus(photo.id);
+                              openImageViewer(photo);
                             }}
                             style={{
                               width: '36px',
                               height: '36px',
                               borderRadius: '0.5rem',
-                              border: 'none',
-                              backgroundColor: photo.sharedWithClient ? '#D1FAE5' : '#DBEAFE',
-                              color: photo.sharedWithClient ? '#059669' : '#2563EB',
+                              border: '2px solid #062a63',
+                              backgroundColor: '#083A85',
+                              color: 'white',
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
                               transition: 'all 0.2s'
                             }}
-                            title={photo.sharedWithClient ? 'Unshare' : 'Share'}
+                            title="Browse Photos"
+                          >
+                            <ImageIcon />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSharePhoto(photo);
+                              setShowShareModal(true);
+                            }}
+                            style={{
+                              width: '36px',
+                              height: '36px',
+                              borderRadius: '0.5rem',
+                              border: '2px solid #9CA3AF',
+                              backgroundColor: '#F3F4F6',
+                              color: '#111827',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'all 0.2s'
+                            }}
+                            title="Share"
                           >
                             <ShareIcon />
                           </button>
@@ -983,9 +1268,9 @@ const Gallery = () => {
                               width: '36px',
                               height: '36px',
                               borderRadius: '0.5rem',
-                              border: 'none',
+                              border: '2px solid #9CA3AF',
                               backgroundColor: '#F3F4F6',
-                              color: '#374151',
+                              color: '#111827',
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
@@ -1001,7 +1286,7 @@ const Gallery = () => {
                               width: '36px',
                               height: '36px',
                               borderRadius: '0.5rem',
-                              border: 'none',
+                              border: '2px solid #FCA5A5',
                               backgroundColor: '#FEE2E2',
                               color: '#DC2626',
                               cursor: 'pointer',
@@ -1096,7 +1381,7 @@ const Gallery = () => {
                 onClick={() => setShowUploadModal(false)}
                 style={{
                   background: '#F3F4F6',
-                  border: 'none',
+                  border: '2px solid #D1D5DB',
                   cursor: 'pointer',
                   padding: '0.5rem',
                   borderRadius: '0.5rem',
@@ -1295,8 +1580,8 @@ const Gallery = () => {
                 style={{
                   flex: 1,
                   padding: '0.75rem 1rem',
-                  backgroundColor: 'white',
-                  border: '1px solid #E5E7EB',
+                  backgroundColor: '#F3F4F6',
+                  border: '2px solid #D1D5DB',
                   borderRadius: '0.5rem',
                   fontSize: '0.9rem',
                   fontWeight: '600',
@@ -1312,7 +1597,7 @@ const Gallery = () => {
                   flex: 1,
                   padding: '0.75rem 1rem',
                   backgroundColor: '#083A85',
-                  border: 'none',
+                  border: '2px solid #062a63',
                   borderRadius: '0.5rem',
                   fontSize: '0.9rem',
                   fontWeight: '600',
@@ -1362,12 +1647,12 @@ const Gallery = () => {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Cover Image */}
-            <div style={{ position: 'relative', height: '300px' }}>
+            <div style={{ position: 'relative', height: '300px', overflow: 'hidden' }}>
               <Image
                 src={selectedPhoto.thumbnail}
                 alt={selectedPhoto.title}
                 fill
-                style={{ objectFit: 'cover', borderRadius: '1rem 1rem 0 0' }}
+                style={{ objectFit: 'cover' }}
               />
               <button
                 onClick={() => setShowViewModal(false)}
@@ -1375,8 +1660,8 @@ const Gallery = () => {
                   position: 'absolute',
                   top: '1rem',
                   right: '1rem',
-                  background: 'rgba(255,255,255,0.9)',
-                  border: 'none',
+                  background: '#F3F4F6',
+                  border: '2px solid #D1D5DB',
                   cursor: 'pointer',
                   padding: '0.5rem',
                   borderRadius: '0.5rem',
@@ -1490,52 +1775,88 @@ const Gallery = () => {
               </div>
 
               {/* Actions */}
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 <button
                   onClick={() => {
                     setShowViewModal(false);
-                    setShowEditModal(true);
+                    openImageViewer(selectedPhoto);
                   }}
                   style={{
-                    flex: 1,
-                    padding: '0.75rem',
+                    width: '100%',
+                    padding: '0.875rem',
                     borderRadius: '0.5rem',
-                    border: '1px solid #E5E7EB',
-                    backgroundColor: 'white',
-                    color: '#374151',
-                    fontSize: '0.9rem',
+                    border: '2px solid #062a63',
+                    backgroundColor: '#083A85',
+                    color: 'white',
+                    fontSize: '0.95rem',
                     fontWeight: '600',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '0.5rem'
+                    gap: '0.5rem',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#062D6B';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#083A85';
                   }}
                 >
-                  <i className="bi bi-pencil"></i>
-                  Edit Album
+                  <ImageIcon />
+                  Browse Photos
                 </button>
-                <button
-                  onClick={() => toggleShareStatus(selectedPhoto.id)}
-                  style={{
-                    flex: 1,
-                    padding: '0.75rem',
-                    borderRadius: '0.5rem',
-                    border: 'none',
-                    backgroundColor: selectedPhoto.sharedWithClient ? '#FEF3C7' : '#083A85',
-                    color: selectedPhoto.sharedWithClient ? '#92400E' : 'white',
-                    fontSize: '0.9rem',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.5rem'
-                  }}
-                >
-                  <ShareIcon />
-                  {selectedPhoto.sharedWithClient ? 'Unshare' : 'Share with Client'}
-                </button>
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <button
+                    onClick={() => {
+                      setShowViewModal(false);
+                      setShowEditModal(true);
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '0.75rem',
+                      borderRadius: '0.5rem',
+                      border: '2px solid #D1D5DB',
+                      backgroundColor: '#F3F4F6',
+                      color: '#374151',
+                      fontSize: '0.9rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem'
+                    }}
+                  >
+                    <i className="bi bi-pencil"></i>
+                    Edit Album
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSharePhoto(selectedPhoto);
+                      setShowShareModal(true);
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '0.75rem',
+                      borderRadius: '0.5rem',
+                      border: '2px solid #9CA3AF',
+                      backgroundColor: '#F3F4F6',
+                      color: '#374151',
+                      fontSize: '0.9rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem'
+                    }}
+                  >
+                    <ShareIcon />
+                    Share Album
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -1589,7 +1910,7 @@ const Gallery = () => {
                 onClick={() => setShowEditModal(false)}
                 style={{
                   background: '#F3F4F6',
-                  border: 'none',
+                  border: '2px solid #D1D5DB',
                   cursor: 'pointer',
                   padding: '0.5rem',
                   borderRadius: '0.5rem',
@@ -1736,8 +2057,8 @@ const Gallery = () => {
                 style={{
                   flex: 1,
                   padding: '0.75rem 1rem',
-                  backgroundColor: 'white',
-                  border: '1px solid #E5E7EB',
+                  backgroundColor: '#F3F4F6',
+                  border: '2px solid #D1D5DB',
                   borderRadius: '0.5rem',
                   fontSize: '0.9rem',
                   fontWeight: '600',
@@ -1756,7 +2077,7 @@ const Gallery = () => {
                   flex: 1,
                   padding: '0.75rem 1rem',
                   backgroundColor: '#083A85',
-                  border: 'none',
+                  border: '2px solid #062a63',
                   borderRadius: '0.5rem',
                   fontSize: '0.9rem',
                   fontWeight: '600',
@@ -1766,6 +2087,433 @@ const Gallery = () => {
               >
                 Save Changes
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Share Modal */}
+      {showShareModal && sharePhoto && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+          onClick={() => setShowShareModal(false)}
+        >
+          <div
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '0.75rem',
+              padding: '1.5rem',
+              maxWidth: '500px',
+              width: '90%',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#111827', margin: 0 }}>Share Album</h3>
+              <button
+                onClick={() => setShowShareModal(false)}
+                style={{
+                  background: '#F3F4F6',
+                  border: '2px solid #D1D5DB',
+                  cursor: 'pointer',
+                  padding: '0.5rem',
+                  borderRadius: '0.375rem',
+                  color: '#374151',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <CloseIcon />
+              </button>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem', padding: '0.75rem', backgroundColor: '#F9FAFB', borderRadius: '0.5rem' }}>
+              <div style={{ position: 'relative', width: '60px', height: '40px', borderRadius: '0.25rem', overflow: 'hidden' }}>
+                <Image src={sharePhoto.thumbnail} alt={sharePhoto.title} fill style={{ objectFit: 'cover' }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: '600', color: '#111827', fontSize: '0.9rem' }}>{sharePhoto.title}</div>
+                <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>{sharePhoto.photoCount} photos • {sharePhoto.client}</div>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '1.25rem' }}>
+              {[
+                { name: 'WhatsApp', icon: <WhatsAppIcon />, color: '#25D366', getUrl: (link: string, title: string) => `https://wa.me/?text=${encodeURIComponent(`${title}: ${link}`)}` },
+                { name: 'Facebook', icon: <FacebookIcon />, color: '#1877F2', getUrl: (link: string) => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}` },
+                { name: 'Twitter', icon: <TwitterIcon />, color: '#1DA1F2', getUrl: (link: string, title: string) => `https://twitter.com/intent/tweet?url=${encodeURIComponent(link)}&text=${encodeURIComponent(title)}` },
+                { name: 'Email', icon: <EmailIcon />, color: '#EA4335', getUrl: (link: string, title: string) => `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(`Check out this album: ${link}`)}` },
+                { name: 'Copy Link', icon: <LinkIcon />, color: '#6B7280', getUrl: () => '' },
+                { name: 'QR Code', icon: <QRCodeIcon />, color: '#111827', getUrl: () => '' }
+              ].map((option) => (
+                <button
+                  key={option.name}
+                  onClick={() => {
+                    const shareLink = getShareLink(sharePhoto);
+                    if (option.name === 'Copy Link') {
+                      handleCopyLink(shareLink);
+                    } else if (option.name === 'QR Code') {
+                      alert('QR Code feature coming soon!');
+                    } else {
+                      const url = option.getUrl(shareLink, sharePhoto.title);
+                      window.open(url, '_blank', 'noopener,noreferrer');
+                    }
+                  }}
+                  style={{
+                    padding: '1rem',
+                    border: option.name === 'Copy Link' && copiedLink ? '1px solid #10B981' : '1px solid #E5E7EB',
+                    borderRadius: '0.5rem',
+                    background: option.name === 'Copy Link' && copiedLink ? '#ECFDF5' : 'white',
+                    cursor: 'pointer',
+                    fontSize: '0.85rem',
+                    fontWeight: '500',
+                    color: option.name === 'Copy Link' && copiedLink ? '#10B981' : '#374151',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!(option.name === 'Copy Link' && copiedLink)) {
+                      e.currentTarget.style.borderColor = option.color;
+                      e.currentTarget.style.color = option.color;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!(option.name === 'Copy Link' && copiedLink)) {
+                      e.currentTarget.style.borderColor = '#E5E7EB';
+                      e.currentTarget.style.color = '#374151';
+                    }
+                  }}
+                >
+                  <span>{option.icon}</span>
+                  <span>{option.name === 'Copy Link' && copiedLink ? 'Copied!' : option.name}</span>
+                </button>
+              ))}
+            </div>
+            <div style={{ borderTop: '1px solid #E5E7EB', paddingTop: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                Album Link
+              </label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <input
+                  type="text"
+                  value={getShareLink(sharePhoto)}
+                  readOnly
+                  style={{
+                    flex: 1,
+                    padding: '0.625rem 0.875rem',
+                    border: '2px solid #D1D5DB',
+                    borderRadius: '0.375rem',
+                    fontSize: '0.9rem',
+                    fontWeight: '500',
+                    color: '#111827',
+                    backgroundColor: '#F9FAFB'
+                  }}
+                />
+                <button
+                  onClick={() => handleCopyLink(getShareLink(sharePhoto))}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.375rem',
+                    padding: '0.625rem 1rem',
+                    border: '2px solid #062a63',
+                    borderRadius: '0.375rem',
+                    background: copiedLink ? '#10B981' : '#083A85',
+                    color: 'white',
+                    fontSize: '0.9rem',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    transition: 'background 0.2s'
+                  }}
+                >
+                  <CopyIcon />
+                  {copiedLink ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modern Image Viewer Modal */}
+      {showImageViewer && viewerAlbum && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.95)',
+            display: 'flex',
+            flexDirection: 'column',
+            zIndex: 2000
+          }}
+          onKeyDown={handleKeyDown}
+          tabIndex={0}
+        >
+          {/* Header */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '1rem 1.5rem',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '0.5rem',
+                  overflow: 'hidden',
+                  position: 'relative'
+                }}>
+                  <Image
+                    src={viewerAlbum.thumbnail}
+                    alt={viewerAlbum.title}
+                    fill
+                    style={{ objectFit: 'cover' }}
+                  />
+                </div>
+                <div>
+                  <h3 style={{
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    color: 'white',
+                    margin: 0
+                  }}>{viewerAlbum.title}</h3>
+                  <p style={{
+                    fontSize: '0.8rem',
+                    color: 'rgba(255, 255, 255, 0.6)',
+                    margin: 0
+                  }}>{viewerAlbum.client}</p>
+                </div>
+              </div>
+              <span style={{
+                backgroundColor: 'rgba(8, 58, 133, 0.8)',
+                color: 'white',
+                padding: '0.375rem 0.75rem',
+                borderRadius: '9999px',
+                fontSize: '0.8rem',
+                fontWeight: '500'
+              }}>
+                {currentImageIndex + 1} of {viewerAlbum.images.length}
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <button
+                onClick={closeImageViewer}
+                style={{
+                  padding: '0.625rem',
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '0.5rem',
+                  color: 'white',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                }}
+              >
+                <CloseIcon />
+              </button>
+            </div>
+          </div>
+
+          {/* Main Image Area */}
+          <div style={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            position: 'relative',
+            padding: '2rem',
+            minHeight: 0
+          }}>
+            {/* Previous Button */}
+            <button
+              onClick={goToPrevImage}
+              style={{
+                position: 'absolute',
+                left: '1.5rem',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: '56px',
+                height: '56px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                border: '2px solid rgba(255, 255, 255, 0.3)',
+                color: 'white',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s',
+                zIndex: 10
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(8, 58, 133, 0.8)';
+                e.currentTarget.style.borderColor = '#083A85';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+              }}
+            >
+              <ChevronLeftIcon />
+            </button>
+
+            {/* Image Display */}
+            <div style={{
+              position: 'relative',
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '0 100px'
+            }}>
+              <div style={{
+                width: 'min(calc(100vh - 160px), calc(100vw - 250px))',
+                height: 'min(calc(100vh - 160px), calc(100vw - 250px))',
+                position: 'relative',
+                borderRadius: '0.5rem',
+                overflow: 'hidden',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+              }}>
+                <Image
+                  src={viewerAlbum.images[currentImageIndex]}
+                  alt={`${viewerAlbum.title} - Image ${currentImageIndex + 1}`}
+                  fill
+                  style={{
+                    objectFit: 'cover',
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Next Button */}
+            <button
+              onClick={goToNextImage}
+              style={{
+                position: 'absolute',
+                right: '1.5rem',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: '56px',
+                height: '56px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                border: '2px solid rgba(255, 255, 255, 0.3)',
+                color: 'white',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s',
+                zIndex: 10
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(8, 58, 133, 0.8)';
+                e.currentTarget.style.borderColor = '#083A85';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+              }}
+            >
+              <ChevronRightIcon />
+            </button>
+          </div>
+
+          {/* Thumbnail Strip */}
+          <div style={{
+            padding: '1rem 1.5rem 1.5rem',
+            borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+            backgroundColor: 'rgba(0, 0, 0, 0.3)'
+          }}>
+            <div style={{
+              display: 'flex',
+              gap: '0.75rem',
+              overflowX: 'auto',
+              paddingBottom: '0.5rem',
+              justifyContent: 'center'
+            }}>
+              {viewerAlbum.images.map((image, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentImageIndex(index)}
+                  style={{
+                    position: 'relative',
+                    width: '80px',
+                    height: '60px',
+                    borderRadius: '0.5rem',
+                    overflow: 'hidden',
+                    border: currentImageIndex === index
+                      ? '3px solid #083A85'
+                      : '3px solid transparent',
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                    transition: 'all 0.2s',
+                    opacity: currentImageIndex === index ? 1 : 0.6,
+                    transform: currentImageIndex === index ? 'scale(1.05)' : 'scale(1)'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (currentImageIndex !== index) {
+                      e.currentTarget.style.opacity = '0.9';
+                      e.currentTarget.style.borderColor = 'rgba(8, 58, 133, 0.5)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (currentImageIndex !== index) {
+                      e.currentTarget.style.opacity = '0.6';
+                      e.currentTarget.style.borderColor = 'transparent';
+                    }
+                  }}
+                >
+                  <Image
+                    src={image}
+                    alt={`Thumbnail ${index + 1}`}
+                    fill
+                    style={{ objectFit: 'cover' }}
+                  />
+                  {currentImageIndex === index && (
+                    <div style={{
+                      position: 'absolute',
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      height: '3px',
+                      backgroundColor: '#083A85'
+                    }} />
+                  )}
+                </button>
+              ))}
             </div>
           </div>
         </div>

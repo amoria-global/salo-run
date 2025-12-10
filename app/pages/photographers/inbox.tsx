@@ -96,7 +96,11 @@ const conversationsData = [
   },
 ];
 
-const Inbox = () => {
+interface InboxProps {
+  userType?: 'photographer' | 'freelancer';
+}
+
+const Inbox = ({ userType = 'photographer' }: InboxProps) => {
   const searchParams = useSearchParams();
   const clientName = searchParams.get('client');
 
@@ -207,7 +211,7 @@ const Inbox = () => {
       <Sidebar />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <Topbar />
+        <Topbar userRole={userType} />
 
         <main style={{ flex: 1, display: 'flex', gap: 0, overflow: 'hidden' }}>
           {/* Conversations List Sidebar */}

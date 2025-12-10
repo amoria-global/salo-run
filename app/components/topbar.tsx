@@ -55,7 +55,25 @@ const notificationsData = [
   { id: 9, type: 'system', title: 'Security Alert', message: 'New login detected from Chrome on Windows', time: '2 days ago', read: true },
 ];
 
-export default function Topbar() {
+interface TopbarProps {
+  bonusAmount?: number;
+  userRole?: 'client' | 'photographer' | 'freelancer' | 'admin';
+}
+
+export default function Topbar({ bonusAmount, userRole = 'client' }: TopbarProps) {
+  const getRoleDisplayName = (role: string) => {
+    switch (role) {
+      case 'photographer':
+        return 'Photographer';
+      case 'freelancer':
+        return 'Freelancer';
+      case 'admin':
+        return 'Admin';
+      case 'client':
+      default:
+        return 'Client';
+    }
+  };
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState(notificationsData);
@@ -125,7 +143,7 @@ export default function Topbar() {
         fontSize: '1.35rem',
         lineHeight: '1.75rem',
         color: '#4B5563'
-      }}>Dashboard</h1>
+      }}>{getRoleDisplayName(userRole)} Dashboard</h1>
 
       {/* Right side - Notification, Bonus, and Profile */}
       <div style={{
@@ -382,8 +400,8 @@ export default function Topbar() {
             fontSize: '1.15rem',
             lineHeight: '1.5rem',
             fontWeight: '600',
-            color: '#083A85'
-          }}>$3.00</span>
+            color: bonusAmount && bonusAmount > 0 ? '#16A34A' : '#083A85'
+          }}>${bonusAmount !== undefined ? bonusAmount.toFixed(2) : '0.00'}</span>
         </div>
 
         {/* Profile with Dropdown */}

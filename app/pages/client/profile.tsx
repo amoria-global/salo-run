@@ -26,6 +26,15 @@ const ProfilePage = () => {
     { name: 'South Sudan', code: '+211', flag: '🇸🇸' },
   ];
 
+  // Rwanda provinces and districts
+  const rwandaProvinces: { [key: string]: string[] } = {
+    'Kigali City': ['Gasabo', 'Kicukiro', 'Nyarugenge'],
+    'Eastern Province': ['Bugesera', 'Gatsibo', 'Kayonza', 'Kirehe', 'Ngoma', 'Nyagatare', 'Rwamagana'],
+    'Northern Province': ['Burera', 'Gakenke', 'Gicumbi', 'Musanze', 'Rulindo'],
+    'Southern Province': ['Gisagara', 'Huye', 'Kamonyi', 'Muhanga', 'Nyamagabe', 'Nyanza', 'Nyaruguru', 'Ruhango'],
+    'Western Province': ['Karongi', 'Ngororero', 'Nyabihu', 'Nyamasheke', 'Rubavu', 'Rusizi', 'Rutsiro']
+  };
+
   // Form state
   const [formData, setFormData] = useState({
     fullName: 'Diane Marry',
@@ -35,7 +44,9 @@ const ProfilePage = () => {
     phoneNumber: '788 123 456',
     title: 'Client',
     country: 'Rwanda',
-    location: 'Kigali, Rwanda',
+    province: 'Kigali City',
+    district: 'Gasabo',
+    sector: 'Kimironko',
     // Fields only for photographers/freelancers
     companyName: 'Personal',
     workLocation: 'Kigali, Rwanda',
@@ -112,7 +123,7 @@ const ProfilePage = () => {
         flexDirection: 'column',
         overflow: 'hidden'
       }}>
-        <Topbar />
+        <Topbar userRole="client" />
 
         <div style={{
           flex: 1,
@@ -363,9 +374,8 @@ const ProfilePage = () => {
                   <input
                     type="email"
                     value={formData.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    disabled={!isEditEnabled}
-                    style={inputStyle}
+                    disabled={true}
+                    style={{...inputStyle, backgroundColor: '#F9FAFB', cursor: 'not-allowed'}}
                   />
                 </div>
 
@@ -406,9 +416,8 @@ const ProfilePage = () => {
                   <input
                     type="text"
                     value={formData.title}
-                    onChange={(e) => handleInputChange('title', e.target.value)}
-                    disabled={!isEditEnabled}
-                    style={inputStyle}
+                    disabled={true}
+                    style={{...inputStyle, backgroundColor: '#F9FAFB', cursor: 'not-allowed'}}
                   />
                 </div>
 
@@ -417,7 +426,15 @@ const ProfilePage = () => {
                   <label style={labelStyle}>Country</label>
                   <select
                     value={formData.country}
-                    onChange={(e) => handleInputChange('country', e.target.value)}
+                    onChange={(e) => {
+                      handleInputChange('country', e.target.value);
+                      // Reset province, district, sector when country changes
+                      if (e.target.value !== 'Rwanda') {
+                        setFormData(prev => ({ ...prev, province: '', district: '', sector: '' }));
+                      } else {
+                        setFormData(prev => ({ ...prev, province: 'Kigali City', district: 'Gasabo', sector: '' }));
+                      }
+                    }}
                     disabled={!isEditEnabled}
                     style={{
                       ...inputStyle,
@@ -432,14 +449,85 @@ const ProfilePage = () => {
                   </select>
                 </div>
 
-                {/* Location */}
+                {/* Province - Only show dropdown for Rwanda */}
                 <div>
-                  <label style={labelStyle}>Location</label>
+                  <label style={labelStyle}>Province</label>
+                  {formData.country === 'Rwanda' ? (
+                    <select
+                      value={formData.province}
+                      onChange={(e) => {
+                        handleInputChange('province', e.target.value);
+                        // Reset district when province changes
+                        const districts = rwandaProvinces[e.target.value] || [];
+                        setFormData(prev => ({ ...prev, province: e.target.value, district: districts[0] || '', sector: '' }));
+                      }}
+                      disabled={!isEditEnabled}
+                      style={{
+                        ...inputStyle,
+                        cursor: isEditEnabled ? 'pointer' : 'not-allowed'
+                      }}
+                    >
+                      {Object.keys(rwandaProvinces).map((province) => (
+                        <option key={province} value={province}>
+                          {province}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={formData.province}
+                      onChange={(e) => handleInputChange('province', e.target.value)}
+                      disabled={!isEditEnabled}
+                      placeholder="Enter province/region"
+                      style={inputStyle}
+                    />
+                  )}
+                </div>
+
+                {/* District */}
+                <div>
+                  <label style={labelStyle}>District</label>
+                  {formData.country === 'Rwanda' && formData.province ? (
+                    <select
+                      value={formData.district}
+                      onChange={(e) => {
+                        handleInputChange('district', e.target.value);
+                        setFormData(prev => ({ ...prev, district: e.target.value, sector: '' }));
+                      }}
+                      disabled={!isEditEnabled}
+                      style={{
+                        ...inputStyle,
+                        cursor: isEditEnabled ? 'pointer' : 'not-allowed'
+                      }}
+                    >
+                      {(rwandaProvinces[formData.province] || []).map((district) => (
+                        <option key={district} value={district}>
+                          {district}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={formData.district}
+                      onChange={(e) => handleInputChange('district', e.target.value)}
+                      disabled={!isEditEnabled}
+                      placeholder="Enter district"
+                      style={inputStyle}
+                    />
+                  )}
+                </div>
+
+                {/* Sector */}
+                <div>
+                  <label style={labelStyle}>Sector</label>
                   <input
                     type="text"
-                    value={formData.location}
-                    onChange={(e) => handleInputChange('location', e.target.value)}
+                    value={formData.sector}
+                    onChange={(e) => handleInputChange('sector', e.target.value)}
                     disabled={!isEditEnabled}
+                    placeholder="Enter sector"
                     style={inputStyle}
                   />
                 </div>

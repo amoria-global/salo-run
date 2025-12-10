@@ -273,7 +273,11 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
   );
 };
 
-const PhotographerStreamsPage = () => {
+interface PhotographerStreamsPageProps {
+  userType?: 'photographer' | 'freelancer';
+}
+
+const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStreamsPageProps) => {
   const [activeTab, setActiveTab] = useState<'all' | 'live' | 'upcoming' | 'past'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showStreamDetails, setShowStreamDetails] = useState<Stream | null>(null);
@@ -480,7 +484,7 @@ const PhotographerStreamsPage = () => {
     <div style={{ display: 'flex', height: '100vh', backgroundColor: '#F9FAFB' }}>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar />
+        <Topbar userRole={userType} />
         <div style={{ flex: 1, overflowY: 'auto', backgroundColor: '#F9FAFB', padding: '1.25rem' }}>
 
           {/* Header */}
@@ -563,8 +567,8 @@ const PhotographerStreamsPage = () => {
             </div>
 
             {/* Search */}
-            <div style={{ position: 'relative', width: '300px' }}>
-              <div style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }}>
+            <div style={{ position: 'relative' }}>
+              <div style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)' }}>
                 <SearchIcon />
               </div>
               <input
@@ -573,12 +577,23 @@ const PhotographerStreamsPage = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{
-                  width: '100%',
-                  padding: '0.75rem 1rem 0.75rem 2.75rem',
-                  border: '1px solid #E5E7EB',
+                  padding: '0.625rem 1rem 0.625rem 2.75rem',
+                  border: '2px solid #D1D5DB',
                   borderRadius: '0.5rem',
                   fontSize: '0.9rem',
-                  backgroundColor: 'white'
+                  outline: 'none',
+                  transition: 'all 0.2s',
+                  color: '#111827',
+                  backgroundColor: 'white',
+                  width: '280px'
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = '#083A85';
+                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(8, 58, 133, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = '#D1D5DB';
+                  e.currentTarget.style.boxShadow = 'none';
                 }}
               />
             </div>
@@ -599,11 +614,24 @@ const PhotographerStreamsPage = () => {
                   key={stream.id}
                   style={{
                     backgroundColor: 'white',
-                    borderRadius: '0.75rem',
+                    borderRadius: '1rem',
                     overflow: 'hidden',
-                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                    border: stream.status === 'live' ? '2px solid #10B981' : '1px solid #E5E7EB',
-                    transition: 'all 0.2s'
+                    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                    border: stream.status === 'live' ? '2px solid #10B981' : '1px solid rgba(0, 0, 0, 0.1)',
+                    transition: 'all 0.3s ease',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-4px)';
+                    e.currentTarget.style.boxShadow = '0 35px 60px -15px rgba(0, 0, 0, 0.2), 0 15px 30px -10px rgba(0, 0, 0, 0.15)';
+                    if (stream.status !== 'live') {
+                      e.currentTarget.style.borderColor = '#083A85';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)';
+                    e.currentTarget.style.borderColor = stream.status === 'live' ? '#10B981' : 'rgba(0, 0, 0, 0.1)';
                   }}
                 >
                   {/* Cover Image */}
@@ -670,10 +698,10 @@ const PhotographerStreamsPage = () => {
 
                   {/* Stream Info */}
                   <div style={{ padding: '1rem' }}>
-                    <h3 style={{ fontSize: '1rem', fontWeight: '600', color: '#111827', marginBottom: '0.25rem', margin: 0 }}>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#111827', marginBottom: '0.25rem', margin: 0 }}>
                       {stream.title}
                     </h3>
-                    <p style={{ fontSize: '0.8rem', color: '#6B7280', margin: '0.25rem 0 0.75rem 0' }}>
+                    <p style={{ fontSize: '0.85rem', color: '#6B7280', margin: '0.25rem 0 0.75rem 0' }}>
                       {stream.eventTitle}
                     </p>
 
@@ -686,7 +714,7 @@ const PhotographerStreamsPage = () => {
                         height={24}
                         style={{ borderRadius: '50%' }}
                       />
-                      <span style={{ fontSize: '0.8rem', color: '#374151' }}>
+                      <span style={{ fontSize: '0.9rem', color: '#374151' }}>
                         {stream.clientName}
                       </span>
                     </div>
@@ -695,11 +723,11 @@ const PhotographerStreamsPage = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: '#6B7280' }}>
                         <CalendarIcon />
-                        <span style={{ fontSize: '0.8rem' }}>{formatDate(stream.scheduledDate)}</span>
+                        <span style={{ fontSize: '0.85rem' }}>{formatDate(stream.scheduledDate)}</span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: '#6B7280' }}>
                         <ClockIcon />
-                        <span style={{ fontSize: '0.8rem' }}>{stream.status === 'live' ? stream.duration : stream.scheduledTime}</span>
+                        <span style={{ fontSize: '0.85rem' }}>{stream.status === 'live' ? stream.duration : stream.scheduledTime}</span>
                       </div>
                     </div>
 
@@ -716,10 +744,10 @@ const PhotographerStreamsPage = () => {
                             gap: '0.375rem',
                             backgroundColor: '#10B981',
                             color: 'white',
-                            border: 'none',
+                            border: '2px solid #059669',
                             borderRadius: '0.375rem',
                             padding: '0.5rem',
-                            fontSize: '0.8rem',
+                            fontSize: '0.85rem',
                             fontWeight: '600',
                             cursor: 'pointer'
                           }}
@@ -737,12 +765,12 @@ const PhotographerStreamsPage = () => {
                             alignItems: 'center',
                             justifyContent: 'center',
                             gap: '0.375rem',
-                            backgroundColor: '#083A85',
+                            backgroundColor: '#EF4444',
                             color: 'white',
-                            border: 'none',
+                            border: '2px solid #DC2626',
                             borderRadius: '0.375rem',
                             padding: '0.5rem',
-                            fontSize: '0.8rem',
+                            fontSize: '0.85rem',
                             fontWeight: '600',
                             cursor: 'pointer'
                           }}
@@ -763,10 +791,10 @@ const PhotographerStreamsPage = () => {
                               gap: '0.375rem',
                               backgroundColor: '#083A85',
                               color: 'white',
-                              border: 'none',
+                              border: '2px solid #062a63',
                               borderRadius: '0.375rem',
                               padding: '0.5rem',
-                              fontSize: '0.8rem',
+                              fontSize: '0.85rem',
                               fontWeight: '600',
                               cursor: 'pointer'
                             }}
@@ -782,7 +810,7 @@ const PhotographerStreamsPage = () => {
                               justifyContent: 'center',
                               backgroundColor: '#FEE2E2',
                               color: '#DC2626',
-                              border: 'none',
+                              border: '2px solid #FCA5A5',
                               borderRadius: '0.375rem',
                               padding: '0.5rem 0.75rem',
                               cursor: 'pointer'
@@ -801,12 +829,12 @@ const PhotographerStreamsPage = () => {
                             alignItems: 'center',
                             justifyContent: 'center',
                             gap: '0.375rem',
-                            backgroundColor: '#7C3AED',
+                            backgroundColor: '#F20C8F',
                             color: 'white',
-                            border: 'none',
+                            border: '2px solid #C0096D',
                             borderRadius: '0.375rem',
                             padding: '0.5rem',
-                            fontSize: '0.8rem',
+                            fontSize: '0.85rem',
                             fontWeight: '600',
                             cursor: 'pointer'
                           }}
@@ -824,7 +852,7 @@ const PhotographerStreamsPage = () => {
         </div>
       </div>
 
-      {/* Stream Control Panel Modal */}
+      {/* Stream Control Panel Modal - Live Event */}
       {showControlPanel && (
         <div style={{
           position: 'fixed',
@@ -832,433 +860,508 @@ const PhotographerStreamsPage = () => {
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.9)',
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
           display: 'flex',
-          alignItems: 'stretch',
+          alignItems: 'center',
           justifyContent: 'center',
           zIndex: 1000,
-        }}>
+        }} onClick={() => setShowControlPanel(null)}>
           <div style={{
-            display: 'flex',
-            width: '100%',
-            maxWidth: '1600px',
-            backgroundColor: '#111827',
-            overflow: 'hidden'
-          }}>
-            {/* Main Stream View */}
-            <div style={{ flex: '1 1 70%', display: 'flex', flexDirection: 'column' }}>
-              {/* Header */}
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '1rem 1.5rem',
-                backgroundColor: '#1F2937',
-                borderBottom: '1px solid #374151'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    backgroundColor: '#DC2626',
-                    color: 'white',
-                    padding: '0.375rem 0.75rem',
-                    borderRadius: '0.375rem',
-                    fontSize: '0.875rem',
-                    fontWeight: '600'
-                  }}>
-                    <span style={{
-                      width: '8px',
-                      height: '8px',
-                      borderRadius: '50%',
-                      backgroundColor: 'white',
-                      animation: 'pulse 1.5s infinite'
-                    }}/>
-                    LIVE
-                  </div>
-                  <div>
-                    <h2 style={{ color: 'white', fontSize: '1.125rem', fontWeight: '600', margin: 0 }}>
-                      {showControlPanel.title}
-                    </h2>
-                    <p style={{ color: '#9CA3AF', fontSize: '0.875rem', margin: '0.25rem 0 0 0' }}>
-                      {showControlPanel.eventTitle}
-                    </p>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#9CA3AF' }}>
-                    <EyeIcon />
-                    <span style={{ fontSize: '0.875rem' }}>{showControlPanel.viewerCount} watching</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#9CA3AF' }}>
-                    <ClockIcon />
-                    <span style={{ fontSize: '0.875rem' }}>{showControlPanel.duration}</span>
-                  </div>
-                  <button
-                    onClick={() => setShowControlPanel(null)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      color: '#9CA3AF',
-                      padding: '0.5rem'
-                    }}
-                  >
-                    <CloseIcon />
-                  </button>
-                </div>
-              </div>
-
-              {/* Video Preview */}
-              <div style={{
-                flex: 1,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: '#000',
-                position: 'relative'
-              }}>
-                <Image
-                  src={showControlPanel.coverImage}
-                  alt="Stream Preview"
-                  fill
-                  style={{ objectFit: 'cover', opacity: 0.5 }}
-                />
-                <div style={{
-                  position: 'relative',
-                  textAlign: 'center',
-                  color: 'white',
-                  zIndex: 1
-                }}>
-                  <VideoIcon />
-                  <p style={{ margin: '1rem 0 0 0', fontSize: '1rem' }}>Live Stream Preview</p>
-                  <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.875rem', color: '#9CA3AF' }}>
-                    Camera and microphone are active
-                  </p>
-                </div>
-              </div>
-
-              {/* Controls */}
-              <div style={{
-                padding: '1rem 1.5rem',
-                backgroundColor: '#1F2937',
-                borderTop: '1px solid #374151',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                  <button
-                    onClick={() => setIsVideoOn(!isVideoOn)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      padding: '0.75rem 1rem',
-                      backgroundColor: isVideoOn ? '#374151' : '#DC2626',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '0.5rem',
-                      fontSize: '0.875rem',
-                      fontWeight: '500',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <VideoIcon />
-                    {isVideoOn ? 'Camera On' : 'Camera Off'}
-                  </button>
-                  <button
-                    onClick={() => setIsMicOn(!isMicOn)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      padding: '0.75rem 1rem',
-                      backgroundColor: isMicOn ? '#374151' : '#DC2626',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '0.5rem',
-                      fontSize: '0.875rem',
-                      fontWeight: '500',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <MicIcon />
-                    {isMicOn ? 'Mic On' : 'Mic Off'}
-                  </button>
-                </div>
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                  <button
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      padding: '0.75rem 1rem',
-                      backgroundColor: '#374151',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '0.5rem',
-                      fontSize: '0.875rem',
-                      fontWeight: '500',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <SettingsIcon />
-                    Settings
-                  </button>
-                  <button
-                    onClick={() => handleEndStream(showControlPanel)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      padding: '0.75rem 1.5rem',
-                      backgroundColor: '#DC2626',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '0.5rem',
-                      fontSize: '0.875rem',
-                      fontWeight: '600',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <StopIcon />
-                    End Stream
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Chat Sidebar */}
-            <div style={{
-              flex: '0 0 30%',
-              display: 'flex',
-              flexDirection: 'column',
-              backgroundColor: '#1F2937',
-              borderLeft: '1px solid #374151'
-            }}>
-              {/* Chat Header */}
-              <div style={{
-                padding: '1rem',
-                borderBottom: '1px solid #374151'
-              }}>
-                <h3 style={{
-                  color: 'white',
-                  fontSize: '1rem',
-                  fontWeight: '600',
-                  margin: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem'
-                }}>
-                  <MessageIcon />
-                  Live Chat
-                </h3>
-              </div>
-
-              {/* Chat Messages */}
-              <div style={{
-                flex: 1,
-                overflowY: 'auto',
-                padding: '1rem',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '1rem'
-              }}>
-                {liveComments.map(comment => (
-                  <div key={comment.id} style={{ display: 'flex', gap: '0.75rem' }}>
-                    <Image
-                      src={comment.userAvatar}
-                      alt={comment.userName}
-                      width={32}
-                      height={32}
-                      style={{ borderRadius: '50%', flexShrink: 0 }}
-                    />
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                        <span style={{ color: 'white', fontSize: '0.875rem', fontWeight: '600' }}>
-                          {comment.userName}
-                        </span>
-                        <span style={{ color: '#6B7280', fontSize: '0.75rem' }}>
-                          {comment.time}
-                        </span>
-                      </div>
-                      <p style={{ color: '#D1D5DB', fontSize: '0.875rem', margin: 0, lineHeight: '1.4' }}>
-                        {comment.message}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Chat Input */}
-              <div style={{
-                padding: '1rem',
-                borderTop: '1px solid #374151'
-              }}>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <input
-                    type="text"
-                    placeholder="Send a message..."
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSendComment()}
-                    style={{
-                      flex: 1,
-                      padding: '0.75rem',
-                      backgroundColor: '#374151',
-                      border: 'none',
-                      borderRadius: '0.5rem',
-                      color: 'white',
-                      fontSize: '0.875rem'
-                    }}
-                  />
-                  <button
-                    onClick={handleSendComment}
-                    disabled={!newComment.trim()}
-                    style={{
-                      padding: '0.75rem 1rem',
-                      backgroundColor: newComment.trim() ? '#10B981' : '#374151',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '0.5rem',
-                      cursor: newComment.trim() ? 'pointer' : 'not-allowed',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem'
-                    }}
-                  >
-                    <SendIcon />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Stream Details Modal */}
-      <Modal isOpen={!!showStreamDetails} onClose={() => setShowStreamDetails(null)} title="Stream Details" maxWidth="600px">
-        {showStreamDetails && (
-          <div>
-            {/* Cover Image */}
-            <div style={{ position: 'relative', height: '180px', margin: '-1.5rem -1.5rem 1.25rem -1.5rem', overflow: 'hidden' }}>
+            backgroundColor: 'white',
+            borderRadius: '0 0 0.75rem 0.75rem',
+            width: '90%',
+            maxWidth: '700px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+          }} onClick={(e) => e.stopPropagation()}>
+            {/* Cover Image with Live Badge */}
+            <div style={{ position: 'relative', height: '280px', overflow: 'hidden' }}>
               <Image
-                src={showStreamDetails.coverImage}
-                alt={showStreamDetails.title}
+                src={showControlPanel.coverImage}
+                alt={showControlPanel.title}
                 fill
                 style={{ objectFit: 'cover' }}
               />
-              <div style={{ position: 'absolute', top: '1rem', left: '1rem' }}>
-                <StreamStatusBadge status={showStreamDetails.status} />
+              {/* Live Badge */}
+              <div style={{
+                position: 'absolute',
+                top: '1rem',
+                left: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                backgroundColor: '#DC2626',
+                color: 'white',
+                padding: '0.5rem 1rem',
+                borderRadius: '0.5rem',
+                fontSize: '0.9rem',
+                fontWeight: '700'
+              }}>
+                <span style={{
+                  width: '10px',
+                  height: '10px',
+                  borderRadius: '50%',
+                  backgroundColor: 'white',
+                  animation: 'pulse 1.5s infinite'
+                }}/>
+                LIVE NOW
               </div>
-            </div>
-
-            <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#111827', margin: '0 0 0.25rem 0' }}>
-              {showStreamDetails.title}
-            </h2>
-            <p style={{ fontSize: '0.9rem', color: '#6B7280', margin: '0 0 1rem 0' }}>
-              {showStreamDetails.eventTitle}
-            </p>
-
-            {/* Client Info */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem', padding: '0.75rem', backgroundColor: '#F9FAFB', borderRadius: '0.5rem' }}>
-              <Image
-                src={showStreamDetails.clientImage}
-                alt={showStreamDetails.clientName}
-                width={40}
-                height={40}
-                style={{ borderRadius: '50%' }}
-              />
-              <div>
-                <div style={{ fontSize: '0.9rem', fontWeight: '600', color: '#111827' }}>{showStreamDetails.clientName}</div>
-                <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>Client</div>
-              </div>
-            </div>
-
-            {/* Stats Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', marginBottom: '1.25rem' }}>
-              <div style={{ backgroundColor: '#F9FAFB', borderRadius: '0.5rem', padding: '0.75rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', color: '#6B7280' }}>
-                  <CalendarIcon />
-                  <span style={{ fontSize: '0.8rem' }}>Date & Time</span>
+              {/* Close Button */}
+              <button
+                onClick={() => setShowControlPanel(null)}
+                style={{
+                  position: 'absolute',
+                  top: '1rem',
+                  right: '1rem',
+                  background: '#F3F4F6',
+                  border: '2px solid #D1D5DB',
+                  cursor: 'pointer',
+                  padding: '0.5rem',
+                  borderRadius: '0.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#6B7280'
+                }}
+              >
+                <CloseIcon />
+              </button>
+              {/* Stats Overlay */}
+              <div style={{
+                position: 'absolute',
+                bottom: '1rem',
+                left: '1rem',
+                right: '1rem',
+                display: 'flex',
+                gap: '1rem'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                  color: 'white',
+                  padding: '0.5rem 0.75rem',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.85rem'
+                }}>
+                  <EyeIcon />
+                  <span style={{ fontWeight: '600' }}>{showControlPanel.viewerCount}</span> viewers
                 </div>
-                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>
-                  {formatDate(showStreamDetails.scheduledDate)} at {showStreamDetails.scheduledTime}
-                </div>
-              </div>
-              <div style={{ backgroundColor: '#F9FAFB', borderRadius: '0.5rem', padding: '0.75rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', color: '#6B7280' }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                  color: 'white',
+                  padding: '0.5rem 0.75rem',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.85rem'
+                }}>
                   <ClockIcon />
-                  <span style={{ fontSize: '0.8rem' }}>Duration</span>
+                  <span style={{ fontWeight: '600' }}>{showControlPanel.duration}</span>
                 </div>
-                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>{showStreamDetails.duration}</div>
-              </div>
-              <div style={{ backgroundColor: '#F9FAFB', borderRadius: '0.5rem', padding: '0.75rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', color: '#6B7280' }}>
-                  <UsersIcon />
-                  <span style={{ fontSize: '0.8rem' }}>Peak Viewers</span>
-                </div>
-                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>
-                  {showStreamDetails.peakViewers} / {showStreamDetails.maxViewers}
-                </div>
-              </div>
-              <div style={{ backgroundColor: '#D1FAE5', borderRadius: '0.5rem', padding: '0.75rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', color: '#059669' }}>
-                  <DollarIcon />
-                  <span style={{ fontSize: '0.8rem' }}>Earnings</span>
-                </div>
-                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: '#059669' }}>${showStreamDetails.earnings}</div>
               </div>
             </div>
 
-            {/* Stream Key (for scheduled streams) */}
-            {showStreamDetails.streamKey && showStreamDetails.status === 'scheduled' && (
+            {/* Content */}
+            <div style={{ padding: '1.5rem' }}>
+              {/* Event Title */}
+              <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: '#111827', margin: '0 0 0.5rem 0' }}>
+                {showControlPanel.eventTitle}
+              </h2>
+              <h3 style={{ fontSize: '1rem', fontWeight: '500', color: '#6B7280', margin: '0 0 1rem 0' }}>
+                {showControlPanel.title}
+              </h3>
+
+              {/* Description */}
+              <div style={{
+                backgroundColor: '#F9FAFB',
+                borderRadius: '0.5rem',
+                padding: '1rem',
+                marginBottom: '1.25rem',
+                border: '1px solid #E5E7EB'
+              }}>
+                <p style={{ fontSize: '0.9rem', color: '#374151', margin: 0, lineHeight: '1.6' }}>
+                  {showControlPanel.description}
+                </p>
+              </div>
+
+              {/* Stream URL for Viewers */}
               <div style={{ marginBottom: '1.25rem' }}>
-                <div style={{ fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>Stream Key</div>
+                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>
+                  Stream Viewing Link
+                </label>
+                <p style={{ fontSize: '0.8rem', color: '#6B7280', margin: '0 0 0.5rem 0' }}>
+                  Share this link with viewers to watch the stream
+                </p>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <input
-                    type="password"
-                    value={showStreamDetails.streamKey}
+                    type="text"
+                    value={showControlPanel.inviteUrl}
                     readOnly
                     style={{
                       flex: 1,
-                      padding: '0.625rem 0.875rem',
-                      border: '1px solid #E5E7EB',
-                      borderRadius: '0.375rem',
+                      padding: '0.75rem',
+                      border: '2px solid #D1D5DB',
+                      borderRadius: '0.5rem',
                       fontSize: '0.9rem',
-                      backgroundColor: '#F9FAFB'
+                      backgroundColor: '#F9FAFB',
+                      color: '#111827'
                     }}
                   />
                   <button
-                    onClick={() => handleCopyKey(showStreamDetails.streamKey!)}
+                    onClick={() => handleCopyKey(showControlPanel.inviteUrl)}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: '0.375rem',
-                      padding: '0.625rem 1rem',
-                      border: 'none',
-                      borderRadius: '0.375rem',
+                      padding: '0.75rem 1rem',
+                      border: copiedKey ? '2px solid #059669' : '2px solid #062a63',
+                      borderRadius: '0.5rem',
                       background: copiedKey ? '#10B981' : '#083A85',
                       color: 'white',
                       fontSize: '0.9rem',
-                      fontWeight: '500',
-                      cursor: 'pointer'
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
                     }}
                   >
                     <CopyIcon />
                     {copiedKey ? 'Copied!' : 'Copy'}
                   </button>
                 </div>
-                <p style={{ fontSize: '0.8rem', color: '#6B7280', margin: '0.5rem 0 0 0' }}>
-                  Use this key with OBS or your streaming software
-                </p>
               </div>
-            )}
+
+              {/* Camera Settings */}
+              <div style={{
+                backgroundColor: '#F0F9FF',
+                borderRadius: '0.75rem',
+                padding: '1.25rem',
+                marginBottom: '1.5rem',
+                border: '1px solid #BAE6FD'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    backgroundColor: '#0EA5E9',
+                    borderRadius: '0.5rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white'
+                  }}>
+                    <VideoIcon />
+                  </div>
+                  <div>
+                    <h4 style={{ fontSize: '1rem', fontWeight: '600', color: '#0C4A6E', margin: 0 }}>
+                      Camera Settings
+                    </h4>
+                    <p style={{ fontSize: '0.8rem', color: '#0369A1', margin: '0.125rem 0 0 0' }}>
+                      Configure your connected pro camera
+                    </p>
+                  </div>
+                </div>
+
+                {/* Camera Source Selection */}
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: '#0C4A6E', marginBottom: '0.5rem' }}>
+                    Video Source
+                  </label>
+                  <select
+                    value={isVideoOn ? 'pro-camera' : 'none'}
+                    onChange={(e) => setIsVideoOn(e.target.value !== 'none')}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      border: '2px solid #7DD3FC',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.9rem',
+                      backgroundColor: 'white',
+                      color: '#0C4A6E',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="pro-camera">Pro Camera (Connected via USB)</option>
+                    <option value="webcam">Built-in Webcam</option>
+                    <option value="external">External Capture Device</option>
+                    <option value="none">No Camera (Audio Only)</option>
+                  </select>
+                </div>
+
+                {/* Audio Source Selection */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: '#0C4A6E', marginBottom: '0.5rem' }}>
+                    Audio Source
+                  </label>
+                  <select
+                    value={isMicOn ? 'external-mic' : 'none'}
+                    onChange={(e) => setIsMicOn(e.target.value !== 'none')}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      border: '2px solid #7DD3FC',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.9rem',
+                      backgroundColor: 'white',
+                      color: '#0C4A6E',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="external-mic">External Microphone</option>
+                    <option value="camera-mic">Pro Camera Microphone</option>
+                    <option value="built-in">Built-in Microphone</option>
+                    <option value="none">No Audio</option>
+                  </select>
+                </div>
+
+                {/* Camera Status */}
+                <div style={{
+                  display: 'flex',
+                  gap: '1rem',
+                  marginTop: '1rem',
+                  paddingTop: '1rem',
+                  borderTop: '1px solid #BAE6FD'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    fontSize: '0.85rem',
+                    color: isVideoOn ? '#059669' : '#DC2626'
+                  }}>
+                    <div style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      backgroundColor: isVideoOn ? '#10B981' : '#DC2626'
+                    }}/>
+                    Camera {isVideoOn ? 'Active' : 'Off'}
+                  </div>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    fontSize: '0.85rem',
+                    color: isMicOn ? '#059669' : '#DC2626'
+                  }}>
+                    <div style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      backgroundColor: isMicOn ? '#10B981' : '#DC2626'
+                    }}/>
+                    Microphone {isMicOn ? 'Active' : 'Off'}
+                  </div>
+                </div>
+              </div>
+
+              {/* End Stream Button */}
+              <button
+                onClick={() => handleEndStream(showControlPanel)}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  padding: '1rem',
+                  backgroundColor: '#DC2626',
+                  color: 'white',
+                  border: '2px solid #B91C1C',
+                  borderRadius: '0.5rem',
+                  fontSize: '1rem',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <StopIcon />
+                End Stream
+              </button>
+            </div>
           </div>
-        )}
-      </Modal>
+        </div>
+      )}
+
+      {/* Stream Details Modal */}
+      {showStreamDetails && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+        }} onClick={() => setShowStreamDetails(null)}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '0 0 0.75rem 0.75rem',
+            maxWidth: '600px',
+            width: '90%',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+          }} onClick={(e) => e.stopPropagation()}>
+            {/* Cover Image with overlay */}
+            <div style={{ position: 'relative', height: '160px', overflow: 'hidden' }}>
+              <div style={{
+                width: '100%',
+                height: '160px',
+                backgroundImage: `url(${showStreamDetails.coverImage})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center'
+              }}>
+                <div style={{
+                  position: 'absolute',
+                  inset: 0,
+                  backgroundColor: 'rgba(13, 27, 42, 0.3)'
+                }} />
+              </div>
+              {/* Close Button */}
+              <button
+                onClick={() => setShowStreamDetails(null)}
+                style={{
+                  position: 'absolute',
+                  top: '1rem',
+                  right: '1rem',
+                  backgroundColor: 'rgba(255,255,255,0.95)',
+                  border: '2px solid #D1D5DB',
+                  borderRadius: '50%',
+                  width: '36px',
+                  height: '36px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#374151',
+                  zIndex: 5,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <CloseIcon />
+              </button>
+              {/* Status Badge */}
+              <div style={{ position: 'absolute', top: '1rem', left: '1rem', zIndex: 5 }}>
+                <StreamStatusBadge status={showStreamDetails.status} />
+              </div>
+            </div>
+
+            {/* Content */}
+            <div style={{ padding: '1.5rem' }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#111827', margin: '0 0 0.25rem 0' }}>
+                {showStreamDetails.title}
+              </h2>
+              <p style={{ fontSize: '0.9rem', color: '#6B7280', margin: '0 0 1rem 0' }}>
+                {showStreamDetails.eventTitle}
+              </p>
+
+              {/* Client Info */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem', padding: '0.75rem', backgroundColor: '#F9FAFB', borderRadius: '0.5rem' }}>
+                <Image
+                  src={showStreamDetails.clientImage}
+                  alt={showStreamDetails.clientName}
+                  width={40}
+                  height={40}
+                  style={{ borderRadius: '50%' }}
+                />
+                <div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: '600', color: '#111827' }}>{showStreamDetails.clientName}</div>
+                  <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>Client</div>
+                </div>
+              </div>
+
+              {/* Stats Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', marginBottom: '1.25rem' }}>
+                <div style={{ backgroundColor: '#F9FAFB', borderRadius: '0.5rem', padding: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', color: '#6B7280' }}>
+                    <CalendarIcon />
+                    <span style={{ fontSize: '0.8rem' }}>Date & Time</span>
+                  </div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>
+                    {formatDate(showStreamDetails.scheduledDate)} at {showStreamDetails.scheduledTime}
+                  </div>
+                </div>
+                <div style={{ backgroundColor: '#F9FAFB', borderRadius: '0.5rem', padding: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', color: '#6B7280' }}>
+                    <ClockIcon />
+                    <span style={{ fontSize: '0.8rem' }}>Duration</span>
+                  </div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>{showStreamDetails.duration}</div>
+                </div>
+                <div style={{ backgroundColor: '#F9FAFB', borderRadius: '0.5rem', padding: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', color: '#6B7280' }}>
+                    <UsersIcon />
+                    <span style={{ fontSize: '0.8rem' }}>Peak Viewers</span>
+                  </div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>
+                    {showStreamDetails.peakViewers} / {showStreamDetails.maxViewers}
+                  </div>
+                </div>
+                <div style={{ backgroundColor: '#D1FAE5', borderRadius: '0.5rem', padding: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', color: '#059669' }}>
+                    <DollarIcon />
+                    <span style={{ fontSize: '0.8rem' }}>Earnings</span>
+                  </div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: '600', color: '#059669' }}>${showStreamDetails.earnings}</div>
+                </div>
+              </div>
+
+              {/* Stream Key (for scheduled streams) */}
+              {showStreamDetails.streamKey && showStreamDetails.status === 'scheduled' && (
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <div style={{ fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>Stream Key</div>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <input
+                      type="password"
+                      value={showStreamDetails.streamKey}
+                      readOnly
+                      style={{
+                        flex: 1,
+                        padding: '0.625rem 0.875rem',
+                        border: '2px solid #D1D5DB',
+                        borderRadius: '0.375rem',
+                        fontSize: '0.9rem',
+                        backgroundColor: '#F9FAFB',
+                        color: '#111827'
+                      }}
+                    />
+                    <button
+                      onClick={() => handleCopyKey(showStreamDetails.streamKey!)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.375rem',
+                        padding: '0.625rem 1rem',
+                        border: copiedKey ? '2px solid #059669' : '2px solid #062a63',
+                        borderRadius: '0.375rem',
+                        background: copiedKey ? '#10B981' : '#083A85',
+                        color: 'white',
+                        fontSize: '0.9rem',
+                        fontWeight: '500',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <CopyIcon />
+                      {copiedKey ? 'Copied!' : 'Copy'}
+                    </button>
+                  </div>
+                  <p style={{ fontSize: '0.8rem', color: '#6B7280', margin: '0.5rem 0 0 0' }}>
+                    Use this key with OBS or your streaming software
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       <Modal isOpen={showDeleteModal} onClose={() => setShowDeleteModal(false)} title="Cancel Stream">
@@ -1272,11 +1375,12 @@ const PhotographerStreamsPage = () => {
                 onClick={() => setShowDeleteModal(false)}
                 style={{
                   padding: '0.625rem 1.25rem',
-                  border: '1px solid #E5E7EB',
+                  border: '2px solid #D1D5DB',
                   borderRadius: '0.5rem',
-                  background: 'white',
+                  background: '#F3F4F6',
                   color: '#374151',
                   fontSize: '0.9rem',
+                  fontWeight: '500',
                   cursor: 'pointer'
                 }}
               >
@@ -1286,7 +1390,7 @@ const PhotographerStreamsPage = () => {
                 onClick={handleDeleteStream}
                 style={{
                   padding: '0.625rem 1.25rem',
-                  border: 'none',
+                  border: '2px solid #B91C1C',
                   borderRadius: '0.5rem',
                   background: '#DC2626',
                   color: 'white',
