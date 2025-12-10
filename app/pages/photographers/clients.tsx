@@ -96,6 +96,16 @@ const AlertCircleIcon = () => (
   </svg>
 );
 
+const GiftIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="3" y="8" width="18" height="13" rx="2" stroke="currentColor" strokeWidth="2"/>
+    <path d="M12 8V21" stroke="currentColor" strokeWidth="2"/>
+    <path d="M3 12H21" stroke="currentColor" strokeWidth="2"/>
+    <path d="M12 8C12 8 12 5 9 5C6 5 6 8 9 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    <path d="M12 8C12 8 12 5 15 5C18 5 18 8 15 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
+
 interface Booking {
   id: string;
   eventName: string;
@@ -109,6 +119,21 @@ interface Booking {
   paidAmount: number;
   paymentStatus: 'paid' | 'pending' | 'partially_paid' | 'failed';
   status: 'upcoming' | 'completed' | 'cancelled';
+}
+
+interface ClientReview {
+  rating: number;
+  reviewText: string;
+  reviewDate: string;
+}
+
+interface TipBonus {
+  id: string;
+  amount: number;
+  type: 'tip' | 'bonus';
+  eventName: string;
+  date: string;
+  message?: string;
 }
 
 interface Client {
@@ -133,9 +158,9 @@ interface Client {
   status: 'active' | 'inactive';
   isFavorite: boolean;
   verified: boolean;
-  rating: number;
-  reviewCount: number;
+  review?: ClientReview; // Review left by the client for the photographer
   bookings: Booking[];
+  tipsAndBonuses: TipBonus[];
 }
 
 type FilterType = 'all' | 'active' | 'inactive' | 'favorites' | 'pending_payments';
@@ -179,7 +204,29 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
         {title && (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#111827', margin: 0 }}>{title}</h3>
-            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}>
+            <button
+              onClick={onClose}
+              style={{
+                background: '#F3F4F6',
+                border: '2px solid #D1D5DB',
+                cursor: 'pointer',
+                padding: '0.5rem',
+                borderRadius: '0.375rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#374151',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#E5E7EB';
+                e.currentTarget.style.color = '#111827';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#F3F4F6';
+                e.currentTarget.style.color = '#374151';
+              }}
+            >
               <CloseIcon />
             </button>
           </div>
@@ -190,7 +237,11 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
   );
 };
 
-export default function Clients() {
+interface ClientsProps {
+  userType?: 'photographer' | 'freelancer';
+}
+
+export default function Clients({ userType = 'photographer' }: ClientsProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -199,6 +250,8 @@ export default function Clients() {
   const [sortBy, setSortBy] = useState<'recent' | 'bookings' | 'spent'>('recent');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; client: Client } | null>(null);
+  const [showTipsModal, setShowTipsModal] = useState(false);
+  const [tipsClient, setTipsClient] = useState<Client | null>(null);
 
   // Sample clients data with real images
   const [clients, setClients] = useState<Client[]>([
@@ -221,8 +274,11 @@ export default function Clients() {
       status: 'active',
       isFavorite: true,
       verified: true,
-      rating: 4.9,
-      reviewCount: 8,
+      review: {
+        rating: 5,
+        reviewText: 'Amazing photographer! Captured every special moment of our wedding perfectly. Highly recommend!',
+        reviewDate: '2024-11-20'
+      },
       bookings: [
         {
           id: 'BK-001',
@@ -252,6 +308,24 @@ export default function Clients() {
           paymentStatus: 'partially_paid',
           status: 'upcoming'
         }
+      ],
+      tipsAndBonuses: [
+        {
+          id: 'TB-001',
+          amount: 150,
+          type: 'tip',
+          eventName: 'Sarah & James Wedding',
+          date: '2024-11-15',
+          message: 'Thank you for the amazing photos! You made our day so special.'
+        },
+        {
+          id: 'TB-002',
+          amount: 50,
+          type: 'bonus',
+          eventName: 'Sarah & James Wedding',
+          date: '2024-11-20',
+          message: 'Extra bonus for quick delivery of photos!'
+        }
       ]
     },
     {
@@ -273,8 +347,11 @@ export default function Clients() {
       status: 'active',
       isFavorite: false,
       verified: true,
-      rating: 4.7,
-      reviewCount: 5,
+      review: {
+        rating: 4,
+        reviewText: 'Great work on my birthday party! The photos came out fantastic.',
+        reviewDate: '2024-11-02'
+      },
       bookings: [
         {
           id: 'BK-002',
@@ -289,6 +366,16 @@ export default function Clients() {
           paidAmount: 600,
           paymentStatus: 'paid',
           status: 'completed'
+        }
+      ],
+      tipsAndBonuses: [
+        {
+          id: 'TB-003',
+          amount: 75,
+          type: 'tip',
+          eventName: 'Michael\'s 30th Birthday',
+          date: '2024-10-28',
+          message: 'Great job capturing the party moments!'
         }
       ]
     },
@@ -311,8 +398,7 @@ export default function Clients() {
       status: 'inactive',
       isFavorite: true,
       verified: false,
-      rating: 4.8,
-      reviewCount: 12,
+      // No review left by this client
       bookings: [
         {
           id: 'BK-003',
@@ -328,7 +414,8 @@ export default function Clients() {
           paymentStatus: 'paid',
           status: 'completed'
         }
-      ]
+      ],
+      tipsAndBonuses: [] // No tips or bonuses from this client
     },
     {
       id: '4',
@@ -349,8 +436,7 @@ export default function Clients() {
       status: 'active',
       isFavorite: false,
       verified: true,
-      rating: 4.6,
-      reviewCount: 4,
+      // No review left by this client yet
       bookings: [
         {
           id: 'BK-004',
@@ -380,6 +466,16 @@ export default function Clients() {
           paymentStatus: 'pending',
           status: 'upcoming'
         }
+      ],
+      tipsAndBonuses: [
+        {
+          id: 'TB-004',
+          amount: 100,
+          type: 'bonus',
+          eventName: 'Tech Company Headshots',
+          date: '2024-11-05',
+          message: 'Professional work as always. Bonus for exceeding expectations!'
+        }
       ]
     },
     {
@@ -401,8 +497,11 @@ export default function Clients() {
       status: 'active',
       isFavorite: true,
       verified: true,
-      rating: 5.0,
-      reviewCount: 18,
+      review: {
+        rating: 5,
+        reviewText: 'Absolutely professional! The fashion shots exceeded all my expectations. Will definitely book again.',
+        reviewDate: '2024-08-20'
+      },
       bookings: [
         {
           id: 'BK-005',
@@ -417,6 +516,24 @@ export default function Clients() {
           paidAmount: 1200,
           paymentStatus: 'paid',
           status: 'completed'
+        }
+      ],
+      tipsAndBonuses: [
+        {
+          id: 'TB-005',
+          amount: 200,
+          type: 'tip',
+          eventName: 'Summer Fashion Shoot',
+          date: '2024-08-15',
+          message: 'Incredible work! These photos are going straight to my portfolio.'
+        },
+        {
+          id: 'TB-006',
+          amount: 100,
+          type: 'bonus',
+          eventName: 'Summer Fashion Shoot',
+          date: '2024-08-18',
+          message: 'Bonus for the extra editing work!'
         }
       ]
     },
@@ -439,8 +556,11 @@ export default function Clients() {
       status: 'inactive',
       isFavorite: false,
       verified: false,
-      rating: 4.5,
-      reviewCount: 3,
+      review: {
+        rating: 4,
+        reviewText: 'Beautiful wedding photos. Thank you for making our day special!',
+        reviewDate: '2024-06-25'
+      },
       bookings: [
         {
           id: 'BK-006',
@@ -455,6 +575,16 @@ export default function Clients() {
           paidAmount: 900,
           paymentStatus: 'paid',
           status: 'completed'
+        }
+      ],
+      tipsAndBonuses: [
+        {
+          id: 'TB-007',
+          amount: 50,
+          type: 'tip',
+          eventName: 'James & Maria Wedding',
+          date: '2024-06-20',
+          message: 'Thank you for the beautiful photos!'
         }
       ]
     }
@@ -495,6 +625,11 @@ export default function Clients() {
       }
       return bookingSum;
     }, 0);
+  }, 0);
+
+  // Calculate total tips and bonuses from all clients
+  const totalTipsAndBonuses = clients.reduce((sum, c) => {
+    return sum + c.tipsAndBonuses.reduce((tipSum, t) => tipSum + t.amount, 0);
   }, 0);
 
   // Filter clients based on search query and active filter
@@ -555,7 +690,7 @@ export default function Clients() {
         flexDirection: 'column',
         overflow: 'hidden'
       }}>
-        <Topbar />
+        <Topbar bonusAmount={totalTipsAndBonuses} userRole={userType} />
 
         <div style={{ flex: 1, overflowY: 'auto', backgroundColor: '#F9FAFB', paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
           {/* Header */}
@@ -637,7 +772,7 @@ export default function Clients() {
           </header>
 
           {/* Stats Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
             <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', padding: '1rem', border: '1px solid #E5E7EB' }}>
               <div style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '0.25rem' }}>Total Clients</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#083A85' }}>{clients.length}</div>
@@ -652,6 +787,15 @@ export default function Clients() {
               <div style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '0.25rem' }}>Total Earned</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#083A85' }}>
                 ${clients.reduce((sum, c) => sum + c.totalSpent, 0).toLocaleString()}
+              </div>
+            </div>
+            <div style={{ backgroundColor: totalTipsAndBonuses > 0 ? '#F0FDF4' : 'white', borderRadius: '0.75rem', padding: '1rem', border: totalTipsAndBonuses > 0 ? '1px solid #BBF7D0' : '1px solid #E5E7EB' }}>
+              <div style={{ fontSize: '0.85rem', color: totalTipsAndBonuses > 0 ? '#166534' : '#6B7280', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <GiftIcon />
+                Tips & Bonuses
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: totalTipsAndBonuses > 0 ? '#16A34A' : '#6B7280' }}>
+                ${totalTipsAndBonuses.toLocaleString()}
               </div>
             </div>
             <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', padding: '1rem', border: '1px solid #E5E7EB' }}>
@@ -783,165 +927,161 @@ export default function Clients() {
                   key={client.id}
                   style={{
                     backgroundColor: 'white',
-                    borderRadius: '0.75rem',
+                    borderRadius: '1rem',
                     overflow: 'hidden',
-                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                    border: '1px solid #E5E7EB',
-                    transition: 'transform 0.2s, box-shadow 0.2s',
+                    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                    border: '1px solid rgba(0, 0, 0, 0.1)',
+                    transition: 'all 0.3s ease',
                     cursor: 'pointer',
+                    padding: '1rem',
                     position: 'relative'
                   }}
                   onClick={() => setSelectedClient(client)}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+                    e.currentTarget.style.transform = 'translateY(-4px)';
+                    e.currentTarget.style.boxShadow = '0 35px 60px -15px rgba(0, 0, 0, 0.2), 0 15px 30px -10px rgba(0, 0, 0, 0.15)';
+                    e.currentTarget.style.borderColor = '#083A85';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
+                    e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)';
+                    e.currentTarget.style.borderColor = 'rgba(0, 0, 0, 0.1)';
                   }}
                 >
-                  {/* Cover Image */}
-                  <div style={{ position: 'relative', height: '140px' }}>
+                  {/* Header Row - Profile Image, Name, Actions */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', marginBottom: '0.625rem' }}>
                     <Image
-                      src={client.coverImage}
-                      alt={`${client.firstName}'s events`}
-                      fill
-                      style={{ objectFit: 'cover' }}
+                      src={client.profileImage}
+                      alt={client.firstName}
+                      width={50}
+                      height={50}
+                      style={{
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                        flexShrink: 0
+                      }}
                     />
-                    {/* Bookings Badge */}
-                    <div style={{
-                      position: 'absolute',
-                      top: '0.5rem',
-                      left: '0.5rem',
-                      backgroundColor: '#083A85',
-                      color: 'white',
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '0.25rem',
-                      fontSize: '0.7rem',
-                      fontWeight: '600',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.25rem'
-                    }}>
-                      <CalendarIcon /> {client.totalBookings} booking{client.totalBookings > 1 ? 's' : ''}
-                    </div>
-                    {/* Status Badge */}
-                    <div style={{
-                      position: 'absolute',
-                      bottom: '0.5rem',
-                      left: '0.5rem',
-                      backgroundColor: client.status === 'active' ? '#10B981' : '#6B7280',
-                      color: 'white',
-                      padding: '0.125rem 0.375rem',
-                      borderRadius: '0.25rem',
-                      fontSize: '0.65rem',
-                      fontWeight: '600',
-                      textTransform: 'uppercase'
-                    }}>
-                      {client.status}
-                    </div>
-                    {/* Action Buttons */}
-                    <div style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', display: 'flex', gap: '0.375rem' }}>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); toggleFavorite(client.id); }}
-                        style={{
-                          backgroundColor: 'rgba(255,255,255,0.9)',
-                          border: 'none',
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#111827', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {client.firstName} {client.lastName}
+                        </h3>
+                        {client.verified && <VerifiedIcon />}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.125rem' }}>
+                        <LocationIcon />
+                        <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>
+                          {client.location.city}, {client.location.country}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginTop: '0.25rem' }}>
+                        <span style={{
+                          backgroundColor: client.status === 'active' ? '#D1FAE5' : '#F3F4F6',
+                          color: client.status === 'active' ? '#065F46' : '#6B7280',
+                          padding: '0.125rem 0.375rem',
                           borderRadius: '0.25rem',
-                          width: '28px',
-                          height: '28px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                        title="Add to favorites"
-                      >
-                        <HeartIcon filled={client.isFavorite} />
-                      </button>
+                          fontSize: '0.75rem',
+                          fontWeight: '600',
+                          textTransform: 'uppercase'
+                        }}>
+                          {client.status}
+                        </span>
+                        <span style={{
+                          backgroundColor: '#EFF6FF',
+                          color: '#1D4ED8',
+                          padding: '0.125rem 0.375rem',
+                          borderRadius: '0.25rem',
+                          fontSize: '0.75rem',
+                          fontWeight: '600'
+                        }}>
+                          {client.totalBookings} booking{client.totalBookings > 1 ? 's' : ''}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleFavorite(client.id); }}
+                      style={{
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: '0.25rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      title="Add to favorites"
+                    >
+                      <HeartIcon filled={client.isFavorite} />
+                    </button>
+                  </div>
+
+                  {/* Quick Stats Row */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', backgroundColor: '#F9FAFB', borderRadius: '0.375rem', marginBottom: '0.5rem' }}>
+                    <div>
+                      <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>Last: {client.lastEventType}</div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: '500', color: '#111827' }}>{formatDate(client.lastBookingDate)}</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>Total Spent</div>
+                      <div style={{ fontSize: '1rem', fontWeight: '700', color: '#083A85' }}>${client.totalSpent.toLocaleString()}</div>
                     </div>
                   </div>
 
-                  {/* Profile Info */}
-                  <div style={{ padding: '1rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', marginTop: '-2.5rem' }}>
-                      <Image
-                        src={client.profileImage}
-                        alt={client.firstName}
-                        width={60}
-                        height={60}
-                        style={{ borderRadius: '50%', border: '3px solid white', objectFit: 'cover' }}
-                      />
-                      <div style={{ marginTop: '1.75rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                          <h3 style={{ fontSize: '1rem', fontWeight: '600', color: '#111827', margin: 0 }}>
-                            {client.firstName} {client.lastName}
-                          </h3>
-                          {client.verified && <VerifiedIcon />}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
-                          <LocationIcon />
-                          <span style={{ fontSize: '0.8rem', color: '#6B7280' }}>
-                            {client.location.city}, {client.location.country}
-                          </span>
-                        </div>
+                  {/* Review - Compact */}
+                  {client.review ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: '0.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.125rem' }}>
+                        {renderStars(client.review.rating)}
                       </div>
+                      <span style={{ fontSize: '0.8rem', color: '#1D4ED8', fontWeight: '500' }}>Reviewed</span>
                     </div>
-
-                    {/* Last Booking Info */}
-                    <div style={{ marginTop: '0.75rem', padding: '0.75rem', backgroundColor: '#F9FAFB', borderRadius: '0.5rem' }}>
-                      <div style={{ fontSize: '0.75rem', color: '#6B7280', marginBottom: '0.25rem' }}>Last Booking</div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: '500', color: '#111827' }}>{client.lastEventName}</div>
-                      <div style={{ fontSize: '0.75rem', color: '#6B7280', marginTop: '0.125rem' }}>
-                        {client.lastEventType} • {formatDate(client.lastBookingDate)}
-                      </div>
+                  ) : (
+                    <div style={{ marginBottom: '0.5rem' }}>
+                      <span style={{ fontSize: '0.8rem', color: '#9CA3AF' }}>No review yet</span>
                     </div>
+                  )}
 
-                    {/* Rating */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem' }}>
-                      {renderStars(client.rating)}
-                      <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>{client.rating}</span>
-                      <span style={{ fontSize: '0.8rem', color: '#6B7280' }}>({client.reviewCount} reviews)</span>
-                    </div>
-
-                    {/* Total Spent */}
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginTop: '0.75rem',
-                      paddingTop: '0.75rem',
-                      borderTop: '1px solid #E5E7EB'
-                    }}>
-                      <span style={{ fontSize: '0.8rem', color: '#6B7280' }}>Total Spent</span>
-                      <span style={{ fontSize: '1rem', fontWeight: '700', color: '#083A85' }}>${client.totalSpent.toLocaleString()}</span>
-                    </div>
-
-                    {/* Payment Status for Pending Bookings */}
-                    {client.bookings.some(b => b.paymentStatus !== 'paid') && (
-                      <div style={{ marginTop: '0.75rem', padding: '0.5rem', backgroundColor: '#FEF3C7', borderRadius: '0.375rem' }}>
-                        {client.bookings.filter(b => b.paymentStatus !== 'paid').slice(0, 1).map((booking) => {
+                    {/* Payment Status for Bookings */}
+                    {client.bookings.length > 0 && (
+                      <div style={{ marginBottom: '0.5rem' }}>
+                        {client.bookings.slice(0, 2).map((booking) => {
                           const paymentColor = getPaymentStatusColor(booking.paymentStatus);
                           const amountDue = booking.totalAmount - booking.paidAmount;
+                          const isPaid = booking.paymentStatus === 'paid';
+                          const isPending = booking.paymentStatus === 'pending';
+                          const isPartiallyPaid = booking.paymentStatus === 'partially_paid';
+                          const isFailed = booking.paymentStatus === 'failed';
+
+                          const containerBg = isPaid ? '#DCFCE7' : isPending ? '#FEF3C7' : isPartiallyPaid ? '#DBEAFE' : isFailed ? '#FEE2E2' : '#F9FAFB';
+                          const containerBorder = isPaid ? '#86EFAC' : isPending ? '#FCD34D' : isPartiallyPaid ? '#93C5FD' : isFailed ? '#FCA5A5' : '#E5E7EB';
+                          const textColor = isPaid ? '#15803D' : isPending ? '#92400E' : isPartiallyPaid ? '#1E40AF' : isFailed ? '#991B1B' : '#6B7280';
+
                           return (
-                            <div key={booking.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <div>
-                                <div style={{ fontSize: '0.75rem', color: '#92400E', fontWeight: '500' }}>{booking.eventName}</div>
-                                <span style={{
-                                  backgroundColor: paymentColor.bg,
-                                  color: paymentColor.text,
-                                  padding: '0.125rem 0.375rem',
-                                  borderRadius: '0.25rem',
-                                  fontSize: '0.65rem',
-                                  fontWeight: '600',
-                                  textTransform: 'capitalize'
-                                }}>
-                                  {booking.paymentStatus.replace('_', ' ')}
-                                </span>
-                              </div>
-                              <div style={{ fontSize: '0.8rem', fontWeight: '600', color: '#B45309' }}>
-                                ${amountDue} due
+                            <div key={booking.id} style={{
+                              padding: '0.375rem 0.5rem',
+                              backgroundColor: containerBg,
+                              borderRadius: '0.375rem',
+                              border: `1px solid ${containerBorder}`,
+                              marginBottom: '0.25rem'
+                            }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div>
+                                  <div style={{ fontSize: '0.85rem', color: textColor, fontWeight: '500' }}>{booking.eventName}</div>
+                                  <span style={{
+                                    backgroundColor: paymentColor.bg,
+                                    color: paymentColor.text,
+                                    padding: '0.0625rem 0.25rem',
+                                    borderRadius: '0.25rem',
+                                    fontSize: '0.7rem',
+                                    fontWeight: '600',
+                                    textTransform: 'capitalize'
+                                  }}>
+                                    {booking.paymentStatus.replace('_', ' ')}
+                                  </span>
+                                </div>
+                                <div style={{ fontSize: '0.9rem', fontWeight: '600', color: textColor }}>
+                                  {isPaid ? `$${booking.totalAmount}` : `$${amountDue} due`}
+                                </div>
                               </div>
                             </div>
                           );
@@ -949,30 +1089,29 @@ export default function Clients() {
                       </div>
                     )}
 
-                    {/* Action Buttons */}
-                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+                    {/* Action Buttons - Compact */}
+                    <div style={{ display: 'flex', gap: '0.375rem' }}>
                       <Link
                         href={`/user/photographers/inbox?client=${encodeURIComponent(`${client.firstName} ${client.lastName}`)}`}
                         onClick={(e) => e.stopPropagation()}
                         style={{
                           flex: 1,
-                          padding: '0.5rem',
+                          padding: '0.375rem',
                           borderRadius: '0.375rem',
-                          border: 'none',
+                          border: '2px solid #062a63',
                           backgroundColor: '#083A85',
                           color: 'white',
-                          fontSize: '0.8rem',
+                          fontSize: '0.85rem',
                           fontWeight: '500',
                           cursor: 'pointer',
-                          transition: 'all 0.2s',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          gap: '0.375rem',
+                          gap: '0.25rem',
                           textDecoration: 'none'
                         }}
                       >
-                        <i className="bi bi-chat-dots" style={{ fontSize: '0.875rem' }}></i>
+                        <i className="bi bi-chat-dots" style={{ fontSize: '0.9rem' }}></i>
                         Message
                       </Link>
                       <Link
@@ -980,55 +1119,88 @@ export default function Clients() {
                         onClick={(e) => e.stopPropagation()}
                         style={{
                           flex: 1,
-                          padding: '0.5rem',
+                          padding: '0.375rem',
                           borderRadius: '0.375rem',
-                          border: '1px solid #D1D5DB',
+                          border: '2px solid #D1D5DB',
                           backgroundColor: 'white',
                           color: '#6B7280',
-                          fontSize: '0.8rem',
+                          fontSize: '0.85rem',
                           fontWeight: '500',
                           cursor: 'pointer',
-                          transition: 'all 0.2s',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          gap: '0.375rem',
+                          gap: '0.25rem',
                           textDecoration: 'none'
                         }}
                       >
-                        <i className="bi bi-image" style={{ fontSize: '0.875rem' }}></i>
+                        <i className="bi bi-image" style={{ fontSize: '0.9rem' }}></i>
                         Gallery
                       </Link>
                     </div>
-                  </div>
+
+                    {/* Tips & Bonuses Button - Compact */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setTipsClient(client);
+                        setShowTipsModal(true);
+                      }}
+                      style={{
+                        width: '100%',
+                        marginTop: '0.375rem',
+                        padding: '0.375rem',
+                        borderRadius: '0.375rem',
+                        border: '2px solid #C0096D',
+                        backgroundColor: '#F20C8F',
+                        color: 'white',
+                        fontSize: '0.85rem',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.25rem',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <GiftIcon />
+                      {client.tipsAndBonuses.length > 0
+                        ? `$${client.tipsAndBonuses.reduce((sum, t) => sum + t.amount, 0)}`
+                        : 'None'
+                      }
+                    </button>
                 </div>
               ))}
             </div>
           ) : (
             /* List View */
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {filteredClients.map((client) => (
                 <div
                   key={client.id}
                   onClick={() => setSelectedClient(client)}
                   style={{
                     backgroundColor: 'white',
-                    borderRadius: '0.75rem',
+                    borderRadius: '1rem',
                     padding: '1rem',
-                    border: '1px solid #E5E7EB',
+                    border: '1px solid rgba(0, 0, 0, 0.1)',
+                    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
                     cursor: 'pointer',
-                    transition: 'all 0.2s',
+                    transition: 'all 0.3s ease',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '1rem'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 35px 60px -15px rgba(0, 0, 0, 0.2), 0 15px 30px -10px rgba(0, 0, 0, 0.15)';
                     e.currentTarget.style.borderColor = '#083A85';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.boxShadow = 'none';
-                    e.currentTarget.style.borderColor = '#E5E7EB';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)';
+                    e.currentTarget.style.borderColor = 'rgba(0, 0, 0, 0.1)';
                   }}
                 >
                   {/* Avatar */}
@@ -1044,7 +1216,7 @@ export default function Clients() {
                   <div style={{ flex: '1 1 200px', minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                       <h3 style={{
-                        fontSize: '0.95rem',
+                        fontSize: '1.1rem',
                         fontWeight: '600',
                         color: '#111827',
                         margin: 0,
@@ -1062,7 +1234,7 @@ export default function Clients() {
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
                       <LocationIcon />
-                      <span style={{ fontSize: '0.8rem', color: '#6B7280' }}>
+                      <span style={{ fontSize: '0.9rem', color: '#6B7280' }}>
                         {client.location.city}, {client.location.country}
                       </span>
                     </div>
@@ -1070,33 +1242,72 @@ export default function Clients() {
 
                   {/* Last Booking */}
                   <div style={{ flex: '0 0 180px' }}>
-                    <p style={{ fontSize: '0.8rem', fontWeight: '500', color: '#111827', margin: 0, marginBottom: '0.125rem' }}>
+                    <p style={{ fontSize: '0.95rem', fontWeight: '500', color: '#111827', margin: 0, marginBottom: '0.125rem' }}>
                       {client.lastEventName}
                     </p>
-                    <p style={{ fontSize: '0.75rem', color: '#6B7280', margin: 0 }}>
+                    <p style={{ fontSize: '0.85rem', color: '#6B7280', margin: 0 }}>
                       {client.lastEventType} • {formatDate(client.lastBookingDate)}
                     </p>
                   </div>
 
                   {/* Stats */}
                   <div style={{ flex: '0 0 80px', textAlign: 'center' }}>
-                    <p style={{ fontSize: '0.9rem', fontWeight: '700', color: '#083A85', margin: 0, marginBottom: '0.125rem' }}>
+                    <p style={{ fontSize: '1rem', fontWeight: '700', color: '#083A85', margin: 0, marginBottom: '0.125rem' }}>
                       {client.totalBookings}
                     </p>
-                    <p style={{ fontSize: '0.7rem', color: '#6B7280', margin: 0 }}>Bookings</p>
+                    <p style={{ fontSize: '0.85rem', color: '#6B7280', margin: 0 }}>Bookings</p>
                   </div>
 
                   <div style={{ flex: '0 0 100px', textAlign: 'center' }}>
-                    <p style={{ fontSize: '0.9rem', fontWeight: '700', color: '#111827', margin: 0, marginBottom: '0.125rem' }}>
+                    <p style={{ fontSize: '1rem', fontWeight: '700', color: '#111827', margin: 0, marginBottom: '0.125rem' }}>
                       ${client.totalSpent.toLocaleString()}
                     </p>
-                    <p style={{ fontSize: '0.7rem', color: '#6B7280', margin: 0 }}>Total Spent</p>
+                    <p style={{ fontSize: '0.85rem', color: '#6B7280', margin: 0 }}>Total Spent</p>
                   </div>
 
-                  {/* Rating */}
-                  <div style={{ flex: '0 0 100px', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                    {renderStars(client.rating)}
-                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>{client.rating}</span>
+                  {/* Payment Status */}
+                  <div style={{ flex: '0 0 110px', textAlign: 'center' }}>
+                    {(() => {
+                      const latestBooking = client.bookings[0];
+                      if (!latestBooking) return <span style={{ fontSize: '0.85rem', color: '#9CA3AF' }}>No bookings</span>;
+
+                      const paymentColor = getPaymentStatusColor(latestBooking.paymentStatus);
+                      return (
+                        <div style={{
+                          display: 'inline-block',
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '0.375rem',
+                          backgroundColor: paymentColor.bg,
+                          fontSize: '0.85rem',
+                          fontWeight: '600',
+                          color: paymentColor.text,
+                          textTransform: 'capitalize'
+                        }}>
+                          {latestBooking.paymentStatus.replace('_', ' ')}
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Client's Review */}
+                  <div style={{ flex: '0 0 140px', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                    {client.review ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                        {renderStars(client.review.rating)}
+                        <span style={{
+                          backgroundColor: '#DBEAFE',
+                          color: '#1D4ED8',
+                          padding: '0.125rem 0.375rem',
+                          borderRadius: '0.25rem',
+                          fontSize: '0.8rem',
+                          fontWeight: '600'
+                        }}>
+                          Reviewed
+                        </span>
+                      </div>
+                    ) : (
+                      <span style={{ fontSize: '0.85rem', color: '#9CA3AF' }}>No review</span>
+                    )}
                   </div>
 
                   {/* Status */}
@@ -1106,7 +1317,7 @@ export default function Clients() {
                       padding: '0.25rem 0.5rem',
                       borderRadius: '0.375rem',
                       backgroundColor: client.status === 'active' ? '#D1FAE5' : '#FEE2E2',
-                      fontSize: '0.7rem',
+                      fontSize: '0.85rem',
                       fontWeight: '600',
                       color: client.status === 'active' ? '#065F46' : '#991B1B',
                       textTransform: 'capitalize'
@@ -1123,7 +1334,7 @@ export default function Clients() {
                       style={{
                         padding: '0.375rem 0.625rem',
                         borderRadius: '0.375rem',
-                        border: '1px solid #083A85',
+                        border: '2px solid #062a63',
                         backgroundColor: '#083A85',
                         color: 'white',
                         fontSize: '0.75rem',
@@ -1143,7 +1354,7 @@ export default function Clients() {
                       style={{
                         padding: '0.375rem 0.625rem',
                         borderRadius: '0.375rem',
-                        border: '1px solid #D1D5DB',
+                        border: '2px solid #D1D5DB',
                         backgroundColor: 'white',
                         color: '#6B7280',
                         fontSize: '0.75rem',
@@ -1157,6 +1368,37 @@ export default function Clients() {
                     >
                       <i className="bi bi-image"></i>
                     </Link>
+                  </div>
+
+                  {/* Tips & Bonuses */}
+                  <div style={{ flex: '0 0 100px', textAlign: 'center' }}>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setTipsClient(client);
+                        setShowTipsModal(true);
+                      }}
+                      style={{
+                        padding: '0.25rem 0.5rem',
+                        borderRadius: '0.375rem',
+                        border: '2px solid #C0096D',
+                        backgroundColor: '#F20C8F',
+                        color: 'white',
+                        fontSize: '0.7rem',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <GiftIcon />
+                      {client.tipsAndBonuses.length > 0
+                        ? `$${client.tipsAndBonuses.reduce((sum, t) => sum + t.amount, 0)}`
+                        : 'None'
+                      }
+                    </button>
                   </div>
                 </div>
               ))}
@@ -1218,7 +1460,7 @@ export default function Clients() {
             </div>
 
             {/* Stats */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '1.5rem' }}>
               <div style={{ backgroundColor: '#F9FAFB', padding: '0.75rem', borderRadius: '0.5rem', textAlign: 'center' }}>
                 <p style={{ fontSize: '1.25rem', fontWeight: '700', color: '#083A85', margin: 0, marginBottom: '0.25rem' }}>
                   {selectedClient.totalBookings}
@@ -1232,17 +1474,40 @@ export default function Clients() {
                 <p style={{ fontSize: '0.75rem', color: '#6B7280', margin: 0 }}>Total Spent</p>
               </div>
               <div style={{ backgroundColor: '#F9FAFB', padding: '0.75rem', borderRadius: '0.5rem', textAlign: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', marginBottom: '0.25rem' }}>
-                  {renderStars(selectedClient.rating)}
-                </div>
-                <p style={{ fontSize: '0.75rem', color: '#6B7280', margin: 0 }}>{selectedClient.reviewCount} reviews</p>
-              </div>
-              <div style={{ backgroundColor: '#F9FAFB', padding: '0.75rem', borderRadius: '0.5rem', textAlign: 'center' }}>
                 <p style={{ fontSize: '0.9rem', fontWeight: '500', color: '#111827', margin: 0, marginBottom: '0.25rem' }}>
                   {formatDate(selectedClient.joinDate)}
                 </p>
                 <p style={{ fontSize: '0.75rem', color: '#6B7280', margin: 0 }}>Joined</p>
               </div>
+            </div>
+
+            {/* Client's Review */}
+            <div style={{ marginBottom: '1.5rem' }}>
+              <h4 style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827', marginBottom: '0.75rem' }}>Review for You</h4>
+              {selectedClient.review ? (
+                <div style={{ padding: '1rem', backgroundColor: '#EFF6FF', borderRadius: '0.5rem', border: '1px solid #BFDBFE' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.125rem' }}>
+                      {renderStars(selectedClient.review.rating)}
+                    </div>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#1D4ED8' }}>
+                      {selectedClient.review.rating}/5
+                    </span>
+                    <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>
+                      {formatDate(selectedClient.review.reviewDate)}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '0.9rem', color: '#374151', margin: 0, lineHeight: '1.5' }}>
+                    &ldquo;{selectedClient.review.reviewText}&rdquo;
+                  </p>
+                </div>
+              ) : (
+                <div style={{ padding: '1rem', backgroundColor: '#F9FAFB', borderRadius: '0.5rem', textAlign: 'center' }}>
+                  <p style={{ fontSize: '0.85rem', color: '#9CA3AF', margin: 0 }}>
+                    This client has not left a review yet
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Contact Info */}
@@ -1270,23 +1535,37 @@ export default function Clients() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 {selectedClient.bookings.map((booking) => {
                   const paymentColor = getPaymentStatusColor(booking.paymentStatus);
+                  const amountDue = booking.totalAmount - booking.paidAmount;
+                  const isPaid = booking.paymentStatus === 'paid';
+                  const isPending = booking.paymentStatus === 'pending';
+                  const isPartiallyPaid = booking.paymentStatus === 'partially_paid';
+                  const isFailed = booking.paymentStatus === 'failed';
+
+                  // Determine container background and border color based on status
+                  const containerBg = isPaid ? '#DCFCE7' : isPending ? '#FEF3C7' : isPartiallyPaid ? '#DBEAFE' : isFailed ? '#FEE2E2' : '#F9FAFB';
+                  const containerBorder = isPaid ? '#86EFAC' : isPending ? '#FCD34D' : isPartiallyPaid ? '#93C5FD' : isFailed ? '#FCA5A5' : '#E5E7EB';
+                  const textColor = isPaid ? '#15803D' : isPending ? '#92400E' : isPartiallyPaid ? '#1E40AF' : isFailed ? '#991B1B' : '#111827';
+
                   return (
                     <div key={booking.id} style={{
                       padding: '0.75rem',
-                      backgroundColor: '#F9FAFB',
+                      backgroundColor: containerBg,
                       borderRadius: '0.5rem',
+                      border: `1px solid ${containerBorder}`,
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center'
                     }}>
                       <div>
-                        <p style={{ fontSize: '0.85rem', fontWeight: '500', color: '#111827', margin: 0 }}>{booking.eventName}</p>
-                        <p style={{ fontSize: '0.75rem', color: '#6B7280', margin: '0.125rem 0' }}>
+                        <p style={{ fontSize: '0.85rem', fontWeight: '500', color: textColor, margin: 0 }}>{booking.eventName}</p>
+                        <p style={{ fontSize: '0.75rem', color: isPaid ? '#166534' : isPending ? '#A16207' : isPartiallyPaid ? '#1E40AF' : isFailed ? '#991B1B' : '#6B7280', margin: '0.125rem 0' }}>
                           {booking.eventType} • {formatDate(booking.eventDate)}
                         </p>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <p style={{ fontSize: '0.9rem', fontWeight: '600', color: '#111827', margin: 0 }}>${booking.totalAmount}</p>
+                        <p style={{ fontSize: '0.9rem', fontWeight: '600', color: textColor, margin: 0 }}>
+                          {isPaid ? `$${booking.totalAmount}` : `$${amountDue} due`}
+                        </p>
                         <span style={{
                           backgroundColor: paymentColor.bg,
                           color: paymentColor.text,
@@ -1313,7 +1592,7 @@ export default function Clients() {
                   flex: 1,
                   padding: '0.75rem',
                   borderRadius: '0.5rem',
-                  border: 'none',
+                  border: '2px solid #062a63',
                   backgroundColor: '#083A85',
                   color: 'white',
                   fontSize: '0.9rem',
@@ -1336,7 +1615,7 @@ export default function Clients() {
                   flex: 1,
                   padding: '0.75rem',
                   borderRadius: '0.5rem',
-                  border: '1px solid #D1D5DB',
+                  border: '2px solid #D1D5DB',
                   backgroundColor: 'white',
                   color: '#374151',
                   fontSize: '0.9rem',
@@ -1353,6 +1632,166 @@ export default function Clients() {
                 <i className="bi bi-image" style={{ fontSize: '1rem' }}></i>
                 View Gallery
               </Link>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Tips & Bonuses Modal */}
+      <Modal
+        isOpen={showTipsModal && !!tipsClient}
+        onClose={() => {
+          setShowTipsModal(false);
+          setTipsClient(null);
+        }}
+        title="Tips & Bonuses"
+        maxWidth="500px"
+      >
+        {tipsClient && (
+          <div>
+            {/* Client Header */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              marginBottom: '1.25rem',
+              padding: '0.75rem',
+              backgroundColor: '#F9FAFB',
+              borderRadius: '0.5rem'
+            }}>
+              <Image
+                src={tipsClient.profileImage}
+                alt={tipsClient.firstName}
+                width={48}
+                height={48}
+                style={{ borderRadius: '50%', objectFit: 'cover' }}
+              />
+              <div>
+                <div style={{ fontWeight: '600', color: '#111827', fontSize: '0.95rem' }}>
+                  {tipsClient.firstName} {tipsClient.lastName}
+                </div>
+                <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>
+                  {tipsClient.location.city}, {tipsClient.location.country}
+                </div>
+              </div>
+            </div>
+
+            {/* Total Summary */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '0.75rem',
+              marginBottom: '1.25rem'
+            }}>
+              <div style={{
+                backgroundColor: '#F0FDF4',
+                borderRadius: '0.5rem',
+                padding: '0.75rem',
+                textAlign: 'center',
+                border: '1px solid #BBF7D0'
+              }}>
+                <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#16A34A' }}>
+                  ${tipsClient.tipsAndBonuses.reduce((sum, t) => sum + t.amount, 0)}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#166534' }}>Total Received</div>
+              </div>
+              <div style={{
+                backgroundColor: '#FEF3C7',
+                borderRadius: '0.5rem',
+                padding: '0.75rem',
+                textAlign: 'center',
+                border: '1px solid #FCD34D'
+              }}>
+                <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#B45309' }}>
+                  ${tipsClient.tipsAndBonuses.filter(t => t.type === 'tip').reduce((sum, t) => sum + t.amount, 0)}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#92400E' }}>Tips</div>
+              </div>
+              <div style={{
+                backgroundColor: '#DBEAFE',
+                borderRadius: '0.5rem',
+                padding: '0.75rem',
+                textAlign: 'center',
+                border: '1px solid #93C5FD'
+              }}>
+                <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#1D4ED8' }}>
+                  ${tipsClient.tipsAndBonuses.filter(t => t.type === 'bonus').reduce((sum, t) => sum + t.amount, 0)}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#1E40AF' }}>Bonuses</div>
+              </div>
+            </div>
+
+            {/* Tips & Bonuses List */}
+            <div>
+              <h4 style={{ fontSize: '0.9rem', fontWeight: '600', color: '#111827', marginBottom: '0.75rem' }}>
+                Transaction History
+              </h4>
+              {tipsClient.tipsAndBonuses.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {tipsClient.tipsAndBonuses.map((item) => (
+                    <div key={item.id} style={{
+                      padding: '0.75rem',
+                      borderRadius: '0.5rem',
+                      backgroundColor: item.type === 'tip' ? '#FFFBEB' : '#EFF6FF',
+                      border: `1px solid ${item.type === 'tip' ? '#FCD34D' : '#93C5FD'}`
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.375rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{
+                            padding: '0.125rem 0.375rem',
+                            borderRadius: '0.25rem',
+                            backgroundColor: item.type === 'tip' ? '#FEF3C7' : '#DBEAFE',
+                            color: item.type === 'tip' ? '#B45309' : '#1D4ED8',
+                            fontSize: '0.65rem',
+                            fontWeight: '600',
+                            textTransform: 'uppercase'
+                          }}>
+                            {item.type}
+                          </span>
+                          <span style={{ fontSize: '0.8rem', color: '#6B7280' }}>
+                            {formatDate(item.date)}
+                          </span>
+                        </div>
+                        <span style={{
+                          fontSize: '1rem',
+                          fontWeight: '700',
+                          color: item.type === 'tip' ? '#B45309' : '#1D4ED8'
+                        }}>
+                          +${item.amount}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: '500', color: '#111827', marginBottom: '0.25rem' }}>
+                        {item.eventName}
+                      </div>
+                      {item.message && (
+                        <p style={{
+                          fontSize: '0.8rem',
+                          color: '#6B7280',
+                          margin: 0,
+                          fontStyle: 'italic'
+                        }}>
+                          &ldquo;{item.message}&rdquo;
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{
+                  padding: '2rem',
+                  textAlign: 'center',
+                  backgroundColor: '#F9FAFB',
+                  borderRadius: '0.5rem',
+                  border: '1px solid #E5E7EB'
+                }}>
+                  <div style={{ color: '#9CA3AF', marginBottom: '0.5rem' }}>
+                    <GiftIcon />
+                  </div>
+                  <p style={{ fontSize: '0.9rem', color: '#6B7280', margin: 0 }}>
+                    No tips or bonuses from this client yet
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         )}

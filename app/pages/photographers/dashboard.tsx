@@ -17,7 +17,11 @@ import {
   StarIcon
 } from '../../components/dashboard';
 
-const PhotographerDashboard = () => {
+interface PhotographerDashboardProps {
+  userType?: 'photographer' | 'freelancer';
+}
+
+const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashboardProps) => {
   const [activeFilter, setActiveFilter] = useState<'today' | 'week' | 'month' | 'custom'>('week');
   const performanceData = [
     { day: 'Sun', value1: 130, value2: 150 },
@@ -85,7 +89,7 @@ const PhotographerDashboard = () => {
       <Sidebar />
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Topbar />
+        <Topbar userRole={userType} />
 
         <div className="flex-1 overflow-y-auto bg-gray-50 px-5 py-4">
           <header className="flex justify-between items-center mt-0.5">

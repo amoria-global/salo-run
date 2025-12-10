@@ -4,7 +4,11 @@ import React, { useRef } from 'react';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 
-const PayrollReport = () => {
+interface PayrollReportProps {
+  userType?: 'photographer' | 'freelancer';
+}
+
+const PayrollReport = ({ userType = 'photographer' }: PayrollReportProps) => {
   const reportRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = () => {
@@ -133,7 +137,7 @@ const PayrollReport = () => {
 
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <div className="no-print">
-            <Topbar />
+            <Topbar userRole={userType} />
           </div>
 
           {/* Main Content */}

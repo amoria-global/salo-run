@@ -13,8 +13,15 @@ const CameraIcon = () => (
   </svg>
 );
 
-const PhotographerProfilePage = () => {
+interface PhotographerProfilePageProps {
+  userType?: 'photographer' | 'freelancer';
+}
+
+const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProfilePageProps) => {
   const [isEditEnabled, setIsEditEnabled] = useState(false);
+
+  // Determine title based on user type
+  const defaultTitle = userType === 'freelancer' ? 'Self-Employed Photographer' : 'Employed Photographer';
 
   // East African countries with phone codes
   const eastAfricanCountries = [
@@ -26,20 +33,46 @@ const PhotographerProfilePage = () => {
     { name: 'South Sudan', code: '+211', flag: '🇸🇸' },
   ];
 
-  // Form state for photographer
+  // Rwanda provinces and districts
+  const rwandaProvinces: { [key: string]: string[] } = {
+    'Kigali City': ['Gasabo', 'Kicukiro', 'Nyarugenge'],
+    'Eastern Province': ['Bugesera', 'Gatsibo', 'Kayonza', 'Kirehe', 'Ngoma', 'Nyagatare', 'Rwamagana'],
+    'Northern Province': ['Burera', 'Gakenke', 'Gicumbi', 'Musanze', 'Rulindo'],
+    'Southern Province': ['Gisagara', 'Huye', 'Kamonyi', 'Muhanga', 'Nyamagabe', 'Nyanza', 'Nyaruguru', 'Ruhango'],
+    'Western Province': ['Karongi', 'Ngororero', 'Nyabihu', 'Nyamasheke', 'Rubavu', 'Rusizi', 'Rutsiro']
+  };
+
+  // Days of the week for availability selection
+  const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+  // Time options for availability
+  const timeOptions = [
+    '6:00 AM', '7:00 AM', '8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM',
+    '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM',
+    '6:00 PM', '7:00 PM', '8:00 PM', '9:00 PM', '10:00 PM'
+  ];
+
+  // Form state for photographer/freelancer
   const [formData, setFormData] = useState({
     fullName: 'John Smith',
-    username: 'john_photographer',
+    username: userType === 'freelancer' ? 'john_freelancer' : 'john_photographer',
     email: 'johnsmith@gmail.com',
     phoneCode: '+250',
     phoneNumber: '788 456 789',
-    title: 'Professional Photographer',
+    title: defaultTitle,
     country: 'Rwanda',
-    companyName: 'Smith Photography',
+    province: 'Kigali City',
+    district: 'Gasabo',
+    sector: 'Remera',
+    companyName: userType === 'freelancer' ? 'Self-Employed' : 'Smith Photography',
     workLocation: 'Kigali, Rwanda',
-    availabilityDays: 'Monday - Saturday',
-    availableTime: '8:00 AM - 6:00 PM',
-    bio: 'Professional photographer with over 10 years of experience specializing in weddings, corporate events, and portrait photography. Passionate about capturing life\'s precious moments with creativity and precision.'
+    availabilityStartDay: 'Monday',
+    availabilityEndDay: 'Saturday',
+    availableStartTime: '8:00 AM',
+    availableEndTime: '6:00 PM',
+    bio: userType === 'freelancer'
+      ? 'Self-employed photographer with over 10 years of experience specializing in weddings, corporate events, and portrait photography. Passionate about capturing life\'s precious moments with creativity and precision.'
+      : 'Company employed photographer with over 10 years of experience specializing in weddings, corporate events, and portrait photography. Passionate about capturing life\'s precious moments with creativity and precision.'
   });
 
   // Profile and cover image state
@@ -134,7 +167,7 @@ const PhotographerProfilePage = () => {
         flexDirection: 'column',
         overflow: 'hidden'
       }}>
-        <Topbar />
+        <Topbar userRole={userType} />
 
         <div style={{
           flex: 1,
@@ -438,9 +471,8 @@ const PhotographerProfilePage = () => {
                   <input
                     type="email"
                     value={formData.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    disabled={!isEditEnabled}
-                    style={inputStyle}
+                    disabled={true}
+                    style={{...inputStyle, backgroundColor: '#F9FAFB', cursor: 'not-allowed'}}
                   />
                 </div>
 
@@ -481,9 +513,8 @@ const PhotographerProfilePage = () => {
                   <input
                     type="text"
                     value={formData.title}
-                    onChange={(e) => handleInputChange('title', e.target.value)}
-                    disabled={!isEditEnabled}
-                    style={inputStyle}
+                    disabled={true}
+                    style={{...inputStyle, backgroundColor: '#F9FAFB', cursor: 'not-allowed'}}
                   />
                 </div>
 
@@ -492,7 +523,15 @@ const PhotographerProfilePage = () => {
                   <label style={labelStyle}>Country</label>
                   <select
                     value={formData.country}
-                    onChange={(e) => handleInputChange('country', e.target.value)}
+                    onChange={(e) => {
+                      handleInputChange('country', e.target.value);
+                      // Reset province, district, sector when country changes
+                      if (e.target.value !== 'Rwanda') {
+                        setFormData(prev => ({ ...prev, province: '', district: '', sector: '' }));
+                      } else {
+                        setFormData(prev => ({ ...prev, province: 'Kigali City', district: 'Gasabo', sector: '' }));
+                      }
+                    }}
                     disabled={!isEditEnabled}
                     style={{
                       ...inputStyle,
@@ -505,6 +544,89 @@ const PhotographerProfilePage = () => {
                       </option>
                     ))}
                   </select>
+                </div>
+
+                {/* Province - Only show dropdown for Rwanda */}
+                <div>
+                  <label style={labelStyle}>Province</label>
+                  {formData.country === 'Rwanda' ? (
+                    <select
+                      value={formData.province}
+                      onChange={(e) => {
+                        handleInputChange('province', e.target.value);
+                        // Reset district when province changes
+                        const districts = rwandaProvinces[e.target.value] || [];
+                        setFormData(prev => ({ ...prev, province: e.target.value, district: districts[0] || '', sector: '' }));
+                      }}
+                      disabled={!isEditEnabled}
+                      style={{
+                        ...inputStyle,
+                        cursor: isEditEnabled ? 'pointer' : 'not-allowed'
+                      }}
+                    >
+                      {Object.keys(rwandaProvinces).map((province) => (
+                        <option key={province} value={province}>
+                          {province}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={formData.province}
+                      onChange={(e) => handleInputChange('province', e.target.value)}
+                      disabled={!isEditEnabled}
+                      placeholder="Enter province/region"
+                      style={inputStyle}
+                    />
+                  )}
+                </div>
+
+                {/* District */}
+                <div>
+                  <label style={labelStyle}>District</label>
+                  {formData.country === 'Rwanda' && formData.province ? (
+                    <select
+                      value={formData.district}
+                      onChange={(e) => {
+                        handleInputChange('district', e.target.value);
+                        setFormData(prev => ({ ...prev, district: e.target.value, sector: '' }));
+                      }}
+                      disabled={!isEditEnabled}
+                      style={{
+                        ...inputStyle,
+                        cursor: isEditEnabled ? 'pointer' : 'not-allowed'
+                      }}
+                    >
+                      {(rwandaProvinces[formData.province] || []).map((district) => (
+                        <option key={district} value={district}>
+                          {district}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={formData.district}
+                      onChange={(e) => handleInputChange('district', e.target.value)}
+                      disabled={!isEditEnabled}
+                      placeholder="Enter district"
+                      style={inputStyle}
+                    />
+                  )}
+                </div>
+
+                {/* Sector */}
+                <div>
+                  <label style={labelStyle}>Sector</label>
+                  <input
+                    type="text"
+                    value={formData.sector}
+                    onChange={(e) => handleInputChange('sector', e.target.value)}
+                    disabled={!isEditEnabled}
+                    placeholder="Enter sector"
+                    style={inputStyle}
+                  />
                 </div>
 
                 {/* Company Name */}
@@ -534,25 +656,73 @@ const PhotographerProfilePage = () => {
                 {/* Availability Days */}
                 <div>
                   <label style={labelStyle}>Availability Days</label>
-                  <input
-                    type="text"
-                    value={formData.availabilityDays}
-                    onChange={(e) => handleInputChange('availabilityDays', e.target.value)}
-                    disabled={!isEditEnabled}
-                    style={inputStyle}
-                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <select
+                      value={formData.availabilityStartDay}
+                      onChange={(e) => handleInputChange('availabilityStartDay', e.target.value)}
+                      disabled={!isEditEnabled}
+                      style={{
+                        ...inputStyle,
+                        flex: 1,
+                        cursor: isEditEnabled ? 'pointer' : 'not-allowed'
+                      }}
+                    >
+                      {daysOfWeek.map((day) => (
+                        <option key={day} value={day}>{day}</option>
+                      ))}
+                    </select>
+                    <span style={{ color: '#6B7280', fontWeight: '500', fontSize: '1rem' }}>-</span>
+                    <select
+                      value={formData.availabilityEndDay}
+                      onChange={(e) => handleInputChange('availabilityEndDay', e.target.value)}
+                      disabled={!isEditEnabled}
+                      style={{
+                        ...inputStyle,
+                        flex: 1,
+                        cursor: isEditEnabled ? 'pointer' : 'not-allowed'
+                      }}
+                    >
+                      {daysOfWeek.map((day) => (
+                        <option key={day} value={day}>{day}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
                 {/* Available Time */}
                 <div>
                   <label style={labelStyle}>Available Time</label>
-                  <input
-                    type="text"
-                    value={formData.availableTime}
-                    onChange={(e) => handleInputChange('availableTime', e.target.value)}
-                    disabled={!isEditEnabled}
-                    style={inputStyle}
-                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <select
+                      value={formData.availableStartTime}
+                      onChange={(e) => handleInputChange('availableStartTime', e.target.value)}
+                      disabled={!isEditEnabled}
+                      style={{
+                        ...inputStyle,
+                        flex: 1,
+                        cursor: isEditEnabled ? 'pointer' : 'not-allowed'
+                      }}
+                    >
+                      {timeOptions.map((time) => (
+                        <option key={time} value={time}>{time}</option>
+                      ))}
+                    </select>
+                    <span style={{ color: '#6B7280', fontWeight: '500', fontSize: '1rem' }}>-</span>
+                    <select
+                      value={formData.availableEndTime}
+                      onChange={(e) => handleInputChange('availableEndTime', e.target.value)}
+                      disabled={!isEditEnabled}
+                      style={{
+                        ...inputStyle,
+                        flex: 1,
+                        cursor: isEditEnabled ? 'pointer' : 'not-allowed'
+                      }}
+                    >
+                      {timeOptions.map((time) => (
+                        <option key={time} value={time}>{time}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
                 {/* Bio - Full Width */}
