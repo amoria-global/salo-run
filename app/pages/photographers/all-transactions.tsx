@@ -303,7 +303,7 @@ const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) =>
       <Sidebar />
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Topbar userRole={userType} />
+        <Topbar userRole={userType} bonusAmount={725.00} balanceAmount={3975.00} />
 
         {/* Main Content */}
         <div style={{

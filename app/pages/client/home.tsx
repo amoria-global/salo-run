@@ -174,7 +174,7 @@ const ClientDashboard = () => {
         flexDirection: 'column',
         overflow: 'hidden'
       }}>
-        <Topbar userRole="client" />
+        <Topbar userRole="client" giftAmount={225.00} />
 
         <div style={{
           flex: 1,
@@ -389,13 +389,13 @@ const ClientDashboard = () => {
           href="/user/client/bookings"
         />
         <StatCard
-          title="Photos"
-          value="248"
-          percentage="47.38%"
+          title="Gifts"
+          value="$225"
+          percentage="12.5%"
           timeframe="last week"
           icon={<GiftIcon />}
           trend="up"
-          href="/user/client/my-photos"
+          href="/user/client/payments"
         />
         <StatCard
           title="Favorites"

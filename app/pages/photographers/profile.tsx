@@ -167,7 +167,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         flexDirection: 'column',
         overflow: 'hidden'
       }}>
-        <Topbar userRole={userType} />
+        <Topbar userRole={userType} bonusAmount={725.00} balanceAmount={3975.00} />
 
         <div style={{
           flex: 1,

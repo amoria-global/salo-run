@@ -211,7 +211,7 @@ const Inbox = ({ userType = 'photographer' }: InboxProps) => {
       <Sidebar />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <Topbar userRole={userType} />
+        <Topbar userRole={userType} bonusAmount={725.00} balanceAmount={3975.00} />
 
         <main style={{ flex: 1, display: 'flex', gap: 0, overflow: 'hidden' }}>
           {/* Conversations List Sidebar */}
