@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { useState, useMemo } from "react";
 
-type UserRole = "photographer" | "client";
+type UserRole = "photographer" | "client" | "freelancer";
 
 interface NavigationItem {
   name: string;
@@ -23,6 +23,14 @@ const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
     { name: "Inbox", href: "/user/photographers/inbox", icon: "bi-chat-dots" },
     { name: "Clients", href: "/user/photographers/clients", icon: "bi-people" },
   ],
+  freelancer: [
+    { name: "Home", href: "/user/freelancer/dashboard", icon: "bi-house" },
+    { name: "Transactions", href: "/user/freelancer/transaction", icon: "bi-arrow-repeat" },
+    { name: "Gallery", href: "/user/freelancer/gallery", icon: "bi-image" },
+    { name: "Streams", href: "/user/freelancer/streams", icon: "bi-broadcast" },
+    { name: "Inbox", href: "/user/freelancer/inbox", icon: "bi-chat-dots" },
+    { name: "Clients", href: "/user/freelancer/clients", icon: "bi-people" },
+  ],
   client: [
     { name: "Home", href: "/user/client/home", icon: "bi-house" },
     { name: "My Events", href: "/user/client/events", icon: "bi-calendar-event" },
@@ -33,16 +41,35 @@ const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
 };
 
 // Role-based bottom navigations
-const getBottomNavigationItems = (role: UserRole): NavigationItem[] => [
-  { name: "Profile", href: role === "photographer" ? "/user/photographers/profile" : "/user/client/profile", icon: "bi-person" },
-  { name: "Preferences", href: role === "photographer" ? "/user/photographers/preferences" : "/user/client/preferences", icon: "bi-sliders" },
-  { name: "Logout", href: "/", icon: "bi-box-arrow-right" },
-];
+const getBottomNavigationItems = (role: UserRole): NavigationItem[] => {
+  if (role === "photographer") {
+    return [
+      { name: "Profile", href: "/user/photographers/profile", icon: "bi-person" },
+      { name: "Preferences", href: "/user/photographers/preferences", icon: "bi-sliders" },
+      { name: "Logout", href: "/", icon: "bi-box-arrow-right" },
+    ];
+  } else if (role === "freelancer") {
+    return [
+      { name: "Profile", href: "/user/freelancer/profile", icon: "bi-person" },
+      { name: "Preferences", href: "/user/freelancer/preferences", icon: "bi-sliders" },
+      { name: "Logout", href: "/", icon: "bi-box-arrow-right" },
+    ];
+  } else {
+    return [
+      { name: "Profile", href: "/user/client/profile", icon: "bi-person" },
+      { name: "Preferences", href: "/user/client/preferences", icon: "bi-sliders" },
+      { name: "Logout", href: "/", icon: "bi-box-arrow-right" },
+    ];
+  }
+};
 
 // Function to detect role from pathname
 const detectRoleFromPath = (pathname: string | null): UserRole => {
   if (pathname && pathname.includes("/user/photographers")) {
     return "photographer";
+  }
+  if (pathname && pathname.includes("/user/freelancer")) {
+    return "freelancer";
   }
   return "client";
 };

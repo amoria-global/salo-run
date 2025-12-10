@@ -22,6 +22,15 @@ const ClientIcon = () => (
   </svg>
 );
 
+const FreelancerIcon = () => (
+  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="12" cy="7" r="3.5" stroke="currentColor" strokeWidth="1.5"/>
+    <path d="M5 20C5 16.134 8.13401 13 12 13C15.866 13 19 16.134 19 20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    <path d="M12 13V17M12 17L9 15M12 17L15 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <rect x="8" y="19" width="8" height="2" rx="0.5" stroke="currentColor" strokeWidth="1.5"/>
+  </svg>
+);
+
 const ArrowRightIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -31,9 +40,11 @@ const ArrowRightIcon = () => (
 export default function Home() {
   const router = useRouter();
 
-  const handleRoleSelect = (role: 'photographer' | 'client') => {
+  const handleRoleSelect = (role: 'photographer' | 'client' | 'freelancer') => {
     if (role === 'photographer') {
       router.push('/user/photographers/dashboard');
+    } else if (role === 'freelancer') {
+      router.push('/user/freelancer/dashboard');
     } else {
       router.push('/user/client/home');
     }
@@ -130,9 +141,9 @@ export default function Home() {
         {/* Role Selection Cards */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(2, 1fr)',
+          gridTemplateColumns: 'repeat(3, 1fr)',
           gap: '1.5rem',
-          maxWidth: '700px',
+          maxWidth: '1000px',
           margin: '0 auto'
         }}>
           {/* Photographer Card */}
@@ -199,7 +210,7 @@ export default function Home() {
               marginBottom: '1.5rem',
               lineHeight: '1.5'
             }}>
-              Manage your bookings, clients, and earnings all in one place
+              Company employed photographer managing bookings and clients
             </p>
 
             <div style={{
@@ -277,6 +288,75 @@ export default function Home() {
               justifyContent: 'center',
               gap: '0.5rem',
               color: '#F20C8F',
+              fontWeight: '600',
+              fontSize: '0.95rem'
+            }}>
+              <span>Enter Dashboard</span>
+              <ArrowRightIcon />
+            </div>
+          </div>
+
+          {/* Freelancer Card */}
+          <div
+            onClick={() => handleRoleSelect('freelancer')}
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '1.25rem',
+              padding: '2rem',
+              cursor: 'pointer',
+              border: '2px solid #E5E7EB',
+              transition: 'all 0.3s ease',
+              position: 'relative',
+              overflow: 'hidden'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = '#10B981';
+              e.currentTarget.style.transform = 'translateY(-4px)';
+              e.currentTarget.style.boxShadow = '0 20px 40px -12px rgba(16, 185, 129, 0.2)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = '#E5E7EB';
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            <div style={{
+              width: '80px',
+              height: '80px',
+              borderRadius: '1rem',
+              background: 'linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 1.5rem auto',
+              color: '#10B981'
+            }}>
+              <FreelancerIcon />
+            </div>
+
+            <h2 style={{
+              fontSize: '1.5rem',
+              fontWeight: '700',
+              color: '#111827',
+              marginBottom: '0.5rem'
+            }}>
+              Freelancer
+            </h2>
+            <p style={{
+              fontSize: '0.95rem',
+              color: '#6B7280',
+              marginBottom: '1.5rem',
+              lineHeight: '1.5'
+            }}>
+              Self-employed photographer managing your own bookings and clients
+            </p>
+
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem',
+              color: '#10B981',
               fontWeight: '600',
               fontSize: '0.95rem'
             }}>

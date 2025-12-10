@@ -699,7 +699,7 @@ const BookedPhotographersPage = () => {
     <div style={{ display: 'flex', height: '100vh', backgroundColor: '#F9FAFB' }}>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar />
+        <Topbar userRole="client" />
         <div style={{ flex: 1, overflowY: 'auto', backgroundColor: '#F9FAFB', paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
 
           {/* Header */}
@@ -972,16 +972,26 @@ const BookedPhotographersPage = () => {
                   key={photographer.id}
                   style={{
                     backgroundColor: 'white',
-                    borderRadius: '17px',
+                    borderRadius: '1rem',
                     overflow: 'hidden',
-                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                    border: '1px solid #E5E7EB',
-                    transition: 'transform 0.2s, box-shadow 0.2s',
+                    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                    border: '1px solid rgba(0, 0, 0, 0.1)',
+                    transition: 'all 0.3s ease',
                     cursor: 'pointer',
                     position: 'relative'
                   }}
                   onClick={() => setSelectedPhotographer(photographer)}
                   onContextMenu={(e) => handleContextMenu(e, photographer)}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-4px)';
+                    e.currentTarget.style.boxShadow = '0 35px 60px -15px rgba(0, 0, 0, 0.2), 0 15px 30px -10px rgba(0, 0, 0, 0.15)';
+                    e.currentTarget.style.borderColor = '#083A85';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)';
+                    e.currentTarget.style.borderColor = 'rgba(0, 0, 0, 0.1)';
+                  }}
                 >
                   {/* Cover Image with overlay */}
                   <div style={{ position: 'relative', height: '160px' }}>
@@ -991,13 +1001,13 @@ const BookedPhotographersPage = () => {
                       backgroundImage: `url(${photographer.coverImage})`,
                       backgroundSize: 'cover',
                       backgroundPosition: 'center',
-                      borderRadius: '17px 17px 0 0'
+                      borderRadius: '1rem 1rem 0 0'
                     }}>
                       <div style={{
                         position: 'absolute',
                         inset: 0,
                         backgroundColor: 'rgba(13, 27, 42, 0.3)',
-                        borderRadius: '17px 17px 0 0'
+                        borderRadius: '1rem 1rem 0 0'
                       }} />
                     </div>
                     {/* Bookings Badge */}
@@ -1122,7 +1132,7 @@ const BookedPhotographersPage = () => {
                                 style={{
                                   backgroundColor: booking.paymentStatus === 'failed' ? '#F20C8F' : '#083A85',
                                   color: 'white',
-                                  border: 'none',
+                                  border: booking.paymentStatus === 'failed' ? '2px solid #C0096D' : '2px solid #062a63',
                                   borderRadius: '0.25rem',
                                   padding: '0.25rem 0.5rem',
                                   fontSize: '0.7rem',
@@ -1152,7 +1162,7 @@ const BookedPhotographersPage = () => {
                         style={{
                           backgroundColor: '#F20C8F',
                           color: 'white',
-                          border: 'none',
+                          border: '2px solid #C0096D',
                           borderRadius: '0.375rem',
                           padding: '0.5rem 1rem',
                           fontSize: '0.85rem',
@@ -1172,7 +1182,7 @@ const BookedPhotographersPage = () => {
               ))}
             </div>
           ) : (
-            <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)', overflow: 'hidden' }}>
+            <div style={{ backgroundColor: 'white', borderRadius: '1rem', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)', border: '1px solid rgba(0, 0, 0, 0.1)', overflow: 'hidden' }}>
               {filteredPhotographers.map((photographer, index) => (
                 <div
                   key={photographer.id}
@@ -1181,10 +1191,17 @@ const BookedPhotographersPage = () => {
                     gap: '1.25rem',
                     padding: '1.25rem',
                     borderBottom: index < filteredPhotographers.length - 1 ? '1px solid #E5E7EB' : 'none',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s ease'
                   }}
                   onClick={() => setSelectedPhotographer(photographer)}
                   onContextMenu={(e) => handleContextMenu(e, photographer)}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#F9FAFB';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'white';
+                  }}
                 >
                   <div style={{ position: 'relative' }}>
                     <Image
@@ -1281,7 +1298,7 @@ const BookedPhotographersPage = () => {
                               style={{
                                 backgroundColor: booking.paymentStatus === 'failed' ? '#F20C8F' : '#083A85',
                                 color: 'white',
-                                border: 'none',
+                                border: booking.paymentStatus === 'failed' ? '2px solid #C0096D' : '2px solid #062a63',
                                 borderRadius: '0.375rem',
                                 padding: '0.375rem 0.75rem',
                                 fontSize: '0.8rem',
@@ -1322,7 +1339,7 @@ const BookedPhotographersPage = () => {
                         style={{
                           backgroundColor: '#F20C8F',
                           color: 'white',
-                          border: 'none',
+                          border: '2px solid #C0096D',
                           borderRadius: '0.375rem',
                           padding: '0.5rem 1rem',
                           fontSize: '0.85rem',

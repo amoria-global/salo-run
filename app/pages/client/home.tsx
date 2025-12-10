@@ -174,7 +174,7 @@ const ClientDashboard = () => {
         flexDirection: 'column',
         overflow: 'hidden'
       }}>
-        <Topbar />
+        <Topbar userRole="client" />
 
         <div style={{
           flex: 1,
@@ -284,7 +284,7 @@ const ClientDashboard = () => {
             paddingRight: '0.875rem',
             paddingTop: '0.375rem',
             paddingBottom: '0.375rem',
-            border: activeFilter === 'today' ? '1px solid #F20C8F' : '1px solid #E5E7EB',
+            border: activeFilter === 'today' ? '2px solid #C0096D' : '2px solid #E5E7EB',
             borderRadius: '0.375rem',
             fontSize: '0.9rem',
             lineHeight: '1rem',
@@ -303,7 +303,7 @@ const ClientDashboard = () => {
             paddingRight: '0.875rem',
             paddingTop: '0.375rem',
             paddingBottom: '0.375rem',
-            border: activeFilter === 'week' ? '1px solid #F20C8F' : '1px solid #E5E7EB',
+            border: activeFilter === 'week' ? '2px solid #C0096D' : '2px solid #E5E7EB',
             borderRadius: '0.375rem',
             fontSize: '0.9rem',
             lineHeight: '1rem',
@@ -322,7 +322,7 @@ const ClientDashboard = () => {
             paddingRight: '0.875rem',
             paddingTop: '0.375rem',
             paddingBottom: '0.375rem',
-            border: activeFilter === 'month' ? '1px solid #F20C8F' : '1px solid #E5E7EB',
+            border: activeFilter === 'month' ? '2px solid #C0096D' : '2px solid #E5E7EB',
             borderRadius: '0.375rem',
             fontSize: '0.9rem',
             lineHeight: '1rem',
@@ -341,7 +341,7 @@ const ClientDashboard = () => {
             paddingRight: '0.875rem',
             paddingTop: '0.375rem',
             paddingBottom: '0.375rem',
-            border: activeFilter === 'custom' ? '1px solid #F20C8F' : '1px solid #E5E7EB',
+            border: activeFilter === 'custom' ? '2px solid #C0096D' : '2px solid #E5E7EB',
             borderRadius: '0.375rem',
             fontSize: '0.9rem',
             lineHeight: '1rem',

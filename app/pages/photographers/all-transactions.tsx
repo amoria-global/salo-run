@@ -118,7 +118,11 @@ const allTransactionsData = [
   },
 ];
 
-const AllTransactions = () => {
+interface AllTransactionsProps {
+  userType?: 'photographer' | 'freelancer';
+}
+
+const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) => {
   const [transactions] = useState(allTransactionsData);
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   const [showModal, setShowModal] = useState(false);
@@ -299,7 +303,7 @@ const AllTransactions = () => {
       <Sidebar />
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Topbar />
+        <Topbar userRole={userType} />
 
         {/* Main Content */}
         <div style={{

@@ -126,7 +126,7 @@ const ClientGallery = () => {
       <Sidebar />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar />
+        <Topbar userRole="client" />
 
         {/* Main Content */}
         <div style={{
