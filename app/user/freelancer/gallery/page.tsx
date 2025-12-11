@@ -1,4 +1,4 @@
-import Gallery from '@/app/pages/photographers/gallery';
+import Gallery from '@/app/pages/photographer/gallery';
 
 export default function Page() {
   return <Gallery userType="freelancer" />;

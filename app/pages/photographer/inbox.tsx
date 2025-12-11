@@ -73,6 +73,14 @@ const DeleteIcon = () => (
   </svg>
 );
 
+const MoreIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="12" cy="12" r="1" fill="currentColor"/>
+    <circle cx="19" cy="12" r="1" fill="currentColor"/>
+    <circle cx="5" cy="12" r="1" fill="currentColor"/>
+  </svg>
+);
+
 interface Participant {
   id: string;
   name: string;
@@ -110,7 +118,11 @@ interface Conversation {
   messages: Message[];
 }
 
-const InboxPage = () => {
+interface InboxProps {
+  userType?: 'photographer' | 'freelancer';
+}
+
+const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [messageInput, setMessageInput] = useState('');
@@ -144,145 +156,144 @@ const InboxPage = () => {
     {
       id: '1',
       participants: [
-        { id: '1', name: 'John Studio', image: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg', userType: 'photographer', isOnline: true },
-        { id: currentUserId, name: 'Diane Mary', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'client', isOnline: true }
+        { id: '1', name: 'Sarah Johnson', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'client', isOnline: true },
+        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: userType, isOnline: true }
       ],
-      lastMessage: { content: 'Great! I\'ll have the photos ready by Friday.', senderId: '1', createdAt: '2025-07-19T14:30:00' },
+      lastMessage: { content: 'Thank you for the beautiful photos!', senderId: '1', createdAt: '2025-07-19T14:30:00' },
       unreadCount: 2,
       isPinned: true,
       isMuted: false,
       bookingId: 'BK-001',
       messages: [
-        { id: 'm1', conversationId: '1', senderId: '1', senderName: 'John Studio', senderImage: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg', content: 'Hi Diane! Thank you for booking with me for your wedding photos.', type: 'text', isRead: true, createdAt: '2025-07-19T10:00:00' },
-        { id: 'm2', conversationId: '1', senderId: currentUserId, senderName: 'Diane Mary', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Hi John! We\'re so excited to work with you. The venue is confirmed for July 20th.', type: 'text', isRead: true, createdAt: '2025-07-19T10:15:00' },
-        { id: 'm3', conversationId: '1', senderId: '1', senderName: 'John Studio', senderImage: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg', content: 'Perfect! I\'ll be there at 2 PM to set up. Is there anything specific you\'d like me to capture?', type: 'text', isRead: true, createdAt: '2025-07-19T10:30:00' },
-        { id: 'm4', conversationId: '1', senderId: currentUserId, senderName: 'Diane Mary', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Yes! We want lots of candid shots and definitely the first dance. Can you also do a few formal family portraits?', type: 'text', isRead: true, createdAt: '2025-07-19T11:00:00' },
-        { id: 'm5', conversationId: '1', senderId: '1', senderName: 'John Studio', senderImage: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg', content: 'Absolutely! I\'ll prepare a shot list. When can we expect the photos?', type: 'text', isRead: false, createdAt: '2025-07-19T14:00:00' },
-        { id: 'm6', conversationId: '1', senderId: '1', senderName: 'John Studio', senderImage: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg', content: 'Great! I\'ll have the photos ready by Friday.', type: 'text', isRead: false, createdAt: '2025-07-19T14:30:00' }
+        { id: 'm1', conversationId: '1', senderId: '1', senderName: 'Sarah Johnson', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Hi! I would like to book a wedding photoshoot', type: 'text', isRead: true, createdAt: '2025-07-19T10:00:00' },
+        { id: 'm2', conversationId: '1', senderId: currentUserId, senderName: 'John Studio', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Hello Sarah! I would be happy to help. When is your wedding date?', type: 'text', isRead: true, createdAt: '2025-07-19T10:15:00' },
+        { id: 'm3', conversationId: '1', senderId: '1', senderName: 'Sarah Johnson', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'It is on June 15th, 2025. Do you have availability?', type: 'text', isRead: true, createdAt: '2025-07-19T10:30:00' },
+        { id: 'm4', conversationId: '1', senderId: currentUserId, senderName: 'John Studio', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Yes, I am available on that date! Let me send you my wedding packages.', type: 'text', isRead: true, createdAt: '2025-07-19T11:00:00' },
+        { id: 'm5', conversationId: '1', senderId: '1', senderName: 'Sarah Johnson', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'That sounds great! When can we expect the photos?', type: 'text', isRead: false, createdAt: '2025-07-19T14:00:00' },
+        { id: 'm6', conversationId: '1', senderId: '1', senderName: 'Sarah Johnson', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Thank you for the beautiful photos!', type: 'text', isRead: false, createdAt: '2025-07-19T14:30:00' }
       ]
     },
     {
       id: '2',
       participants: [
-        { id: '2', name: 'Mary Shots', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'photographer', isOnline: false, lastSeen: '2 hours ago' },
-        { id: currentUserId, name: 'Diane Mary', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'client', isOnline: true }
+        { id: '2', name: 'Michael Chen', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'client', isOnline: false, lastSeen: '2 hours ago' },
+        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: userType, isOnline: true }
       ],
-      lastMessage: { content: 'The birthday party photos are uploaded to your gallery!', senderId: '2', createdAt: '2025-07-18T16:45:00' },
+      lastMessage: { content: 'When can we schedule the portrait session?', senderId: '2', createdAt: '2025-07-18T16:45:00' },
       unreadCount: 0,
       isPinned: false,
       isMuted: false,
       messages: [
-        { id: 'm7', conversationId: '2', senderId: '2', senderName: 'Mary Shots', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Hi! Your birthday party was so much fun to photograph!', type: 'text', isRead: true, createdAt: '2025-07-18T14:00:00' },
-        { id: 'm8', conversationId: '2', senderId: currentUserId, senderName: 'Diane Mary', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Thank you Mary! When can I see the photos?', type: 'text', isRead: true, createdAt: '2025-07-18T15:00:00' },
-        { id: 'm9', conversationId: '2', senderId: '2', senderName: 'Mary Shots', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'The birthday party photos are uploaded to your gallery!', type: 'text', isRead: true, createdAt: '2025-07-18T16:45:00' }
+        { id: 'm7', conversationId: '2', senderId: '2', senderName: 'Michael Chen', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Hello, I saw your portfolio and I am interested in a corporate portrait session', type: 'text', isRead: true, createdAt: '2025-07-18T14:00:00' },
+        { id: 'm8', conversationId: '2', senderId: currentUserId, senderName: 'John Studio', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Thank you for reaching out! I would love to work with you. What type of corporate portraits are you looking for?', type: 'text', isRead: true, createdAt: '2025-07-18T15:00:00' },
+        { id: 'm9', conversationId: '2', senderId: '2', senderName: 'Michael Chen', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'When can we schedule the portrait session?', type: 'text', isRead: true, createdAt: '2025-07-18T16:45:00' }
       ]
     },
     {
       id: '3',
       participants: [
-        { id: '3', name: 'Alex Frames', image: 'https://i.pinimg.com/1200x/09/23/45/092345eac1919407e0c49f67e285b831.jpg', userType: 'photographer', isOnline: true },
-        { id: currentUserId, name: 'Diane Mary', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'client', isOnline: true }
+        { id: '3', name: 'Emily Rodriguez', image: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg', userType: 'client', isOnline: true },
+        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: userType, isOnline: true }
       ],
-      lastMessage: { content: 'I\'d love to discuss the festival shoot!', senderId: currentUserId, createdAt: '2025-07-17T09:30:00' },
+      lastMessage: { content: 'I received the edited photos. They look amazing!', senderId: '3', createdAt: '2025-07-17T09:30:00' },
       unreadCount: 1,
       isPinned: false,
       isMuted: false,
       messages: [
-        { id: 'm10', conversationId: '3', senderId: currentUserId, senderName: 'Diane Mary', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Hi Alex! I saw your festival photography work and it\'s amazing!', type: 'text', isRead: true, createdAt: '2025-07-16T18:00:00' },
-        { id: 'm11', conversationId: '3', senderId: '3', senderName: 'Alex Frames', senderImage: 'https://i.pinimg.com/1200x/09/23/45/092345eac1919407e0c49f67e285b831.jpg', content: 'Thank you so much! I really enjoy capturing the energy of live events.', type: 'text', isRead: false, createdAt: '2025-07-17T08:00:00' },
-        { id: 'm12', conversationId: '3', senderId: currentUserId, senderName: 'Diane Mary', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'I\'d love to discuss the festival shoot!', type: 'text', isRead: true, createdAt: '2025-07-17T09:30:00' }
+        { id: 'm10', conversationId: '3', senderId: currentUserId, senderName: 'John Studio', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Hi Emily! Your edited photos are ready. I have sent them to your email.', type: 'text', isRead: true, createdAt: '2025-07-16T18:00:00' },
+        { id: 'm11', conversationId: '3', senderId: '3', senderName: 'Emily Rodriguez', senderImage: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg', content: 'I received the edited photos. They look amazing!', type: 'text', isRead: false, createdAt: '2025-07-17T09:30:00' }
       ]
     },
     {
       id: '4',
       participants: [
-        { id: '4', name: 'Elite Photography', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'photographer', isOnline: false, lastSeen: '1 day ago' },
-        { id: currentUserId, name: 'Diane Mary', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'client', isOnline: true }
+        { id: '4', name: 'David Park', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'client', isOnline: false, lastSeen: '1 day ago' },
+        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: userType, isOnline: true }
       ],
-      lastMessage: { content: 'Your corporate headshots are scheduled for next Monday.', senderId: '4', createdAt: '2025-07-15T11:20:00' },
+      lastMessage: { content: 'Can you also do video coverage?', senderId: '4', createdAt: '2025-07-15T11:20:00' },
       unreadCount: 0,
       isPinned: true,
       isMuted: true,
       bookingId: 'BK-002',
       messages: [
-        { id: 'm13', conversationId: '4', senderId: '4', senderName: 'Elite Photography', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Hello! Confirming your booking for corporate headshots.', type: 'text', isRead: true, createdAt: '2025-07-14T10:00:00' },
-        { id: 'm14', conversationId: '4', senderId: currentUserId, senderName: 'Diane Mary', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Great! What time should we be there?', type: 'text', isRead: true, createdAt: '2025-07-14T14:00:00' },
-        { id: 'm15', conversationId: '4', senderId: '4', senderName: 'Elite Photography', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Your corporate headshots are scheduled for next Monday.', type: 'text', isRead: true, createdAt: '2025-07-15T11:20:00' }
+        { id: 'm13', conversationId: '4', senderId: '4', senderName: 'David Park', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Hi! I need photography for my product launch event in Seattle', type: 'text', isRead: true, createdAt: '2025-07-14T10:00:00' },
+        { id: 'm14', conversationId: '4', senderId: currentUserId, senderName: 'John Studio', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Hello David! I would be glad to cover your event. Can you tell me more about it?', type: 'text', isRead: true, createdAt: '2025-07-14T14:00:00' },
+        { id: 'm15', conversationId: '4', senderId: '4', senderName: 'David Park', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Can you also do video coverage?', type: 'text', isRead: true, createdAt: '2025-07-15T11:20:00' }
       ]
     },
     {
       id: '5',
       participants: [
-        { id: '5', name: 'Luna Studios', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'photographer', isOnline: true },
-        { id: currentUserId, name: 'Diane Mary', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'client', isOnline: true }
+        { id: '5', name: 'Jessica Williams', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'client', isOnline: true },
+        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: userType, isOnline: true }
       ],
-      lastMessage: { content: 'Your newborn session is confirmed for Saturday!', senderId: '5', createdAt: '2025-07-14T09:15:00' },
+      lastMessage: { content: 'Looking forward to the engagement shoot!', senderId: '5', createdAt: '2025-07-14T09:15:00' },
       unreadCount: 1,
       isPinned: false,
       isMuted: false,
       messages: [
-        { id: 'm16', conversationId: '5', senderId: '5', senderName: 'Luna Studios', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Hi Diane! Congratulations on your new baby!', type: 'text', isRead: true, createdAt: '2025-07-13T15:00:00' },
-        { id: 'm17', conversationId: '5', senderId: '5', senderName: 'Luna Studios', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Your newborn session is confirmed for Saturday!', type: 'text', isRead: false, createdAt: '2025-07-14T09:15:00' }
+        { id: 'm16', conversationId: '5', senderId: '5', senderName: 'Jessica Williams', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Hi! We\'re getting engaged and need photos.', type: 'text', isRead: true, createdAt: '2025-07-13T15:00:00' },
+        { id: 'm17', conversationId: '5', senderId: '5', senderName: 'Jessica Williams', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Looking forward to the engagement shoot!', type: 'text', isRead: false, createdAt: '2025-07-14T09:15:00' }
       ]
     },
     {
       id: '6',
       participants: [
-        { id: '6', name: 'Mark Vision', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'photographer', isOnline: false, lastSeen: '3 hours ago' },
-        { id: currentUserId, name: 'Diane Mary', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'client', isOnline: true }
+        { id: '6', name: 'Robert Martinez', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'client', isOnline: false, lastSeen: '3 hours ago' },
+        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: userType, isOnline: true }
       ],
-      lastMessage: { content: 'The drone footage is being edited now.', senderId: '6', createdAt: '2025-07-13T16:30:00' },
+      lastMessage: { content: 'Can you send me a quote for the real estate photos?', senderId: '6', createdAt: '2025-07-13T16:30:00' },
       unreadCount: 0,
       isPinned: false,
       isMuted: false,
       messages: [
-        { id: 'm18', conversationId: '6', senderId: '6', senderName: 'Mark Vision', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Great aerial shots from your property listing!', type: 'text', isRead: true, createdAt: '2025-07-13T14:00:00' },
-        { id: 'm19', conversationId: '6', senderId: '6', senderName: 'Mark Vision', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'The drone footage is being edited now.', type: 'text', isRead: true, createdAt: '2025-07-13T16:30:00' }
+        { id: 'm18', conversationId: '6', senderId: '6', senderName: 'Robert Martinez', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'I have 5 properties that need professional photos.', type: 'text', isRead: true, createdAt: '2025-07-13T14:00:00' },
+        { id: 'm19', conversationId: '6', senderId: '6', senderName: 'Robert Martinez', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Can you send me a quote for the real estate photos?', type: 'text', isRead: true, createdAt: '2025-07-13T16:30:00' }
       ]
     },
     {
       id: '7',
       participants: [
-        { id: '7', name: 'Creative Lens Co', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'photographer', isOnline: true },
-        { id: currentUserId, name: 'Diane Mary', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'client', isOnline: true }
+        { id: '7', name: 'Amanda Lee', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'client', isOnline: true },
+        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: userType, isOnline: true }
       ],
-      lastMessage: { content: 'Your product photos are ready for download!', senderId: '7', createdAt: '2025-07-12T18:00:00' },
+      lastMessage: { content: 'The family portraits turned out beautiful!', senderId: '7', createdAt: '2025-07-12T18:00:00' },
       unreadCount: 0,
       isPinned: false,
       isMuted: false,
       messages: [
-        { id: 'm20', conversationId: '7', senderId: '7', senderName: 'Creative Lens Co', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'All 50 product shots have been retouched!', type: 'text', isRead: true, createdAt: '2025-07-12T12:00:00' },
-        { id: 'm21', conversationId: '7', senderId: '7', senderName: 'Creative Lens Co', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Your product photos are ready for download!', type: 'text', isRead: true, createdAt: '2025-07-12T18:00:00' }
+        { id: 'm20', conversationId: '7', senderId: '7', senderName: 'Amanda Lee', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Thank you so much for the session yesterday!', type: 'text', isRead: true, createdAt: '2025-07-12T12:00:00' },
+        { id: 'm21', conversationId: '7', senderId: '7', senderName: 'Amanda Lee', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'The family portraits turned out beautiful!', type: 'text', isRead: true, createdAt: '2025-07-12T18:00:00' }
       ]
     },
     {
       id: '8',
       participants: [
-        { id: '8', name: 'Nature Focus', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'photographer', isOnline: false, lastSeen: '5 hours ago' },
-        { id: currentUserId, name: 'Diane Mary', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'client', isOnline: true }
+        { id: '8', name: 'Chris Thompson', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'client', isOnline: false, lastSeen: '5 hours ago' },
+        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: userType, isOnline: true }
       ],
-      lastMessage: { content: 'The outdoor shoot depends on weather.', senderId: '8', createdAt: '2025-07-11T14:45:00' },
+      lastMessage: { content: 'Do you do sports photography?', senderId: '8', createdAt: '2025-07-11T14:45:00' },
       unreadCount: 2,
       isPinned: false,
       isMuted: false,
       messages: [
-        { id: 'm22', conversationId: '8', senderId: '8', senderName: 'Nature Focus', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Hi! Excited for the nature photoshoot!', type: 'text', isRead: true, createdAt: '2025-07-11T10:00:00' },
-        { id: 'm23', conversationId: '8', senderId: '8', senderName: 'Nature Focus', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'The outdoor shoot depends on weather.', type: 'text', isRead: false, createdAt: '2025-07-11T14:45:00' }
+        { id: 'm22', conversationId: '8', senderId: '8', senderName: 'Chris Thompson', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Hey! I coach a youth soccer team.', type: 'text', isRead: true, createdAt: '2025-07-11T10:00:00' },
+        { id: 'm23', conversationId: '8', senderId: '8', senderName: 'Chris Thompson', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Do you do sports photography?', type: 'text', isRead: false, createdAt: '2025-07-11T14:45:00' }
       ]
     },
     {
       id: '9',
       participants: [
-        { id: '9', name: 'Pixel Perfect', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'photographer', isOnline: true },
-        { id: currentUserId, name: 'Diane Mary', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'client', isOnline: true }
+        { id: '9', name: 'Sophia Brown', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'client', isOnline: true },
+        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: userType, isOnline: true }
       ],
-      lastMessage: { content: 'Your graduation photos are stunning!', senderId: '9', createdAt: '2025-07-10T11:30:00' },
+      lastMessage: { content: 'I need maternity photos for next month.', senderId: '9', createdAt: '2025-07-10T11:30:00' },
       unreadCount: 0,
       isPinned: false,
       isMuted: false,
       messages: [
-        { id: 'm24', conversationId: '9', senderId: '9', senderName: 'Pixel Perfect', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Congrats on graduating!', type: 'text', isRead: true, createdAt: '2025-07-10T09:00:00' },
-        { id: 'm25', conversationId: '9', senderId: '9', senderName: 'Pixel Perfect', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Your graduation photos are stunning!', type: 'text', isRead: true, createdAt: '2025-07-10T11:30:00' }
+        { id: 'm24', conversationId: '9', senderId: '9', senderName: 'Sophia Brown', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Hi! I found your work on Instagram.', type: 'text', isRead: true, createdAt: '2025-07-10T09:00:00' },
+        { id: 'm25', conversationId: '9', senderId: '9', senderName: 'Sophia Brown', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'I need maternity photos for next month.', type: 'text', isRead: true, createdAt: '2025-07-10T11:30:00' }
       ]
     }
   ]);
@@ -324,8 +335,8 @@ const InboxPage = () => {
       id: `m${Date.now()}`,
       conversationId: selectedConversation,
       senderId: currentUserId,
-      senderName: 'Diane Mary',
-      senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg',
+      senderName: 'John Studio',
+      senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
       content: messageInput,
       type: 'text',
       isRead: false,
@@ -408,7 +419,7 @@ const InboxPage = () => {
     <div style={{ display: 'flex', height: '100vh', backgroundColor: '#F9FAFB' }}>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar userRole="client" giftAmount={225.00} />
+        <Topbar userRole={userType} tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
         <div style={{ flex: 1, display: 'flex', overflow: 'hidden', margin: '0 1.25rem 1rem 1.25rem' }}>
 
           {/* Conversations List */}
@@ -619,7 +630,7 @@ const InboxPage = () => {
                       </span>
                     </div>
                   </div>
-                </div>
+                  </div>
 
                 {/* Messages */}
                 <div style={{ flex: 1, overflowY: 'auto', padding: '1rem 1.25rem', backgroundColor: '#F5F6F8' }}>

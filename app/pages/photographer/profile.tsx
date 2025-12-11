@@ -13,8 +13,15 @@ const CameraIcon = () => (
   </svg>
 );
 
-const ProfilePage = () => {
+interface PhotographerProfilePageProps {
+  userType?: 'photographer' | 'freelancer';
+}
+
+const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProfilePageProps) => {
   const [isEditEnabled, setIsEditEnabled] = useState(false);
+
+  // Determine title based on user type
+  const defaultTitle = userType === 'freelancer' ? 'Self-Employed Photographer' : 'Employed Photographer';
 
   // East African countries with phone codes
   const eastAfricanCountries = [
@@ -35,31 +42,46 @@ const ProfilePage = () => {
     'Western Province': ['Karongi', 'Ngororero', 'Nyabihu', 'Nyamasheke', 'Rubavu', 'Rusizi', 'Rutsiro']
   };
 
-  // Form state
+  // Days of the week for availability selection
+  const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+  // Time options for availability
+  const timeOptions = [
+    '6:00 AM', '7:00 AM', '8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM',
+    '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM',
+    '6:00 PM', '7:00 PM', '8:00 PM', '9:00 PM', '10:00 PM'
+  ];
+
+  // Form state for photographer/freelancer
   const [formData, setFormData] = useState({
-    fullName: 'Diane Marry',
-    username: 'diane_marry',
-    email: 'dianemarry@gmail.com',
+    fullName: 'John Smith',
+    username: userType === 'freelancer' ? 'john_freelancer' : 'john_photographer',
+    email: 'johnsmith@gmail.com',
     phoneCode: '+250',
-    phoneNumber: '788 123 456',
-    title: 'Client',
+    phoneNumber: '788 456 789',
+    title: defaultTitle,
     country: 'Rwanda',
     province: 'Kigali City',
     district: 'Gasabo',
-    sector: 'Kimironko',
-    // Fields only for photographers/freelancers
-    companyName: 'Personal',
+    sector: 'Remera',
+    companyName: userType === 'freelancer' ? 'Self-Employed' : 'Smith Photography',
     workLocation: 'Kigali, Rwanda',
-    availabilityDays: 'Weekends',
-    availableTime: '10:00 AM - 6:00 PM',
-    bio: 'Passionate about capturing life\'s precious moments. Looking for talented photographers for weddings, events, and family portraits.'
+    availabilityStartDay: 'Monday',
+    availabilityEndDay: 'Saturday',
+    availableStartTime: '8:00 AM',
+    availableEndTime: '6:00 PM',
+    bio: userType === 'freelancer'
+      ? 'Self-employed photographer with over 10 years of experience specializing in weddings, corporate events, and portrait photography. Passionate about capturing life\'s precious moments with creativity and precision.'
+      : 'Company employed photographer with over 10 years of experience specializing in weddings, corporate events, and portrait photography. Passionate about capturing life\'s precious moments with creativity and precision.'
   });
 
-  // Profile image state
-  const [profileImage, setProfileImage] = useState<string>('https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg');
+  // Profile and cover image state
+  const [profileImage, setProfileImage] = useState<string>('https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg');
+  const [coverImage, setCoverImage] = useState<string | null>(null);
 
-  // File input ref
+  // File input refs
   const profileInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   const handleInputChange = (field: string, value: string) => {
     if (isEditEnabled) {
@@ -84,6 +106,28 @@ const ProfilePage = () => {
       const reader = new FileReader();
       reader.onloadend = () => {
         setProfileImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Handle cover image upload
+  const handleCoverImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file');
+        return;
+      }
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Image size should be less than 5MB');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCoverImage(reader.result as string);
       };
       reader.readAsDataURL(file);
     }
@@ -123,7 +167,7 @@ const ProfilePage = () => {
         flexDirection: 'column',
         overflow: 'hidden'
       }}>
-        <Topbar userRole="client" giftAmount={225.00} />
+        <Topbar userRole={userType} tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
 
         <div style={{
           flex: 1,
@@ -170,11 +214,44 @@ const ProfilePage = () => {
                   accept="image/*"
                   style={{ display: 'none' }}
                 />
+                <input
+                  type="file"
+                  ref={coverInputRef}
+                  onChange={handleCoverImageUpload}
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                />
+
+                {/* Cover Photo */}
+                <div style={{
+                  height: '100px',
+                  background: coverImage ? `url(${coverImage}) center/cover no-repeat` : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  position: 'relative'
+                }}>
+                  <button
+                    onClick={() => coverInputRef.current?.click()}
+                    style={{
+                      position: 'absolute',
+                      top: '0.75rem',
+                      right: '0.75rem',
+                      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                      border: '2px solid rgba(255, 255, 255, 0.5)',
+                      borderRadius: '0.375rem',
+                      padding: '0.5rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                    <CameraIcon />
+                  </button>
+                </div>
+
                 {/* Avatar */}
                 <div style={{
                   display: 'flex',
                   justifyContent: 'center',
-                  marginTop: '1.5rem',
+                  marginTop: '-50px',
                   position: 'relative'
                 }}>
                   <div style={{ position: 'relative' }}>
@@ -220,11 +297,31 @@ const ProfilePage = () => {
                     fontWeight: '700',
                     color: '#083A85',
                     marginBottom: '0.25rem'
-                  }}>Diane Marry</h2>
+                  }}>{formData.fullName}</h2>
                   <p style={{
                     fontSize: '0.95rem',
                     color: '#6B7280'
-                  }}>Client</p>
+                  }}>Photographer</p>
+                </div>
+
+                {/* About Section */}
+                <div style={{
+                  borderTop: '1px solid #E5E7EB',
+                  padding: '1.25rem'
+                }}>
+                  <h3 style={{
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    color: '#111827',
+                    marginBottom: '0.75rem'
+                  }}>About</h3>
+                  <p style={{
+                    fontSize: '0.9rem',
+                    color: '#6B7280',
+                    lineHeight: '1.5'
+                  }}>
+                    {formData.bio}
+                  </p>
                 </div>
 
                 {/* Account Activity */}
@@ -531,6 +628,118 @@ const ProfilePage = () => {
                     style={inputStyle}
                   />
                 </div>
+
+                {/* Company Name */}
+                <div>
+                  <label style={labelStyle}>Company Name</label>
+                  <input
+                    type="text"
+                    value={formData.companyName}
+                    onChange={(e) => handleInputChange('companyName', e.target.value)}
+                    disabled={!isEditEnabled}
+                    style={inputStyle}
+                  />
+                </div>
+
+                {/* Work Location */}
+                <div>
+                  <label style={labelStyle}>Work Location</label>
+                  <input
+                    type="text"
+                    value={formData.workLocation}
+                    onChange={(e) => handleInputChange('workLocation', e.target.value)}
+                    disabled={!isEditEnabled}
+                    style={inputStyle}
+                  />
+                </div>
+
+                {/* Availability Days */}
+                <div>
+                  <label style={labelStyle}>Availability Days</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <select
+                      value={formData.availabilityStartDay}
+                      onChange={(e) => handleInputChange('availabilityStartDay', e.target.value)}
+                      disabled={!isEditEnabled}
+                      style={{
+                        ...inputStyle,
+                        flex: 1,
+                        cursor: isEditEnabled ? 'pointer' : 'not-allowed'
+                      }}
+                    >
+                      {daysOfWeek.map((day) => (
+                        <option key={day} value={day}>{day}</option>
+                      ))}
+                    </select>
+                    <span style={{ color: '#6B7280', fontWeight: '500', fontSize: '1rem' }}>-</span>
+                    <select
+                      value={formData.availabilityEndDay}
+                      onChange={(e) => handleInputChange('availabilityEndDay', e.target.value)}
+                      disabled={!isEditEnabled}
+                      style={{
+                        ...inputStyle,
+                        flex: 1,
+                        cursor: isEditEnabled ? 'pointer' : 'not-allowed'
+                      }}
+                    >
+                      {daysOfWeek.map((day) => (
+                        <option key={day} value={day}>{day}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Available Time */}
+                <div>
+                  <label style={labelStyle}>Available Time</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <select
+                      value={formData.availableStartTime}
+                      onChange={(e) => handleInputChange('availableStartTime', e.target.value)}
+                      disabled={!isEditEnabled}
+                      style={{
+                        ...inputStyle,
+                        flex: 1,
+                        cursor: isEditEnabled ? 'pointer' : 'not-allowed'
+                      }}
+                    >
+                      {timeOptions.map((time) => (
+                        <option key={time} value={time}>{time}</option>
+                      ))}
+                    </select>
+                    <span style={{ color: '#6B7280', fontWeight: '500', fontSize: '1rem' }}>-</span>
+                    <select
+                      value={formData.availableEndTime}
+                      onChange={(e) => handleInputChange('availableEndTime', e.target.value)}
+                      disabled={!isEditEnabled}
+                      style={{
+                        ...inputStyle,
+                        flex: 1,
+                        cursor: isEditEnabled ? 'pointer' : 'not-allowed'
+                      }}
+                    >
+                      {timeOptions.map((time) => (
+                        <option key={time} value={time}>{time}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Bio - Full Width */}
+                <div style={{ gridColumn: 'span 2' }}>
+                  <label style={labelStyle}>Bio</label>
+                  <textarea
+                    value={formData.bio}
+                    onChange={(e) => handleInputChange('bio', e.target.value)}
+                    disabled={!isEditEnabled}
+                    rows={4}
+                    style={{
+                      ...inputStyle,
+                      resize: 'vertical',
+                      minHeight: '100px'
+                    }}
+                  />
+                </div>
               </div>
 
               {/* Update Button */}
@@ -574,4 +783,4 @@ const ProfilePage = () => {
   );
 };
 
-export default ProfilePage;
+export default PhotographerProfilePage;

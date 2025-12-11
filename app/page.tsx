@@ -42,7 +42,7 @@ export default function Home() {
 
   const handleRoleSelect = (role: 'photographer' | 'client' | 'freelancer') => {
     if (role === 'photographer') {
-      router.push('/user/photographers/dashboard');
+      router.push('/user/photographer/dashboard');
     } else if (role === 'freelancer') {
       router.push('/user/freelancer/dashboard');
     } else {
