@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import Inbox from '@/app/pages/photographers/inbox';
+import Inbox from '@/app/pages/photographer/inbox';
 
 export default function Page() {
   return (

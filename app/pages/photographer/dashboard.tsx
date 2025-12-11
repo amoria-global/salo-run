@@ -1,13 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import {
   StatCard,
-  HeaderStat,
   ActivityItem,
   PaymentItem,
   PerformanceChart,
@@ -23,35 +21,6 @@ const EyeIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
     <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
-  </svg>
-);
-
-// Alert Icons
-const AlertTriangleIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    <line x1="12" y1="9" x2="12" y2="13" stroke="#DC2626" strokeWidth="2" strokeLinecap="round"/>
-    <circle cx="12" cy="17" r="1" fill="#DC2626"/>
-  </svg>
-);
-
-const CreditCardIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="1" y="4" width="22" height="16" rx="2" stroke="currentColor" strokeWidth="2"/>
-    <line x1="1" y1="10" x2="23" y2="10" stroke="currentColor" strokeWidth="2"/>
-  </svg>
-);
-
-const RefreshIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M1 4V10H7M23 20V14H17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14L18.36 18.36A9 9 0 0 1 3.51 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
-
-const ChevronRightIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
@@ -112,10 +81,10 @@ const getGreetings = (timeOfDay: string) => {
 // Static subtitle based on time of day
 const getStaticMessage = (timeOfDay: string) => {
   switch (timeOfDay) {
-    case 'morning': return "Ready to discover amazing photographers for your next event?";
-    case 'afternoon': return "Perfect time to browse through your galleries!";
-    case 'evening': return "Time to relive today's beautiful moments!";
-    default: return "Late night browsing? Your galleries await!";
+    case 'morning': return "Ready to capture some beautiful moments today?";
+    case 'afternoon': return "Keep up the great work! Your clients love what you do.";
+    case 'evening': return "What a day! Time to review those amazing shots.";
+    default: return "Burning the midnight oil? Your dedication is inspiring!";
   }
 };
 
@@ -127,18 +96,11 @@ const getTimeOfDay = () => {
   return 'night';
 };
 
-interface PendingPayment {
-  id: string;
-  eventName: string;
-  photographerName: string;
-  photographerImage: string;
-  amount: number;
-  paidAmount: number;
-  dueDate: string;
-  status: 'pending' | 'failed' | 'partially_paid';
+interface PhotographerDashboardProps {
+  userType?: 'photographer' | 'freelancer';
 }
 
-interface Photographer {
+interface Client {
   id: string;
   name: string;
   event: string;
@@ -146,7 +108,7 @@ interface Photographer {
   avatar: string;
 }
 
-const ClientDashboard = () => {
+const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashboardProps) => {
   const [activeFilter, setActiveFilter] = useState<'today' | 'week' | 'month' | 'custom'>('week');
   const [timeOfDay, setTimeOfDay] = useState(getTimeOfDay());
   const [greetingIndex, setGreetingIndex] = useState(0);
@@ -192,46 +154,12 @@ const ClientDashboard = () => {
     };
   }, [timeOfDay, greetings.length]);
 
+  const toggleDropdown = (id: string) => {
+    setActiveDropdown(activeDropdown === id ? null : id);
+  };
+
   const currentGreeting = greetings[greetingIndex];
   const staticMessage = getStaticMessage(timeOfDay);
-
-  // Pending Payments Data
-  const pendingPayments: PendingPayment[] = [
-    {
-      id: 'PAY-001',
-      eventName: 'Corporate Headshots',
-      photographerName: 'Elite Photography',
-      photographerImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
-      amount: 500,
-      paidAmount: 0,
-      dueDate: '2025-07-25',
-      status: 'pending'
-    },
-    {
-      id: 'PAY-002',
-      eventName: 'Family Portrait',
-      photographerName: 'Mary Shots',
-      photographerImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg',
-      amount: 250,
-      paidAmount: 125,
-      dueDate: '2025-07-30',
-      status: 'partially_paid'
-    },
-    {
-      id: 'PAY-003',
-      eventName: 'Fashion Shoot',
-      photographerName: 'Sarah Lens',
-      photographerImage: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg',
-      amount: 400,
-      paidAmount: 0,
-      dueDate: '2025-08-05',
-      status: 'failed'
-    }
-  ];
-
-  const totalPendingAmount = pendingPayments.reduce((sum, p) => sum + (p.amount - p.paidAmount), 0);
-  const hasFailedPayments = pendingPayments.some(p => p.status === 'failed');
-
   const performanceData = [
     { day: 'Sun', value1: 130, value2: 150 },
     { day: 'Mon', value1: 90, value2: 100 },
@@ -243,62 +171,61 @@ const ClientDashboard = () => {
   ];
 
   const recentActivities = [
-    { label: 'Photographer', value: 'John Studio' },
-    { label: 'Payment', value: '-$450', valueColor: '#ff0066' },
-    { label: 'Photos', value: 'wedding_gallery.zip' },
-    { label: 'Package', value: 'Premium' },
-    { label: 'Booking', value: 'Wedding Shoot',  valueColor: '#083A85' },
-    { label: 'Last Activity', value: 'Today, 14. July 2025' }
+    { label: 'Customer', value: 'Joseph Mugabo' },
+    { label: 'Transaction', value: '-450', valueColor: '#ff0066' },
+    { label: 'Archive', value: 'jsm_wedd.mp4' },
+    { label: 'Package', value: 'Tier 1' },
+    { label: 'Referral', value: 'Pacific Uwitonze',  valueColor: '#083A85' },
+    { label: 'Logs', value: 'Today, 14. July 2025' }
   ];
 
-  const photographers: Photographer[] = [
+  const clients: Client[] = [
     {
-      id: 'PHT-001',
-      name: 'John Studio',
+      id: 'CLT-001',
+      name: 'Kalisa Aime',
       event: 'Wedding',
       status: 'In Progress' as const,
-      avatar: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg'
+      avatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg'
     },
     {
-      id: 'PHT-002',
-      name: 'Mary Shots',
+      id: 'CLT-002',
+      name: 'Ketty Bashabe',
       event: 'Birthday',
       status: 'Completed' as const,
       avatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg'
     },
     {
-      id: 'PHT-003',
-      name: 'Alex Frames',
+      id: 'CLT-003',
+      name: 'Juno Kizigenza',
       event: 'Festival',
       status: 'Pending' as const,
       avatar: 'https://i.pinimg.com/1200x/09/23/45/092345eac1919407e0c49f67e285b831.jpg'
     }
   ];
 
-  const toggleDropdown = (id: string) => {
-    setActiveDropdown(activeDropdown === id ? null : id);
-  };
-
   const recentPayments = [
     {
-      name: 'John Studio',
-      type: 'Booking Payment',
+      name: 'Kalisa Aime',
+      type: 'Earnings',
       amount: '$1,950',
-      avatar: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg'
-    },
-    {
-      name: 'Mary Shots',
-      type: 'Photo Package',
-      amount: '$850',
-      avatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg'
+      avatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg'
     },
     {
       name: 'Amoria',
-      type: 'Platform Fee',
-      amount: '$25.00',
+      type: 'Archive commission',
+      amount: '$50.80',
+      logo: '/logo.png'
+    },
+    {
+      name: 'Amoria',
+      type: 'Referral bonus',
+      amount: '$3.0',
       logo: '/logo.png'
     }
   ];
+
+  // Determine the base path based on user type
+  const basePath = userType === 'freelancer' ? '/user/freelancer' : '/user/photographer';
 
   return (
     <div style={{
@@ -314,7 +241,7 @@ const ClientDashboard = () => {
         flexDirection: 'column',
         overflow: 'hidden'
       }}>
-        <Topbar userRole="client" giftAmount={225.00} />
+        <Topbar userRole={userType} tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
 
         <div style={{
           flex: 1,
@@ -372,7 +299,7 @@ const ClientDashboard = () => {
                   fontWeight: '600',
                   marginBottom: '0.25rem',
                   color: '#083A85'
-                }}>Spent</span>
+                }}>Earnings</span>
                 <span style={{
                   fontSize: '1.25rem',
                   lineHeight: '1.75rem',
@@ -391,13 +318,13 @@ const ClientDashboard = () => {
                   fontWeight: '600',
                   marginBottom: '0.25rem',
                   color: '#083A85'
-                }}>Bookings</span>
+                }}>Clients</span>
                 <span style={{
                   fontSize: '1.25rem',
                   lineHeight: '1.75rem',
                   fontWeight: '700',
                   color: '#111827'
-                }}>12</span>
+                }}>26</span>
               </div>
               <div style={{
                 display: 'flex',
@@ -410,13 +337,13 @@ const ClientDashboard = () => {
                   fontWeight: '600',
                   marginBottom: '0.25rem',
                   color: '#083A85'
-                }}>Photos</span>
+                }}>Accuracy</span>
                 <span style={{
                   fontSize: '1.25rem',
                   lineHeight: '1.75rem',
                   fontWeight: '700',
                   color: '#111827'
-                }}>248</span>
+                }}>73.5%</span>
               </div>
             </div>
           </header>
@@ -511,13 +438,13 @@ const ClientDashboard = () => {
         marginBottom: '1rem'
       }}>
         <StatCard
-          title="Total Spent"
+          title="Total Earnings"
           value="$2,600"
           percentage="52.76%"
           timeframe="last week"
           icon={<MoneyIcon />}
           trend="up"
-          href="/user/client/transactions"
+          href={`${basePath}/earnings`}
         />
         <StatCard
           title="Pending"
@@ -526,204 +453,36 @@ const ClientDashboard = () => {
           timeframe="last week"
           icon={<ClockIcon />}
           trend="down"
-          href="/user/client/bookings"
+          href={`${basePath}/pending-payments`}
         />
         <StatCard
-          title="Bookings"
-          value="12"
+          title="Total clients"
+          value="5.0"
           percentage="5.4%"
           timeframe="last week"
           icon={<UsersIcon />}
           trend="up"
-          href="/user/client/bookings"
+          href={`${basePath}/clients`}
         />
         <StatCard
-          title="Gifts"
-          value="$225"
-          percentage="12.5%"
+          title="Bonuses"
+          value="$3.05"
+          percentage="47.38%"
           timeframe="last week"
           icon={<GiftIcon />}
-          trend="up"
-          href="/user/client/payments"
+          trend="down"
+          href={`${basePath}/bonuses`}
         />
         <StatCard
-          title="Favorites"
-          value="8"
+          title="Ratings"
+          value="3.9/5"
           percentage="8%"
-          timeframe="photographers"
+          timeframe="last 120 reviews"
           icon={<StarIcon />}
           trend="up"
-          href="/user/client/photographers"
+          href={`${basePath}/reviews`}
         />
       </div>
-
-      {/* Pending Payments Alert */}
-      {pendingPayments.length > 0 && (
-        <div style={{
-          backgroundColor: hasFailedPayments ? '#FEF2F2' : '#FFFBEB',
-          border: `1px solid ${hasFailedPayments ? '#FECACA' : '#FDE68A'}`,
-          borderRadius: '0.75rem',
-          padding: '1rem 1.25rem',
-          marginBottom: '1rem'
-        }}>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            marginBottom: '0.75rem'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{
-                backgroundColor: hasFailedPayments ? '#FEE2E2' : '#FEF3C7',
-                borderRadius: '0.5rem',
-                padding: '0.5rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <AlertTriangleIcon />
-              </div>
-              <div>
-                <h3 style={{
-                  fontSize: '1rem',
-                  fontWeight: '600',
-                  color: hasFailedPayments ? '#DC2626' : '#D97706',
-                  margin: 0
-                }}>
-                  {hasFailedPayments ? 'Payment Action Required' : 'Pending Payments'}
-                </h3>
-                <p style={{
-                  fontSize: '0.85rem',
-                  color: hasFailedPayments ? '#991B1B' : '#92400E',
-                  margin: '0.25rem 0 0 0'
-                }}>
-                  You have {pendingPayments.length} payment{pendingPayments.length > 1 ? 's' : ''} totaling <strong>${totalPendingAmount}</strong> that need{pendingPayments.length === 1 ? 's' : ''} attention
-                </p>
-              </div>
-            </div>
-            <Link
-              href="/user/client/payments"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.25rem',
-                fontSize: '0.85rem',
-                fontWeight: '600',
-                color: '#083A85',
-                textDecoration: 'none'
-              }}
-            >
-              View All
-              <ChevronRightIcon />
-            </Link>
-          </div>
-
-          <div style={{
-            display: 'flex',
-            gap: '0.75rem',
-            overflowX: 'auto',
-            paddingBottom: '0.25rem'
-          }}>
-            {pendingPayments.map((payment) => (
-              <div
-                key={payment.id}
-                style={{
-                  flex: '0 0 auto',
-                  backgroundColor: 'white',
-                  borderRadius: '0.5rem',
-                  padding: '0.75rem 1rem',
-                  minWidth: '280px',
-                  border: payment.status === 'failed' ? '1px solid #FECACA' : '1px solid #E5E7EB',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem'
-                }}
-              >
-                <Image
-                  src={payment.photographerImage}
-                  alt={payment.photographerName}
-                  width={40}
-                  height={40}
-                  style={{ borderRadius: '50%', objectFit: 'cover' }}
-                />
-                <div style={{ flex: 1 }}>
-                  <div style={{
-                    fontSize: '0.9rem',
-                    fontWeight: '500',
-                    color: '#111827',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }}>
-                    {payment.eventName}
-                    {payment.status === 'failed' && (
-                      <span style={{
-                        fontSize: '0.65rem',
-                        fontWeight: '600',
-                        padding: '0.125rem 0.375rem',
-                        borderRadius: '9999px',
-                        backgroundColor: '#FEE2E2',
-                        color: '#DC2626'
-                      }}>
-                        FAILED
-                      </span>
-                    )}
-                    {payment.status === 'partially_paid' && (
-                      <span style={{
-                        fontSize: '0.65rem',
-                        fontWeight: '600',
-                        padding: '0.125rem 0.375rem',
-                        borderRadius: '9999px',
-                        backgroundColor: '#DBEAFE',
-                        color: '#2563EB'
-                      }}>
-                        PARTIAL
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>
-                    {payment.photographerName}
-                  </div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{
-                    fontSize: '1rem',
-                    fontWeight: '700',
-                    color: payment.status === 'failed' ? '#DC2626' : '#083A85'
-                  }}>
-                    ${payment.amount - payment.paidAmount}
-                  </div>
-                  <Link
-                    href="/user/client/payments"
-                    style={{
-                      fontSize: '0.75rem',
-                      fontWeight: '600',
-                      color: payment.status === 'failed' ? '#F20C8F' : '#083A85',
-                      textDecoration: 'none',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'flex-end',
-                      gap: '0.25rem'
-                    }}
-                  >
-                    {payment.status === 'failed' ? (
-                      <>
-                        <RefreshIcon />
-                        Retry
-                      </>
-                    ) : (
-                      <>
-                        <CreditCardIcon />
-                        Pay
-                      </>
-                    )}
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       <div style={{
         display: 'grid',
@@ -765,8 +524,8 @@ const ClientDashboard = () => {
                 lineHeight: '1.25rem',
                 fontWeight: '100',
                 color: '#111827'
-              }}>Photographers</h2>
-              <Link href="/user/client/photographers" style={{
+              }}>Clients</h2>
+              <Link href={`${basePath}/clients`} style={{
                 fontSize: '1rem',
                 lineHeight: '1rem',
                 color: '#2563EB',
@@ -779,9 +538,9 @@ const ClientDashboard = () => {
               flexDirection: 'column',
               gap: '0.625rem'
             }}>
-              {photographers.map((photographer) => {
+              {clients.map((client) => {
                 const getStatusStyle = () => {
-                  switch (photographer.status) {
+                  switch (client.status) {
                     case 'In Progress':
                       return { backgroundColor: '#FCE7F3', color: '#DB2777' };
                     case 'Completed':
@@ -795,7 +554,7 @@ const ClientDashboard = () => {
 
                 return (
                   <div
-                    key={photographer.id}
+                    key={client.id}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -809,8 +568,8 @@ const ClientDashboard = () => {
                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                   >
                     <img
-                      src={photographer.avatar}
-                      alt={photographer.name}
+                      src={client.avatar}
+                      alt={client.name}
                       style={{
                         width: '2.25rem',
                         height: '2.25rem',
@@ -829,12 +588,12 @@ const ClientDashboard = () => {
                         lineHeight: '1.25rem',
                         fontWeight: '700',
                         color: '#111827'
-                      }}>{photographer.name}</span>
+                      }}>{client.name}</span>
                       <span style={{
                         fontSize: '0.85rem',
                         lineHeight: '1rem',
                         color: '#6B7280'
-                      }}>{photographer.event}</span>
+                      }}>{client.event}</span>
                     </div>
                     <span style={{
                       paddingLeft: '0.625rem',
@@ -846,7 +605,7 @@ const ClientDashboard = () => {
                       lineHeight: '1rem',
                       fontWeight: '600',
                       ...getStatusStyle()
-                    }}>{photographer.status}</span>
+                    }}>{client.status}</span>
                     <div style={{ position: 'relative' }}>
                       <button
                         style={{
@@ -861,14 +620,14 @@ const ClientDashboard = () => {
                         }}
                         onClick={(e) => {
                           e.stopPropagation();
-                          toggleDropdown(photographer.id);
+                          toggleDropdown(client.id);
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.color = '#4B5563'}
                         onMouseLeave={(e) => e.currentTarget.style.color = '#9CA3AF'}
                       >
                         <span>⋮</span>
                       </button>
-                      {activeDropdown === photographer.id && (
+                      {activeDropdown === client.id && (
                         <div style={{
                           position: 'absolute',
                           top: '100%',
@@ -882,7 +641,7 @@ const ClientDashboard = () => {
                           overflow: 'hidden'
                         }}>
                           <Link
-                            href="/user/client/photographers"
+                            href={`${basePath}/clients`}
                             style={{
                               display: 'flex',
                               alignItems: 'center',
@@ -953,7 +712,7 @@ const ClientDashboard = () => {
                 fontWeight: '100',
                 color: '#111827'
               }}>Recent payments</h2>
-              <Link href="/user/client/payments" style={{
+              <Link href={`${basePath}/transaction`} style={{
                 fontSize: '1rem',
                 lineHeight: '1rem',
                 color: '#2563EB',
@@ -979,4 +738,4 @@ const ClientDashboard = () => {
   );
 };
 
-export default ClientDashboard;
+export default PhotographerDashboard;
