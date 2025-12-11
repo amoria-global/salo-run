@@ -1,4 +1,4 @@
-import PhotographerProfilePage from '@/app/pages/photographers/profile';
+import PhotographerProfilePage from '@/app/pages/photographer/profile';
 
 export default function Page() {
   return <PhotographerProfilePage userType="freelancer" />;

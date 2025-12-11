@@ -56,7 +56,7 @@ const ProfilePage = () => {
   });
 
   // Profile image state
-  const [profileImage, setProfileImage] = useState<string>('https://randomuser.me/api/portraits/women/65.jpg');
+  const [profileImage, setProfileImage] = useState<string>('https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg');
 
   // File input ref
   const profileInputRef = useRef<HTMLInputElement>(null);

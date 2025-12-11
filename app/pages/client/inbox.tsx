@@ -19,20 +19,6 @@ const SendIcon = () => (
   </svg>
 );
 
-const AttachmentIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M21.44 11.05L12.25 20.24C11.1242 21.3658 9.59718 21.9983 8.005 21.9983C6.41282 21.9983 4.88584 21.3658 3.76 20.24C2.63416 19.1142 2.00166 17.5872 2.00166 15.995C2.00166 14.4028 2.63416 12.8758 3.76 11.75L12.33 3.18C13.0806 2.42975 14.0991 2.00846 15.16 2.00846C16.2209 2.00846 17.2394 2.42975 17.99 3.18C18.7403 3.93063 19.1615 4.94905 19.1615 6.01C19.1615 7.07095 18.7403 8.08938 17.99 8.84L9.41 17.41C9.03472 17.7853 8.52573 17.996 7.995 17.996C7.46427 17.996 6.95528 17.7853 6.58 17.41C6.20472 17.0347 5.99398 16.5257 5.99398 15.995C5.99398 15.4643 6.20472 14.9553 6.58 14.58L14.54 6.63" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
-
-const ImageIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="3" y="3" width="18" height="18" rx="2" stroke="#6B7280" strokeWidth="2"/>
-    <circle cx="8.5" cy="8.5" r="1.5" fill="#6B7280"/>
-    <path d="M21 15L16 10L5 21" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
-
 const EmojiIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <circle cx="12" cy="12" r="10" stroke="#6B7280" strokeWidth="2"/>
@@ -42,26 +28,17 @@ const EmojiIcon = () => (
   </svg>
 );
 
-const MoreIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="12" cy="5" r="1" fill="#6B7280"/>
-    <circle cx="12" cy="12" r="1" fill="#6B7280"/>
-    <circle cx="12" cy="19" r="1" fill="#6B7280"/>
-  </svg>
-);
-
-const PhoneIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M22 16.92V19.92C22.0011 20.1985 21.9441 20.4742 21.8325 20.7294C21.7209 20.9845 21.5573 21.2136 21.3521 21.4019C21.1469 21.5901 20.9046 21.7335 20.6408 21.8227C20.3769 21.9119 20.0974 21.9451 19.82 21.92C16.7428 21.5856 13.787 20.5342 11.19 18.85C8.77383 17.3147 6.72534 15.2662 5.19 12.85C3.49998 10.2412 2.44824 7.27099 2.12 4.18C2.09501 3.90347 2.12788 3.62476 2.2165 3.36162C2.30513 3.09849 2.44757 2.85669 2.63477 2.65162C2.82196 2.44655 3.04981 2.28271 3.30379 2.17052C3.55778 2.05833 3.83234 2.00026 4.11 2H7.11C7.59531 1.99522 8.06579 2.16708 8.43376 2.48354C8.80173 2.79999 9.04208 3.23945 9.11 3.72C9.23662 4.68007 9.47145 5.62273 9.81 6.53C9.94455 6.88792 9.97366 7.27691 9.89391 7.65088C9.81415 8.02485 9.62886 8.36811 9.36 8.64L8.09 9.91C9.51356 12.4136 11.5864 14.4864 14.09 15.91L15.36 14.64C15.6319 14.3711 15.9752 14.1859 16.3491 14.1061C16.7231 14.0263 17.1121 14.0555 17.47 14.19C18.3773 14.5286 19.3199 14.7634 20.28 14.89C20.7658 14.9585 21.2094 15.2032 21.5265 15.5775C21.8437 15.9518 22.0122 16.4296 22 16.92Z" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
-
-const VideoIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M23 7L16 12L23 17V7Z" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    <rect x="1" y="5" width="15" height="14" rx="2" stroke="#6B7280" strokeWidth="2"/>
-  </svg>
-);
+// Emoji categories with comprehensive emoji sets
+const emojiCategories = {
+  'Smileys': ['😀', '😃', '😄', '😁', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕'],
+  'Gestures': ['👍', '👎', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '👇', '☝️', '✋', '🤚', '🖐️', '🖖', '👋', '🤝', '🙏', '✍️', '💅', '🤳', '💪', '🦾', '🦿', '🦵', '🦶', '👂', '🦻', '👃', '🧠', '🫀', '🫁', '🦷', '🦴', '👀', '👁️', '👅', '👄', '👶', '🧒', '👦', '👧', '🧑', '👱', '👨', '🧔', '👩', '🧓', '👴', '👵'],
+  'Hearts': ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '♥️', '💌', '💋', '👄', '🫶', '🤲', '👐', '🙌', '👏', '🤝', '🫂'],
+  'Objects': ['📷', '📸', '📹', '🎥', '📽️', '🎬', '📺', '📻', '🎙️', '🎚️', '🎛️', '🧭', '⏱️', '⏲️', '⏰', '🕰️', '⌛', '⏳', '📡', '🔋', '🔌', '💡', '🔦', '🕯️', '🧯', '🛢️', '💸', '💵', '💴', '💶', '💷', '💰', '💳', '💎', '⚖️', '🧰', '🔧', '🔨', '⚒️', '🛠️', '⛏️', '🔩', '⚙️', '🧱', '⛓️', '🧲', '🔫', '💣', '🧨', '🪓', '🔪'],
+  'Celebrations': ['🎉', '🎊', '🎁', '🎈', '🎀', '🎂', '🍰', '🧁', '🎄', '🎃', '🎆', '🎇', '✨', '🎯', '🏆', '🥇', '🥈', '🥉', '⚽', '🏀', '🏈', '⚾', '🎾', '🏐', '🏉', '🎱', '🏓', '🏸', '🥊', '🥋', '🎮', '🕹️', '🎲', '🧩', '♟️', '🎭', '🎨', '🎼', '🎵', '🎶', '🎤', '🎧', '🎷', '🎸', '🎹', '🎺', '🎻', '🪕', '🥁'],
+  'Nature': ['🌸', '💮', '🏵️', '🌹', '🥀', '🌺', '🌻', '🌼', '🌷', '🌱', '🌲', '🌳', '🌴', '🌵', '🎋', '🎍', '🌾', '🌿', '☘️', '🍀', '🍁', '🍂', '🍃', '🌍', '🌎', '🌏', '🌐', '🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘', '🌙', '🌚', '🌛', '🌜', '☀️', '🌝', '🌞', '⭐', '🌟', '🌠', '☁️', '⛅', '⛈️', '🌤️', '🌥️', '🌦️', '🌧️', '🌨️', '🌩️', '🌪️', '🌫️', '🌬️', '🌈', '☔', '⚡', '❄️', '☃️', '⛄', '🔥', '💧', '🌊'],
+  'Food': ['🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦', '🥬', '🥒', '🌶️', '🫑', '🌽', '🥕', '🫒', '🧄', '🧅', '🥔', '🍠', '🥐', '🥯', '🍞', '🥖', '🥨', '🧀', '🥚', '🍳', '🧈', '🥞', '🧇', '🥓', '🥩', '🍗', '🍖', '🦴', '🌭', '🍔', '🍟', '🍕', '🫓', '🥪', '🥙', '🧆', '🌮', '🌯', '🫔', '🥗', '🥘', '🫕', '🍝', '🍜', '🍲', '🍛', '🍣', '🍱', '🥟', '🦪', '🍤', '🍙', '🍚', '🍘', '🍥', '🥠', '🥮', '🍢', '🍡', '🍧', '🍨', '🍦', '🥧', '🧁', '🍰', '🎂', '🍮', '🍭', '🍬', '🍫', '🍿', '🍩', '🍪', '🌰', '🥜', '🍯', '🥛', '🍼', '☕', '🫖', '🍵', '🧃', '🥤', '🧋', '🍶', '🍺', '🍻', '🥂', '🍷', '🥃', '🍸', '🍹', '🧊', '🥄', '🍴', '🍽️', '🥣', '🥡', '🥢', '🧂'],
+  'Animals': ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐻‍❄️', '🐨', '🐯', '🦁', '🐮', '🐷', '🐽', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🐔', '🐧', '🐦', '🐤', '🐣', '🐥', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🪱', '🐛', '🦋', '🐌', '🐞', '🐜', '🪰', '🪲', '🪳', '🦟', '🦗', '🕷️', '🕸️', '🦂', '🐢', '🐍', '🦎', '🦖', '🦕', '🐙', '🦑', '🦐', '🦞', '🦀', '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🐊', '🐅', '🐆', '🦓', '🦍', '🦧', '🦣', '🐘', '🦛', '🦏', '🐪', '🐫', '🦒', '🦘', '🦬', '🐃', '🐂', '🐄', '🐎', '🐖', '🐏', '🐑', '🦙', '🐐', '🦌', '🐕', '🐩', '🦮', '🐕‍🦺', '🐈', '🐈‍⬛', '🪶', '🐓', '🦃', '🦤', '🦚', '🦜', '🦢', '🦩', '🕊️', '🐇', '🦝', '🦨', '🦡', '🦫', '🦦', '🦥', '🐁', '🐀', '🐿️', '🦔']
+};
 
 const CheckIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -79,6 +56,20 @@ const CheckDoubleIcon = () => (
 const PinIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M15.5 3.5L18.5 6.5L14.5 10.5L17.5 17.5L12 12L6.5 17.5L9.5 10.5L5.5 6.5L8.5 3.5L11 8L15.5 3.5Z" stroke="#F20C8F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+// Message Action Icons
+const EditIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const DeleteIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
@@ -124,7 +115,28 @@ const InboxPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [messageInput, setMessageInput] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'unread' | 'pinned'>('all');
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [activeEmojiCategory, setActiveEmojiCategory] = useState('Smileys');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editMessageContent, setEditMessageContent] = useState('');
+
+  // Close emoji picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const insertEmoji = (emoji: string) => {
+    setMessageInput(prev => prev + emoji);
+  };
 
   const currentUserId = 'current-user';
 
@@ -132,8 +144,8 @@ const InboxPage = () => {
     {
       id: '1',
       participants: [
-        { id: '1', name: 'John Studio', image: 'https://randomuser.me/api/portraits/men/75.jpg', userType: 'photographer', isOnline: true },
-        { id: currentUserId, name: 'Diane Mary', image: 'https://randomuser.me/api/portraits/women/65.jpg', userType: 'client', isOnline: true }
+        { id: '1', name: 'John Studio', image: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg', userType: 'photographer', isOnline: true },
+        { id: currentUserId, name: 'Diane Mary', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'client', isOnline: true }
       ],
       lastMessage: { content: 'Great! I\'ll have the photos ready by Friday.', senderId: '1', createdAt: '2025-07-19T14:30:00' },
       unreadCount: 2,
@@ -141,51 +153,51 @@ const InboxPage = () => {
       isMuted: false,
       bookingId: 'BK-001',
       messages: [
-        { id: 'm1', conversationId: '1', senderId: '1', senderName: 'John Studio', senderImage: 'https://randomuser.me/api/portraits/men/75.jpg', content: 'Hi Diane! Thank you for booking with me for your wedding photos.', type: 'text', isRead: true, createdAt: '2025-07-19T10:00:00' },
-        { id: 'm2', conversationId: '1', senderId: currentUserId, senderName: 'Diane Mary', senderImage: 'https://randomuser.me/api/portraits/women/65.jpg', content: 'Hi John! We\'re so excited to work with you. The venue is confirmed for July 20th.', type: 'text', isRead: true, createdAt: '2025-07-19T10:15:00' },
-        { id: 'm3', conversationId: '1', senderId: '1', senderName: 'John Studio', senderImage: 'https://randomuser.me/api/portraits/men/75.jpg', content: 'Perfect! I\'ll be there at 2 PM to set up. Is there anything specific you\'d like me to capture?', type: 'text', isRead: true, createdAt: '2025-07-19T10:30:00' },
-        { id: 'm4', conversationId: '1', senderId: currentUserId, senderName: 'Diane Mary', senderImage: 'https://randomuser.me/api/portraits/women/65.jpg', content: 'Yes! We want lots of candid shots and definitely the first dance. Can you also do a few formal family portraits?', type: 'text', isRead: true, createdAt: '2025-07-19T11:00:00' },
-        { id: 'm5', conversationId: '1', senderId: '1', senderName: 'John Studio', senderImage: 'https://randomuser.me/api/portraits/men/75.jpg', content: 'Absolutely! I\'ll prepare a shot list. When can we expect the photos?', type: 'text', isRead: false, createdAt: '2025-07-19T14:00:00' },
-        { id: 'm6', conversationId: '1', senderId: '1', senderName: 'John Studio', senderImage: 'https://randomuser.me/api/portraits/men/75.jpg', content: 'Great! I\'ll have the photos ready by Friday.', type: 'text', isRead: false, createdAt: '2025-07-19T14:30:00' }
+        { id: 'm1', conversationId: '1', senderId: '1', senderName: 'John Studio', senderImage: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg', content: 'Hi Diane! Thank you for booking with me for your wedding photos.', type: 'text', isRead: true, createdAt: '2025-07-19T10:00:00' },
+        { id: 'm2', conversationId: '1', senderId: currentUserId, senderName: 'Diane Mary', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Hi John! We\'re so excited to work with you. The venue is confirmed for July 20th.', type: 'text', isRead: true, createdAt: '2025-07-19T10:15:00' },
+        { id: 'm3', conversationId: '1', senderId: '1', senderName: 'John Studio', senderImage: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg', content: 'Perfect! I\'ll be there at 2 PM to set up. Is there anything specific you\'d like me to capture?', type: 'text', isRead: true, createdAt: '2025-07-19T10:30:00' },
+        { id: 'm4', conversationId: '1', senderId: currentUserId, senderName: 'Diane Mary', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Yes! We want lots of candid shots and definitely the first dance. Can you also do a few formal family portraits?', type: 'text', isRead: true, createdAt: '2025-07-19T11:00:00' },
+        { id: 'm5', conversationId: '1', senderId: '1', senderName: 'John Studio', senderImage: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg', content: 'Absolutely! I\'ll prepare a shot list. When can we expect the photos?', type: 'text', isRead: false, createdAt: '2025-07-19T14:00:00' },
+        { id: 'm6', conversationId: '1', senderId: '1', senderName: 'John Studio', senderImage: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg', content: 'Great! I\'ll have the photos ready by Friday.', type: 'text', isRead: false, createdAt: '2025-07-19T14:30:00' }
       ]
     },
     {
       id: '2',
       participants: [
-        { id: '2', name: 'Mary Shots', image: 'https://randomuser.me/api/portraits/women/68.jpg', userType: 'photographer', isOnline: false, lastSeen: '2 hours ago' },
-        { id: currentUserId, name: 'Diane Mary', image: 'https://randomuser.me/api/portraits/women/65.jpg', userType: 'client', isOnline: true }
+        { id: '2', name: 'Mary Shots', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'photographer', isOnline: false, lastSeen: '2 hours ago' },
+        { id: currentUserId, name: 'Diane Mary', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'client', isOnline: true }
       ],
       lastMessage: { content: 'The birthday party photos are uploaded to your gallery!', senderId: '2', createdAt: '2025-07-18T16:45:00' },
       unreadCount: 0,
       isPinned: false,
       isMuted: false,
       messages: [
-        { id: 'm7', conversationId: '2', senderId: '2', senderName: 'Mary Shots', senderImage: 'https://randomuser.me/api/portraits/women/68.jpg', content: 'Hi! Your birthday party was so much fun to photograph!', type: 'text', isRead: true, createdAt: '2025-07-18T14:00:00' },
-        { id: 'm8', conversationId: '2', senderId: currentUserId, senderName: 'Diane Mary', senderImage: 'https://randomuser.me/api/portraits/women/65.jpg', content: 'Thank you Mary! When can I see the photos?', type: 'text', isRead: true, createdAt: '2025-07-18T15:00:00' },
-        { id: 'm9', conversationId: '2', senderId: '2', senderName: 'Mary Shots', senderImage: 'https://randomuser.me/api/portraits/women/68.jpg', content: 'The birthday party photos are uploaded to your gallery!', type: 'text', isRead: true, createdAt: '2025-07-18T16:45:00' }
+        { id: 'm7', conversationId: '2', senderId: '2', senderName: 'Mary Shots', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Hi! Your birthday party was so much fun to photograph!', type: 'text', isRead: true, createdAt: '2025-07-18T14:00:00' },
+        { id: 'm8', conversationId: '2', senderId: currentUserId, senderName: 'Diane Mary', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Thank you Mary! When can I see the photos?', type: 'text', isRead: true, createdAt: '2025-07-18T15:00:00' },
+        { id: 'm9', conversationId: '2', senderId: '2', senderName: 'Mary Shots', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'The birthday party photos are uploaded to your gallery!', type: 'text', isRead: true, createdAt: '2025-07-18T16:45:00' }
       ]
     },
     {
       id: '3',
       participants: [
-        { id: '3', name: 'Alex Frames', image: 'https://randomuser.me/api/portraits/men/44.jpg', userType: 'photographer', isOnline: true },
-        { id: currentUserId, name: 'Diane Mary', image: 'https://randomuser.me/api/portraits/women/65.jpg', userType: 'client', isOnline: true }
+        { id: '3', name: 'Alex Frames', image: 'https://i.pinimg.com/1200x/09/23/45/092345eac1919407e0c49f67e285b831.jpg', userType: 'photographer', isOnline: true },
+        { id: currentUserId, name: 'Diane Mary', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'client', isOnline: true }
       ],
       lastMessage: { content: 'I\'d love to discuss the festival shoot!', senderId: currentUserId, createdAt: '2025-07-17T09:30:00' },
       unreadCount: 1,
       isPinned: false,
       isMuted: false,
       messages: [
-        { id: 'm10', conversationId: '3', senderId: currentUserId, senderName: 'Diane Mary', senderImage: 'https://randomuser.me/api/portraits/women/65.jpg', content: 'Hi Alex! I saw your festival photography work and it\'s amazing!', type: 'text', isRead: true, createdAt: '2025-07-16T18:00:00' },
-        { id: 'm11', conversationId: '3', senderId: '3', senderName: 'Alex Frames', senderImage: 'https://randomuser.me/api/portraits/men/44.jpg', content: 'Thank you so much! I really enjoy capturing the energy of live events.', type: 'text', isRead: false, createdAt: '2025-07-17T08:00:00' },
-        { id: 'm12', conversationId: '3', senderId: currentUserId, senderName: 'Diane Mary', senderImage: 'https://randomuser.me/api/portraits/women/65.jpg', content: 'I\'d love to discuss the festival shoot!', type: 'text', isRead: true, createdAt: '2025-07-17T09:30:00' }
+        { id: 'm10', conversationId: '3', senderId: currentUserId, senderName: 'Diane Mary', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Hi Alex! I saw your festival photography work and it\'s amazing!', type: 'text', isRead: true, createdAt: '2025-07-16T18:00:00' },
+        { id: 'm11', conversationId: '3', senderId: '3', senderName: 'Alex Frames', senderImage: 'https://i.pinimg.com/1200x/09/23/45/092345eac1919407e0c49f67e285b831.jpg', content: 'Thank you so much! I really enjoy capturing the energy of live events.', type: 'text', isRead: false, createdAt: '2025-07-17T08:00:00' },
+        { id: 'm12', conversationId: '3', senderId: currentUserId, senderName: 'Diane Mary', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'I\'d love to discuss the festival shoot!', type: 'text', isRead: true, createdAt: '2025-07-17T09:30:00' }
       ]
     },
     {
       id: '4',
       participants: [
-        { id: '4', name: 'Elite Photography', image: 'https://randomuser.me/api/portraits/men/22.jpg', userType: 'photographer', isOnline: false, lastSeen: '1 day ago' },
-        { id: currentUserId, name: 'Diane Mary', image: 'https://randomuser.me/api/portraits/women/65.jpg', userType: 'client', isOnline: true }
+        { id: '4', name: 'Elite Photography', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'photographer', isOnline: false, lastSeen: '1 day ago' },
+        { id: currentUserId, name: 'Diane Mary', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'client', isOnline: true }
       ],
       lastMessage: { content: 'Your corporate headshots are scheduled for next Monday.', senderId: '4', createdAt: '2025-07-15T11:20:00' },
       unreadCount: 0,
@@ -193,9 +205,84 @@ const InboxPage = () => {
       isMuted: true,
       bookingId: 'BK-002',
       messages: [
-        { id: 'm13', conversationId: '4', senderId: '4', senderName: 'Elite Photography', senderImage: 'https://randomuser.me/api/portraits/men/22.jpg', content: 'Hello! Confirming your booking for corporate headshots.', type: 'text', isRead: true, createdAt: '2025-07-14T10:00:00' },
-        { id: 'm14', conversationId: '4', senderId: currentUserId, senderName: 'Diane Mary', senderImage: 'https://randomuser.me/api/portraits/women/65.jpg', content: 'Great! What time should we be there?', type: 'text', isRead: true, createdAt: '2025-07-14T14:00:00' },
-        { id: 'm15', conversationId: '4', senderId: '4', senderName: 'Elite Photography', senderImage: 'https://randomuser.me/api/portraits/men/22.jpg', content: 'Your corporate headshots are scheduled for next Monday.', type: 'text', isRead: true, createdAt: '2025-07-15T11:20:00' }
+        { id: 'm13', conversationId: '4', senderId: '4', senderName: 'Elite Photography', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Hello! Confirming your booking for corporate headshots.', type: 'text', isRead: true, createdAt: '2025-07-14T10:00:00' },
+        { id: 'm14', conversationId: '4', senderId: currentUserId, senderName: 'Diane Mary', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Great! What time should we be there?', type: 'text', isRead: true, createdAt: '2025-07-14T14:00:00' },
+        { id: 'm15', conversationId: '4', senderId: '4', senderName: 'Elite Photography', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Your corporate headshots are scheduled for next Monday.', type: 'text', isRead: true, createdAt: '2025-07-15T11:20:00' }
+      ]
+    },
+    {
+      id: '5',
+      participants: [
+        { id: '5', name: 'Luna Studios', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'photographer', isOnline: true },
+        { id: currentUserId, name: 'Diane Mary', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'client', isOnline: true }
+      ],
+      lastMessage: { content: 'Your newborn session is confirmed for Saturday!', senderId: '5', createdAt: '2025-07-14T09:15:00' },
+      unreadCount: 1,
+      isPinned: false,
+      isMuted: false,
+      messages: [
+        { id: 'm16', conversationId: '5', senderId: '5', senderName: 'Luna Studios', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Hi Diane! Congratulations on your new baby!', type: 'text', isRead: true, createdAt: '2025-07-13T15:00:00' },
+        { id: 'm17', conversationId: '5', senderId: '5', senderName: 'Luna Studios', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Your newborn session is confirmed for Saturday!', type: 'text', isRead: false, createdAt: '2025-07-14T09:15:00' }
+      ]
+    },
+    {
+      id: '6',
+      participants: [
+        { id: '6', name: 'Mark Vision', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'photographer', isOnline: false, lastSeen: '3 hours ago' },
+        { id: currentUserId, name: 'Diane Mary', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'client', isOnline: true }
+      ],
+      lastMessage: { content: 'The drone footage is being edited now.', senderId: '6', createdAt: '2025-07-13T16:30:00' },
+      unreadCount: 0,
+      isPinned: false,
+      isMuted: false,
+      messages: [
+        { id: 'm18', conversationId: '6', senderId: '6', senderName: 'Mark Vision', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Great aerial shots from your property listing!', type: 'text', isRead: true, createdAt: '2025-07-13T14:00:00' },
+        { id: 'm19', conversationId: '6', senderId: '6', senderName: 'Mark Vision', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'The drone footage is being edited now.', type: 'text', isRead: true, createdAt: '2025-07-13T16:30:00' }
+      ]
+    },
+    {
+      id: '7',
+      participants: [
+        { id: '7', name: 'Creative Lens Co', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'photographer', isOnline: true },
+        { id: currentUserId, name: 'Diane Mary', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'client', isOnline: true }
+      ],
+      lastMessage: { content: 'Your product photos are ready for download!', senderId: '7', createdAt: '2025-07-12T18:00:00' },
+      unreadCount: 0,
+      isPinned: false,
+      isMuted: false,
+      messages: [
+        { id: 'm20', conversationId: '7', senderId: '7', senderName: 'Creative Lens Co', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'All 50 product shots have been retouched!', type: 'text', isRead: true, createdAt: '2025-07-12T12:00:00' },
+        { id: 'm21', conversationId: '7', senderId: '7', senderName: 'Creative Lens Co', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Your product photos are ready for download!', type: 'text', isRead: true, createdAt: '2025-07-12T18:00:00' }
+      ]
+    },
+    {
+      id: '8',
+      participants: [
+        { id: '8', name: 'Nature Focus', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'photographer', isOnline: false, lastSeen: '5 hours ago' },
+        { id: currentUserId, name: 'Diane Mary', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'client', isOnline: true }
+      ],
+      lastMessage: { content: 'The outdoor shoot depends on weather.', senderId: '8', createdAt: '2025-07-11T14:45:00' },
+      unreadCount: 2,
+      isPinned: false,
+      isMuted: false,
+      messages: [
+        { id: 'm22', conversationId: '8', senderId: '8', senderName: 'Nature Focus', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Hi! Excited for the nature photoshoot!', type: 'text', isRead: true, createdAt: '2025-07-11T10:00:00' },
+        { id: 'm23', conversationId: '8', senderId: '8', senderName: 'Nature Focus', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'The outdoor shoot depends on weather.', type: 'text', isRead: false, createdAt: '2025-07-11T14:45:00' }
+      ]
+    },
+    {
+      id: '9',
+      participants: [
+        { id: '9', name: 'Pixel Perfect', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'photographer', isOnline: true },
+        { id: currentUserId, name: 'Diane Mary', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'client', isOnline: true }
+      ],
+      lastMessage: { content: 'Your graduation photos are stunning!', senderId: '9', createdAt: '2025-07-10T11:30:00' },
+      unreadCount: 0,
+      isPinned: false,
+      isMuted: false,
+      messages: [
+        { id: 'm24', conversationId: '9', senderId: '9', senderName: 'Pixel Perfect', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Congrats on graduating!', type: 'text', isRead: true, createdAt: '2025-07-10T09:00:00' },
+        { id: 'm25', conversationId: '9', senderId: '9', senderName: 'Pixel Perfect', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Your graduation photos are stunning!', type: 'text', isRead: true, createdAt: '2025-07-10T11:30:00' }
       ]
     }
   ]);
@@ -238,7 +325,7 @@ const InboxPage = () => {
       conversationId: selectedConversation,
       senderId: currentUserId,
       senderName: 'Diane Mary',
-      senderImage: 'https://randomuser.me/api/portraits/women/65.jpg',
+      senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg',
       content: messageInput,
       type: 'text',
       isRead: false,
@@ -259,12 +346,58 @@ const InboxPage = () => {
     setMessageInput('');
   };
 
+  // Message action handlers
+  const handleEditMessage = (messageId: string, currentContent: string) => {
+    setEditingMessageId(messageId);
+    setEditMessageContent(currentContent);
+  };
+
+  const saveEditedMessage = () => {
+    if (!editingMessageId || !editMessageContent.trim() || !selectedConversation) return;
+
+    setConversations(prev => prev.map(conv => {
+      if (conv.id === selectedConversation) {
+        return {
+          ...conv,
+          messages: conv.messages.map(msg =>
+            msg.id === editingMessageId ? { ...msg, content: editMessageContent } : msg
+          )
+        };
+      }
+      return conv;
+    }));
+
+    setEditingMessageId(null);
+    setEditMessageContent('');
+  };
+
+  const cancelEdit = () => {
+    setEditingMessageId(null);
+    setEditMessageContent('');
+  };
+
+  const handleDeleteMessage = (messageId: string) => {
+    if (!selectedConversation) return;
+
+    setConversations(prev => prev.map(conv => {
+      if (conv.id === selectedConversation) {
+        const updatedMessages = conv.messages.filter(msg => msg.id !== messageId);
+        const lastMsg = updatedMessages[updatedMessages.length - 1];
+        return {
+          ...conv,
+          messages: updatedMessages,
+          lastMessage: lastMsg ? { content: lastMsg.content, senderId: lastMsg.senderId, createdAt: lastMsg.createdAt } : undefined
+        };
+      }
+      return conv;
+    }));
+  };
+
   const filteredConversations = conversations.filter(conv => {
     const other = getOtherParticipant(conv);
     const matchesSearch = searchQuery === '' || other?.name.toLowerCase().includes(searchQuery.toLowerCase());
 
     if (activeFilter === 'unread') return matchesSearch && conv.unreadCount > 0;
-    if (activeFilter === 'pinned') return matchesSearch && conv.isPinned;
     return matchesSearch;
   });
 
@@ -283,10 +416,12 @@ const InboxPage = () => {
             width: '340px',
             backgroundColor: 'white',
             borderRadius: '0.75rem 0 0 0.75rem',
+            border: '1px solid #D1D5DB',
             borderRight: '1px solid #E5E7EB',
             display: 'flex',
             flexDirection: 'column',
-            overflow: 'hidden'
+            overflow: 'hidden',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
           }}>
             {/* Header */}
             <div style={{ padding: '1rem', borderBottom: '1px solid #E5E7EB' }}>
@@ -305,12 +440,12 @@ const InboxPage = () => {
                   style={{
                     width: '100%',
                     padding: '0.625rem 1rem 0.625rem 2.5rem',
-                    border: '1px solid #E5E7EB',
+                    border: '2px solid #D1D5DB',
                     borderRadius: '0.5rem',
                     fontSize: '0.9rem',
                     fontWeight: '500',
                     color: '#374151',
-                    backgroundColor: '#F9FAFB',
+                    backgroundColor: 'white',
                     outline: 'none'
                   }}
                 />
@@ -357,7 +492,7 @@ const InboxPage = () => {
                       padding: '0.875rem 1rem',
                       cursor: 'pointer',
                       backgroundColor: selectedConversation === conv.id ? '#EFF6FF' : 'white',
-                      borderBottom: '1px solid #F3F4F6',
+                      borderBottom: '2px solid #D1D5DB',
                       transition: 'background-color 0.2s'
                     }}
                   >
@@ -438,9 +573,12 @@ const InboxPage = () => {
             flex: 1,
             backgroundColor: 'white',
             borderRadius: '0 0.75rem 0.75rem 0',
+            border: '1px solid #D1D5DB',
+            borderLeft: 'none',
             display: 'flex',
             flexDirection: 'column',
-            overflow: 'hidden'
+            overflow: 'hidden',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
           }}>
             {selectedConv && otherParticipant ? (
               <>
@@ -481,24 +619,14 @@ const InboxPage = () => {
                       </span>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem' }}>
-                      <PhoneIcon />
-                    </button>
-                    <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem' }}>
-                      <VideoIcon />
-                    </button>
-                    <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem' }}>
-                      <MoreIcon />
-                    </button>
-                  </div>
                 </div>
 
                 {/* Messages */}
-                <div style={{ flex: 1, overflowY: 'auto', padding: '1rem 1.25rem', backgroundColor: '#F9FAFB' }}>
+                <div style={{ flex: 1, overflowY: 'auto', padding: '1rem 1.25rem', backgroundColor: '#F5F6F8' }}>
                   {selectedConv.messages.map((message, index) => {
                     const isOwn = message.senderId === currentUserId;
                     const showAvatar = index === 0 || selectedConv.messages[index - 1].senderId !== message.senderId;
+                    const isEditing = editingMessageId === message.id;
 
                     return (
                       <div
@@ -508,8 +636,10 @@ const InboxPage = () => {
                           justifyContent: isOwn ? 'flex-end' : 'flex-start',
                           marginBottom: '0.75rem'
                         }}
+                        onMouseEnter={() => setHoveredMessageId(message.id)}
+                        onMouseLeave={() => setHoveredMessageId(null)}
                       >
-                        <div style={{ display: 'flex', gap: '0.5rem', maxWidth: '70%' }}>
+                        <div style={{ display: 'flex', gap: '0.5rem', maxWidth: '70%', position: 'relative' }}>
                           {!isOwn && showAvatar && (
                             <Image
                               src={message.senderImage}
@@ -520,16 +650,137 @@ const InboxPage = () => {
                             />
                           )}
                           {!isOwn && !showAvatar && <div style={{ width: '32px' }} />}
-                          <div>
+
+                          {/* Message Actions - Left side for own messages */}
+                          {isOwn && hoveredMessageId === message.id && !isEditing && (
                             <div style={{
-                              backgroundColor: isOwn ? '#083A85' : 'white',
-                              color: isOwn ? 'white' : '#111827',
-                              padding: '0.75rem 1rem',
-                              borderRadius: isOwn ? '1rem 1rem 0.25rem 1rem' : '1rem 1rem 1rem 0.25rem',
-                              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.25rem',
+                              alignSelf: 'center'
                             }}>
-                              <p style={{ margin: 0, fontSize: '0.9rem', lineHeight: '1.5' }}>{message.content}</p>
+                              <button
+                                onClick={() => handleEditMessage(message.id, message.content)}
+                                style={{
+                                  padding: '0.375rem',
+                                  backgroundColor: 'white',
+                                  border: '1px solid #E5E7EB',
+                                  borderRadius: '0.375rem',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  color: '#6B7280',
+                                  transition: 'all 0.2s'
+                                }}
+                                title="Edit message"
+                              >
+                                <EditIcon />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteMessage(message.id)}
+                                style={{
+                                  padding: '0.375rem',
+                                  backgroundColor: 'white',
+                                  border: '1px solid #E5E7EB',
+                                  borderRadius: '0.375rem',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  color: '#DC2626',
+                                  transition: 'all 0.2s'
+                                }}
+                                title="Delete message"
+                              >
+                                <DeleteIcon />
+                              </button>
                             </div>
+                          )}
+
+                          <div>
+                            {isEditing ? (
+                              <div style={{
+                                backgroundColor: 'white',
+                                border: '2px solid #083A85',
+                                borderRadius: '0.75rem',
+                                padding: '0.75rem',
+                                minWidth: '250px',
+                                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+                              }}>
+                                <div style={{
+                                  fontSize: '0.7rem',
+                                  color: '#083A85',
+                                  fontWeight: '600',
+                                  marginBottom: '0.375rem',
+                                  textTransform: 'uppercase',
+                                  letterSpacing: '0.5px'
+                                }}>
+                                  Edit Message
+                                </div>
+                                <input
+                                  type="text"
+                                  value={editMessageContent}
+                                  onChange={(e) => setEditMessageContent(e.target.value)}
+                                  onKeyPress={(e) => e.key === 'Enter' && saveEditedMessage()}
+                                  style={{
+                                    width: '100%',
+                                    padding: '0.625rem 0.75rem',
+                                    border: '2px solid #D1D5DB',
+                                    borderRadius: '0.375rem',
+                                    fontSize: '0.9rem',
+                                    outline: 'none',
+                                    marginBottom: '0.625rem',
+                                    color: '#111827',
+                                    backgroundColor: '#F9FAFB'
+                                  }}
+                                  autoFocus
+                                />
+                                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                  <button
+                                    onClick={cancelEdit}
+                                    style={{
+                                      padding: '0.5rem 1rem',
+                                      backgroundColor: 'white',
+                                      border: '2px solid #D1D5DB',
+                                      borderRadius: '0.375rem',
+                                      fontSize: '0.8rem',
+                                      fontWeight: '600',
+                                      cursor: 'pointer',
+                                      color: '#6B7280'
+                                    }}
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    onClick={saveEditedMessage}
+                                    style={{
+                                      padding: '0.5rem 1rem',
+                                      backgroundColor: '#083A85',
+                                      border: '2px solid #062a63',
+                                      borderRadius: '0.375rem',
+                                      fontSize: '0.8rem',
+                                      fontWeight: '600',
+                                      cursor: 'pointer',
+                                      color: 'white'
+                                    }}
+                                  >
+                                    Save
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div style={{
+                                backgroundColor: isOwn ? '#083A85' : 'white',
+                                color: isOwn ? 'white' : '#111827',
+                                padding: '0.75rem 1rem',
+                                borderRadius: isOwn ? '1rem 1rem 0.25rem 1rem' : '1rem 1rem 1rem 0.25rem',
+                                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                                border: isOwn ? 'none' : '1px solid #E5E7EB'
+                              }}>
+                                <p style={{ margin: 0, fontSize: '0.9rem', lineHeight: '1.5' }}>{message.content}</p>
+                              </div>
+                            )}
                             <div style={{
                               display: 'flex',
                               alignItems: 'center',
@@ -541,6 +792,7 @@ const InboxPage = () => {
                               {isOwn && (message.isRead ? <CheckDoubleIcon /> : <CheckIcon />)}
                             </div>
                           </div>
+
                         </div>
                       </div>
                     );
@@ -549,44 +801,140 @@ const InboxPage = () => {
                 </div>
 
                 {/* Message Input */}
-                <div style={{ padding: '1rem 1.25rem', borderTop: '1px solid #E5E7EB' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem' }}>
-                      <AttachmentIcon />
-                    </button>
-                    <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem' }}>
-                      <ImageIcon />
-                    </button>
-                    <div style={{ flex: 1, position: 'relative' }}>
-                      <input
-                        type="text"
-                        placeholder="Type a message..."
-                        value={messageInput}
-                        onChange={(e) => setMessageInput(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                        style={{
-                          width: '100%',
-                          padding: '0.75rem 1rem',
-                          border: '1px solid #E5E7EB',
-                          borderRadius: '9999px',
-                          fontSize: '0.9rem',
-                          outline: 'none',
-                          backgroundColor: '#F9FAFB'
-                        }}
-                      />
-                      <button style={{
+                <div style={{ padding: '1rem 1.25rem', borderTop: '1px solid #E5E7EB', position: 'relative' }}>
+                  {/* Emoji Picker */}
+                  {showEmojiPicker && (
+                    <div
+                      ref={emojiPickerRef}
+                      style={{
                         position: 'absolute',
-                        right: '0.5rem',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: '0.25rem'
+                        bottom: '100%',
+                        left: '1rem',
+                        backgroundColor: 'white',
+                        borderRadius: '0.75rem',
+                        boxShadow: '0 8px 30px rgba(0, 0, 0, 0.2)',
+                        width: '320px',
+                        height: '350px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        overflow: 'hidden',
+                        marginBottom: '0.5rem',
+                        border: '2px solid #D1D5DB'
+                      }}
+                    >
+                      {/* Category Tabs */}
+                      <div
+                        style={{
+                          display: 'flex',
+                          overflowX: 'auto',
+                          overflowY: 'hidden',
+                          borderBottom: '2px solid #E5E7EB',
+                          padding: '0.5rem',
+                          gap: '0.375rem',
+                          scrollbarWidth: 'thin',
+                          backgroundColor: '#F9FAFB',
+                          flexShrink: 0,
+                          WebkitOverflowScrolling: 'touch',
+                          msOverflowStyle: 'none',
+                          scrollBehavior: 'smooth'
+                        }}
+                        className="emoji-tabs-scroll"
+                      >
+                        {Object.keys(emojiCategories).map((category) => (
+                          <button
+                            key={category}
+                            onClick={() => setActiveEmojiCategory(category)}
+                            style={{
+                              padding: '0.5rem 0.75rem',
+                              border: `2px solid ${activeEmojiCategory === category ? '#083A85' : '#D1D5DB'}`,
+                              borderRadius: '9999px',
+                              fontSize: '0.75rem',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              backgroundColor: activeEmojiCategory === category ? '#083A85' : 'white',
+                              color: activeEmojiCategory === category ? 'white' : '#374151',
+                              whiteSpace: 'nowrap',
+                              transition: 'background-color 0.2s, border-color 0.2s, color 0.2s',
+                              flexShrink: 0,
+                              boxSizing: 'border-box'
+                            }}
+                          >
+                            {category}
+                          </button>
+                        ))}
+                      </div>
+                      {/* Emoji Grid */}
+                      <div style={{
+                        padding: '0.75rem',
+                        overflowY: 'auto',
+                        flex: 1,
+                        minHeight: 0
                       }}>
-                        <EmojiIcon />
-                      </button>
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(8, 1fr)',
+                          gap: '0.25rem'
+                        }}>
+                          {emojiCategories[activeEmojiCategory as keyof typeof emojiCategories].map((emoji, index) => (
+                            <button
+                              key={index}
+                              onClick={() => insertEmoji(emoji)}
+                              style={{
+                                border: 'none',
+                                backgroundColor: 'transparent',
+                                fontSize: '1.5rem',
+                                padding: '0.25rem',
+                                cursor: 'pointer',
+                                borderRadius: '0.25rem',
+                                transition: 'background-color 0.2s'
+                              }}
+                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F3F4F6'}
+                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     </div>
+                  )}
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <button
+                      onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                      style={{
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        padding: '0.5rem',
+                        cursor: 'pointer',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'background-color 0.2s'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F3F4F6'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      <EmojiIcon />
+                    </button>
+                    <input
+                      type="text"
+                      placeholder="Type a message..."
+                      value={messageInput}
+                      onChange={(e) => setMessageInput(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                      style={{
+                        flex: 1,
+                        padding: '0.75rem 1rem',
+                        border: '2px solid #D1D5DB',
+                        borderRadius: '9999px',
+                        fontSize: '0.9rem',
+                        outline: 'none',
+                        backgroundColor: 'white',
+                        color: '#111827'
+                      }}
+                    />
                     <button
                       onClick={sendMessage}
                       disabled={!messageInput.trim()}
