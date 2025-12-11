@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import Sidebar from '../../components/sidebar';
@@ -9,7 +9,6 @@ import {
   StatCard,
   HeaderStat,
   ActivityItem,
-  ClientItem,
   PaymentItem,
   PerformanceChart,
   MoneyIcon,
@@ -18,6 +17,14 @@ import {
   GiftIcon,
   StarIcon
 } from '../../components/dashboard';
+
+// Eye icon for view details
+const EyeIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
+  </svg>
+);
 
 // Alert Icons
 const AlertTriangleIcon = () => (
@@ -48,6 +55,78 @@ const ChevronRightIcon = () => (
   </svg>
 );
 
+// Heartwarming greeting variations based on time of day
+const getGreetings = (timeOfDay: string) => {
+  const morningGreetings = [
+    "Good Morning",
+    "Rise and Shine",
+    "Beautiful Morning",
+    "Lovely Morning",
+    "Wonderful Morning",
+    "Great Morning",
+    "Happy Morning",
+    "Blessed Morning"
+  ];
+
+  const afternoonGreetings = [
+    "Good Afternoon",
+    "Lovely Afternoon",
+    "Beautiful Afternoon",
+    "Wonderful Afternoon",
+    "Great Afternoon",
+    "Happy Afternoon",
+    "Blessed Afternoon",
+    "Amazing Afternoon"
+  ];
+
+  const eveningGreetings = [
+    "Good Evening",
+    "Lovely Evening",
+    "Beautiful Evening",
+    "Wonderful Evening",
+    "Great Evening",
+    "Happy Evening",
+    "Peaceful Evening",
+    "Relaxing Evening"
+  ];
+
+  const nightGreetings = [
+    "Good Night",
+    "Peaceful Night",
+    "Lovely Night",
+    "Beautiful Night",
+    "Wonderful Night",
+    "Quiet Night",
+    "Restful Night",
+    "Starry Night"
+  ];
+
+  switch (timeOfDay) {
+    case 'morning': return morningGreetings;
+    case 'afternoon': return afternoonGreetings;
+    case 'evening': return eveningGreetings;
+    default: return nightGreetings;
+  }
+};
+
+// Static subtitle based on time of day
+const getStaticMessage = (timeOfDay: string) => {
+  switch (timeOfDay) {
+    case 'morning': return "Ready to discover amazing photographers for your next event?";
+    case 'afternoon': return "Perfect time to browse through your galleries!";
+    case 'evening': return "Time to relive today's beautiful moments!";
+    default: return "Late night browsing? Your galleries await!";
+  }
+};
+
+const getTimeOfDay = () => {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) return 'morning';
+  if (hour >= 12 && hour < 17) return 'afternoon';
+  if (hour >= 17 && hour < 21) return 'evening';
+  return 'night';
+};
+
 interface PendingPayment {
   id: string;
   eventName: string;
@@ -59,8 +138,62 @@ interface PendingPayment {
   status: 'pending' | 'failed' | 'partially_paid';
 }
 
+interface Photographer {
+  id: string;
+  name: string;
+  event: string;
+  status: 'In Progress' | 'Completed' | 'Pending';
+  avatar: string;
+}
+
 const ClientDashboard = () => {
   const [activeFilter, setActiveFilter] = useState<'today' | 'week' | 'month' | 'custom'>('week');
+  const [timeOfDay, setTimeOfDay] = useState(getTimeOfDay());
+  const [greetingIndex, setGreetingIndex] = useState(0);
+  const [greetings, setGreetings] = useState(getGreetings(getTimeOfDay()));
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (activeDropdown) {
+        setActiveDropdown(null);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [activeDropdown]);
+
+  useEffect(() => {
+    // Update time of day and greetings
+    const updateTimeOfDay = () => {
+      const newTimeOfDay = getTimeOfDay();
+      if (newTimeOfDay !== timeOfDay) {
+        setTimeOfDay(newTimeOfDay);
+        setGreetings(getGreetings(newTimeOfDay));
+        setGreetingIndex(0);
+      }
+    };
+
+    // Cycle through greetings every 5 seconds
+    const greetingInterval = setInterval(() => {
+      setGreetingIndex((prev) => (prev + 1) % greetings.length);
+    }, 5000);
+
+    // Check time of day every minute
+    const timeInterval = setInterval(updateTimeOfDay, 60000);
+
+    return () => {
+      clearInterval(greetingInterval);
+      clearInterval(timeInterval);
+    };
+  }, [timeOfDay, greetings.length]);
+
+  const currentGreeting = greetings[greetingIndex];
+  const staticMessage = getStaticMessage(timeOfDay);
 
   // Pending Payments Data
   const pendingPayments: PendingPayment[] = [
@@ -68,7 +201,7 @@ const ClientDashboard = () => {
       id: 'PAY-001',
       eventName: 'Corporate Headshots',
       photographerName: 'Elite Photography',
-      photographerImage: 'https://randomuser.me/api/portraits/men/22.jpg',
+      photographerImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
       amount: 500,
       paidAmount: 0,
       dueDate: '2025-07-25',
@@ -78,7 +211,7 @@ const ClientDashboard = () => {
       id: 'PAY-002',
       eventName: 'Family Portrait',
       photographerName: 'Mary Shots',
-      photographerImage: 'https://randomuser.me/api/portraits/women/68.jpg',
+      photographerImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg',
       amount: 250,
       paidAmount: 125,
       dueDate: '2025-07-30',
@@ -88,7 +221,7 @@ const ClientDashboard = () => {
       id: 'PAY-003',
       eventName: 'Fashion Shoot',
       photographerName: 'Sarah Lens',
-      photographerImage: 'https://randomuser.me/api/portraits/women/44.jpg',
+      photographerImage: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg',
       amount: 400,
       paidAmount: 0,
       dueDate: '2025-08-05',
@@ -118,39 +251,46 @@ const ClientDashboard = () => {
     { label: 'Last Activity', value: 'Today, 14. July 2025' }
   ];
 
-  const photographers = [
+  const photographers: Photographer[] = [
     {
+      id: 'PHT-001',
       name: 'John Studio',
       event: 'Wedding',
       status: 'In Progress' as const,
-      avatar: 'https://randomuser.me/api/portraits/men/75.jpg'
+      avatar: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg'
     },
     {
+      id: 'PHT-002',
       name: 'Mary Shots',
       event: 'Birthday',
       status: 'Completed' as const,
-      avatar: 'https://randomuser.me/api/portraits/women/68.jpg'
+      avatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg'
     },
     {
+      id: 'PHT-003',
       name: 'Alex Frames',
       event: 'Festival',
       status: 'Pending' as const,
-      avatar: 'https://randomuser.me/api/portraits/men/44.jpg'
+      avatar: 'https://i.pinimg.com/1200x/09/23/45/092345eac1919407e0c49f67e285b831.jpg'
     }
   ];
+
+  const toggleDropdown = (id: string) => {
+    setActiveDropdown(activeDropdown === id ? null : id);
+  };
 
   const recentPayments = [
     {
       name: 'John Studio',
       type: 'Booking Payment',
       amount: '$1,950',
-      avatar: 'https://randomuser.me/api/portraits/men/75.jpg'
+      avatar: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg'
     },
     {
       name: 'Mary Shots',
       type: 'Photo Package',
       amount: '$850',
-      avatar: 'https://randomuser.me/api/portraits/women/68.jpg'
+      avatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg'
     },
     {
       name: 'Amoria',
@@ -195,10 +335,19 @@ const ClientDashboard = () => {
               <h1 style={{
                 fontSize: '1.8rem',
                 lineHeight: '2rem',
-                color: '#111827'
+                color: '#111827',
+                fontWeight: '600',
+                transition: 'opacity 0.3s ease'
               }}>
-                Good Morning, <span style={{ fontWeight: '600', color: '#083A85' }}>Diane</span>
+                {currentGreeting}, <span style={{ fontWeight: '600', color: '#2563EB' }}>Diane</span>
               </h1>
+              <p style={{
+                fontSize: '0.875rem',
+                color: '#6B7280',
+                marginTop: '0.25rem'
+              }}>
+                {staticMessage}
+              </p>
             </div>
             <div style={{
               backgroundColor: 'white',
@@ -608,7 +757,7 @@ const ClientDashboard = () => {
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',
-              alignItems: 'center',             
+              alignItems: 'center',
               marginBottom: '0.75rem'
             }}>
               <h2 style={{
@@ -617,22 +766,145 @@ const ClientDashboard = () => {
                 fontWeight: '100',
                 color: '#111827'
               }}>Photographers</h2>
-              <a href="#" style={{
+              <Link href="/user/client/photographers" style={{
                 fontSize: '1rem',
                 lineHeight: '1rem',
                 color: '#2563EB',
                 fontWeight: '500',
                 textDecoration: 'none'
-              }}>See all</a>
+              }}>See all</Link>
             </div>
             <div style={{
               display: 'flex',
               flexDirection: 'column',
               gap: '0.625rem'
             }}>
-              {photographers.map((photographer, index) => (
-                <ClientItem key={index} {...photographer} />
-              ))}
+              {photographers.map((photographer) => {
+                const getStatusStyle = () => {
+                  switch (photographer.status) {
+                    case 'In Progress':
+                      return { backgroundColor: '#FCE7F3', color: '#DB2777' };
+                    case 'Completed':
+                      return { backgroundColor: '#D1FAE5', color: '#059669' };
+                    case 'Pending':
+                      return { backgroundColor: '#FEF3C7', color: '#D97706' };
+                    default:
+                      return {};
+                  }
+                };
+
+                return (
+                  <div
+                    key={photographer.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.625rem',
+                      padding: '0.5rem',
+                      borderRadius: '0.375rem',
+                      transition: 'background-color 0.3s',
+                      position: 'relative'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F9FAFB'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  >
+                    <img
+                      src={photographer.avatar}
+                      alt={photographer.name}
+                      style={{
+                        width: '2.25rem',
+                        height: '2.25rem',
+                        borderRadius: '9999px',
+                        objectFit: 'cover'
+                      }}
+                    />
+                    <div style={{
+                      flex: 1,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.125rem'
+                    }}>
+                      <span style={{
+                        fontSize: '1rem',
+                        lineHeight: '1.25rem',
+                        fontWeight: '700',
+                        color: '#111827'
+                      }}>{photographer.name}</span>
+                      <span style={{
+                        fontSize: '0.85rem',
+                        lineHeight: '1rem',
+                        color: '#6B7280'
+                      }}>{photographer.event}</span>
+                    </div>
+                    <span style={{
+                      paddingLeft: '0.625rem',
+                      paddingRight: '0.625rem',
+                      paddingTop: '0.25rem',
+                      paddingBottom: '0.25rem',
+                      borderRadius: '0.25rem',
+                      fontSize: '0.85rem',
+                      lineHeight: '1rem',
+                      fontWeight: '600',
+                      ...getStatusStyle()
+                    }}>{photographer.status}</span>
+                    <div style={{ position: 'relative' }}>
+                      <button
+                        style={{
+                          padding: '0.25rem',
+                          color: '#9CA3AF',
+                          fontSize: '1.25rem',
+                          lineHeight: '1.75rem',
+                          border: 'none',
+                          background: 'none',
+                          cursor: 'pointer',
+                          transition: 'color 0.3s'
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleDropdown(photographer.id);
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.color = '#4B5563'}
+                        onMouseLeave={(e) => e.currentTarget.style.color = '#9CA3AF'}
+                      >
+                        <span>⋮</span>
+                      </button>
+                      {activeDropdown === photographer.id && (
+                        <div style={{
+                          position: 'absolute',
+                          top: '100%',
+                          right: 0,
+                          backgroundColor: 'white',
+                          borderRadius: '0.5rem',
+                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                          border: '1px solid #E5E7EB',
+                          zIndex: 10,
+                          minWidth: '140px',
+                          overflow: 'hidden'
+                        }}>
+                          <Link
+                            href="/user/client/photographers"
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.5rem',
+                              padding: '0.625rem 0.875rem',
+                              fontSize: '0.875rem',
+                              color: '#374151',
+                              textDecoration: 'none',
+                              transition: 'background-color 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F3F4F6'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                          >
+                            <EyeIcon />
+                            View Details
+                          </Link>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </section>
         </div>
@@ -681,13 +953,13 @@ const ClientDashboard = () => {
                 fontWeight: '100',
                 color: '#111827'
               }}>Recent payments</h2>
-              <a href="#" style={{
+              <Link href="/user/client/payments" style={{
                 fontSize: '1rem',
                 lineHeight: '1rem',
                 color: '#2563EB',
                 fontWeight: '500',
                 textDecoration: 'none'
-              }}>See all</a>
+              }}>See all</Link>
             </div>
             <div style={{
               display: 'flex',

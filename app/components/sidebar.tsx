@@ -11,20 +11,34 @@ interface NavigationItem {
   name: string;
   href: string;
   icon: string;
+  badge?: number;
 }
+
+// Badge counts for notifications and messages (in real app, these would come from API/context)
+const getNotificationCounts = (role: UserRole) => {
+  // Sample notification counts - in production, these would be fetched from backend
+  const counts = {
+    photographer: { notifications: 5, messages: 6 },
+    freelancer: { notifications: 3, messages: 4 },
+    client: { notifications: 4, messages: 2 }
+  };
+  return counts[role];
+};
 
 // Role-based navigation configurations
 const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
   photographer: [
-    { name: "Home", href: "/user/photographers/dashboard", icon: "bi-house" },
-    { name: "Transactions", href: "/user/photographers/transaction", icon: "bi-arrow-repeat" },
-    { name: "Gallery", href: "/user/photographers/gallery", icon: "bi-image" },
-    { name: "Streams", href: "/user/photographers/streams", icon: "bi-broadcast" },
-    { name: "Inbox", href: "/user/photographers/inbox", icon: "bi-chat-dots" },
-    { name: "Clients", href: "/user/photographers/clients", icon: "bi-people" },
+    { name: "Home", href: "/user/photographer/dashboard", icon: "bi-house" },
+    { name: "Notifications", href: "/user/photographer/notifications", icon: "bi-bell" },
+    { name: "Transactions", href: "/user/photographer/transaction", icon: "bi-arrow-repeat" },
+    { name: "Gallery", href: "/user/photographer/gallery", icon: "bi-image" },
+    { name: "Streams", href: "/user/photographer/streams", icon: "bi-broadcast" },
+    { name: "Inbox", href: "/user/photographer/inbox", icon: "bi-chat-dots" },
+    { name: "Clients", href: "/user/photographer/clients", icon: "bi-people" },
   ],
   freelancer: [
     { name: "Home", href: "/user/freelancer/dashboard", icon: "bi-house" },
+    { name: "Notifications", href: "/user/freelancer/notifications", icon: "bi-bell" },
     { name: "Transactions", href: "/user/freelancer/transaction", icon: "bi-arrow-repeat" },
     { name: "Gallery", href: "/user/freelancer/gallery", icon: "bi-image" },
     { name: "Streams", href: "/user/freelancer/streams", icon: "bi-broadcast" },
@@ -33,7 +47,9 @@ const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
   ],
   client: [
     { name: "Home", href: "/user/client/home", icon: "bi-house" },
+    { name: "Notifications", href: "/user/client/notifications", icon: "bi-bell" },
     { name: "My Events", href: "/user/client/events", icon: "bi-calendar-event" },
+    { name: "Gallery", href: "/user/client/gallery", icon: "bi-image" },
     { name: "Photographers", href: "/user/client/photographers", icon: "bi-camera" },
     { name: "Payments", href: "/user/client/payments", icon: "bi-credit-card" },
     { name: "Inbox", href: "/user/client/inbox", icon: "bi-chat-dots" },
@@ -44,8 +60,8 @@ const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
 const getBottomNavigationItems = (role: UserRole): NavigationItem[] => {
   if (role === "photographer") {
     return [
-      { name: "Profile", href: "/user/photographers/profile", icon: "bi-person" },
-      { name: "Preferences", href: "/user/photographers/preferences", icon: "bi-sliders" },
+      { name: "Profile", href: "/user/photographer/profile", icon: "bi-person" },
+      { name: "Preferences", href: "/user/photographer/preferences", icon: "bi-sliders" },
       { name: "Logout", href: "/", icon: "bi-box-arrow-right" },
     ];
   } else if (role === "freelancer") {
@@ -65,7 +81,7 @@ const getBottomNavigationItems = (role: UserRole): NavigationItem[] => {
 
 // Function to detect role from pathname
 const detectRoleFromPath = (pathname: string | null): UserRole => {
-  if (pathname && pathname.includes("/user/photographers")) {
+  if (pathname && pathname.includes("/user/photographer")) {
     return "photographer";
   }
   if (pathname && pathname.includes("/user/freelancer")) {
@@ -81,7 +97,17 @@ export default function Sidebar() {
   // Automatically detect role from current URL path
   const currentRole = useMemo(() => detectRoleFromPath(pathname), [pathname]);
 
-  const navigationItems = roleNavigationMap[currentRole];
+  const notificationCounts = getNotificationCounts(currentRole);
+  const navigationItems = roleNavigationMap[currentRole].map(item => {
+    // Add badge counts for Notifications and Inbox
+    if (item.name === "Notifications") {
+      return { ...item, badge: notificationCounts.notifications };
+    }
+    if (item.name === "Inbox") {
+      return { ...item, badge: notificationCounts.messages };
+    }
+    return item;
+  });
   const bottomNavigationItems = getBottomNavigationItems(currentRole);
 
   const toggleSidebar = () => {
@@ -219,8 +245,55 @@ export default function Sidebar() {
                 }
               }}
             >
-              <i style={{ fontSize: '18px' }} className={`bi ${item.icon}`}></i>
-              {!isCollapsed && <span>{item.name}</span>}
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <i style={{ fontSize: '18px' }} className={`bi ${item.icon}`}></i>
+                {/* Badge for collapsed sidebar */}
+                {isCollapsed && item.badge && item.badge > 0 && (
+                  <span style={{
+                    position: 'absolute',
+                    top: '-8px',
+                    right: '-10px',
+                    backgroundColor: '#EF4444',
+                    color: 'white',
+                    fontSize: '10px',
+                    fontWeight: '600',
+                    borderRadius: '9999px',
+                    minWidth: '18px',
+                    height: '18px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '0 4px',
+                    boxShadow: '0 0 0 2px #f5f5f5, 0 1px 3px rgba(239, 68, 68, 0.3)'
+                  }}>
+                    {item.badge > 9 ? '9+' : item.badge}
+                  </span>
+                )}
+              </div>
+              {!isCollapsed && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flex: 1 }}>
+                  <span>{item.name}</span>
+                  {/* Badge for expanded sidebar */}
+                  {item.badge && item.badge > 0 && (
+                    <span style={{
+                      backgroundColor: '#EF4444',
+                      color: 'white',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      borderRadius: '10px',
+                      minWidth: '24px',
+                      height: '22px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '0 8px',
+                      boxShadow: '0 1px 3px rgba(239, 68, 68, 0.25)'
+                    }}>
+                      {item.badge > 99 ? '99+' : item.badge}
+                    </span>
+                  )}
+                </div>
+              )}
             </Link>
           );
         })}

@@ -211,6 +211,42 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
   );
 };
 
+// Photographers the client has worked with before
+const pastPhotographers = [
+  {
+    id: 'p1',
+    name: 'John Studio',
+    image: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg',
+    speciality: 'Weddings',
+    rating: 4.9,
+    eventsWorked: 3
+  },
+  {
+    id: 'p2',
+    name: 'Mary Shots',
+    image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg',
+    speciality: 'Birthdays & Events',
+    rating: 4.8,
+    eventsWorked: 2
+  },
+  {
+    id: 'p3',
+    name: 'David Captures',
+    image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
+    speciality: 'Corporate & Baby Showers',
+    rating: 4.7,
+    eventsWorked: 1
+  },
+  {
+    id: 'p4',
+    name: 'Elite Photography',
+    image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
+    speciality: 'Graduations & Events',
+    rating: 4.9,
+    eventsWorked: 1
+  }
+];
+
 const MyEventsPage = () => {
   const [activeTab, setActiveTab] = useState<'upcoming' | 'past' | 'all'>('upcoming');
   const [searchQuery, setSearchQuery] = useState('');
@@ -236,6 +272,24 @@ const MyEventsPage = () => {
   const [editCountry, setEditCountry] = useState('');
   const [editMaxGuests, setEditMaxGuests] = useState('');
 
+  // Create form state
+  const [createTitle, setCreateTitle] = useState('');
+  const [createDescription, setCreateDescription] = useState('');
+  const [createEventType, setCreateEventType] = useState('');
+  const [createDate, setCreateDate] = useState('');
+  const [createTime, setCreateTime] = useState('');
+  const [createDuration, setCreateDuration] = useState('');
+  const [createAddress, setCreateAddress] = useState('');
+  const [createCity, setCreateCity] = useState('');
+  const [createCountry, setCreateCountry] = useState('Rwanda');
+  const [createMaxGuests, setCreateMaxGuests] = useState('');
+  const [createCoverImage, setCreateCoverImage] = useState<string | null>(null);
+  const [createCoverImagePreview, setCreateCoverImagePreview] = useState<string | null>(null);
+  const [createPhotographerId, setCreatePhotographerId] = useState<string>('');
+  const [dateError, setDateError] = useState<string>('');
+  const [timeError, setTimeError] = useState<string>('');
+
+
   const [events, setEvents] = useState<Event[]>([
     {
       id: '1',
@@ -252,7 +306,7 @@ const MyEventsPage = () => {
       status: 'upcoming',
       hasPhotographer: true,
       photographerName: 'John Studio',
-      photographerImage: 'https://randomuser.me/api/portraits/men/75.jpg',
+      photographerImage: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg',
       shareLink: 'https://connekt.app/event/evt_7x9K2mNpQrS4',
       createdAt: '2025-06-01'
     },
@@ -271,7 +325,7 @@ const MyEventsPage = () => {
       status: 'upcoming',
       hasPhotographer: true,
       photographerName: 'Mary Shots',
-      photographerImage: 'https://randomuser.me/api/portraits/women/68.jpg',
+      photographerImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg',
       shareLink: 'https://connekt.app/event/evt_3pL8wYzTuV5H',
       createdAt: '2025-06-15'
     },
@@ -307,7 +361,7 @@ const MyEventsPage = () => {
       status: 'completed',
       hasPhotographer: true,
       photographerName: 'David Captures',
-      photographerImage: 'https://randomuser.me/api/portraits/men/32.jpg',
+      photographerImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
       shareLink: 'https://connekt.app/event/evt_5hR2vJmLnP8W',
       createdAt: '2025-04-01'
     },
@@ -326,7 +380,7 @@ const MyEventsPage = () => {
       status: 'completed',
       hasPhotographer: true,
       photographerName: 'Elite Photography',
-      photographerImage: 'https://randomuser.me/api/portraits/men/22.jpg',
+      photographerImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
       shareLink: 'https://connekt.app/event/evt_1qA6tXsGdK4Y',
       createdAt: '2024-11-01'
     }
@@ -383,6 +437,73 @@ const MyEventsPage = () => {
 
     setShowEditModal(false);
     setEditEvent(null);
+  };
+
+  // Handle cover image upload
+  const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Create a preview URL
+      const previewUrl = URL.createObjectURL(file);
+      setCreateCoverImagePreview(previewUrl);
+      // In a real app, you'd upload the file to a server and get back a URL
+      // For now, we'll use the preview URL as the image
+      setCreateCoverImage(previewUrl);
+    }
+  };
+
+  // Reset create form
+  const resetCreateForm = () => {
+    setCreateTitle('');
+    setCreateDescription('');
+    setCreateEventType('');
+    setCreateDate('');
+    setCreateTime('');
+    setCreateDuration('');
+    setCreateAddress('');
+    setCreateCity('');
+    setCreateCountry('Rwanda');
+    setCreateMaxGuests('');
+    setCreateCoverImage(null);
+    setCreateCoverImagePreview(null);
+    setCreatePhotographerId('');
+    setDateError('');
+    setTimeError('');
+  };
+
+  // Handle create event
+  const handleCreateEvent = () => {
+    if (!createTitle || !createEventType || !createDate || !createTime) return;
+
+    const selectedPhotographer = pastPhotographers.find(p => p.id === createPhotographerId);
+
+    const newEvent: Event = {
+      id: `evt_${Date.now()}`,
+      title: createTitle,
+      description: createDescription,
+      eventType: createEventType,
+      date: createDate,
+      time: createTime,
+      duration: createDuration || '4 hours',
+      location: {
+        address: createAddress,
+        city: createCity,
+        country: createCountry
+      },
+      coverImage: createCoverImage || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800',
+      guestCount: 0,
+      maxGuests: parseInt(createMaxGuests) || 100,
+      status: 'upcoming',
+      hasPhotographer: !!selectedPhotographer,
+      photographerName: selectedPhotographer?.name,
+      photographerImage: selectedPhotographer?.image,
+      shareLink: `https://connekt.app/event/evt_${Math.random().toString(36).substr(2, 12)}`,
+      createdAt: new Date().toISOString().split('T')[0]
+    };
+
+    setEvents(prev => [newEvent, ...prev]);
+    resetCreateForm();
+    setShowCreateModal(false);
   };
 
   const handleCopyLink = (link: string) => {
@@ -708,7 +829,7 @@ const MyEventsPage = () => {
                             padding: '0.5rem',
                             cursor: 'pointer'
                           }}
-                          title="Share Event"
+                          title="Share Event Stream"
                         >
                           <ShareIcon />
                         </button>
@@ -761,14 +882,84 @@ const MyEventsPage = () => {
       </div>
 
       {/* Create Event Modal */}
-      <Modal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} title="Create New Event" maxWidth="600px">
+      <Modal isOpen={showCreateModal} onClose={() => { resetCreateForm(); setShowCreateModal(false); }} title="Create New Event" maxWidth="650px">
         <div>
+          {/* Cover Image Upload */}
+          <div style={{ marginBottom: '1.25rem' }}>
+            <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+              Event Cover Image
+            </label>
+            <div style={{
+              border: '2px dashed #D1D5DB',
+              borderRadius: '0.5rem',
+              padding: '1rem',
+              textAlign: 'center',
+              backgroundColor: '#F9FAFB',
+              cursor: 'pointer',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              {createCoverImagePreview ? (
+                <div style={{ position: 'relative' }}>
+                  <Image
+                    src={createCoverImagePreview}
+                    alt="Cover preview"
+                    width={580}
+                    height={200}
+                    style={{
+                      width: '100%',
+                      height: '160px',
+                      objectFit: 'cover',
+                      borderRadius: '0.375rem'
+                    }}
+                  />
+                  <button
+                    onClick={() => { setCreateCoverImage(null); setCreateCoverImagePreview(null); }}
+                    style={{
+                      position: 'absolute',
+                      top: '0.5rem',
+                      right: '0.5rem',
+                      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: '28px',
+                      height: '28px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <CloseIcon />
+                  </button>
+                </div>
+              ) : (
+                <label style={{ cursor: 'pointer', display: 'block' }}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleCoverImageChange}
+                    style={{ display: 'none' }}
+                  />
+                  <div style={{ color: '#6B7280' }}>
+                    <CameraIcon />
+                    <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.85rem' }}>Click to upload cover image</p>
+                    <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.75rem', color: '#9CA3AF' }}>PNG, JPG up to 10MB</p>
+                  </div>
+                </label>
+              )}
+            </div>
+          </div>
+
           <div style={{ marginBottom: '1rem' }}>
             <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
               Event Title *
             </label>
             <input
               type="text"
+              value={createTitle || ''}
+              onChange={(e) => setCreateTitle(e.target.value)}
               placeholder="e.g., Sarah & James Wedding"
               style={{
                 width: '100%',
@@ -785,16 +976,20 @@ const MyEventsPage = () => {
             <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
               Event Type *
             </label>
-            <select style={{
-              width: '100%',
-              padding: '0.75rem',
-              border: '2px solid #D1D5DB',
-              borderRadius: '0.5rem',
-              fontSize: '0.9rem',
-              backgroundColor: 'white',
-              color: '#111827',
-              cursor: 'pointer'
-            }}>
+            <select
+              value={createEventType || ''}
+              onChange={(e) => setCreateEventType(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                border: '2px solid #D1D5DB',
+                borderRadius: '0.5rem',
+                fontSize: '0.9rem',
+                backgroundColor: 'white',
+                color: '#111827',
+                cursor: 'pointer'
+              }}
+            >
               <option value="">Select event type</option>
               {eventTypes.map(type => <option key={type} value={type}>{type}</option>)}
             </select>
@@ -807,16 +1002,57 @@ const MyEventsPage = () => {
               </label>
               <input
                 type="date"
+                value={createDate || ''}
+                min={new Date().toISOString().split('T')[0]}
+                onChange={(e) => {
+                  const today = new Date().toISOString().split('T')[0];
+                  // Check if selected date is in the past
+                  if (e.target.value < today) {
+                    setDateError('Please select a future date');
+                    return;
+                  }
+                  setDateError('');
+                  setCreateDate(e.target.value);
+                  // Reset time if date changes to today and current time is in the past
+                  if (e.target.value === today) {
+                    const now = new Date();
+                    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                    if (createTime && createTime < currentTime) {
+                      setCreateTime('');
+                      setTimeError('Time was reset. Please select a future time.');
+                    }
+                  } else {
+                    setTimeError('');
+                  }
+                }}
                 style={{
                   width: '100%',
                   padding: '0.75rem',
-                  border: '2px solid #D1D5DB',
+                  border: dateError ? '2px solid #DC2626' : '2px solid #D1D5DB',
                   borderRadius: '0.5rem',
                   fontSize: '0.9rem',
                   color: '#111827',
                   cursor: 'pointer'
                 }}
               />
+              {dateError && (
+                <p style={{
+                  color: '#DC2626',
+                  fontSize: '0.8rem',
+                  marginTop: '0.375rem',
+                  marginBottom: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem'
+                }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                  </svg>
+                  {dateError}
+                </p>
+              )}
             </div>
             <div>
               <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
@@ -824,14 +1060,99 @@ const MyEventsPage = () => {
               </label>
               <input
                 type="time"
+                value={createTime || ''}
+                min={createDate === new Date().toISOString().split('T')[0]
+                  ? `${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`
+                  : undefined}
+                onChange={(e) => {
+                  // If today is selected, validate time is not in the past
+                  if (createDate === new Date().toISOString().split('T')[0]) {
+                    const now = new Date();
+                    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                    if (e.target.value < currentTime) {
+                      setTimeError('Please select a future time');
+                      return;
+                    }
+                  }
+                  setTimeError('');
+                  setCreateTime(e.target.value);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: timeError ? '2px solid #DC2626' : '2px solid #D1D5DB',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.9rem',
+                  color: '#111827',
+                  cursor: 'pointer'
+                }}
+              />
+              {timeError && (
+                <p style={{
+                  color: '#DC2626',
+                  fontSize: '0.8rem',
+                  marginTop: '0.375rem',
+                  marginBottom: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem'
+                }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                  </svg>
+                  {timeError}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                Duration
+              </label>
+              <select
+                value={createDuration || ''}
+                onChange={(e) => setCreateDuration(e.target.value)}
                 style={{
                   width: '100%',
                   padding: '0.75rem',
                   border: '2px solid #D1D5DB',
                   borderRadius: '0.5rem',
                   fontSize: '0.9rem',
+                  backgroundColor: 'white',
                   color: '#111827',
                   cursor: 'pointer'
+                }}
+              >
+                <option value="">Select duration</option>
+                <option value="2 hours">2 hours</option>
+                <option value="3 hours">3 hours</option>
+                <option value="4 hours">4 hours</option>
+                <option value="5 hours">5 hours</option>
+                <option value="6 hours">6 hours</option>
+                <option value="8 hours">8 hours</option>
+                <option value="Full day">Full day</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                Maximum Guests
+              </label>
+              <input
+                type="number"
+                value={createMaxGuests || ''}
+                onChange={(e) => setCreateMaxGuests(e.target.value)}
+                placeholder="e.g., 100"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '2px solid #D1D5DB',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.9rem',
+                  color: '#111827'
                 }}
               />
             </div>
@@ -839,10 +1160,12 @@ const MyEventsPage = () => {
 
           <div style={{ marginBottom: '1rem' }}>
             <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
-              Location *
+              Venue Address *
             </label>
             <input
               type="text"
+              value={createAddress || ''}
+              onChange={(e) => setCreateAddress(e.target.value)}
               placeholder="Enter venue address"
               style={{
                 width: '100%',
@@ -862,6 +1185,8 @@ const MyEventsPage = () => {
               </label>
               <input
                 type="text"
+                value={createCity || ''}
+                onChange={(e) => setCreateCity(e.target.value)}
                 placeholder="e.g., Kigali"
                 style={{
                   width: '100%',
@@ -877,16 +1202,20 @@ const MyEventsPage = () => {
               <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
                 Country *
               </label>
-              <select style={{
-                width: '100%',
-                padding: '0.75rem',
-                border: '2px solid #D1D5DB',
-                borderRadius: '0.5rem',
-                fontSize: '0.9rem',
-                backgroundColor: 'white',
-                color: '#111827',
-                cursor: 'pointer'
-              }}>
+              <select
+                value={createCountry || 'Rwanda'}
+                onChange={(e) => setCreateCountry(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '2px solid #D1D5DB',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.9rem',
+                  backgroundColor: 'white',
+                  color: '#111827',
+                  cursor: 'pointer'
+                }}
+              >
                 <option value="Rwanda">Rwanda</option>
                 <option value="Kenya">Kenya</option>
                 <option value="Uganda">Uganda</option>
@@ -898,27 +1227,11 @@ const MyEventsPage = () => {
 
           <div style={{ marginBottom: '1rem' }}>
             <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
-              Maximum Guests
-            </label>
-            <input
-              type="number"
-              placeholder="e.g., 100"
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                border: '2px solid #D1D5DB',
-                borderRadius: '0.5rem',
-                fontSize: '0.9rem',
-                color: '#111827'
-              }}
-            />
-          </div>
-
-          <div style={{ marginBottom: '1.5rem' }}>
-            <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
               Description
             </label>
             <textarea
+              value={createDescription || ''}
+              onChange={(e) => setCreateDescription(e.target.value)}
               placeholder="Tell your guests about this event..."
               style={{
                 width: '100%',
@@ -933,9 +1246,141 @@ const MyEventsPage = () => {
             />
           </div>
 
+          {/* Photographer Assignment */}
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+              Assign Photographer
+            </label>
+            <p style={{ fontSize: '0.8rem', color: '#6B7280', marginBottom: '0.75rem' }}>
+              Select a photographer you&apos;ve worked with before or find a new one
+            </p>
+
+            {/* Past Photographers */}
+            <div style={{
+              border: '2px solid #D1D5DB',
+              borderRadius: '0.5rem',
+              maxHeight: '200px',
+              overflowY: 'auto',
+              marginBottom: '0.75rem'
+            }}>
+              {/* No photographer option */}
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  padding: '0.75rem',
+                  cursor: 'pointer',
+                  borderBottom: '1px solid #E5E7EB',
+                  backgroundColor: createPhotographerId === '' ? '#F0F9FF' : 'white',
+                  transition: 'background-color 0.2s'
+                }}
+              >
+                <input
+                  type="radio"
+                  name="photographer"
+                  value=""
+                  checked={createPhotographerId === ''}
+                  onChange={() => setCreatePhotographerId('')}
+                  style={{ width: '18px', height: '18px', accentColor: '#083A85' }}
+                />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '0.9rem', fontWeight: '500', color: '#374151' }}>No photographer assigned</div>
+                  <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>You can assign one later</div>
+                </div>
+              </label>
+
+              {pastPhotographers.map((photographer) => (
+                <label
+                  key={photographer.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    padding: '0.75rem',
+                    cursor: 'pointer',
+                    borderBottom: '1px solid #E5E7EB',
+                    backgroundColor: createPhotographerId === photographer.id ? '#F0F9FF' : 'white',
+                    transition: 'background-color 0.2s'
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="photographer"
+                    value={photographer.id}
+                    checked={createPhotographerId === photographer.id}
+                    onChange={() => setCreatePhotographerId(photographer.id)}
+                    style={{ width: '18px', height: '18px', accentColor: '#083A85' }}
+                  />
+                  <div style={{
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '50%',
+                    overflow: 'hidden',
+                    flexShrink: 0,
+                    position: 'relative'
+                  }}>
+                    <Image
+                      src={photographer.image}
+                      alt={photographer.name}
+                      fill
+                      style={{ objectFit: 'cover' }}
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ fontSize: '0.9rem', fontWeight: '500', color: '#111827' }}>{photographer.name}</span>
+                      <span style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                        fontSize: '0.75rem',
+                        color: '#F59E0B'
+                      }}>
+                        ★ {photographer.rating}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>{photographer.speciality}</div>
+                    <div style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>{photographer.eventsWorked} event{photographer.eventsWorked !== 1 ? 's' : ''} together</div>
+                  </div>
+                </label>
+              ))}
+            </div>
+
+            {/* Find New Photographer Button */}
+            <button
+              onClick={() => alert('Finding new photographers feature coming soon!')}
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                border: '2px dashed #083A85',
+                borderRadius: '0.5rem',
+                backgroundColor: 'transparent',
+                color: '#083A85',
+                fontSize: '0.9rem',
+                fontWeight: '500',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#F0F9FF';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+            >
+              <PlusIcon />
+              Find a New Photographer
+            </button>
+          </div>
+
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
             <button
-              onClick={() => setShowCreateModal(false)}
+              onClick={() => { resetCreateForm(); setShowCreateModal(false); }}
               style={{
                 padding: '0.75rem 1.25rem',
                 border: '2px solid #D1D5DB',
@@ -950,15 +1395,18 @@ const MyEventsPage = () => {
               Cancel
             </button>
             <button
+              onClick={handleCreateEvent}
+              disabled={!createTitle || !createEventType || !createDate || !createTime}
               style={{
                 padding: '0.75rem 1.25rem',
                 border: '2px solid #062a63',
                 borderRadius: '0.5rem',
-                background: '#083A85',
+                background: (!createTitle || !createEventType || !createDate || !createTime) ? '#9CA3AF' : '#083A85',
                 color: 'white',
                 fontSize: '0.9rem',
                 fontWeight: '600',
-                cursor: 'pointer'
+                cursor: (!createTitle || !createEventType || !createDate || !createTime) ? 'not-allowed' : 'pointer',
+                opacity: (!createTitle || !createEventType || !createDate || !createTime) ? 0.7 : 1
               }}
             >
               Create Event
@@ -1172,7 +1620,7 @@ const MyEventsPage = () => {
 
             {/* Share Link */}
             <div style={{ marginBottom: '1.5rem' }}>
-              <div style={{ fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>Share Link</div>
+              <div style={{ fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>Join Event Stream Link</div>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <input
                   type="text"
@@ -1282,7 +1730,7 @@ const MyEventsPage = () => {
       )}
 
       {/* Share Modal */}
-      <Modal isOpen={showShareModal} onClose={() => setShowShareModal(false)} title="Share Event">
+      <Modal isOpen={showShareModal} onClose={() => setShowShareModal(false)} title="Share Event Stream">
         {shareEvent && (
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem', padding: '0.75rem', backgroundColor: '#F9FAFB', borderRadius: '0.5rem' }}>
@@ -1296,10 +1744,10 @@ const MyEventsPage = () => {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '1.25rem' }}>
               {[
-                { name: 'WhatsApp', icon: <WhatsAppIcon />, color: '#25D366', getUrl: (link: string, title: string) => `https://wa.me/?text=${encodeURIComponent(`${title}: ${link}`)}` },
+                { name: 'WhatsApp', icon: <WhatsAppIcon />, color: '#25D366', getUrl: (link: string, title: string) => `https://wa.me/?text=${encodeURIComponent(`Join ${title} event stream: ${link}`)}` },
                 { name: 'Facebook', icon: <FacebookIcon />, color: '#1877F2', getUrl: (link: string) => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}` },
-                { name: 'Twitter', icon: <TwitterIcon />, color: '#1DA1F2', getUrl: (link: string, title: string) => `https://twitter.com/intent/tweet?url=${encodeURIComponent(link)}&text=${encodeURIComponent(title)}` },
-                { name: 'Email', icon: <EmailIcon />, color: '#EA4335', getUrl: (link: string, title: string) => `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(`Check out this event: ${link}`)}` },
+                { name: 'Twitter', icon: <TwitterIcon />, color: '#1DA1F2', getUrl: (link: string, title: string) => `https://twitter.com/intent/tweet?url=${encodeURIComponent(link)}&text=${encodeURIComponent(`Join ${title} event stream`)}` },
+                { name: 'Email', icon: <EmailIcon />, color: '#EA4335', getUrl: (link: string, title: string) => `mailto:?subject=${encodeURIComponent(`Join ${title} Event Stream`)}&body=${encodeURIComponent(`You're invited to join the ${title} event stream: ${link}`)}` },
                 { name: 'Copy Link', icon: <LinkIcon />, color: '#6B7280', getUrl: () => '' },
                 { name: 'QR Code', icon: <QRCodeIcon />, color: '#111827', getUrl: () => '' }
               ].map((option) => (
@@ -1350,7 +1798,7 @@ const MyEventsPage = () => {
             </div>
             <div style={{ borderTop: '1px solid #E5E7EB', paddingTop: '1rem' }}>
               <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
-                Event Link
+                Join Event Stream Link
               </label>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <input
@@ -1395,26 +1843,103 @@ const MyEventsPage = () => {
       </Modal>
 
       {/* Delete Confirmation Modal */}
-      <Modal isOpen={showDeleteModal} onClose={() => setShowDeleteModal(false)} title="Cancel Event">
-        {deleteEvent && (
-          <div>
-            <p style={{ fontSize: '0.95rem', color: '#6B7280', marginBottom: '1rem' }}>
-              Are you sure you want to cancel <strong>{deleteEvent.title}</strong>? This action cannot be undone.
+      {showDeleteModal && deleteEvent && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1100,
+            padding: '1rem'
+          }}
+          onClick={() => setShowDeleteModal(false)}
+        >
+          <div
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '1rem',
+              padding: '1.5rem',
+              width: '400px',
+              maxWidth: '90%',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Warning Icon */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              marginBottom: '1rem'
+            }}>
+              <div style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '50%',
+                backgroundColor: '#FEE2E2',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <i className="bi bi-exclamation-triangle-fill" style={{ fontSize: '2rem', color: '#DC2626' }}></i>
+              </div>
+            </div>
+
+            {/* Modal Header */}
+            <h2 style={{
+              fontSize: '1.25rem',
+              fontWeight: '700',
+              color: '#111827',
+              margin: 0,
+              marginBottom: '0.75rem',
+              textAlign: 'center'
+            }}>Delete Event</h2>
+
+            {/* Modal Content */}
+            <p style={{
+              fontSize: '0.95rem',
+              color: '#6B7280',
+              margin: 0,
+              marginBottom: '0.5rem',
+              textAlign: 'center',
+              lineHeight: '1.5'
+            }}>
+              Are you sure you want to delete <strong style={{ color: '#111827' }}>&quot;{deleteEvent.title}&quot;</strong>?
             </p>
-            <p style={{ fontSize: '0.85rem', color: '#DC2626', marginBottom: '1.5rem', backgroundColor: '#FEE2E2', padding: '0.75rem', borderRadius: '0.5rem' }}>
-              All guests will be notified and any booked photographer will be released.
+            <p style={{
+              fontSize: '0.85rem',
+              color: '#DC2626',
+              margin: 0,
+              marginBottom: '1.5rem',
+              textAlign: 'center',
+              fontWeight: '500'
+            }}>
+              This action cannot be undone. All guests will be notified and any booked photographer will be released.
             </p>
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+
+            {/* Action Buttons */}
+            <div style={{
+              display: 'flex',
+              gap: '0.75rem'
+            }}>
               <button
                 onClick={() => setShowDeleteModal(false)}
                 style={{
-                  padding: '0.625rem 1.25rem',
-                  border: '2px solid #D1D5DB',
+                  flex: 1,
+                  padding: '0.75rem 1rem',
                   borderRadius: '0.5rem',
-                  background: 'white',
+                  border: '2px solid #D1D5DB',
+                  backgroundColor: 'white',
                   color: '#374151',
-                  fontSize: '0.9rem',
-                  cursor: 'pointer'
+                  fontSize: '0.95rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
                 }}
               >
                 Keep Event
@@ -1422,22 +1947,29 @@ const MyEventsPage = () => {
               <button
                 onClick={handleDeleteEvent}
                 style={{
-                  padding: '0.625rem 1.25rem',
-                  border: '2px solid #B91C1C',
+                  flex: 1,
+                  padding: '0.75rem 1rem',
                   borderRadius: '0.5rem',
-                  background: '#DC2626',
+                  border: '2px solid #DC2626',
+                  backgroundColor: '#DC2626',
                   color: 'white',
-                  fontSize: '0.9rem',
+                  fontSize: '0.95rem',
                   fontWeight: '600',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  transition: 'all 0.2s'
                 }}
               >
-                Cancel Event
+                <i className="bi bi-trash" style={{ fontSize: '1rem' }}></i>
+                Delete Event
               </button>
             </div>
           </div>
-        )}
-      </Modal>
+        </div>
+      )}
 
       {/* Edit Event Modal */}
       <Modal isOpen={showEditModal} onClose={() => { setShowEditModal(false); setEditEvent(null); }} title="Edit Event" maxWidth="600px">

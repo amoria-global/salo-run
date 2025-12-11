@@ -57,12 +57,13 @@ const notificationsData = [
 
 interface TopbarProps {
   bonusAmount?: number;
+  tipsAmount?: number; // Tips from viewers/clients
   giftAmount?: number;
-  balanceAmount?: number; // For photographer/freelancer - unwithdrawn paid amount + bonuses
+  balanceAmount?: number; // For photographer/freelancer - unwithdrawn paid amount + tips + bonuses
   userRole?: 'client' | 'photographer' | 'freelancer' | 'admin';
 }
 
-export default function Topbar({ bonusAmount, giftAmount, balanceAmount, userRole = 'client' }: TopbarProps) {
+export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmount, userRole = 'client' }: TopbarProps) {
   const getRoleDisplayName = (role: string) => {
     switch (role) {
       case 'photographer':
@@ -177,7 +178,7 @@ export default function Topbar({ bonusAmount, giftAmount, balanceAmount, userRol
                 position: 'absolute',
                 top: '-0.55rem',
                 right: '-0.45rem',
-                backgroundColor: '#EC4899',
+                backgroundColor: '#EF4444',
                 color: 'white',
                 fontSize: '12px',
                 fontWeight: 'bold',
@@ -371,7 +372,11 @@ export default function Topbar({ bonusAmount, giftAmount, balanceAmount, userRol
                 textAlign: 'center'
               }}>
                 <a
-                  href="/notifications"
+                  href={userRole === 'photographer'
+                    ? '/user/photographer/notifications'
+                    : userRole === 'freelancer'
+                      ? '/user/freelancer/notifications'
+                      : '/user/client/notifications'}
                   style={{
                     color: '#2563EB',
                     fontSize: '0.85rem',
@@ -408,7 +413,29 @@ export default function Topbar({ bonusAmount, giftAmount, balanceAmount, userRol
           </div>
         )}
 
-        {/* Bonus/Gift - Shows Gift for clients, Bonus for others */}
+        {/* Tips - Shows for photographer/freelancer only (from clients/viewers) */}
+        {(userRole === 'photographer' || userRole === 'freelancer') && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}>
+            <span style={{
+              fontSize: '1.12rem',
+              lineHeight: '1.5rem',
+              fontWeight: '600',
+              color: '#111827'
+            }}>Tips:</span>
+            <span style={{
+              fontSize: '1.15rem',
+              lineHeight: '1.5rem',
+              fontWeight: '600',
+              color: tipsAmount && tipsAmount > 0 ? '#F59E0B' : '#6B7280'
+            }}>${tipsAmount !== undefined ? tipsAmount.toFixed(2) : '0.00'}</span>
+          </div>
+        )}
+
+        {/* Bonus/Gift - Shows Gift for clients, Bonus for photographers/freelancers (platform rewards) */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -449,7 +476,7 @@ export default function Topbar({ bonusAmount, giftAmount, balanceAmount, userRol
             }}
           >
             <Image
-              src="https://randomuser.me/api/portraits/women/65.jpg"
+              src="https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg"
               alt="Profile"
               width={40}
               height={40}
