@@ -5,6 +5,7 @@ import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useTheme } from '../../context/ThemeContext';
 
 // Icons
 const SearchIcon = () => (
@@ -242,6 +243,7 @@ interface ClientsProps {
 }
 
 export default function Clients({ userType = 'photographer' }: ClientsProps) {
+  const { colors, actualTheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -700,7 +702,7 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
   }, []);
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: '#F9FAFB' }}>
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
       <Sidebar />
 
       {/* Main Content */}
@@ -712,12 +714,12 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
       }}>
         <Topbar tipsAmount={totalTips} bonusAmount={platformBonus} balanceAmount={totalBalance} userRole={userType} />
 
-        <div style={{ flex: 1, overflowY: 'auto', backgroundColor: '#F9FAFB', paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
+        <div style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
           {/* Header */}
           <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
             <div>
-              <h1 style={{ fontSize: '1.8rem', lineHeight: '2rem', color: '#111827', fontWeight: '600' }}>My Clients</h1>
-              <p style={{ fontSize: '0.95rem', color: '#6B7280', marginTop: '0.25rem' }}>
+              <h1 style={{ fontSize: '1.8rem', lineHeight: '2rem', color: colors.textPrimary, fontWeight: '600' }}>My Clients</h1>
+              <p style={{ fontSize: '0.95rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
                 Clients who&apos;ve booked your services - manage relationships
               </p>
             </div>
@@ -793,19 +795,19 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
 
           {/* Stats Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-            <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', padding: '1rem', border: '1px solid #E5E7EB' }}>
-              <div style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '0.25rem' }}>Total Clients</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#083A85' }}>{clients.length}</div>
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Clients</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.brandPrimary }}>{clients.length}</div>
             </div>
-            <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', padding: '1rem', border: '1px solid #E5E7EB' }}>
-              <div style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '0.25rem' }}>Total Bookings</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#083A85' }}>
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Bookings</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.brandPrimary }}>
                 {clients.reduce((sum, c) => sum + c.totalBookings, 0)}
               </div>
             </div>
-            <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', padding: '1rem', border: '1px solid #E5E7EB' }}>
-              <div style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '0.25rem' }}>Total Earned</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#083A85' }}>
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Earned</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.brandPrimary }}>
                 ${clients.reduce((sum, c) => sum + c.totalSpent, 0).toLocaleString()}
               </div>
             </div>
@@ -829,8 +831,8 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
               </div>
               <div style={{ fontSize: '0.7rem', color: '#9CA3AF', marginTop: '0.25rem' }}>{totalCompletedEvents}/10 events ({bonusEligibleSets > 0 ? '10%' : '0%'})</div>
             </div>
-            <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', padding: '1rem', border: '1px solid #E5E7EB' }}>
-              <div style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '0.25rem' }}>Favorites</div>
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Favorites</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#F20C8F' }}>
                 {clients.filter(c => c.isFavorite).length}
               </div>

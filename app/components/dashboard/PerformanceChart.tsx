@@ -1,4 +1,7 @@
+"use client";
+
 import React from 'react';
+import { useTheme } from '../../context/ThemeContext';
 
 interface ChartData {
   day: string;
@@ -15,6 +18,7 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
   data,
   height = 200
 }) => {
+  const { colors } = useTheme();
   const maxValue = Math.max(...data.flatMap(d => [d.value1, d.value2]));
   const roundedMax = Math.ceil(maxValue / 50) * 50;
   const scale = height / roundedMax;
@@ -36,7 +40,7 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
             <span key={index} style={{
               fontSize: '0.85rem',
               lineHeight: '1rem',
-              color: '#9CA3AF',
+              color: colors.textTertiary,
               fontWeight: '500'
             }}>{Math.round(label)}</span>
           ))}
@@ -55,7 +59,7 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
           }}>
             {yAxisLabels.map((_, index) => (
               <div key={index} style={{
-                borderBottom: '1px solid #F3F4F6',
+                borderBottom: `1px solid ${colors.borderPrimary}`,
                 width: '100%',
                 height: 0
               }}></div>
@@ -127,7 +131,7 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
               textAlign: 'center',
               fontSize: '0.85rem',
               lineHeight: '1rem',
-              color: '#9CA3AF',
+              color: colors.textTertiary,
               fontWeight: '600'
             }}>{item.day}</span>
           ))}

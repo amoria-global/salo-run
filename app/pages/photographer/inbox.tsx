@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
+import { useTheme } from '../../context/ThemeContext';
 
 // Icons
 const SearchIcon = () => (
@@ -123,6 +124,7 @@ interface InboxProps {
 }
 
 const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
+  const { colors, actualTheme } = useTheme();
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [messageInput, setMessageInput] = useState('');
@@ -416,7 +418,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
   const otherParticipant = selectedConv ? getOtherParticipant(selectedConv) : null;
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: '#F9FAFB' }}>
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <Topbar userRole={userType} tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
@@ -425,18 +427,18 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
           {/* Conversations List */}
           <div style={{
             width: '340px',
-            backgroundColor: 'white',
+            backgroundColor: colors.bgCard,
             borderRadius: '0.75rem 0 0 0.75rem',
-            border: '1px solid #D1D5DB',
-            borderRight: '1px solid #E5E7EB',
+            border: `1px solid ${colors.borderPrimary}`,
+            borderRight: `1px solid ${colors.borderPrimary}`,
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+            boxShadow: colors.shadowSm
           }}>
             {/* Header */}
-            <div style={{ padding: '1rem', borderBottom: '1px solid #E5E7EB' }}>
-              <h1 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#111827', marginBottom: '1rem' }}>Messages</h1>
+            <div style={{ padding: '1rem', borderBottom: `1px solid ${colors.borderPrimary}` }}>
+              <h1 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '1rem' }}>Messages</h1>
 
               {/* Search */}
               <div style={{ position: 'relative', marginBottom: '0.75rem' }}>
@@ -456,7 +458,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                     fontSize: '0.9rem',
                     fontWeight: '500',
                     color: '#374151',
-                    backgroundColor: 'white',
+                    backgroundColor: colors.bgCard,
                     outline: 'none'
                   }}
                 />
@@ -508,14 +510,21 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                     }}
                   >
                     {/* Avatar */}
-                    <div style={{ position: 'relative' }}>
-                      <Image
-                        src={other.image}
-                        alt={other.name}
-                        width={48}
-                        height={48}
-                        style={{ borderRadius: '50%', objectFit: 'cover' }}
-                      />
+                    <div style={{ position: 'relative', width: '48px', height: '48px', flexShrink: 0 }}>
+                      <div style={{
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: '50%',
+                        overflow: 'hidden'
+                      }}>
+                        <Image
+                          src={other.image}
+                          alt={other.name}
+                          width={48}
+                          height={48}
+                          style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                        />
+                      </div>
                       {other.isOnline && (
                         <div style={{
                           position: 'absolute',
@@ -534,7 +543,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                          <span style={{ fontSize: '0.95rem', fontWeight: conv.unreadCount > 0 ? '600' : '500', color: '#111827' }}>
+                          <span style={{ fontSize: '0.95rem', fontWeight: conv.unreadCount > 0 ? '600' : '500', color: colors.textPrimary }}>
                             {other.name}
                           </span>
                           {conv.isPinned && <PinIcon />}
@@ -582,14 +591,14 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
           {/* Chat Area */}
           <div style={{
             flex: 1,
-            backgroundColor: 'white',
+            backgroundColor: colors.bgCard,
             borderRadius: '0 0.75rem 0.75rem 0',
-            border: '1px solid #D1D5DB',
+            border: `1px solid ${colors.borderPrimary}`,
             borderLeft: 'none',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+            boxShadow: colors.shadowSm
           }}>
             {selectedConv && otherParticipant ? (
               <>
@@ -599,17 +608,24 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   padding: '1rem 1.25rem',
-                  borderBottom: '1px solid #E5E7EB'
+                  borderBottom: `1px solid ${colors.borderPrimary}`
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <div style={{ position: 'relative' }}>
-                      <Image
-                        src={otherParticipant.image}
-                        alt={otherParticipant.name}
-                        width={44}
-                        height={44}
-                        style={{ borderRadius: '50%', objectFit: 'cover' }}
-                      />
+                    <div style={{ position: 'relative', width: '44px', height: '44px', flexShrink: 0 }}>
+                      <div style={{
+                        width: '44px',
+                        height: '44px',
+                        borderRadius: '50%',
+                        overflow: 'hidden'
+                      }}>
+                        <Image
+                          src={otherParticipant.image}
+                          alt={otherParticipant.name}
+                          width={44}
+                          height={44}
+                          style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                        />
+                      </div>
                       {otherParticipant.isOnline && (
                         <div style={{
                           position: 'absolute',
@@ -624,7 +640,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                       )}
                     </div>
                     <div>
-                      <h2 style={{ fontSize: '1rem', fontWeight: '600', color: '#111827', margin: 0 }}>{otherParticipant.name}</h2>
+                      <h2 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>{otherParticipant.name}</h2>
                       <span style={{ fontSize: '0.8rem', color: otherParticipant.isOnline ? '#10B981' : '#6B7280' }}>
                         {otherParticipant.isOnline ? 'Online' : `Last seen ${otherParticipant.lastSeen}`}
                       </span>
@@ -652,13 +668,22 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                       >
                         <div style={{ display: 'flex', gap: '0.5rem', maxWidth: '70%', position: 'relative' }}>
                           {!isOwn && showAvatar && (
-                            <Image
-                              src={message.senderImage}
-                              alt={message.senderName}
-                              width={32}
-                              height={32}
-                              style={{ borderRadius: '50%', objectFit: 'cover', alignSelf: 'flex-end' }}
-                            />
+                            <div style={{
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '50%',
+                              overflow: 'hidden',
+                              alignSelf: 'flex-end',
+                              flexShrink: 0
+                            }}>
+                              <Image
+                                src={message.senderImage}
+                                alt={message.senderName}
+                                width={32}
+                                height={32}
+                                style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                              />
+                            </div>
                           )}
                           {!isOwn && !showAvatar && <div style={{ width: '32px' }} />}
 
@@ -674,14 +699,14 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                                 onClick={() => handleEditMessage(message.id, message.content)}
                                 style={{
                                   padding: '0.375rem',
-                                  backgroundColor: 'white',
+                                  backgroundColor: colors.bgCard,
                                   border: '1px solid #E5E7EB',
                                   borderRadius: '0.375rem',
                                   cursor: 'pointer',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  color: '#6B7280',
+                                  color: colors.textSecondary,
                                   transition: 'all 0.2s'
                                 }}
                                 title="Edit message"
@@ -692,7 +717,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                                 onClick={() => handleDeleteMessage(message.id)}
                                 style={{
                                   padding: '0.375rem',
-                                  backgroundColor: 'white',
+                                  backgroundColor: colors.bgCard,
                                   border: '1px solid #E5E7EB',
                                   borderRadius: '0.375rem',
                                   cursor: 'pointer',
@@ -712,7 +737,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                           <div>
                             {isEditing ? (
                               <div style={{
-                                backgroundColor: 'white',
+                                backgroundColor: colors.bgCard,
                                 border: '2px solid #083A85',
                                 borderRadius: '0.75rem',
                                 padding: '0.75rem',
@@ -742,8 +767,8 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                                     fontSize: '0.9rem',
                                     outline: 'none',
                                     marginBottom: '0.625rem',
-                                    color: '#111827',
-                                    backgroundColor: '#F9FAFB'
+                                    color: colors.textPrimary,
+                                    backgroundColor: colors.bgPrimary
                                   }}
                                   autoFocus
                                 />
@@ -752,13 +777,13 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                                     onClick={cancelEdit}
                                     style={{
                                       padding: '0.5rem 1rem',
-                                      backgroundColor: 'white',
+                                      backgroundColor: colors.bgCard,
                                       border: '2px solid #D1D5DB',
                                       borderRadius: '0.375rem',
                                       fontSize: '0.8rem',
                                       fontWeight: '600',
                                       cursor: 'pointer',
-                                      color: '#6B7280'
+                                      color: colors.textSecondary
                                     }}
                                   >
                                     Cancel
@@ -786,7 +811,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                                 color: isOwn ? 'white' : '#111827',
                                 padding: '0.75rem 1rem',
                                 borderRadius: isOwn ? '1rem 1rem 0.25rem 1rem' : '1rem 1rem 1rem 0.25rem',
-                                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                                boxShadow: colors.shadowSm,
                                 border: isOwn ? 'none' : '1px solid #E5E7EB'
                               }}>
                                 <p style={{ margin: 0, fontSize: '0.9rem', lineHeight: '1.5' }}>{message.content}</p>
@@ -821,7 +846,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                         position: 'absolute',
                         bottom: '100%',
                         left: '1rem',
-                        backgroundColor: 'white',
+                        backgroundColor: colors.bgCard,
                         borderRadius: '0.75rem',
                         boxShadow: '0 8px 30px rgba(0, 0, 0, 0.2)',
                         width: '320px',
@@ -843,7 +868,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                           padding: '0.5rem',
                           gap: '0.375rem',
                           scrollbarWidth: 'thin',
-                          backgroundColor: '#F9FAFB',
+                          backgroundColor: colors.bgPrimary,
                           flexShrink: 0,
                           WebkitOverflowScrolling: 'touch',
                           msOverflowStyle: 'none',
@@ -942,8 +967,8 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                         borderRadius: '9999px',
                         fontSize: '0.9rem',
                         outline: 'none',
-                        backgroundColor: 'white',
-                        color: '#111827'
+                        backgroundColor: colors.bgCard,
+                        color: colors.textPrimary
                       }}
                     />
                     <button
@@ -974,7 +999,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#6B7280'
+                color: colors.textSecondary
               }}>
                 <div style={{
                   width: '80px',
@@ -990,8 +1015,8 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                     <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#111827', marginBottom: '0.5rem' }}>Select a conversation</h3>
-                <p style={{ fontSize: '0.9rem', color: '#6B7280' }}>Choose a conversation from the list to start messaging</p>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.5rem' }}>Select a conversation</h3>
+                <p style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Choose a conversation from the list to start messaging</p>
               </div>
             )}
           </div>

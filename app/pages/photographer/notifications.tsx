@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
+import { useTheme } from '../../context/ThemeContext';
 
 // Icons
 const BellIcon = () => (
@@ -213,6 +214,7 @@ interface NotificationsProps {
 }
 
 const Notifications = ({ userType = 'photographer' }: NotificationsProps) => {
+  const { colors, actualTheme } = useTheme();
   const [notifications, setNotifications] = useState(photographerNotifications);
   const [activeFilter, setActiveFilter] = useState<'all' | NotificationType>('all');
   const [showSettings, setShowSettings] = useState(false);
@@ -270,7 +272,7 @@ const Notifications = ({ userType = 'photographer' }: NotificationsProps) => {
   ];
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: '#F9FAFB' }}>
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
       <Sidebar />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -292,7 +294,7 @@ const Notifications = ({ userType = 'photographer' }: NotificationsProps) => {
               <h1 style={{
                 fontSize: '1.8rem',
                 fontWeight: '700',
-                color: '#111827',
+                color: colors.textPrimary,
                 margin: 0,
                 display: 'flex',
                 alignItems: 'center',
@@ -314,7 +316,7 @@ const Notifications = ({ userType = 'photographer' }: NotificationsProps) => {
               </h1>
               <p style={{
                 fontSize: '0.95rem',
-                color: '#6B7280',
+                color: colors.textSecondary,
                 marginTop: '0.25rem'
               }}>
                 Stay updated with your payments, tips, bonuses, and account activity
@@ -327,12 +329,12 @@ const Notifications = ({ userType = 'photographer' }: NotificationsProps) => {
                   onClick={markAllAsRead}
                   style={{
                     padding: '0.625rem 1rem',
-                    backgroundColor: 'white',
-                    border: '2px solid #E5E7EB',
+                    backgroundColor: colors.bgCard,
+                    border: `2px solid ${colors.borderPrimary}`,
                     borderRadius: '0.5rem',
                     fontSize: '0.875rem',
                     fontWeight: '500',
-                    color: '#374151',
+                    color: colors.textPrimary,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -348,10 +350,10 @@ const Notifications = ({ userType = 'photographer' }: NotificationsProps) => {
                 onClick={() => setShowSettings(!showSettings)}
                 style={{
                   padding: '0.625rem',
-                  backgroundColor: 'white',
-                  border: '2px solid #E5E7EB',
+                  backgroundColor: colors.bgCard,
+                  border: `2px solid ${colors.borderPrimary}`,
                   borderRadius: '0.5rem',
-                  color: '#374151',
+                  color: colors.textPrimary,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -373,41 +375,41 @@ const Notifications = ({ userType = 'photographer' }: NotificationsProps) => {
             marginBottom: '1.5rem'
           }}>
             <div style={{
-              backgroundColor: 'white',
+              backgroundColor: colors.bgCard,
               borderRadius: '0.75rem',
               padding: '1.25rem',
-              border: '1px solid #E5E7EB'
+              border: `1px solid ${colors.borderPrimary}`
             }}>
-              <div style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '0.25rem' }}>Total Notifications</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#083A85' }}>{notifications.length}</div>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Notifications</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.brandPrimary }}>{notifications.length}</div>
             </div>
             <div style={{
-              backgroundColor: 'white',
+              backgroundColor: colors.bgCard,
               borderRadius: '0.75rem',
               padding: '1.25rem',
-              border: '1px solid #E5E7EB'
+              border: `1px solid ${colors.borderPrimary}`
             }}>
-              <div style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '0.25rem' }}>Unread</div>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Unread</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#EF4444' }}>{unreadCount}</div>
             </div>
             <div style={{
-              backgroundColor: 'white',
+              backgroundColor: colors.bgCard,
               borderRadius: '0.75rem',
               padding: '1.25rem',
-              border: '1px solid #E5E7EB'
+              border: `1px solid ${colors.borderPrimary}`
             }}>
-              <div style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '0.25rem' }}>Payments</div>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Payments</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>
                 {notifications.filter(n => n.type === 'payment').length}
               </div>
             </div>
             <div style={{
-              backgroundColor: 'white',
+              backgroundColor: colors.bgCard,
               borderRadius: '0.75rem',
               padding: '1.25rem',
-              border: '1px solid #E5E7EB'
+              border: `1px solid ${colors.borderPrimary}`
             }}>
-              <div style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '0.25rem' }}>Tips & Bonuses</div>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Tips & Bonuses</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#F59E0B' }}>
                 {notifications.filter(n => n.type === 'tip' || n.type === 'bonus').length}
               </div>
@@ -428,9 +430,9 @@ const Notifications = ({ userType = 'photographer' }: NotificationsProps) => {
                   onClick={() => setActiveFilter(option.value)}
                   style={{
                     padding: '0.5rem 1rem',
-                    border: activeFilter === option.value ? 'none' : '1px solid #E5E7EB',
-                    backgroundColor: activeFilter === option.value ? '#083A85' : 'white',
-                    color: activeFilter === option.value ? 'white' : '#6B7280',
+                    border: activeFilter === option.value ? 'none' : `1px solid ${colors.borderPrimary}`,
+                    backgroundColor: activeFilter === option.value ? '#083A85' : colors.bgCard,
+                    color: activeFilter === option.value ? 'white' : colors.textSecondary,
                     borderRadius: '0.5rem',
                     fontSize: '0.875rem',
                     fontWeight: '500',
@@ -469,16 +471,16 @@ const Notifications = ({ userType = 'photographer' }: NotificationsProps) => {
 
           {/* Results Count */}
           <div style={{ marginBottom: '1rem' }}>
-            <span style={{ fontSize: '0.9rem', color: '#6B7280' }}>
+            <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>
               Showing {filteredNotifications.length} notification{filteredNotifications.length !== 1 ? 's' : ''}
             </span>
           </div>
 
           {/* Notifications List */}
           <div style={{
-            backgroundColor: 'white',
+            backgroundColor: colors.bgCard,
             borderRadius: '0.75rem',
-            border: '1px solid #E5E7EB',
+            border: `1px solid ${colors.borderPrimary}`,
             overflow: 'hidden'
           }}>
             {filteredNotifications.length === 0 ? (
