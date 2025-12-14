@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { useState, useMemo } from "react";
+import { useTheme } from "../context/ThemeContext";
 
 type UserRole = "photographer" | "client" | "freelancer";
 
@@ -49,6 +50,7 @@ const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
     { name: "Home", href: "/user/client/home", icon: "bi-house" },
     { name: "Notifications", href: "/user/client/notifications", icon: "bi-bell" },
     { name: "My Events", href: "/user/client/events", icon: "bi-calendar-event" },
+    { name: "Streams", href: "/user/client/streams", icon: "bi-broadcast" },
     { name: "Gallery", href: "/user/client/gallery", icon: "bi-image" },
     { name: "Photographers", href: "/user/client/photographers", icon: "bi-camera" },
     { name: "Payments", href: "/user/client/payments", icon: "bi-credit-card" },
@@ -93,6 +95,7 @@ const detectRoleFromPath = (pathname: string | null): UserRole => {
 export default function Sidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const { colors, actualTheme } = useTheme();
 
   // Automatically detect role from current URL path
   const currentRole = useMemo(() => detectRoleFromPath(pathname), [pathname]);
@@ -119,7 +122,7 @@ export default function Sidebar() {
       display: 'flex',
       height: '100vh',
       flexDirection: 'column',
-      backgroundColor: '#f5f5f5',
+      backgroundColor: colors.bgSidebar,
       transition: 'all 0.3s',
       borderTopRightRadius: '18px',
       borderBottomRightRadius: '18px',
@@ -145,7 +148,7 @@ export default function Sidebar() {
             <span style={{
               fontSize: '1.5rem',
               fontWeight: '700',
-              color: '#111827',
+              color: colors.textPrimary,
               lineHeight: '1'
             }}>Amoria</span>
             <Image
@@ -162,7 +165,7 @@ export default function Sidebar() {
         <button
           onClick={toggleSidebar}
           style={{
-            color: 'black',
+            color: colors.textPrimary,
             transition: 'color 0.3s',
             cursor: 'pointer',
             border: 'none',
@@ -194,7 +197,9 @@ export default function Sidebar() {
         paddingTop: '0.5rem',
         display: 'flex',
         flexDirection: 'column',
-        gap: '0.125rem'
+        gap: '0.125rem',
+        overflowY: 'auto',
+        minHeight: 0
       }}>
         {navigationItems.map((item) => {
           const isActive = pathname === item.href;
@@ -216,32 +221,32 @@ export default function Sidebar() {
                 fontSize: '15px',
                 fontWeight: '400',
                 transition: 'all 0.2s',
-                backgroundColor: isActive ? '#083A85' : 'transparent',
-                color: isActive ? 'white' : '#15191F',
+                backgroundColor: isActive ? colors.bgActive : 'transparent',
+                color: isActive ? colors.textInverse : colors.textPrimary,
                 boxShadow: isActive ? '0 1px 2px 0 rgba(0, 0, 0, 0.05)' : 'none',
                 textDecoration: 'none'
               }}
               title={isCollapsed ? item.name : undefined}
               onMouseEnter={(e) => {
                 if (!isActive) {
-                  e.currentTarget.style.backgroundColor = '#E5E7EB';
-                  e.currentTarget.style.color = '#111827';
+                  e.currentTarget.style.backgroundColor = colors.bgHover;
+                  e.currentTarget.style.color = colors.textPrimary;
                 }
               }}
               onMouseLeave={(e) => {
                 if (!isActive) {
                   e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.color = '#374151';
+                  e.currentTarget.style.color = colors.textSecondary;
                 }
               }}
               onMouseDown={(e) => {
                 if (!isActive) {
-                  e.currentTarget.style.backgroundColor = '#D1D5DB';
+                  e.currentTarget.style.backgroundColor = actualTheme === 'dark' ? '#4B5563' : '#D1D5DB';
                 }
               }}
               onMouseUp={(e) => {
                 if (!isActive) {
-                  e.currentTarget.style.backgroundColor = '#E5E7EB';
+                  e.currentTarget.style.backgroundColor = colors.bgHover;
                 }
               }}
             >
@@ -264,7 +269,7 @@ export default function Sidebar() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     padding: '0 4px',
-                    boxShadow: '0 0 0 2px #f5f5f5, 0 1px 3px rgba(239, 68, 68, 0.3)'
+                    boxShadow: `0 0 0 2px ${colors.bgSidebar}, 0 1px 3px rgba(239, 68, 68, 0.3)`
                   }}>
                     {item.badge > 9 ? '9+' : item.badge}
                   </span>
@@ -305,7 +310,7 @@ export default function Sidebar() {
         paddingRight: '0.75rem',
         paddingTop: '0.75rem',
         paddingBottom: '0.75rem',
-        borderTop: '1px solid #D1D5DB',
+        borderTop: `1px solid ${colors.borderPrimary}`,
         display: 'flex',
         flexDirection: 'column',
         gap: '0.125rem'
@@ -330,32 +335,32 @@ export default function Sidebar() {
                 fontSize: '15px',
                 fontWeight: '400',
                 transition: 'all 0.2s',
-                backgroundColor: isActive ? '#083A85' : 'transparent',
-                color: isActive ? 'white' : '#374151',
+                backgroundColor: isActive ? colors.bgActive : 'transparent',
+                color: isActive ? colors.textInverse : colors.textSecondary,
                 boxShadow: isActive ? '0 1px 2px 0 rgba(0, 0, 0, 0.05)' : 'none',
                 textDecoration: 'none'
               }}
               title={isCollapsed ? item.name : undefined}
               onMouseEnter={(e) => {
                 if (!isActive) {
-                  e.currentTarget.style.backgroundColor = '#E5E7EB';
-                  e.currentTarget.style.color = '#111827';
+                  e.currentTarget.style.backgroundColor = colors.bgHover;
+                  e.currentTarget.style.color = colors.textPrimary;
                 }
               }}
               onMouseLeave={(e) => {
                 if (!isActive) {
                   e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.color = '#374151';
+                  e.currentTarget.style.color = colors.textSecondary;
                 }
               }}
               onMouseDown={(e) => {
                 if (!isActive) {
-                  e.currentTarget.style.backgroundColor = '#D1D5DB';
+                  e.currentTarget.style.backgroundColor = actualTheme === 'dark' ? '#4B5563' : '#D1D5DB';
                 }
               }}
               onMouseUp={(e) => {
                 if (!isActive) {
-                  e.currentTarget.style.backgroundColor = '#E5E7EB';
+                  e.currentTarget.style.backgroundColor = colors.bgHover;
                 }
               }}
             >

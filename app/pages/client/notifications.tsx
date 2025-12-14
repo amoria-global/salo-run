@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
+import { useTheme } from '../../context/ThemeContext';
 
 // Icons
 const BellIcon = () => (
@@ -210,6 +211,7 @@ const clientNotifications: Notification[] = [
 ];
 
 const ClientNotifications = () => {
+  const { colors, actualTheme } = useTheme();
   const [notifications, setNotifications] = useState(clientNotifications);
   const [activeFilter, setActiveFilter] = useState<'all' | NotificationType>('all');
   const [showSettings, setShowSettings] = useState(false);
@@ -264,7 +266,7 @@ const ClientNotifications = () => {
   ];
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: '#F9FAFB' }}>
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
       <Sidebar />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>

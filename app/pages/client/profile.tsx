@@ -4,6 +4,7 @@ import React, { useState, useRef } from 'react';
 import Image from 'next/image';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
+import { useTheme } from '../../context/ThemeContext';
 
 // Camera icon for avatar edit
 const CameraIcon = () => (
@@ -14,6 +15,7 @@ const CameraIcon = () => (
 );
 
 const ProfilePage = () => {
+  const { colors, actualTheme } = useTheme();
   const [isEditEnabled, setIsEditEnabled] = useState(false);
 
   // East African countries with phone codes
@@ -113,7 +115,7 @@ const ProfilePage = () => {
     <div style={{
       display: 'flex',
       height: '100vh',
-      backgroundColor: '#F9FAFB'
+      backgroundColor: colors.bgPrimary
     }}>
       <Sidebar />
 
@@ -128,7 +130,7 @@ const ProfilePage = () => {
         <div style={{
           flex: 1,
           overflowY: 'auto',
-          backgroundColor: '#F9FAFB',
+          backgroundColor: colors.bgPrimary,
           paddingLeft: '1.25rem',
           paddingRight: '1.25rem',
           paddingTop: '1rem',
@@ -178,17 +180,21 @@ const ProfilePage = () => {
                   position: 'relative'
                 }}>
                   <div style={{ position: 'relative' }}>
-                    <Image
-                      src={profileImage}
-                      alt="Profile"
-                      width={100}
-                      height={100}
-                      style={{
-                        borderRadius: '50%',
-                        border: '4px solid white',
-                        objectFit: 'cover'
-                      }}
-                    />
+                    <div style={{
+                      width: '100px',
+                      height: '100px',
+                      borderRadius: '50%',
+                      overflow: 'hidden',
+                      border: '4px solid white'
+                    }}>
+                      <Image
+                        src={profileImage}
+                        alt="Profile"
+                        width={100}
+                        height={100}
+                        style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                      />
+                    </div>
                     <button
                       onClick={() => profileInputRef.current?.click()}
                       style={{

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
+import { useTheme } from '../../context/ThemeContext';
 import {
   StatCard,
   ActivityItem,
@@ -109,6 +110,7 @@ interface Client {
 }
 
 const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashboardProps) => {
+  const { colors, actualTheme } = useTheme();
   const [activeFilter, setActiveFilter] = useState<'today' | 'week' | 'month' | 'custom'>('week');
   const [timeOfDay, setTimeOfDay] = useState(getTimeOfDay());
   const [greetingIndex, setGreetingIndex] = useState(0);
@@ -231,7 +233,7 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
     <div style={{
       display: 'flex',
       height: '100vh',
-      backgroundColor: '#F9FAFB'
+      backgroundColor: colors.bgPrimary
     }}>
       <Sidebar />
 
@@ -246,7 +248,7 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
         <div style={{
           flex: 1,
           overflowY: 'auto',
-          backgroundColor: '#F9FAFB',
+          backgroundColor: colors.bgPrimary,
           paddingLeft: '1.25rem',
           paddingRight: '1.25rem',
           paddingTop: '1rem',
@@ -262,29 +264,29 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
               <h1 style={{
                 fontSize: '1.8rem',
                 lineHeight: '2rem',
-                color: '#111827',
+                color: colors.textPrimary,
                 fontWeight: '600',
                 transition: 'opacity 0.3s ease'
               }}>
-                {currentGreeting}, <span style={{ fontWeight: '600', color: '#2563EB' }}>Diane</span>
+                {currentGreeting}, <span style={{ fontWeight: '600', color: colors.brandPrimary }}>Diane</span>
               </h1>
               <p style={{
                 fontSize: '0.875rem',
-                color: '#6B7280',
+                color: colors.textSecondary,
                 marginTop: '0.25rem'
               }}>
                 {staticMessage}
               </p>
             </div>
             <div style={{
-              backgroundColor: 'white',
+              backgroundColor: colors.bgCard,
               borderRadius: '0.5rem',
               paddingLeft: '1.5rem',
               paddingRight: '1.5rem',
               paddingTop: '0.75rem',
               paddingBottom: '0.75rem',
-              boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-              border: '1px solid #E5E7EB',
+              boxShadow: colors.shadowSm,
+              border: `1px solid ${colors.borderPrimary}`,
               display: 'flex',
               gap: '2rem'
             }}>
@@ -298,13 +300,13 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
                   lineHeight: '1rem',
                   fontWeight: '600',
                   marginBottom: '0.25rem',
-                  color: '#083A85'
+                  color: colors.brandPrimary
                 }}>Earnings</span>
                 <span style={{
                   fontSize: '1.25rem',
                   lineHeight: '1.75rem',
                   fontWeight: '700',
-                  color: '#111827'
+                  color: colors.textPrimary
                 }}>$9.64k</span>
               </div>
               <div style={{
@@ -317,13 +319,13 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
                   lineHeight: '1rem',
                   fontWeight: '600',
                   marginBottom: '0.25rem',
-                  color: '#083A85'
+                  color: colors.brandPrimary
                 }}>Clients</span>
                 <span style={{
                   fontSize: '1.25rem',
                   lineHeight: '1.75rem',
                   fontWeight: '700',
-                  color: '#111827'
+                  color: colors.textPrimary
                 }}>26</span>
               </div>
               <div style={{
@@ -336,13 +338,13 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
                   lineHeight: '1rem',
                   fontWeight: '600',
                   marginBottom: '0.25rem',
-                  color: '#083A85'
+                  color: colors.brandPrimary
                 }}>Accuracy</span>
                 <span style={{
                   fontSize: '1.25rem',
                   lineHeight: '1.75rem',
                   fontWeight: '700',
-                  color: '#111827'
+                  color: colors.textPrimary
                 }}>73.5%</span>
               </div>
             </div>
@@ -360,14 +362,14 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
             paddingRight: '0.875rem',
             paddingTop: '0.375rem',
             paddingBottom: '0.375rem',
-            border: activeFilter === 'today' ? '2px solid #C0096D' : '2px solid #E5E7EB',
+            border: activeFilter === 'today' ? '2px solid #C0096D' : `2px solid ${colors.borderPrimary}`,
             borderRadius: '0.375rem',
             fontSize: '0.9rem',
             lineHeight: '1rem',
             cursor: 'pointer',
             transition: 'all 0.3s',
-            backgroundColor: activeFilter === 'today' ? '#F20C8F' : 'white',
-            color: activeFilter === 'today' ? 'white' : '#4B5563'
+            backgroundColor: activeFilter === 'today' ? '#F20C8F' : colors.bgCard,
+            color: activeFilter === 'today' ? 'white' : colors.textSecondary
           }}
         >
           Today
@@ -379,14 +381,14 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
             paddingRight: '0.875rem',
             paddingTop: '0.375rem',
             paddingBottom: '0.375rem',
-            border: activeFilter === 'week' ? '2px solid #C0096D' : '2px solid #E5E7EB',
+            border: activeFilter === 'week' ? '2px solid #C0096D' : `2px solid ${colors.borderPrimary}`,
             borderRadius: '0.375rem',
             fontSize: '0.9rem',
             lineHeight: '1rem',
             cursor: 'pointer',
             transition: 'all 0.3s',
-            backgroundColor: activeFilter === 'week' ? '#F20C8F' : 'white',
-            color: activeFilter === 'week' ? 'white' : '#4B5563'
+            backgroundColor: activeFilter === 'week' ? '#F20C8F' : colors.bgCard,
+            color: activeFilter === 'week' ? 'white' : colors.textSecondary
           }}
         >
           This week
@@ -398,14 +400,14 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
             paddingRight: '0.875rem',
             paddingTop: '0.375rem',
             paddingBottom: '0.375rem',
-            border: activeFilter === 'month' ? '2px solid #C0096D' : '2px solid #E5E7EB',
+            border: activeFilter === 'month' ? '2px solid #C0096D' : `2px solid ${colors.borderPrimary}`,
             borderRadius: '0.375rem',
             fontSize: '0.9rem',
             lineHeight: '1rem',
             cursor: 'pointer',
             transition: 'all 0.3s',
-            backgroundColor: activeFilter === 'month' ? '#F20C8F' : 'white',
-            color: activeFilter === 'month' ? 'white' : '#4B5563'
+            backgroundColor: activeFilter === 'month' ? '#F20C8F' : colors.bgCard,
+            color: activeFilter === 'month' ? 'white' : colors.textSecondary
           }}
         >
           This Month
@@ -417,14 +419,14 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
             paddingRight: '0.875rem',
             paddingTop: '0.375rem',
             paddingBottom: '0.375rem',
-            border: activeFilter === 'custom' ? '2px solid #C0096D' : '2px solid #E5E7EB',
+            border: activeFilter === 'custom' ? '2px solid #C0096D' : `2px solid ${colors.borderPrimary}`,
             borderRadius: '0.375rem',
             fontSize: '0.9rem',
             lineHeight: '1rem',
             cursor: 'pointer',
             transition: 'all 0.3s',
-            backgroundColor: activeFilter === 'custom' ? '#F20C8F' : 'white',
-            color: activeFilter === 'custom' ? 'white' : '#4B5563'
+            backgroundColor: activeFilter === 'custom' ? '#F20C8F' : colors.bgCard,
+            color: activeFilter === 'custom' ? 'white' : colors.textSecondary
           }}
         >
           Custom
@@ -491,27 +493,27 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
       }}>
         <div>
           <section style={{
-            backgroundColor: 'white',
+            backgroundColor: colors.bgCard,
             borderRadius: '0.5rem',
             padding: '1rem',
-            boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+            boxShadow: colors.shadowSm,
             marginBottom: '1rem'
           }}>
             <h2 style={{
               fontSize: '1.2rem',
               lineHeight: '1.25rem',
               fontWeight: '100',
-              color: '#111827',
+              color: colors.textPrimary,
               marginBottom: '1rem'
             }}>Performance</h2>
             <PerformanceChart data={performanceData} height={200} />
           </section>
 
           <section style={{
-            backgroundColor: 'white',
+            backgroundColor: colors.bgCard,
             borderRadius: '0.5rem',
             padding: '1rem',
-            boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+            boxShadow: colors.shadowSm
           }}>
             <div style={{
               display: 'flex',
@@ -523,12 +525,12 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
                 fontSize: '1.2rem',
                 lineHeight: '1.25rem',
                 fontWeight: '100',
-                color: '#111827'
+                color: colors.textPrimary
               }}>Clients</h2>
               <Link href={`${basePath}/clients`} style={{
                 fontSize: '1rem',
                 lineHeight: '1rem',
-                color: '#2563EB',
+                color: colors.textLink,
                 fontWeight: '500',
                 textDecoration: 'none'
               }}>See all</Link>
@@ -544,9 +546,9 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
                     case 'In Progress':
                       return { backgroundColor: '#FCE7F3', color: '#DB2777' };
                     case 'Completed':
-                      return { backgroundColor: '#D1FAE5', color: '#059669' };
+                      return { backgroundColor: actualTheme === 'dark' ? '#064E3B' : '#D1FAE5', color: actualTheme === 'dark' ? '#34D399' : '#059669' };
                     case 'Pending':
-                      return { backgroundColor: '#FEF3C7', color: '#D97706' };
+                      return { backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FEF3C7', color: actualTheme === 'dark' ? '#FBBF24' : '#D97706' };
                     default:
                       return {};
                   }
@@ -564,7 +566,7 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
                       transition: 'background-color 0.3s',
                       position: 'relative'
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F9FAFB'}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = colors.bgHover}
                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                   >
                     <img
@@ -587,12 +589,12 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
                         fontSize: '1rem',
                         lineHeight: '1.25rem',
                         fontWeight: '700',
-                        color: '#111827'
+                        color: colors.textPrimary
                       }}>{client.name}</span>
                       <span style={{
                         fontSize: '0.85rem',
                         lineHeight: '1rem',
-                        color: '#6B7280'
+                        color: colors.textSecondary
                       }}>{client.event}</span>
                     </div>
                     <span style={{
@@ -610,7 +612,7 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
                       <button
                         style={{
                           padding: '0.25rem',
-                          color: '#9CA3AF',
+                          color: colors.textTertiary,
                           fontSize: '1.25rem',
                           lineHeight: '1.75rem',
                           border: 'none',
@@ -622,8 +624,8 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
                           e.stopPropagation();
                           toggleDropdown(client.id);
                         }}
-                        onMouseEnter={(e) => e.currentTarget.style.color = '#4B5563'}
-                        onMouseLeave={(e) => e.currentTarget.style.color = '#9CA3AF'}
+                        onMouseEnter={(e) => e.currentTarget.style.color = colors.textSecondary}
+                        onMouseLeave={(e) => e.currentTarget.style.color = colors.textTertiary}
                       >
                         <span>⋮</span>
                       </button>
@@ -632,10 +634,10 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
                           position: 'absolute',
                           top: '100%',
                           right: 0,
-                          backgroundColor: 'white',
+                          backgroundColor: colors.bgCard,
                           borderRadius: '0.5rem',
-                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                          border: '1px solid #E5E7EB',
+                          boxShadow: colors.shadowMd,
+                          border: `1px solid ${colors.borderPrimary}`,
                           zIndex: 10,
                           minWidth: '140px',
                           overflow: 'hidden'
@@ -648,11 +650,11 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
                               gap: '0.5rem',
                               padding: '0.625rem 0.875rem',
                               fontSize: '0.875rem',
-                              color: '#374151',
+                              color: colors.textPrimary,
                               textDecoration: 'none',
                               transition: 'background-color 0.2s'
                             }}
-                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F3F4F6'}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = colors.bgHover}
                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                           >
                             <EyeIcon />
@@ -670,17 +672,17 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
 
         <div>
           <section style={{
-            backgroundColor: 'white',
+            backgroundColor: colors.bgCard,
             borderRadius: '0.5rem',
             padding: '1rem',
-            boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+            boxShadow: colors.shadowSm,
             marginBottom: '1rem'
           }}>
             <h2 style={{
               fontSize: '1.2rem',
               lineHeight: '1.25rem',
               fontWeight: '100',
-              color: '#111827',
+              color: colors.textPrimary,
               marginBottom: '0.875rem'
             }}>Recent Activities</h2>
             <div style={{
@@ -695,10 +697,10 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
           </section>
 
           <section style={{
-            backgroundColor: 'white',
+            backgroundColor: colors.bgCard,
             borderRadius: '0.5rem',
             padding: '1rem',
-            boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+            boxShadow: colors.shadowSm
           }}>
             <div style={{
               display: 'flex',
@@ -710,12 +712,12 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
                 fontSize: '1.2rem',
                 lineHeight: '1.25rem',
                 fontWeight: '100',
-                color: '#111827'
+                color: colors.textPrimary
               }}>Recent payments</h2>
               <Link href={`${basePath}/transaction`} style={{
                 fontSize: '1rem',
                 lineHeight: '1rem',
-                color: '#2563EB',
+                color: colors.textLink,
                 fontWeight: '500',
                 textDecoration: 'none'
               }}>See all</Link>

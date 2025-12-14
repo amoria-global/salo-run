@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
+import { useTheme } from '../../context/ThemeContext';
 
 // Extended transaction data
 const allTransactionsData = [
@@ -123,6 +124,7 @@ interface AllTransactionsProps {
 }
 
 const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) => {
+  const { colors, actualTheme } = useTheme();
   const [transactions] = useState(allTransactionsData);
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   const [showModal, setShowModal] = useState(false);
@@ -299,10 +301,10 @@ const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) =>
   });
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
       <Sidebar />
 
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <Topbar userRole={userType} tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
 
         {/* Main Content */}

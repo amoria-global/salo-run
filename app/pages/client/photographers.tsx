@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
+import { useTheme } from '../../context/ThemeContext';
 
 // Icons
 const SearchIcon = () => (
@@ -143,6 +144,18 @@ const ClockIcon = () => (
   </svg>
 );
 
+const TipIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05.82 1.87 2.65 1.87 1.96 0 2.4-.98 2.4-1.59 0-.83-.44-1.61-2.67-2.14-2.48-.6-4.18-1.62-4.18-3.67 0-1.72 1.39-2.84 3.11-3.21V4h2.67v1.95c1.86.45 2.79 1.86 2.85 3.39H14.3c-.05-1.11-.64-1.87-2.22-1.87-1.5 0-2.4.68-2.4 1.64 0 .84.65 1.39 2.67 1.91s4.18 1.39 4.18 3.91c-.01 1.83-1.38 2.83-3.12 3.16z" fill="currentColor"/>
+  </svg>
+);
+
+const ReviewIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
 type PaymentStatus = 'paid' | 'pending' | 'failed' | 'partially_paid';
 
 interface Booking {
@@ -268,6 +281,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
 };
 
 const BookedPhotographersPage = () => {
+  const { colors, actualTheme } = useTheme();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpecialization, setSelectedSpecialization] = useState<string | null>(null);
@@ -285,6 +299,9 @@ const BookedPhotographersPage = () => {
   const [activeTab, setActiveTab] = useState<'all' | 'favorites' | 'pending_payments'>('all');
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewText, setReviewText] = useState('');
+  const [wantToTip, setWantToTip] = useState(false);
+  const [tipAmount, setTipAmount] = useState<number | 'custom' | ''>('');
+  const [customTipAmount, setCustomTipAmount] = useState('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentBooking, setPaymentBooking] = useState<{ photographer: BookedPhotographer; booking: Booking } | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('card');
@@ -626,14 +643,30 @@ const BookedPhotographersPage = () => {
 
   const submitReview = () => {
     if (reviewPhotographer) {
+      // Calculate final tip amount
+      const finalTipAmount = wantToTip ? (tipAmount === 'custom' ? parseFloat(customTipAmount) || 0 : tipAmount || 0) : 0;
+
       setPhotographers(prev => prev.map(p =>
         p.id === reviewPhotographer.id
-          ? { ...p, myRating: reviewRating, myReview: reviewText }
+          ? {
+              ...p,
+              myRating: reviewRating,
+              myReview: reviewText,
+              totalSpent: p.totalSpent + finalTipAmount // Add tip to total spent
+            }
           : p
       ));
       setShowReviewModal(false);
       setReviewRating(5);
       setReviewText('');
+      setWantToTip(false);
+      setTipAmount('');
+      setCustomTipAmount('');
+
+      // Show success message if tip was included
+      if (finalTipAmount > 0) {
+        alert(`Thank you! Your review has been submitted and $${finalTipAmount} tip has been sent to ${reviewPhotographer.firstName}.`);
+      }
     }
   };
 
@@ -650,11 +683,11 @@ const BookedPhotographersPage = () => {
   }, []);
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: '#F9FAFB' }}>
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <Topbar userRole="client" giftAmount={225.00} />
-        <div style={{ flex: 1, overflowY: 'auto', backgroundColor: '#F9FAFB', paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
+        <div style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
 
           {/* Header */}
           <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
@@ -1127,25 +1160,58 @@ const BookedPhotographersPage = () => {
                         <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>Total Spent</span>
                         <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#083A85' }}>${photographer.totalSpent}</div>
                       </div>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setRebookPhotographer(photographer); setShowRebookModal(true); }}
-                        style={{
-                          backgroundColor: '#F20C8F',
-                          color: 'white',
-                          border: '2px solid #C0096D',
-                          borderRadius: '0.375rem',
-                          padding: '0.5rem 1rem',
-                          fontSize: '0.85rem',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.375rem'
-                        }}
-                      >
-                        <RefreshIcon />
-                        Rebook
-                      </button>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        {hasCompletedEvent(photographer) && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setReviewPhotographer(photographer);
+                              setReviewRating(photographer.myRating || 5);
+                              setReviewText(photographer.myReview || '');
+                              setWantToTip(false);
+                              setTipAmount('');
+                              setCustomTipAmount('');
+                              setShowReviewModal(true);
+                            }}
+                            style={{
+                              backgroundColor: photographer.myReview ? '#F3F4F6' : '#083A85',
+                              color: photographer.myReview ? '#374151' : 'white',
+                              border: photographer.myReview ? '2px solid #D1D5DB' : '2px solid #062a63',
+                              borderRadius: '0.375rem',
+                              padding: '0.5rem 0.75rem',
+                              fontSize: '0.85rem',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.375rem'
+                            }}
+                            title={photographer.myReview ? 'Edit your review' : 'Leave a review'}
+                          >
+                            <ReviewIcon />
+                            {photographer.myReview ? 'Edit' : 'Review'}
+                          </button>
+                        )}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setRebookPhotographer(photographer); setShowRebookModal(true); }}
+                          style={{
+                            backgroundColor: '#F20C8F',
+                            color: 'white',
+                            border: '2px solid #C0096D',
+                            borderRadius: '0.375rem',
+                            padding: '0.5rem 1rem',
+                            fontSize: '0.85rem',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.375rem'
+                          }}
+                        >
+                          <RefreshIcon />
+                          Rebook
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1309,6 +1375,37 @@ const BookedPhotographersPage = () => {
                         <MessageIcon />
                         Message
                       </button>
+                      {hasCompletedEvent(photographer) && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setReviewPhotographer(photographer);
+                            setReviewRating(photographer.myRating || 5);
+                            setReviewText(photographer.myReview || '');
+                            setWantToTip(false);
+                            setTipAmount('');
+                            setCustomTipAmount('');
+                            setShowReviewModal(true);
+                          }}
+                          style={{
+                            backgroundColor: photographer.myReview ? '#F3F4F6' : '#083A85',
+                            color: photographer.myReview ? '#374151' : 'white',
+                            border: photographer.myReview ? '2px solid #D1D5DB' : '2px solid #062a63',
+                            borderRadius: '0.375rem',
+                            padding: '0.5rem 0.75rem',
+                            fontSize: '0.85rem',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.375rem'
+                          }}
+                          title={photographer.myReview ? 'Edit your review' : 'Leave a review'}
+                        >
+                          <ReviewIcon />
+                          {photographer.myReview ? 'Edit Review' : 'Review'}
+                        </button>
+                      )}
                       <button
                         onClick={(e) => { e.stopPropagation(); setRebookPhotographer(photographer); setShowRebookModal(true); }}
                         style={{
@@ -1943,6 +2040,123 @@ const BookedPhotographersPage = () => {
                   color: '#111827'
                 }}
               />
+            </div>
+
+            {/* Tip Section */}
+            <div style={{
+              marginBottom: '1.25rem',
+              padding: '1rem',
+              backgroundColor: '#FEF3C7',
+              borderRadius: '0.5rem',
+              border: '1px solid #FCD34D'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: wantToTip ? '1rem' : '0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ color: '#92400E' }}><TipIcon /></span>
+                  <span style={{ fontSize: '0.9rem', fontWeight: '500', color: '#92400E' }}>
+                    Would you like to leave a tip for {reviewPhotographer.firstName}?
+                  </span>
+                </div>
+                <button
+                  onClick={() => setWantToTip(!wantToTip)}
+                  style={{
+                    width: '48px',
+                    height: '26px',
+                    borderRadius: '13px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    backgroundColor: wantToTip ? '#F59E0B' : '#D1D5DB',
+                    transition: 'background-color 0.2s'
+                  }}
+                >
+                  <div style={{
+                    width: '22px',
+                    height: '22px',
+                    borderRadius: '50%',
+                    backgroundColor: 'white',
+                    position: 'absolute',
+                    top: '2px',
+                    left: wantToTip ? '24px' : '2px',
+                    transition: 'left 0.2s',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)'
+                  }} />
+                </button>
+              </div>
+
+              {wantToTip && (
+                <div>
+                  <div style={{ fontSize: '0.8rem', color: '#92400E', marginBottom: '0.75rem' }}>
+                    Show your appreciation for great work!
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    {[5, 10, 20, 50].map((amount) => (
+                      <button
+                        key={amount}
+                        onClick={() => { setTipAmount(amount); setCustomTipAmount(''); }}
+                        style={{
+                          padding: '0.5rem 1rem',
+                          borderRadius: '0.375rem',
+                          border: tipAmount === amount ? '2px solid #F59E0B' : '2px solid #D1D5DB',
+                          backgroundColor: tipAmount === amount ? '#FEF3C7' : 'white',
+                          color: tipAmount === amount ? '#92400E' : '#374151',
+                          fontSize: '0.9rem',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        ${amount}
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => { setTipAmount('custom'); }}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        borderRadius: '0.375rem',
+                        border: tipAmount === 'custom' ? '2px solid #F59E0B' : '2px solid #D1D5DB',
+                        backgroundColor: tipAmount === 'custom' ? '#FEF3C7' : 'white',
+                        color: tipAmount === 'custom' ? '#92400E' : '#374151',
+                        fontSize: '0.9rem',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      Custom
+                    </button>
+                  </div>
+                  {tipAmount === 'custom' && (
+                    <div style={{ marginTop: '0.75rem' }}>
+                      <div style={{ position: 'relative' }}>
+                        <span style={{
+                          position: 'absolute',
+                          left: '0.75rem',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          color: '#6B7280',
+                          fontWeight: '500'
+                        }}>$</span>
+                        <input
+                          type="number"
+                          value={customTipAmount}
+                          onChange={(e) => setCustomTipAmount(e.target.value)}
+                          placeholder="Enter amount"
+                          min="1"
+                          style={{
+                            width: '100%',
+                            padding: '0.5rem 0.75rem 0.5rem 1.5rem',
+                            border: '2px solid #D1D5DB',
+                            borderRadius: '0.375rem',
+                            fontSize: '0.9rem',
+                            color: '#111827'
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div style={{ display: 'flex', gap: '0.75rem' }}>
