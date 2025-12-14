@@ -1,4 +1,7 @@
+"use client";
+
 import React from 'react';
+import { useTheme } from '../../context/ThemeContext';
 
 interface PaymentItemProps {
   name: string;
@@ -15,6 +18,8 @@ export const PaymentItem: React.FC<PaymentItemProps> = ({
   avatar,
   logo
 }) => {
+  const { colors } = useTheme();
+
   return (
     <div
       style={{
@@ -25,7 +30,7 @@ export const PaymentItem: React.FC<PaymentItemProps> = ({
         borderRadius: '0.375rem',
         transition: 'background-color 0.3s'
       }}
-      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F9FAFB'}
+      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = colors.bgHover}
       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
     >
       <div style={{
@@ -55,7 +60,7 @@ export const PaymentItem: React.FC<PaymentItemProps> = ({
               borderRadius: '9999px',
               objectFit: 'cover',
               padding: '0.375rem',
-              backgroundColor: '#F3F4F6'
+              backgroundColor: colors.bgTertiary
             }}
           />
         )}
@@ -68,12 +73,12 @@ export const PaymentItem: React.FC<PaymentItemProps> = ({
             fontSize: '1rem',
             lineHeight: '1.25rem',
             fontWeight: '700',
-            color: '#111827'
+            color: colors.textPrimary
           }}>{name}</span>
           <span style={{
             fontSize: '0.85rem',
             lineHeight: '1rem',
-            color: '#6B7280'
+            color: colors.textSecondary
           }}>{type}</span>
         </div>
       </div>
@@ -81,7 +86,7 @@ export const PaymentItem: React.FC<PaymentItemProps> = ({
         fontSize: '1rem',
         lineHeight: '1.25rem',
         fontWeight: '700',
-        color: '#111827'
+        color: colors.textPrimary
       }}>{amount}</span>
     </div>
   );

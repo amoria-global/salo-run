@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
+import { useTheme } from '../../context/ThemeContext';
 
 // Icons
 const DownloadIcon = () => (
@@ -419,7 +420,9 @@ Amount: ${payment.amount}
       {/* Payment Info */}
       <div style={{ backgroundColor: '#F9FAFB', borderRadius: '0.5rem', padding: '1rem', marginBottom: '1rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid #E5E7EB' }}>
-          <Image src={payment.photographerImage} alt={payment.photographerName} width={40} height={40} style={{ borderRadius: '50%', objectFit: 'cover' }} />
+          <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
+            <Image src={payment.photographerImage} alt={payment.photographerName} width={40} height={40} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+          </div>
           <div>
             <div style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>{payment.photographerName}</div>
             <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>{payment.eventName}</div>
@@ -1067,6 +1070,7 @@ const EventTypeBadge: React.FC<EventTypeBadgeProps> = ({ type }) => {
 };
 
 const PaymentsPage = () => {
+  const { colors, actualTheme } = useTheme();
   const [activeTimeFilter, setActiveTimeFilter] = useState<'1W' | '1M' | '3M' | '6M' | '1Y'>('1W');
   const [currentPage, setCurrentPage] = useState(1);
   const [chartType, setChartType] = useState<ChartType>('line');
@@ -1205,11 +1209,11 @@ Amount: ${payment.amount}
   const totalResults = payments.length;
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: '#F9FAFB' }}>
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <Topbar userRole="client" giftAmount={totalGifts} />
-        <div style={{ flex: 1, overflowY: 'auto', backgroundColor: '#F9FAFB', paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
+        <div style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
 
           {/* Header */}
           <header style={{ marginBottom: '1.5rem' }}>
@@ -1481,7 +1485,9 @@ Amount: ${payment.amount}
                     <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.85rem', color: '#6B7280' }}>{payment.date}</td>
                     <td style={{ padding: '0.875rem 1.25rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <Image src={payment.photographerImage} alt={payment.photographerName} width={32} height={32} style={{ borderRadius: '50%', objectFit: 'cover' }} />
+                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
+                          <Image src={payment.photographerImage} alt={payment.photographerName} width={32} height={32} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                        </div>
                         <div>
                           <div style={{ fontSize: '0.9rem', fontWeight: '500', color: '#111827' }}>{payment.eventName}</div>
                           <EventTypeBadge type={payment.eventType} />

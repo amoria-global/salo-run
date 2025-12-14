@@ -4,7 +4,9 @@
       "Bash(npm run build:*)",
       "Bash(npx tsc:*)",
       "Bash(cmd /c \"rename app\\user\\photographers photographer\")",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(npm install:*)",
+      "Bash(dir /b \"c:\\Users\\JOAST\\Documents\\connekt-dashboard\\app\\pages\\freelancer\")"
     ]
   }
 }

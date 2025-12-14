@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
+import { useTheme } from "../context/ThemeContext";
 
 // Icons for dropdown menu
 const ProfileIcon = () => (
@@ -64,6 +65,8 @@ interface TopbarProps {
 }
 
 export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmount, userRole = 'client' }: TopbarProps) {
+  const { colors, actualTheme } = useTheme();
+
   const getRoleDisplayName = (role: string) => {
     switch (role) {
       case 'photographer':
@@ -132,20 +135,20 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
       paddingRight: '1.2rem',
       paddingTop: '0.4rem',
       paddingBottom: '0.4rem',
-      backgroundColor: 'white',
+      backgroundColor: colors.bgSecondary,
       borderRadius: '9999px',
       marginLeft: '1.5rem',
       marginRight: '1.5rem',
       marginTop: '0.75rem',
       marginBottom: '0.75rem',
-      border: '1px solid #E5E7EB',
-      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+      border: `1px solid ${colors.borderPrimary}`,
+      boxShadow: colors.shadowSm
     }}>
       {/* Left side - Dashboard title */}
       <h1 style={{
         fontSize: '1.35rem',
         lineHeight: '1.75rem',
-        color: '#4B5563'
+        color: colors.textSecondary
       }}>{getRoleDisplayName(userRole)} Dashboard</h1>
 
       {/* Right side - Notification, Bonus, and Profile */}
@@ -171,7 +174,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
             <i style={{
               fontSize: '1.35rem',
               lineHeight: '1.75rem',
-              color: '#374151'
+              color: colors.textSecondary
             }} className="bi bi-bell"></i>
             {unreadCount > 0 && (
               <span style={{
@@ -201,10 +204,10 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
               position: 'absolute',
               top: 'calc(100% + 0.75rem)',
               right: '-100px',
-              backgroundColor: 'white',
+              backgroundColor: colors.bgSecondary,
               borderRadius: '0.75rem',
-              boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15)',
-              border: '1px solid #E5E7EB',
+              boxShadow: colors.shadowLg,
+              border: `1px solid ${colors.borderPrimary}`,
               width: '360px',
               maxHeight: '480px',
               zIndex: 50,
@@ -216,10 +219,10 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 padding: '1rem',
-                borderBottom: '1px solid #E5E7EB'
+                borderBottom: `1px solid ${colors.borderPrimary}`
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <h3 style={{ fontSize: '1rem', fontWeight: '600', color: '#111827', margin: 0 }}>Notifications</h3>
+                  <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Notifications</h3>
                   {unreadCount > 0 && (
                     <span style={{
                       backgroundColor: '#FEE2E2',
@@ -286,16 +289,16 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
                           display: 'flex',
                           gap: '0.75rem',
                           padding: '0.875rem 1rem',
-                          borderBottom: '1px solid #F3F4F6',
-                          backgroundColor: notification.read ? 'white' : '#F0F9FF',
+                          borderBottom: `1px solid ${colors.bgTertiary}`,
+                          backgroundColor: notification.read ? colors.bgSecondary : (actualTheme === 'dark' ? '#1E3A5F' : '#F0F9FF'),
                           cursor: 'pointer',
                           transition: 'background-color 0.2s'
                         }}
                         onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = notification.read ? '#F9FAFB' : '#E0F2FE';
+                          e.currentTarget.style.backgroundColor = notification.read ? colors.bgTertiary : (actualTheme === 'dark' ? '#234B6E' : '#E0F2FE');
                         }}
                         onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = notification.read ? 'white' : '#F0F9FF';
+                          e.currentTarget.style.backgroundColor = notification.read ? colors.bgSecondary : (actualTheme === 'dark' ? '#1E3A5F' : '#F0F9FF');
                         }}
                       >
                         {/* Icon */}
@@ -325,7 +328,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
                             <span style={{
                               fontSize: '0.875rem',
                               fontWeight: notification.read ? '500' : '600',
-                              color: '#111827'
+                              color: colors.textPrimary
                             }}>
                               {notification.title}
                             </span>
@@ -342,7 +345,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
                           </div>
                           <p style={{
                             fontSize: '0.8rem',
-                            color: '#6B7280',
+                            color: colors.textSecondary,
                             margin: '0.25rem 0 0 0',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
@@ -352,7 +355,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
                           </p>
                           <span style={{
                             fontSize: '0.7rem',
-                            color: '#9CA3AF',
+                            color: colors.textTertiary,
                             marginTop: '0.25rem',
                             display: 'block'
                           }}>
@@ -368,7 +371,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
               {/* Footer */}
               <div style={{
                 padding: '0.75rem',
-                borderTop: '1px solid #E5E7EB',
+                borderTop: `1px solid ${colors.borderPrimary}`,
                 textAlign: 'center'
               }}>
                 <a
@@ -402,13 +405,13 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
               fontSize: '1.12rem',
               lineHeight: '1.5rem',
               fontWeight: '600',
-              color: '#111827'
+              color: colors.textPrimary
             }}>Balance:</span>
             <span style={{
               fontSize: '1.15rem',
               lineHeight: '1.5rem',
               fontWeight: '700',
-              color: balanceAmount && balanceAmount > 0 ? '#083A85' : '#6B7280'
+              color: balanceAmount && balanceAmount > 0 ? colors.brandPrimary : colors.textSecondary
             }}>${balanceAmount !== undefined ? balanceAmount.toFixed(2) : '0.00'}</span>
           </div>
         )}
@@ -424,13 +427,13 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
               fontSize: '1.12rem',
               lineHeight: '1.5rem',
               fontWeight: '600',
-              color: '#111827'
+              color: colors.textPrimary
             }}>Tips:</span>
             <span style={{
               fontSize: '1.15rem',
               lineHeight: '1.5rem',
               fontWeight: '600',
-              color: tipsAmount && tipsAmount > 0 ? '#F59E0B' : '#6B7280'
+              color: tipsAmount && tipsAmount > 0 ? '#F59E0B' : colors.textSecondary
             }}>${tipsAmount !== undefined ? tipsAmount.toFixed(2) : '0.00'}</span>
           </div>
         )}
@@ -445,15 +448,15 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
             fontSize: '1.12rem',
             lineHeight: '1.5rem',
             fontWeight: '600',
-            color: '#111827'
+            color: colors.textPrimary
           }}>{userRole === 'client' ? 'Gifts:' : 'Bonus:'}</span>
           <span style={{
             fontSize: '1.15rem',
             lineHeight: '1.5rem',
             fontWeight: '600',
             color: userRole === 'client'
-              ? (giftAmount && giftAmount > 0 ? '#16A34A' : '#083A85')
-              : (bonusAmount && bonusAmount > 0 ? '#16A34A' : '#083A85')
+              ? (giftAmount && giftAmount > 0 ? colors.statusSuccess : colors.brandPrimary)
+              : (bonusAmount && bonusAmount > 0 ? colors.statusSuccess : colors.brandPrimary)
           }}>${userRole === 'client'
             ? (giftAmount !== undefined ? giftAmount.toFixed(2) : '0.00')
             : (bonusAmount !== undefined ? bonusAmount.toFixed(2) : '0.00')}</span>
@@ -495,7 +498,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
                 fontSize: '1.12rem',
                 lineHeight: '1.5rem',
                 fontWeight: '700',
-                color: '#083A85'
+                color: colors.brandPrimary
               }}>Diane Mary</span>
               <div style={{
                 display: 'flex',
@@ -506,14 +509,14 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
                   fontSize: '1rem',
                   lineHeight: '1.5rem',
                   fontWeight: '600',
-                  color: '#111827'
+                  color: colors.textPrimary
                 }}>${userRole === 'client'
                   ? (giftAmount !== undefined ? giftAmount.toFixed(2) : '0.00')
                   : (balanceAmount !== undefined ? balanceAmount.toFixed(2) : '0.00')}</span>
                 <i style={{
                   fontSize: '0.75rem',
                   lineHeight: '1rem',
-                  color: '#374151',
+                  color: colors.textSecondary,
                   transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
                   transition: 'transform 0.2s ease'
                 }} className="bi bi-chevron-down"></i>
@@ -527,10 +530,10 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
               position: 'absolute',
               top: 'calc(100% + 0.75rem)',
               right: 0,
-              backgroundColor: 'white',
+              backgroundColor: colors.bgSecondary,
               borderRadius: '0.75rem',
-              boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15)',
-              border: '1px solid #E5E7EB',
+              boxShadow: colors.shadowLg,
+              border: `1px solid ${colors.borderPrimary}`,
               padding: '1.25rem',
               minWidth: '220px',
               zIndex: 50
@@ -539,19 +542,19 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
               <div style={{
                 marginBottom: '1rem',
                 paddingBottom: '1rem',
-                borderBottom: '1px solid #E5E7EB'
+                borderBottom: `1px solid ${colors.borderPrimary}`
               }}>
                 <div style={{
                   fontSize: '1.1rem',
                   fontWeight: '700',
-                  color: '#083A85',
+                  color: colors.brandPrimary,
                   marginBottom: '0.25rem'
                 }}>
                   Diane Marry
                 </div>
                 <div style={{
                   fontSize: '0.9rem',
-                  color: '#374151'
+                  color: colors.textSecondary
                 }}>
                   ID: <span style={{ color: '#EC4899', fontWeight: '600' }}>12004573</span>
                 </div>
@@ -572,13 +575,13 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
                     padding: '0.75rem',
                     borderRadius: '0.5rem',
                     textDecoration: 'none',
-                    color: '#374151',
+                    color: colors.textSecondary,
                     fontSize: '0.95rem',
                     fontWeight: '500',
                     transition: 'background-color 0.2s'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#F3F4F6';
+                    e.currentTarget.style.backgroundColor = colors.bgTertiary;
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = 'transparent';
@@ -597,13 +600,13 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
                     padding: '0.75rem',
                     borderRadius: '0.5rem',
                     textDecoration: 'none',
-                    color: '#374151',
+                    color: colors.textSecondary,
                     fontSize: '0.95rem',
                     fontWeight: '500',
                     transition: 'background-color 0.2s'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#F3F4F6';
+                    e.currentTarget.style.backgroundColor = colors.bgTertiary;
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = 'transparent';
@@ -622,13 +625,13 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
                     padding: '0.75rem',
                     borderRadius: '0.5rem',
                     textDecoration: 'none',
-                    color: '#374151',
+                    color: colors.textSecondary,
                     fontSize: '0.95rem',
                     fontWeight: '500',
                     transition: 'background-color 0.2s'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#F3F4F6';
+                    e.currentTarget.style.backgroundColor = colors.bgTertiary;
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = 'transparent';

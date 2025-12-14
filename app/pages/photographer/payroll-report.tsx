@@ -3,12 +3,14 @@
 import React, { useRef } from 'react';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
+import { useTheme } from '../../context/ThemeContext';
 
 interface PayrollReportProps {
   userType?: 'photographer' | 'freelancer';
 }
 
 const PayrollReport = ({ userType = 'photographer' }: PayrollReportProps) => {
+  const { colors, actualTheme } = useTheme();
   const reportRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = () => {
@@ -130,7 +132,7 @@ const PayrollReport = ({ userType = 'photographer' }: PayrollReportProps) => {
         }
       `}} />
 
-      <div style={{ display: 'flex', height: '100vh', backgroundColor: '#f9fafb' }}>
+      <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
         <div className="no-print">
           <Sidebar />
         </div>
