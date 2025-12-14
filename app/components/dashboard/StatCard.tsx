@@ -1,4 +1,7 @@
+"use client";
+
 import React from 'react';
+import { useTheme } from '../../context/ThemeContext';
 
 interface StatCardProps {
   title: string;
@@ -19,12 +22,14 @@ export const StatCard: React.FC<StatCardProps> = ({
   trend = 'up',
   href
 }) => {
+  const { colors } = useTheme();
+
   return (
     <div style={{
-      backgroundColor: 'white',
+      backgroundColor: colors.bgCard,
       borderRadius: '0.5rem',
       padding: '0.875rem',
-      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+      boxShadow: colors.shadowSm,
       height: '100%'
     }}>
       <div style={{
@@ -37,7 +42,7 @@ export const StatCard: React.FC<StatCardProps> = ({
         <span style={{
           fontSize: '0.9rem',
           lineHeight: '1rem',
-          color: '#6B7280'
+          color: colors.textSecondary
         }}>{title}</span>
         <div style={{
           width: '2.25rem',
@@ -57,7 +62,7 @@ export const StatCard: React.FC<StatCardProps> = ({
         lineHeight: '2rem',
         fontWeight: '700',
         marginBottom: '0.375rem',
-        color: '#000000'
+        color: colors.textPrimary
       }}>{value}</div>
       <div style={{
         display: 'flex',
@@ -73,14 +78,14 @@ export const StatCard: React.FC<StatCardProps> = ({
             fontSize: '0.85rem',
             lineHeight: '1rem',
             fontWeight: '600',
-            color: trend === 'up' ? '#059669' : '#DC2626'
+            color: trend === 'up' ? colors.statusSuccess : colors.statusError
           }}>
             {trend === 'up' ? '+' : ''}{percentage}
           </span>
           <span style={{
             fontSize: '0.85rem',
             lineHeight: '1rem',
-            color: '#9CA3AF'
+            color: colors.textTertiary
           }}>{timeframe}</span>
         </div>
         <a
@@ -98,7 +103,7 @@ export const StatCard: React.FC<StatCardProps> = ({
           <i style={{
             fontSize: '0.875rem',
             lineHeight: '1.25rem',
-            color: '#0267FF'
+            color: colors.textLink
           }} className="bi bi-box-arrow-up-right"></i>
         </a>
       </div>

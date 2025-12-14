@@ -1,4 +1,7 @@
+"use client";
+
 import React from 'react';
+import { useTheme } from '../../context/ThemeContext';
 
 interface ActivityItemProps {
   label: string;
@@ -11,6 +14,8 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
   value,
   valueColor
 }) => {
+  const { colors } = useTheme();
+
   return (
     <div style={{
       display: 'flex',
@@ -22,7 +27,7 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
       <span style={{
         fontSize: '0.9rem',
         lineHeight: '1rem',
-        color: '#6B7280'
+        color: colors.textSecondary
       }}>{label}</span>
       <span
         style={{
@@ -30,7 +35,7 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
           lineHeight: '1rem',
           fontWeight: '600',
           textAlign: 'right',
-          color: valueColor || '#111827'
+          color: valueColor || colors.textPrimary
         }}
       >
         {value}

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
+import { useTheme } from '../../context/ThemeContext';
 
 // Icons
 const DownloadIcon = () => (
@@ -124,6 +125,7 @@ interface ModalProps {
 }
 
 const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidth = '500px' }) => {
+  const { colors } = useTheme();
   if (!isOpen) return null;
 
   return (
@@ -140,7 +142,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
       zIndex: 1000,
     }} onClick={onClose}>
       <div style={{
-        backgroundColor: 'white',
+        backgroundColor: colors.bgCard,
         borderRadius: '0.75rem',
         padding: '1.5rem',
         maxWidth: maxWidth,
@@ -150,7 +152,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
         boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
       }} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-          <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#111827', margin: 0 }}>{title}</h3>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>{title}</h3>
           <button className="no-print" onClick={onClose} style={{ background: '#F3F4F6', border: '2px solid #D1D5DB', cursor: 'pointer', padding: '0.5rem', borderRadius: '0.375rem', color: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <CloseIcon />
           </button>
@@ -168,6 +170,7 @@ interface ViewReportModalProps {
 }
 
 const ViewReportModal: React.FC<ViewReportModalProps> = ({ isOpen, onClose }) => {
+  const { colors } = useTheme();
   const reportData = {
     period: '13 - 18 July 2025',
     totalEarned: 1200.13,
@@ -213,39 +216,39 @@ Transaction Summary:
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Earnings Report" maxWidth="520px">
       <div style={{ marginBottom: '1rem' }}>
-        <div style={{ fontSize: '0.8rem', color: '#6B7280', marginBottom: '0.75rem' }}>
-          Report Period: <span style={{ fontWeight: '600', color: '#111827' }}>{reportData.period}</span>
+        <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.75rem' }}>
+          Report Period: <span style={{ fontWeight: '600', color: colors.textPrimary }}>{reportData.period}</span>
         </div>
 
         {/* Financial & Transaction Summary Side by Side */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
           {/* Financial Summary */}
           <div style={{ backgroundColor: '#F9FAFB', borderRadius: '0.5rem', padding: '0.75rem' }}>
-            <h4 style={{ fontSize: '0.8rem', fontWeight: '600', color: '#111827', margin: 0, marginBottom: '0.5rem' }}>Financial Summary</h4>
+            <h4 style={{ fontSize: '0.8rem', fontWeight: '600', color: colors.textPrimary, margin: 0, marginBottom: '0.5rem' }}>Financial Summary</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                   <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981' }} />
-                  <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>Earned</span>
+                  <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Earned</span>
                 </div>
-                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>${reportData.totalEarned.toFixed(2)}</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>${reportData.totalEarned.toFixed(2)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                   <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#FBBF24' }} />
-                  <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>Pending</span>
+                  <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Pending</span>
                 </div>
-                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>${reportData.pending.toFixed(2)}</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>${reportData.pending.toFixed(2)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                   <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#3B82F6' }} />
-                  <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>Withdrawn</span>
+                  <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Withdrawn</span>
                 </div>
-                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>${reportData.withdrawn.toFixed(2)}</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>${reportData.withdrawn.toFixed(2)}</span>
               </div>
-              <div style={{ borderTop: '1px solid #E5E7EB', marginTop: '0.35rem', paddingTop: '0.35rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: '500', color: '#6B7280' }}>Total</span>
+              <div style={{ borderTop: `1px solid ${colors.borderPrimary}`, marginTop: '0.35rem', paddingTop: '0.35rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: '500', color: colors.textSecondary }}>Total</span>
                 <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#083A85' }}>${(reportData.totalEarned + reportData.pending + reportData.withdrawn).toFixed(2)}</span>
               </div>
             </div>
@@ -253,11 +256,11 @@ Transaction Summary:
 
           {/* Transaction Summary */}
           <div style={{ backgroundColor: '#F9FAFB', borderRadius: '0.5rem', padding: '0.75rem' }}>
-            <h4 style={{ fontSize: '0.8rem', fontWeight: '600', color: '#111827', margin: 0, marginBottom: '0.5rem' }}>Transaction Summary</h4>
+            <h4 style={{ fontSize: '0.8rem', fontWeight: '600', color: colors.textPrimary, margin: 0, marginBottom: '0.5rem' }}>Transaction Summary</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>Total</span>
-                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#111827' }}>{reportData.totalTransactions}</span>
+                <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Total</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: colors.textPrimary }}>{reportData.totalTransactions}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: '0.75rem', color: '#10B981' }}>Completed</span>
@@ -343,6 +346,7 @@ interface TransactionDetailsModalProps {
 }
 
 const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({ isOpen, onClose, transaction }) => {
+  const { colors } = useTheme();
   if (!transaction) return null;
 
   const handlePrintReceipt = () => {
@@ -421,7 +425,7 @@ Amount: ${transaction.amount}
         }}>
           {transaction.status.replace('_', ' ')}
         </span>
-        <span style={{ fontSize: '1.75rem', fontWeight: '700', color: '#111827', marginTop: '0.5rem' }}>
+        <span style={{ fontSize: '1.75rem', fontWeight: '700', color: colors.textPrimary, marginTop: '0.5rem' }}>
           {transaction.amount}
         </span>
       </div>
@@ -429,33 +433,35 @@ Amount: ${transaction.amount}
       {/* Transaction Info */}
       <div style={{ backgroundColor: '#F9FAFB', borderRadius: '0.5rem', padding: '1rem', marginBottom: '1rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid #E5E7EB' }}>
-          <Image src={transaction.clientImage} alt={transaction.clientName} width={40} height={40} style={{ borderRadius: '50%', objectFit: 'cover' }} />
+          <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
+            <Image src={transaction.clientImage} alt={transaction.clientName} width={40} height={40} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+          </div>
           <div>
-            <div style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>{transaction.clientName}</div>
-            <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>{transaction.service}</div>
+            <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>{transaction.clientName}</div>
+            <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{transaction.service}</div>
           </div>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>Transaction ID</span>
-            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>{transaction.transactionId}</span>
+            <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Transaction ID</span>
+            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{transaction.transactionId}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>Request ID</span>
-            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>{transaction.requestId}</span>
+            <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Request ID</span>
+            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{transaction.requestId}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>Date & Time</span>
-            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>{transaction.date}</span>
+            <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Date & Time</span>
+            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{transaction.date}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>Payment Method</span>
-            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>{transaction.method}</span>
+            <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Payment Method</span>
+            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{transaction.method}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>Service Type</span>
-            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>{transaction.serviceType}</span>
+            <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Service Type</span>
+            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{transaction.serviceType}</span>
           </div>
         </div>
       </div>
@@ -531,6 +537,7 @@ interface WithdrawAccount {
 }
 
 const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availableBalance }) => {
+  const { colors } = useTheme();
   const [withdrawAmount, setWithdrawAmount] = useState<string>('');
   const [selectedAccount, setSelectedAccount] = useState<string>('');
 
@@ -576,7 +583,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
       zIndex: 1000,
     }} onClick={onClose}>
       <div style={{
-        backgroundColor: 'white',
+        backgroundColor: colors.bgCard,
         borderRadius: '1rem',
         width: '420px',
         maxHeight: '90vh',
@@ -592,8 +599,8 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
           alignItems: 'center'
         }}>
           <div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#111827', margin: 0 }}>Withdraw Funds</h3>
-            <p style={{ fontSize: '0.85rem', color: '#6B7280', margin: '0.25rem 0 0 0' }}>Transfer earnings to your account</p>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: colors.textPrimary, margin: 0 }}>Withdraw Funds</h3>
+            <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0.25rem 0 0 0' }}>Transfer earnings to your account</p>
           </div>
           <button
             onClick={onClose}
@@ -674,7 +681,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
                 transform: 'translateY(-50%)',
                 fontSize: '1.1rem',
                 fontWeight: '600',
-                color: '#6B7280'
+                color: colors.textSecondary
               }}>$</span>
               <input
                 type="text"
@@ -688,7 +695,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
                   borderRadius: '0.75rem',
                   fontSize: '1.1rem',
                   fontWeight: '600',
-                  color: '#111827',
+                  color: colors.textPrimary,
                   outline: 'none',
                   transition: 'border-color 0.2s, box-shadow 0.2s',
                   boxSizing: 'border-box'
@@ -775,14 +782,14 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
                     <div style={{
                       fontSize: '0.9rem',
                       fontWeight: '600',
-                      color: '#111827',
+                      color: colors.textPrimary,
                       marginBottom: '0.125rem'
                     }}>
                       {account.label}
                     </div>
                     <div style={{
                       fontSize: '0.8rem',
-                      color: '#6B7280',
+                      color: colors.textSecondary,
                       display: 'flex',
                       alignItems: 'center',
                       gap: '0.5rem'
@@ -904,6 +911,7 @@ interface EarningsChartProps {
 }
 
 const EarningsChart: React.FC<EarningsChartProps> = ({ data, height = 140, chartType }) => {
+  const { colors } = useTheme();
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const maxValue = Math.max(...data.map(d => d.value));
   const minValue = Math.min(...data.map(d => d.value));
@@ -1096,7 +1104,7 @@ const EarningsChart: React.FC<EarningsChartProps> = ({ data, height = 140, chart
             left: `${(points[hoveredIndex].x / chartWidth) * 100}%`,
             top: chartType === 'bar' ? `${points[hoveredIndex].y - 80}px` : `${points[hoveredIndex].y - 70}px`,
             transform: 'translateX(-50%)',
-            backgroundColor: 'white',
+            backgroundColor: colors.bgCard,
             padding: '10px 14px',
             borderRadius: '10px',
             boxShadow: '0 4px 16px rgba(0, 0, 0, 0.12)',
@@ -1104,7 +1112,7 @@ const EarningsChart: React.FC<EarningsChartProps> = ({ data, height = 140, chart
             whiteSpace: 'nowrap',
             border: '1px solid #F3F4F6'
           }}>
-            <div style={{ fontSize: '0.8rem', color: '#6B7280', marginBottom: '6px', fontWeight: '500' }}>
+            <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '6px', fontWeight: '500' }}>
               {points[hoveredIndex].date}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1119,8 +1127,8 @@ const EarningsChart: React.FC<EarningsChartProps> = ({ data, height = 140, chart
               }}>
                 <span style={{ color: 'white', fontSize: '0.7rem', fontWeight: '600' }}>$</span>
               </div>
-              <span style={{ fontSize: '0.9rem', color: '#6B7280' }}>Earnings</span>
-              <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#111827' }}>
+              <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Earnings</span>
+              <span style={{ fontSize: '0.95rem', fontWeight: '700', color: colors.textPrimary }}>
                 ${points[hoveredIndex].value.toLocaleString()}
               </span>
             </div>
@@ -1251,6 +1259,7 @@ interface TransactionsPageProps {
 }
 
 const TransactionsPage = ({ userType = 'photographer' }: TransactionsPageProps) => {
+  const { colors, actualTheme } = useTheme();
   const [activeTimeFilter, setActiveTimeFilter] = useState<'1W' | '1M' | '3M' | '6M' | '1Y'>('1W');
   const [currentPage, setCurrentPage] = useState(1);
   const [chartType, setChartType] = useState<ChartType>('line');
@@ -1344,17 +1353,17 @@ Amount: ${transaction.amount}
   const totalResults = transactions.length;
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: '#F9FAFB' }}>
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <Topbar userRole={userType} tipsAmount={totalTips} bonusAmount={platformBonus} balanceAmount={availableBalance} />
-        <div style={{ flex: 1, overflowY: 'auto', backgroundColor: '#F9FAFB', paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
+        <div style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
 
           {/* Header with Withdraw Button */}
           <header style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
-              <h1 style={{ fontSize: '1.8rem', lineHeight: '2rem', color: '#111827', fontWeight: '600' }}>Transactions</h1>
-              <p style={{ fontSize: '0.95rem', color: '#6B7280', marginTop: '0.25rem' }}>
+              <h1 style={{ fontSize: '1.8rem', lineHeight: '2rem', color: colors.textPrimary, fontWeight: '600' }}>Transactions</h1>
+              <p style={{ fontSize: '0.95rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
                 Manage your earnings and view transaction history
               </p>
             </div>
@@ -1380,29 +1389,29 @@ Amount: ${transaction.amount}
           </header>
 
           {/* Available Balance Card */}
-          <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', padding: '1.25rem', marginBottom: '1rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)' }}>
+          <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1.25rem', marginBottom: '1rem', boxShadow: colors.shadowSm }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <div style={{ width: '48px', height: '48px', backgroundColor: '#EFF6FF', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <WalletIcon />
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '0.25rem' }}>Available to Withdraw</div>
-                  <div style={{ fontSize: '1.75rem', fontWeight: '700', color: '#111827' }}>${availableBalance.toLocaleString()}</div>
+                  <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Available to Withdraw</div>
+                  <div style={{ fontSize: '1.75rem', fontWeight: '700', color: colors.textPrimary }}>${availableBalance.toLocaleString()}</div>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '2rem' }}>
                 <div>
-                  <div style={{ fontSize: '0.75rem', color: '#6B7280', marginBottom: '0.25rem' }}>Previous Deposit</div>
-                  <div style={{ fontSize: '1rem', fontWeight: '600', color: '#111827' }}>$450.00</div>
+                  <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Previous Deposit</div>
+                  <div style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>$450.00</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.75rem', color: '#6B7280', marginBottom: '0.25rem' }}>Last Withdrawal</div>
-                  <div style={{ fontSize: '1rem', fontWeight: '600', color: '#111827' }}>$1,345.00</div>
+                  <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Last Withdrawal</div>
+                  <div style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>$1,345.00</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.75rem', color: '#6B7280', marginBottom: '0.25rem' }}>Active Account</div>
-                  <div style={{ fontSize: '1rem', fontWeight: '600', color: '#111827' }}>*****980</div>
+                  <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Active Account</div>
+                  <div style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>*****980</div>
                 </div>
               </div>
             </div>
@@ -1411,27 +1420,27 @@ Amount: ${transaction.amount}
           {/* Tips and Bonus Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
             {/* Tips Section - From Clients */}
-            <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)' }}>
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1.25rem', boxShadow: colors.shadowSm }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
                     <div style={{ width: '32px', height: '32px', backgroundColor: '#F0FDF4', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <span style={{ fontSize: '1rem' }}>💝</span>
                     </div>
-                    <h3 style={{ fontSize: '1rem', fontWeight: '600', color: '#111827', margin: 0 }}>Tips from Clients</h3>
+                    <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Tips from Clients</h3>
                   </div>
-                  <p style={{ fontSize: '0.8rem', color: '#6B7280', margin: 0 }}>Appreciation from your clients</p>
+                  <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: 0 }}>Appreciation from your clients</p>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>${totalTips.toLocaleString()}</div>
-                  <div style={{ fontSize: '0.75rem', color: '#6B7280' }}>{tipsData.length} tips received</div>
+                  <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>{tipsData.length} tips received</div>
                 </div>
               </div>
 
               {/* Recent Tips List */}
-              <div style={{ borderTop: '1px solid #E5E7EB', paddingTop: '1rem' }}>
+              <div style={{ borderTop: `1px solid ${colors.borderPrimary}`, paddingTop: '1rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#6B7280' }}>Recent Tips</span>
+                  <span style={{ fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary }}>Recent Tips</span>
                   <button
                     onClick={() => setShowTipsModal(true)}
                     style={{ fontSize: '0.8rem', color: '#16A34A', fontWeight: '500', background: 'none', border: 'none', cursor: 'pointer' }}
@@ -1443,8 +1452,8 @@ Amount: ${transaction.amount}
                   {tipsData.map((tip) => (
                     <div key={tip.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', backgroundColor: '#F0FDF4', borderRadius: '0.375rem', border: '1px solid #BBF7D0' }}>
                       <div>
-                        <div style={{ fontSize: '0.85rem', fontWeight: '500', color: '#111827' }}>{tip.clientName}</div>
-                        <div style={{ fontSize: '0.7rem', color: '#6B7280' }}>{tip.eventName} • {tip.date}</div>
+                        <div style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>{tip.clientName}</div>
+                        <div style={{ fontSize: '0.7rem', color: colors.textSecondary }}>{tip.eventName} • {tip.date}</div>
                         {tip.message && <div style={{ fontSize: '0.7rem', color: '#166534', fontStyle: 'italic', marginTop: '0.125rem' }}>&ldquo;{tip.message}&rdquo;</div>}
                       </div>
                       <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#16A34A' }}>+${tip.amount}</div>
@@ -1455,27 +1464,27 @@ Amount: ${transaction.amount}
             </div>
 
             {/* Platform Bonus Section */}
-            <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)' }}>
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1.25rem', boxShadow: colors.shadowSm }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
                     <div style={{ width: '32px', height: '32px', backgroundColor: '#F0FDF4', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <span style={{ fontSize: '1rem' }}>🎁</span>
                     </div>
-                    <h3 style={{ fontSize: '1rem', fontWeight: '600', color: '#111827', margin: 0 }}>Platform Bonus</h3>
+                    <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Platform Bonus</h3>
                   </div>
-                  <p style={{ fontSize: '0.8rem', color: '#6B7280', margin: 0 }}>Earn 10% for every 10 events completed</p>
+                  <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: 0 }}>Earn 10% for every 10 events completed</p>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>${platformBonus.toLocaleString()}</div>
-                  <div style={{ fontSize: '0.75rem', color: '#6B7280' }}>{bonusEligibleSets} bonus{bonusEligibleSets !== 1 ? 'es' : ''} earned</div>
+                  <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>{bonusEligibleSets} bonus{bonusEligibleSets !== 1 ? 'es' : ''} earned</div>
                 </div>
               </div>
 
               {/* Progress to Next Bonus */}
-              <div style={{ borderTop: '1px solid #E5E7EB', paddingTop: '1rem' }}>
+              <div style={{ borderTop: `1px solid ${colors.borderPrimary}`, paddingTop: '1rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#6B7280' }}>Progress to Next Bonus</span>
+                  <span style={{ fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary }}>Progress to Next Bonus</span>
                   <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#16A34A' }}>{completedEventsCount % 10}/10 events</span>
                 </div>
                 <div style={{ width: '100%', height: '8px', backgroundColor: '#E5E7EB', borderRadius: '9999px', overflow: 'hidden', marginBottom: '0.75rem' }}>
@@ -1503,12 +1512,12 @@ Amount: ${transaction.amount}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '1rem', marginBottom: '1rem' }}>
 
             {/* Earnings Chart */}
-            <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)' }}>
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1.25rem', boxShadow: colors.shadowSm }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
                 <div>
-                  <div style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '0.25rem' }}>Total Earnings</div>
+                  <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Earnings</div>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '1rem' }}>
-                    <span style={{ fontSize: '1.75rem', fontWeight: '700', color: '#111827' }}>${(totalCompleted + totalPending + totalWithdrawn).toLocaleString()}</span>
+                    <span style={{ fontSize: '1.75rem', fontWeight: '700', color: colors.textPrimary }}>${(totalCompleted + totalPending + totalWithdrawn).toLocaleString()}</span>
                     <span style={{ fontSize: '0.85rem', color: '#10B981', fontWeight: '500' }}>+23% vs last week</span>
                   </div>
                 </div>
@@ -1598,11 +1607,11 @@ Amount: ${transaction.amount}
             </div>
 
             {/* Earnings Summary */}
-            <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)' }}>
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1.25rem', boxShadow: colors.shadowSm }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                 <div>
-                  <div style={{ fontSize: '0.9rem', fontWeight: '600', color: '#111827' }}>Earnings Summary</div>
-                  <div style={{ fontSize: '0.75rem', color: '#6B7280' }}>Current Period</div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>Earnings Summary</div>
+                  <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Current Period</div>
                 </div>
                 <button onClick={() => setShowReportModal(true)} style={{ fontSize: '0.85rem', color: '#2563EB', textDecoration: 'none', fontWeight: '500', background: 'none', border: 'none', cursor: 'pointer' }}>View report</button>
               </div>
@@ -1610,23 +1619,23 @@ Amount: ${transaction.amount}
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10B981' }} />
-                    <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>Completed</span>
+                    <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Completed</span>
                   </div>
-                  <div style={{ fontSize: '1rem', fontWeight: '700', color: '#111827' }}>${totalCompleted.toLocaleString()}</div>
+                  <div style={{ fontSize: '1rem', fontWeight: '700', color: colors.textPrimary }}>${totalCompleted.toLocaleString()}</div>
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#FBBF24' }} />
-                    <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>Pending</span>
+                    <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Pending</span>
                   </div>
-                  <div style={{ fontSize: '1rem', fontWeight: '700', color: '#111827' }}>${totalPending.toLocaleString()}</div>
+                  <div style={{ fontSize: '1rem', fontWeight: '700', color: colors.textPrimary }}>${totalPending.toLocaleString()}</div>
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#3B82F6' }} />
-                    <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>Withdrawn</span>
+                    <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Withdrawn</span>
                   </div>
-                  <div style={{ fontSize: '1rem', fontWeight: '700', color: '#111827' }}>${totalWithdrawn.toLocaleString()}</div>
+                  <div style={{ fontSize: '1rem', fontWeight: '700', color: colors.textPrimary }}>${totalWithdrawn.toLocaleString()}</div>
                 </div>
               </div>
               <EarningsGauge completed={totalCompleted} pending={totalPending} withdrawn={totalWithdrawn} />
@@ -1634,10 +1643,10 @@ Amount: ${transaction.amount}
           </div>
 
           {/* Transaction History Table */}
-          <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)', overflow: 'hidden' }}>
+          <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', boxShadow: colors.shadowSm, overflow: 'hidden' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderBottom: '1px solid #E5E7EB' }}>
-              <h2 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#111827' }}>Transaction History</h2>
-              <button style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'white', border: '2px solid #D1D5DB', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', fontSize: '0.85rem', color: '#6B7280', cursor: 'pointer' }}>
+              <h2 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary }}>Transaction History</h2>
+              <button style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: colors.bgCard, border: '2px solid #D1D5DB', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', fontSize: '0.85rem', color: colors.textSecondary, cursor: 'pointer' }}>
                 <CalendarIcon />
                 19 Nov - 29 Nov 2024
               </button>
@@ -1646,34 +1655,36 @@ Amount: ${transaction.amount}
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ backgroundColor: '#F9FAFB' }}>
-                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>Date</th>
-                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>Client / Service</th>
-                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>Method</th>
-                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>Amount</th>
-                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>Status</th>
-                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>Transaction ID</th>
-                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>Action</th>
+                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase' }}>Date</th>
+                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase' }}>Client / Service</th>
+                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase' }}>Method</th>
+                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase' }}>Amount</th>
+                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase' }}>Status</th>
+                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase' }}>Transaction ID</th>
+                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {transactions.map((transaction) => (
                   <tr key={transaction.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
-                    <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.85rem', color: '#6B7280' }}>{transaction.date}</td>
+                    <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.85rem', color: colors.textSecondary }}>{transaction.date}</td>
                     <td style={{ padding: '0.875rem 1.25rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <Image src={transaction.clientImage} alt={transaction.clientName} width={32} height={32} style={{ borderRadius: '50%', objectFit: 'cover' }} />
+                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
+                          <Image src={transaction.clientImage} alt={transaction.clientName} width={32} height={32} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                        </div>
                         <div>
-                          <div style={{ fontSize: '0.9rem', fontWeight: '500', color: '#111827' }}>{transaction.clientName}</div>
+                          <div style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>{transaction.clientName}</div>
                           <ServiceTypeBadge type={transaction.serviceType} />
                         </div>
                       </div>
                     </td>
-                    <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.85rem', color: '#6B7280' }}>{transaction.method}</td>
-                    <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.9rem', fontWeight: '600', color: '#111827' }}>{transaction.amount}</td>
+                    <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.85rem', color: colors.textSecondary }}>{transaction.method}</td>
+                    <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{transaction.amount}</td>
                     <td style={{ padding: '0.875rem 1.25rem' }}><StatusBadge status={transaction.status} /></td>
                     <td style={{ padding: '0.875rem 1.25rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>{transaction.transactionId}</span>
+                        <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>{transaction.transactionId}</span>
                         <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}><CopyIcon /></button>
                       </div>
                     </td>
@@ -1691,8 +1702,8 @@ Amount: ${transaction.amount}
             </table>
 
             {/* Pagination */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderTop: '1px solid #E5E7EB' }}>
-              <div style={{ fontSize: '0.85rem', color: '#6B7280' }}>Showing {resultsPerPage} of {totalResults} Results</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderTop: `1px solid ${colors.borderPrimary}` }}>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Showing {resultsPerPage} of {totalResults} Results</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 <button onClick={() => setCurrentPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1} style={{ background: 'none', border: '2px solid #D1D5DB', borderRadius: '0.375rem', padding: '0.5rem', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', opacity: currentPage === 1 ? 0.5 : 1 }}>
                   <ChevronLeftIcon />
@@ -1702,7 +1713,7 @@ Amount: ${transaction.amount}
                     {page}
                   </button>
                 ))}
-                <span style={{ padding: '0 0.5rem', color: '#6B7280' }}>...</span>
+                <span style={{ padding: '0 0.5rem', color: colors.textSecondary }}>...</span>
                 <button onClick={() => setCurrentPage(totalPages)} style={{ width: '32px', height: '32px', border: currentPage === totalPages ? '2px solid #062a63' : '2px solid #D1D5DB', borderRadius: '0.375rem', backgroundColor: currentPage === totalPages ? '#083A85' : 'white', color: currentPage === totalPages ? 'white' : '#6B7280', fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer' }}>
                   {totalPages}
                 </button>
@@ -1742,12 +1753,12 @@ Amount: ${transaction.amount}
           }}>
             <div style={{ fontSize: '1.75rem', fontWeight: '700', color: '#16A34A' }}>${totalTips.toLocaleString()}</div>
             <div style={{ fontSize: '0.85rem', color: '#166534' }}>Total Tips Received</div>
-            <div style={{ fontSize: '0.75rem', color: '#6B7280', marginTop: '0.25rem' }}>{tipsData.length} tips from clients</div>
+            <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginTop: '0.25rem' }}>{tipsData.length} tips from clients</div>
           </div>
 
           {/* Tips List */}
           <div>
-            <h4 style={{ fontSize: '0.9rem', fontWeight: '600', color: '#111827', marginBottom: '0.75rem' }}>Tips History</h4>
+            <h4 style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>Tips History</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '350px', overflowY: 'auto' }}>
               {tipsData.map((tip) => (
                 <div key={tip.id} style={{
@@ -1767,12 +1778,12 @@ Amount: ${transaction.amount}
                         fontWeight: '600',
                         textTransform: 'uppercase'
                       }}>TIP</span>
-                      <span style={{ fontSize: '0.8rem', color: '#6B7280' }}>{tip.date}</span>
+                      <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{tip.date}</span>
                     </div>
                     <span style={{ fontSize: '1rem', fontWeight: '700', color: '#16A34A' }}>+${tip.amount}</span>
                   </div>
-                  <div style={{ fontSize: '0.85rem', fontWeight: '500', color: '#111827', marginBottom: '0.25rem' }}>{tip.clientName}</div>
-                  <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>{tip.eventName}</div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.25rem' }}>{tip.clientName}</div>
+                  <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{tip.eventName}</div>
                   {tip.message && (
                     <p style={{ fontSize: '0.8rem', color: '#166534', margin: '0.25rem 0 0 0', fontStyle: 'italic' }}>&ldquo;{tip.message}&rdquo;</p>
                   )}

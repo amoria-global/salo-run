@@ -1,9 +1,34 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import localforage from 'localforage';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import Image from 'next/image';
+import { useTheme } from '../../context/ThemeContext';
+
+// Configure localforage for gallery album form data
+const galleryFormStorage = localforage.createInstance({
+  name: 'connekt-dashboard',
+  storeName: 'gallery_album_draft'
+});
+
+// Storage key for the add album form
+const ADD_ALBUM_FORM_KEY = 'add_album_form_draft';
+
+// Interface for saved album form data
+interface AddAlbumFormData {
+  uploadTitle: string;
+  uploadCategory: string;
+  uploadClientId: string;
+  uploadDescription: string;
+  uploadFeatured: boolean;
+  uploadShared: boolean;
+  selectedCoverIndex: number;
+  uploadedImagePreviews: string[];
+  userType: 'photographer' | 'freelancer';
+  savedAt: number;
+}
 
 // Icons
 const HeartIcon = ({ filled }: { filled: boolean }) => (
@@ -458,6 +483,7 @@ interface GalleryProps {
 }
 
 const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
+  const { colors, actualTheme } = useTheme();
   const [photos, setPhotos] = useState(galleryData);
   const [filterCategory, setFilterCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -493,7 +519,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
   const [selectedCoverIndex, setSelectedCoverIndex] = useState<number>(0);
   const [uploadTitle, setUploadTitle] = useState('');
   const [uploadCategory, setUploadCategory] = useState('');
-  const [uploadClient, setUploadClient] = useState('');
+  const [uploadClientId, setUploadClientId] = useState('');
   const [uploadDescription, setUploadDescription] = useState('');
   const [uploadFeatured, setUploadFeatured] = useState(false);
   const [uploadShared, setUploadShared] = useState(true);
@@ -501,6 +527,115 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
   // Delete confirmation modal state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [albumToDelete, setAlbumToDelete] = useState<typeof galleryData[0] | null>(null);
+
+  // Auto-save state for add album modal
+  const [isRestoringDraft, setIsRestoringDraft] = useState(false);
+  const [showDraftRestoredNotice, setShowDraftRestoredNotice] = useState(false);
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Auto-save album form data to IndexedDB
+  const saveAlbumDraft = useCallback(async () => {
+    const formData: AddAlbumFormData = {
+      uploadTitle,
+      uploadCategory,
+      uploadClientId,
+      uploadDescription,
+      uploadFeatured,
+      uploadShared,
+      selectedCoverIndex,
+      uploadedImagePreviews,
+      userType,
+      savedAt: Date.now()
+    };
+
+    // Only save if there's actual data entered
+    const hasData = uploadTitle || uploadCategory || uploadClientId ||
+                    uploadDescription || uploadedImagePreviews.length > 0;
+
+    if (hasData) {
+      try {
+        await galleryFormStorage.setItem(`${ADD_ALBUM_FORM_KEY}_${userType}`, formData);
+      } catch (error) {
+        console.error('Failed to save album draft:', error);
+      }
+    }
+  }, [uploadTitle, uploadCategory, uploadClientId, uploadDescription, uploadFeatured, uploadShared, selectedCoverIndex, uploadedImagePreviews, userType]);
+
+  // Debounced auto-save when form fields change
+  useEffect(() => {
+    if (showUploadModal && !isRestoringDraft) {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+      autoSaveTimeoutRef.current = setTimeout(() => {
+        saveAlbumDraft();
+      }, 500); // Save after 500ms of inactivity
+    }
+
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, [showUploadModal, isRestoringDraft, saveAlbumDraft]);
+
+  // Restore saved draft when modal opens
+  useEffect(() => {
+    const restoreDraft = async () => {
+      if (showUploadModal) {
+        try {
+          const savedDraft = await galleryFormStorage.getItem<AddAlbumFormData>(`${ADD_ALBUM_FORM_KEY}_${userType}`);
+          if (savedDraft && savedDraft.userType === userType) {
+            setIsRestoringDraft(true);
+            setUploadTitle(savedDraft.uploadTitle || '');
+            setUploadCategory(savedDraft.uploadCategory || '');
+            setUploadClientId(savedDraft.uploadClientId || '');
+            setUploadDescription(savedDraft.uploadDescription || '');
+            setUploadFeatured(savedDraft.uploadFeatured || false);
+            setUploadShared(savedDraft.uploadShared !== undefined ? savedDraft.uploadShared : true);
+            setSelectedCoverIndex(savedDraft.selectedCoverIndex || 0);
+            setUploadedImagePreviews(savedDraft.uploadedImagePreviews || []);
+
+            // Show notice that draft was restored
+            setShowDraftRestoredNotice(true);
+            setTimeout(() => setShowDraftRestoredNotice(false), 3000);
+
+            // Allow auto-save after restoration is complete
+            setTimeout(() => setIsRestoringDraft(false), 100);
+          }
+        } catch (error) {
+          console.error('Failed to restore album draft:', error);
+        }
+      }
+    };
+
+    restoreDraft();
+  }, [showUploadModal, userType]);
+
+  // Clear saved album draft from IndexedDB
+  const clearAlbumDraft = useCallback(async () => {
+    try {
+      await galleryFormStorage.removeItem(`${ADD_ALBUM_FORM_KEY}_${userType}`);
+    } catch (error) {
+      console.error('Failed to clear album draft:', error);
+    }
+  }, [userType]);
+
+  // Reset upload form
+  const resetUploadForm = (clearDraft: boolean = true) => {
+    setSelectedFiles(null);
+    setUploadedImagePreviews([]);
+    setSelectedCoverIndex(0);
+    setUploadTitle('');
+    setUploadCategory('');
+    setUploadClientId('');
+    setUploadDescription('');
+    setUploadFeatured(false);
+    setUploadShared(true);
+    if (clearDraft) {
+      clearAlbumDraft();
+    }
+  };
 
   const toggleShareStatus = (photoId: number) => {
     setPhotos(photos.map(photo =>
@@ -536,18 +671,6 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
     }
   };
 
-  const resetUploadForm = () => {
-    setSelectedFiles(null);
-    setUploadedImagePreviews([]);
-    setSelectedCoverIndex(0);
-    setUploadTitle('');
-    setUploadCategory('');
-    setUploadClient('');
-    setUploadDescription('');
-    setUploadFeatured(false);
-    setUploadShared(true);
-  };
-
   const handleCopyLink = (link: string) => {
     navigator.clipboard.writeText(link);
     setCopiedLink(true);
@@ -571,10 +694,13 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
       alert('Please select a category');
       return;
     }
-    if (!uploadClient.trim()) {
-      alert('Please enter a client name');
+    if (!uploadClientId) {
+      alert('Please select a client');
       return;
     }
+
+    // Get selected client details
+    const selectedClient = clientsList.find(c => c.id === uploadClientId);
 
     // Create ONE album with all selected images
     const newAlbum = {
@@ -582,9 +708,9 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
       title: uploadTitle,
       category: uploadCategory.charAt(0).toUpperCase() + uploadCategory.slice(1),
       date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      client: uploadClient,
-      clientId: '1', // Default to first client for uploads
-      clientAvatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
+      client: selectedClient ? `${selectedClient.firstName} ${selectedClient.lastName}` : '',
+      clientId: uploadClientId,
+      clientAvatar: selectedClient?.profileImage || 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
       views: 0,
       likes: 0,
       downloads: 0,
@@ -816,7 +942,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: '#f9fafb' }}>
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
       <Sidebar />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -1175,13 +1301,15 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                         whiteSpace: 'nowrap'
                       }}>{photo.title}</h3>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <Image
-                          src={photo.clientAvatar}
-                          alt={photo.client}
-                          width={24}
-                          height={24}
-                          style={{ borderRadius: '50%', objectFit: 'cover' }}
-                        />
+                        <div style={{ width: '24px', height: '24px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
+                          <Image
+                            src={photo.clientAvatar}
+                            alt={photo.client}
+                            width={24}
+                            height={24}
+                            style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                          />
+                        </div>
                         <span style={{ fontSize: '0.9rem', color: '#6B7280' }}>{photo.client}</span>
                       </div>
                     </div>
@@ -1402,13 +1530,15 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                       </td>
                       <td style={{ padding: '1rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <Image
-                            src={photo.clientAvatar}
-                            alt={photo.client}
-                            width={32}
-                            height={32}
-                            style={{ borderRadius: '50%', objectFit: 'cover' }}
-                          />
+                          <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
+                            <Image
+                              src={photo.clientAvatar}
+                              alt={photo.client}
+                              width={32}
+                              height={32}
+                              style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                            />
+                          </div>
                           <div>
                             <div style={{ fontSize: '0.9rem', fontWeight: '500', color: '#111827' }}>{photo.client}</div>
                             <div style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>{photo.date}</div>
@@ -1577,7 +1707,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
             zIndex: 1000,
             padding: '1rem'
           }}
-          onClick={() => setShowUploadModal(false)}
+          onClick={() => { resetUploadForm(false); setShowUploadModal(false); }}
         >
           <div
             style={{
@@ -1605,7 +1735,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                 margin: 0
               }}>Create New Album</h2>
               <button
-                onClick={() => setShowUploadModal(false)}
+                onClick={() => { resetUploadForm(false); setShowUploadModal(false); }}
                 style={{
                   background: '#F3F4F6',
                   border: '2px solid #D1D5DB',
@@ -1620,6 +1750,27 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                 <CloseIcon />
               </button>
             </div>
+
+            {/* Draft Restored Notice */}
+            {showDraftRestoredNotice && (
+              <div style={{
+                backgroundColor: '#ECFDF5',
+                border: '1px solid #10B981',
+                borderRadius: '0.5rem',
+                padding: '0.75rem 1rem',
+                marginBottom: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span style={{ color: '#047857', fontSize: '0.875rem', fontWeight: '500' }}>
+                  Your previous draft has been restored
+                </span>
+              </div>
+            )}
 
             {/* Upload Area */}
             <input
@@ -1819,6 +1970,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                 </select>
               </div>
 
+              {/* Client Selection */}
               <div>
                 <label style={{
                   display: 'block',
@@ -1826,24 +1978,59 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                   fontWeight: '600',
                   color: '#374151',
                   marginBottom: '0.5rem'
-                }}>Client Name *</label>
-                <input
-                  type="text"
-                  placeholder="Enter client name"
-                  value={uploadClient}
-                  onChange={(e) => setUploadClient(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem 1rem',
-                    border: '2px solid #E5E7EB',
-                    borderRadius: '0.5rem',
-                    fontSize: '0.9rem',
-                    outline: 'none',
-                    color: '#111827',
-                    backgroundColor: 'white',
-                    boxSizing: 'border-box'
-                  }}
-                />
+                }}>Select Client *</label>
+                <p style={{ fontSize: '0.8rem', color: '#6B7280', marginBottom: '0.5rem' }}>Select a client you&apos;ve worked with</p>
+                <div style={{
+                  border: '2px solid #D1D5DB',
+                  borderRadius: '0.5rem',
+                  maxHeight: '180px',
+                  overflowY: 'auto'
+                }}>
+                  {clientsList.map((client) => (
+                    <label
+                      key={client.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem',
+                        padding: '0.625rem',
+                        cursor: 'pointer',
+                        borderBottom: '1px solid #E5E7EB',
+                        backgroundColor: uploadClientId === client.id ? '#F0F9FF' : 'white'
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="upload-client"
+                        value={client.id}
+                        checked={uploadClientId === client.id}
+                        onChange={() => setUploadClientId(client.id)}
+                        style={{ width: '16px', height: '16px', accentColor: '#083A85' }}
+                      />
+                      <div style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '50%',
+                        overflow: 'hidden',
+                        flexShrink: 0,
+                        position: 'relative'
+                      }}>
+                        <Image
+                          src={client.profileImage}
+                          alt={`${client.firstName} ${client.lastName}`}
+                          fill
+                          style={{ objectFit: 'cover' }}
+                        />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '0.85rem', fontWeight: '500', color: '#111827' }}>
+                          {client.firstName} {client.lastName}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#6B7280' }}>{client.email}</div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
               </div>
 
               <div style={{ display: 'flex', gap: '1rem' }}>
@@ -2047,13 +2234,15 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                 borderRadius: '0.75rem',
                 marginBottom: '1.25rem'
               }}>
-                <Image
-                  src={selectedPhoto.clientAvatar}
-                  alt={selectedPhoto.client}
-                  width={48}
-                  height={48}
-                  style={{ borderRadius: '50%', objectFit: 'cover' }}
-                />
+                <div style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
+                  <Image
+                    src={selectedPhoto.clientAvatar}
+                    alt={selectedPhoto.client}
+                    width={48}
+                    height={48}
+                    style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                  />
+                </div>
                 <div>
                   <div style={{ fontSize: '1rem', fontWeight: '600', color: '#111827' }}>{selectedPhoto.client}</div>
                   <div style={{ fontSize: '0.85rem', color: '#6B7280' }}>{selectedPhoto.date}</div>
@@ -3443,13 +3632,15 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Image
-                  src={multiSelectAlbum.clientAvatar}
-                  alt={multiSelectAlbum.client}
-                  width={32}
-                  height={32}
-                  style={{ borderRadius: '50%' }}
-                />
+                <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
+                  <Image
+                    src={multiSelectAlbum.clientAvatar}
+                    alt={multiSelectAlbum.client}
+                    width={32}
+                    height={32}
+                    style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                  />
+                </div>
                 <span style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.875rem' }}>
                   {multiSelectAlbum.client}
                 </span>

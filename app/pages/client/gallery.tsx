@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import Image from 'next/image';
+import { useTheme } from '../../context/ThemeContext';
 
 // Icons
 const CloseIcon = () => (
@@ -256,6 +257,7 @@ const clientAlbumsData = [
 ];
 
 const ClientGallery = () => {
+  const { colors, actualTheme } = useTheme();
   const [albums, setAlbums] = useState(clientAlbumsData);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
@@ -453,7 +455,7 @@ const ClientGallery = () => {
   }, [handleKeyDown]);
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: '#f9fafb' }}>
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
       <Sidebar />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>

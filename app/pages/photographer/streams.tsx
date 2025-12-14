@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
+import { useTheme } from '../../context/ThemeContext';
 
 // Types
 type StreamStatus = 'scheduled' | 'preparing' | 'live' | 'ended' | 'replay_ready';
@@ -278,6 +279,7 @@ interface PhotographerStreamsPageProps {
 }
 
 const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStreamsPageProps) => {
+  const { colors, actualTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<'all' | 'live' | 'upcoming' | 'past'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showStreamDetails, setShowStreamDetails] = useState<Stream | null>(null);
@@ -481,17 +483,17 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: '#F9FAFB' }}>
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <Topbar userRole={userType} tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
-        <div style={{ flex: 1, overflowY: 'auto', backgroundColor: '#F9FAFB', padding: '1.25rem' }}>
+        <div style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, padding: '1.25rem' }}>
 
           {/* Header */}
           <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
             <div>
-              <h1 style={{ fontSize: '1.8rem', lineHeight: '2rem', color: '#111827', fontWeight: '600', margin: 0 }}>My Streams</h1>
-              <p style={{ fontSize: '0.95rem', color: '#6B7280', marginTop: '0.25rem' }}>
+              <h1 style={{ fontSize: '1.8rem', lineHeight: '2rem', color: colors.textPrimary, fontWeight: '600', margin: 0 }}>My Streams</h1>
+              <p style={{ fontSize: '0.95rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
                 Manage and control your live event streams
               </p>
             </div>
@@ -507,11 +509,11 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
               { label: 'Total Earnings', value: `$${stats.totalEarnings}`, icon: <DollarIcon />, color: '#059669', bg: '#D1FAE5' }
             ].map((stat, index) => (
               <div key={index} style={{
-                backgroundColor: 'white',
+                backgroundColor: colors.bgCard,
                 borderRadius: '0.75rem',
                 padding: '1rem',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                border: '1px solid #E5E7EB'
+                boxShadow: colors.shadowSm,
+                border: `1px solid ${colors.borderPrimary}`
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   <div style={{
@@ -527,8 +529,8 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
                     {stat.icon}
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.75rem', color: '#6B7280' }}>{stat.label}</div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#111827' }}>{stat.value}</div>
+                    <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>{stat.label}</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: colors.textPrimary }}>{stat.value}</div>
                   </div>
                 </div>
               </div>
@@ -538,7 +540,7 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
           {/* Search and Filters */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', gap: '1rem' }}>
             {/* Tabs */}
-            <div style={{ display: 'flex', gap: '0.25rem', backgroundColor: '#F3F4F6', borderRadius: '0.5rem', padding: '0.25rem' }}>
+            <div style={{ display: 'flex', gap: '0.25rem', backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '0.25rem' }}>
               {([
                 { key: 'all' as const, label: 'All Streams' },
                 { key: 'live' as const, label: 'Live' },
@@ -555,9 +557,9 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
                     fontSize: '0.9rem',
                     fontWeight: '500',
                     cursor: 'pointer',
-                    backgroundColor: activeTab === tab.key ? 'white' : 'transparent',
-                    color: activeTab === tab.key ? '#111827' : '#6B7280',
-                    boxShadow: activeTab === tab.key ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
+                    backgroundColor: activeTab === tab.key ? colors.bgCard : 'transparent',
+                    color: activeTab === tab.key ? colors.textPrimary : colors.textSecondary,
+                    boxShadow: activeTab === tab.key ? colors.shadowSm : 'none',
                     transition: 'all 0.2s'
                   }}
                 >
@@ -578,13 +580,13 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{
                   padding: '0.625rem 1rem 0.625rem 2.75rem',
-                  border: '2px solid #D1D5DB',
+                  border: `2px solid ${colors.borderPrimary}`,
                   borderRadius: '0.5rem',
                   fontSize: '0.9rem',
                   outline: 'none',
                   transition: 'all 0.2s',
-                  color: '#111827',
-                  backgroundColor: 'white',
+                  color: colors.textPrimary,
+                  backgroundColor: colors.bgCard,
                   width: '280px'
                 }}
                 onFocus={(e) => {
@@ -592,7 +594,7 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
                   e.currentTarget.style.boxShadow = '0 0 0 3px rgba(8, 58, 133, 0.1)';
                 }}
                 onBlur={(e) => {
-                  e.currentTarget.style.borderColor = '#D1D5DB';
+                  e.currentTarget.style.borderColor = colors.borderPrimary;
                   e.currentTarget.style.boxShadow = 'none';
                 }}
               />
@@ -601,11 +603,11 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
 
           {/* Streams Grid */}
           {filteredStreams.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '3rem', backgroundColor: 'white', borderRadius: '0.75rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)' }}>
-              <div style={{ color: '#9CA3AF', marginBottom: '1rem' }}>
+            <div style={{ textAlign: 'center', padding: '3rem', backgroundColor: colors.bgCard, borderRadius: '0.75rem', boxShadow: colors.shadowSm }}>
+              <div style={{ color: colors.textTertiary, marginBottom: '1rem' }}>
                 <BroadcastIcon />
               </div>
-              <p style={{ fontSize: '1rem', color: '#6B7280' }}>No streams found.</p>
+              <p style={{ fontSize: '1rem', color: colors.textSecondary }}>No streams found.</p>
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem' }}>
@@ -707,13 +709,15 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
 
                     {/* Client Info */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                      <Image
-                        src={stream.clientImage}
-                        alt={stream.clientName}
-                        width={24}
-                        height={24}
-                        style={{ borderRadius: '50%' }}
-                      />
+                      <div style={{ width: '24px', height: '24px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
+                        <Image
+                          src={stream.clientImage}
+                          alt={stream.clientName}
+                          width={24}
+                          height={24}
+                          style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                        />
+                      </div>
                       <span style={{ fontSize: '0.9rem', color: '#374151' }}>
                         {stream.clientName}
                       </span>
@@ -742,9 +746,9 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
                             alignItems: 'center',
                             justifyContent: 'center',
                             gap: '0.375rem',
-                            backgroundColor: '#10B981',
+                            backgroundColor: '#3B82F6',
                             color: 'white',
-                            border: '2px solid #059669',
+                            border: '2px solid #2563EB',
                             borderRadius: '0.375rem',
                             padding: '0.5rem',
                             fontSize: '0.85rem',
@@ -765,9 +769,9 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
                             alignItems: 'center',
                             justifyContent: 'center',
                             gap: '0.375rem',
-                            backgroundColor: '#EF4444',
+                            backgroundColor: '#DC2626',
                             color: 'white',
-                            border: '2px solid #DC2626',
+                            border: '2px solid #B91C1C',
                             borderRadius: '0.375rem',
                             padding: '0.5rem',
                             fontSize: '0.85rem',
@@ -780,45 +784,27 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
                         </button>
                       )}
                       {stream.status === 'scheduled' && (
-                        <>
-                          <button
-                            onClick={() => setShowStreamDetails(stream)}
-                            style={{
-                              flex: 1,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '0.375rem',
-                              backgroundColor: '#083A85',
-                              color: 'white',
-                              border: '2px solid #062a63',
-                              borderRadius: '0.375rem',
-                              padding: '0.5rem',
-                              fontSize: '0.85rem',
-                              fontWeight: '600',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            <SettingsIcon />
-                            Setup
-                          </button>
-                          <button
-                            onClick={() => { setStreamToDelete(stream); setShowDeleteModal(true); }}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              backgroundColor: '#FEE2E2',
-                              color: '#DC2626',
-                              border: '2px solid #FCA5A5',
-                              borderRadius: '0.375rem',
-                              padding: '0.5rem 0.75rem',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            <TrashIcon />
-                          </button>
-                        </>
+                        <button
+                          onClick={() => setShowStreamDetails(stream)}
+                          style={{
+                            flex: 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.375rem',
+                            backgroundColor: '#083A85',
+                            color: 'white',
+                            border: '2px solid #062a63',
+                            borderRadius: '0.375rem',
+                            padding: '0.5rem',
+                            fontSize: '0.85rem',
+                            fontWeight: '600',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <SettingsIcon />
+                          Setup
+                        </button>
                       )}
                       {(stream.status === 'ended' || stream.status === 'replay_ready') && (
                         <button
@@ -841,6 +827,28 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
                         >
                           <EyeIcon />
                           View Stats
+                        </button>
+                      )}
+                      {/* Delete button - shown for all statuses except live */}
+                      {stream.status !== 'live' && (
+                        <button
+                          onClick={() => { setStreamToDelete(stream); setShowDeleteModal(true); }}
+                          style={{
+                            width: '36px',
+                            height: '36px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: '#FEE2E2',
+                            color: '#DC2626',
+                            border: '2px solid #FCA5A5',
+                            borderRadius: '0.375rem',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                          }}
+                          title="Delete Stream"
+                        >
+                          <TrashIcon />
                         </button>
                       )}
                     </div>
@@ -1265,13 +1273,15 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
 
               {/* Client Info */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem', padding: '0.75rem', backgroundColor: '#F9FAFB', borderRadius: '0.5rem' }}>
-                <Image
-                  src={showStreamDetails.clientImage}
-                  alt={showStreamDetails.clientName}
-                  width={40}
-                  height={40}
-                  style={{ borderRadius: '50%' }}
-                />
+                <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
+                  <Image
+                    src={showStreamDetails.clientImage}
+                    alt={showStreamDetails.clientName}
+                    width={40}
+                    height={40}
+                    style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                  />
+                </div>
                 <div>
                   <div style={{ fontSize: '0.9rem', fontWeight: '600', color: '#111827' }}>{showStreamDetails.clientName}</div>
                   <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>Client</div>
@@ -1364,47 +1374,135 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
       )}
 
       {/* Delete Confirmation Modal */}
-      <Modal isOpen={showDeleteModal} onClose={() => setShowDeleteModal(false)} title="Cancel Stream">
-        {streamToDelete && (
-          <div>
-            <p style={{ fontSize: '0.95rem', color: '#6B7280', marginBottom: '1rem' }}>
-              Are you sure you want to cancel <strong>{streamToDelete.title}</strong>? The client will be notified.
+      {showDeleteModal && streamToDelete && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1100,
+            padding: '1rem'
+          }}
+          onClick={() => { setShowDeleteModal(false); setStreamToDelete(null); }}
+        >
+          <div
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '1rem',
+              padding: '1.5rem',
+              width: '400px',
+              maxWidth: '90%',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Warning Icon */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              marginBottom: '1rem'
+            }}>
+              <div style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '50%',
+                backgroundColor: '#FEE2E2',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 9V13M12 17H12.01M10.29 3.86L1.82 18C1.64 18.3 1.55 18.64 1.55 19C1.55 19.36 1.64 19.7 1.82 20C2 20.3 2.26 20.56 2.56 20.74C2.86 20.92 3.21 21.01 3.56 21H20.44C20.79 21.01 21.14 20.92 21.44 20.74C21.74 20.56 22 20.3 22.18 20C22.36 19.7 22.45 19.36 22.45 19C22.45 18.64 22.36 18.3 22.18 18L13.71 3.86C13.53 3.56 13.27 3.32 12.97 3.15C12.67 2.98 12.34 2.89 12 2.89C11.66 2.89 11.33 2.98 11.03 3.15C10.73 3.32 10.47 3.56 10.29 3.86Z" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+            </div>
+
+            {/* Modal Header */}
+            <h2 style={{
+              fontSize: '1.25rem',
+              fontWeight: '700',
+              color: '#111827',
+              margin: 0,
+              marginBottom: '0.75rem',
+              textAlign: 'center'
+            }}>Delete Stream</h2>
+
+            {/* Modal Content */}
+            <p style={{
+              fontSize: '0.95rem',
+              color: '#6B7280',
+              margin: 0,
+              marginBottom: '0.5rem',
+              textAlign: 'center',
+              lineHeight: '1.5'
+            }}>
+              Are you sure you want to delete <strong style={{ color: '#111827' }}>&quot;{streamToDelete.title}&quot;</strong>?
             </p>
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+            <p style={{
+              fontSize: '0.85rem',
+              color: '#DC2626',
+              margin: 0,
+              marginBottom: '1.5rem',
+              textAlign: 'center',
+              fontWeight: '500'
+            }}>
+              This action cannot be undone. The client will be notified.
+            </p>
+
+            {/* Action Buttons */}
+            <div style={{
+              display: 'flex',
+              gap: '0.75rem'
+            }}>
               <button
-                onClick={() => setShowDeleteModal(false)}
+                onClick={() => { setShowDeleteModal(false); setStreamToDelete(null); }}
                 style={{
-                  padding: '0.625rem 1.25rem',
-                  border: '2px solid #D1D5DB',
+                  flex: 1,
+                  padding: '0.75rem 1rem',
                   borderRadius: '0.5rem',
-                  background: '#F3F4F6',
+                  border: '2px solid #D1D5DB',
+                  backgroundColor: 'white',
                   color: '#374151',
-                  fontSize: '0.9rem',
-                  fontWeight: '500',
-                  cursor: 'pointer'
+                  fontSize: '0.95rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
                 }}
               >
-                Keep Stream
+                Cancel
               </button>
               <button
                 onClick={handleDeleteStream}
                 style={{
-                  padding: '0.625rem 1.25rem',
-                  border: '2px solid #B91C1C',
+                  flex: 1,
+                  padding: '0.75rem 1rem',
                   borderRadius: '0.5rem',
-                  background: '#DC2626',
+                  border: '2px solid #DC2626',
+                  backgroundColor: '#DC2626',
                   color: 'white',
-                  fontSize: '0.9rem',
+                  fontSize: '0.95rem',
                   fontWeight: '600',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  transition: 'all 0.2s'
                 }}
               >
-                Cancel Stream
+                <TrashIcon />
+                Delete Stream
               </button>
             </div>
           </div>
-        )}
-      </Modal>
+        </div>
+      )}
 
       <style jsx global>{`
         @keyframes pulse {
