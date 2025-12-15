@@ -324,12 +324,12 @@ const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) =>
               <h1 style={{
                 fontSize: '1.5rem',
                 fontWeight: '700',
-                color: '#111827',
+                color: colors.textPrimary,
                 margin: 0
               }}>All Transactions</h1>
               <p style={{
                 fontSize: '0.875rem',
-                color: '#6B7280',
+                color: colors.textSecondary,
                 marginTop: '0.25rem'
               }}>View and manage all your transactions</p>
             </div>
@@ -337,12 +337,12 @@ const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) =>
               onClick={() => window.history.back()}
               style={{
                 padding: '0.5rem 1rem',
-                backgroundColor: 'white',
-                border: '1px solid #D1D5DB',
+                backgroundColor: colors.bgCard,
+                border: `1px solid ${colors.borderPrimary}`,
                 borderRadius: '0.5rem',
                 fontSize: '0.875rem',
                 fontWeight: '500',
-                color: '#374151',
+                color: colors.textPrimary,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -350,10 +350,10 @@ const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) =>
                 transition: 'all 0.2s'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#F9FAFB';
+                e.currentTarget.style.backgroundColor = colors.bgTertiary;
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'white';
+                e.currentTarget.style.backgroundColor = colors.bgCard;
               }}
             >
               <i className="bi bi-arrow-left"></i>
@@ -363,7 +363,7 @@ const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) =>
 
           {/* Filters and Search */}
           <div style={{
-            backgroundColor: 'white',
+            backgroundColor: colors.bgCard,
             borderRadius: '0.75rem',
             padding: '1rem',
             marginBottom: '1rem',
@@ -383,7 +383,7 @@ const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) =>
                 <i className="bi bi-search" style={{
                   position: 'absolute',
                   left: '0.75rem',
-                  color: '#6B7280',
+                  color: colors.textSecondary,
                   fontSize: '0.875rem'
                 }}></i>
                 <input
@@ -399,8 +399,8 @@ const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) =>
                     fontSize: '0.875rem',
                     outline: 'none',
                     transition: 'all 0.2s',
-                    color: '#111827',
-                    backgroundColor: 'white'
+                    color: colors.textPrimary,
+                    backgroundColor: colors.bgCard
                   }}
                   onFocus={(e) => {
                     e.currentTarget.style.borderColor = '#083A85';
@@ -416,7 +416,7 @@ const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) =>
 
             {/* Status Filter */}
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.875rem', color: '#6B7280', fontWeight: '500' }}>Status:</span>
+              <span style={{ fontSize: '0.875rem', color: colors.textSecondary, fontWeight: '500' }}>Status:</span>
               {['All', 'Pending', 'In progress', 'Initiated'].map((status) => (
                 <button
                   key={status}
@@ -429,18 +429,8 @@ const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) =>
                     fontWeight: '500',
                     cursor: 'pointer',
                     transition: 'all 0.2s',
-                    backgroundColor: filterStatus === status ? '#083A85' : '#F3F4F6',
-                    color: filterStatus === status ? 'white' : '#374151'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (filterStatus !== status) {
-                      e.currentTarget.style.backgroundColor = '#E5E7EB';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (filterStatus !== status) {
-                      e.currentTarget.style.backgroundColor = '#F3F4F6';
-                    }
+                    backgroundColor: filterStatus === status ? '#083A85' : colors.bgTertiary,
+                    color: filterStatus === status ? 'white' : colors.textSecondary
                   }}
                 >
                   {status}
@@ -457,38 +447,38 @@ const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) =>
             marginBottom: '1rem'
           }}>
             <div style={{
-              backgroundColor: 'white',
+              backgroundColor: colors.bgCard,
               borderRadius: '0.75rem',
               padding: '1rem',
               boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
             }}>
-              <div style={{ fontSize: '0.75rem', color: '#6B7280', marginBottom: '0.25rem' }}>
+              <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>
                 Total Transactions
               </div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#111827' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.textPrimary }}>
                 {filteredTransactions.length}
               </div>
             </div>
             <div style={{
-              backgroundColor: 'white',
+              backgroundColor: colors.bgCard,
               borderRadius: '0.75rem',
               padding: '1rem',
               boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
             }}>
-              <div style={{ fontSize: '0.75rem', color: '#6B7280', marginBottom: '0.25rem' }}>
+              <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>
                 Total Amount
               </div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#083A85' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
                 ${filteredTransactions.reduce((sum, t) => sum + t.amount, 0).toFixed(2)}
               </div>
             </div>
             <div style={{
-              backgroundColor: 'white',
+              backgroundColor: colors.bgCard,
               borderRadius: '0.75rem',
               padding: '1rem',
               boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
             }}>
-              <div style={{ fontSize: '0.75rem', color: '#6B7280', marginBottom: '0.25rem' }}>
+              <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>
                 Pending
               </div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#92400E' }}>
@@ -496,12 +486,12 @@ const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) =>
               </div>
             </div>
             <div style={{
-              backgroundColor: 'white',
+              backgroundColor: colors.bgCard,
               borderRadius: '0.75rem',
               padding: '1rem',
               boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
             }}>
-              <div style={{ fontSize: '0.75rem', color: '#6B7280', marginBottom: '0.25rem' }}>
+              <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>
                 In Progress
               </div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#1E40AF' }}>
@@ -512,7 +502,7 @@ const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) =>
 
           {/* Transactions Table */}
           <div style={{
-            backgroundColor: 'white',
+            backgroundColor: colors.bgCard,
             borderRadius: '0.75rem',
             padding: '1rem',
             boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
@@ -529,7 +519,7 @@ const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) =>
                       padding: '0.5rem',
                       fontSize: '0.65rem',
                       fontWeight: '600',
-                      color: '#6B7280',
+                      color: colors.textSecondary,
                       textTransform: 'uppercase',
                       letterSpacing: '0.05em'
                     }}>Date</th>
@@ -538,7 +528,7 @@ const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) =>
                       padding: '0.5rem',
                       fontSize: '0.65rem',
                       fontWeight: '600',
-                      color: '#6B7280',
+                      color: colors.textSecondary,
                       textTransform: 'uppercase',
                       letterSpacing: '0.05em'
                     }}>Transaction ID</th>
@@ -547,7 +537,7 @@ const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) =>
                       padding: '0.5rem',
                       fontSize: '0.65rem',
                       fontWeight: '600',
-                      color: '#6B7280',
+                      color: colors.textSecondary,
                       textTransform: 'uppercase',
                       letterSpacing: '0.05em'
                     }}>Method</th>
@@ -556,7 +546,7 @@ const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) =>
                       padding: '0.5rem',
                       fontSize: '0.65rem',
                       fontWeight: '600',
-                      color: '#6B7280',
+                      color: colors.textSecondary,
                       textTransform: 'uppercase',
                       letterSpacing: '0.05em'
                     }}>Amount</th>
@@ -565,7 +555,7 @@ const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) =>
                       padding: '0.5rem',
                       fontSize: '0.65rem',
                       fontWeight: '600',
-                      color: '#6B7280',
+                      color: colors.textSecondary,
                       textTransform: 'uppercase',
                       letterSpacing: '0.05em'
                     }}>Status</th>
@@ -574,7 +564,7 @@ const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) =>
                       padding: '0.5rem',
                       fontSize: '0.65rem',
                       fontWeight: '600',
-                      color: '#6B7280',
+                      color: colors.textSecondary,
                       textTransform: 'uppercase',
                       letterSpacing: '0.05em'
                     }}>Request ID</th>
@@ -583,7 +573,7 @@ const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) =>
                       padding: '0.5rem',
                       fontSize: '0.65rem',
                       fontWeight: '600',
-                      color: '#6B7280',
+                      color: colors.textSecondary,
                       textTransform: 'uppercase',
                       letterSpacing: '0.05em'
                     }}>Action</th>
@@ -602,7 +592,7 @@ const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) =>
                         <td style={{
                           padding: '0.5rem',
                           fontSize: '0.75rem',
-                          color: '#111827'
+                          color: colors.textPrimary
                         }}>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                             <span style={{ fontWeight: '500', fontSize: '0.7rem' }}>{transaction.date}</span>
@@ -626,10 +616,10 @@ const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) =>
                                 {transaction.client.split(' ').map(n => n[0]).join('')}
                               </div>
                               <div>
-                                <div style={{ fontSize: '0.75rem', fontWeight: '500', color: '#111827' }}>
+                                <div style={{ fontSize: '0.75rem', fontWeight: '500', color: colors.textPrimary }}>
                                   {transaction.client}
                                 </div>
-                                <div style={{ fontSize: '0.65rem', color: '#6B7280' }}>
+                                <div style={{ fontSize: '0.65rem', color: colors.textSecondary }}>
                                   {transaction.service}
                                 </div>
                               </div>
@@ -639,18 +629,18 @@ const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) =>
                         <td style={{
                           padding: '0.5rem',
                           fontSize: '0.75rem',
-                          color: '#374151'
+                          color: colors.textPrimary
                         }}>{transaction.transactionId}</td>
                         <td style={{
                           padding: '0.5rem',
                           fontSize: '0.75rem',
-                          color: '#374151'
+                          color: colors.textPrimary
                         }}>{transaction.method}</td>
                         <td style={{
                           padding: '0.5rem',
                           fontSize: '0.75rem',
                           fontWeight: '600',
-                          color: '#111827'
+                          color: colors.textPrimary
                         }}>${transaction.amount}</td>
                         <td style={{ padding: '0.5rem' }}>
                           <span style={{
@@ -668,7 +658,7 @@ const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) =>
                         <td style={{
                           padding: '0.5rem',
                           fontSize: '0.75rem',
-                          color: '#374151'
+                          color: colors.textPrimary
                         }}>
                           <i className="bi bi-link-45deg" style={{ marginRight: '0.125rem', fontSize: '0.75rem' }}></i>
                           {transaction.requestId}
@@ -750,7 +740,7 @@ const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) =>
               <div style={{
                 textAlign: 'center',
                 padding: '3rem',
-                color: '#6B7280'
+                color: colors.textSecondary
               }}>
                 <i className="bi bi-inbox" style={{ fontSize: '3rem', marginBottom: '1rem', display: 'block' }}></i>
                 <p style={{ fontSize: '1rem', fontWeight: '500', marginBottom: '0.5rem' }}>No transactions found</p>
@@ -781,7 +771,7 @@ const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) =>
         >
           <div
             style={{
-              backgroundColor: 'white',
+              backgroundColor: colors.bgCard,
               borderRadius: '0.75rem',
               padding: '1.5rem',
               width: '420px',
@@ -798,34 +788,27 @@ const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) =>
               alignItems: 'center',
               marginBottom: '1rem',
               paddingBottom: '0.75rem',
-              borderBottom: '2px solid #083A85'
+              borderBottom: `2px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}`
             }}>
               <h2 style={{
                 fontSize: '1.125rem',
                 fontWeight: '700',
-                color: '#083A85',
+                color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
                 margin: 0
               }}>Transaction Details</h2>
               <button
                 onClick={closeModal}
                 style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '50%',
-                  border: 'none',
-                  backgroundColor: '#F3F4F6',
-                  color: '#374151',
+                  padding: '0.5rem',
+                  borderRadius: '0.375rem',
+                  border: `2px solid ${colors.borderPrimary}`,
+                  backgroundColor: colors.bgTertiary,
+                  color: colors.textPrimary,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#E5E7EB';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#F3F4F6';
                 }}
               >
                 <i className="bi bi-x-lg" style={{ fontSize: '0.875rem' }}></i>
@@ -840,7 +823,7 @@ const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) =>
                 alignItems: 'center',
                 gap: '0.75rem',
                 padding: '0.75rem',
-                backgroundColor: '#F9FAFB',
+                backgroundColor: colors.bgTertiary,
                 borderRadius: '0.5rem'
               }}>
                 <div style={{
@@ -859,10 +842,10 @@ const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) =>
                   {selectedTransaction.client.split(' ').map((n: string) => n[0]).join('')}
                 </div>
                 <div style={{ overflow: 'hidden' }}>
-                  <div style={{ fontSize: '0.875rem', fontWeight: '600', color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <div style={{ fontSize: '0.875rem', fontWeight: '600', color: colors.textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {selectedTransaction.client}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: '#6B7280', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <div style={{ fontSize: '0.75rem', color: colors.textSecondary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {selectedTransaction.service}
                   </div>
                 </div>
@@ -874,31 +857,31 @@ const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) =>
                 gridTemplateColumns: '1fr 1fr',
                 gap: '0.5rem',
                 padding: '0.75rem',
-                backgroundColor: 'white',
-                border: '1px solid #E5E7EB',
+                backgroundColor: colors.bgCard,
+                border: `1px solid ${colors.borderPrimary}`,
                 borderRadius: '0.5rem'
               }}>
                 <div>
-                  <div style={{ fontSize: '0.65rem', color: '#6B7280', marginBottom: '0.25rem' }}>Date</div>
-                  <div style={{ fontSize: '0.75rem', fontWeight: '500', color: '#111827' }}>
+                  <div style={{ fontSize: '0.65rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Date</div>
+                  <div style={{ fontSize: '0.75rem', fontWeight: '500', color: colors.textPrimary }}>
                     {selectedTransaction.date}
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.65rem', color: '#6B7280', marginBottom: '0.25rem' }}>Payment Method</div>
-                  <div style={{ fontSize: '0.75rem', fontWeight: '500', color: '#111827' }}>
+                  <div style={{ fontSize: '0.65rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Payment Method</div>
+                  <div style={{ fontSize: '0.75rem', fontWeight: '500', color: colors.textPrimary }}>
                     {selectedTransaction.method}
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.65rem', color: '#6B7280', marginBottom: '0.25rem' }}>Transaction ID</div>
-                  <div style={{ fontSize: '0.75rem', fontWeight: '500', color: '#111827' }}>
+                  <div style={{ fontSize: '0.65rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Transaction ID</div>
+                  <div style={{ fontSize: '0.75rem', fontWeight: '500', color: colors.textPrimary }}>
                     {selectedTransaction.transactionId}
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.65rem', color: '#6B7280', marginBottom: '0.25rem' }}>Request ID</div>
-                  <div style={{ fontSize: '0.75rem', fontWeight: '500', color: '#111827' }}>
+                  <div style={{ fontSize: '0.65rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Request ID</div>
+                  <div style={{ fontSize: '0.75rem', fontWeight: '500', color: colors.textPrimary }}>
                     {selectedTransaction.requestId}
                   </div>
                 </div>
@@ -910,11 +893,11 @@ const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) =>
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 padding: '1rem',
-                backgroundColor: '#F9FAFB',
+                backgroundColor: colors.bgTertiary,
                 borderRadius: '0.5rem'
               }}>
                 <div>
-                  <div style={{ fontSize: '0.65rem', color: '#6B7280', marginBottom: '0.25rem' }}>Status</div>
+                  <div style={{ fontSize: '0.65rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Status</div>
                   <span style={{
                     display: 'inline-block',
                     padding: '0.25rem 0.625rem',
@@ -928,8 +911,8 @@ const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) =>
                   </span>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '0.65rem', color: '#6B7280', marginBottom: '0.25rem' }}>Amount</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#083A85' }}>
+                  <div style={{ fontSize: '0.65rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Amount</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
                     ${selectedTransaction.amount}
                   </div>
                 </div>
@@ -946,12 +929,12 @@ const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) =>
                   style={{
                     flex: 1,
                     padding: '0.625rem 1rem',
-                    backgroundColor: 'white',
-                    border: '1px solid #D1D5DB',
+                    backgroundColor: colors.bgCard,
+                    border: `1px solid ${colors.borderPrimary}`,
                     borderRadius: '0.5rem',
                     fontSize: '0.8rem',
                     fontWeight: '500',
-                    color: '#374151',
+                    color: colors.textPrimary,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -960,10 +943,10 @@ const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) =>
                     transition: 'all 0.2s'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#F9FAFB';
+                    e.currentTarget.style.backgroundColor = colors.bgTertiary;
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'white';
+                    e.currentTarget.style.backgroundColor = colors.bgCard;
                   }}
                 >
                   <i className="bi bi-download" style={{ fontSize: '0.875rem' }}></i>

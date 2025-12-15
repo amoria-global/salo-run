@@ -196,19 +196,19 @@ const FreelancerNotifications = () => {
   const getNotificationIcon = (type: NotificationType) => {
     switch (type) {
       case 'payment':
-        return { icon: <PaymentIcon />, bg: '#DCFCE7', color: '#16A34A' };
+        return { icon: <PaymentIcon />, bg: actualTheme === 'dark' ? '#14532D' : '#DCFCE7', color: actualTheme === 'dark' ? '#4ADE80' : '#16A34A' };
       case 'tip':
-        return { icon: <GiftIcon />, bg: '#FEF3C7', color: '#F59E0B' };
+        return { icon: <GiftIcon />, bg: actualTheme === 'dark' ? '#78350F' : '#FEF3C7', color: actualTheme === 'dark' ? '#FCD34D' : '#F59E0B' };
       case 'bonus':
-        return { icon: <StarIcon />, bg: '#DBEAFE', color: '#2563EB' };
+        return { icon: <StarIcon />, bg: actualTheme === 'dark' ? '#1E3A5F' : '#DBEAFE', color: actualTheme === 'dark' ? '#60A5FA' : '#2563EB' };
       case 'security':
-        return { icon: <ShieldIcon />, bg: '#FEE2E2', color: '#DC2626' };
+        return { icon: <ShieldIcon />, bg: actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2', color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626' };
       case 'album':
-        return { icon: <ImageIcon />, bg: '#F3E8FF', color: '#9333EA' };
+        return { icon: <ImageIcon />, bg: actualTheme === 'dark' ? '#581C87' : '#F3E8FF', color: actualTheme === 'dark' ? '#C084FC' : '#9333EA' };
       case 'review':
-        return { icon: <StarIcon />, bg: '#FEF3C7', color: '#F59E0B' };
+        return { icon: <StarIcon />, bg: actualTheme === 'dark' ? '#78350F' : '#FEF3C7', color: actualTheme === 'dark' ? '#FCD34D' : '#F59E0B' };
       default:
-        return { icon: <BellIcon />, bg: '#F3F4F6', color: '#6B7280' };
+        return { icon: <BellIcon />, bg: colors.bgTertiary, color: colors.textSecondary };
     }
   };
 
@@ -266,7 +266,7 @@ const FreelancerNotifications = () => {
               <h1 style={{
                 fontSize: '1.8rem',
                 fontWeight: '700',
-                color: '#111827',
+                color: colors.textPrimary,
                 margin: 0,
                 display: 'flex',
                 alignItems: 'center',
@@ -288,7 +288,7 @@ const FreelancerNotifications = () => {
               </h1>
               <p style={{
                 fontSize: '0.95rem',
-                color: '#6B7280',
+                color: colors.textSecondary,
                 marginTop: '0.25rem'
               }}>
                 Stay updated with your payments, tips, bonuses, and account activity
@@ -301,12 +301,12 @@ const FreelancerNotifications = () => {
                   onClick={markAllAsRead}
                   style={{
                     padding: '0.625rem 1rem',
-                    backgroundColor: 'white',
-                    border: '2px solid #E5E7EB',
+                    backgroundColor: colors.bgCard,
+                    border: `2px solid ${colors.borderPrimary}`,
                     borderRadius: '0.5rem',
                     fontSize: '0.875rem',
                     fontWeight: '500',
-                    color: '#374151',
+                    color: colors.textPrimary,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -322,10 +322,10 @@ const FreelancerNotifications = () => {
                 onClick={() => setShowSettings(!showSettings)}
                 style={{
                   padding: '0.625rem',
-                  backgroundColor: 'white',
-                  border: '2px solid #E5E7EB',
+                  backgroundColor: colors.bgCard,
+                  border: `2px solid ${colors.borderPrimary}`,
                   borderRadius: '0.5rem',
-                  color: '#374151',
+                  color: colors.textPrimary,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -347,41 +347,41 @@ const FreelancerNotifications = () => {
             marginBottom: '1.5rem'
           }}>
             <div style={{
-              backgroundColor: 'white',
+              backgroundColor: colors.bgCard,
               borderRadius: '0.75rem',
               padding: '1.25rem',
-              border: '1px solid #E5E7EB'
+              border: `1px solid ${colors.borderPrimary}`
             }}>
-              <div style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '0.25rem' }}>Total Notifications</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#083A85' }}>{notifications.length}</div>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Notifications</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{notifications.length}</div>
             </div>
             <div style={{
-              backgroundColor: 'white',
+              backgroundColor: colors.bgCard,
               borderRadius: '0.75rem',
               padding: '1.25rem',
-              border: '1px solid #E5E7EB'
+              border: `1px solid ${colors.borderPrimary}`
             }}>
-              <div style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '0.25rem' }}>Unread</div>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Unread</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#EF4444' }}>{unreadCount}</div>
             </div>
             <div style={{
-              backgroundColor: 'white',
+              backgroundColor: colors.bgCard,
               borderRadius: '0.75rem',
               padding: '1.25rem',
-              border: '1px solid #E5E7EB'
+              border: `1px solid ${colors.borderPrimary}`
             }}>
-              <div style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '0.25rem' }}>Payments</div>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Payments</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>
                 {notifications.filter(n => n.type === 'payment').length}
               </div>
             </div>
             <div style={{
-              backgroundColor: 'white',
+              backgroundColor: colors.bgCard,
               borderRadius: '0.75rem',
               padding: '1.25rem',
-              border: '1px solid #E5E7EB'
+              border: `1px solid ${colors.borderPrimary}`
             }}>
-              <div style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '0.25rem' }}>Tips & Bonuses</div>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Tips & Bonuses</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#F59E0B' }}>
                 {notifications.filter(n => n.type === 'tip' || n.type === 'bonus').length}
               </div>
@@ -402,9 +402,9 @@ const FreelancerNotifications = () => {
                   onClick={() => setActiveFilter(option.value)}
                   style={{
                     padding: '0.5rem 1rem',
-                    border: activeFilter === option.value ? 'none' : '1px solid #E5E7EB',
-                    backgroundColor: activeFilter === option.value ? '#083A85' : 'white',
-                    color: activeFilter === option.value ? 'white' : '#6B7280',
+                    border: activeFilter === option.value ? 'none' : `1px solid ${colors.borderPrimary}`,
+                    backgroundColor: activeFilter === option.value ? '#083A85' : colors.bgCard,
+                    color: activeFilter === option.value ? 'white' : colors.textSecondary,
                     borderRadius: '0.5rem',
                     fontSize: '0.875rem',
                     fontWeight: '500',
@@ -422,12 +422,12 @@ const FreelancerNotifications = () => {
                 onClick={deleteAllRead}
                 style={{
                   padding: '0.5rem 1rem',
-                  backgroundColor: '#FEE2E2',
-                  border: '1px solid #FECACA',
+                  backgroundColor: actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2',
+                  border: `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}`,
                   borderRadius: '0.5rem',
                   fontSize: '0.85rem',
                   fontWeight: '500',
-                  color: '#DC2626',
+                  color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -443,16 +443,16 @@ const FreelancerNotifications = () => {
 
           {/* Results Count */}
           <div style={{ marginBottom: '1rem' }}>
-            <span style={{ fontSize: '0.9rem', color: '#6B7280' }}>
+            <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>
               Showing {filteredNotifications.length} notification{filteredNotifications.length !== 1 ? 's' : ''}
             </span>
           </div>
 
           {/* Notifications List */}
           <div style={{
-            backgroundColor: 'white',
+            backgroundColor: colors.bgCard,
             borderRadius: '0.75rem',
-            border: '1px solid #E5E7EB',
+            border: `1px solid ${colors.borderPrimary}`,
             overflow: 'hidden'
           }}>
             {filteredNotifications.length === 0 ? (
@@ -464,24 +464,24 @@ const FreelancerNotifications = () => {
                   width: '64px',
                   height: '64px',
                   borderRadius: '50%',
-                  backgroundColor: '#F3F4F6',
+                  backgroundColor: colors.bgTertiary,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   margin: '0 auto 1rem auto',
-                  color: '#9CA3AF'
+                  color: colors.textSecondary
                 }}>
                   <BellIcon />
                 </div>
                 <h3 style={{
                   fontSize: '1.1rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: colors.textPrimary,
                   margin: '0 0 0.5rem 0'
                 }}>No notifications</h3>
                 <p style={{
                   fontSize: '0.9rem',
-                  color: '#6B7280',
+                  color: colors.textSecondary,
                   margin: 0
                 }}>
                   {activeFilter === 'all'
@@ -499,17 +499,17 @@ const FreelancerNotifications = () => {
                       display: 'flex',
                       gap: '1rem',
                       padding: '1rem 1.25rem',
-                      borderBottom: index < filteredNotifications.length - 1 ? '1px solid #F3F4F6' : 'none',
-                      backgroundColor: notification.read ? 'white' : '#F0F9FF',
+                      borderBottom: index < filteredNotifications.length - 1 ? `1px solid ${colors.borderPrimary}` : 'none',
+                      backgroundColor: notification.read ? colors.bgCard : (actualTheme === 'dark' ? '#1E3A5F' : '#F0F9FF'),
                       transition: 'background-color 0.2s',
                       cursor: 'pointer'
                     }}
                     onClick={() => markAsRead(notification.id)}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = notification.read ? '#F9FAFB' : '#E0F2FE';
+                      e.currentTarget.style.backgroundColor = notification.read ? colors.bgTertiary : (actualTheme === 'dark' ? '#2D4A6F' : '#E0F2FE');
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = notification.read ? 'white' : '#F0F9FF';
+                      e.currentTarget.style.backgroundColor = notification.read ? colors.bgCard : (actualTheme === 'dark' ? '#1E3A5F' : '#F0F9FF');
                     }}
                   >
                     {/* Icon or Avatar */}
@@ -551,7 +551,7 @@ const FreelancerNotifications = () => {
                           <span style={{
                             fontSize: '0.95rem',
                             fontWeight: notification.read ? '500' : '600',
-                            color: '#111827'
+                            color: colors.textPrimary
                           }}>
                             {notification.title}
                           </span>
@@ -591,7 +591,7 @@ const FreelancerNotifications = () => {
 
                       <p style={{
                         fontSize: '0.875rem',
-                        color: '#6B7280',
+                        color: colors.textSecondary,
                         margin: 0,
                         lineHeight: '1.5'
                       }}>
@@ -610,7 +610,7 @@ const FreelancerNotifications = () => {
                             style={{
                               fontSize: '0.85rem',
                               fontWeight: '500',
-                              color: '#083A85',
+                              color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
                               textDecoration: 'none'
                             }}
                             onClick={(e) => e.stopPropagation()}

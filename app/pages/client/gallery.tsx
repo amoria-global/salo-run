@@ -45,8 +45,8 @@ const HeartIcon = ({ filled }: { filled?: boolean }) => (
   </svg>
 );
 
-const GridIcon = ({ active }: { active?: boolean }) => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={active ? "#083A85" : "#6B7280"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+const GridIcon = ({ active, activeColor = "#083A85" }: { active?: boolean; activeColor?: string }) => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={active ? activeColor : "#6B7280"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <rect x="3" y="3" width="7" height="7"></rect>
     <rect x="14" y="3" width="7" height="7"></rect>
     <rect x="14" y="14" width="7" height="7"></rect>
@@ -54,8 +54,8 @@ const GridIcon = ({ active }: { active?: boolean }) => (
   </svg>
 );
 
-const ListIcon = ({ active }: { active?: boolean }) => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={active ? "#083A85" : "#6B7280"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+const ListIcon = ({ active, activeColor = "#083A85" }: { active?: boolean; activeColor?: string }) => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={active ? activeColor : "#6B7280"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <line x1="8" y1="6" x2="21" y2="6"></line>
     <line x1="8" y1="12" x2="21" y2="12"></line>
     <line x1="8" y1="18" x2="21" y2="18"></line>
@@ -467,7 +467,7 @@ const ClientGallery = () => {
           <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <h1 style={{ fontSize: '1.8rem', lineHeight: '2rem', color: '#111827', fontWeight: '600', margin: 0 }}>My Gallery</h1>
+                <h1 style={{ fontSize: '1.8rem', lineHeight: '2rem', color: colors.textPrimary, fontWeight: '600', margin: 0 }}>My Gallery</h1>
                 <span style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -486,7 +486,7 @@ const ClientGallery = () => {
                   Completed Events
                 </span>
               </div>
-              <p style={{ fontSize: '0.95rem', color: '#6B7280', marginTop: '0.25rem' }}>
+              <p style={{ fontSize: '0.95rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
                 Albums and photos from your completed events, shared by your photographers
               </p>
             </div>
@@ -496,56 +496,56 @@ const ClientGallery = () => {
                 style={{
                   padding: '0.5rem',
                   borderRadius: '0.5rem',
-                  border: viewMode === 'grid' ? '2px solid #083A85' : '2px solid #E5E7EB',
-                  backgroundColor: viewMode === 'grid' ? '#EBF5FF' : 'white',
+                  border: viewMode === 'grid' ? `2px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}` : `2px solid ${colors.borderPrimary}`,
+                  backgroundColor: viewMode === 'grid' ? (actualTheme === 'dark' ? '#1E3A5F' : '#EBF5FF') : colors.bgCard,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
                 }}
               >
-                <GridIcon active={viewMode === 'grid'} />
+                <GridIcon active={viewMode === 'grid'} activeColor={actualTheme === 'dark' ? '#60A5FA' : '#083A85'} />
               </button>
               <button
                 onClick={() => setViewMode('list')}
                 style={{
                   padding: '0.5rem',
                   borderRadius: '0.5rem',
-                  border: viewMode === 'list' ? '2px solid #083A85' : '2px solid #E5E7EB',
-                  backgroundColor: viewMode === 'list' ? '#EBF5FF' : 'white',
+                  border: viewMode === 'list' ? `2px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}` : `2px solid ${colors.borderPrimary}`,
+                  backgroundColor: viewMode === 'list' ? (actualTheme === 'dark' ? '#1E3A5F' : '#EBF5FF') : colors.bgCard,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
                 }}
               >
-                <ListIcon active={viewMode === 'list'} />
+                <ListIcon active={viewMode === 'list'} activeColor={actualTheme === 'dark' ? '#60A5FA' : '#083A85'} />
               </button>
             </div>
           </header>
 
           {/* Stats Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-            <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', padding: '1rem', border: '1px solid #E5E7EB' }}>
-              <div style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '0.25rem' }}>Total Albums</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#083A85' }}>{albums.length}</div>
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Albums</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{albums.length}</div>
             </div>
-            <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', padding: '1rem', border: '1px solid #E5E7EB' }}>
-              <div style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '0.25rem' }}>Total Photos</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#083A85' }}>{totalPhotos}</div>
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Photos</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{totalPhotos}</div>
             </div>
-            <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', padding: '1rem', border: '1px solid #E5E7EB' }}>
-              <div style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '0.25rem' }}>Downloaded</div>
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Downloaded</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>{totalDownloaded}</div>
             </div>
-            <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', padding: '1rem', border: '1px solid #E5E7EB' }}>
-              <div style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '0.25rem' }}>Favorites</div>
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Favorites</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#DC2626' }}>{totalFavorites}</div>
             </div>
           </div>
 
           {/* Filters */}
-          <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', padding: '1rem', marginBottom: '1.5rem', border: '1px solid #E5E7EB' }}>
+          <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', marginBottom: '1.5rem', border: `1px solid ${colors.borderPrimary}` }}>
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
               {/* Search */}
               <div style={{ flex: 1, minWidth: '200px' }}>
@@ -557,10 +557,10 @@ const ClientGallery = () => {
                   style={{
                     width: '100%',
                     padding: '0.625rem 1rem',
-                    border: '2px solid #E5E7EB',
+                    border: `2px solid ${colors.borderPrimary}`,
                     borderRadius: '0.5rem',
                     fontSize: '0.9rem',
-                    color: '#111827',
+                    color: colors.textPrimary,
                     outline: 'none'
                   }}
                 />
@@ -572,11 +572,11 @@ const ClientGallery = () => {
                 onChange={(e) => setFilterCategory(e.target.value)}
                 style={{
                   padding: '0.625rem 1rem',
-                  border: '2px solid #E5E7EB',
+                  border: `2px solid ${colors.borderPrimary}`,
                   borderRadius: '0.5rem',
                   fontSize: '0.9rem',
-                  color: '#111827',
-                  backgroundColor: 'white',
+                  color: colors.textPrimary,
+                  backgroundColor: colors.bgCard,
                   cursor: 'pointer'
                 }}
               >
@@ -591,11 +591,11 @@ const ClientGallery = () => {
                 onChange={(e) => setFilterPhotographer(e.target.value)}
                 style={{
                   padding: '0.625rem 1rem',
-                  border: '2px solid #E5E7EB',
+                  border: `2px solid ${colors.borderPrimary}`,
                   borderRadius: '0.5rem',
                   fontSize: '0.9rem',
-                  color: '#111827',
-                  backgroundColor: 'white',
+                  color: colors.textPrimary,
+                  backgroundColor: colors.bgCard,
                   cursor: 'pointer'
                 }}
               >
@@ -613,10 +613,10 @@ const ClientGallery = () => {
                 <div
                   key={album.id}
                   style={{
-                    backgroundColor: 'white',
+                    backgroundColor: colors.bgCard,
                     borderRadius: '0.75rem',
                     overflow: 'hidden',
-                    border: '1px solid #E5E7EB',
+                    border: `1px solid ${colors.borderPrimary}`,
                     transition: 'all 0.2s',
                     cursor: 'pointer'
                   }}
@@ -671,14 +671,14 @@ const ClientGallery = () => {
 
                   {/* Album Info */}
                   <div style={{ padding: '1rem' }}>
-                    <h3 style={{ fontSize: '1rem', fontWeight: '600', color: '#111827', margin: 0, marginBottom: '0.5rem' }}>
+                    <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0, marginBottom: '0.5rem' }}>
                       {album.title}
                     </h3>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                       <div style={{ position: 'relative', width: '24px', height: '24px', borderRadius: '50%', overflow: 'hidden' }}>
                         <Image src={album.photographerAvatar} alt={album.photographer} fill style={{ objectFit: 'cover' }} />
                       </div>
-                      <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>{album.photographer}</span>
+                      <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>{album.photographer}</span>
                     </div>
                     <div style={{ fontSize: '0.8rem', color: '#9CA3AF', marginBottom: '0.75rem' }}>
                       Received: {album.receivedDate}
@@ -721,8 +721,8 @@ const ClientGallery = () => {
                           padding: '0.5rem',
                           borderRadius: '0.375rem',
                           border: '2px solid #9CA3AF',
-                          backgroundColor: '#F3F4F6',
-                          color: '#111827',
+                          backgroundColor: colors.bgTertiary,
+                          color: colors.textPrimary,
                           fontSize: '0.8rem',
                           fontWeight: '600',
                           cursor: 'pointer',
@@ -767,18 +767,18 @@ const ClientGallery = () => {
             </div>
           ) : (
             /* List View */
-            <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', border: '1px solid #E5E7EB', overflow: 'hidden' }}>
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', border: `1px solid ${colors.borderPrimary}`, overflow: 'hidden' }}>
               {/* Table Header */}
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: '80px 1fr 150px 120px 100px 150px',
                 gap: '1rem',
                 padding: '0.75rem 1rem',
-                backgroundColor: '#F9FAFB',
-                borderBottom: '1px solid #E5E7EB',
+                backgroundColor: colors.bgTertiary,
+                borderBottom: `1px solid ${colors.borderPrimary}`,
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#6B7280'
+                color: colors.textSecondary
               }}>
                 <div></div>
                 <div>Album</div>
@@ -797,7 +797,7 @@ const ClientGallery = () => {
                     gridTemplateColumns: '80px 1fr 150px 120px 100px 150px',
                     gap: '1rem',
                     padding: '0.75rem 1rem',
-                    borderBottom: '1px solid #E5E7EB',
+                    borderBottom: `1px solid ${colors.borderPrimary}`,
                     alignItems: 'center',
                     cursor: 'pointer',
                     transition: 'background-color 0.2s'
@@ -807,10 +807,10 @@ const ClientGallery = () => {
                     setShowViewModal(true);
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#F9FAFB';
+                    e.currentTarget.style.backgroundColor = colors.bgTertiary;
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'white';
+                    e.currentTarget.style.backgroundColor = colors.bgCard;
                   }}
                 >
                   {/* Thumbnail */}
@@ -820,7 +820,7 @@ const ClientGallery = () => {
 
                   {/* Album Title */}
                   <div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: '600', color: '#111827' }}>{album.title}</div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{album.title}</div>
                     <div style={{ fontSize: '0.8rem', color: '#9CA3AF' }}>Received: {album.receivedDate}</div>
                   </div>
 
@@ -829,11 +829,11 @@ const ClientGallery = () => {
                     <div style={{ position: 'relative', width: '24px', height: '24px', borderRadius: '50%', overflow: 'hidden' }}>
                       <Image src={album.photographerAvatar} alt={album.photographer} fill style={{ objectFit: 'cover' }} />
                     </div>
-                    <span style={{ fontSize: '0.85rem', color: '#374151' }}>{album.photographer}</span>
+                    <span style={{ fontSize: '0.85rem', color: colors.textPrimary }}>{album.photographer}</span>
                   </div>
 
                   {/* Photos Count */}
-                  <div style={{ fontSize: '0.9rem', color: '#111827' }}>{album.photoCount} photos</div>
+                  <div style={{ fontSize: '0.9rem', color: colors.textPrimary }}>{album.photoCount} photos</div>
 
                   {/* Category */}
                   <span style={{
@@ -878,8 +878,8 @@ const ClientGallery = () => {
                         padding: '0.375rem 0.75rem',
                         borderRadius: '0.375rem',
                         border: '2px solid #9CA3AF',
-                        backgroundColor: '#F3F4F6',
-                        color: '#374151',
+                        backgroundColor: colors.bgTertiary,
+                        color: colors.textPrimary,
                         fontSize: '0.8rem',
                         fontWeight: '500',
                         cursor: 'pointer'
@@ -937,7 +937,7 @@ const ClientGallery = () => {
         >
           <div
             style={{
-              backgroundColor: 'white',
+              backgroundColor: colors.bgCard,
               borderRadius: '0.75rem',
               padding: '1.5rem',
               maxWidth: '600px',
@@ -949,16 +949,16 @@ const ClientGallery = () => {
           >
             {/* Modal Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#111827', margin: 0 }}>Album Details</h2>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Album Details</h2>
               <button
                 onClick={() => setShowViewModal(false)}
                 style={{
-                  background: '#F3F4F6',
-                  border: '2px solid #D1D5DB',
+                  background: colors.bgTertiary,
+                  border: `2px solid ${colors.borderPrimary}`,
                   cursor: 'pointer',
                   padding: '0.5rem',
                   borderRadius: '0.375rem',
-                  color: '#374151',
+                  color: colors.textPrimary,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
@@ -974,7 +974,7 @@ const ClientGallery = () => {
             </div>
 
             {/* Album Info */}
-            <h3 style={{ fontSize: '1.15rem', fontWeight: '600', color: '#111827', margin: 0, marginBottom: '0.5rem' }}>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: '600', color: colors.textPrimary, margin: 0, marginBottom: '0.5rem' }}>
               {selectedAlbum.title}
             </h3>
 
@@ -983,8 +983,8 @@ const ClientGallery = () => {
                 <Image src={selectedAlbum.photographerAvatar} alt={selectedAlbum.photographer} fill style={{ objectFit: 'cover' }} />
               </div>
               <div>
-                <div style={{ fontSize: '0.9rem', fontWeight: '600', color: '#111827' }}>{selectedAlbum.photographer}</div>
-                <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>Photographer</div>
+                <div style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{selectedAlbum.photographer}</div>
+                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Photographer</div>
               </div>
             </div>
 
@@ -993,27 +993,27 @@ const ClientGallery = () => {
               gridTemplateColumns: 'repeat(3, 1fr)',
               gap: '1rem',
               padding: '1rem',
-              backgroundColor: '#F9FAFB',
+              backgroundColor: colors.bgTertiary,
               borderRadius: '0.5rem',
               marginBottom: '1.25rem'
             }}>
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#083A85' }}>{selectedAlbum.photoCount}</div>
-                <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>Photos</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{selectedAlbum.photoCount}</div>
+                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Photos</div>
               </div>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#16A34A' }}>{selectedAlbum.downloadedCount}</div>
-                <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>Downloaded</div>
+                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Downloaded</div>
               </div>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#DC2626' }}>{selectedAlbum.favoriteCount}</div>
-                <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>Favorites</div>
+                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Favorites</div>
               </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.25rem', fontSize: '0.85rem', color: '#6B7280' }}>
-              <span>Category: <strong style={{ color: '#111827' }}>{selectedAlbum.category}</strong></span>
-              <span>Received: <strong style={{ color: '#111827' }}>{selectedAlbum.receivedDate}</strong></span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.25rem', fontSize: '0.85rem', color: colors.textSecondary }}>
+              <span>Category: <strong style={{ color: colors.textPrimary }}>{selectedAlbum.category}</strong></span>
+              <span>Received: <strong style={{ color: colors.textPrimary }}>{selectedAlbum.receivedDate}</strong></span>
             </div>
 
             {/* Action Buttons */}
@@ -1053,8 +1053,8 @@ const ClientGallery = () => {
                   padding: '0.875rem',
                   borderRadius: '0.5rem',
                   border: '2px solid #9CA3AF',
-                  backgroundColor: '#F3F4F6',
-                  color: '#374151',
+                  backgroundColor: colors.bgTertiary,
+                  color: colors.textPrimary,
                   fontSize: '0.95rem',
                   fontWeight: '600',
                   cursor: 'pointer',
@@ -1091,7 +1091,7 @@ const ClientGallery = () => {
         >
           <div
             style={{
-              backgroundColor: 'white',
+              backgroundColor: colors.bgCard,
               borderRadius: '0.75rem',
               padding: '1.5rem',
               maxWidth: '500px',
@@ -1103,16 +1103,16 @@ const ClientGallery = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#111827', margin: 0 }}>Share Album</h3>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Share Album</h3>
               <button
                 onClick={() => setShowShareModal(false)}
                 style={{
-                  background: '#F3F4F6',
-                  border: '2px solid #D1D5DB',
+                  background: colors.bgTertiary,
+                  border: `2px solid ${colors.borderPrimary}`,
                   cursor: 'pointer',
                   padding: '0.5rem',
                   borderRadius: '0.375rem',
-                  color: '#374151',
+                  color: colors.textPrimary,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
@@ -1123,13 +1123,13 @@ const ClientGallery = () => {
             </div>
 
             {/* Album Preview */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem', padding: '0.75rem', backgroundColor: '#F9FAFB', borderRadius: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem', padding: '0.75rem', backgroundColor: colors.bgTertiary, borderRadius: '0.5rem' }}>
               <div style={{ position: 'relative', width: '60px', height: '40px', borderRadius: '0.25rem', overflow: 'hidden' }}>
                 <Image src={shareAlbum.thumbnail} alt={shareAlbum.title} fill style={{ objectFit: 'cover' }} />
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: '600', color: '#111827', fontSize: '0.9rem' }}>{shareAlbum.title}</div>
-                <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>{shareAlbum.photoCount} photos • {shareAlbum.photographer}</div>
+                <div style={{ fontWeight: '600', color: colors.textPrimary, fontSize: '0.9rem' }}>{shareAlbum.title}</div>
+                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{shareAlbum.photoCount} photos • {shareAlbum.photographer}</div>
               </div>
             </div>
 
@@ -1140,8 +1140,8 @@ const ClientGallery = () => {
                 { name: 'Facebook', icon: <FacebookIcon />, color: '#1877F2', getUrl: (link: string) => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}` },
                 { name: 'Twitter', icon: <TwitterIcon />, color: '#1DA1F2', getUrl: (link: string, title: string) => `https://twitter.com/intent/tweet?url=${encodeURIComponent(link)}&text=${encodeURIComponent(title)}` },
                 { name: 'Email', icon: <EmailIcon />, color: '#EA4335', getUrl: (link: string, title: string) => `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(`Check out this album: ${link}`)}` },
-                { name: 'Copy Link', icon: <LinkIcon />, color: '#6B7280', getUrl: () => '' },
-                { name: 'QR Code', icon: <QRCodeIcon />, color: '#111827', getUrl: () => '' }
+                { name: 'Copy Link', icon: <LinkIcon />, color: colors.textSecondary, getUrl: () => '' },
+                { name: 'QR Code', icon: <QRCodeIcon />, color: colors.textPrimary, getUrl: () => '' }
               ].map((option) => (
                 <button
                   key={option.name}
@@ -1158,13 +1158,13 @@ const ClientGallery = () => {
                   }}
                   style={{
                     padding: '1rem',
-                    border: option.name === 'Copy Link' && copiedLink ? '1px solid #10B981' : '1px solid #E5E7EB',
+                    border: option.name === 'Copy Link' && copiedLink ? '1px solid #10B981' : `1px solid ${colors.borderPrimary}`,
                     borderRadius: '0.5rem',
-                    background: option.name === 'Copy Link' && copiedLink ? '#ECFDF5' : 'white',
+                    background: option.name === 'Copy Link' && copiedLink ? (actualTheme === 'dark' ? '#14532D' : '#ECFDF5') : colors.bgCard,
                     cursor: 'pointer',
                     fontSize: '0.85rem',
                     fontWeight: '500',
-                    color: option.name === 'Copy Link' && copiedLink ? '#10B981' : '#374151',
+                    color: option.name === 'Copy Link' && copiedLink ? '#10B981' : colors.textPrimary,
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
@@ -1179,8 +1179,8 @@ const ClientGallery = () => {
                   }}
                   onMouseLeave={(e) => {
                     if (!(option.name === 'Copy Link' && copiedLink)) {
-                      e.currentTarget.style.borderColor = '#E5E7EB';
-                      e.currentTarget.style.color = '#374151';
+                      e.currentTarget.style.borderColor = colors.borderPrimary;
+                      e.currentTarget.style.color = colors.textPrimary;
                     }
                   }}
                 >
@@ -1191,8 +1191,8 @@ const ClientGallery = () => {
             </div>
 
             {/* Album Link Input */}
-            <div style={{ borderTop: '1px solid #E5E7EB', paddingTop: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+            <div style={{ borderTop: `1px solid ${colors.borderPrimary}`, paddingTop: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
                 Album Link
               </label>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -1203,12 +1203,12 @@ const ClientGallery = () => {
                   style={{
                     flex: 1,
                     padding: '0.625rem 0.875rem',
-                    border: '2px solid #D1D5DB',
+                    border: `2px solid ${colors.borderPrimary}`,
                     borderRadius: '0.375rem',
                     fontSize: '0.9rem',
                     fontWeight: '500',
-                    color: '#111827',
-                    backgroundColor: '#F9FAFB'
+                    color: colors.textPrimary,
+                    backgroundColor: colors.bgTertiary
                   }}
                 />
                 <button
@@ -1886,7 +1886,7 @@ const ClientGallery = () => {
         >
           <div
             style={{
-              backgroundColor: 'white',
+              backgroundColor: colors.bgCard,
               borderRadius: '1rem',
               padding: '1.5rem',
               width: '400px',
@@ -1918,7 +1918,7 @@ const ClientGallery = () => {
             <h2 style={{
               fontSize: '1.25rem',
               fontWeight: '700',
-              color: '#111827',
+              color: colors.textPrimary,
               margin: 0,
               marginBottom: '0.75rem',
               textAlign: 'center'
@@ -1927,13 +1927,13 @@ const ClientGallery = () => {
             {/* Modal Content */}
             <p style={{
               fontSize: '0.95rem',
-              color: '#6B7280',
+              color: colors.textSecondary,
               margin: 0,
               marginBottom: '0.5rem',
               textAlign: 'center',
               lineHeight: '1.5'
             }}>
-              Are you sure you want to delete <strong style={{ color: '#111827' }}>&quot;{albumToDelete.title}&quot;</strong>?
+              Are you sure you want to delete <strong style={{ color: colors.textPrimary }}>&quot;{albumToDelete.title}&quot;</strong>?
             </p>
             <p style={{
               fontSize: '0.85rem',
@@ -1957,9 +1957,9 @@ const ClientGallery = () => {
                   flex: 1,
                   padding: '0.75rem 1rem',
                   borderRadius: '0.5rem',
-                  border: '2px solid #D1D5DB',
-                  backgroundColor: 'white',
-                  color: '#374151',
+                  border: `2px solid ${colors.borderPrimary}`,
+                  backgroundColor: colors.bgCard,
+                  color: colors.textPrimary,
                   fontSize: '0.95rem',
                   fontWeight: '600',
                   cursor: 'pointer',

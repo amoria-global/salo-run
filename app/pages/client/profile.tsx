@@ -94,11 +94,11 @@ const ProfilePage = () => {
   const inputStyle = {
     width: '100%',
     padding: '0.75rem 1rem',
-    border: '2px solid #D1D5DB',
+    border: `2px solid ${colors.borderPrimary}`,
     borderRadius: '0.5rem',
     fontSize: '0.95rem',
-    color: '#374151',
-    backgroundColor: isEditEnabled ? 'white' : '#F9FAFB',
+    color: colors.textPrimary,
+    backgroundColor: isEditEnabled ? colors.bgCard : colors.bgTertiary,
     outline: 'none',
     transition: 'border-color 0.2s, background-color 0.2s'
   };
@@ -107,7 +107,7 @@ const ProfilePage = () => {
     display: 'block',
     fontSize: '0.9rem',
     fontWeight: '500' as const,
-    color: '#374151',
+    color: colors.textPrimary,
     marginBottom: '0.5rem'
   };
 
@@ -140,7 +140,7 @@ const ProfilePage = () => {
           <h1 style={{
             fontSize: '1.5rem',
             fontWeight: '600',
-            color: '#111827',
+            color: colors.textPrimary,
             marginBottom: '1.25rem'
           }}>Profile</h1>
 
@@ -158,11 +158,11 @@ const ProfilePage = () => {
             }}>
               {/* Profile Card */}
               <div style={{
-                backgroundColor: 'white',
+                backgroundColor: colors.bgCard,
                 borderRadius: '0.75rem',
                 overflow: 'hidden',
                 boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                border: '1px solid #E5E7EB'
+                border: `1px solid ${colors.borderPrimary}`
               }}>
                 {/* Hidden file inputs */}
                 <input
@@ -224,24 +224,24 @@ const ProfilePage = () => {
                   <h2 style={{
                     fontSize: '1.25rem',
                     fontWeight: '700',
-                    color: '#083A85',
+                    color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
                     marginBottom: '0.25rem'
                   }}>Diane Marry</h2>
                   <p style={{
                     fontSize: '0.95rem',
-                    color: '#6B7280'
+                    color: colors.textSecondary
                   }}>Client</p>
                 </div>
 
                 {/* Account Activity */}
                 <div style={{
-                  borderTop: '1px solid #E5E7EB',
+                  borderTop: `1px solid ${colors.borderPrimary}`,
                   padding: '1.25rem'
                 }}>
                   <h3 style={{
                     fontSize: '1rem',
                     fontWeight: '600',
-                    color: '#111827',
+                    color: colors.textPrimary,
                     marginBottom: '0.75rem'
                   }}>Account Activity</h3>
                   <div style={{
@@ -254,24 +254,24 @@ const ProfilePage = () => {
                       justifyContent: 'space-between',
                       alignItems: 'center'
                     }}>
-                      <span style={{ fontSize: '0.9rem', color: '#6B7280' }}>Last Login</span>
-                      <span style={{ fontSize: '0.9rem', color: '#111827', fontWeight: '500' }}>Today, 2:30 PM</span>
+                      <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Last Login</span>
+                      <span style={{ fontSize: '0.9rem', color: colors.textPrimary, fontWeight: '500' }}>Today, 2:30 PM</span>
                     </div>
                     <div style={{
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center'
                     }}>
-                      <span style={{ fontSize: '0.9rem', color: '#6B7280' }}>Joined Since</span>
-                      <span style={{ fontSize: '0.9rem', color: '#111827', fontWeight: '500' }}>Jan 15, 2024</span>
+                      <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Joined Since</span>
+                      <span style={{ fontSize: '0.9rem', color: colors.textPrimary, fontWeight: '500' }}>Jan 15, 2024</span>
                     </div>
                     <div style={{
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center'
                     }}>
-                      <span style={{ fontSize: '0.9rem', color: '#6B7280' }}>Last Updated</span>
-                      <span style={{ fontSize: '0.9rem', color: '#111827', fontWeight: '500' }}>Nov 20, 2025</span>
+                      <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Last Updated</span>
+                      <span style={{ fontSize: '0.9rem', color: colors.textPrimary, fontWeight: '500' }}>Nov 20, 2025</span>
                     </div>
                   </div>
                 </div>
@@ -280,11 +280,11 @@ const ProfilePage = () => {
 
             {/* Right Section - Personal Information Form */}
             <div style={{
-              backgroundColor: 'white',
+              backgroundColor: colors.bgCard,
               borderRadius: '0.75rem',
               padding: '1.5rem',
               boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-              border: '1px solid #E5E7EB'
+              border: `1px solid ${colors.borderPrimary}`
             }}>
               {/* Header with Edit Toggle */}
               <div style={{
@@ -296,7 +296,7 @@ const ProfilePage = () => {
                 <h2 style={{
                   fontSize: '1.25rem',
                   fontWeight: '600',
-                  color: '#111827'
+                  color: colors.textPrimary
                 }}>Personal Information</h2>
 
                 {/* Edit Toggle */}
@@ -307,7 +307,7 @@ const ProfilePage = () => {
                 }}>
                   <span style={{
                     fontSize: '0.9rem',
-                    color: '#6B7280'
+                    color: colors.textSecondary
                   }}>Edit</span>
                   <button
                     onClick={() => setIsEditEnabled(!isEditEnabled)}
@@ -318,7 +318,7 @@ const ProfilePage = () => {
                       border: 'none',
                       cursor: 'pointer',
                       position: 'relative',
-                      backgroundColor: isEditEnabled ? '#083A85' : '#D1D5DB',
+                      backgroundColor: isEditEnabled ? '#083A85' : (actualTheme === 'dark' ? '#4B5563' : '#D1D5DB'),
                       transition: 'background-color 0.2s'
                     }}
                   >
@@ -326,7 +326,7 @@ const ProfilePage = () => {
                       width: '22px',
                       height: '22px',
                       borderRadius: '50%',
-                      backgroundColor: 'white',
+                      backgroundColor: colors.bgCard,
                       position: 'absolute',
                       top: '2px',
                       left: isEditEnabled ? '24px' : '2px',
@@ -337,7 +337,7 @@ const ProfilePage = () => {
                   <span style={{
                     fontSize: '0.9rem',
                     fontWeight: '500',
-                    color: isEditEnabled ? '#083A85' : '#6B7280'
+                    color: isEditEnabled ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : '#6B7280'
                   }}>
                     {isEditEnabled ? 'Enabled' : 'Disabled'}
                   </span>
@@ -381,7 +381,7 @@ const ProfilePage = () => {
                     type="email"
                     value={formData.email}
                     disabled={true}
-                    style={{...inputStyle, backgroundColor: '#F9FAFB', cursor: 'not-allowed'}}
+                    style={{...inputStyle, backgroundColor: colors.bgTertiary, cursor: 'not-allowed'}}
                   />
                 </div>
 
@@ -423,7 +423,7 @@ const ProfilePage = () => {
                     type="text"
                     value={formData.title}
                     disabled={true}
-                    style={{...inputStyle, backgroundColor: '#F9FAFB', cursor: 'not-allowed'}}
+                    style={{...inputStyle, backgroundColor: colors.bgTertiary, cursor: 'not-allowed'}}
                   />
                 </div>
 

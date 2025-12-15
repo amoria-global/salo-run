@@ -153,7 +153,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
       }} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
           <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>{title}</h3>
-          <button className="no-print" onClick={onClose} style={{ background: '#F3F4F6', border: '2px solid #D1D5DB', cursor: 'pointer', padding: '0.5rem', borderRadius: '0.375rem', color: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <button className="no-print" onClick={onClose} style={{ background: colors.bgTertiary, border: `2px solid ${colors.borderPrimary}`, cursor: 'pointer', padding: '0.5rem', borderRadius: '0.375rem', color: colors.textPrimary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <CloseIcon />
           </button>
         </div>
@@ -170,7 +170,7 @@ interface ViewReportModalProps {
 }
 
 const ViewReportModal: React.FC<ViewReportModalProps> = ({ isOpen, onClose }) => {
-  const { colors } = useTheme();
+  const { colors, actualTheme } = useTheme();
   const reportData = {
     period: '13 - 18 July 2025',
     totalEarned: 1200.13,
@@ -223,7 +223,7 @@ Transaction Summary:
         {/* Financial & Transaction Summary Side by Side */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
           {/* Financial Summary */}
-          <div style={{ backgroundColor: '#F9FAFB', borderRadius: '0.5rem', padding: '0.75rem' }}>
+          <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '0.75rem' }}>
             <h4 style={{ fontSize: '0.8rem', fontWeight: '600', color: colors.textPrimary, margin: 0, marginBottom: '0.5rem' }}>Financial Summary</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -249,13 +249,13 @@ Transaction Summary:
               </div>
               <div style={{ borderTop: `1px solid ${colors.borderPrimary}`, marginTop: '0.35rem', paddingTop: '0.35rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.75rem', fontWeight: '500', color: colors.textSecondary }}>Total</span>
-                <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#083A85' }}>${(reportData.totalEarned + reportData.pending + reportData.withdrawn).toFixed(2)}</span>
+                <span style={{ fontSize: '0.95rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>${(reportData.totalEarned + reportData.pending + reportData.withdrawn).toFixed(2)}</span>
               </div>
             </div>
           </div>
 
           {/* Transaction Summary */}
-          <div style={{ backgroundColor: '#F9FAFB', borderRadius: '0.5rem', padding: '0.75rem' }}>
+          <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '0.75rem' }}>
             <h4 style={{ fontSize: '0.8rem', fontWeight: '600', color: colors.textPrimary, margin: 0, marginBottom: '0.5rem' }}>Transaction Summary</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -304,9 +304,9 @@ Transaction Summary:
           alignItems: 'center',
           justifyContent: 'center',
           gap: '0.5rem',
-          backgroundColor: '#F3F4F6',
-          color: '#374151',
-          border: '2px solid #D1D5DB',
+          backgroundColor: colors.bgTertiary,
+          color: colors.textPrimary,
+          border: `2px solid ${colors.borderPrimary}`,
           borderRadius: '0.5rem',
           padding: '0.6rem 1rem',
           fontSize: '0.85rem',
@@ -431,8 +431,8 @@ Amount: ${transaction.amount}
       </div>
 
       {/* Transaction Info */}
-      <div style={{ backgroundColor: '#F9FAFB', borderRadius: '0.5rem', padding: '1rem', marginBottom: '1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid #E5E7EB' }}>
+      <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '1rem', marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: `1px solid ${colors.borderPrimary}` }}>
           <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
             <Image src={transaction.clientImage} alt={transaction.clientName} width={40} height={40} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
           </div>
@@ -491,9 +491,9 @@ Amount: ${transaction.amount}
           alignItems: 'center',
           justifyContent: 'center',
           gap: '0.5rem',
-          backgroundColor: '#F3F4F6',
-          color: '#374151',
-          border: '2px solid #D1D5DB',
+          backgroundColor: colors.bgTertiary,
+          color: colors.textPrimary,
+          border: `2px solid ${colors.borderPrimary}`,
           borderRadius: '0.5rem',
           padding: '0.75rem 1rem',
           fontSize: '0.9rem',
@@ -504,9 +504,9 @@ Amount: ${transaction.amount}
           Print
         </button>
         <button onClick={onClose} style={{
-          backgroundColor: '#F3F4F6',
-          color: '#374151',
-          border: '2px solid #D1D5DB',
+          backgroundColor: colors.bgTertiary,
+          color: colors.textPrimary,
+          border: `2px solid ${colors.borderPrimary}`,
           borderRadius: '0.5rem',
           padding: '0.75rem 1rem',
           fontSize: '0.9rem',
@@ -537,7 +537,7 @@ interface WithdrawAccount {
 }
 
 const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availableBalance }) => {
-  const { colors } = useTheme();
+  const { colors, actualTheme } = useTheme();
   const [withdrawAmount, setWithdrawAmount] = useState<string>('');
   const [selectedAccount, setSelectedAccount] = useState<string>('');
 
@@ -605,18 +605,17 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
           <button
             onClick={onClose}
             style={{
-              background: '#F3F4F6',
-              border: '2px solid #D1D5DB',
+              background: colors.bgTertiary,
+              border: `2px solid ${colors.borderPrimary}`,
               cursor: 'pointer',
               padding: '0.5rem',
-              borderRadius: '0.5rem',
+              borderRadius: '0.375rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              color: colors.textPrimary,
               transition: 'background 0.2s'
             }}
-            onMouseEnter={(e) => e.currentTarget.style.background = '#E5E7EB'}
-            onMouseLeave={(e) => e.currentTarget.style.background = '#F3F4F6'}
           >
             <CloseIcon />
           </button>
@@ -719,10 +718,10 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
                   style={{
                     flex: 1,
                     padding: '0.5rem',
-                    border: withdrawAmount === amount ? '2px solid #083A85' : '1px solid #E5E7EB',
+                    border: withdrawAmount === amount ? '2px solid #083A85' : `1px solid ${colors.borderPrimary}`,
                     borderRadius: '0.5rem',
-                    background: withdrawAmount === amount ? '#EFF6FF' : 'white',
-                    color: withdrawAmount === amount ? '#083A85' : '#6B7280',
+                    background: withdrawAmount === amount ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
+                    color: withdrawAmount === amount ? '#083A85' : colors.textSecondary,
                     fontSize: '0.8rem',
                     fontWeight: '600',
                     cursor: 'pointer',
@@ -756,10 +755,10 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
                     alignItems: 'center',
                     gap: '0.875rem',
                     padding: '1rem',
-                    border: selectedAccount === account.id ? '2px solid #083A85' : '1px solid #E5E7EB',
+                    border: selectedAccount === account.id ? '2px solid #083A85' : `1px solid ${colors.borderPrimary}`,
                     borderRadius: '0.75rem',
                     cursor: 'pointer',
-                    backgroundColor: selectedAccount === account.id ? '#F8FAFC' : 'white',
+                    backgroundColor: selectedAccount === account.id ? colors.bgTertiary : colors.bgCard,
                     transition: 'all 0.2s'
                   }}
                 >
@@ -832,17 +831,17 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
               style={{
                 flex: 1,
                 padding: '0.875rem 1rem',
-                border: '2px solid #D1D5DB',
+                border: `2px solid ${colors.borderPrimary}`,
                 borderRadius: '0.75rem',
-                background: '#F3F4F6',
-                color: '#374151',
+                background: colors.bgTertiary,
+                color: colors.textPrimary,
                 fontSize: '0.9rem',
                 fontWeight: '600',
                 cursor: 'pointer',
                 transition: 'all 0.2s'
               }}
-              onMouseEnter={(e) => e.currentTarget.style.background = '#E5E7EB'}
-              onMouseLeave={(e) => e.currentTarget.style.background = '#F3F4F6'}
+              onMouseEnter={(e) => e.currentTarget.style.background = colors.borderPrimary}
+              onMouseLeave={(e) => e.currentTarget.style.background = colors.bgTertiary}
             >
               Cancel
             </button>
@@ -1424,7 +1423,7 @@ Amount: ${transaction.amount}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                    <div style={{ width: '32px', height: '32px', backgroundColor: '#F0FDF4', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: '32px', height: '32px', backgroundColor: actualTheme === 'dark' ? '#14532D' : '#F0FDF4', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <span style={{ fontSize: '1rem' }}>💝</span>
                     </div>
                     <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Tips from Clients</h3>
@@ -1450,11 +1449,11 @@ Amount: ${transaction.amount}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '120px', overflowY: 'auto' }}>
                   {tipsData.map((tip) => (
-                    <div key={tip.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', backgroundColor: '#F0FDF4', borderRadius: '0.375rem', border: '1px solid #BBF7D0' }}>
+                    <div key={tip.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', backgroundColor: actualTheme === 'dark' ? '#14532D' : '#F0FDF4', borderRadius: '0.375rem', border: `1px solid ${actualTheme === 'dark' ? '#166534' : '#BBF7D0'}` }}>
                       <div>
                         <div style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>{tip.clientName}</div>
                         <div style={{ fontSize: '0.7rem', color: colors.textSecondary }}>{tip.eventName} • {tip.date}</div>
-                        {tip.message && <div style={{ fontSize: '0.7rem', color: '#166534', fontStyle: 'italic', marginTop: '0.125rem' }}>&ldquo;{tip.message}&rdquo;</div>}
+                        {tip.message && <div style={{ fontSize: '0.7rem', color: actualTheme === 'dark' ? '#4ADE80' : '#166534', fontStyle: 'italic', marginTop: '0.125rem' }}>&ldquo;{tip.message}&rdquo;</div>}
                       </div>
                       <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#16A34A' }}>+${tip.amount}</div>
                     </div>
@@ -1468,7 +1467,7 @@ Amount: ${transaction.amount}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                    <div style={{ width: '32px', height: '32px', backgroundColor: '#F0FDF4', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: '32px', height: '32px', backgroundColor: actualTheme === 'dark' ? '#14532D' : '#F0FDF4', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <span style={{ fontSize: '1rem' }}>🎁</span>
                     </div>
                     <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Platform Bonus</h3>
@@ -1487,20 +1486,20 @@ Amount: ${transaction.amount}
                   <span style={{ fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary }}>Progress to Next Bonus</span>
                   <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#16A34A' }}>{completedEventsCount % 10}/10 events</span>
                 </div>
-                <div style={{ width: '100%', height: '8px', backgroundColor: '#E5E7EB', borderRadius: '9999px', overflow: 'hidden', marginBottom: '0.75rem' }}>
+                <div style={{ width: '100%', height: '8px', backgroundColor: colors.borderPrimary, borderRadius: '9999px', overflow: 'hidden', marginBottom: '0.75rem' }}>
                   <div style={{ width: `${(completedEventsCount % 10) * 10}%`, height: '100%', backgroundColor: '#16A34A', borderRadius: '9999px', transition: 'width 0.3s ease' }} />
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ padding: '0.5rem 0.75rem', backgroundColor: '#F0FDF4', borderRadius: '0.375rem', border: '1px solid #BBF7D0' }}>
-                    <div style={{ fontSize: '0.7rem', color: '#166534', marginBottom: '0.125rem' }}>Completed Events</div>
+                  <div style={{ padding: '0.5rem 0.75rem', backgroundColor: actualTheme === 'dark' ? '#14532D' : '#F0FDF4', borderRadius: '0.375rem', border: `1px solid ${actualTheme === 'dark' ? '#166534' : '#BBF7D0'}` }}>
+                    <div style={{ fontSize: '0.7rem', color: actualTheme === 'dark' ? '#4ADE80' : '#166534', marginBottom: '0.125rem' }}>Completed Events</div>
                     <div style={{ fontSize: '1rem', fontWeight: '700', color: '#16A34A' }}>{completedEventsCount}</div>
                   </div>
-                  <div style={{ padding: '0.5rem 0.75rem', backgroundColor: '#EFF6FF', borderRadius: '0.375rem', border: '1px solid #BFDBFE' }}>
-                    <div style={{ fontSize: '0.7rem', color: '#1E40AF', marginBottom: '0.125rem' }}>Events to Next Bonus</div>
+                  <div style={{ padding: '0.5rem 0.75rem', backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF', borderRadius: '0.375rem', border: `1px solid ${actualTheme === 'dark' ? '#1E40AF' : '#BFDBFE'}` }}>
+                    <div style={{ fontSize: '0.7rem', color: actualTheme === 'dark' ? '#60A5FA' : '#1E40AF', marginBottom: '0.125rem' }}>Events to Next Bonus</div>
                     <div style={{ fontSize: '1rem', fontWeight: '700', color: '#2563EB' }}>{eventsToNextBonus}</div>
                   </div>
-                  <div style={{ padding: '0.5rem 0.75rem', backgroundColor: '#FEF3C7', borderRadius: '0.375rem', border: '1px solid #FCD34D' }}>
-                    <div style={{ fontSize: '0.7rem', color: '#92400E', marginBottom: '0.125rem' }}>Next Bonus Amount</div>
+                  <div style={{ padding: '0.5rem 0.75rem', backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FEF3C7', borderRadius: '0.375rem', border: `1px solid ${actualTheme === 'dark' ? '#92400E' : '#FCD34D'}` }}>
+                    <div style={{ fontSize: '0.7rem', color: actualTheme === 'dark' ? '#FCD34D' : '#92400E', marginBottom: '0.125rem' }}>Next Bonus Amount</div>
                     <div style={{ fontSize: '1rem', fontWeight: '700', color: '#F59E0B' }}>~${Math.round(totalEventsAmount * 0.10 / bonusEligibleSets || 0)}</div>
                   </div>
                 </div>
@@ -1523,7 +1522,7 @@ Amount: ${transaction.amount}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   {/* Chart Type Selector */}
-                  <div style={{ display: 'flex', gap: '0.25rem', backgroundColor: '#F3F4F6', borderRadius: '0.375rem', padding: '0.25rem' }}>
+                  <div style={{ display: 'flex', gap: '0.25rem', backgroundColor: colors.bgTertiary, borderRadius: '0.375rem', padding: '0.25rem' }}>
                     <button
                       onClick={() => setChartType('line')}
                       style={{
@@ -1531,7 +1530,7 @@ Amount: ${transaction.amount}
                         border: 'none',
                         borderRadius: '0.25rem',
                         cursor: 'pointer',
-                        backgroundColor: chartType === 'line' ? 'white' : 'transparent',
+                        backgroundColor: chartType === 'line' ? colors.bgCard : 'transparent',
                         boxShadow: chartType === 'line' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
                         display: 'flex',
                         alignItems: 'center',
@@ -1549,7 +1548,7 @@ Amount: ${transaction.amount}
                         border: 'none',
                         borderRadius: '0.25rem',
                         cursor: 'pointer',
-                        backgroundColor: chartType === 'bar' ? 'white' : 'transparent',
+                        backgroundColor: chartType === 'bar' ? colors.bgCard : 'transparent',
                         boxShadow: chartType === 'bar' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
                         display: 'flex',
                         alignItems: 'center',
@@ -1567,7 +1566,7 @@ Amount: ${transaction.amount}
                         border: 'none',
                         borderRadius: '0.25rem',
                         cursor: 'pointer',
-                        backgroundColor: chartType === 'scatter' ? 'white' : 'transparent',
+                        backgroundColor: chartType === 'scatter' ? colors.bgCard : 'transparent',
                         boxShadow: chartType === 'scatter' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
                         display: 'flex',
                         alignItems: 'center',
@@ -1580,7 +1579,7 @@ Amount: ${transaction.amount}
                     </button>
                   </div>
                   {/* Time Period Filter */}
-                  <div style={{ display: 'flex', gap: '0.25rem', backgroundColor: '#F9FAFB', borderRadius: '0.375rem', padding: '0.25rem' }}>
+                  <div style={{ display: 'flex', gap: '0.25rem', backgroundColor: colors.bgTertiary, borderRadius: '0.375rem', padding: '0.25rem' }}>
                     {(['1W', '1M', '3M', '6M', '1Y'] as const).map((period) => (
                       <button
                         key={period}
@@ -1644,7 +1643,7 @@ Amount: ${transaction.amount}
 
           {/* Transaction History Table */}
           <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', boxShadow: colors.shadowSm, overflow: 'hidden' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderBottom: '1px solid #E5E7EB' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderBottom: `1px solid ${colors.borderPrimary}` }}>
               <h2 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary }}>Transaction History</h2>
               <button style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: colors.bgCard, border: '2px solid #D1D5DB', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', fontSize: '0.85rem', color: colors.textSecondary, cursor: 'pointer' }}>
                 <CalendarIcon />
@@ -1654,7 +1653,7 @@ Amount: ${transaction.amount}
 
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ backgroundColor: '#F9FAFB' }}>
+                <tr style={{ backgroundColor: colors.bgTertiary }}>
                   <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase' }}>Date</th>
                   <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase' }}>Client / Service</th>
                   <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase' }}>Method</th>
@@ -1666,7 +1665,7 @@ Amount: ${transaction.amount}
               </thead>
               <tbody>
                 {transactions.map((transaction) => (
-                  <tr key={transaction.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                  <tr key={transaction.id} style={{ borderBottom: `1px solid ${colors.borderPrimary}` }}>
                     <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.85rem', color: colors.textSecondary }}>{transaction.date}</td>
                     <td style={{ padding: '0.875rem 1.25rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -1709,12 +1708,12 @@ Amount: ${transaction.amount}
                   <ChevronLeftIcon />
                 </button>
                 {[1, 2, 3].map((page) => (
-                  <button key={page} onClick={() => setCurrentPage(page)} style={{ width: '32px', height: '32px', border: currentPage === page ? '2px solid #062a63' : '2px solid #D1D5DB', borderRadius: '0.375rem', backgroundColor: currentPage === page ? '#083A85' : 'white', color: currentPage === page ? 'white' : '#6B7280', fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer' }}>
+                  <button key={page} onClick={() => setCurrentPage(page)} style={{ width: '32px', height: '32px', border: currentPage === page ? '2px solid #062a63' : `2px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', backgroundColor: currentPage === page ? '#083A85' : colors.bgCard, color: currentPage === page ? 'white' : colors.textSecondary, fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer' }}>
                     {page}
                   </button>
                 ))}
                 <span style={{ padding: '0 0.5rem', color: colors.textSecondary }}>...</span>
-                <button onClick={() => setCurrentPage(totalPages)} style={{ width: '32px', height: '32px', border: currentPage === totalPages ? '2px solid #062a63' : '2px solid #D1D5DB', borderRadius: '0.375rem', backgroundColor: currentPage === totalPages ? '#083A85' : 'white', color: currentPage === totalPages ? 'white' : '#6B7280', fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer' }}>
+                <button onClick={() => setCurrentPage(totalPages)} style={{ width: '32px', height: '32px', border: currentPage === totalPages ? '2px solid #062a63' : `2px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', backgroundColor: currentPage === totalPages ? '#083A85' : colors.bgCard, color: currentPage === totalPages ? 'white' : colors.textSecondary, fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer' }}>
                   {totalPages}
                 </button>
                 <button onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages} style={{ background: 'none', border: '2px solid #D1D5DB', borderRadius: '0.375rem', padding: '0.5rem', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', opacity: currentPage === totalPages ? 0.5 : 1 }}>
