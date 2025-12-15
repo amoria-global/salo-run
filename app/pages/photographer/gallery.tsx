@@ -965,12 +965,12 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
               <h1 style={{
                 fontSize: '1.8rem',
                 fontWeight: '700',
-                color: '#111827',
+                color: colors.textPrimary,
                 margin: 0
               }}>My Gallery</h1>
               <p style={{
                 fontSize: '0.95rem',
-                color: '#6B7280',
+                color: colors.textSecondary,
                 marginTop: '0.25rem'
               }}>Manage and share your photo collections with clients</p>
             </div>
@@ -1010,39 +1010,39 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
             marginBottom: '1.5rem'
           }}>
             <div style={{
-              backgroundColor: 'white',
+              backgroundColor: colors.bgCard,
               borderRadius: '0.75rem',
               padding: '1.25rem',
-              border: '1px solid #E5E7EB'
+              border: `1px solid ${colors.borderPrimary}`
             }}>
-              <div style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '0.25rem' }}>Albums</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#083A85' }}>{stats.total}</div>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Albums</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{stats.total}</div>
             </div>
             <div style={{
-              backgroundColor: 'white',
+              backgroundColor: colors.bgCard,
               borderRadius: '0.75rem',
               padding: '1.25rem',
-              border: '1px solid #E5E7EB'
+              border: `1px solid ${colors.borderPrimary}`
             }}>
-              <div style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '0.25rem' }}>Total Photos</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#083A85' }}>{formatNumber(stats.totalPhotos)}</div>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Photos</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{formatNumber(stats.totalPhotos)}</div>
             </div>
             <div style={{
-              backgroundColor: 'white',
+              backgroundColor: colors.bgCard,
               borderRadius: '0.75rem',
               padding: '1.25rem',
-              border: '1px solid #E5E7EB'
+              border: `1px solid ${colors.borderPrimary}`
             }}>
-              <div style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '0.25rem' }}>Shared</div>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Shared</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#10B981' }}>{stats.shared}</div>
             </div>
             <div style={{
-              backgroundColor: 'white',
+              backgroundColor: colors.bgCard,
               borderRadius: '0.75rem',
               padding: '1.25rem',
-              border: '1px solid #E5E7EB'
+              border: `1px solid ${colors.borderPrimary}`
             }}>
-              <div style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '0.25rem' }}>Private</div>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Private</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#F59E0B' }}>{stats.private}</div>
             </div>
           </div>
@@ -1064,9 +1064,9 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                   onClick={() => setFilterCategory(category)}
                   style={{
                     padding: '0.5rem 1rem',
-                    border: filterCategory === category ? 'none' : '1px solid #E5E7EB',
-                    backgroundColor: filterCategory === category ? '#083A85' : 'white',
-                    color: filterCategory === category ? 'white' : '#6B7280',
+                    border: filterCategory === category ? 'none' : `1px solid ${colors.borderPrimary}`,
+                    backgroundColor: filterCategory === category ? '#083A85' : colors.bgCard,
+                    color: filterCategory === category ? 'white' : colors.textSecondary,
                     borderRadius: '0.5rem',
                     fontSize: '0.875rem',
                     fontWeight: '500',
@@ -1097,8 +1097,8 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                     fontSize: '0.9rem',
                     outline: 'none',
                     transition: 'all 0.2s',
-                    color: '#111827',
-                    backgroundColor: 'white',
+                    color: colors.textPrimary,
+                    backgroundColor: colors.bgCard,
                     width: '280px'
                   }}
                   onFocus={(e) => {
@@ -1116,7 +1116,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
               <div style={{
                 display: 'flex',
                 gap: '0.25rem',
-                backgroundColor: '#F3F4F6',
+                backgroundColor: colors.bgTertiary,
                 padding: '0.25rem',
                 borderRadius: '0.5rem'
               }}>
@@ -1125,7 +1125,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                   style={{
                     padding: '0.5rem',
                     border: 'none',
-                    backgroundColor: viewMode === 'grid' ? 'white' : 'transparent',
+                    backgroundColor: viewMode === 'grid' ? colors.bgCard : 'transparent',
                     borderRadius: '0.375rem',
                     cursor: 'pointer',
                     transition: 'all 0.2s',
@@ -1142,7 +1142,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                   style={{
                     padding: '0.5rem',
                     border: 'none',
-                    backgroundColor: viewMode === 'list' ? 'white' : 'transparent',
+                    backgroundColor: viewMode === 'list' ? colors.bgCard : 'transparent',
                     borderRadius: '0.375rem',
                     cursor: 'pointer',
                     transition: 'all 0.2s',
@@ -1160,7 +1160,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
 
           {/* Results Count */}
           <div style={{ marginBottom: '1rem' }}>
-            <span style={{ fontSize: '0.9rem', color: '#6B7280' }}>
+            <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>
               Showing {filteredPhotos.length} album{filteredPhotos.length !== 1 ? 's' : ''}
             </span>
           </div>
@@ -1176,7 +1176,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                 <div
                   key={photo.id}
                   style={{
-                    backgroundColor: 'white',
+                    backgroundColor: colors.bgCard,
                     borderRadius: '1rem',
                     overflow: 'hidden',
                     boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
@@ -1274,8 +1274,8 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                       right: '0.75rem'
                     }}>
                       <div style={{
-                        backgroundColor: 'rgba(255,255,255,0.9)',
-                        color: '#111827',
+                        backgroundColor: actualTheme === 'dark' ? 'rgba(31, 41, 55, 0.95)' : 'rgba(255,255,255,0.9)',
+                        color: colors.textPrimary,
                         padding: '0.25rem 0.5rem',
                         borderRadius: '0.375rem',
                         fontSize: '0.75rem',
@@ -1293,7 +1293,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                       <h3 style={{
                         fontSize: '1.1rem',
                         fontWeight: '600',
-                        color: '#111827',
+                        color: colors.textPrimary,
                         margin: 0,
                         marginBottom: '0.5rem',
                         overflow: 'hidden',
@@ -1310,7 +1310,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                             style={{ objectFit: 'cover', width: '100%', height: '100%' }}
                           />
                         </div>
-                        <span style={{ fontSize: '0.9rem', color: '#6B7280' }}>{photo.client}</span>
+                        <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>{photo.client}</span>
                       </div>
                     </div>
 
@@ -1327,12 +1327,16 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                         display: 'flex',
                         alignItems: 'center',
                         gap: '0.375rem',
-                        backgroundColor: photo.sharedWithClient ? '#D1FAE5' : '#FEF3C7',
+                        backgroundColor: photo.sharedWithClient
+                          ? (actualTheme === 'dark' ? '#064E3B' : '#D1FAE5')
+                          : (actualTheme === 'dark' ? '#78350F' : '#FEF3C7'),
                         padding: '0.25rem 0.625rem',
                         borderRadius: '9999px',
                         fontSize: '0.8rem',
                         fontWeight: '500',
-                        color: photo.sharedWithClient ? '#065F46' : '#92400E'
+                        color: photo.sharedWithClient
+                          ? (actualTheme === 'dark' ? '#6EE7B7' : '#065F46')
+                          : (actualTheme === 'dark' ? '#FCD34D' : '#92400E')
                       }}>
                         <i className={`bi ${photo.sharedWithClient ? 'bi-check-circle-fill' : 'bi-lock-fill'}`} style={{ fontSize: '0.7rem' }}></i>
                         {photo.sharedWithClient ? 'Shared' : 'Private'}
@@ -1407,9 +1411,9 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                           height: '36px',
                           padding: '0.5rem',
                           borderRadius: '0.375rem',
-                          border: '2px solid #9CA3AF',
-                          backgroundColor: '#F3F4F6',
-                          color: '#111827',
+                          border: `2px solid ${colors.borderSecondary}`,
+                          backgroundColor: colors.bgTertiary,
+                          color: colors.textPrimary,
                           fontSize: '0.85rem',
                           fontWeight: '600',
                           cursor: 'pointer',
@@ -1455,7 +1459,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
           ) : (
             /* List View */
             <div style={{
-              backgroundColor: 'white',
+              backgroundColor: colors.bgCard,
               borderRadius: '1rem',
               overflow: 'hidden',
               boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
@@ -1463,12 +1467,12 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
             }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr style={{ borderBottom: '2px solid #E5E7EB', backgroundColor: '#F9FAFB' }}>
-                    <th style={{ textAlign: 'left', padding: '1rem', fontSize: '0.8rem', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>Album</th>
-                    <th style={{ textAlign: 'left', padding: '1rem', fontSize: '0.8rem', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>Client</th>
-                    <th style={{ textAlign: 'center', padding: '1rem', fontSize: '0.8rem', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>Photos</th>
-                    <th style={{ textAlign: 'center', padding: '1rem', fontSize: '0.8rem', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>Status</th>
-                    <th style={{ textAlign: 'center', padding: '1rem', fontSize: '0.8rem', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>Actions</th>
+                  <tr style={{ borderBottom: '2px solid #E5E7EB', backgroundColor: colors.bgTertiary }}>
+                    <th style={{ textAlign: 'left', padding: '1rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase' }}>Album</th>
+                    <th style={{ textAlign: 'left', padding: '1rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase' }}>Client</th>
+                    <th style={{ textAlign: 'center', padding: '1rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase' }}>Photos</th>
+                    <th style={{ textAlign: 'center', padding: '1rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase' }}>Status</th>
+                    <th style={{ textAlign: 'center', padding: '1rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1476,7 +1480,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                     <tr
                       key={photo.id}
                       style={{
-                        borderBottom: '1px solid #F3F4F6',
+                        borderBottom: `1px solid ${colors.borderPrimary}`,
                         cursor: 'pointer',
                         transition: 'all 0.2s'
                       }}
@@ -1485,10 +1489,10 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                         setShowViewModal(true);
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = '#F9FAFB';
+                        e.currentTarget.style.backgroundColor = colors.bgTertiary;
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'white';
+                        e.currentTarget.style.backgroundColor = colors.bgCard;
                       }}
                     >
                       <td style={{ padding: '1rem' }}>
@@ -1503,7 +1507,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                           </div>
                           <div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                              <h3 style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827', margin: 0 }}>{photo.title}</h3>
+                              <h3 style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>{photo.title}</h3>
                               {photo.featured && (
                                 <span style={{
                                   backgroundColor: '#FEF3C7',
@@ -1540,25 +1544,29 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                             />
                           </div>
                           <div>
-                            <div style={{ fontSize: '0.9rem', fontWeight: '500', color: '#111827' }}>{photo.client}</div>
+                            <div style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>{photo.client}</div>
                             <div style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>{photo.date}</div>
                           </div>
                         </div>
                       </td>
                       <td style={{ padding: '1rem', textAlign: 'center' }}>
-                        <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#083A85' }}>{photo.photoCount}</span>
+                        <span style={{ fontSize: '0.95rem', fontWeight: '600', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{photo.photoCount}</span>
                       </td>
                       <td style={{ padding: '1rem', textAlign: 'center' }}>
                         <div style={{
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '0.375rem',
-                          backgroundColor: photo.sharedWithClient ? '#D1FAE5' : '#FEF3C7',
+                          backgroundColor: photo.sharedWithClient
+                            ? (actualTheme === 'dark' ? '#064E3B' : '#D1FAE5')
+                            : (actualTheme === 'dark' ? '#78350F' : '#FEF3C7'),
                           padding: '0.375rem 0.75rem',
                           borderRadius: '9999px',
                           fontSize: '0.8rem',
                           fontWeight: '500',
-                          color: photo.sharedWithClient ? '#065F46' : '#92400E'
+                          color: photo.sharedWithClient
+                            ? (actualTheme === 'dark' ? '#6EE7B7' : '#065F46')
+                            : (actualTheme === 'dark' ? '#FCD34D' : '#92400E')
                         }}>
                           <i className={`bi ${photo.sharedWithClient ? 'bi-check-circle-fill' : 'bi-lock-fill'}`} style={{ fontSize: '0.75rem' }}></i>
                           {photo.sharedWithClient ? 'Shared' : 'Private'}
@@ -1598,9 +1606,9 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                               width: '36px',
                               height: '36px',
                               borderRadius: '0.5rem',
-                              border: '2px solid #16A34A',
-                              backgroundColor: '#F0FDF4',
-                              color: '#16A34A',
+                              border: `2px solid ${actualTheme === 'dark' ? '#34D399' : '#16A34A'}`,
+                              backgroundColor: actualTheme === 'dark' ? '#064E3B' : '#F0FDF4',
+                              color: actualTheme === 'dark' ? '#6EE7B7' : '#16A34A',
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
@@ -1621,9 +1629,9 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                               width: '36px',
                               height: '36px',
                               borderRadius: '0.5rem',
-                              border: '2px solid #9CA3AF',
-                              backgroundColor: '#F3F4F6',
-                              color: '#111827',
+                              border: `2px solid ${colors.borderSecondary}`,
+                              backgroundColor: colors.bgTertiary,
+                              color: colors.textPrimary,
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
@@ -1643,9 +1651,9 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                               width: '36px',
                               height: '36px',
                               borderRadius: '0.5rem',
-                              border: '2px solid #FCA5A5',
-                              backgroundColor: '#FEE2E2',
-                              color: '#DC2626',
+                              border: `2px solid ${actualTheme === 'dark' ? '#F87171' : '#FCA5A5'}`,
+                              backgroundColor: actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2',
+                              color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626',
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
@@ -1668,22 +1676,22 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
           {/* No Results */}
           {filteredPhotos.length === 0 && (
             <div style={{
-              backgroundColor: 'white',
+              backgroundColor: colors.bgCard,
               borderRadius: '0.75rem',
               padding: '4rem 1.5rem',
               textAlign: 'center',
-              border: '1px solid #E5E7EB'
+              border: `1px solid ${colors.borderPrimary}`
             }}>
               <i className="bi bi-images" style={{ fontSize: '4rem', color: '#D1D5DB', marginBottom: '1rem' }}></i>
               <h3 style={{
                 fontSize: '1.25rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: colors.textPrimary,
                 margin: '0 0 0.5rem 0'
               }}>No albums found</h3>
               <p style={{
                 fontSize: '0.95rem',
-                color: '#6B7280',
+                color: colors.textSecondary,
                 margin: 0
               }}>Try adjusting your filters or search query</p>
             </div>
@@ -1711,7 +1719,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
         >
           <div
             style={{
-              backgroundColor: 'white',
+              backgroundColor: colors.bgCard,
               borderRadius: '1rem',
               padding: '1.5rem',
               width: '500px',
@@ -1731,20 +1739,21 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
               <h2 style={{
                 fontSize: '1.25rem',
                 fontWeight: '700',
-                color: '#111827',
+                color: colors.textPrimary,
                 margin: 0
               }}>Create New Album</h2>
               <button
                 onClick={() => { resetUploadForm(false); setShowUploadModal(false); }}
                 style={{
-                  background: '#F3F4F6',
-                  border: '2px solid #D1D5DB',
+                  background: colors.bgTertiary,
+                  border: `2px solid ${colors.borderPrimary}`,
                   cursor: 'pointer',
                   padding: '0.5rem',
-                  borderRadius: '0.5rem',
+                  borderRadius: '0.375rem',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  color: colors.textPrimary
                 }}
               >
                 <CloseIcon />
@@ -1790,7 +1799,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                 padding: '2.5rem 1.5rem',
                 textAlign: 'center',
                 marginBottom: '1.5rem',
-                backgroundColor: '#F9FAFB',
+                backgroundColor: colors.bgTertiary,
                 cursor: 'pointer',
                 transition: 'all 0.2s'
               }}
@@ -1809,7 +1818,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
               </div>
               <p style={{
                 fontSize: '0.95rem',
-                color: '#374151',
+                color: colors.textPrimary,
                 margin: '0 0 0.5rem 0',
                 fontWeight: '500'
               }}>
@@ -1819,7 +1828,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
               </p>
               <p style={{
                 fontSize: '0.8rem',
-                color: '#6B7280',
+                color: colors.textSecondary,
                 margin: 0
               }}>PNG, JPG, GIF up to 10MB each</p>
             </label>
@@ -1831,12 +1840,12 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                   display: 'block',
                   fontSize: '0.875rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: colors.textPrimary,
                   marginBottom: '0.75rem'
                 }}>Select Cover Photo *</label>
                 <p style={{
                   fontSize: '0.8rem',
-                  color: '#6B7280',
+                  color: colors.textSecondary,
                   margin: '0 0 0.75rem 0'
                 }}>Click on an image to set it as the album cover</p>
                 <div style={{
@@ -1846,9 +1855,9 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                   maxHeight: '200px',
                   overflowY: 'auto',
                   padding: '0.5rem',
-                  backgroundColor: '#F9FAFB',
+                  backgroundColor: colors.bgTertiary,
                   borderRadius: '0.5rem',
-                  border: '1px solid #E5E7EB'
+                  border: `1px solid ${colors.borderPrimary}`
                 }}>
                   {uploadedImagePreviews.map((preview, index) => (
                     <div
@@ -1915,7 +1924,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                   display: 'block',
                   fontSize: '0.875rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: colors.textPrimary,
                   marginBottom: '0.5rem'
                 }}>Album Title *</label>
                 <input
@@ -1926,12 +1935,12 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                   style={{
                     width: '100%',
                     padding: '0.75rem 1rem',
-                    border: '2px solid #E5E7EB',
+                    border: `2px solid ${colors.borderPrimary}`,
                     borderRadius: '0.5rem',
                     fontSize: '0.9rem',
                     outline: 'none',
-                    color: '#111827',
-                    backgroundColor: 'white',
+                    color: colors.textPrimary,
+                    backgroundColor: colors.bgCard,
                     boxSizing: 'border-box'
                   }}
                 />
@@ -1942,7 +1951,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                   display: 'block',
                   fontSize: '0.875rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: colors.textPrimary,
                   marginBottom: '0.5rem'
                 }}>Category *</label>
                 <select
@@ -1951,12 +1960,12 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                   style={{
                     width: '100%',
                     padding: '0.75rem 1rem',
-                    border: '2px solid #E5E7EB',
+                    border: `2px solid ${colors.borderPrimary}`,
                     borderRadius: '0.5rem',
                     fontSize: '0.9rem',
                     outline: 'none',
-                    color: '#111827',
-                    backgroundColor: 'white',
+                    color: colors.textPrimary,
+                    backgroundColor: colors.bgCard,
                     cursor: 'pointer'
                   }}
                 >
@@ -1976,15 +1985,16 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                   display: 'block',
                   fontSize: '0.875rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: colors.textPrimary,
                   marginBottom: '0.5rem'
                 }}>Select Client *</label>
-                <p style={{ fontSize: '0.8rem', color: '#6B7280', marginBottom: '0.5rem' }}>Select a client you&apos;ve worked with</p>
+                <p style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.5rem' }}>Select a client you&apos;ve worked with</p>
                 <div style={{
-                  border: '2px solid #D1D5DB',
+                  border: `2px solid ${colors.borderPrimary}`,
                   borderRadius: '0.5rem',
                   maxHeight: '180px',
-                  overflowY: 'auto'
+                  overflowY: 'auto',
+                  backgroundColor: colors.bgCard
                 }}>
                   {clientsList.map((client) => (
                     <label
@@ -1995,8 +2005,8 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                         gap: '0.75rem',
                         padding: '0.625rem',
                         cursor: 'pointer',
-                        borderBottom: '1px solid #E5E7EB',
-                        backgroundColor: uploadClientId === client.id ? '#F0F9FF' : 'white'
+                        borderBottom: `1px solid ${colors.borderPrimary}`,
+                        backgroundColor: uploadClientId === client.id ? (actualTheme === 'dark' ? '#1E3A5F' : '#F0F9FF') : colors.bgCard
                       }}
                     >
                       <input
@@ -2023,10 +2033,10 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                         />
                       </div>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '0.85rem', fontWeight: '500', color: '#111827' }}>
+                        <div style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>
                           {client.firstName} {client.lastName}
                         </div>
-                        <div style={{ fontSize: '0.75rem', color: '#6B7280' }}>{client.email}</div>
+                        <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>{client.email}</div>
                       </div>
                     </label>
                   ))}
@@ -2042,7 +2052,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                     onChange={(e) => setUploadFeatured(e.target.checked)}
                     style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#083A85' }}
                   />
-                  <label htmlFor="upload-featured" style={{ fontSize: '0.875rem', color: '#374151', cursor: 'pointer' }}>
+                  <label htmlFor="upload-featured" style={{ fontSize: '0.875rem', color: colors.textPrimary, cursor: 'pointer' }}>
                     Mark as featured
                   </label>
                 </div>
@@ -2055,7 +2065,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                     onChange={(e) => setUploadShared(e.target.checked)}
                     style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#059669' }}
                   />
-                  <label htmlFor="upload-shared" style={{ fontSize: '0.875rem', color: '#374151', cursor: 'pointer' }}>
+                  <label htmlFor="upload-shared" style={{ fontSize: '0.875rem', color: colors.textPrimary, cursor: 'pointer' }}>
                     Share with client
                   </label>
                 </div>
@@ -2068,7 +2078,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
               gap: '0.75rem',
               marginTop: '1.5rem',
               paddingTop: '1.5rem',
-              borderTop: '1px solid #E5E7EB'
+              borderTop: `1px solid ${colors.borderPrimary}`
             }}>
               <button
                 onClick={() => {
@@ -2078,12 +2088,12 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                 style={{
                   flex: 1,
                   padding: '0.75rem 1rem',
-                  backgroundColor: '#F3F4F6',
-                  border: '2px solid #D1D5DB',
+                  backgroundColor: colors.bgTertiary,
+                  border: `2px solid ${colors.borderPrimary}`,
                   borderRadius: '0.5rem',
                   fontSize: '0.9rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: colors.textPrimary,
                   cursor: 'pointer'
                 }}
               >
@@ -2135,7 +2145,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
         >
           <div
             style={{
-              backgroundColor: 'white',
+              backgroundColor: colors.bgCard,
               borderRadius: '1rem',
               width: '600px',
               maxHeight: '90vh',
@@ -2158,14 +2168,15 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                   position: 'absolute',
                   top: '1rem',
                   right: '1rem',
-                  background: '#F3F4F6',
-                  border: '2px solid #D1D5DB',
+                  background: colors.bgTertiary,
+                  border: `2px solid ${colors.borderPrimary}`,
                   cursor: 'pointer',
                   padding: '0.5rem',
-                  borderRadius: '0.5rem',
+                  borderRadius: '0.375rem',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  color: colors.textPrimary
                 }}
               >
                 <CloseIcon />
@@ -2196,7 +2207,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
               {/* Header */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
                 <div>
-                  <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: '#111827', margin: 0 }}>{selectedPhoto.title}</h2>
+                  <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.textPrimary, margin: 0 }}>{selectedPhoto.title}</h2>
                   <span style={{
                     display: 'inline-block',
                     padding: '0.25rem 0.625rem',
@@ -2212,12 +2223,16 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.375rem',
-                  backgroundColor: selectedPhoto.sharedWithClient ? '#D1FAE5' : '#FEF3C7',
+                  backgroundColor: selectedPhoto.sharedWithClient
+                    ? (actualTheme === 'dark' ? '#064E3B' : '#D1FAE5')
+                    : (actualTheme === 'dark' ? '#78350F' : '#FEF3C7'),
                   padding: '0.375rem 0.75rem',
                   borderRadius: '9999px',
                   fontSize: '0.8rem',
                   fontWeight: '500',
-                  color: selectedPhoto.sharedWithClient ? '#065F46' : '#92400E'
+                  color: selectedPhoto.sharedWithClient
+                    ? (actualTheme === 'dark' ? '#6EE7B7' : '#065F46')
+                    : (actualTheme === 'dark' ? '#FCD34D' : '#92400E')
                 }}>
                   <i className={`bi ${selectedPhoto.sharedWithClient ? 'bi-check-circle-fill' : 'bi-lock-fill'}`}></i>
                   {selectedPhoto.sharedWithClient ? 'Shared' : 'Private'}
@@ -2230,7 +2245,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                 alignItems: 'center',
                 gap: '0.75rem',
                 padding: '1rem',
-                backgroundColor: '#F9FAFB',
+                backgroundColor: colors.bgTertiary,
                 borderRadius: '0.75rem',
                 marginBottom: '1.25rem'
               }}>
@@ -2244,8 +2259,8 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                   />
                 </div>
                 <div>
-                  <div style={{ fontSize: '1rem', fontWeight: '600', color: '#111827' }}>{selectedPhoto.client}</div>
-                  <div style={{ fontSize: '0.85rem', color: '#6B7280' }}>{selectedPhoto.date}</div>
+                  <div style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>{selectedPhoto.client}</div>
+                  <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>{selectedPhoto.date}</div>
                 </div>
               </div>
 
@@ -2256,13 +2271,13 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                 gap: '0.75rem',
                 marginBottom: '1.25rem'
               }}>
-                <div style={{ textAlign: 'center', padding: '0.75rem', backgroundColor: '#F9FAFB', borderRadius: '0.5rem' }}>
-                  <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#083A85' }}>{selectedPhoto.photoCount}</div>
-                  <div style={{ fontSize: '0.75rem', color: '#6B7280' }}>Photos</div>
+                <div style={{ textAlign: 'center', padding: '0.75rem', backgroundColor: colors.bgTertiary, borderRadius: '0.5rem' }}>
+                  <div style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{selectedPhoto.photoCount}</div>
+                  <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Photos</div>
                 </div>
-                <div style={{ textAlign: 'center', padding: '0.75rem', backgroundColor: '#F9FAFB', borderRadius: '0.5rem' }}>
+                <div style={{ textAlign: 'center', padding: '0.75rem', backgroundColor: colors.bgTertiary, borderRadius: '0.5rem' }}>
                   <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#10B981' }}>{formatNumber(selectedPhoto.downloads)}</div>
-                  <div style={{ fontSize: '0.75rem', color: '#6B7280' }}>Downloads</div>
+                  <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Downloads</div>
                 </div>
               </div>
 
@@ -2309,9 +2324,9 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                       flex: 1,
                       padding: '0.75rem',
                       borderRadius: '0.5rem',
-                      border: '2px solid #D1D5DB',
-                      backgroundColor: '#F3F4F6',
-                      color: '#374151',
+                      border: `2px solid ${colors.borderPrimary}`,
+                      backgroundColor: colors.bgTertiary,
+                      color: colors.textPrimary,
                       fontSize: '0.9rem',
                       fontWeight: '600',
                       cursor: 'pointer',
@@ -2375,7 +2390,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
         >
           <div
             style={{
-              backgroundColor: 'white',
+              backgroundColor: colors.bgCard,
               borderRadius: '1rem',
               padding: '1.5rem',
               width: '500px',
@@ -2395,20 +2410,21 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
               <h2 style={{
                 fontSize: '1.25rem',
                 fontWeight: '700',
-                color: '#111827',
+                color: colors.textPrimary,
                 margin: 0
               }}>Edit Album</h2>
               <button
                 onClick={() => setShowEditModal(false)}
                 style={{
-                  background: '#F3F4F6',
-                  border: '2px solid #D1D5DB',
+                  background: colors.bgTertiary,
+                  border: `2px solid ${colors.borderPrimary}`,
                   cursor: 'pointer',
                   padding: '0.5rem',
-                  borderRadius: '0.5rem',
+                  borderRadius: '0.375rem',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  color: colors.textPrimary
                 }}
               >
                 <CloseIcon />
@@ -2432,7 +2448,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                   display: 'block',
                   fontSize: '0.875rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: colors.textPrimary,
                   marginBottom: '0.5rem'
                 }}>Title</label>
                 <input
@@ -2441,12 +2457,12 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                   style={{
                     width: '100%',
                     padding: '0.75rem 1rem',
-                    border: '2px solid #E5E7EB',
+                    border: `2px solid ${colors.borderPrimary}`,
                     borderRadius: '0.5rem',
                     fontSize: '0.9rem',
                     outline: 'none',
-                    color: '#111827',
-                    backgroundColor: 'white',
+                    color: colors.textPrimary,
+                    backgroundColor: colors.bgCard,
                     boxSizing: 'border-box'
                   }}
                 />
@@ -2457,7 +2473,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                   display: 'block',
                   fontSize: '0.875rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: colors.textPrimary,
                   marginBottom: '0.5rem'
                 }}>Category</label>
                 <select
@@ -2465,12 +2481,12 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                   style={{
                     width: '100%',
                     padding: '0.75rem 1rem',
-                    border: '2px solid #E5E7EB',
+                    border: `2px solid ${colors.borderPrimary}`,
                     borderRadius: '0.5rem',
                     fontSize: '0.9rem',
                     outline: 'none',
-                    color: '#111827',
-                    backgroundColor: 'white',
+                    color: colors.textPrimary,
+                    backgroundColor: colors.bgCard,
                     cursor: 'pointer'
                   }}
                 >
@@ -2488,7 +2504,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                   display: 'block',
                   fontSize: '0.875rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: colors.textPrimary,
                   marginBottom: '0.5rem'
                 }}>Client</label>
                 <input
@@ -2497,12 +2513,12 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                   style={{
                     width: '100%',
                     padding: '0.75rem 1rem',
-                    border: '2px solid #E5E7EB',
+                    border: `2px solid ${colors.borderPrimary}`,
                     borderRadius: '0.5rem',
                     fontSize: '0.9rem',
                     outline: 'none',
-                    color: '#111827',
-                    backgroundColor: 'white',
+                    color: colors.textPrimary,
+                    backgroundColor: colors.bgCard,
                     boxSizing: 'border-box'
                   }}
                 />
@@ -2516,7 +2532,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                     defaultChecked={selectedPhoto.featured}
                     style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#083A85' }}
                   />
-                  <label htmlFor="edit-featured" style={{ fontSize: '0.875rem', color: '#374151', cursor: 'pointer' }}>
+                  <label htmlFor="edit-featured" style={{ fontSize: '0.875rem', color: colors.textPrimary, cursor: 'pointer' }}>
                     Mark as featured
                   </label>
                 </div>
@@ -2529,7 +2545,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                     onChange={() => toggleShareStatus(selectedPhoto.id)}
                     style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#059669' }}
                   />
-                  <label htmlFor="edit-shared" style={{ fontSize: '0.875rem', color: '#374151', cursor: 'pointer' }}>
+                  <label htmlFor="edit-shared" style={{ fontSize: '0.875rem', color: colors.textPrimary, cursor: 'pointer' }}>
                     Share with client
                   </label>
                 </div>
@@ -2542,19 +2558,19 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
               gap: '0.75rem',
               marginTop: '1.5rem',
               paddingTop: '1.5rem',
-              borderTop: '1px solid #E5E7EB'
+              borderTop: `1px solid ${colors.borderPrimary}`
             }}>
               <button
                 onClick={() => setShowEditModal(false)}
                 style={{
                   flex: 1,
                   padding: '0.75rem 1rem',
-                  backgroundColor: '#F3F4F6',
-                  border: '2px solid #D1D5DB',
+                  backgroundColor: colors.bgTertiary,
+                  border: `2px solid ${colors.borderPrimary}`,
                   borderRadius: '0.5rem',
                   fontSize: '0.9rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: colors.textPrimary,
                   cursor: 'pointer'
                 }}
               >
@@ -2603,7 +2619,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
         >
           <div
             style={{
-              backgroundColor: 'white',
+              backgroundColor: colors.bgCard,
               borderRadius: '0.75rem',
               padding: '1.5rem',
               maxWidth: '500px',
@@ -2615,16 +2631,16 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#111827', margin: 0 }}>Send Album to Client</h3>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Send Album to Client</h3>
               <button
                 onClick={() => setShowShareModal(false)}
                 style={{
-                  background: '#F3F4F6',
-                  border: '2px solid #D1D5DB',
+                  background: colors.bgTertiary,
+                  border: `2px solid ${colors.borderSecondary}`,
                   cursor: 'pointer',
                   padding: '0.5rem',
                   borderRadius: '0.375rem',
-                  color: '#374151',
+                  color: colors.textPrimary,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
@@ -2633,13 +2649,13 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                 <CloseIcon />
               </button>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem', padding: '0.75rem', backgroundColor: '#F9FAFB', borderRadius: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem', padding: '0.75rem', backgroundColor: colors.bgTertiary, borderRadius: '0.5rem' }}>
               <div style={{ position: 'relative', width: '60px', height: '40px', borderRadius: '0.25rem', overflow: 'hidden' }}>
                 <Image src={sharePhoto.thumbnail} alt={sharePhoto.title} fill style={{ objectFit: 'cover' }} />
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: '600', color: '#111827', fontSize: '0.9rem' }}>{sharePhoto.title}</div>
-                <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>{sharePhoto.photoCount} photos • {sharePhoto.client}</div>
+                <div style={{ fontWeight: '600', color: colors.textPrimary, fontSize: '0.9rem' }}>{sharePhoto.title}</div>
+                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{sharePhoto.photoCount} photos • {sharePhoto.client}</div>
               </div>
             </div>
 
@@ -2648,15 +2664,15 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
               const dedicatedClient = clientsList.find(c => c.id === sharePhoto.clientId);
               return dedicatedClient ? (
                 <div style={{
-                  backgroundColor: '#F0FDF4',
-                  border: '1px solid #BBF7D0',
+                  backgroundColor: actualTheme === 'dark' ? '#064E3B' : '#F0FDF4',
+                  border: `1px solid ${actualTheme === 'dark' ? '#065F46' : '#BBF7D0'}`,
                   borderRadius: '0.5rem',
                   padding: '1rem'
                 }}>
-                  <div style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '0.75rem' }}>
+                  <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.75rem' }}>
                     Send this album to the event client:
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', padding: '0.75rem', backgroundColor: 'white', borderRadius: '0.5rem', border: '1px solid #BBF7D0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', padding: '0.75rem', backgroundColor: colors.bgCard, borderRadius: '0.5rem', border: `1px solid ${actualTheme === 'dark' ? '#065F46' : '#BBF7D0'}` }}>
                     <div style={{ position: 'relative', width: '44px', height: '44px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
                       <Image
                         src={dedicatedClient.profileImage}
@@ -2666,10 +2682,10 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                       />
                     </div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: '0.9rem', fontWeight: '600', color: '#111827' }}>
+                      <div style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>
                         {dedicatedClient.firstName} {dedicatedClient.lastName}
                       </div>
-                      <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>{dedicatedClient.email}</div>
+                      <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{dedicatedClient.email}</div>
                     </div>
                     <div style={{ color: '#16A34A' }}>
                       <CheckCircleIcon />
@@ -2712,13 +2728,13 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                 </div>
               ) : (
                 <div style={{
-                  backgroundColor: '#FEF2F2',
-                  border: '1px solid #FECACA',
+                  backgroundColor: actualTheme === 'dark' ? '#7F1D1D' : '#FEF2F2',
+                  border: `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}`,
                   borderRadius: '0.5rem',
                   padding: '1rem',
                   textAlign: 'center'
                 }}>
-                  <div style={{ fontSize: '0.9rem', color: '#DC2626' }}>No client assigned to this album</div>
+                  <div style={{ fontSize: '0.9rem', color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626' }}>No client assigned to this album</div>
                 </div>
               );
             })()}
@@ -2745,7 +2761,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
         >
           <div
             style={{
-              backgroundColor: 'white',
+              backgroundColor: colors.bgCard,
               borderRadius: '0.75rem',
               padding: '1.5rem',
               maxWidth: '450px',
@@ -2762,18 +2778,18 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                 return dedicatedClient ? (
                   <>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                      <h3 style={{ fontSize: '1.15rem', fontWeight: '600', color: '#111827', margin: 0 }}>
+                      <h3 style={{ fontSize: '1.15rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
                         Send {selectedImages.length} Image(s) to Event Client
                       </h3>
                       <button
                         onClick={closeClientSelector}
                         style={{
-                          background: '#F3F4F6',
-                          border: '2px solid #D1D5DB',
+                          background: colors.bgTertiary,
+                          border: `2px solid ${colors.borderPrimary}`,
                           cursor: 'pointer',
                           padding: '0.5rem',
                           borderRadius: '0.375rem',
-                          color: '#374151',
+                          color: colors.textPrimary,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center'
@@ -2783,7 +2799,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                       </button>
                     </div>
 
-                    <p style={{ fontSize: '0.875rem', color: '#6B7280', marginBottom: '1rem' }}>
+                    <p style={{ fontSize: '0.875rem', color: colors.textSecondary, marginBottom: '1rem' }}>
                       Send the selected images to the event client:
                     </p>
 
@@ -2807,10 +2823,10 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                         />
                       </div>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '0.9rem', fontWeight: '600', color: '#111827' }}>
+                        <div style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>
                           {dedicatedClient.firstName} {dedicatedClient.lastName}
                         </div>
-                        <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>{dedicatedClient.email}</div>
+                        <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{dedicatedClient.email}</div>
                       </div>
                       <div style={{ color: '#16A34A' }}>
                         <CheckCircleIcon />
@@ -2880,7 +2896,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                 <h3 style={{ fontSize: '1.15rem', fontWeight: '600', color: '#166534', margin: '0 0 0.5rem 0' }}>
                   Sent Successfully!
                 </h3>
-                <p style={{ fontSize: '0.9rem', color: '#6B7280', margin: 0 }}>
+                <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: 0 }}>
                   {clientsList.find(c => c.id === multiSelectAlbum?.clientId)?.firstName} will receive a notification with the selected images.
                 </p>
               </div>
@@ -3558,7 +3574,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                           borderRadius: '0.375rem',
                           border: 'none',
                           backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                          color: '#111827',
+                          color: colors.textPrimary,
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
@@ -3680,7 +3696,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
         >
           <div
             style={{
-              backgroundColor: 'white',
+              backgroundColor: colors.bgCard,
               borderRadius: '1rem',
               padding: '1.5rem',
               width: '400px',
@@ -3712,7 +3728,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
             <h2 style={{
               fontSize: '1.25rem',
               fontWeight: '700',
-              color: '#111827',
+              color: colors.textPrimary,
               margin: 0,
               marginBottom: '0.75rem',
               textAlign: 'center'
@@ -3721,13 +3737,13 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
             {/* Modal Content */}
             <p style={{
               fontSize: '0.95rem',
-              color: '#6B7280',
+              color: colors.textSecondary,
               margin: 0,
               marginBottom: '0.5rem',
               textAlign: 'center',
               lineHeight: '1.5'
             }}>
-              Are you sure you want to delete <strong style={{ color: '#111827' }}>&quot;{albumToDelete.title}&quot;</strong>?
+              Are you sure you want to delete <strong style={{ color: colors.textPrimary }}>&quot;{albumToDelete.title}&quot;</strong>?
             </p>
             <p style={{
               fontSize: '0.85rem',
@@ -3752,8 +3768,8 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                   padding: '0.75rem 1rem',
                   borderRadius: '0.5rem',
                   border: '2px solid #D1D5DB',
-                  backgroundColor: 'white',
-                  color: '#374151',
+                  backgroundColor: colors.bgCard,
+                  color: colors.textPrimary,
                   fontSize: '0.95rem',
                   fontWeight: '600',
                   cursor: 'pointer',

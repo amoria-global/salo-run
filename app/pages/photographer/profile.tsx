@@ -592,11 +592,11 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   const inputStyle = {
     width: '100%',
     padding: '0.75rem 1rem',
-    border: '2px solid #E5E7EB',
+    border: `2px solid ${colors.borderPrimary}`,
     borderRadius: '0.5rem',
     fontSize: '0.95rem',
-    color: '#374151',
-    backgroundColor: 'white',
+    color: colors.textPrimary,
+    backgroundColor: colors.bgCard,
     outline: 'none',
     transition: 'border-color 0.2s'
   };
@@ -605,7 +605,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     display: 'block',
     fontSize: '0.875rem',
     fontWeight: '500' as const,
-    color: '#374151',
+    color: colors.textPrimary,
     marginBottom: '0.5rem'
   };
 
@@ -613,27 +613,27 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     padding: '0.75rem 1.5rem',
     fontSize: '0.95rem',
     fontWeight: '600' as const,
-    color: isActive ? '#083A85' : '#6B7280',
-    backgroundColor: isActive ? '#EFF6FF' : 'transparent',
+    color: isActive ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.textSecondary,
+    backgroundColor: isActive ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : 'transparent',
     border: 'none',
-    borderBottom: isActive ? '3px solid #083A85' : '3px solid transparent',
+    borderBottom: isActive ? `3px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}` : '3px solid transparent',
     cursor: 'pointer',
     transition: 'all 0.2s'
   });
 
   const cardStyle = {
-    backgroundColor: 'white',
+    backgroundColor: colors.bgCard,
     borderRadius: '0.75rem',
     padding: '1.5rem',
-    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-    border: '1px solid #E5E7EB',
+    boxShadow: colors.shadowSm,
+    border: `1px solid ${colors.borderPrimary}`,
     marginBottom: '1.25rem'
   };
 
   const sectionTitleStyle = {
     fontSize: '1.1rem',
     fontWeight: '600' as const,
-    color: '#111827',
+    color: colors.textPrimary,
     marginBottom: '1rem',
     display: 'flex',
     alignItems: 'center',
@@ -672,7 +672,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
             <h1 style={{
               fontSize: '1.5rem',
               fontWeight: '700',
-              color: '#111827'
+              color: colors.textPrimary
             }}>Edit Profile</h1>
             <button
               style={{
@@ -815,11 +815,11 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
             <div>
               {/* Profile Card */}
               <div style={{
-                backgroundColor: 'white',
+                backgroundColor: colors.bgCard,
                 borderRadius: '0.75rem',
                 overflow: 'hidden',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                border: '1px solid #E5E7EB'
+                boxShadow: colors.shadowSm,
+                border: `1px solid ${colors.borderPrimary}`
               }}>
                 {/* Hidden file inputs */}
                 <input
@@ -914,12 +914,12 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                   <h2 style={{
                     fontSize: '1.25rem',
                     fontWeight: '700',
-                    color: '#083A85',
+                    color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
                     marginBottom: '0.25rem'
                   }}>{basicInfo.fullName}</h2>
                   <p style={{
                     fontSize: '0.95rem',
-                    color: '#6B7280'
+                    color: colors.textSecondary
                   }}>{basicInfo.specialty}</p>
                   <p style={{
                     fontSize: '0.85rem',
@@ -934,32 +934,32 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(3, 1fr)',
-                  borderTop: '1px solid #E5E7EB',
+                  borderTop: `1px solid ${colors.borderPrimary}`,
                   padding: '1rem'
                 }}>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#083A85' }}>4.9</div>
-                    <div style={{ fontSize: '0.75rem', color: '#6B7280' }}>Rating</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>4.9</div>
+                    <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Rating</div>
                   </div>
-                  <div style={{ textAlign: 'center', borderLeft: '1px solid #E5E7EB', borderRight: '1px solid #E5E7EB' }}>
-                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#083A85' }}>127</div>
-                    <div style={{ fontSize: '0.75rem', color: '#6B7280' }}>Reviews</div>
+                  <div style={{ textAlign: 'center', borderLeft: `1px solid ${colors.borderPrimary}`, borderRight: `1px solid ${colors.borderPrimary}` }}>
+                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>127</div>
+                    <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Reviews</div>
                   </div>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#083A85' }}>85</div>
-                    <div style={{ fontSize: '0.75rem', color: '#6B7280' }}>Jobs</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>85</div>
+                    <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Jobs</div>
                   </div>
                 </div>
 
                 {/* Account Activity */}
                 <div style={{
-                  borderTop: '1px solid #E5E7EB',
+                  borderTop: `1px solid ${colors.borderPrimary}`,
                   padding: '1.25rem'
                 }}>
                   <h3 style={{
                     fontSize: '0.9rem',
                     fontWeight: '600',
-                    color: '#111827',
+                    color: colors.textPrimary,
                     marginBottom: '0.75rem'
                   }}>Account Activity</h3>
                   <div style={{
@@ -972,16 +972,16 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       justifyContent: 'space-between',
                       alignItems: 'center'
                     }}>
-                      <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>Last Login</span>
-                      <span style={{ fontSize: '0.85rem', color: '#111827', fontWeight: '500' }}>Today</span>
+                      <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Last Login</span>
+                      <span style={{ fontSize: '0.85rem', color: colors.textPrimary, fontWeight: '500' }}>Today</span>
                     </div>
                     <div style={{
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center'
                     }}>
-                      <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>Member Since</span>
-                      <span style={{ fontSize: '0.85rem', color: '#111827', fontWeight: '500' }}>Jan 2024</span>
+                      <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Member Since</span>
+                      <span style={{ fontSize: '0.85rem', color: colors.textPrimary, fontWeight: '500' }}>Jan 2024</span>
                     </div>
                   </div>
                 </div>
@@ -993,7 +993,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
               {/* Tabs */}
               <div style={{
                 display: 'flex',
-                backgroundColor: 'white',
+                backgroundColor: colors.bgCard,
                 borderRadius: '0.75rem 0.75rem 0 0',
                 borderBottom: '1px solid #E5E7EB',
                 marginBottom: 0
@@ -1011,11 +1011,11 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
               {/* Tab Content */}
               <div style={{
-                backgroundColor: 'white',
+                backgroundColor: colors.bgCard,
                 borderRadius: '0 0 0.75rem 0.75rem',
                 padding: '1.5rem',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                border: '1px solid #E5E7EB',
+                boxShadow: colors.shadowSm,
+                border: `1px solid ${colors.borderPrimary}`,
                 borderTop: 'none'
               }}>
                 {/* Overview Tab */}
@@ -1055,7 +1055,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           type="email"
                           value={basicInfo.email}
                           disabled
-                          style={{ ...inputStyle, backgroundColor: '#F9FAFB', cursor: 'not-allowed' }}
+                          style={{ ...inputStyle, backgroundColor: colors.bgTertiary, cursor: 'not-allowed' }}
                         />
                       </div>
                       <div>
@@ -1169,7 +1169,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                               <option key={day} value={day}>{day}</option>
                             ))}
                           </select>
-                          <span style={{ color: '#6B7280' }}>to</span>
+                          <span style={{ color: colors.textSecondary }}>to</span>
                           <select
                             value={basicInfo.availabilityEndDay}
                             onChange={(e) => setBasicInfo(prev => ({ ...prev, availabilityEndDay: e.target.value }))}
@@ -1193,7 +1193,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                               <option key={time} value={time}>{time}</option>
                             ))}
                           </select>
-                          <span style={{ color: '#6B7280' }}>to</span>
+                          <span style={{ color: colors.textSecondary }}>to</span>
                           <select
                             value={basicInfo.availableEndTime}
                             onChange={(e) => setBasicInfo(prev => ({ ...prev, availableEndTime: e.target.value }))}
@@ -1223,7 +1223,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                     <div style={sectionTitleStyle}>
                       <span>Specialties *</span>
                     </div>
-                    <p style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '1rem' }}>
+                    <p style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '1rem' }}>
                       Select the categories that best describe your photography services (select at least 2)
                     </p>
                     <div style={{
@@ -1241,9 +1241,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                             style={{
                               padding: '0.5rem 1rem',
                               borderRadius: '2rem',
-                              border: isSelected ? '2px solid #083A85' : '2px solid #E5E7EB',
-                              backgroundColor: isSelected ? '#EFF6FF' : 'white',
-                              color: isSelected ? '#083A85' : '#6B7280',
+                              border: isSelected ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                              backgroundColor: isSelected ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
+                              color: isSelected ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.textSecondary,
                               fontSize: '0.875rem',
                               fontWeight: '500',
                               cursor: 'pointer',
@@ -1264,7 +1264,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                     <div style={sectionTitleStyle}>
                       <span>Equipment</span>
                     </div>
-                    <p style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '1rem' }}>
+                    <p style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '1rem' }}>
                       List your photography equipment (cameras, lenses, drones, etc.)
                     </p>
                     <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
@@ -1303,7 +1303,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           onChange={(e) => updateEquipment(index, e.target.value)}
                           style={{
                             ...inputStyle,
-                            backgroundColor: '#F9FAFB'
+                            backgroundColor: colors.bgTertiary
                           }}
                         />
                       ))}
@@ -1332,9 +1332,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       <button
                         onClick={addSkill}
                         style={{
-                          backgroundColor: '#EFF6FF',
-                          color: '#083A85',
-                          border: '1px solid #083A85',
+                          backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF',
+                          color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
+                          border: `1px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}`,
                           borderRadius: '0.375rem',
                           padding: '0.375rem 0.75rem',
                           fontSize: '0.8rem',
@@ -1354,7 +1354,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           display: 'flex',
                           alignItems: 'center',
                           gap: '1rem',
-                          backgroundColor: '#F9FAFB',
+                          backgroundColor: colors.bgTertiary,
                           padding: '1rem',
                           borderRadius: '0.5rem'
                         }}>
@@ -1372,9 +1372,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                               max="100"
                               value={skill.level}
                               onChange={(e) => updateSkill(skill.id, 'level', parseInt(e.target.value))}
-                              style={{ flex: 1, accentColor: '#083A85' }}
+                              style={{ flex: 1, accentColor: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}
                             />
-                            <span style={{ fontSize: '0.875rem', fontWeight: '600', color: '#083A85', minWidth: '40px' }}>
+                            <span style={{ fontSize: '0.875rem', fontWeight: '600', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85', minWidth: '40px' }}>
                               {skill.level}%
                             </span>
                           </div>
@@ -1388,9 +1388,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       <button
                         onClick={addEducation}
                         style={{
-                          backgroundColor: '#EFF6FF',
-                          color: '#083A85',
-                          border: '1px solid #083A85',
+                          backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF',
+                          color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
+                          border: `1px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}`,
                           borderRadius: '0.375rem',
                           padding: '0.375rem 0.75rem',
                           fontSize: '0.8rem',
@@ -1407,7 +1407,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
                       {portfolioData.education.map((edu) => (
                         <div key={edu.id} style={{
-                          backgroundColor: '#F9FAFB',
+                          backgroundColor: colors.bgTertiary,
                           padding: '1.25rem',
                           borderRadius: '0.5rem'
                         }}>
@@ -1445,7 +1445,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                     <option key={year} value={year}>{year}</option>
                                   ))}
                                 </select>
-                                <span style={{ color: '#6B7280' }}>to</span>
+                                <span style={{ color: colors.textSecondary }}>to</span>
                                 <select
                                   value={edu.toYear}
                                   onChange={(e) => updateEducation(edu.id, 'toYear', e.target.value)}
@@ -1479,9 +1479,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       <button
                         onClick={addQualification}
                         style={{
-                          backgroundColor: '#EFF6FF',
-                          color: '#083A85',
-                          border: '1px solid #083A85',
+                          backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF',
+                          color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
+                          border: `1px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}`,
                           borderRadius: '0.375rem',
                           padding: '0.375rem 0.75rem',
                           fontSize: '0.8rem',
@@ -1498,7 +1498,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
                       {portfolioData.qualifications.map((qual) => (
                         <div key={qual.id} style={{
-                          backgroundColor: '#F9FAFB',
+                          backgroundColor: colors.bgTertiary,
                           padding: '1.25rem',
                           borderRadius: '0.5rem'
                         }}>
@@ -1557,9 +1557,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       <button
                         onClick={addTraining}
                         style={{
-                          backgroundColor: '#EFF6FF',
-                          color: '#083A85',
-                          border: '1px solid #083A85',
+                          backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF',
+                          color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
+                          border: `1px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}`,
                           borderRadius: '0.375rem',
                           padding: '0.375rem 0.75rem',
                           fontSize: '0.8rem',
@@ -1579,7 +1579,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           display: 'flex',
                           alignItems: 'center',
                           gap: '1rem',
-                          backgroundColor: '#F9FAFB',
+                          backgroundColor: colors.bgTertiary,
                           padding: '1rem',
                           borderRadius: '0.5rem'
                         }}>
@@ -1610,9 +1610,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       <button
                         onClick={addProject}
                         style={{
-                          backgroundColor: '#EFF6FF',
-                          color: '#083A85',
-                          border: '1px solid #083A85',
+                          backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF',
+                          color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
+                          border: `1px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}`,
                           borderRadius: '0.375rem',
                           padding: '0.375rem 0.75rem',
                           fontSize: '0.8rem',
@@ -1626,7 +1626,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                         <PlusIcon /> Add Project
                       </button>
                     </div>
-                    <p style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '1rem' }}>
+                    <p style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '1rem' }}>
                       Showcase your best work with images and descriptions
                     </p>
 
@@ -1642,10 +1642,10 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
                       {portfolioData.projects.map((project) => (
                         <div key={project.id} style={{
-                          backgroundColor: '#F9FAFB',
+                          backgroundColor: colors.bgTertiary,
                           borderRadius: '0.75rem',
                           overflow: 'hidden',
-                          border: '1px solid #E5E7EB'
+                          border: `1px solid ${colors.borderPrimary}`
                         }}>
                           {/* Project Image */}
                           <div
@@ -1655,7 +1655,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                             }}
                             style={{
                               height: '160px',
-                              backgroundColor: project.image ? 'transparent' : '#E5E7EB',
+                              backgroundColor: project.image ? 'transparent' : (actualTheme === 'dark' ? '#374151' : '#E5E7EB'),
                               backgroundImage: project.image ? `url(${project.image})` : 'none',
                               backgroundSize: 'cover',
                               backgroundPosition: 'center',
@@ -1663,7 +1663,10 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                               alignItems: 'center',
                               justifyContent: 'center',
                               cursor: 'pointer',
-                              transition: 'opacity 0.2s'
+                              transition: 'opacity 0.2s',
+                              border: project.image ? 'none' : `2px dashed ${actualTheme === 'dark' ? '#6B7280' : '#9CA3AF'}`,
+                              margin: project.image ? '0' : '0.5rem',
+                              borderRadius: project.image ? '0' : '0.5rem'
                             }}
                           >
                             {!project.image && (
@@ -1672,7 +1675,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                 flexDirection: 'column',
                                 alignItems: 'center',
                                 gap: '0.5rem',
-                                color: '#9CA3AF'
+                                color: colors.textTertiary
                               }}>
                                 <ImageIcon />
                                 <span style={{ fontSize: '0.85rem' }}>Click to upload image</span>
@@ -1742,14 +1745,14 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           gridColumn: 'span 2',
                           textAlign: 'center',
                           padding: '3rem',
-                          backgroundColor: '#F9FAFB',
+                          backgroundColor: colors.bgTertiary,
                           borderRadius: '0.75rem',
                           border: '2px dashed #E5E7EB'
                         }}>
                           <div style={{ color: '#9CA3AF', marginBottom: '1rem' }}>
                             <ImageIcon />
                           </div>
-                          <p style={{ color: '#6B7280', marginBottom: '1rem' }}>
+                          <p style={{ color: colors.textSecondary, marginBottom: '1rem' }}>
                             No projects added yet. Showcase your best work!
                           </p>
                           <button
@@ -1784,9 +1787,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       <button
                         onClick={addExperience}
                         style={{
-                          backgroundColor: '#EFF6FF',
-                          color: '#083A85',
-                          border: '1px solid #083A85',
+                          backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF',
+                          color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
+                          border: `1px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}`,
                           borderRadius: '0.375rem',
                           padding: '0.375rem 0.75rem',
                           fontSize: '0.8rem',
@@ -1800,17 +1803,17 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                         <PlusIcon /> Add Experience
                       </button>
                     </div>
-                    <p style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '1.5rem' }}>
+                    <p style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '1.5rem' }}>
                       Add your relevant work experience to showcase your professional background
                     </p>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                       {experienceData.experiences.map((exp) => (
                         <div key={exp.id} style={{
-                          backgroundColor: '#F9FAFB',
+                          backgroundColor: colors.bgTertiary,
                           padding: '1.5rem',
                           borderRadius: '0.75rem',
-                          border: '1px solid #E5E7EB'
+                          border: `1px solid ${colors.borderPrimary}`
                         }}>
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', marginBottom: '1rem' }}>
                             <div>
@@ -1856,7 +1859,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                     <option key={year} value={year}>{year}</option>
                                   ))}
                                 </select>
-                                <span style={{ color: '#6B7280' }}>to</span>
+                                <span style={{ color: colors.textSecondary }}>to</span>
                                 <select
                                   value={exp.endDate}
                                   onChange={(e) => updateExperience(exp.id, 'endDate', e.target.value)}
@@ -1888,11 +1891,11 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                         <div style={{
                           textAlign: 'center',
                           padding: '3rem',
-                          backgroundColor: '#F9FAFB',
+                          backgroundColor: colors.bgTertiary,
                           borderRadius: '0.75rem',
                           border: '2px dashed #E5E7EB'
                         }}>
-                          <p style={{ color: '#6B7280', marginBottom: '1rem' }}>
+                          <p style={{ color: colors.textSecondary, marginBottom: '1rem' }}>
                             No work experience added yet
                           </p>
                           <button

@@ -159,12 +159,12 @@ const PayrollReport = ({ userType = 'photographer' }: PayrollReportProps) => {
                 <h1 style={{
                   fontSize: '1.5rem',
                   fontWeight: '700',
-                  color: '#111827',
+                  color: colors.textPrimary,
                   margin: 0
                 }}>Payroll Report</h1>
                 <p style={{
                   fontSize: '0.875rem',
-                  color: '#6B7280',
+                  color: colors.textSecondary,
                   marginTop: '0.25rem'
                 }}>{payrollData.period}</p>
               </div>
@@ -173,12 +173,12 @@ const PayrollReport = ({ userType = 'photographer' }: PayrollReportProps) => {
                   onClick={() => window.history.back()}
                   style={{
                     padding: '0.5rem 1rem',
-                    backgroundColor: 'white',
-                    border: '1px solid #D1D5DB',
+                    backgroundColor: colors.bgCard,
+                    border: `1px solid ${colors.borderPrimary}`,
                     borderRadius: '0.5rem',
                     fontSize: '0.875rem',
                     fontWeight: '500',
-                    color: '#374151',
+                    color: colors.textPrimary,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -186,10 +186,10 @@ const PayrollReport = ({ userType = 'photographer' }: PayrollReportProps) => {
                     transition: 'all 0.2s'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#F9FAFB';
+                    e.currentTarget.style.backgroundColor = colors.bgTertiary;
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'white';
+                    e.currentTarget.style.backgroundColor = colors.bgCard;
                   }}
                 >
                   <i className="bi bi-arrow-left"></i>
@@ -240,7 +240,7 @@ const PayrollReport = ({ userType = 'photographer' }: PayrollReportProps) => {
                 }}>Payroll Report</h1>
                 <p style={{
                   fontSize: '0.875rem',
-                  color: '#6B7280',
+                  color: colors.textSecondary,
                   marginTop: '0.5rem'
                 }}>
                   {payrollData.period} • Generated on {payrollData.generatedDate}
@@ -255,15 +255,15 @@ const PayrollReport = ({ userType = 'photographer' }: PayrollReportProps) => {
                 marginBottom: '1.5rem'
               }}>
                 <div style={{
-                  backgroundColor: 'white',
+                  backgroundColor: colors.bgCard,
                   borderRadius: '0.75rem',
                   padding: '1.25rem',
                   boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-                  border: '1px solid #E5E7EB'
+                  border: `1px solid ${colors.borderPrimary}`
                 }}>
                   <div style={{
                     fontSize: '0.75rem',
-                    color: '#6B7280',
+                    color: colors.textSecondary,
                     marginBottom: '0.5rem',
                     textTransform: 'uppercase',
                     letterSpacing: '0.05em',
@@ -272,20 +272,20 @@ const PayrollReport = ({ userType = 'photographer' }: PayrollReportProps) => {
                   <div style={{
                     fontSize: '1.5rem',
                     fontWeight: '700',
-                    color: '#111827'
+                    color: colors.textPrimary
                   }}>${payrollData.total.toFixed(2)}</div>
                 </div>
 
                 <div style={{
-                  backgroundColor: 'white',
+                  backgroundColor: colors.bgCard,
                   borderRadius: '0.75rem',
                   padding: '1.25rem',
                   boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-                  border: '1px solid #E5E7EB'
+                  border: `1px solid ${colors.borderPrimary}`
                 }}>
                   <div style={{
                     fontSize: '0.75rem',
-                    color: '#6B7280',
+                    color: colors.textSecondary,
                     marginBottom: '0.5rem',
                     textTransform: 'uppercase',
                     letterSpacing: '0.05em',
@@ -305,15 +305,15 @@ const PayrollReport = ({ userType = 'photographer' }: PayrollReportProps) => {
                 </div>
 
                 <div style={{
-                  backgroundColor: 'white',
+                  backgroundColor: colors.bgCard,
                   borderRadius: '0.75rem',
                   padding: '1.25rem',
                   boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-                  border: '1px solid #E5E7EB'
+                  border: `1px solid ${colors.borderPrimary}`
                 }}>
                   <div style={{
                     fontSize: '0.75rem',
-                    color: '#6B7280',
+                    color: colors.textSecondary,
                     marginBottom: '0.5rem',
                     textTransform: 'uppercase',
                     letterSpacing: '0.05em',
@@ -333,15 +333,15 @@ const PayrollReport = ({ userType = 'photographer' }: PayrollReportProps) => {
                 </div>
 
                 <div style={{
-                  backgroundColor: 'white',
+                  backgroundColor: colors.bgCard,
                   borderRadius: '0.75rem',
                   padding: '1.25rem',
                   boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-                  border: '1px solid #E5E7EB'
+                  border: `1px solid ${colors.borderPrimary}`
                 }}>
                   <div style={{
                     fontSize: '0.75rem',
-                    color: '#6B7280',
+                    color: colors.textSecondary,
                     marginBottom: '0.5rem',
                     textTransform: 'uppercase',
                     letterSpacing: '0.05em',
@@ -363,16 +363,16 @@ const PayrollReport = ({ userType = 'photographer' }: PayrollReportProps) => {
 
               {/* Detailed Transactions */}
               <div style={{
-                backgroundColor: 'white',
+                backgroundColor: colors.bgCard,
                 borderRadius: '0.75rem',
                 padding: '1.5rem',
                 boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-                border: '1px solid #E5E7EB'
+                border: `1px solid ${colors.borderPrimary}`
               }}>
                 <h2 style={{
                   fontSize: '1.125rem',
                   fontWeight: '600',
-                  color: '#111827',
+                  color: colors.textPrimary,
                   marginBottom: '1.5rem',
                   marginTop: 0
                 }}>Transaction Details</h2>
@@ -388,7 +388,7 @@ const PayrollReport = ({ userType = 'photographer' }: PayrollReportProps) => {
                         padding: '0.75rem',
                         fontSize: '0.75rem',
                         fontWeight: '600',
-                        color: '#6B7280',
+                        color: colors.textSecondary,
                         textTransform: 'uppercase',
                         letterSpacing: '0.05em'
                       }}>Date</th>
@@ -397,7 +397,7 @@ const PayrollReport = ({ userType = 'photographer' }: PayrollReportProps) => {
                         padding: '0.75rem',
                         fontSize: '0.75rem',
                         fontWeight: '600',
-                        color: '#6B7280',
+                        color: colors.textSecondary,
                         textTransform: 'uppercase',
                         letterSpacing: '0.05em'
                       }}>Description</th>
@@ -406,7 +406,7 @@ const PayrollReport = ({ userType = 'photographer' }: PayrollReportProps) => {
                         padding: '0.75rem',
                         fontSize: '0.75rem',
                         fontWeight: '600',
-                        color: '#6B7280',
+                        color: colors.textSecondary,
                         textTransform: 'uppercase',
                         letterSpacing: '0.05em'
                       }}>Type</th>
@@ -415,7 +415,7 @@ const PayrollReport = ({ userType = 'photographer' }: PayrollReportProps) => {
                         padding: '0.75rem',
                         fontSize: '0.75rem',
                         fontWeight: '600',
-                        color: '#6B7280',
+                        color: colors.textSecondary,
                         textTransform: 'uppercase',
                         letterSpacing: '0.05em'
                       }}>Amount</th>
@@ -424,7 +424,7 @@ const PayrollReport = ({ userType = 'photographer' }: PayrollReportProps) => {
                         padding: '0.75rem',
                         fontSize: '0.75rem',
                         fontWeight: '600',
-                        color: '#6B7280',
+                        color: colors.textSecondary,
                         textTransform: 'uppercase',
                         letterSpacing: '0.05em'
                       }}>Status</th>
@@ -443,24 +443,24 @@ const PayrollReport = ({ userType = 'photographer' }: PayrollReportProps) => {
                           <td style={{
                             padding: '1rem 0.75rem',
                             fontSize: '0.875rem',
-                            color: '#374151'
+                            color: colors.textPrimary
                           }}>{transaction.date}</td>
                           <td style={{
                             padding: '1rem 0.75rem',
                             fontSize: '0.875rem',
-                            color: '#111827',
+                            color: colors.textPrimary,
                             fontWeight: '500'
                           }}>{transaction.description}</td>
                           <td style={{
                             padding: '1rem 0.75rem',
                             fontSize: '0.875rem',
-                            color: '#6B7280'
+                            color: colors.textSecondary
                           }}>{transaction.type}</td>
                           <td style={{
                             padding: '1rem 0.75rem',
                             fontSize: '0.875rem',
                             fontWeight: '600',
-                            color: '#111827',
+                            color: colors.textPrimary,
                             textAlign: 'right'
                           }}>${transaction.amount.toFixed(2)}</td>
                           <td style={{
@@ -489,14 +489,14 @@ const PayrollReport = ({ userType = 'photographer' }: PayrollReportProps) => {
                         padding: '1rem 0.75rem',
                         fontSize: '0.875rem',
                         fontWeight: '600',
-                        color: '#111827',
+                        color: colors.textPrimary,
                         textAlign: 'right'
                       }}>Total:</td>
                       <td style={{
                         padding: '1rem 0.75rem',
                         fontSize: '1.125rem',
                         fontWeight: '700',
-                        color: '#111827',
+                        color: colors.textPrimary,
                         textAlign: 'right'
                       }}>${payrollData.total.toFixed(2)}</td>
                       <td></td>
@@ -511,7 +511,7 @@ const PayrollReport = ({ userType = 'photographer' }: PayrollReportProps) => {
                 paddingTop: '1rem',
                 borderTop: '1px solid #E5E7EB',
                 fontSize: '0.75rem',
-                color: '#6B7280',
+                color: colors.textSecondary,
                 textAlign: 'center'
               }}>
                 <p style={{ margin: 0 }}>

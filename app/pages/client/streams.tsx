@@ -137,6 +137,7 @@ interface ModalProps {
 }
 
 const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidth = '600px' }) => {
+  const { colors } = useTheme();
   if (!isOpen) return null;
 
   return (
@@ -153,7 +154,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
       zIndex: 1000,
     }} onClick={onClose}>
       <div style={{
-        backgroundColor: 'white',
+        backgroundColor: colors.bgCard,
         borderRadius: '0.75rem',
         padding: '1.5rem',
         maxWidth: maxWidth,
@@ -163,8 +164,8 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
         boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
       }} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-          <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#111827', margin: 0 }}>{title}</h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem', color: '#6B7280' }}>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>{title}</h3>
+          <button onClick={onClose} style={{ background: colors.bgTertiary, border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', cursor: 'pointer', padding: '0.5rem', color: colors.textPrimary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <CloseIcon />
           </button>
         </div>
@@ -355,9 +356,9 @@ const ClientStreamsPage = () => {
 
   // Card styles
   const cardStyle: React.CSSProperties = {
-    backgroundColor: 'white',
+    backgroundColor: colors.bgCard,
     borderRadius: '0.75rem',
-    border: '1px solid #E5E7EB',
+    border: `1px solid ${colors.borderPrimary}`,
     overflow: 'hidden',
     transition: 'all 0.2s ease',
     cursor: 'pointer',
@@ -385,10 +386,10 @@ const ClientStreamsPage = () => {
                 <BroadcastIcon />
               </div>
               <div>
-                <h1 style={{ fontSize: '1.5rem', fontWeight: '700', color: '#111827', margin: 0 }}>
+                <h1 style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.textPrimary, margin: 0 }}>
                   Completed Streams
                 </h1>
-                <p style={{ fontSize: '0.875rem', color: '#6B7280', margin: 0 }}>
+                <p style={{ fontSize: '0.875rem', color: colors.textSecondary, margin: 0 }}>
                   View messages and videos from your past event streams
                 </p>
               </div>
@@ -399,51 +400,51 @@ const ClientStreamsPage = () => {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
             <div style={{ ...cardStyle, padding: '1.25rem', cursor: 'default' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '0.5rem', backgroundColor: '#DBEAFE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1D4ED8' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '0.5rem', backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#DBEAFE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: actualTheme === 'dark' ? '#60A5FA' : '#1D4ED8' }}>
                   <BroadcastIcon />
                 </div>
                 <div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#111827' }}>{streams.length}</div>
-                  <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>Total Streams</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.textPrimary }}>{streams.length}</div>
+                  <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Total Streams</div>
                 </div>
               </div>
             </div>
             <div style={{ ...cardStyle, padding: '1.25rem', cursor: 'default' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '0.5rem', backgroundColor: '#D1FAE5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#059669' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '0.5rem', backgroundColor: actualTheme === 'dark' ? '#14532D' : '#D1FAE5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: actualTheme === 'dark' ? '#4ADE80' : '#059669' }}>
                   <UsersIcon />
                 </div>
                 <div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#111827' }}>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.textPrimary }}>
                     {streams.reduce((acc, s) => acc + s.totalViewers, 0).toLocaleString()}
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>Total Viewers</div>
+                  <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Total Viewers</div>
                 </div>
               </div>
             </div>
             <div style={{ ...cardStyle, padding: '1.25rem', cursor: 'default' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '0.5rem', backgroundColor: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#D97706' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '0.5rem', backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: actualTheme === 'dark' ? '#FCD34D' : '#D97706' }}>
                   <MessageIcon />
                 </div>
                 <div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#111827' }}>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.textPrimary }}>
                     {streams.reduce((acc, s) => acc + s.totalMessages, 0)}
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>Chat Messages</div>
+                  <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Chat Messages</div>
                 </div>
               </div>
             </div>
             <div style={{ ...cardStyle, padding: '1.25rem', cursor: 'default' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '0.5rem', backgroundColor: '#E0E7FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#5B21B6' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '0.5rem', backgroundColor: actualTheme === 'dark' ? '#4C1D95' : '#E0E7FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: actualTheme === 'dark' ? '#A78BFA' : '#5B21B6' }}>
                   <VideoIcon />
                 </div>
                 <div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#111827' }}>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.textPrimary }}>
                     {streams.reduce((acc, s) => acc + s.totalVideoMessages, 0)}
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>Video Messages</div>
+                  <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Video Messages</div>
                 </div>
               </div>
             </div>
@@ -452,7 +453,6 @@ const ClientStreamsPage = () => {
           {/* Search and Filter Bar */}
           <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', alignItems: 'center' }}>
             <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
-              <SearchIcon />
               <input
                 type="text"
                 placeholder="Search completed streams..."
@@ -461,11 +461,12 @@ const ClientStreamsPage = () => {
                 style={{
                   width: '100%',
                   padding: '0.75rem 1rem 0.75rem 2.75rem',
-                  border: '2px solid #E5E7EB',
+                  border: `2px solid ${colors.borderPrimary}`,
                   borderRadius: '0.5rem',
                   fontSize: '0.9rem',
                   outline: 'none',
-                  backgroundColor: 'white',
+                  backgroundColor: colors.bgCard,
+                  color: colors.textPrimary,
                 }}
               />
               <div style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)' }}>
@@ -481,9 +482,9 @@ const ClientStreamsPage = () => {
                     padding: '0.5rem 1rem',
                     borderRadius: '0.5rem',
                     border: '2px solid',
-                    borderColor: filterType === type ? '#083A85' : '#E5E7EB',
-                    backgroundColor: filterType === type ? '#083A85' : 'white',
-                    color: filterType === type ? 'white' : '#374151',
+                    borderColor: filterType === type ? '#083A85' : colors.borderPrimary,
+                    backgroundColor: filterType === type ? '#083A85' : colors.bgCard,
+                    color: filterType === type ? 'white' : colors.textSecondary,
                     fontSize: '0.85rem',
                     fontWeight: '500',
                     cursor: 'pointer',
@@ -568,10 +569,10 @@ const ClientStreamsPage = () => {
 
                   {/* Content */}
                   <div style={{ padding: '1rem' }}>
-                    <h3 style={{ fontSize: '1rem', fontWeight: '600', color: '#111827', marginBottom: '0.5rem' }}>
+                    <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.5rem' }}>
                       {stream.streamTitle}
                     </h3>
-                    <p style={{ fontSize: '0.8rem', color: '#6B7280', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <p style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <CalendarIcon /> {formatDate(stream.streamDate)} at {stream.streamTime}
                     </p>
 
@@ -585,7 +586,7 @@ const ClientStreamsPage = () => {
                           style={{ objectFit: 'cover' }}
                         />
                       </div>
-                      <span style={{ fontSize: '0.8rem', color: '#374151' }}>by {stream.photographerName}</span>
+                      <span style={{ fontSize: '0.8rem', color: colors.textPrimary }}>by {stream.photographerName}</span>
                     </div>
 
                     {/* Stats Row */}
@@ -593,16 +594,16 @@ const ClientStreamsPage = () => {
                       display: 'flex',
                       justifyContent: 'space-between',
                       padding: '0.75rem 0',
-                      borderTop: '1px solid #E5E7EB',
+                      borderTop: `1px solid ${colors.borderPrimary}`,
                       marginBottom: '0.75rem',
                     }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: '#6B7280', fontSize: '0.8rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: colors.textSecondary, fontSize: '0.8rem' }}>
                         <UsersIcon /> {stream.totalViewers} viewers
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: '#6B7280', fontSize: '0.8rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: colors.textSecondary, fontSize: '0.8rem' }}>
                         <MessageIcon /> {stream.totalMessages}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: '#6B7280', fontSize: '0.8rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: colors.textSecondary, fontSize: '0.8rem' }}>
                         <VideoIcon /> {stream.totalVideoMessages}
                       </div>
                     </div>
@@ -667,15 +668,15 @@ const ClientStreamsPage = () => {
             <div style={{
               textAlign: 'center',
               padding: '4rem 2rem',
-              backgroundColor: 'white',
+              backgroundColor: colors.bgCard,
               borderRadius: '0.75rem',
-              border: '1px solid #E5E7EB',
+              border: `1px solid ${colors.borderPrimary}`,
             }}>
               <BroadcastIcon />
-              <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#111827', marginTop: '1rem' }}>
+              <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: colors.textPrimary, marginTop: '1rem' }}>
                 No completed streams found
               </h3>
-              <p style={{ color: '#6B7280', marginTop: '0.5rem' }}>
+              <p style={{ color: colors.textSecondary, marginTop: '0.5rem' }}>
                 Your completed event streams will appear here with viewer messages and videos.
               </p>
             </div>
@@ -696,7 +697,7 @@ const ClientStreamsPage = () => {
         {selectedStream && (
           <div>
             <div style={{
-              backgroundColor: '#F9FAFB',
+              backgroundColor: colors.bgTertiary,
               padding: '0.75rem',
               borderRadius: '0.5rem',
               marginBottom: '1rem',
@@ -704,11 +705,11 @@ const ClientStreamsPage = () => {
               justifyContent: 'space-between',
               alignItems: 'center',
             }}>
-              <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>
-                Total messages: <strong style={{ color: '#111827' }}>{selectedStream.totalMessages}</strong>
+              <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
+                Total messages: <strong style={{ color: colors.textPrimary }}>{selectedStream.totalMessages}</strong>
               </span>
-              <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>
-                Stream date: <strong style={{ color: '#111827' }}>{formatDate(selectedStream.streamDate)}</strong>
+              <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
+                Stream date: <strong style={{ color: colors.textPrimary }}>{formatDate(selectedStream.streamDate)}</strong>
               </span>
             </div>
 
@@ -720,7 +721,7 @@ const ClientStreamsPage = () => {
                     display: 'flex',
                     gap: '0.75rem',
                     padding: '0.875rem',
-                    backgroundColor: index % 2 === 0 ? 'white' : '#F9FAFB',
+                    backgroundColor: index % 2 === 0 ? colors.bgCard : colors.bgTertiary,
                     borderRadius: '0.5rem',
                     marginBottom: '0.5rem',
                   }}
@@ -742,12 +743,12 @@ const ClientStreamsPage = () => {
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                      <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#083A85' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: '600', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
                         @{msg.viewerUsername}
                       </span>
-                      <span style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>{msg.time}</span>
+                      <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>{msg.time}</span>
                     </div>
-                    <p style={{ fontSize: '0.875rem', color: '#374151', margin: 0, lineHeight: '1.5' }}>
+                    <p style={{ fontSize: '0.875rem', color: colors.textPrimary, margin: 0, lineHeight: '1.5' }}>
                       {msg.message}
                     </p>
                   </div>
@@ -756,7 +757,7 @@ const ClientStreamsPage = () => {
             </div>
 
             {selectedStream.messages.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '2rem', color: '#6B7280' }}>
+              <div style={{ textAlign: 'center', padding: '2rem', color: colors.textSecondary }}>
                 No messages were sent during this stream.
               </div>
             )}
@@ -778,7 +779,7 @@ const ClientStreamsPage = () => {
         {selectedStream && (
           <div>
             <div style={{
-              backgroundColor: '#F9FAFB',
+              backgroundColor: colors.bgTertiary,
               padding: '0.75rem',
               borderRadius: '0.5rem',
               marginBottom: '1rem',
@@ -786,11 +787,11 @@ const ClientStreamsPage = () => {
               justifyContent: 'space-between',
               alignItems: 'center',
             }}>
-              <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>
-                Total videos: <strong style={{ color: '#111827' }}>{selectedStream.totalVideoMessages}</strong>
+              <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
+                Total videos: <strong style={{ color: colors.textPrimary }}>{selectedStream.totalVideoMessages}</strong>
               </span>
-              <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>
-                Max duration: <strong style={{ color: '#111827' }}>1 minute</strong>
+              <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
+                Max duration: <strong style={{ color: colors.textPrimary }}>1 minute</strong>
               </span>
             </div>
 
@@ -902,7 +903,7 @@ const ClientStreamsPage = () => {
                   style={{
                     borderRadius: '0.5rem',
                     overflow: 'hidden',
-                    border: selectedVideo?.id === video.id ? '3px solid #083A85' : '2px solid #E5E7EB',
+                    border: selectedVideo?.id === video.id ? '3px solid #083A85' : `2px solid ${colors.borderPrimary}`,
                     cursor: 'pointer',
                     position: 'relative',
                   }}
@@ -970,16 +971,16 @@ const ClientStreamsPage = () => {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: '#083A85',
+                      color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
                     }}>
                       <PlayIcon />
                     </div>
                   </div>
-                  <div style={{ padding: '0.5rem', backgroundColor: 'white' }}>
-                    <div style={{ fontSize: '0.75rem', fontWeight: '600', color: '#083A85', marginBottom: '0.125rem' }}>
+                  <div style={{ padding: '0.5rem', backgroundColor: colors.bgCard }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: '600', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85', marginBottom: '0.125rem' }}>
                       @{video.viewerUsername}
                     </div>
-                    <div style={{ fontSize: '0.7rem', color: '#9CA3AF' }}>
+                    <div style={{ fontSize: '0.7rem', color: colors.textSecondary }}>
                       {video.time}
                     </div>
                   </div>
@@ -988,7 +989,7 @@ const ClientStreamsPage = () => {
             </div>
 
             {selectedStream.videoMessages.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '2rem', color: '#6B7280' }}>
+              <div style={{ textAlign: 'center', padding: '2rem', color: colors.textSecondary }}>
                 No video messages were sent during this stream.
               </div>
             )}

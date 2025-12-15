@@ -562,8 +562,8 @@ const ClientDashboard = () => {
       {/* Pending Payments Alert */}
       {pendingPayments.length > 0 && (
         <div style={{
-          backgroundColor: hasFailedPayments ? '#FEF2F2' : '#FFFBEB',
-          border: `1px solid ${hasFailedPayments ? '#FECACA' : '#FDE68A'}`,
+          backgroundColor: hasFailedPayments ? (actualTheme === 'dark' ? '#450A0A' : '#FEF2F2') : (actualTheme === 'dark' ? '#422006' : '#FFFBEB'),
+          border: `1px solid ${hasFailedPayments ? (actualTheme === 'dark' ? '#991B1B' : '#FECACA') : (actualTheme === 'dark' ? '#854D0E' : '#FDE68A')}`,
           borderRadius: '0.75rem',
           padding: '1rem 1.25rem',
           marginBottom: '1rem'
@@ -576,7 +576,7 @@ const ClientDashboard = () => {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <div style={{
-                backgroundColor: hasFailedPayments ? '#FEE2E2' : '#FEF3C7',
+                backgroundColor: hasFailedPayments ? (actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2') : (actualTheme === 'dark' ? '#78350F' : '#FEF3C7'),
                 borderRadius: '0.5rem',
                 padding: '0.5rem',
                 display: 'flex',
@@ -589,14 +589,14 @@ const ClientDashboard = () => {
                 <h3 style={{
                   fontSize: '1rem',
                   fontWeight: '600',
-                  color: hasFailedPayments ? '#DC2626' : '#D97706',
+                  color: hasFailedPayments ? (actualTheme === 'dark' ? '#FCA5A5' : '#DC2626') : (actualTheme === 'dark' ? '#FCD34D' : '#D97706'),
                   margin: 0
                 }}>
                   {hasFailedPayments ? 'Payment Action Required' : 'Pending Payments'}
                 </h3>
                 <p style={{
                   fontSize: '0.85rem',
-                  color: hasFailedPayments ? '#991B1B' : '#92400E',
+                  color: hasFailedPayments ? (actualTheme === 'dark' ? '#FCA5A5' : '#991B1B') : (actualTheme === 'dark' ? '#FCD34D' : '#92400E'),
                   margin: '0.25rem 0 0 0'
                 }}>
                   You have {pendingPayments.length} payment{pendingPayments.length > 1 ? 's' : ''} totaling <strong>${totalPendingAmount}</strong> that need{pendingPayments.length === 1 ? 's' : ''} attention
@@ -611,7 +611,7 @@ const ClientDashboard = () => {
                 gap: '0.25rem',
                 fontSize: '0.85rem',
                 fontWeight: '600',
-                color: '#083A85',
+                color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
                 textDecoration: 'none'
               }}
             >
@@ -631,11 +631,11 @@ const ClientDashboard = () => {
                 key={payment.id}
                 style={{
                   flex: '0 0 auto',
-                  backgroundColor: 'white',
+                  backgroundColor: colors.bgCard,
                   borderRadius: '0.5rem',
                   padding: '0.75rem 1rem',
                   minWidth: '280px',
-                  border: payment.status === 'failed' ? '1px solid #FECACA' : '1px solid #E5E7EB',
+                  border: payment.status === 'failed' ? `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}` : `1px solid ${colors.borderPrimary}`,
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.75rem'
@@ -654,7 +654,7 @@ const ClientDashboard = () => {
                   <div style={{
                     fontSize: '0.9rem',
                     fontWeight: '500',
-                    color: '#111827',
+                    color: colors.textPrimary,
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.5rem'
@@ -666,8 +666,8 @@ const ClientDashboard = () => {
                         fontWeight: '600',
                         padding: '0.125rem 0.375rem',
                         borderRadius: '9999px',
-                        backgroundColor: '#FEE2E2',
-                        color: '#DC2626'
+                        backgroundColor: actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2',
+                        color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626'
                       }}>
                         FAILED
                       </span>
@@ -678,14 +678,14 @@ const ClientDashboard = () => {
                         fontWeight: '600',
                         padding: '0.125rem 0.375rem',
                         borderRadius: '9999px',
-                        backgroundColor: '#DBEAFE',
-                        color: '#2563EB'
+                        backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#DBEAFE',
+                        color: actualTheme === 'dark' ? '#60A5FA' : '#2563EB'
                       }}>
                         PARTIAL
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>
+                  <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>
                     {payment.photographerName}
                   </div>
                 </div>
@@ -693,7 +693,7 @@ const ClientDashboard = () => {
                   <div style={{
                     fontSize: '1rem',
                     fontWeight: '700',
-                    color: payment.status === 'failed' ? '#DC2626' : '#083A85'
+                    color: payment.status === 'failed' ? (actualTheme === 'dark' ? '#FCA5A5' : '#DC2626') : (actualTheme === 'dark' ? '#60A5FA' : '#083A85')
                   }}>
                     ${payment.amount - payment.paidAmount}
                   </div>
@@ -702,7 +702,7 @@ const ClientDashboard = () => {
                     style={{
                       fontSize: '0.75rem',
                       fontWeight: '600',
-                      color: payment.status === 'failed' ? '#F20C8F' : '#083A85',
+                      color: payment.status === 'failed' ? '#F20C8F' : (actualTheme === 'dark' ? '#60A5FA' : '#083A85'),
                       textDecoration: 'none',
                       display: 'flex',
                       alignItems: 'center',
@@ -787,7 +787,7 @@ const ClientDashboard = () => {
                 const getStatusStyle = () => {
                   switch (photographer.status) {
                     case 'In Progress':
-                      return { backgroundColor: '#FCE7F3', color: '#DB2777' };
+                      return { backgroundColor: actualTheme === 'dark' ? '#831843' : '#FCE7F3', color: actualTheme === 'dark' ? '#F9A8D4' : '#DB2777' };
                     case 'Completed':
                       return { backgroundColor: actualTheme === 'dark' ? '#064E3B' : '#D1FAE5', color: actualTheme === 'dark' ? '#34D399' : '#059669' };
                     case 'Pending':

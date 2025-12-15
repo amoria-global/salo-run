@@ -241,7 +241,7 @@ export default function Sidebar() {
               }}
               onMouseDown={(e) => {
                 if (!isActive) {
-                  e.currentTarget.style.backgroundColor = actualTheme === 'dark' ? '#4B5563' : '#D1D5DB';
+                  e.currentTarget.style.backgroundColor = actualTheme === 'dark' ? '#1E3A5F' : '#DBEAFE';
                 }
               }}
               onMouseUp={(e) => {
@@ -355,7 +355,7 @@ export default function Sidebar() {
               }}
               onMouseDown={(e) => {
                 if (!isActive) {
-                  e.currentTarget.style.backgroundColor = actualTheme === 'dark' ? '#4B5563' : '#D1D5DB';
+                  e.currentTarget.style.backgroundColor = actualTheme === 'dark' ? '#1E3A5F' : '#DBEAFE';
                 }
               }}
               onMouseUp={(e) => {
