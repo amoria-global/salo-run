@@ -266,6 +266,7 @@ interface ModalProps {
 }
 
 const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidth = '500px' }) => {
+  const { colors } = useTheme();
   if (!isOpen) return null;
 
   return (
@@ -282,7 +283,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
       zIndex: 1000,
     }} onClick={onClose}>
       <div style={{
-        backgroundColor: 'white',
+        backgroundColor: colors.bgCard,
         borderRadius: '0.75rem',
         padding: '1.5rem',
         maxWidth: maxWidth,
@@ -292,8 +293,8 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
         boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
       }} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-          <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#111827', margin: 0 }}>{title}</h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem', color: '#6B7280' }}>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>{title}</h3>
+          <button onClick={onClose} style={{ background: colors.bgTertiary, border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', cursor: 'pointer', padding: '0.5rem', color: colors.textPrimary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <CloseIcon />
           </button>
         </div>
@@ -951,11 +952,11 @@ const MyEventsPage = () => {
       case 'ongoing':
         return { backgroundColor: '#D1FAE5', color: '#059669' };
       case 'completed':
-        return { backgroundColor: '#F3F4F6', color: '#6B7280' };
+        return { backgroundColor: colors.bgTertiary, color: colors.textSecondary };
       case 'cancelled':
         return { backgroundColor: '#FEE2E2', color: '#DC2626' };
       default:
-        return { backgroundColor: '#F3F4F6', color: '#6B7280' };
+        return { backgroundColor: colors.bgTertiary, color: colors.textSecondary };
     }
   };
 
@@ -992,8 +993,8 @@ const MyEventsPage = () => {
           {/* Header */}
           <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
             <div>
-              <h1 style={{ fontSize: '1.8rem', lineHeight: '2rem', color: '#111827', fontWeight: '600' }}>My Events</h1>
-              <p style={{ fontSize: '0.95rem', color: '#6B7280', marginTop: '0.25rem' }}>
+              <h1 style={{ fontSize: '1.8rem', lineHeight: '2rem', color: colors.textPrimary, fontWeight: '600' }}>My Events</h1>
+              <p style={{ fontSize: '0.95rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
                 Create and manage your events
               </p>
             </div>
@@ -1032,12 +1033,12 @@ const MyEventsPage = () => {
                 style={{
                   width: '100%',
                   padding: '0.75rem 1rem 0.75rem 2.75rem',
-                  border: '2px solid #D1D5DB',
+                  border: `2px solid ${colors.borderPrimary}`,
                   borderRadius: '0.5rem',
                   fontSize: '0.95rem',
                   fontWeight: '500',
-                  color: '#374151',
-                  backgroundColor: 'white',
+                  color: colors.textPrimary,
+                  backgroundColor: colors.bgCard,
                   outline: 'none'
                 }}
               />
@@ -1045,7 +1046,7 @@ const MyEventsPage = () => {
           </div>
 
           {/* Tabs */}
-          <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '1.5rem', backgroundColor: '#F3F4F6', borderRadius: '0.5rem', padding: '0.25rem', width: 'fit-content' }}>
+          <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '1.5rem', backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '0.25rem', width: 'fit-content' }}>
             {([
               { key: 'upcoming' as const, label: 'Upcoming', count: upcomingCount },
               { key: 'past' as const, label: 'Past', count: pastCount },
@@ -1064,16 +1065,16 @@ const MyEventsPage = () => {
                   fontSize: '0.9rem',
                   fontWeight: '500',
                   cursor: 'pointer',
-                  backgroundColor: activeTab === tab.key ? 'white' : 'transparent',
-                  color: activeTab === tab.key ? '#111827' : '#6B7280',
+                  backgroundColor: activeTab === tab.key ? colors.bgCard : 'transparent',
+                  color: activeTab === tab.key ? colors.textPrimary : colors.textSecondary,
                   boxShadow: activeTab === tab.key ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
                   transition: 'all 0.2s'
                 }}
               >
                 {tab.label}
                 <span style={{
-                  backgroundColor: activeTab === tab.key ? '#083A85' : '#E5E7EB',
-                  color: activeTab === tab.key ? 'white' : '#6B7280',
+                  backgroundColor: activeTab === tab.key ? '#083A85' : colors.bgTertiary,
+                  color: activeTab === tab.key ? 'white' : colors.textSecondary,
                   fontSize: '0.75rem',
                   fontWeight: '600',
                   padding: '0.125rem 0.5rem',
@@ -1087,8 +1088,8 @@ const MyEventsPage = () => {
 
           {/* Events Grid */}
           {filteredEvents.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '3rem', backgroundColor: 'white', borderRadius: '0.75rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)' }}>
-              <p style={{ fontSize: '1rem', color: '#6B7280' }}>No events found.</p>
+            <div style={{ textAlign: 'center', padding: '3rem', backgroundColor: colors.bgCard, borderRadius: '0.75rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)' }}>
+              <p style={{ fontSize: '1rem', color: colors.textSecondary }}>No events found.</p>
               <button
                 onClick={() => setShowCreateModal(true)}
                 style={{
@@ -1116,11 +1117,11 @@ const MyEventsPage = () => {
                 <div
                   key={event.id}
                   style={{
-                    backgroundColor: 'white',
+                    backgroundColor: colors.bgCard,
                     borderRadius: '0.75rem',
                     overflow: 'hidden',
                     boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                    border: '1px solid #E5E7EB'
+                    border: `1px solid ${colors.borderPrimary}`
                   }}
                 >
                   {/* Cover Image */}
@@ -1201,36 +1202,36 @@ const MyEventsPage = () => {
 
                   {/* Event Info */}
                   <div style={{ padding: '1rem' }}>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#111827', marginBottom: '0.75rem' }}>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>
                       {event.title}
                     </h3>
 
                     {/* Date & Time */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: '#6B7280' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: colors.textSecondary }}>
                         <CalendarIcon />
                         <span style={{ fontSize: '0.85rem' }}>{formatDate(event.date)}</span>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: '#6B7280' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: colors.textSecondary }}>
                         <ClockIcon />
                         <span style={{ fontSize: '0.85rem' }}>{event.time}</span>
                       </div>
                     </div>
 
                     {/* Location */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: '0.5rem', color: '#6B7280' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: '0.5rem', color: colors.textSecondary }}>
                       <LocationIcon />
                       <span style={{ fontSize: '0.85rem' }}>{event.location.city}, {event.location.country}</span>
                     </div>
 
                     {/* Guest Count */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: '1rem', color: '#6B7280' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: '1rem', color: colors.textSecondary }}>
                       <UsersIcon />
                       <span style={{ fontSize: '0.85rem' }}>{event.guestCount} / {event.maxGuests} guests</span>
                     </div>
 
                     {/* Actions */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.75rem', borderTop: '1px solid #E5E7EB' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.75rem', borderTop: `1px solid ${colors.borderPrimary}` }}>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <button
                           onClick={() => setShowEventDetails(event)}
@@ -1238,9 +1239,9 @@ const MyEventsPage = () => {
                             display: 'flex',
                             alignItems: 'center',
                             gap: '0.375rem',
-                            backgroundColor: '#F3F4F6',
-                            color: '#374151',
-                            border: '2px solid #D1D5DB',
+                            backgroundColor: colors.bgTertiary,
+                            color: colors.textPrimary,
+                            border: `2px solid ${colors.borderPrimary}`,
                             borderRadius: '0.375rem',
                             padding: '0.5rem 0.75rem',
                             fontSize: '0.8rem',
@@ -1256,9 +1257,9 @@ const MyEventsPage = () => {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            backgroundColor: '#F3F4F6',
-                            color: '#374151',
-                            border: '2px solid #D1D5DB',
+                            backgroundColor: colors.bgTertiary,
+                            color: colors.textPrimary,
+                            border: `2px solid ${colors.borderPrimary}`,
                             borderRadius: '0.375rem',
                             padding: '0.5rem',
                             cursor: 'pointer'
@@ -1276,9 +1277,9 @@ const MyEventsPage = () => {
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              backgroundColor: '#F3F4F6',
-                              color: '#374151',
-                              border: '2px solid #D1D5DB',
+                              backgroundColor: colors.bgTertiary,
+                              color: colors.textPrimary,
+                              border: `2px solid ${colors.borderPrimary}`,
                               borderRadius: '0.375rem',
                               padding: '0.5rem',
                               cursor: 'pointer'
@@ -1342,18 +1343,18 @@ const MyEventsPage = () => {
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
               <CameraIcon />
-              <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>Event Image</span>
+              <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Event Image</span>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', color: '#6B7280', marginBottom: '0.375rem' }}>Banner Image (1200x800)</label>
+              <label style={{ display: 'block', fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.375rem' }}>Banner Image (1200x800)</label>
               <div style={{
-                border: '2px dashed #D1D5DB',
+                border: `2px dashed ${colors.borderPrimary}`,
                 borderRadius: '0.5rem',
                 height: '140px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: '#F9FAFB',
+                backgroundColor: colors.bgTertiary,
                 cursor: 'pointer',
                 position: 'relative',
                 overflow: 'hidden'
@@ -1378,23 +1379,23 @@ const MyEventsPage = () => {
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
               <EditIcon />
-              <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>Basic Information</span>
+              <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Basic Information</span>
             </div>
             <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: '#374151', marginBottom: '0.375rem' }}>Event Title *</label>
-              <input type="text" value={createTitle} onChange={(e) => setCreateTitle(e.target.value)} placeholder="e.g., APR BBC Vs Espoir BCC" style={{ width: '100%', padding: '0.625rem', border: '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', color: '#111827' }} />
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Event Title *</label>
+              <input type="text" value={createTitle} onChange={(e) => setCreateTitle(e.target.value)} placeholder="e.g., APR BBC Vs Espoir BCC" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: '#374151', marginBottom: '0.375rem' }}>Category *</label>
-                <select value={createCategory} onChange={(e) => setCreateCategory(e.target.value as EventCategory)} style={{ width: '100%', padding: '0.625rem', border: '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', backgroundColor: 'white', color: '#111827', cursor: 'pointer' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Category *</label>
+                <select value={createCategory} onChange={(e) => setCreateCategory(e.target.value as EventCategory)} style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', backgroundColor: colors.bgCard, color: colors.textPrimary, cursor: 'pointer' }}>
                   <option value="">Select category</option>
                   {eventCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                 </select>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: '#374151', marginBottom: '0.375rem' }}>Status *</label>
-                <select value={createStatus} onChange={(e) => setCreateStatus(e.target.value as 'UPCOMING' | 'LIVE')} style={{ width: '100%', padding: '0.625rem', border: '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', backgroundColor: 'white', color: '#111827', cursor: 'pointer' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Status *</label>
+                <select value={createStatus} onChange={(e) => setCreateStatus(e.target.value as 'UPCOMING' | 'LIVE')} style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', backgroundColor: colors.bgCard, color: colors.textPrimary, cursor: 'pointer' }}>
                   <option value="UPCOMING">UPCOMING</option>
                   <option value="LIVE">LIVE</option>
                 </select>
@@ -1406,22 +1407,22 @@ const MyEventsPage = () => {
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
               <CalendarIcon />
-              <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>Date & Time</span>
+              <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Date & Time</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: '#374151', marginBottom: '0.375rem' }}>Event Date *</label>
-                <input type="date" value={createDate} min={new Date().toISOString().split('T')[0]} onChange={(e) => { setDateError(''); setCreateDate(e.target.value); }} style={{ width: '100%', padding: '0.625rem', border: dateError ? '2px solid #DC2626' : '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', color: '#111827', cursor: 'pointer' }} />
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Event Date *</label>
+                <input type="date" value={createDate} min={new Date().toISOString().split('T')[0]} onChange={(e) => { setDateError(''); setCreateDate(e.target.value); }} style={{ width: '100%', padding: '0.625rem', border: dateError ? '2px solid #DC2626' : '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, cursor: 'pointer' }} />
                 {dateError && <p style={{ color: '#DC2626', fontSize: '0.75rem', marginTop: '0.25rem', marginBottom: 0 }}>{dateError}</p>}
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: '#374151', marginBottom: '0.375rem' }}>Start Time *</label>
-                <input type="time" value={createTime} onChange={(e) => { setTimeError(''); setCreateTime(e.target.value); }} style={{ width: '100%', padding: '0.625rem', border: timeError ? '2px solid #DC2626' : '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', color: '#111827', cursor: 'pointer' }} />
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Start Time *</label>
+                <input type="time" value={createTime} onChange={(e) => { setTimeError(''); setCreateTime(e.target.value); }} style={{ width: '100%', padding: '0.625rem', border: timeError ? '2px solid #DC2626' : '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, cursor: 'pointer' }} />
                 {timeError && <p style={{ color: '#DC2626', fontSize: '0.75rem', marginTop: '0.25rem', marginBottom: 0 }}>{timeError}</p>}
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: '#374151', marginBottom: '0.375rem' }}>End Time</label>
-                <input type="time" value={createEndTime} onChange={(e) => setCreateEndTime(e.target.value)} style={{ width: '100%', padding: '0.625rem', border: '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', color: '#111827', cursor: 'pointer' }} />
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>End Time</label>
+                <input type="time" value={createEndTime} onChange={(e) => setCreateEndTime(e.target.value)} style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, cursor: 'pointer' }} />
               </div>
             </div>
           </div>
@@ -1430,16 +1431,16 @@ const MyEventsPage = () => {
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
               <LocationIcon />
-              <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>Location</span>
+              <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Location</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: '#374151', marginBottom: '0.375rem' }}>Venue Name *</label>
-                <input type="text" value={createVenueName} onChange={(e) => setCreateVenueName(e.target.value)} placeholder="e.g., BK Arena" style={{ width: '100%', padding: '0.625rem', border: '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', color: '#111827' }} />
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Venue Name *</label>
+                <input type="text" value={createVenueName} onChange={(e) => setCreateVenueName(e.target.value)} placeholder="e.g., BK Arena" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: '#374151', marginBottom: '0.375rem' }}>Location Address *</label>
-                <input type="text" value={createAddress} onChange={(e) => setCreateAddress(e.target.value)} placeholder="e.g., KN 4 Ave, Kigali" style={{ width: '100%', padding: '0.625rem', border: '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', color: '#111827' }} />
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Location Address *</label>
+                <input type="text" value={createAddress} onChange={(e) => setCreateAddress(e.target.value)} placeholder="e.g., KN 4 Ave, Kigali" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
               </div>
             </div>
           </div>
@@ -1448,16 +1449,16 @@ const MyEventsPage = () => {
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
               <DollarIcon />
-              <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>Pricing & Capacity</span>
+              <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Pricing & Capacity</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: '#374151', marginBottom: '0.375rem' }}>Entry Fee (Optional)</label>
-                <input type="text" value={createPrice} onChange={(e) => setCreatePrice(e.target.value)} placeholder="e.g., 15,000 RWF or Free" style={{ width: '100%', padding: '0.625rem', border: '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', color: '#111827' }} />
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Entry Fee (Optional)</label>
+                <input type="text" value={createPrice} onChange={(e) => setCreatePrice(e.target.value)} placeholder="e.g., 15,000 RWF or Free" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: '#374151', marginBottom: '0.375rem' }}>Expected Attendees *</label>
-                <input type="number" value={createMaxGuests} onChange={(e) => setCreateMaxGuests(e.target.value)} placeholder="e.g., 500" style={{ width: '100%', padding: '0.625rem', border: '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', color: '#111827' }} />
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Expected Attendees *</label>
+                <input type="number" value={createMaxGuests} onChange={(e) => setCreateMaxGuests(e.target.value)} placeholder="e.g., 500" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
               </div>
             </div>
           </div>
@@ -1466,11 +1467,11 @@ const MyEventsPage = () => {
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
               <OrganizerIcon />
-              <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>Organizer</span>
+              <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Organizer</span>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: '#374151', marginBottom: '0.375rem' }}>Organizer Name *</label>
-              <input type="text" value={createOrganizer} onChange={(e) => setCreateOrganizer(e.target.value)} placeholder="e.g., Rwanda Basketball Federation" style={{ width: '100%', padding: '0.625rem', border: '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', color: '#111827' }} />
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Organizer Name *</label>
+              <input type="text" value={createOrganizer} onChange={(e) => setCreateOrganizer(e.target.value)} placeholder="e.g., Rwanda Basketball Federation" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
             </div>
           </div>
 
@@ -1478,20 +1479,20 @@ const MyEventsPage = () => {
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
               <EditIcon />
-              <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>Description</span>
+              <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Description</span>
             </div>
-            <textarea value={createDescription} onChange={(e) => setCreateDescription(e.target.value)} placeholder="Describe your event in detail..." style={{ width: '100%', padding: '0.625rem', border: '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', minHeight: '100px', resize: 'vertical', color: '#111827' }} />
+            <textarea value={createDescription} onChange={(e) => setCreateDescription(e.target.value)} placeholder="Describe your event in detail..." style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', minHeight: '100px', resize: 'vertical', color: colors.textPrimary }} />
           </div>
 
           {/* Section: Tags */}
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
               <TagIcon />
-              <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>Hash Tags</span>
+              <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Hash Tags</span>
             </div>
             <div>
               <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                <input type="text" value={createTagInput} onChange={(e) => setCreateTagInput(e.target.value)} onKeyPress={handleAddTag} placeholder="Add hash tags" style={{ flex: 1, padding: '0.625rem', border: '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', color: '#111827' }} />
+                <input type="text" value={createTagInput} onChange={(e) => setCreateTagInput(e.target.value)} onKeyPress={handleAddTag} placeholder="Add hash tags" style={{ flex: 1, padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
                 <button type="button" onClick={addTagFromInput} style={{ padding: '0.625rem 1rem', backgroundColor: '#083A85', color: 'white', border: '2px solid #062a63', borderRadius: '0.5rem', fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap' }}>+ Add</button>
               </div>
               {createTags.length > 0 && (
@@ -1511,28 +1512,28 @@ const MyEventsPage = () => {
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
               <CameraIcon />
-              <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>Assign Photographer</span>
+              <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Assign Photographer</span>
             </div>
-            <p style={{ fontSize: '0.8rem', color: '#6B7280', marginBottom: '0.75rem' }}>Select a photographer you&apos;ve worked with before or find a new one</p>
-            <div style={{ border: '2px solid #D1D5DB', borderRadius: '0.5rem', maxHeight: '180px', overflowY: 'auto', marginBottom: '0.75rem' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.625rem', cursor: 'pointer', borderBottom: '1px solid #E5E7EB', backgroundColor: createPhotographerId === '' ? '#F0F9FF' : 'white' }}>
+            <p style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.75rem' }}>Select a photographer you&apos;ve worked with before or find a new one</p>
+            <div style={{ border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', maxHeight: '180px', overflowY: 'auto', marginBottom: '0.75rem' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.625rem', cursor: 'pointer', borderBottom: `1px solid ${colors.borderPrimary}`, backgroundColor: createPhotographerId === '' ? (actualTheme === 'dark' ? '#1E3A5F' : '#F0F9FF') : colors.bgCard }}>
                 <input type="radio" name="photographer" value="" checked={createPhotographerId === ''} onChange={() => setCreatePhotographerId('')} style={{ width: '16px', height: '16px', accentColor: '#083A85' }} />
-                <div><div style={{ fontSize: '0.85rem', fontWeight: '500', color: '#374151' }}>No photographer assigned</div><div style={{ fontSize: '0.75rem', color: '#6B7280' }}>You can assign one later</div></div>
+                <div><div style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>No photographer assigned</div><div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>You can assign one later</div></div>
               </label>
               {pastPhotographers.map((photographer) => (
-                <label key={photographer.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.625rem', cursor: 'pointer', borderBottom: '1px solid #E5E7EB', backgroundColor: createPhotographerId === photographer.id ? '#F0F9FF' : 'white' }}>
+                <label key={photographer.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.625rem', cursor: 'pointer', borderBottom: `1px solid ${colors.borderPrimary}`, backgroundColor: createPhotographerId === photographer.id ? (actualTheme === 'dark' ? '#1E3A5F' : '#F0F9FF') : colors.bgCard }}>
                   <input type="radio" name="photographer" value={photographer.id} checked={createPhotographerId === photographer.id} onChange={() => setCreatePhotographerId(photographer.id)} style={{ width: '16px', height: '16px', accentColor: '#083A85' }} />
                   <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, position: 'relative' }}><Image src={photographer.image} alt={photographer.name} fill style={{ objectFit: 'cover' }} /></div>
-                  <div style={{ flex: 1 }}><div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><span style={{ fontSize: '0.85rem', fontWeight: '500', color: '#111827' }}>{photographer.name}</span><span style={{ fontSize: '0.7rem', color: '#F59E0B' }}>★ {photographer.rating}</span></div><div style={{ fontSize: '0.75rem', color: '#6B7280' }}>{photographer.speciality}</div></div>
+                  <div style={{ flex: 1 }}><div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><span style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>{photographer.name}</span><span style={{ fontSize: '0.7rem', color: '#F59E0B' }}>★ {photographer.rating}</span></div><div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>{photographer.speciality}</div></div>
                 </label>
               ))}
             </div>
-            <button onClick={() => alert('Finding new photographers feature coming soon!')} style={{ width: '100%', padding: '0.625rem', border: '2px dashed #083A85', borderRadius: '0.5rem', backgroundColor: 'transparent', color: '#083A85', fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}><PlusIcon />Find a New Photographer</button>
+            <button onClick={() => alert('Finding new photographers feature coming soon!')} style={{ width: '100%', padding: '0.625rem', border: `2px dashed ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}`, borderRadius: '0.5rem', backgroundColor: 'transparent', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85', fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}><PlusIcon />Find a New Photographer</button>
           </div>
 
           {/* Action Buttons */}
-          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', paddingTop: '1rem', borderTop: '1px solid #E5E7EB' }}>
-            <button onClick={() => { resetCreateForm(); setShowCreateModal(false); }} style={{ padding: '0.75rem 1.25rem', border: '2px solid #D1D5DB', borderRadius: '0.5rem', background: '#F3F4F6', color: '#374151', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Cancel</button>
+          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', paddingTop: '1rem', borderTop: `1px solid ${colors.borderPrimary}` }}>
+            <button onClick={() => { resetCreateForm(); setShowCreateModal(false); }} style={{ padding: '0.75rem 1.25rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Cancel</button>
             <button onClick={handleCreateEvent} disabled={!createTitle || !createCategory || !createDate || !createTime} style={{ padding: '0.75rem 1.25rem', border: '2px solid #062a63', borderRadius: '0.5rem', background: (!createTitle || !createCategory || !createDate || !createTime) ? '#9CA3AF' : '#083A85', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: (!createTitle || !createCategory || !createDate || !createTime) ? 'not-allowed' : 'pointer', opacity: (!createTitle || !createCategory || !createDate || !createTime) ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>Create Event ✓</button>
           </div>
         </div>
@@ -1553,7 +1554,7 @@ const MyEventsPage = () => {
           zIndex: 1000,
         }} onClick={() => setShowEventDetails(null)}>
           <div style={{
-            backgroundColor: 'white',
+            backgroundColor: colors.bgCard,
             borderRadius: '0 0 0.75rem 0.75rem',
             maxWidth: '600px',
             width: '90%',
@@ -1583,29 +1584,17 @@ const MyEventsPage = () => {
                   position: 'absolute',
                   top: '1rem',
                   right: '1rem',
-                  backgroundColor: 'rgba(255,255,255,0.95)',
-                  border: '2px solid #D1D5DB',
-                  borderRadius: '50%',
-                  width: '36px',
-                  height: '36px',
+                  backgroundColor: colors.bgTertiary,
+                  border: `2px solid ${colors.borderPrimary}`,
+                  borderRadius: '0.375rem',
+                  padding: '0.5rem',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: '#374151',
+                  color: colors.textPrimary,
                   zIndex: 5,
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                   transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#ffffff';
-                  e.currentTarget.style.color = '#111827';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.95)';
-                  e.currentTarget.style.color = '#374151';
-                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
                 }}
               >
                 <CloseIcon />
@@ -1629,50 +1618,50 @@ const MyEventsPage = () => {
 
             {/* Content */}
             <div style={{ padding: '1.5rem' }}>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#111827', marginBottom: '0.75rem' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: colors.textPrimary, marginBottom: '0.75rem' }}>
               {showEventDetails.title}
             </h2>
 
-            <p style={{ fontSize: '0.9rem', color: '#6B7280', lineHeight: '1.6', marginBottom: '1.25rem' }}>
+            <p style={{ fontSize: '0.9rem', color: colors.textSecondary, lineHeight: '1.6', marginBottom: '1.25rem' }}>
               {showEventDetails.description}
             </p>
 
             {/* Details Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', marginBottom: '1.25rem' }}>
-              <div style={{ backgroundColor: '#F9FAFB', borderRadius: '0.5rem', padding: '0.75rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', color: '#6B7280' }}>
+              <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', color: colors.textSecondary }}>
                   <CalendarIcon />
                   <span style={{ fontSize: '0.8rem' }}>Date & Time</span>
                 </div>
-                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>
+                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>
                   {formatDate(showEventDetails.date)} at {showEventDetails.time}
                 </div>
               </div>
-              <div style={{ backgroundColor: '#F9FAFB', borderRadius: '0.5rem', padding: '0.75rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', color: '#6B7280' }}>
+              <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', color: colors.textSecondary }}>
                   <ClockIcon />
                   <span style={{ fontSize: '0.8rem' }}>Duration</span>
                 </div>
-                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>{showEventDetails.duration}</div>
+                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>{showEventDetails.duration}</div>
               </div>
-              <div style={{ backgroundColor: '#F9FAFB', borderRadius: '0.5rem', padding: '0.75rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', color: '#6B7280' }}>
+              <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', color: colors.textSecondary }}>
                   <LocationIcon />
                   <span style={{ fontSize: '0.8rem' }}>Location</span>
                 </div>
-                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>
+                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>
                   {showEventDetails.location.address}
                 </div>
-                <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>
+                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>
                   {showEventDetails.location.city}, {showEventDetails.location.country}
                 </div>
               </div>
-              <div style={{ backgroundColor: '#F9FAFB', borderRadius: '0.5rem', padding: '0.75rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', color: '#6B7280' }}>
+              <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', color: colors.textSecondary }}>
                   <UsersIcon />
                   <span style={{ fontSize: '0.8rem' }}>Guests</span>
                 </div>
-                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>
+                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>
                   {showEventDetails.guestCount} / {showEventDetails.maxGuests} confirmed
                 </div>
               </div>
@@ -1680,8 +1669,8 @@ const MyEventsPage = () => {
 
             {/* Photographer Info */}
             {showEventDetails.hasPhotographer && (
-              <div style={{ backgroundColor: '#F0F9FF', borderRadius: '0.5rem', padding: '1rem', marginBottom: '1.25rem' }}>
-                <div style={{ fontSize: '0.85rem', color: '#0369A1', marginBottom: '0.5rem', fontWeight: '600' }}>Booked Photographer</div>
+              <div style={{ backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#F0F9FF', borderRadius: '0.5rem', padding: '1rem', marginBottom: '1.25rem' }}>
+                <div style={{ fontSize: '0.85rem', color: actualTheme === 'dark' ? '#93C5FD' : '#0369A1', marginBottom: '0.5rem', fontWeight: '600' }}>Booked Photographer</div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
@@ -1693,7 +1682,7 @@ const MyEventsPage = () => {
                         style={{ objectFit: 'cover', width: '100%', height: '100%' }}
                       />
                     </div>
-                    <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>
+                    <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>
                       {showEventDetails.photographerName}
                     </span>
                   </div>
@@ -1719,11 +1708,11 @@ const MyEventsPage = () => {
             )}
 
             {!showEventDetails.hasPhotographer && showEventDetails.status === 'upcoming' && (
-              <div style={{ backgroundColor: '#FEF3C7', borderRadius: '0.5rem', padding: '1rem', marginBottom: '1.25rem' }}>
-                <div style={{ fontSize: '0.85rem', color: '#92400E', marginBottom: '0.5rem', fontWeight: '600' }}>
+              <div style={{ backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FEF3C7', borderRadius: '0.5rem', padding: '1rem', marginBottom: '1.25rem' }}>
+                <div style={{ fontSize: '0.85rem', color: actualTheme === 'dark' ? '#FCD34D' : '#92400E', marginBottom: '0.5rem', fontWeight: '600' }}>
                   No Photographer Booked
                 </div>
-                <p style={{ fontSize: '0.85rem', color: '#92400E', marginBottom: '0.75rem' }}>
+                <p style={{ fontSize: '0.85rem', color: actualTheme === 'dark' ? '#FCD34D' : '#92400E', marginBottom: '0.75rem' }}>
                   Don&apos;t miss capturing your special moments!
                 </p>
                 <button
@@ -1745,7 +1734,7 @@ const MyEventsPage = () => {
 
             {/* Share Link */}
             <div style={{ marginBottom: '1.5rem' }}>
-              <div style={{ fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>Join Event Stream Link</div>
+              <div style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>Join Event Stream Link</div>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <input
                   type="text"
@@ -1754,11 +1743,11 @@ const MyEventsPage = () => {
                   style={{
                     flex: 1,
                     padding: '0.625rem 0.875rem',
-                    border: '2px solid #D1D5DB',
+                    border: `2px solid ${colors.borderPrimary}`,
                     borderRadius: '0.375rem',
                     fontSize: '0.9rem',
-                    backgroundColor: '#F9FAFB',
-                    color: '#111827'
+                    backgroundColor: colors.bgTertiary,
+                    color: colors.textPrimary
                   }}
                 />
                 <button
@@ -1796,9 +1785,9 @@ const MyEventsPage = () => {
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '0.5rem',
-                      backgroundColor: '#F3F4F6',
-                      color: '#374151',
-                      border: '2px solid #D1D5DB',
+                      backgroundColor: colors.bgTertiary,
+                      color: colors.textPrimary,
+                      border: `2px solid ${colors.borderPrimary}`,
                       borderRadius: '0.5rem',
                       padding: '0.75rem 1rem',
                       fontSize: '0.9rem',
@@ -1858,13 +1847,13 @@ const MyEventsPage = () => {
       <Modal isOpen={showShareModal} onClose={() => setShowShareModal(false)} title="Share Event Stream">
         {shareEvent && (
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem', padding: '0.75rem', backgroundColor: '#F9FAFB', borderRadius: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem', padding: '0.75rem', backgroundColor: colors.bgTertiary, borderRadius: '0.5rem' }}>
               <div style={{ position: 'relative', width: '60px', height: '40px', borderRadius: '0.25rem', overflow: 'hidden' }}>
                 <Image src={shareEvent.coverImage} alt={shareEvent.title} fill style={{ objectFit: 'cover' }} />
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: '600', color: '#111827', fontSize: '0.9rem' }}>{shareEvent.title}</div>
-                <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>{formatDate(shareEvent.date)}</div>
+                <div style={{ fontWeight: '600', color: colors.textPrimary, fontSize: '0.9rem' }}>{shareEvent.title}</div>
+                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{formatDate(shareEvent.date)}</div>
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '1.25rem' }}>
@@ -1873,8 +1862,8 @@ const MyEventsPage = () => {
                 { name: 'Facebook', icon: <FacebookIcon />, color: '#1877F2', getUrl: (link: string) => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}` },
                 { name: 'Twitter', icon: <TwitterIcon />, color: '#1DA1F2', getUrl: (link: string, title: string) => `https://twitter.com/intent/tweet?url=${encodeURIComponent(link)}&text=${encodeURIComponent(`Join ${title} event stream`)}` },
                 { name: 'Email', icon: <EmailIcon />, color: '#EA4335', getUrl: (link: string, title: string) => `mailto:?subject=${encodeURIComponent(`Join ${title} Event Stream`)}&body=${encodeURIComponent(`You're invited to join the ${title} event stream: ${link}`)}` },
-                { name: 'Copy Link', icon: <LinkIcon />, color: '#6B7280', getUrl: () => '' },
-                { name: 'QR Code', icon: <QRCodeIcon />, color: '#111827', getUrl: () => '' }
+                { name: 'Copy Link', icon: <LinkIcon />, color: colors.textSecondary, getUrl: () => '' },
+                { name: 'QR Code', icon: <QRCodeIcon />, color: colors.textPrimary, getUrl: () => '' }
               ].map((option) => (
                 <button
                   key={option.name}
@@ -1890,13 +1879,13 @@ const MyEventsPage = () => {
                   }}
                   style={{
                     padding: '1rem',
-                    border: option.name === 'Copy Link' && copiedLink ? '1px solid #10B981' : '1px solid #E5E7EB',
+                    border: option.name === 'Copy Link' && copiedLink ? '1px solid #10B981' : `1px solid ${colors.borderPrimary}`,
                     borderRadius: '0.5rem',
-                    background: option.name === 'Copy Link' && copiedLink ? '#ECFDF5' : 'white',
+                    background: option.name === 'Copy Link' && copiedLink ? (actualTheme === 'dark' ? '#14532D' : '#ECFDF5') : colors.bgCard,
                     cursor: 'pointer',
                     fontSize: '0.85rem',
                     fontWeight: '500',
-                    color: option.name === 'Copy Link' && copiedLink ? '#10B981' : '#374151',
+                    color: option.name === 'Copy Link' && copiedLink ? '#10B981' : colors.textPrimary,
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
@@ -1911,8 +1900,8 @@ const MyEventsPage = () => {
                   }}
                   onMouseLeave={(e) => {
                     if (!(option.name === 'Copy Link' && copiedLink)) {
-                      e.currentTarget.style.borderColor = '#E5E7EB';
-                      e.currentTarget.style.color = '#374151';
+                      e.currentTarget.style.borderColor = colors.borderPrimary;
+                      e.currentTarget.style.color = colors.textPrimary;
                     }
                   }}
                 >
@@ -1921,8 +1910,8 @@ const MyEventsPage = () => {
                 </button>
               ))}
             </div>
-            <div style={{ borderTop: '1px solid #E5E7EB', paddingTop: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+            <div style={{ borderTop: `1px solid ${colors.borderPrimary}`, paddingTop: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
                 Join Event Stream Link
               </label>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -1933,12 +1922,12 @@ const MyEventsPage = () => {
                   style={{
                     flex: 1,
                     padding: '0.625rem 0.875rem',
-                    border: '2px solid #D1D5DB',
+                    border: `2px solid ${colors.borderPrimary}`,
                     borderRadius: '0.375rem',
                     fontSize: '0.9rem',
                     fontWeight: '500',
-                    color: '#111827',
-                    backgroundColor: '#F9FAFB'
+                    color: colors.textPrimary,
+                    backgroundColor: colors.bgTertiary
                   }}
                 />
                 <button
@@ -1987,7 +1976,7 @@ const MyEventsPage = () => {
         >
           <div
             style={{
-              backgroundColor: 'white',
+              backgroundColor: colors.bgCard,
               borderRadius: '1rem',
               padding: '1.5rem',
               width: '400px',
@@ -2019,7 +2008,7 @@ const MyEventsPage = () => {
             <h2 style={{
               fontSize: '1.25rem',
               fontWeight: '700',
-              color: '#111827',
+              color: colors.textPrimary,
               margin: 0,
               marginBottom: '0.75rem',
               textAlign: 'center'
@@ -2028,13 +2017,13 @@ const MyEventsPage = () => {
             {/* Modal Content */}
             <p style={{
               fontSize: '0.95rem',
-              color: '#6B7280',
+              color: colors.textSecondary,
               margin: 0,
               marginBottom: '0.5rem',
               textAlign: 'center',
               lineHeight: '1.5'
             }}>
-              Are you sure you want to delete <strong style={{ color: '#111827' }}>&quot;{deleteEvent.title}&quot;</strong>?
+              Are you sure you want to delete <strong style={{ color: colors.textPrimary }}>&quot;{deleteEvent.title}&quot;</strong>?
             </p>
             <p style={{
               fontSize: '0.85rem',
@@ -2058,9 +2047,9 @@ const MyEventsPage = () => {
                   flex: 1,
                   padding: '0.75rem 1rem',
                   borderRadius: '0.5rem',
-                  border: '2px solid #D1D5DB',
-                  backgroundColor: 'white',
-                  color: '#374151',
+                  border: `2px solid ${colors.borderPrimary}`,
+                  backgroundColor: colors.bgCard,
+                  color: colors.textPrimary,
                   fontSize: '0.95rem',
                   fontWeight: '600',
                   cursor: 'pointer',
@@ -2104,18 +2093,18 @@ const MyEventsPage = () => {
             <div style={{ marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                 <CameraIcon />
-                <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>Event Image</span>
+                <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Event Image</span>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#6B7280', marginBottom: '0.375rem' }}>Banner Image (1200x800)</label>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.375rem' }}>Banner Image (1200x800)</label>
                 <div style={{
-                  border: '2px dashed #D1D5DB',
+                  border: `2px dashed ${colors.borderPrimary}`,
                   borderRadius: '0.5rem',
                   height: '140px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: '#F9FAFB',
+                  backgroundColor: colors.bgTertiary,
                   cursor: 'pointer',
                   position: 'relative',
                   overflow: 'hidden'
@@ -2140,23 +2129,23 @@ const MyEventsPage = () => {
             <div style={{ marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                 <EditIcon />
-                <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>Basic Information</span>
+                <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Basic Information</span>
               </div>
               <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: '#374151', marginBottom: '0.375rem' }}>Event Title *</label>
-                <input type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="e.g., APR BBC Vs Espoir BCC" style={{ width: '100%', padding: '0.625rem', border: '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', color: '#111827' }} />
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Event Title *</label>
+                <input type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="e.g., APR BBC Vs Espoir BCC" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: '#374151', marginBottom: '0.375rem' }}>Category *</label>
-                  <select value={editCategory} onChange={(e) => setEditCategory(e.target.value as EventCategory)} style={{ width: '100%', padding: '0.625rem', border: '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', backgroundColor: 'white', color: '#111827', cursor: 'pointer' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Category *</label>
+                  <select value={editCategory} onChange={(e) => setEditCategory(e.target.value as EventCategory)} style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', backgroundColor: colors.bgCard, color: colors.textPrimary, cursor: 'pointer' }}>
                     <option value="">Select category</option>
                     {eventCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: '#374151', marginBottom: '0.375rem' }}>Status *</label>
-                  <select value={editStatus} onChange={(e) => setEditStatus(e.target.value as 'UPCOMING' | 'LIVE')} style={{ width: '100%', padding: '0.625rem', border: '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', backgroundColor: 'white', color: '#111827', cursor: 'pointer' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Status *</label>
+                  <select value={editStatus} onChange={(e) => setEditStatus(e.target.value as 'UPCOMING' | 'LIVE')} style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', backgroundColor: colors.bgCard, color: colors.textPrimary, cursor: 'pointer' }}>
                     <option value="UPCOMING">UPCOMING</option>
                     <option value="LIVE">LIVE</option>
                   </select>
@@ -2168,20 +2157,20 @@ const MyEventsPage = () => {
             <div style={{ marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                 <CalendarIcon />
-                <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>Date & Time</span>
+                <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Date & Time</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: '#374151', marginBottom: '0.375rem' }}>Event Date *</label>
-                  <input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} style={{ width: '100%', padding: '0.625rem', border: '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', color: '#111827', cursor: 'pointer' }} />
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Event Date *</label>
+                  <input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, cursor: 'pointer' }} />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: '#374151', marginBottom: '0.375rem' }}>Start Time *</label>
-                  <input type="time" value={editTime} onChange={(e) => setEditTime(e.target.value)} style={{ width: '100%', padding: '0.625rem', border: '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', color: '#111827', cursor: 'pointer' }} />
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Start Time *</label>
+                  <input type="time" value={editTime} onChange={(e) => setEditTime(e.target.value)} style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, cursor: 'pointer' }} />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: '#374151', marginBottom: '0.375rem' }}>End Time</label>
-                  <input type="time" value={editEndTime} onChange={(e) => setEditEndTime(e.target.value)} style={{ width: '100%', padding: '0.625rem', border: '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', color: '#111827', cursor: 'pointer' }} />
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>End Time</label>
+                  <input type="time" value={editEndTime} onChange={(e) => setEditEndTime(e.target.value)} style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, cursor: 'pointer' }} />
                 </div>
               </div>
             </div>
@@ -2190,16 +2179,16 @@ const MyEventsPage = () => {
             <div style={{ marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                 <LocationIcon />
-                <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>Location</span>
+                <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Location</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: '#374151', marginBottom: '0.375rem' }}>Venue Name *</label>
-                  <input type="text" value={editVenueName} onChange={(e) => setEditVenueName(e.target.value)} placeholder="e.g., BK Arena" style={{ width: '100%', padding: '0.625rem', border: '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', color: '#111827' }} />
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Venue Name *</label>
+                  <input type="text" value={editVenueName} onChange={(e) => setEditVenueName(e.target.value)} placeholder="e.g., BK Arena" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: '#374151', marginBottom: '0.375rem' }}>Location Address *</label>
-                  <input type="text" value={editAddress} onChange={(e) => setEditAddress(e.target.value)} placeholder="e.g., KN 4 Ave, Kigali" style={{ width: '100%', padding: '0.625rem', border: '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', color: '#111827' }} />
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Location Address *</label>
+                  <input type="text" value={editAddress} onChange={(e) => setEditAddress(e.target.value)} placeholder="e.g., KN 4 Ave, Kigali" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
                 </div>
               </div>
             </div>
@@ -2208,16 +2197,16 @@ const MyEventsPage = () => {
             <div style={{ marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                 <DollarIcon />
-                <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>Pricing & Capacity</span>
+                <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Pricing & Capacity</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: '#374151', marginBottom: '0.375rem' }}>Entry Fee (Optional)</label>
-                  <input type="text" value={editPrice} onChange={(e) => setEditPrice(e.target.value)} placeholder="e.g., 15,000 RWF or Free" style={{ width: '100%', padding: '0.625rem', border: '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', color: '#111827' }} />
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Entry Fee (Optional)</label>
+                  <input type="text" value={editPrice} onChange={(e) => setEditPrice(e.target.value)} placeholder="e.g., 15,000 RWF or Free" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: '#374151', marginBottom: '0.375rem' }}>Expected Attendees *</label>
-                  <input type="number" value={editMaxGuests} onChange={(e) => setEditMaxGuests(e.target.value)} placeholder="e.g., 500" style={{ width: '100%', padding: '0.625rem', border: '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', color: '#111827' }} />
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Expected Attendees *</label>
+                  <input type="number" value={editMaxGuests} onChange={(e) => setEditMaxGuests(e.target.value)} placeholder="e.g., 500" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
                 </div>
               </div>
             </div>
@@ -2226,11 +2215,11 @@ const MyEventsPage = () => {
             <div style={{ marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                 <OrganizerIcon />
-                <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>Organizer</span>
+                <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Organizer</span>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: '#374151', marginBottom: '0.375rem' }}>Organizer Name *</label>
-                <input type="text" value={editOrganizer} onChange={(e) => setEditOrganizer(e.target.value)} placeholder="e.g., Rwanda Basketball Federation" style={{ width: '100%', padding: '0.625rem', border: '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', color: '#111827' }} />
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Organizer Name *</label>
+                <input type="text" value={editOrganizer} onChange={(e) => setEditOrganizer(e.target.value)} placeholder="e.g., Rwanda Basketball Federation" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
               </div>
             </div>
 
@@ -2238,20 +2227,20 @@ const MyEventsPage = () => {
             <div style={{ marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                 <EditIcon />
-                <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>Description</span>
+                <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Description</span>
               </div>
-              <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="Describe your event in detail..." style={{ width: '100%', padding: '0.625rem', border: '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', minHeight: '100px', resize: 'vertical', color: '#111827' }} />
+              <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="Describe your event in detail..." style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', minHeight: '100px', resize: 'vertical', color: colors.textPrimary }} />
             </div>
 
             {/* Section: Hash Tags */}
             <div style={{ marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                 <TagIcon />
-                <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>Hash Tags</span>
+                <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Hash Tags</span>
               </div>
               <div>
                 <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                  <input type="text" value={editTagInput} onChange={(e) => setEditTagInput(e.target.value)} onKeyPress={handleEditAddTag} placeholder="Add hash tags" style={{ flex: 1, padding: '0.625rem', border: '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', color: '#111827' }} />
+                  <input type="text" value={editTagInput} onChange={(e) => setEditTagInput(e.target.value)} onKeyPress={handleEditAddTag} placeholder="Add hash tags" style={{ flex: 1, padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
                   <button type="button" onClick={addEditTagFromInput} style={{ padding: '0.625rem 1rem', backgroundColor: '#083A85', color: 'white', border: '2px solid #062a63', borderRadius: '0.5rem', fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap' }}>+ Add</button>
                 </div>
                 {editTags.length > 0 && (
@@ -2268,15 +2257,15 @@ const MyEventsPage = () => {
             </div>
 
             {/* Action Buttons */}
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', paddingTop: '1rem', borderTop: '1px solid #E5E7EB' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', paddingTop: '1rem', borderTop: `1px solid ${colors.borderPrimary}` }}>
               <button
                 onClick={() => { setShowEditModal(false); setEditEvent(null); }}
                 style={{
                   padding: '0.75rem 1.25rem',
-                  border: '2px solid #D1D5DB',
+                  border: `2px solid ${colors.borderPrimary}`,
                   borderRadius: '0.5rem',
-                  background: '#F3F4F6',
-                  color: '#374151',
+                  background: colors.bgTertiary,
+                  color: colors.textPrimary,
                   fontSize: '0.9rem',
                   fontWeight: '600',
                   cursor: 'pointer'

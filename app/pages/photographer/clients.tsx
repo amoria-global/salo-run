@@ -40,20 +40,20 @@ const VerifiedIcon = () => (
   </svg>
 );
 
-const GridIcon = ({ active }: { active: boolean }) => (
+const GridIcon = ({ active, activeColor = '#083A85' }: { active: boolean; activeColor?: string }) => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="3" y="3" width="7" height="7" rx="1" stroke={active ? '#083A85' : '#9CA3AF'} strokeWidth="2"/>
-    <rect x="14" y="3" width="7" height="7" rx="1" stroke={active ? '#083A85' : '#9CA3AF'} strokeWidth="2"/>
-    <rect x="3" y="14" width="7" height="7" rx="1" stroke={active ? '#083A85' : '#9CA3AF'} strokeWidth="2"/>
-    <rect x="14" y="14" width="7" height="7" rx="1" stroke={active ? '#083A85' : '#9CA3AF'} strokeWidth="2"/>
+    <rect x="3" y="3" width="7" height="7" rx="1" stroke={active ? activeColor : '#9CA3AF'} strokeWidth="2"/>
+    <rect x="14" y="3" width="7" height="7" rx="1" stroke={active ? activeColor : '#9CA3AF'} strokeWidth="2"/>
+    <rect x="3" y="14" width="7" height="7" rx="1" stroke={active ? activeColor : '#9CA3AF'} strokeWidth="2"/>
+    <rect x="14" y="14" width="7" height="7" rx="1" stroke={active ? activeColor : '#9CA3AF'} strokeWidth="2"/>
   </svg>
 );
 
-const ListIcon = ({ active }: { active: boolean }) => (
+const ListIcon = ({ active, activeColor = '#083A85' }: { active: boolean; activeColor?: string }) => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <line x1="3" y1="6" x2="21" y2="6" stroke={active ? '#083A85' : '#9CA3AF'} strokeWidth="2" strokeLinecap="round"/>
-    <line x1="3" y1="12" x2="21" y2="12" stroke={active ? '#083A85' : '#9CA3AF'} strokeWidth="2" strokeLinecap="round"/>
-    <line x1="3" y1="18" x2="21" y2="18" stroke={active ? '#083A85' : '#9CA3AF'} strokeWidth="2" strokeLinecap="round"/>
+    <line x1="3" y1="6" x2="21" y2="6" stroke={active ? activeColor : '#9CA3AF'} strokeWidth="2" strokeLinecap="round"/>
+    <line x1="3" y1="12" x2="21" y2="12" stroke={active ? activeColor : '#9CA3AF'} strokeWidth="2" strokeLinecap="round"/>
+    <line x1="3" y1="18" x2="21" y2="18" stroke={active ? activeColor : '#9CA3AF'} strokeWidth="2" strokeLinecap="round"/>
   </svg>
 );
 
@@ -177,6 +177,7 @@ interface ModalProps {
 }
 
 const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidth = '500px' }) => {
+  const { colors } = useTheme();
   if (!isOpen) return null;
 
   return (
@@ -193,7 +194,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
       zIndex: 1000,
     }} onClick={onClose}>
       <div style={{
-        backgroundColor: 'white',
+        backgroundColor: colors.bgCard,
         borderRadius: '0.75rem',
         padding: '1.5rem',
         maxWidth: maxWidth,
@@ -204,28 +205,20 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
       }} onClick={(e) => e.stopPropagation()}>
         {title && (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#111827', margin: 0 }}>{title}</h3>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>{title}</h3>
             <button
               onClick={onClose}
               style={{
-                background: '#F3F4F6',
-                border: '2px solid #D1D5DB',
+                background: colors.bgTertiary,
+                border: `2px solid ${colors.borderPrimary}`,
                 cursor: 'pointer',
                 padding: '0.5rem',
                 borderRadius: '0.375rem',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#374151',
+                color: colors.textPrimary,
                 transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#E5E7EB';
-                e.currentTarget.style.color = '#111827';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = '#F3F4F6';
-                e.currentTarget.style.color = '#374151';
               }}
             >
               <CloseIcon />
@@ -735,12 +728,12 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                   }}
                   style={{
                     appearance: 'none',
-                    backgroundColor: 'white',
-                    border: '1px solid #E5E7EB',
+                    backgroundColor: colors.bgCard,
+                    border: `1px solid ${colors.borderPrimary}`,
                     borderRadius: '0.5rem',
                     padding: '0.5rem 2rem 0.5rem 0.75rem',
                     fontSize: '0.9rem',
-                    color: '#374151',
+                    color: colors.textPrimary,
                     cursor: 'pointer'
                   }}
                 >
@@ -754,7 +747,7 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                 </div>
               </div>
               {/* View Mode Toggle */}
-              <div style={{ display: 'flex', gap: '0.25rem', backgroundColor: '#F3F4F6', borderRadius: '0.375rem', padding: '0.25rem' }}>
+              <div style={{ display: 'flex', gap: '0.25rem', backgroundColor: colors.bgTertiary, borderRadius: '0.375rem', padding: '0.25rem' }}>
                 <button
                   onClick={() => setViewMode('grid')}
                   style={{
@@ -762,7 +755,7 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                     border: 'none',
                     borderRadius: '0.25rem',
                     cursor: 'pointer',
-                    backgroundColor: viewMode === 'grid' ? 'white' : 'transparent',
+                    backgroundColor: viewMode === 'grid' ? colors.bgCard : 'transparent',
                     boxShadow: viewMode === 'grid' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
                     display: 'flex',
                     alignItems: 'center',
@@ -779,7 +772,7 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                     border: 'none',
                     borderRadius: '0.25rem',
                     cursor: 'pointer',
-                    backgroundColor: viewMode === 'list' ? 'white' : 'transparent',
+                    backgroundColor: viewMode === 'list' ? colors.bgCard : 'transparent',
                     boxShadow: viewMode === 'list' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
                     display: 'flex',
                     alignItems: 'center',
@@ -811,25 +804,25 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                 ${clients.reduce((sum, c) => sum + c.totalSpent, 0).toLocaleString()}
               </div>
             </div>
-            <div style={{ backgroundColor: totalTips > 0 ? '#FFFBEB' : 'white', borderRadius: '0.75rem', padding: '1rem', border: totalTips > 0 ? '1px solid #FCD34D' : '1px solid #E5E7EB' }}>
-              <div style={{ fontSize: '0.85rem', color: totalTips > 0 ? '#92400E' : '#6B7280', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <div style={{ backgroundColor: totalTips > 0 ? (actualTheme === 'dark' ? '#78350F' : '#FFFBEB') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: totalTips > 0 ? `1px solid ${actualTheme === 'dark' ? '#92400E' : '#FCD34D'}` : `1px solid ${colors.borderPrimary}` }}>
+              <div style={{ fontSize: '0.85rem', color: totalTips > 0 ? (actualTheme === 'dark' ? '#FCD34D' : '#92400E') : colors.textSecondary, marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 <GiftIcon />
                 Tips
               </div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: totalTips > 0 ? '#F59E0B' : '#6B7280' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: totalTips > 0 ? (actualTheme === 'dark' ? '#FCD34D' : '#F59E0B') : colors.textSecondary }}>
                 ${totalTips.toLocaleString()}
               </div>
-              <div style={{ fontSize: '0.7rem', color: '#9CA3AF', marginTop: '0.25rem' }}>From clients</div>
+              <div style={{ fontSize: '0.7rem', color: colors.textSecondary, marginTop: '0.25rem' }}>From clients</div>
             </div>
-            <div style={{ backgroundColor: platformBonus > 0 ? '#F0FDF4' : 'white', borderRadius: '0.75rem', padding: '1rem', border: platformBonus > 0 ? '1px solid #BBF7D0' : '1px solid #E5E7EB' }}>
-              <div style={{ fontSize: '0.85rem', color: platformBonus > 0 ? '#166534' : '#6B7280', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <div style={{ backgroundColor: platformBonus > 0 ? (actualTheme === 'dark' ? '#14532D' : '#F0FDF4') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: platformBonus > 0 ? `1px solid ${actualTheme === 'dark' ? '#166534' : '#BBF7D0'}` : `1px solid ${colors.borderPrimary}` }}>
+              <div style={{ fontSize: '0.85rem', color: platformBonus > 0 ? (actualTheme === 'dark' ? '#4ADE80' : '#166534') : colors.textSecondary, marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 <GiftIcon />
                 Bonus
               </div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: platformBonus > 0 ? '#16A34A' : '#6B7280' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: platformBonus > 0 ? (actualTheme === 'dark' ? '#4ADE80' : '#16A34A') : colors.textSecondary }}>
                 ${platformBonus.toLocaleString()}
               </div>
-              <div style={{ fontSize: '0.7rem', color: '#9CA3AF', marginTop: '0.25rem' }}>{totalCompletedEvents}/10 events ({bonusEligibleSets > 0 ? '10%' : '0%'})</div>
+              <div style={{ fontSize: '0.7rem', color: colors.textSecondary, marginTop: '0.25rem' }}>{totalCompletedEvents}/10 events ({bonusEligibleSets > 0 ? '10%' : '0%'})</div>
             </div>
             <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Favorites</div>
@@ -837,12 +830,12 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                 {clients.filter(c => c.isFavorite).length}
               </div>
             </div>
-            <div style={{ backgroundColor: totalPendingAmount > 0 ? '#FEF2F2' : 'white', borderRadius: '0.75rem', padding: '1rem', border: totalPendingAmount > 0 ? '1px solid #FECACA' : '1px solid #E5E7EB' }}>
-              <div style={{ fontSize: '0.85rem', color: totalPendingAmount > 0 ? '#B91C1C' : '#6B7280', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <div style={{ backgroundColor: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#7F1D1D' : '#FEF2F2') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: totalPendingAmount > 0 ? `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}` : `1px solid ${colors.borderPrimary}` }}>
+              <div style={{ fontSize: '0.85rem', color: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#FCA5A5' : '#B91C1C') : colors.textSecondary, marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 {totalPendingAmount > 0 && <AlertCircleIcon />}
                 Pending Payments
               </div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: totalPendingAmount > 0 ? '#DC2626' : '#6B7280' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#FCA5A5' : '#DC2626') : colors.textSecondary }}>
                 ${totalPendingAmount.toLocaleString()}
               </div>
             </div>
@@ -868,8 +861,8 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                   cursor: 'pointer',
                   backgroundColor: activeFilter === tab.key
                     ? ((tab as { alert?: boolean }).alert ? '#F20C8F' : '#083A85')
-                    : 'white',
-                  color: activeFilter === tab.key ? 'white' : '#6B7280',
+                    : colors.bgCard,
+                  color: activeFilter === tab.key ? 'white' : colors.textSecondary,
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.5rem'
@@ -879,7 +872,7 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                 <span style={{
                   backgroundColor: activeFilter === tab.key
                     ? 'rgba(255,255,255,0.2)'
-                    : ((tab as { alert?: boolean }).alert && tab.count > 0 ? '#FEE2E2' : '#F3F4F6'),
+                    : ((tab as { alert?: boolean }).alert && tab.count > 0 ? '#FEE2E2' : colors.bgTertiary),
                   color: (tab as { alert?: boolean }).alert && tab.count > 0 && activeFilter !== tab.key ? '#DC2626' : undefined,
                   padding: '0.125rem 0.5rem',
                   borderRadius: '9999px',
@@ -906,12 +899,12 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                 style={{
                   width: '100%',
                   padding: '0.75rem 1rem 0.75rem 2.75rem',
-                  border: '1px solid #E5E7EB',
+                  border: `1px solid ${colors.borderPrimary}`,
                   borderRadius: '0.5rem',
                   fontSize: '0.95rem',
                   fontWeight: '500',
-                  color: '#374151',
-                  backgroundColor: 'white',
+                  color: colors.textPrimary,
+                  backgroundColor: colors.bgCard,
                   outline: 'none'
                 }}
               />
@@ -923,9 +916,9 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
-                backgroundColor: showFilters ? '#083A85' : 'white',
-                color: showFilters ? 'white' : '#6B7280',
-                border: '1px solid #E5E7EB',
+                backgroundColor: showFilters ? '#083A85' : colors.bgCard,
+                color: showFilters ? 'white' : colors.textSecondary,
+                border: `1px solid ${colors.borderPrimary}`,
                 borderRadius: '0.5rem',
                 padding: '0.75rem 1rem',
                 fontSize: '0.9rem',
@@ -939,17 +932,17 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
 
           {/* Results Count */}
           <div style={{ marginBottom: '1rem' }}>
-            <span style={{ fontSize: '0.9rem', color: '#6B7280' }}>
+            <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>
               Showing {filteredClients.length} client{filteredClients.length !== 1 ? 's' : ''}
             </span>
           </div>
 
           {/* Clients Grid/List */}
           {filteredClients.length === 0 ? (
-            <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', padding: '3rem', textAlign: 'center', border: '1px solid #E5E7EB' }}>
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '3rem', textAlign: 'center', border: `1px solid ${colors.borderPrimary}` }}>
               <UserIcon />
-              <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#111827', marginTop: '1rem' }}>No clients found</h3>
-              <p style={{ fontSize: '0.9rem', color: '#6B7280', marginTop: '0.5rem' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, marginTop: '1rem' }}>No clients found</h3>
+              <p style={{ fontSize: '0.9rem', color: colors.textSecondary, marginTop: '0.5rem' }}>
                 {activeFilter === 'favorites' ? 'You haven\'t added any clients to favorites yet.' : 'Try adjusting your search or filters.'}
               </p>
             </div>
@@ -959,7 +952,7 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                 <div
                   key={client.id}
                   style={{
-                    backgroundColor: 'white',
+                    backgroundColor: colors.bgCard,
                     borderRadius: '1rem',
                     overflow: 'hidden',
                     boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
@@ -1005,21 +998,25 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                        <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#111827', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {client.firstName} {client.lastName}
                         </h3>
                         {client.verified && <VerifiedIcon />}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.125rem' }}>
                         <LocationIcon />
-                        <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>
+                        <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
                           {client.location.city}, {client.location.country}
                         </span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginTop: '0.25rem' }}>
                         <span style={{
-                          backgroundColor: client.status === 'active' ? '#D1FAE5' : '#F3F4F6',
-                          color: client.status === 'active' ? '#065F46' : '#6B7280',
+                          backgroundColor: client.status === 'active'
+                            ? (actualTheme === 'dark' ? '#064E3B' : '#D1FAE5')
+                            : (actualTheme === 'dark' ? '#374151' : '#F3F4F6'),
+                          color: client.status === 'active'
+                            ? (actualTheme === 'dark' ? '#6EE7B7' : '#065F46')
+                            : (actualTheme === 'dark' ? '#9CA3AF' : '#6B7280'),
                           padding: '0.125rem 0.375rem',
                           borderRadius: '0.25rem',
                           fontSize: '0.75rem',
@@ -1029,8 +1026,8 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                           {client.status}
                         </span>
                         <span style={{
-                          backgroundColor: '#EFF6FF',
-                          color: '#1D4ED8',
+                          backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF',
+                          color: actualTheme === 'dark' ? '#93C5FD' : '#1D4ED8',
                           padding: '0.125rem 0.375rem',
                           borderRadius: '0.25rem',
                           fontSize: '0.75rem',
@@ -1058,14 +1055,14 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                   </div>
 
                   {/* Quick Stats Row */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', backgroundColor: '#F9FAFB', borderRadius: '0.375rem', marginBottom: '0.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', backgroundColor: colors.bgTertiary, borderRadius: '0.375rem', marginBottom: '0.5rem' }}>
                     <div>
-                      <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>Last: {client.lastEventType}</div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: '500', color: '#111827' }}>{formatDate(client.lastBookingDate)}</div>
+                      <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Last: {client.lastEventType}</div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>{formatDate(client.lastBookingDate)}</div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>Total Spent</div>
-                      <div style={{ fontSize: '1rem', fontWeight: '700', color: '#083A85' }}>${client.totalSpent.toLocaleString()}</div>
+                      <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Total Spent</div>
+                      <div style={{ fontSize: '1rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>${client.totalSpent.toLocaleString()}</div>
                     </div>
                   </div>
 
@@ -1094,9 +1091,33 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                           const isPartiallyPaid = booking.paymentStatus === 'partially_paid';
                           const isFailed = booking.paymentStatus === 'failed';
 
-                          const containerBg = isPaid ? '#DCFCE7' : isPending ? '#FEF3C7' : isPartiallyPaid ? '#DBEAFE' : isFailed ? '#FEE2E2' : '#F9FAFB';
-                          const containerBorder = isPaid ? '#86EFAC' : isPending ? '#FCD34D' : isPartiallyPaid ? '#93C5FD' : isFailed ? '#FCA5A5' : '#E5E7EB';
-                          const textColor = isPaid ? '#15803D' : isPending ? '#92400E' : isPartiallyPaid ? '#1E40AF' : isFailed ? '#991B1B' : '#6B7280';
+                          const containerBg = isPaid
+                            ? (actualTheme === 'dark' ? '#064E3B' : '#DCFCE7')
+                            : isPending
+                            ? (actualTheme === 'dark' ? '#78350F' : '#FEF3C7')
+                            : isPartiallyPaid
+                            ? (actualTheme === 'dark' ? '#1E3A5F' : '#DBEAFE')
+                            : isFailed
+                            ? (actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2')
+                            : (actualTheme === 'dark' ? colors.bgTertiary : '#F9FAFB');
+                          const containerBorder = isPaid
+                            ? (actualTheme === 'dark' ? '#10B981' : '#86EFAC')
+                            : isPending
+                            ? (actualTheme === 'dark' ? '#F59E0B' : '#FCD34D')
+                            : isPartiallyPaid
+                            ? (actualTheme === 'dark' ? '#3B82F6' : '#93C5FD')
+                            : isFailed
+                            ? (actualTheme === 'dark' ? '#EF4444' : '#FCA5A5')
+                            : (actualTheme === 'dark' ? colors.borderPrimary : '#E5E7EB');
+                          const textColor = isPaid
+                            ? (actualTheme === 'dark' ? '#6EE7B7' : '#15803D')
+                            : isPending
+                            ? (actualTheme === 'dark' ? '#FCD34D' : '#92400E')
+                            : isPartiallyPaid
+                            ? (actualTheme === 'dark' ? '#93C5FD' : '#1E40AF')
+                            : isFailed
+                            ? (actualTheme === 'dark' ? '#FCA5A5' : '#991B1B')
+                            : (actualTheme === 'dark' ? colors.textSecondary : '#6B7280');
 
                           return (
                             <div key={booking.id} style={{
@@ -1163,9 +1184,9 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                           flex: 1,
                           padding: '0.375rem',
                           borderRadius: '0.375rem',
-                          border: '2px solid #D1D5DB',
-                          backgroundColor: 'white',
-                          color: '#6B7280',
+                          border: `2px solid ${colors.borderSecondary}`,
+                          backgroundColor: colors.bgCard,
+                          color: colors.textSecondary,
                           fontSize: '0.85rem',
                           fontWeight: '500',
                           cursor: 'pointer',
@@ -1223,7 +1244,7 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                   key={client.id}
                   onClick={() => setSelectedClient(client)}
                   style={{
-                    backgroundColor: 'white',
+                    backgroundColor: colors.bgCard,
                     borderRadius: '1rem',
                     padding: '1rem',
                     border: '1px solid rgba(0, 0, 0, 0.1)',
@@ -1269,7 +1290,7 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                       <h3 style={{
                         fontSize: '1.1rem',
                         fontWeight: '600',
-                        color: '#111827',
+                        color: colors.textPrimary,
                         margin: 0,
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
@@ -1285,7 +1306,7 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
                       <LocationIcon />
-                      <span style={{ fontSize: '0.9rem', color: '#6B7280' }}>
+                      <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>
                         {client.location.city}, {client.location.country}
                       </span>
                     </div>
@@ -1293,27 +1314,27 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
 
                   {/* Last Booking */}
                   <div style={{ flex: '0 0 180px' }}>
-                    <p style={{ fontSize: '0.95rem', fontWeight: '500', color: '#111827', margin: 0, marginBottom: '0.125rem' }}>
+                    <p style={{ fontSize: '0.95rem', fontWeight: '500', color: colors.textPrimary, margin: 0, marginBottom: '0.125rem' }}>
                       {client.lastEventName}
                     </p>
-                    <p style={{ fontSize: '0.85rem', color: '#6B7280', margin: 0 }}>
+                    <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: 0 }}>
                       {client.lastEventType} • {formatDate(client.lastBookingDate)}
                     </p>
                   </div>
 
                   {/* Stats */}
                   <div style={{ flex: '0 0 80px', textAlign: 'center' }}>
-                    <p style={{ fontSize: '1rem', fontWeight: '700', color: '#083A85', margin: 0, marginBottom: '0.125rem' }}>
+                    <p style={{ fontSize: '1rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85', margin: 0, marginBottom: '0.125rem' }}>
                       {client.totalBookings}
                     </p>
-                    <p style={{ fontSize: '0.85rem', color: '#6B7280', margin: 0 }}>Bookings</p>
+                    <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: 0 }}>Bookings</p>
                   </div>
 
                   <div style={{ flex: '0 0 100px', textAlign: 'center' }}>
-                    <p style={{ fontSize: '1rem', fontWeight: '700', color: '#111827', margin: 0, marginBottom: '0.125rem' }}>
+                    <p style={{ fontSize: '1rem', fontWeight: '700', color: colors.textPrimary, margin: 0, marginBottom: '0.125rem' }}>
                       ${client.totalSpent.toLocaleString()}
                     </p>
-                    <p style={{ fontSize: '0.85rem', color: '#6B7280', margin: 0 }}>Total Spent</p>
+                    <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: 0 }}>Total Spent</p>
                   </div>
 
                   {/* Payment Status */}
@@ -1346,8 +1367,8 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                         {renderStars(client.review.rating)}
                         <span style={{
-                          backgroundColor: '#DBEAFE',
-                          color: '#1D4ED8',
+                          backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#DBEAFE',
+                          color: actualTheme === 'dark' ? '#93C5FD' : '#1D4ED8',
                           padding: '0.125rem 0.375rem',
                           borderRadius: '0.25rem',
                           fontSize: '0.8rem',
@@ -1367,10 +1388,14 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                       display: 'inline-block',
                       padding: '0.25rem 0.5rem',
                       borderRadius: '0.375rem',
-                      backgroundColor: client.status === 'active' ? '#D1FAE5' : '#FEE2E2',
+                      backgroundColor: client.status === 'active'
+                        ? (actualTheme === 'dark' ? '#064E3B' : '#D1FAE5')
+                        : (actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2'),
                       fontSize: '0.85rem',
                       fontWeight: '600',
-                      color: client.status === 'active' ? '#065F46' : '#991B1B',
+                      color: client.status === 'active'
+                        ? (actualTheme === 'dark' ? '#6EE7B7' : '#065F46')
+                        : (actualTheme === 'dark' ? '#FCA5A5' : '#991B1B'),
                       textTransform: 'capitalize'
                     }}>
                       {client.status}
@@ -1405,9 +1430,9 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                       style={{
                         padding: '0.375rem 0.625rem',
                         borderRadius: '0.375rem',
-                        border: '2px solid #D1D5DB',
-                        backgroundColor: 'white',
-                        color: '#6B7280',
+                        border: `2px solid ${colors.borderSecondary}`,
+                        backgroundColor: colors.bgCard,
+                        color: colors.textSecondary,
                         fontSize: '0.75rem',
                         cursor: 'pointer',
                         transition: 'all 0.2s',
@@ -1487,7 +1512,7 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#111827', margin: 0 }}>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: colors.textPrimary, margin: 0 }}>
                     {selectedClient.firstName} {selectedClient.lastName}
                   </h3>
                   {selectedClient.verified && <VerifiedIcon />}
@@ -1498,10 +1523,10 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                     <HeartIcon filled={selectedClient.isFavorite} />
                   </button>
                 </div>
-                <p style={{ fontSize: '0.9rem', color: '#6B7280', margin: '0.25rem 0' }}>{selectedClient.email}</p>
+                <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0.25rem 0' }}>{selectedClient.email}</p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                   <LocationIcon />
-                  <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>
+                  <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
                     {selectedClient.location.city}, {selectedClient.location.country}
                   </span>
                 </div>
@@ -1509,10 +1534,14 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
               <div style={{
                 padding: '0.375rem 0.75rem',
                 borderRadius: '0.5rem',
-                backgroundColor: selectedClient.status === 'active' ? '#D1FAE5' : '#FEE2E2',
+                backgroundColor: selectedClient.status === 'active'
+                  ? (actualTheme === 'dark' ? '#064E3B' : '#D1FAE5')
+                  : (actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2'),
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: selectedClient.status === 'active' ? '#065F46' : '#991B1B',
+                color: selectedClient.status === 'active'
+                  ? (actualTheme === 'dark' ? '#6EE7B7' : '#065F46')
+                  : (actualTheme === 'dark' ? '#FCA5A5' : '#991B1B'),
                 textTransform: 'capitalize'
               }}>
                 {selectedClient.status}
@@ -1521,48 +1550,48 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
 
             {/* Stats */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '1.5rem' }}>
-              <div style={{ backgroundColor: '#F9FAFB', padding: '0.75rem', borderRadius: '0.5rem', textAlign: 'center' }}>
-                <p style={{ fontSize: '1.25rem', fontWeight: '700', color: '#083A85', margin: 0, marginBottom: '0.25rem' }}>
+              <div style={{ backgroundColor: colors.bgTertiary, padding: '0.75rem', borderRadius: '0.5rem', textAlign: 'center' }}>
+                <p style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85', margin: 0, marginBottom: '0.25rem' }}>
                   {selectedClient.totalBookings}
                 </p>
-                <p style={{ fontSize: '0.75rem', color: '#6B7280', margin: 0 }}>Bookings</p>
+                <p style={{ fontSize: '0.75rem', color: colors.textSecondary, margin: 0 }}>Bookings</p>
               </div>
-              <div style={{ backgroundColor: '#F9FAFB', padding: '0.75rem', borderRadius: '0.5rem', textAlign: 'center' }}>
-                <p style={{ fontSize: '1.25rem', fontWeight: '700', color: '#083A85', margin: 0, marginBottom: '0.25rem' }}>
+              <div style={{ backgroundColor: colors.bgTertiary, padding: '0.75rem', borderRadius: '0.5rem', textAlign: 'center' }}>
+                <p style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85', margin: 0, marginBottom: '0.25rem' }}>
                   ${selectedClient.totalSpent.toLocaleString()}
                 </p>
-                <p style={{ fontSize: '0.75rem', color: '#6B7280', margin: 0 }}>Total Spent</p>
+                <p style={{ fontSize: '0.75rem', color: colors.textSecondary, margin: 0 }}>Total Spent</p>
               </div>
-              <div style={{ backgroundColor: '#F9FAFB', padding: '0.75rem', borderRadius: '0.5rem', textAlign: 'center' }}>
-                <p style={{ fontSize: '0.9rem', fontWeight: '500', color: '#111827', margin: 0, marginBottom: '0.25rem' }}>
+              <div style={{ backgroundColor: colors.bgTertiary, padding: '0.75rem', borderRadius: '0.5rem', textAlign: 'center' }}>
+                <p style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, margin: 0, marginBottom: '0.25rem' }}>
                   {formatDate(selectedClient.joinDate)}
                 </p>
-                <p style={{ fontSize: '0.75rem', color: '#6B7280', margin: 0 }}>Joined</p>
+                <p style={{ fontSize: '0.75rem', color: colors.textSecondary, margin: 0 }}>Joined</p>
               </div>
             </div>
 
             {/* Client's Review */}
             <div style={{ marginBottom: '1.5rem' }}>
-              <h4 style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827', marginBottom: '0.75rem' }}>Review for You</h4>
+              <h4 style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>Review for You</h4>
               {selectedClient.review ? (
-                <div style={{ padding: '1rem', backgroundColor: '#EFF6FF', borderRadius: '0.5rem', border: '1px solid #BFDBFE' }}>
+                <div style={{ padding: '1rem', backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF', borderRadius: '0.5rem', border: `1px solid ${actualTheme === 'dark' ? '#2563EB' : '#BFDBFE'}` }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.125rem' }}>
                       {renderStars(selectedClient.review.rating)}
                     </div>
-                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#1D4ED8' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: actualTheme === 'dark' ? '#93C5FD' : '#1D4ED8' }}>
                       {selectedClient.review.rating}/5
                     </span>
-                    <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>
+                    <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>
                       {formatDate(selectedClient.review.reviewDate)}
                     </span>
                   </div>
-                  <p style={{ fontSize: '0.9rem', color: '#374151', margin: 0, lineHeight: '1.5' }}>
+                  <p style={{ fontSize: '0.9rem', color: colors.textPrimary, margin: 0, lineHeight: '1.5' }}>
                     &ldquo;{selectedClient.review.reviewText}&rdquo;
                   </p>
                 </div>
               ) : (
-                <div style={{ padding: '1rem', backgroundColor: '#F9FAFB', borderRadius: '0.5rem', textAlign: 'center' }}>
+                <div style={{ padding: '1rem', backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', textAlign: 'center' }}>
                   <p style={{ fontSize: '0.85rem', color: '#9CA3AF', margin: 0 }}>
                     This client has not left a review yet
                   </p>
@@ -1572,26 +1601,26 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
 
             {/* Contact Info */}
             <div style={{ marginBottom: '1.5rem' }}>
-              <h4 style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827', marginBottom: '0.75rem' }}>Contact Information</h4>
+              <h4 style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>Contact Information</h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-                  <i className="bi bi-envelope" style={{ fontSize: '0.875rem', color: '#6B7280', width: '1rem' }}></i>
-                  <span style={{ fontSize: '0.85rem', color: '#374151' }}>{selectedClient.email}</span>
+                  <i className="bi bi-envelope" style={{ fontSize: '0.875rem', color: colors.textSecondary, width: '1rem' }}></i>
+                  <span style={{ fontSize: '0.85rem', color: colors.textPrimary }}>{selectedClient.email}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-                  <i className="bi bi-telephone" style={{ fontSize: '0.875rem', color: '#6B7280', width: '1rem' }}></i>
-                  <span style={{ fontSize: '0.85rem', color: '#374151' }}>{selectedClient.phone}</span>
+                  <i className="bi bi-telephone" style={{ fontSize: '0.875rem', color: colors.textSecondary, width: '1rem' }}></i>
+                  <span style={{ fontSize: '0.85rem', color: colors.textPrimary }}>{selectedClient.phone}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-                  <i className="bi bi-clock" style={{ fontSize: '0.875rem', color: '#6B7280', width: '1rem' }}></i>
-                  <span style={{ fontSize: '0.85rem', color: '#374151' }}>Last active {selectedClient.lastActive}</span>
+                  <i className="bi bi-clock" style={{ fontSize: '0.875rem', color: colors.textSecondary, width: '1rem' }}></i>
+                  <span style={{ fontSize: '0.85rem', color: colors.textPrimary }}>Last active {selectedClient.lastActive}</span>
                 </div>
               </div>
             </div>
 
             {/* Booking History */}
             <div style={{ marginBottom: '1.5rem' }}>
-              <h4 style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827', marginBottom: '0.75rem' }}>Recent Bookings</h4>
+              <h4 style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>Recent Bookings</h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 {selectedClient.bookings.map((booking) => {
                   const paymentColor = getPaymentStatusColor(booking.paymentStatus);
@@ -1602,9 +1631,33 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                   const isFailed = booking.paymentStatus === 'failed';
 
                   // Determine container background and border color based on status
-                  const containerBg = isPaid ? '#DCFCE7' : isPending ? '#FEF3C7' : isPartiallyPaid ? '#DBEAFE' : isFailed ? '#FEE2E2' : '#F9FAFB';
-                  const containerBorder = isPaid ? '#86EFAC' : isPending ? '#FCD34D' : isPartiallyPaid ? '#93C5FD' : isFailed ? '#FCA5A5' : '#E5E7EB';
-                  const textColor = isPaid ? '#15803D' : isPending ? '#92400E' : isPartiallyPaid ? '#1E40AF' : isFailed ? '#991B1B' : '#111827';
+                  const containerBg = isPaid
+                    ? (actualTheme === 'dark' ? '#064E3B' : '#DCFCE7')
+                    : isPending
+                    ? (actualTheme === 'dark' ? '#78350F' : '#FEF3C7')
+                    : isPartiallyPaid
+                    ? (actualTheme === 'dark' ? '#1E3A5F' : '#DBEAFE')
+                    : isFailed
+                    ? (actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2')
+                    : (actualTheme === 'dark' ? colors.bgTertiary : '#F9FAFB');
+                  const containerBorder = isPaid
+                    ? (actualTheme === 'dark' ? '#10B981' : '#86EFAC')
+                    : isPending
+                    ? (actualTheme === 'dark' ? '#F59E0B' : '#FCD34D')
+                    : isPartiallyPaid
+                    ? (actualTheme === 'dark' ? '#3B82F6' : '#93C5FD')
+                    : isFailed
+                    ? (actualTheme === 'dark' ? '#EF4444' : '#FCA5A5')
+                    : (actualTheme === 'dark' ? colors.borderPrimary : '#E5E7EB');
+                  const textColor = isPaid
+                    ? (actualTheme === 'dark' ? '#6EE7B7' : '#15803D')
+                    : isPending
+                    ? (actualTheme === 'dark' ? '#FCD34D' : '#92400E')
+                    : isPartiallyPaid
+                    ? (actualTheme === 'dark' ? '#93C5FD' : '#1E40AF')
+                    : isFailed
+                    ? (actualTheme === 'dark' ? '#FCA5A5' : '#991B1B')
+                    : (actualTheme === 'dark' ? colors.textPrimary : '#111827');
 
                   return (
                     <div key={booking.id} style={{
@@ -1618,7 +1671,7 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                     }}>
                       <div>
                         <p style={{ fontSize: '0.85rem', fontWeight: '500', color: textColor, margin: 0 }}>{booking.eventName}</p>
-                        <p style={{ fontSize: '0.75rem', color: isPaid ? '#166534' : isPending ? '#A16207' : isPartiallyPaid ? '#1E40AF' : isFailed ? '#991B1B' : '#6B7280', margin: '0.125rem 0' }}>
+                        <p style={{ fontSize: '0.75rem', color: isPaid ? (actualTheme === 'dark' ? '#34D399' : '#166534') : isPending ? (actualTheme === 'dark' ? '#FBBF24' : '#A16207') : isPartiallyPaid ? (actualTheme === 'dark' ? '#60A5FA' : '#1E40AF') : isFailed ? (actualTheme === 'dark' ? '#F87171' : '#991B1B') : colors.textSecondary, margin: '0.125rem 0' }}>
                           {booking.eventType} • {formatDate(booking.eventDate)}
                         </p>
                       </div>
@@ -1675,9 +1728,9 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                   flex: 1,
                   padding: '0.75rem',
                   borderRadius: '0.5rem',
-                  border: '2px solid #D1D5DB',
-                  backgroundColor: 'white',
-                  color: '#374151',
+                  border: `2px solid ${colors.borderSecondary}`,
+                  backgroundColor: colors.bgCard,
+                  color: colors.textPrimary,
                   fontSize: '0.9rem',
                   fontWeight: '500',
                   cursor: 'pointer',
@@ -1716,7 +1769,7 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
               gap: '0.75rem',
               marginBottom: '1.25rem',
               padding: '0.75rem',
-              backgroundColor: '#F9FAFB',
+              backgroundColor: colors.bgTertiary,
               borderRadius: '0.5rem'
             }}>
               <div style={{
@@ -1736,10 +1789,10 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                 />
               </div>
               <div>
-                <div style={{ fontWeight: '600', color: '#111827', fontSize: '0.95rem' }}>
+                <div style={{ fontWeight: '600', color: colors.textPrimary, fontSize: '0.95rem' }}>
                   {tipsClient.firstName} {tipsClient.lastName}
                 </div>
-                <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>
+                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>
                   {tipsClient.location.city}, {tipsClient.location.country}
                 </div>
               </div>
@@ -1747,25 +1800,25 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
 
             {/* Total Summary - Only Tips */}
             <div style={{
-              backgroundColor: '#FEF3C7',
+              backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FEF3C7',
               borderRadius: '0.5rem',
               padding: '1rem',
               textAlign: 'center',
-              border: '1px solid #FCD34D',
+              border: `1px solid ${actualTheme === 'dark' ? '#92400E' : '#FCD34D'}`,
               marginBottom: '1.25rem'
             }}>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#B45309' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#FCD34D' : '#B45309' }}>
                 ${tipsClient.tipsAndBonuses.filter(t => t.type === 'tip').reduce((sum, t) => sum + t.amount, 0)}
               </div>
-              <div style={{ fontSize: '0.8rem', color: '#92400E' }}>Total Tips Received</div>
-              <div style={{ fontSize: '0.75rem', color: '#6B7280', marginTop: '0.25rem' }}>
+              <div style={{ fontSize: '0.8rem', color: actualTheme === 'dark' ? '#FBBF24' : '#92400E' }}>Total Tips Received</div>
+              <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
                 {tipsClient.tipsAndBonuses.filter(t => t.type === 'tip').length} tip{tipsClient.tipsAndBonuses.filter(t => t.type === 'tip').length !== 1 ? 's' : ''} from this client
               </div>
             </div>
 
             {/* Tips List */}
             <div>
-              <h4 style={{ fontSize: '0.9rem', fontWeight: '600', color: '#111827', marginBottom: '0.75rem' }}>
+              <h4 style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>
                 Tips History
               </h4>
               {tipsClient.tipsAndBonuses.filter(t => t.type === 'tip').length > 0 ? (
@@ -1774,41 +1827,41 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                     <div key={item.id} style={{
                       padding: '0.75rem',
                       borderRadius: '0.5rem',
-                      backgroundColor: '#FFFBEB',
-                      border: '1px solid #FCD34D'
+                      backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FFFBEB',
+                      border: `1px solid ${actualTheme === 'dark' ? '#92400E' : '#FCD34D'}`
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.375rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                           <span style={{
                             padding: '0.125rem 0.375rem',
                             borderRadius: '0.25rem',
-                            backgroundColor: '#FEF3C7',
-                            color: '#B45309',
+                            backgroundColor: actualTheme === 'dark' ? '#92400E' : '#FEF3C7',
+                            color: actualTheme === 'dark' ? '#FCD34D' : '#B45309',
                             fontSize: '0.65rem',
                             fontWeight: '600',
                             textTransform: 'uppercase'
                           }}>
                             TIP
                           </span>
-                          <span style={{ fontSize: '0.8rem', color: '#6B7280' }}>
+                          <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>
                             {formatDate(item.date)}
                           </span>
                         </div>
                         <span style={{
                           fontSize: '1rem',
                           fontWeight: '700',
-                          color: '#B45309'
+                          color: actualTheme === 'dark' ? '#FCD34D' : '#B45309'
                         }}>
                           +${item.amount}
                         </span>
                       </div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: '500', color: '#111827', marginBottom: '0.25rem' }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.25rem' }}>
                         {item.eventName}
                       </div>
                       {item.message && (
                         <p style={{
                           fontSize: '0.8rem',
-                          color: '#6B7280',
+                          color: colors.textSecondary,
                           margin: 0,
                           fontStyle: 'italic'
                         }}>
@@ -1822,14 +1875,14 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                 <div style={{
                   padding: '2rem',
                   textAlign: 'center',
-                  backgroundColor: '#F9FAFB',
+                  backgroundColor: colors.bgTertiary,
                   borderRadius: '0.5rem',
-                  border: '1px solid #E5E7EB'
+                  border: `1px solid ${colors.borderPrimary}`
                 }}>
                   <div style={{ color: '#9CA3AF', marginBottom: '0.5rem' }}>
                     <GiftIcon />
                   </div>
-                  <p style={{ fontSize: '0.9rem', color: '#6B7280', margin: 0 }}>
+                  <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: 0 }}>
                     No tips from this client yet
                   </p>
                 </div>

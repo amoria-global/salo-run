@@ -453,11 +453,11 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                   style={{
                     width: '100%',
                     padding: '0.625rem 1rem 0.625rem 2.5rem',
-                    border: '2px solid #D1D5DB',
+                    border: `2px solid ${colors.borderSecondary}`,
                     borderRadius: '0.5rem',
                     fontSize: '0.9rem',
                     fontWeight: '500',
-                    color: '#374151',
+                    color: colors.textPrimary,
                     backgroundColor: colors.bgCard,
                     outline: 'none'
                   }}
@@ -504,8 +504,8 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                       gap: '0.75rem',
                       padding: '0.875rem 1rem',
                       cursor: 'pointer',
-                      backgroundColor: selectedConversation === conv.id ? '#EFF6FF' : 'white',
-                      borderBottom: '2px solid #D1D5DB',
+                      backgroundColor: selectedConversation === conv.id ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
+                      borderBottom: `2px solid ${colors.borderPrimary}`,
                       transition: 'background-color 0.2s'
                     }}
                   >
@@ -548,14 +548,14 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                           </span>
                           {conv.isPinned && <PinIcon />}
                         </div>
-                        <span style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>
+                        <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>
                           {conv.lastMessage ? formatTime(conv.lastMessage.createdAt) : ''}
                         </span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <p style={{
                           fontSize: '0.85rem',
-                          color: conv.unreadCount > 0 ? '#374151' : '#6B7280',
+                          color: conv.unreadCount > 0 ? colors.textPrimary : colors.textSecondary,
                           fontWeight: conv.unreadCount > 0 ? '500' : '400',
                           margin: 0,
                           overflow: 'hidden',
@@ -649,7 +649,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                   </div>
 
                 {/* Messages */}
-                <div style={{ flex: 1, overflowY: 'auto', padding: '1rem 1.25rem', backgroundColor: '#F5F6F8' }}>
+                <div style={{ flex: 1, overflowY: 'auto', padding: '1rem 1.25rem', backgroundColor: colors.bgTertiary }}>
                   {selectedConv.messages.map((message, index) => {
                     const isOwn = message.senderId === currentUserId;
                     const showAvatar = index === 0 || selectedConv.messages[index - 1].senderId !== message.senderId;
@@ -700,7 +700,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                                 style={{
                                   padding: '0.375rem',
                                   backgroundColor: colors.bgCard,
-                                  border: '1px solid #E5E7EB',
+                                  border: `1px solid ${colors.borderPrimary}`,
                                   borderRadius: '0.375rem',
                                   cursor: 'pointer',
                                   display: 'flex',
@@ -718,7 +718,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                                 style={{
                                   padding: '0.375rem',
                                   backgroundColor: colors.bgCard,
-                                  border: '1px solid #E5E7EB',
+                                  border: `1px solid ${colors.borderPrimary}`,
                                   borderRadius: '0.375rem',
                                   cursor: 'pointer',
                                   display: 'flex',
@@ -807,12 +807,12 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                               </div>
                             ) : (
                               <div style={{
-                                backgroundColor: isOwn ? '#083A85' : 'white',
-                                color: isOwn ? 'white' : '#111827',
+                                backgroundColor: isOwn ? '#083A85' : colors.bgCard,
+                                color: isOwn ? 'white' : colors.textPrimary,
                                 padding: '0.75rem 1rem',
                                 borderRadius: isOwn ? '1rem 1rem 0.25rem 1rem' : '1rem 1rem 1rem 0.25rem',
                                 boxShadow: colors.shadowSm,
-                                border: isOwn ? 'none' : '1px solid #E5E7EB'
+                                border: isOwn ? 'none' : `1px solid ${colors.borderPrimary}`
                               }}>
                                 <p style={{ margin: 0, fontSize: '0.9rem', lineHeight: '1.5' }}>{message.content}</p>
                               </div>
@@ -837,7 +837,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                 </div>
 
                 {/* Message Input */}
-                <div style={{ padding: '1rem 1.25rem', borderTop: '1px solid #E5E7EB', position: 'relative' }}>
+                <div style={{ padding: '1rem 1.25rem', borderTop: `1px solid ${colors.borderPrimary}`, position: 'relative' }}>
                   {/* Emoji Picker */}
                   {showEmojiPicker && (
                     <div
@@ -882,13 +882,13 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                             onClick={() => setActiveEmojiCategory(category)}
                             style={{
                               padding: '0.5rem 0.75rem',
-                              border: `2px solid ${activeEmojiCategory === category ? '#083A85' : '#D1D5DB'}`,
+                              border: `2px solid ${activeEmojiCategory === category ? '#083A85' : colors.borderPrimary}`,
                               borderRadius: '9999px',
                               fontSize: '0.75rem',
                               fontWeight: '600',
                               cursor: 'pointer',
-                              backgroundColor: activeEmojiCategory === category ? '#083A85' : 'white',
-                              color: activeEmojiCategory === category ? 'white' : '#374151',
+                              backgroundColor: activeEmojiCategory === category ? '#083A85' : colors.bgCard,
+                              color: activeEmojiCategory === category ? 'white' : colors.textSecondary,
                               whiteSpace: 'nowrap',
                               transition: 'background-color 0.2s, border-color 0.2s, color 0.2s',
                               flexShrink: 0,
@@ -924,7 +924,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                                 borderRadius: '0.25rem',
                                 transition: 'background-color 0.2s'
                               }}
-                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F3F4F6'}
+                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = colors.bgTertiary}
                               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                             >
                               {emoji}
@@ -949,7 +949,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                         justifyContent: 'center',
                         transition: 'background-color 0.2s'
                       }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F3F4F6'}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = colors.bgTertiary}
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                     >
                       <EmojiIcon />
@@ -1004,7 +1004,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                 <div style={{
                   width: '80px',
                   height: '80px',
-                  backgroundColor: '#F3F4F6',
+                  backgroundColor: colors.bgTertiary,
                   borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',
