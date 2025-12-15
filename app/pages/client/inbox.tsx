@@ -442,11 +442,11 @@ const InboxPage = () => {
                   style={{
                     width: '100%',
                     padding: '0.625rem 1rem 0.625rem 2.5rem',
-                    border: '2px solid #D1D5DB',
+                    border: `2px solid ${colors.borderPrimary}`,
                     borderRadius: '0.5rem',
                     fontSize: '0.9rem',
                     fontWeight: '500',
-                    color: '#374151',
+                    color: colors.textPrimary,
                     backgroundColor: colors.bgCard,
                     outline: 'none'
                   }}
@@ -493,8 +493,8 @@ const InboxPage = () => {
                       gap: '0.75rem',
                       padding: '0.875rem 1rem',
                       cursor: 'pointer',
-                      backgroundColor: selectedConversation === conv.id ? '#EFF6FF' : 'white',
-                      borderBottom: '2px solid #D1D5DB',
+                      backgroundColor: selectedConversation === conv.id ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
+                      borderBottom: `2px solid ${colors.borderPrimary}`,
                       transition: 'background-color 0.2s'
                     }}
                   >
@@ -537,14 +537,14 @@ const InboxPage = () => {
                           </span>
                           {conv.isPinned && <PinIcon />}
                         </div>
-                        <span style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>
+                        <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>
                           {conv.lastMessage ? formatTime(conv.lastMessage.createdAt) : ''}
                         </span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <p style={{
                           fontSize: '0.85rem',
-                          color: conv.unreadCount > 0 ? '#374151' : '#6B7280',
+                          color: conv.unreadCount > 0 ? colors.textPrimary : colors.textSecondary,
                           fontWeight: conv.unreadCount > 0 ? '500' : '400',
                           margin: 0,
                           overflow: 'hidden',
@@ -582,7 +582,7 @@ const InboxPage = () => {
             flex: 1,
             backgroundColor: colors.bgCard,
             borderRadius: '0 0.75rem 0.75rem 0',
-            border: '1px solid #D1D5DB',
+            border: `1px solid ${colors.borderPrimary}`,
             borderLeft: 'none',
             display: 'flex',
             flexDirection: 'column',
@@ -597,7 +597,7 @@ const InboxPage = () => {
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   padding: '1rem 1.25rem',
-                  borderBottom: '1px solid #E5E7EB'
+                  borderBottom: `1px solid ${colors.borderPrimary}`
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <div style={{ position: 'relative', width: '44px', height: '44px', flexShrink: 0 }}>
@@ -630,7 +630,7 @@ const InboxPage = () => {
                     </div>
                     <div>
                       <h2 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>{otherParticipant.name}</h2>
-                      <span style={{ fontSize: '0.8rem', color: otherParticipant.isOnline ? '#10B981' : '#6B7280' }}>
+                      <span style={{ fontSize: '0.8rem', color: otherParticipant.isOnline ? '#10B981' : colors.textSecondary }}>
                         {otherParticipant.isOnline ? 'Online' : `Last seen ${otherParticipant.lastSeen}`}
                       </span>
                     </div>
@@ -638,7 +638,7 @@ const InboxPage = () => {
                 </div>
 
                 {/* Messages */}
-                <div style={{ flex: 1, overflowY: 'auto', padding: '1rem 1.25rem', backgroundColor: '#F5F6F8' }}>
+                <div style={{ flex: 1, overflowY: 'auto', padding: '1rem 1.25rem', backgroundColor: colors.bgTertiary }}>
                   {selectedConv.messages.map((message, index) => {
                     const isOwn = message.senderId === currentUserId;
                     const showAvatar = index === 0 || selectedConv.messages[index - 1].senderId !== message.senderId;
@@ -689,7 +689,7 @@ const InboxPage = () => {
                                 style={{
                                   padding: '0.375rem',
                                   backgroundColor: colors.bgCard,
-                                  border: '1px solid #E5E7EB',
+                                  border: `1px solid ${colors.borderPrimary}`,
                                   borderRadius: '0.375rem',
                                   cursor: 'pointer',
                                   display: 'flex',
@@ -707,13 +707,13 @@ const InboxPage = () => {
                                 style={{
                                   padding: '0.375rem',
                                   backgroundColor: colors.bgCard,
-                                  border: '1px solid #E5E7EB',
+                                  border: `1px solid ${colors.borderPrimary}`,
                                   borderRadius: '0.375rem',
                                   cursor: 'pointer',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  color: '#DC2626',
+                                  color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626',
                                   transition: 'all 0.2s'
                                 }}
                                 title="Delete message"
@@ -727,7 +727,7 @@ const InboxPage = () => {
                             {isEditing ? (
                               <div style={{
                                 backgroundColor: colors.bgCard,
-                                border: '2px solid #083A85',
+                                border: `2px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}`,
                                 borderRadius: '0.75rem',
                                 padding: '0.75rem',
                                 minWidth: '250px',
@@ -735,7 +735,7 @@ const InboxPage = () => {
                               }}>
                                 <div style={{
                                   fontSize: '0.7rem',
-                                  color: '#083A85',
+                                  color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
                                   fontWeight: '600',
                                   marginBottom: '0.375rem',
                                   textTransform: 'uppercase',
@@ -751,7 +751,7 @@ const InboxPage = () => {
                                   style={{
                                     width: '100%',
                                     padding: '0.625rem 0.75rem',
-                                    border: '2px solid #D1D5DB',
+                                    border: `2px solid ${colors.borderPrimary}`,
                                     borderRadius: '0.375rem',
                                     fontSize: '0.9rem',
                                     outline: 'none',
@@ -766,8 +766,8 @@ const InboxPage = () => {
                                     onClick={cancelEdit}
                                     style={{
                                       padding: '0.5rem 1rem',
-                                      backgroundColor: colors.bgCard,
-                                      border: '2px solid #D1D5DB',
+                                      backgroundColor: colors.bgTertiary,
+                                      border: `2px solid ${colors.borderPrimary}`,
                                       borderRadius: '0.375rem',
                                       fontSize: '0.8rem',
                                       fontWeight: '600',
@@ -796,12 +796,12 @@ const InboxPage = () => {
                               </div>
                             ) : (
                               <div style={{
-                                backgroundColor: isOwn ? '#083A85' : 'white',
-                                color: isOwn ? 'white' : '#111827',
+                                backgroundColor: isOwn ? '#083A85' : colors.bgCard,
+                                color: isOwn ? 'white' : colors.textPrimary,
                                 padding: '0.75rem 1rem',
                                 borderRadius: isOwn ? '1rem 1rem 0.25rem 1rem' : '1rem 1rem 1rem 0.25rem',
-                                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                                border: isOwn ? 'none' : '1px solid #E5E7EB'
+                                boxShadow: colors.shadowSm,
+                                border: isOwn ? 'none' : `1px solid ${colors.borderPrimary}`
                               }}>
                                 <p style={{ margin: 0, fontSize: '0.9rem', lineHeight: '1.5' }}>{message.content}</p>
                               </div>
@@ -813,7 +813,7 @@ const InboxPage = () => {
                               gap: '0.25rem',
                               marginTop: '0.25rem'
                             }}>
-                              <span style={{ fontSize: '0.7rem', color: '#9CA3AF' }}>{formatMessageTime(message.createdAt)}</span>
+                              <span style={{ fontSize: '0.7rem', color: colors.textSecondary }}>{formatMessageTime(message.createdAt)}</span>
                               {isOwn && (message.isRead ? <CheckDoubleIcon /> : <CheckIcon />)}
                             </div>
                           </div>
@@ -826,7 +826,7 @@ const InboxPage = () => {
                 </div>
 
                 {/* Message Input */}
-                <div style={{ padding: '1rem 1.25rem', borderTop: '1px solid #E5E7EB', position: 'relative' }}>
+                <div style={{ padding: '1rem 1.25rem', borderTop: `1px solid ${colors.borderPrimary}`, position: 'relative' }}>
                   {/* Emoji Picker */}
                   {showEmojiPicker && (
                     <div
@@ -871,13 +871,13 @@ const InboxPage = () => {
                             onClick={() => setActiveEmojiCategory(category)}
                             style={{
                               padding: '0.5rem 0.75rem',
-                              border: `2px solid ${activeEmojiCategory === category ? '#083A85' : '#D1D5DB'}`,
+                              border: `2px solid ${activeEmojiCategory === category ? '#083A85' : colors.borderPrimary}`,
                               borderRadius: '9999px',
                               fontSize: '0.75rem',
                               fontWeight: '600',
                               cursor: 'pointer',
-                              backgroundColor: activeEmojiCategory === category ? '#083A85' : 'white',
-                              color: activeEmojiCategory === category ? 'white' : '#374151',
+                              backgroundColor: activeEmojiCategory === category ? '#083A85' : colors.bgCard,
+                              color: activeEmojiCategory === category ? 'white' : colors.textSecondary,
                               whiteSpace: 'nowrap',
                               transition: 'background-color 0.2s, border-color 0.2s, color 0.2s',
                               flexShrink: 0,
@@ -913,7 +913,7 @@ const InboxPage = () => {
                                 borderRadius: '0.25rem',
                                 transition: 'background-color 0.2s'
                               }}
-                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F3F4F6'}
+                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = colors.bgTertiary}
                               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                             >
                               {emoji}
@@ -938,7 +938,7 @@ const InboxPage = () => {
                         justifyContent: 'center',
                         transition: 'background-color 0.2s'
                       }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F3F4F6'}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = colors.bgTertiary}
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                     >
                       <EmojiIcon />
@@ -952,7 +952,7 @@ const InboxPage = () => {
                       style={{
                         flex: 1,
                         padding: '0.75rem 1rem',
-                        border: '2px solid #D1D5DB',
+                        border: `2px solid ${colors.borderPrimary}`,
                         borderRadius: '9999px',
                         fontSize: '0.9rem',
                         outline: 'none',
@@ -993,7 +993,7 @@ const InboxPage = () => {
                 <div style={{
                   width: '80px',
                   height: '80px',
-                  backgroundColor: '#F3F4F6',
+                  backgroundColor: colors.bgTertiary,
                   borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',

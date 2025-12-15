@@ -116,6 +116,7 @@ interface ModalProps {
 }
 
 const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidth = '500px' }) => {
+  const { colors } = useTheme();
   if (!isOpen) return null;
 
   return (
@@ -132,7 +133,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
       zIndex: 1000,
     }} onClick={onClose}>
       <div style={{
-        backgroundColor: 'white',
+        backgroundColor: colors.bgCard,
         borderRadius: '0.75rem',
         padding: '1.5rem',
         maxWidth: maxWidth,
@@ -142,8 +143,8 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
         boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
       }} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-          <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#111827', margin: 0 }}>{title}</h3>
-          <button className="no-print" onClick={onClose} style={{ background: '#F3F4F6', border: '2px solid #D1D5DB', cursor: 'pointer', padding: '0.5rem', borderRadius: '0.375rem', color: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>{title}</h3>
+          <button className="no-print" onClick={onClose} style={{ background: colors.bgTertiary, border: `2px solid ${colors.borderPrimary}`, cursor: 'pointer', padding: '0.5rem', borderRadius: '0.375rem', color: colors.textPrimary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <CloseIcon />
           </button>
         </div>
@@ -160,6 +161,7 @@ interface ViewReportModalProps {
 }
 
 const ViewReportModal: React.FC<ViewReportModalProps> = ({ isOpen, onClose }) => {
+  const { colors, actualTheme } = useTheme();
   const reportData = {
     period: '13 - 18 July 2025',
     totalPaid: 1200.13,
@@ -205,51 +207,51 @@ Transaction Summary:
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Payment Report" maxWidth="520px">
       <div style={{ marginBottom: '1rem' }}>
-        <div style={{ fontSize: '0.8rem', color: '#6B7280', marginBottom: '0.75rem' }}>
-          Report Period: <span style={{ fontWeight: '600', color: '#111827' }}>{reportData.period}</span>
+        <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.75rem' }}>
+          Report Period: <span style={{ fontWeight: '600', color: colors.textPrimary }}>{reportData.period}</span>
         </div>
 
         {/* Financial & Transaction Summary Side by Side */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
           {/* Financial Summary */}
-          <div style={{ backgroundColor: '#F9FAFB', borderRadius: '0.5rem', padding: '0.75rem' }}>
-            <h4 style={{ fontSize: '0.8rem', fontWeight: '600', color: '#111827', margin: 0, marginBottom: '0.5rem' }}>Financial Summary</h4>
+          <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '0.75rem' }}>
+            <h4 style={{ fontSize: '0.8rem', fontWeight: '600', color: colors.textPrimary, margin: 0, marginBottom: '0.5rem' }}>Financial Summary</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                   <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981' }} />
-                  <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>Paid</span>
+                  <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Paid</span>
                 </div>
-                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>${reportData.totalPaid.toFixed(2)}</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>${reportData.totalPaid.toFixed(2)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                   <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#FBBF24' }} />
-                  <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>Pending</span>
+                  <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Pending</span>
                 </div>
-                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>${reportData.pending.toFixed(2)}</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>${reportData.pending.toFixed(2)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                   <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#EF4444' }} />
-                  <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>Failed</span>
+                  <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Failed</span>
                 </div>
-                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>${reportData.failed.toFixed(2)}</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>${reportData.failed.toFixed(2)}</span>
               </div>
-              <div style={{ borderTop: '1px solid #E5E7EB', marginTop: '0.35rem', paddingTop: '0.35rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: '500', color: '#6B7280' }}>Total</span>
-                <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#083A85' }}>${(reportData.totalPaid + reportData.pending + reportData.failed).toFixed(2)}</span>
+              <div style={{ borderTop: `1px solid ${colors.borderPrimary}`, marginTop: '0.35rem', paddingTop: '0.35rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: '500', color: colors.textSecondary }}>Total</span>
+                <span style={{ fontSize: '0.95rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>${(reportData.totalPaid + reportData.pending + reportData.failed).toFixed(2)}</span>
               </div>
             </div>
           </div>
 
           {/* Transaction Summary */}
-          <div style={{ backgroundColor: '#F9FAFB', borderRadius: '0.5rem', padding: '0.75rem' }}>
-            <h4 style={{ fontSize: '0.8rem', fontWeight: '600', color: '#111827', margin: 0, marginBottom: '0.5rem' }}>Transaction Summary</h4>
+          <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '0.75rem' }}>
+            <h4 style={{ fontSize: '0.8rem', fontWeight: '600', color: colors.textPrimary, margin: 0, marginBottom: '0.5rem' }}>Transaction Summary</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>Total</span>
-                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#111827' }}>{reportData.totalTransactions}</span>
+                <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Total</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: colors.textPrimary }}>{reportData.totalTransactions}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: '0.75rem', color: '#10B981' }}>Completed</span>
@@ -293,9 +295,9 @@ Transaction Summary:
           alignItems: 'center',
           justifyContent: 'center',
           gap: '0.5rem',
-          backgroundColor: '#F3F4F6',
-          color: '#374151',
-          border: '2px solid #D1D5DB',
+          backgroundColor: colors.bgTertiary,
+          color: colors.textPrimary,
+          border: `2px solid ${colors.borderPrimary}`,
           borderRadius: '0.5rem',
           padding: '0.6rem 1rem',
           fontSize: '0.85rem',
@@ -335,6 +337,7 @@ interface PaymentDetailsModalProps {
 }
 
 const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({ isOpen, onClose, payment }) => {
+  const { colors } = useTheme();
   if (!payment) return null;
 
   const handlePrintReceipt = () => {
@@ -412,39 +415,39 @@ Amount: ${payment.amount}
         }}>
           {payment.status.replace('_', ' ')}
         </span>
-        <span style={{ fontSize: '1.75rem', fontWeight: '700', color: '#111827', marginTop: '0.5rem' }}>
+        <span style={{ fontSize: '1.75rem', fontWeight: '700', color: colors.textPrimary, marginTop: '0.5rem' }}>
           {payment.amount}
         </span>
       </div>
 
       {/* Payment Info */}
-      <div style={{ backgroundColor: '#F9FAFB', borderRadius: '0.5rem', padding: '1rem', marginBottom: '1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid #E5E7EB' }}>
+      <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '1rem', marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: `1px solid ${colors.borderPrimary}` }}>
           <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
             <Image src={payment.photographerImage} alt={payment.photographerName} width={40} height={40} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
           </div>
           <div>
-            <div style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>{payment.photographerName}</div>
-            <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>{payment.eventName}</div>
+            <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>{payment.photographerName}</div>
+            <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{payment.eventName}</div>
           </div>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>Invoice Number</span>
-            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>{payment.invoiceNumber}</span>
+            <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Invoice Number</span>
+            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{payment.invoiceNumber}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>Date & Time</span>
-            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>{payment.date}</span>
+            <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Date & Time</span>
+            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{payment.date}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>Payment Method</span>
-            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>{payment.method}</span>
+            <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Payment Method</span>
+            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{payment.method}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>Event Type</span>
-            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>{payment.eventType}</span>
+            <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Event Type</span>
+            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{payment.eventType}</span>
           </div>
         </div>
       </div>
@@ -474,9 +477,9 @@ Amount: ${payment.amount}
           alignItems: 'center',
           justifyContent: 'center',
           gap: '0.5rem',
-          backgroundColor: '#F3F4F6',
-          color: '#374151',
-          border: '2px solid #D1D5DB',
+          backgroundColor: colors.bgTertiary,
+          color: colors.textPrimary,
+          border: `2px solid ${colors.borderPrimary}`,
           borderRadius: '0.5rem',
           padding: '0.75rem 1rem',
           fontSize: '0.9rem',
@@ -487,9 +490,9 @@ Amount: ${payment.amount}
           Print
         </button>
         <button onClick={onClose} style={{
-          backgroundColor: '#F3F4F6',
-          color: '#374151',
-          border: '2px solid #D1D5DB',
+          backgroundColor: colors.bgTertiary,
+          color: colors.textPrimary,
+          border: `2px solid ${colors.borderPrimary}`,
           borderRadius: '0.5rem',
           padding: '0.75rem 1rem',
           fontSize: '0.9rem',
@@ -511,6 +514,7 @@ interface PayNowModalProps {
 }
 
 const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) => {
+  const { colors, actualTheme } = useTheme();
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('card');
 
   if (!payment) return null;
@@ -521,18 +525,18 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
     <Modal isOpen={isOpen} onClose={onClose} title={payment.status === 'failed' ? 'Retry Payment' : 'Complete Payment'} maxWidth="450px">
       <div>
         {/* Amount Summary */}
-        <div style={{ backgroundColor: '#F9FAFB', borderRadius: '0.5rem', padding: '1rem', marginBottom: '1.25rem' }}>
+        <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '1rem', marginBottom: '1.25rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-            <span style={{ fontSize: '0.9rem', color: '#6B7280' }}>Event</span>
-            <span style={{ fontSize: '0.9rem', fontWeight: '500', color: '#111827' }}>{payment.eventName}</span>
+            <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Event</span>
+            <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>{payment.eventName}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-            <span style={{ fontSize: '0.9rem', color: '#6B7280' }}>Photographer</span>
-            <span style={{ fontSize: '0.9rem', fontWeight: '500', color: '#111827' }}>{payment.photographerName}</span>
+            <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Photographer</span>
+            <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>{payment.photographerName}</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: '1px solid #E5E7EB' }}>
-            <span style={{ fontSize: '1rem', fontWeight: '600', color: '#374151' }}>Amount Due</span>
-            <span style={{ fontSize: '1.25rem', fontWeight: '700', color: '#083A85' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: `1px solid ${colors.borderPrimary}` }}>
+            <span style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>Amount Due</span>
+            <span style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
               ${amountDue.toLocaleString()}
             </span>
           </div>
@@ -540,7 +544,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
 
         {/* Payment Method Selection */}
         <div style={{ marginBottom: '1.25rem' }}>
-          <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.75rem' }}>
+          <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.75rem' }}>
             Payment Method
           </label>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -556,10 +560,10 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
                   alignItems: 'center',
                   gap: '0.75rem',
                   padding: '0.875rem',
-                  border: selectedPaymentMethod === method.id ? '2px solid #083A85' : '2px solid #D1D5DB',
+                  border: selectedPaymentMethod === method.id ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
                   borderRadius: '0.5rem',
                   cursor: 'pointer',
-                  backgroundColor: selectedPaymentMethod === method.id ? '#EFF6FF' : 'white'
+                  backgroundColor: selectedPaymentMethod === method.id ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard
                 }}
               >
                 <input
@@ -571,7 +575,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
                   style={{ width: '16px', height: '16px', cursor: 'pointer' }}
                 />
                 <span style={{ fontSize: '1.25rem' }}>{method.icon}</span>
-                <span style={{ fontSize: '0.9rem', fontWeight: '500', color: '#374151' }}>{method.label}</span>
+                <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>{method.label}</span>
               </label>
             ))}
           </div>
@@ -581,7 +585,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
         {selectedPaymentMethod === 'card' && (
           <div style={{ marginBottom: '1.25rem' }}>
             <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
                 Card Number
               </label>
               <input
@@ -590,15 +594,17 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
                 style={{
                   width: '100%',
                   padding: '0.75rem',
-                  border: '2px solid #D1D5DB',
+                  border: `2px solid ${colors.borderPrimary}`,
                   borderRadius: '0.5rem',
-                  fontSize: '0.9rem'
+                  fontSize: '0.9rem',
+                  backgroundColor: colors.bgCard,
+                  color: colors.textPrimary
                 }}
               />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
                   Expiry Date
                 </label>
                 <input
@@ -607,14 +613,16 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
                   style={{
                     width: '100%',
                     padding: '0.75rem',
-                    border: '2px solid #D1D5DB',
+                    border: `2px solid ${colors.borderPrimary}`,
                     borderRadius: '0.5rem',
-                    fontSize: '0.9rem'
+                    fontSize: '0.9rem',
+                    backgroundColor: colors.bgCard,
+                    color: colors.textPrimary
                   }}
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
                   CVV
                 </label>
                 <input
@@ -623,9 +631,11 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
                   style={{
                     width: '100%',
                     padding: '0.75rem',
-                    border: '2px solid #D1D5DB',
+                    border: `2px solid ${colors.borderPrimary}`,
                     borderRadius: '0.5rem',
-                    fontSize: '0.9rem'
+                    fontSize: '0.9rem',
+                    backgroundColor: colors.bgCard,
+                    color: colors.textPrimary
                   }}
                 />
               </div>
@@ -636,7 +646,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
         {/* Mobile Money (shown when mobile is selected) */}
         {selectedPaymentMethod === 'mobile' && (
           <div style={{ marginBottom: '1.25rem' }}>
-            <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+            <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
               Phone Number
             </label>
             <input
@@ -645,9 +655,11 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
               style={{
                 width: '100%',
                 padding: '0.75rem',
-                border: '2px solid #D1D5DB',
+                border: `2px solid ${colors.borderPrimary}`,
                 borderRadius: '0.5rem',
-                fontSize: '0.9rem'
+                fontSize: '0.9rem',
+                backgroundColor: colors.bgCard,
+                color: colors.textPrimary
               }}
             />
           </div>
@@ -660,10 +672,10 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
             style={{
               flex: 1,
               padding: '0.75rem 1rem',
-              border: '2px solid #D1D5DB',
+              border: `2px solid ${colors.borderPrimary}`,
               borderRadius: '0.5rem',
-              background: '#F3F4F6',
-              color: '#374151',
+              background: colors.bgTertiary,
+              color: colors.textPrimary,
               fontSize: '0.9rem',
               fontWeight: '600',
               cursor: 'pointer'
@@ -727,6 +739,7 @@ interface SpendingChartProps {
 }
 
 const SpendingChart: React.FC<SpendingChartProps> = ({ data, height = 140, chartType }) => {
+  const { colors } = useTheme();
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const maxValue = Math.max(...data.map(d => d.value));
   const minValue = Math.min(...data.map(d => d.value));
@@ -919,7 +932,7 @@ const SpendingChart: React.FC<SpendingChartProps> = ({ data, height = 140, chart
             left: `${(points[hoveredIndex].x / chartWidth) * 100}%`,
             top: chartType === 'bar' ? `${points[hoveredIndex].y - 80}px` : `${points[hoveredIndex].y - 70}px`,
             transform: 'translateX(-50%)',
-            backgroundColor: 'white',
+            backgroundColor: colors.bgCard,
             padding: '10px 14px',
             borderRadius: '10px',
             boxShadow: '0 4px 16px rgba(0, 0, 0, 0.12)',
@@ -927,7 +940,7 @@ const SpendingChart: React.FC<SpendingChartProps> = ({ data, height = 140, chart
             whiteSpace: 'nowrap',
             border: '1px solid #F3F4F6'
           }}>
-            <div style={{ fontSize: '0.8rem', color: '#6B7280', marginBottom: '6px', fontWeight: '500' }}>
+            <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '6px', fontWeight: '500' }}>
               {points[hoveredIndex].date}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -942,8 +955,8 @@ const SpendingChart: React.FC<SpendingChartProps> = ({ data, height = 140, chart
               }}>
                 <span style={{ color: 'white', fontSize: '0.7rem', fontWeight: '600' }}>$</span>
               </div>
-              <span style={{ fontSize: '0.9rem', color: '#6B7280' }}>Spending</span>
-              <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#111827' }}>
+              <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Spending</span>
+              <span style={{ fontSize: '0.95rem', fontWeight: '700', color: colors.textPrimary }}>
                 ${points[hoveredIndex].value.toLocaleString()}
               </span>
             </div>
@@ -984,6 +997,7 @@ interface PaymentGaugeProps {
 }
 
 const PaymentGauge: React.FC<PaymentGaugeProps> = ({ paid, pending, failed }) => {
+  const { colors } = useTheme();
   const total = paid + pending + failed;
   const paidAngle = (paid / total) * 180;
   const pendingAngle = (pending / total) * 180;
@@ -1217,8 +1231,8 @@ Amount: ${payment.amount}
 
           {/* Header */}
           <header style={{ marginBottom: '1.5rem' }}>
-            <h1 style={{ fontSize: '1.8rem', lineHeight: '2rem', color: '#111827', fontWeight: '600' }}>Payments</h1>
-            <p style={{ fontSize: '0.95rem', color: '#6B7280', marginTop: '0.25rem' }}>
+            <h1 style={{ fontSize: '1.8rem', lineHeight: '2rem', color: colors.textPrimary, fontWeight: '600' }}>Payments</h1>
+            <p style={{ fontSize: '0.95rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
               Manage your payments and view transaction history
             </p>
           </header>
@@ -1227,18 +1241,18 @@ Amount: ${payment.amount}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '1rem', marginBottom: '1rem' }}>
 
             {/* Spending Chart */}
-            <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)' }}>
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
                 <div>
-                  <div style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '0.25rem' }}>Total Spending</div>
+                  <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Spending</div>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '1rem' }}>
-                    <span style={{ fontSize: '1.75rem', fontWeight: '700', color: '#111827' }}>${(totalPaid + totalPending + totalFailed).toLocaleString()}</span>
-                    <span style={{ fontSize: '0.85rem', color: '#6B7280', fontWeight: '500' }}>This period</span>
+                    <span style={{ fontSize: '1.75rem', fontWeight: '700', color: colors.textPrimary }}>${(totalPaid + totalPending + totalFailed).toLocaleString()}</span>
+                    <span style={{ fontSize: '0.85rem', color: colors.textSecondary, fontWeight: '500' }}>This period</span>
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   {/* Chart Type Selector */}
-                  <div style={{ display: 'flex', gap: '0.25rem', backgroundColor: '#F3F4F6', borderRadius: '0.375rem', padding: '0.25rem' }}>
+                  <div style={{ display: 'flex', gap: '0.25rem', backgroundColor: colors.bgTertiary, borderRadius: '0.375rem', padding: '0.25rem' }}>
                     <button
                       onClick={() => setChartType('line')}
                       style={{
@@ -1246,7 +1260,7 @@ Amount: ${payment.amount}
                         border: 'none',
                         borderRadius: '0.25rem',
                         cursor: 'pointer',
-                        backgroundColor: chartType === 'line' ? 'white' : 'transparent',
+                        backgroundColor: chartType === 'line' ? colors.bgCard : 'transparent',
                         boxShadow: chartType === 'line' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
                         display: 'flex',
                         alignItems: 'center',
@@ -1264,7 +1278,7 @@ Amount: ${payment.amount}
                         border: 'none',
                         borderRadius: '0.25rem',
                         cursor: 'pointer',
-                        backgroundColor: chartType === 'bar' ? 'white' : 'transparent',
+                        backgroundColor: chartType === 'bar' ? colors.bgCard : 'transparent',
                         boxShadow: chartType === 'bar' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
                         display: 'flex',
                         alignItems: 'center',
@@ -1282,7 +1296,7 @@ Amount: ${payment.amount}
                         border: 'none',
                         borderRadius: '0.25rem',
                         cursor: 'pointer',
-                        backgroundColor: chartType === 'scatter' ? 'white' : 'transparent',
+                        backgroundColor: chartType === 'scatter' ? colors.bgCard : 'transparent',
                         boxShadow: chartType === 'scatter' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
                         display: 'flex',
                         alignItems: 'center',
@@ -1295,7 +1309,7 @@ Amount: ${payment.amount}
                     </button>
                   </div>
                   {/* Time Period Filter */}
-                  <div style={{ display: 'flex', gap: '0.25rem', backgroundColor: '#F9FAFB', borderRadius: '0.375rem', padding: '0.25rem' }}>
+                  <div style={{ display: 'flex', gap: '0.25rem', backgroundColor: colors.bgTertiary, borderRadius: '0.375rem', padding: '0.25rem' }}>
                     {(['1W', '1M', '3M', '6M', '1Y'] as const).map((period) => (
                       <button
                         key={period}
@@ -1307,7 +1321,7 @@ Amount: ${payment.amount}
                           fontSize: '0.75rem',
                           cursor: 'pointer',
                           backgroundColor: activeTimeFilter === period ? '#083A85' : 'transparent',
-                          color: activeTimeFilter === period ? 'white' : '#6B7280',
+                          color: activeTimeFilter === period ? 'white' : colors.textSecondary,
                           fontWeight: '600',
                           transition: 'all 0.2s'
                         }}
@@ -1322,11 +1336,11 @@ Amount: ${payment.amount}
             </div>
 
             {/* Payment Summary */}
-            <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)' }}>
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                 <div>
-                  <div style={{ fontSize: '0.9rem', fontWeight: '600', color: '#111827' }}>Payment Summary</div>
-                  <div style={{ fontSize: '0.75rem', color: '#6B7280' }}>Current Period</div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>Payment Summary</div>
+                  <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Current Period</div>
                 </div>
                 <button onClick={() => setShowReportModal(true)} style={{ fontSize: '0.85rem', color: '#2563EB', textDecoration: 'none', fontWeight: '500', background: 'none', border: 'none', cursor: 'pointer' }}>View report</button>
               </div>
@@ -1334,23 +1348,23 @@ Amount: ${payment.amount}
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10B981' }} />
-                    <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>Paid</span>
+                    <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Paid</span>
                   </div>
-                  <div style={{ fontSize: '1rem', fontWeight: '700', color: '#111827' }}>${totalPaid.toLocaleString()}</div>
+                  <div style={{ fontSize: '1rem', fontWeight: '700', color: colors.textPrimary }}>${totalPaid.toLocaleString()}</div>
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#FBBF24' }} />
-                    <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>Pending</span>
+                    <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Pending</span>
                   </div>
-                  <div style={{ fontSize: '1rem', fontWeight: '700', color: '#111827' }}>${totalPending.toLocaleString()}</div>
+                  <div style={{ fontSize: '1rem', fontWeight: '700', color: colors.textPrimary }}>${totalPending.toLocaleString()}</div>
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#EF4444' }} />
-                    <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>Failed</span>
+                    <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Failed</span>
                   </div>
-                  <div style={{ fontSize: '1rem', fontWeight: '700', color: '#111827' }}>${totalFailed.toLocaleString()}</div>
+                  <div style={{ fontSize: '1rem', fontWeight: '700', color: colors.textPrimary }}>${totalFailed.toLocaleString()}</div>
                 </div>
               </div>
               <PaymentGauge paid={totalPaid} pending={totalPending} failed={totalFailed} />
@@ -1358,28 +1372,29 @@ Amount: ${payment.amount}
           </div>
 
           {/* Gifts Section */}
-          <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)', overflow: 'hidden', marginBottom: '1rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderBottom: '1px solid #E5E7EB' }}>
+          <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)', overflow: 'hidden', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderBottom: `1px solid ${colors.borderPrimary}` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <div style={{
                   width: '40px',
                   height: '40px',
                   borderRadius: '0.5rem',
-                  backgroundColor: '#DCFCE7',
+                  backgroundColor: actualTheme === 'dark' ? '#14532D' : '#DCFCE7',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  color: actualTheme === 'dark' ? '#4ADE80' : '#16A34A'
                 }}>
                   <GiftIcon />
                 </div>
                 <div>
-                  <h2 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#111827', margin: 0 }}>Gifts Received</h2>
-                  <p style={{ fontSize: '0.8rem', color: '#6B7280', margin: 0 }}>From live-stream viewers on ConnektLive</p>
+                  <h2 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Gifts Received</h2>
+                  <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: 0 }}>From live-stream viewers on ConnektLive</p>
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '0.75rem', color: '#6B7280' }}>Total Gifts</div>
+                  <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Total Gifts</div>
                   <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>${totalGifts.toFixed(2)}</div>
                 </div>
               </div>
@@ -1393,9 +1408,9 @@ Amount: ${payment.amount}
                     <div
                       key={stream.id}
                       style={{
-                        backgroundColor: '#F0FDF4',
+                        backgroundColor: actualTheme === 'dark' ? '#14532D' : '#F0FDF4',
                         borderRadius: '0.75rem',
-                        border: '1px solid #BBF7D0',
+                        border: `1px solid ${actualTheme === 'dark' ? '#166534' : '#BBF7D0'}`,
                         padding: '1rem',
                         boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
                       }}
@@ -1414,17 +1429,17 @@ Amount: ${payment.amount}
                             {stream.platform}
                           </span>
                         </div>
-                        <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>{stream.date}</span>
+                        <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>{stream.date}</span>
                       </div>
 
-                      <h3 style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827', margin: '0 0 0.5rem 0' }}>
+                      <h3 style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
                         {stream.streamTitle}
                       </h3>
 
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                          <span style={{ color: '#6B7280' }}><UsersIcon /></span>
-                          <span style={{ fontSize: '0.8rem', color: '#6B7280' }}>{stream.gifters.length} gifters</span>
+                          <span style={{ color: colors.textSecondary }}><UsersIcon /></span>
+                          <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{stream.gifters.length} gifters</span>
                         </div>
                         <span style={{ fontSize: '1.1rem', fontWeight: '700', color: '#16A34A' }}>${streamTotal.toFixed(2)}</span>
                       </div>
@@ -1458,10 +1473,10 @@ Amount: ${payment.amount}
           </div>
 
           {/* Payments History Table */}
-          <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)', overflow: 'hidden' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderBottom: '1px solid #E5E7EB' }}>
-              <h2 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#111827' }}>Payment History</h2>
-              <button style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'white', border: '2px solid #D1D5DB', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', fontSize: '0.85rem', color: '#6B7280', cursor: 'pointer' }}>
+          <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderBottom: `1px solid ${colors.borderPrimary}` }}>
+              <h2 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary }}>Payment History</h2>
+              <button style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: colors.bgCard, border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', padding: '0.5rem 0.75rem', fontSize: '0.85rem', color: colors.textSecondary, cursor: 'pointer' }}>
                 <CalendarIcon />
                 19 Nov - 29 Nov 2024
               </button>
@@ -1469,37 +1484,37 @@ Amount: ${payment.amount}
 
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ backgroundColor: '#F9FAFB' }}>
-                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>Date</th>
-                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>Event / Photographer</th>
-                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>Method</th>
-                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>Amount</th>
-                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>Status</th>
-                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>Invoice</th>
-                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: '#6B7280', textTransform: 'uppercase' }}>Action</th>
+                <tr style={{ backgroundColor: colors.bgTertiary }}>
+                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase' }}>Date</th>
+                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase' }}>Event / Photographer</th>
+                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase' }}>Method</th>
+                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase' }}>Amount</th>
+                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase' }}>Status</th>
+                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase' }}>Invoice</th>
+                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {payments.map((payment) => (
-                  <tr key={payment.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
-                    <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.85rem', color: '#6B7280' }}>{payment.date}</td>
+                  <tr key={payment.id} style={{ borderBottom: `1px solid ${colors.borderPrimary}` }}>
+                    <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.85rem', color: colors.textSecondary }}>{payment.date}</td>
                     <td style={{ padding: '0.875rem 1.25rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                         <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
                           <Image src={payment.photographerImage} alt={payment.photographerName} width={32} height={32} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
                         </div>
                         <div>
-                          <div style={{ fontSize: '0.9rem', fontWeight: '500', color: '#111827' }}>{payment.eventName}</div>
+                          <div style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>{payment.eventName}</div>
                           <EventTypeBadge type={payment.eventType} />
                         </div>
                       </div>
                     </td>
-                    <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.85rem', color: '#6B7280' }}>{payment.method}</td>
-                    <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.9rem', fontWeight: '600', color: '#111827' }}>{payment.amount}</td>
+                    <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.85rem', color: colors.textSecondary }}>{payment.method}</td>
+                    <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{payment.amount}</td>
                     <td style={{ padding: '0.875rem 1.25rem' }}><StatusBadge status={payment.status} /></td>
                     <td style={{ padding: '0.875rem 1.25rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>{payment.invoiceNumber}</span>
+                        <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>{payment.invoiceNumber}</span>
                         <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}><CopyIcon /></button>
                       </div>
                     </td>
@@ -1559,22 +1574,22 @@ Amount: ${payment.amount}
             </table>
 
             {/* Pagination */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderTop: '1px solid #E5E7EB' }}>
-              <div style={{ fontSize: '0.85rem', color: '#6B7280' }}>Showing {resultsPerPage} of {totalResults} Results</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderTop: `1px solid ${colors.borderPrimary}` }}>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Showing {resultsPerPage} of {totalResults} Results</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <button onClick={() => setCurrentPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1} style={{ background: 'none', border: '2px solid #D1D5DB', borderRadius: '0.375rem', padding: '0.5rem', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', opacity: currentPage === 1 ? 0.5 : 1 }}>
+                <button onClick={() => setCurrentPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1} style={{ background: 'none', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', padding: '0.5rem', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', opacity: currentPage === 1 ? 0.5 : 1 }}>
                   <ChevronLeftIcon />
                 </button>
                 {[1, 2, 3].map((page) => (
-                  <button key={page} onClick={() => setCurrentPage(page)} style={{ width: '32px', height: '32px', border: currentPage === page ? '2px solid #062a63' : '2px solid #D1D5DB', borderRadius: '0.375rem', backgroundColor: currentPage === page ? '#083A85' : 'white', color: currentPage === page ? 'white' : '#6B7280', fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer' }}>
+                  <button key={page} onClick={() => setCurrentPage(page)} style={{ width: '32px', height: '32px', border: currentPage === page ? '2px solid #062a63' : `2px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', backgroundColor: currentPage === page ? '#083A85' : colors.bgCard, color: currentPage === page ? 'white' : colors.textSecondary, fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer' }}>
                     {page}
                   </button>
                 ))}
-                <span style={{ padding: '0 0.5rem', color: '#6B7280' }}>...</span>
-                <button onClick={() => setCurrentPage(totalPages)} style={{ width: '32px', height: '32px', border: currentPage === totalPages ? '2px solid #062a63' : '2px solid #D1D5DB', borderRadius: '0.375rem', backgroundColor: currentPage === totalPages ? '#083A85' : 'white', color: currentPage === totalPages ? 'white' : '#6B7280', fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer' }}>
+                <span style={{ padding: '0 0.5rem', color: colors.textSecondary }}>...</span>
+                <button onClick={() => setCurrentPage(totalPages)} style={{ width: '32px', height: '32px', border: currentPage === totalPages ? '2px solid #062a63' : `2px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', backgroundColor: currentPage === totalPages ? '#083A85' : colors.bgCard, color: currentPage === totalPages ? 'white' : colors.textSecondary, fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer' }}>
                   {totalPages}
                 </button>
-                <button onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages} style={{ background: 'none', border: '2px solid #D1D5DB', borderRadius: '0.375rem', padding: '0.5rem', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', opacity: currentPage === totalPages ? 0.5 : 1 }}>
+                <button onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages} style={{ background: 'none', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', padding: '0.5rem', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', opacity: currentPage === totalPages ? 0.5 : 1 }}>
                   <ChevronRightIcon />
                 </button>
               </div>
@@ -1607,11 +1622,11 @@ Amount: ${payment.amount}
           <div>
             {/* Stream Info */}
             <div style={{
-              backgroundColor: '#F0FDF4',
+              backgroundColor: actualTheme === 'dark' ? '#14532D' : '#F0FDF4',
               borderRadius: '0.5rem',
               padding: '1rem',
               marginBottom: '1rem',
-              border: '1px solid #BBF7D0'
+              border: `1px solid ${actualTheme === 'dark' ? '#166534' : '#BBF7D0'}`
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                 <LiveStreamIcon />
@@ -1625,16 +1640,16 @@ Amount: ${payment.amount}
                 }}>
                   {selectedGiftStream.platform}
                 </span>
-                <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>{selectedGiftStream.date}</span>
+                <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>{selectedGiftStream.date}</span>
               </div>
-              <h3 style={{ fontSize: '1rem', fontWeight: '600', color: '#111827', margin: 0 }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
                 {selectedGiftStream.streamTitle}
               </h3>
             </div>
 
             {/* Gift Senders List */}
             <div style={{ marginBottom: '1rem' }}>
-              <div style={{ fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.75rem' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>
                 {selectedGiftStream.gifters.length} Viewers Gifted
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -1646,9 +1661,9 @@ Amount: ${payment.amount}
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       padding: '0.75rem',
-                      backgroundColor: '#F9FAFB',
+                      backgroundColor: colors.bgTertiary,
                       borderRadius: '0.5rem',
-                      border: '1px solid #E5E7EB'
+                      border: `1px solid ${colors.borderPrimary}`
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -1656,17 +1671,17 @@ Amount: ${payment.amount}
                         width: '32px',
                         height: '32px',
                         borderRadius: '50%',
-                        backgroundColor: '#DCFCE7',
+                        backgroundColor: actualTheme === 'dark' ? '#166534' : '#DCFCE7',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         fontSize: '0.8rem',
                         fontWeight: '600',
-                        color: '#16A34A'
+                        color: actualTheme === 'dark' ? '#4ADE80' : '#16A34A'
                       }}>
                         {gifter.name === 'Anonymous' ? '?' : gifter.name.charAt(0)}
                       </div>
-                      <span style={{ fontSize: '0.9rem', fontWeight: '500', color: '#111827' }}>
+                      <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>
                         {gifter.name}
                       </span>
                     </div>
@@ -1684,12 +1699,12 @@ Amount: ${payment.amount}
               justifyContent: 'space-between',
               alignItems: 'center',
               padding: '0.75rem 1rem',
-              backgroundColor: '#DCFCE7',
+              backgroundColor: actualTheme === 'dark' ? '#14532D' : '#DCFCE7',
               borderRadius: '0.5rem',
-              border: '1px solid #BBF7D0'
+              border: `1px solid ${actualTheme === 'dark' ? '#166534' : '#BBF7D0'}`
             }}>
-              <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#374151' }}>Total from this stream</span>
-              <span style={{ fontSize: '1.25rem', fontWeight: '700', color: '#16A34A' }}>
+              <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>Total from this stream</span>
+              <span style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#4ADE80' : '#16A34A' }}>
                 ${selectedGiftStream.gifters.reduce((s, g) => s + g.amount, 0).toFixed(2)}
               </span>
             </div>

@@ -176,20 +176,21 @@ const SendIcon = () => (
 
 // Stream Status Badge Component
 const StreamStatusBadge: React.FC<{ status: StreamStatus }> = ({ status }) => {
+  const { actualTheme } = useTheme();
   const getStatusStyle = () => {
     switch (status) {
       case 'scheduled':
-        return { backgroundColor: '#DBEAFE', color: '#1D4ED8' };
+        return { backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#DBEAFE', color: actualTheme === 'dark' ? '#60A5FA' : '#1D4ED8' };
       case 'preparing':
-        return { backgroundColor: '#FEF3C7', color: '#B45309' };
+        return { backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FEF3C7', color: actualTheme === 'dark' ? '#FCD34D' : '#B45309' };
       case 'live':
-        return { backgroundColor: '#D1FAE5', color: '#059669' };
+        return { backgroundColor: actualTheme === 'dark' ? '#14532D' : '#D1FAE5', color: actualTheme === 'dark' ? '#4ADE80' : '#059669' };
       case 'ended':
-        return { backgroundColor: '#F3F4F6', color: '#6B7280' };
+        return { backgroundColor: actualTheme === 'dark' ? '#374151' : '#F3F4F6', color: actualTheme === 'dark' ? '#9CA3AF' : '#6B7280' };
       case 'replay_ready':
-        return { backgroundColor: '#E0E7FF', color: '#5B21B6' };
+        return { backgroundColor: actualTheme === 'dark' ? '#4C1D95' : '#E0E7FF', color: actualTheme === 'dark' ? '#A78BFA' : '#5B21B6' };
       default:
-        return { backgroundColor: '#F3F4F6', color: '#6B7280' };
+        return { backgroundColor: actualTheme === 'dark' ? '#374151' : '#F3F4F6', color: actualTheme === 'dark' ? '#9CA3AF' : '#6B7280' };
     }
   };
 
@@ -237,6 +238,7 @@ interface ModalProps {
 }
 
 const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidth = '500px' }) => {
+  const { colors } = useTheme();
   if (!isOpen) return null;
 
   return (
@@ -253,7 +255,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
       zIndex: 1000,
     }} onClick={onClose}>
       <div style={{
-        backgroundColor: 'white',
+        backgroundColor: colors.bgCard,
         borderRadius: '0.75rem',
         padding: '1.5rem',
         maxWidth: maxWidth,
@@ -263,8 +265,8 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
         boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
       }} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-          <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#111827', margin: 0 }}>{title}</h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem', color: '#6B7280' }}>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>{title}</h3>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem', color: colors.textSecondary }}>
             <CloseIcon />
           </button>
         </div>
@@ -615,7 +617,7 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
                 <div
                   key={stream.id}
                   style={{
-                    backgroundColor: 'white',
+                    backgroundColor: colors.bgCard,
                     borderRadius: '1rem',
                     overflow: 'hidden',
                     boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
@@ -686,8 +688,8 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
                         position: 'absolute',
                         bottom: '0.75rem',
                         right: '0.75rem',
-                        backgroundColor: '#D1FAE5',
-                        color: '#059669',
+                        backgroundColor: actualTheme === 'dark' ? '#14532D' : '#D1FAE5',
+                        color: actualTheme === 'dark' ? '#4ADE80' : '#059669',
                         padding: '0.25rem 0.5rem',
                         borderRadius: '0.25rem',
                         fontSize: '0.75rem',
@@ -700,10 +702,10 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
 
                   {/* Stream Info */}
                   <div style={{ padding: '1rem' }}>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#111827', marginBottom: '0.25rem', margin: 0 }}>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.25rem', margin: 0 }}>
                       {stream.title}
                     </h3>
-                    <p style={{ fontSize: '0.85rem', color: '#6B7280', margin: '0.25rem 0 0.75rem 0' }}>
+                    <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0.25rem 0 0.75rem 0' }}>
                       {stream.eventTitle}
                     </p>
 
@@ -718,25 +720,25 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
                           style={{ objectFit: 'cover', width: '100%', height: '100%' }}
                         />
                       </div>
-                      <span style={{ fontSize: '0.9rem', color: '#374151' }}>
+                      <span style={{ fontSize: '0.9rem', color: colors.textPrimary }}>
                         {stream.clientName}
                       </span>
                     </div>
 
                     {/* Date & Time */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: '#6B7280' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: colors.textSecondary }}>
                         <CalendarIcon />
                         <span style={{ fontSize: '0.85rem' }}>{formatDate(stream.scheduledDate)}</span>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: '#6B7280' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: colors.textSecondary }}>
                         <ClockIcon />
                         <span style={{ fontSize: '0.85rem' }}>{stream.status === 'live' ? stream.duration : stream.scheduledTime}</span>
                       </div>
                     </div>
 
                     {/* Actions */}
-                    <div style={{ display: 'flex', gap: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid #E5E7EB' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', paddingTop: '0.75rem', borderTop: `1px solid ${colors.borderPrimary}` }}>
                       {stream.status === 'live' && (
                         <button
                           onClick={() => setShowControlPanel(stream)}
@@ -875,7 +877,7 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
           zIndex: 1000,
         }} onClick={() => setShowControlPanel(null)}>
           <div style={{
-            backgroundColor: 'white',
+            backgroundColor: colors.bgCard,
             borderRadius: '0 0 0.75rem 0.75rem',
             width: '90%',
             maxWidth: '700px',
@@ -910,7 +912,7 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
                   width: '10px',
                   height: '10px',
                   borderRadius: '50%',
-                  backgroundColor: 'white',
+                  backgroundColor: colors.bgCard,
                   animation: 'pulse 1.5s infinite'
                 }}/>
                 LIVE NOW
@@ -922,15 +924,15 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
                   position: 'absolute',
                   top: '1rem',
                   right: '1rem',
-                  background: '#F3F4F6',
-                  border: '2px solid #D1D5DB',
+                  background: colors.bgTertiary,
+                  border: `2px solid ${colors.borderPrimary}`,
                   cursor: 'pointer',
                   padding: '0.5rem',
-                  borderRadius: '0.5rem',
+                  borderRadius: '0.375rem',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: '#6B7280'
+                  color: colors.textPrimary
                 }}
               >
                 <CloseIcon />
@@ -976,32 +978,32 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
             {/* Content */}
             <div style={{ padding: '1.5rem' }}>
               {/* Event Title */}
-              <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: '#111827', margin: '0 0 0.5rem 0' }}>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
                 {showControlPanel.eventTitle}
               </h2>
-              <h3 style={{ fontSize: '1rem', fontWeight: '500', color: '#6B7280', margin: '0 0 1rem 0' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: '500', color: colors.textSecondary, margin: '0 0 1rem 0' }}>
                 {showControlPanel.title}
               </h3>
 
               {/* Description */}
               <div style={{
-                backgroundColor: '#F9FAFB',
+                backgroundColor: colors.bgTertiary,
                 borderRadius: '0.5rem',
                 padding: '1rem',
                 marginBottom: '1.25rem',
-                border: '1px solid #E5E7EB'
+                border: `1px solid ${colors.borderPrimary}`
               }}>
-                <p style={{ fontSize: '0.9rem', color: '#374151', margin: 0, lineHeight: '1.6' }}>
+                <p style={{ fontSize: '0.9rem', color: colors.textPrimary, margin: 0, lineHeight: '1.6' }}>
                   {showControlPanel.description}
                 </p>
               </div>
 
               {/* Stream URL for Viewers */}
               <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>
+                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.5rem' }}>
                   Stream Viewing Link
                 </label>
-                <p style={{ fontSize: '0.8rem', color: '#6B7280', margin: '0 0 0.5rem 0' }}>
+                <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: '0 0 0.5rem 0' }}>
                   Share this link with viewers to watch the stream
                 </p>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -1012,11 +1014,11 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
                     style={{
                       flex: 1,
                       padding: '0.75rem',
-                      border: '2px solid #D1D5DB',
+                      border: `2px solid ${colors.borderPrimary}`,
                       borderRadius: '0.5rem',
                       fontSize: '0.9rem',
-                      backgroundColor: '#F9FAFB',
-                      color: '#111827'
+                      backgroundColor: colors.bgTertiary,
+                      color: colors.textPrimary
                     }}
                   />
                   <button
@@ -1044,11 +1046,11 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
 
               {/* Camera Settings */}
               <div style={{
-                backgroundColor: '#F0F9FF',
+                backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#F0F9FF',
                 borderRadius: '0.75rem',
                 padding: '1.25rem',
                 marginBottom: '1.5rem',
-                border: '1px solid #BAE6FD'
+                border: `1px solid ${actualTheme === 'dark' ? '#2563EB' : '#BAE6FD'}`
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
                   <div style={{
@@ -1064,10 +1066,10 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
                     <VideoIcon />
                   </div>
                   <div>
-                    <h4 style={{ fontSize: '1rem', fontWeight: '600', color: '#0C4A6E', margin: 0 }}>
+                    <h4 style={{ fontSize: '1rem', fontWeight: '600', color: actualTheme === 'dark' ? '#7DD3FC' : '#0C4A6E', margin: 0 }}>
                       Camera Settings
                     </h4>
-                    <p style={{ fontSize: '0.8rem', color: '#0369A1', margin: '0.125rem 0 0 0' }}>
+                    <p style={{ fontSize: '0.8rem', color: actualTheme === 'dark' ? '#BAE6FD' : '#0369A1', margin: '0.125rem 0 0 0' }}>
                       Configure your connected pro camera
                     </p>
                   </div>
@@ -1075,7 +1077,7 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
 
                 {/* Camera Source Selection */}
                 <div style={{ marginBottom: '1rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: '#0C4A6E', marginBottom: '0.5rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: actualTheme === 'dark' ? '#7DD3FC' : '#0C4A6E', marginBottom: '0.5rem' }}>
                     Video Source
                   </label>
                   <select
@@ -1084,11 +1086,11 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
                     style={{
                       width: '100%',
                       padding: '0.75rem',
-                      border: '2px solid #7DD3FC',
+                      border: `2px solid ${actualTheme === 'dark' ? '#2563EB' : '#7DD3FC'}`,
                       borderRadius: '0.5rem',
                       fontSize: '0.9rem',
-                      backgroundColor: 'white',
-                      color: '#0C4A6E',
+                      backgroundColor: actualTheme === 'dark' ? '#374151' : colors.bgCard,
+                      color: colors.textPrimary,
                       cursor: 'pointer'
                     }}
                   >
@@ -1101,7 +1103,7 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
 
                 {/* Audio Source Selection */}
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: '#0C4A6E', marginBottom: '0.5rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: actualTheme === 'dark' ? '#7DD3FC' : '#0C4A6E', marginBottom: '0.5rem' }}>
                     Audio Source
                   </label>
                   <select
@@ -1110,11 +1112,11 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
                     style={{
                       width: '100%',
                       padding: '0.75rem',
-                      border: '2px solid #7DD3FC',
+                      border: `2px solid ${actualTheme === 'dark' ? '#2563EB' : '#7DD3FC'}`,
                       borderRadius: '0.5rem',
                       fontSize: '0.9rem',
-                      backgroundColor: 'white',
-                      color: '#0C4A6E',
+                      backgroundColor: actualTheme === 'dark' ? '#374151' : colors.bgCard,
+                      color: colors.textPrimary,
                       cursor: 'pointer'
                     }}
                   >
@@ -1131,7 +1133,7 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
                   gap: '1rem',
                   marginTop: '1rem',
                   paddingTop: '1rem',
-                  borderTop: '1px solid #BAE6FD'
+                  borderTop: `1px solid ${actualTheme === 'dark' ? '#2563EB' : '#BAE6FD'}`
                 }}>
                   <div style={{
                     display: 'flex',
@@ -1209,7 +1211,7 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
           zIndex: 1000,
         }} onClick={() => setShowStreamDetails(null)}>
           <div style={{
-            backgroundColor: 'white',
+            backgroundColor: colors.bgCard,
             borderRadius: '0 0 0.75rem 0.75rem',
             maxWidth: '600px',
             width: '90%',
@@ -1239,18 +1241,16 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
                   position: 'absolute',
                   top: '1rem',
                   right: '1rem',
-                  backgroundColor: 'rgba(255,255,255,0.95)',
-                  border: '2px solid #D1D5DB',
-                  borderRadius: '50%',
-                  width: '36px',
-                  height: '36px',
+                  backgroundColor: colors.bgTertiary,
+                  border: `2px solid ${colors.borderPrimary}`,
+                  borderRadius: '0.375rem',
+                  padding: '0.5rem',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: '#374151',
+                  color: colors.textPrimary,
                   zIndex: 5,
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                   transition: 'all 0.2s'
                 }}
               >
@@ -1264,15 +1264,15 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
 
             {/* Content */}
             <div style={{ padding: '1.5rem' }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#111827', margin: '0 0 0.25rem 0' }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: colors.textPrimary, margin: '0 0 0.25rem 0' }}>
                 {showStreamDetails.title}
               </h2>
-              <p style={{ fontSize: '0.9rem', color: '#6B7280', margin: '0 0 1rem 0' }}>
+              <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1rem 0' }}>
                 {showStreamDetails.eventTitle}
               </p>
 
               {/* Client Info */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem', padding: '0.75rem', backgroundColor: '#F9FAFB', borderRadius: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem', padding: '0.75rem', backgroundColor: colors.bgTertiary, borderRadius: '0.5rem' }}>
                 <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
                   <Image
                     src={showStreamDetails.clientImage}
@@ -1283,51 +1283,51 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
                   />
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.9rem', fontWeight: '600', color: '#111827' }}>{showStreamDetails.clientName}</div>
-                  <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>Client</div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{showStreamDetails.clientName}</div>
+                  <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Client</div>
                 </div>
               </div>
 
               {/* Stats Grid */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', marginBottom: '1.25rem' }}>
-                <div style={{ backgroundColor: '#F9FAFB', borderRadius: '0.5rem', padding: '0.75rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', color: '#6B7280' }}>
+                <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', color: colors.textSecondary }}>
                     <CalendarIcon />
                     <span style={{ fontSize: '0.8rem' }}>Date & Time</span>
                   </div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>
+                  <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>
                     {formatDate(showStreamDetails.scheduledDate)} at {showStreamDetails.scheduledTime}
                   </div>
                 </div>
-                <div style={{ backgroundColor: '#F9FAFB', borderRadius: '0.5rem', padding: '0.75rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', color: '#6B7280' }}>
+                <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', color: colors.textSecondary }}>
                     <ClockIcon />
                     <span style={{ fontSize: '0.8rem' }}>Duration</span>
                   </div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>{showStreamDetails.duration}</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>{showStreamDetails.duration}</div>
                 </div>
-                <div style={{ backgroundColor: '#F9FAFB', borderRadius: '0.5rem', padding: '0.75rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', color: '#6B7280' }}>
+                <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', color: colors.textSecondary }}>
                     <UsersIcon />
                     <span style={{ fontSize: '0.8rem' }}>Peak Viewers</span>
                   </div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: '600', color: '#111827' }}>
+                  <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>
                     {showStreamDetails.peakViewers} / {showStreamDetails.maxViewers}
                   </div>
                 </div>
-                <div style={{ backgroundColor: '#D1FAE5', borderRadius: '0.5rem', padding: '0.75rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', color: '#059669' }}>
+                <div style={{ backgroundColor: actualTheme === 'dark' ? '#14532D' : '#D1FAE5', borderRadius: '0.5rem', padding: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', color: actualTheme === 'dark' ? '#4ADE80' : '#059669' }}>
                     <DollarIcon />
                     <span style={{ fontSize: '0.8rem' }}>Earnings</span>
                   </div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: '600', color: '#059669' }}>${showStreamDetails.earnings}</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: '600', color: actualTheme === 'dark' ? '#4ADE80' : '#059669' }}>${showStreamDetails.earnings}</div>
                 </div>
               </div>
 
               {/* Stream Key (for scheduled streams) */}
               {showStreamDetails.streamKey && showStreamDetails.status === 'scheduled' && (
                 <div style={{ marginBottom: '1.25rem' }}>
-                  <div style={{ fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>Stream Key</div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>Stream Key</div>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <input
                       type="password"
@@ -1336,11 +1336,11 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
                       style={{
                         flex: 1,
                         padding: '0.625rem 0.875rem',
-                        border: '2px solid #D1D5DB',
+                        border: `2px solid ${colors.borderPrimary}`,
                         borderRadius: '0.375rem',
                         fontSize: '0.9rem',
-                        backgroundColor: '#F9FAFB',
-                        color: '#111827'
+                        backgroundColor: colors.bgTertiary,
+                        color: colors.textPrimary
                       }}
                     />
                     <button
@@ -1363,7 +1363,7 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
                       {copiedKey ? 'Copied!' : 'Copy'}
                     </button>
                   </div>
-                  <p style={{ fontSize: '0.8rem', color: '#6B7280', margin: '0.5rem 0 0 0' }}>
+                  <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: '0.5rem 0 0 0' }}>
                     Use this key with OBS or your streaming software
                   </p>
                 </div>
@@ -1393,7 +1393,7 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
         >
           <div
             style={{
-              backgroundColor: 'white',
+              backgroundColor: colors.bgCard,
               borderRadius: '1rem',
               padding: '1.5rem',
               width: '400px',
@@ -1427,7 +1427,7 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
             <h2 style={{
               fontSize: '1.25rem',
               fontWeight: '700',
-              color: '#111827',
+              color: colors.textPrimary,
               margin: 0,
               marginBottom: '0.75rem',
               textAlign: 'center'
@@ -1436,13 +1436,13 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
             {/* Modal Content */}
             <p style={{
               fontSize: '0.95rem',
-              color: '#6B7280',
+              color: colors.textSecondary,
               margin: 0,
               marginBottom: '0.5rem',
               textAlign: 'center',
               lineHeight: '1.5'
             }}>
-              Are you sure you want to delete <strong style={{ color: '#111827' }}>&quot;{streamToDelete.title}&quot;</strong>?
+              Are you sure you want to delete <strong style={{ color: colors.textPrimary }}>&quot;{streamToDelete.title}&quot;</strong>?
             </p>
             <p style={{
               fontSize: '0.85rem',
@@ -1466,9 +1466,9 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
                   flex: 1,
                   padding: '0.75rem 1rem',
                   borderRadius: '0.5rem',
-                  border: '2px solid #D1D5DB',
-                  backgroundColor: 'white',
-                  color: '#374151',
+                  border: `2px solid ${colors.borderPrimary}`,
+                  backgroundColor: colors.bgCard,
+                  color: colors.textPrimary,
                   fontSize: '0.95rem',
                   fontWeight: '600',
                   cursor: 'pointer',

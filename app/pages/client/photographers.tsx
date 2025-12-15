@@ -39,20 +39,20 @@ const VerifiedIcon = () => (
   </svg>
 );
 
-const GridIcon = ({ active }: { active: boolean }) => (
+const GridIcon = ({ active, activeColor = '#083A85' }: { active: boolean; activeColor?: string }) => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="3" y="3" width="7" height="7" rx="1" stroke={active ? '#083A85' : '#9CA3AF'} strokeWidth="2"/>
-    <rect x="14" y="3" width="7" height="7" rx="1" stroke={active ? '#083A85' : '#9CA3AF'} strokeWidth="2"/>
-    <rect x="3" y="14" width="7" height="7" rx="1" stroke={active ? '#083A85' : '#9CA3AF'} strokeWidth="2"/>
-    <rect x="14" y="14" width="7" height="7" rx="1" stroke={active ? '#083A85' : '#9CA3AF'} strokeWidth="2"/>
+    <rect x="3" y="3" width="7" height="7" rx="1" stroke={active ? activeColor : '#9CA3AF'} strokeWidth="2"/>
+    <rect x="14" y="3" width="7" height="7" rx="1" stroke={active ? activeColor : '#9CA3AF'} strokeWidth="2"/>
+    <rect x="3" y="14" width="7" height="7" rx="1" stroke={active ? activeColor : '#9CA3AF'} strokeWidth="2"/>
+    <rect x="14" y="14" width="7" height="7" rx="1" stroke={active ? activeColor : '#9CA3AF'} strokeWidth="2"/>
   </svg>
 );
 
-const ListIcon = ({ active }: { active: boolean }) => (
+const ListIcon = ({ active, activeColor = '#083A85' }: { active: boolean; activeColor?: string }) => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <line x1="3" y1="6" x2="21" y2="6" stroke={active ? '#083A85' : '#9CA3AF'} strokeWidth="2" strokeLinecap="round"/>
-    <line x1="3" y1="12" x2="21" y2="12" stroke={active ? '#083A85' : '#9CA3AF'} strokeWidth="2" strokeLinecap="round"/>
-    <line x1="3" y1="18" x2="21" y2="18" stroke={active ? '#083A85' : '#9CA3AF'} strokeWidth="2" strokeLinecap="round"/>
+    <line x1="3" y1="6" x2="21" y2="6" stroke={active ? activeColor : '#9CA3AF'} strokeWidth="2" strokeLinecap="round"/>
+    <line x1="3" y1="12" x2="21" y2="12" stroke={active ? activeColor : '#9CA3AF'} strokeWidth="2" strokeLinecap="round"/>
+    <line x1="3" y1="18" x2="21" y2="18" stroke={active ? activeColor : '#9CA3AF'} strokeWidth="2" strokeLinecap="round"/>
   </svg>
 );
 
@@ -219,6 +219,7 @@ interface ModalProps {
 }
 
 const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidth = '500px' }) => {
+  const { colors } = useTheme();
   if (!isOpen) return null;
 
   return (
@@ -235,7 +236,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
       zIndex: 1000,
     }} onClick={onClose}>
       <div style={{
-        backgroundColor: 'white',
+        backgroundColor: colors.bgCard,
         borderRadius: '0.75rem',
         padding: '1.5rem',
         maxWidth: maxWidth,
@@ -246,28 +247,20 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
       }} onClick={(e) => e.stopPropagation()}>
         {title && (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#111827', margin: 0 }}>{title}</h3>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>{title}</h3>
             <button
               onClick={onClose}
               style={{
-                background: '#F3F4F6',
-                border: '2px solid #D1D5DB',
+                background: colors.bgTertiary,
+                border: `2px solid ${colors.borderPrimary}`,
                 cursor: 'pointer',
                 padding: '0.5rem',
                 borderRadius: '0.375rem',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#374151',
+                color: colors.textPrimary,
                 transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#E5E7EB';
-                e.currentTarget.style.color = '#111827';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = '#F3F4F6';
-                e.currentTarget.style.color = '#374151';
               }}
             >
               <CloseIcon />
@@ -565,11 +558,11 @@ const BookedPhotographersPage = () => {
 
   const getPaymentStatusColor = (status: PaymentStatus) => {
     switch (status) {
-      case 'paid': return { bg: '#DCFCE7', text: '#15803D' };
-      case 'pending': return { bg: '#FEF3C7', text: '#B45309' };
-      case 'partially_paid': return { bg: '#DBEAFE', text: '#1D4ED8' };
-      case 'failed': return { bg: '#FEE2E2', text: '#DC2626' };
-      default: return { bg: '#F3F4F6', text: '#6B7280' };
+      case 'paid': return { bg: actualTheme === 'dark' ? '#14532D' : '#DCFCE7', text: actualTheme === 'dark' ? '#86EFAC' : '#15803D' };
+      case 'pending': return { bg: actualTheme === 'dark' ? '#78350F' : '#FEF3C7', text: actualTheme === 'dark' ? '#FCD34D' : '#B45309' };
+      case 'partially_paid': return { bg: actualTheme === 'dark' ? '#1E3A8A' : '#DBEAFE', text: actualTheme === 'dark' ? '#93C5FD' : '#1D4ED8' };
+      case 'failed': return { bg: actualTheme === 'dark' ? '#450A0A' : '#FEE2E2', text: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626' };
+      default: return { bg: actualTheme === 'dark' ? '#374151' : '#F3F4F6', text: actualTheme === 'dark' ? '#D1D5DB' : '#6B7280' };
     }
   };
 
@@ -692,8 +685,8 @@ const BookedPhotographersPage = () => {
           {/* Header */}
           <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
             <div>
-              <h1 style={{ fontSize: '1.8rem', lineHeight: '2rem', color: '#111827', fontWeight: '600' }}>Booked Photographers</h1>
-              <p style={{ fontSize: '0.95rem', color: '#6B7280', marginTop: '0.25rem' }}>
+              <h1 style={{ fontSize: '1.8rem', lineHeight: '2rem', color: colors.textPrimary, fontWeight: '600' }}>Booked Photographers</h1>
+              <p style={{ fontSize: '0.95rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
                 Photographers you&apos;ve worked with - rebook your favorites
               </p>
             </div>
@@ -709,12 +702,12 @@ const BookedPhotographersPage = () => {
                   }}
                   style={{
                     appearance: 'none',
-                    backgroundColor: 'white',
-                    border: '1px solid #E5E7EB',
+                    backgroundColor: colors.bgCard,
+                    border: `1px solid ${colors.borderPrimary}`,
                     borderRadius: '0.5rem',
                     padding: '0.5rem 2rem 0.5rem 0.75rem',
                     fontSize: '0.9rem',
-                    color: '#374151',
+                    color: colors.textPrimary,
                     cursor: 'pointer'
                   }}
                 >
@@ -729,7 +722,7 @@ const BookedPhotographersPage = () => {
                 </div>
               </div>
               {/* View Mode Toggle */}
-              <div style={{ display: 'flex', gap: '0.25rem', backgroundColor: '#F3F4F6', borderRadius: '0.375rem', padding: '0.25rem' }}>
+              <div style={{ display: 'flex', gap: '0.25rem', backgroundColor: colors.bgTertiary, borderRadius: '0.375rem', padding: '0.25rem' }}>
                 <button
                   onClick={() => setViewMode('grid')}
                   style={{
@@ -737,7 +730,7 @@ const BookedPhotographersPage = () => {
                     border: 'none',
                     borderRadius: '0.25rem',
                     cursor: 'pointer',
-                    backgroundColor: viewMode === 'grid' ? 'white' : 'transparent',
+                    backgroundColor: viewMode === 'grid' ? colors.bgCard : 'transparent',
                     boxShadow: viewMode === 'grid' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
                     display: 'flex',
                     alignItems: 'center',
@@ -754,7 +747,7 @@ const BookedPhotographersPage = () => {
                     border: 'none',
                     borderRadius: '0.25rem',
                     cursor: 'pointer',
-                    backgroundColor: viewMode === 'list' ? 'white' : 'transparent',
+                    backgroundColor: viewMode === 'list' ? colors.bgCard : 'transparent',
                     boxShadow: viewMode === 'list' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
                     display: 'flex',
                     alignItems: 'center',
@@ -770,34 +763,34 @@ const BookedPhotographersPage = () => {
 
           {/* Stats Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-            <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', padding: '1rem', border: '1px solid #E5E7EB' }}>
-              <div style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '0.25rem' }}>Total Photographers</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#083A85' }}>{photographers.length}</div>
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Photographers</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{photographers.length}</div>
             </div>
-            <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', padding: '1rem', border: '1px solid #E5E7EB' }}>
-              <div style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '0.25rem' }}>Total Bookings</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#083A85' }}>
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Bookings</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
                 {photographers.reduce((sum, p) => sum + p.totalBookingsWithClient, 0)}
               </div>
             </div>
-            <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', padding: '1rem', border: '1px solid #E5E7EB' }}>
-              <div style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '0.25rem' }}>Total Spent</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#083A85' }}>
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Spent</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
                 ${photographers.reduce((sum, p) => sum + p.totalSpent, 0).toLocaleString()}
               </div>
             </div>
-            <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', padding: '1rem', border: '1px solid #E5E7EB' }}>
-              <div style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: '0.25rem' }}>Favorites</div>
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Favorites</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#F20C8F' }}>
                 {photographers.filter(p => p.isFavorite).length}
               </div>
             </div>
-            <div style={{ backgroundColor: totalPendingAmount > 0 ? '#FEF2F2' : 'white', borderRadius: '0.75rem', padding: '1rem', border: totalPendingAmount > 0 ? '1px solid #FECACA' : '1px solid #E5E7EB' }}>
-              <div style={{ fontSize: '0.85rem', color: totalPendingAmount > 0 ? '#B91C1C' : '#6B7280', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <div style={{ backgroundColor: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#450A0A' : '#FEF2F2') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: totalPendingAmount > 0 ? `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}` : `1px solid ${colors.borderPrimary}` }}>
+              <div style={{ fontSize: '0.85rem', color: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#FCA5A5' : '#B91C1C') : colors.textSecondary, marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 {totalPendingAmount > 0 && <AlertCircleIcon />}
                 Pending Payments
               </div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: totalPendingAmount > 0 ? '#DC2626' : '#6B7280' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#FCA5A5' : '#DC2626') : colors.textSecondary }}>
                 ${totalPendingAmount.toLocaleString()}
               </div>
             </div>
@@ -822,8 +815,8 @@ const BookedPhotographersPage = () => {
                   cursor: 'pointer',
                   backgroundColor: activeTab === tab.key
                     ? ((tab as { alert?: boolean }).alert ? '#F20C8F' : '#083A85')
-                    : 'white',
-                  color: activeTab === tab.key ? 'white' : '#6B7280',
+                    : colors.bgCard,
+                  color: activeTab === tab.key ? 'white' : colors.textSecondary,
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.5rem'
@@ -833,8 +826,8 @@ const BookedPhotographersPage = () => {
                 <span style={{
                   backgroundColor: activeTab === tab.key
                     ? 'rgba(255,255,255,0.2)'
-                    : ((tab as { alert?: boolean }).alert && tab.count > 0 ? '#FEE2E2' : '#F3F4F6'),
-                  color: (tab as { alert?: boolean }).alert && tab.count > 0 && activeTab !== tab.key ? '#DC2626' : undefined,
+                    : ((tab as { alert?: boolean }).alert && tab.count > 0 ? (actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2') : colors.bgTertiary),
+                  color: (tab as { alert?: boolean }).alert && tab.count > 0 && activeTab !== tab.key ? (actualTheme === 'dark' ? '#FCA5A5' : '#DC2626') : undefined,
                   padding: '0.125rem 0.5rem',
                   borderRadius: '9999px',
                   fontSize: '0.8rem'
@@ -860,12 +853,12 @@ const BookedPhotographersPage = () => {
                 style={{
                   width: '100%',
                   padding: '0.75rem 1rem 0.75rem 2.75rem',
-                  border: '1px solid #E5E7EB',
+                  border: `1px solid ${colors.borderPrimary}`,
                   borderRadius: '0.5rem',
                   fontSize: '0.95rem',
                   fontWeight: '500',
-                  color: '#374151',
-                  backgroundColor: 'white',
+                  color: colors.textPrimary,
+                  backgroundColor: colors.bgCard,
                   outline: 'none'
                 }}
               />
@@ -877,9 +870,9 @@ const BookedPhotographersPage = () => {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
-                backgroundColor: showFilters ? '#083A85' : 'white',
+                backgroundColor: showFilters ? '#083A85' : colors.bgCard,
                 color: showFilters ? 'white' : '#6B7280',
-                border: '1px solid #E5E7EB',
+                border: `1px solid ${colors.borderPrimary}`,
                 borderRadius: '0.5rem',
                 padding: '0.75rem 1rem',
                 fontSize: '0.9rem',
@@ -893,9 +886,9 @@ const BookedPhotographersPage = () => {
 
           {/* Filter Tags */}
           {showFilters && (
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap', backgroundColor: 'white', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #E5E7EB' }}>
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap', backgroundColor: colors.bgCard, padding: '1rem', borderRadius: '0.5rem', border: `1px solid ${colors.borderPrimary}` }}>
               <div style={{ flex: 1 }}>
-                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem', display: 'block' }}>Event Type</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.5rem', display: 'block' }}>Event Type</span>
                 <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap' }}>
                   {specializations.map((spec) => (
                     <button
@@ -903,12 +896,12 @@ const BookedPhotographersPage = () => {
                       onClick={() => setSelectedSpecialization(selectedSpecialization === spec ? null : spec)}
                       style={{
                         padding: '0.375rem 0.75rem',
-                        border: selectedSpecialization === spec ? '1px solid #083A85' : '1px solid #E5E7EB',
+                        border: selectedSpecialization === spec ? '1px solid #083A85' : `1px solid ${colors.borderPrimary}`,
                         borderRadius: '9999px',
                         fontSize: '0.8rem',
                         cursor: 'pointer',
-                        backgroundColor: selectedSpecialization === spec ? '#083A85' : 'white',
-                        color: selectedSpecialization === spec ? 'white' : '#6B7280',
+                        backgroundColor: selectedSpecialization === spec ? '#083A85' : colors.bgCard,
+                        color: selectedSpecialization === spec ? 'white' : colors.textSecondary,
                         transition: 'all 0.2s'
                       }}
                     >
@@ -938,17 +931,17 @@ const BookedPhotographersPage = () => {
 
           {/* Results Count */}
           <div style={{ marginBottom: '1rem' }}>
-            <span style={{ fontSize: '0.9rem', color: '#6B7280' }}>
+            <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>
               Showing {filteredPhotographers.length} photographer{filteredPhotographers.length !== 1 ? 's' : ''}
             </span>
           </div>
 
           {/* Photographers Grid/List */}
           {filteredPhotographers.length === 0 ? (
-            <div style={{ backgroundColor: 'white', borderRadius: '0.75rem', padding: '3rem', textAlign: 'center', border: '1px solid #E5E7EB' }}>
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '3rem', textAlign: 'center', border: `1px solid ${colors.borderPrimary}` }}>
               <CameraIcon />
-              <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#111827', marginTop: '1rem' }}>No photographers found</h3>
-              <p style={{ fontSize: '0.9rem', color: '#6B7280', marginTop: '0.5rem' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, marginTop: '1rem' }}>No photographers found</h3>
+              <p style={{ fontSize: '0.9rem', color: colors.textSecondary, marginTop: '0.5rem' }}>
                 {activeTab === 'favorites' ? 'You haven\'t added any photographers to favorites yet.' : 'Try adjusting your search or filters.'}
               </p>
             </div>
@@ -958,7 +951,7 @@ const BookedPhotographersPage = () => {
                 <div
                   key={photographer.id}
                   style={{
-                    backgroundColor: 'white',
+                    backgroundColor: colors.bgCard,
                     borderRadius: '1rem',
                     overflow: 'hidden',
                     boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
@@ -1080,23 +1073,23 @@ const BookedPhotographersPage = () => {
                   <div style={{ padding: '1rem', paddingTop: '55px' }}>
                     <div style={{ marginLeft: '0px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                        <h3 style={{ fontSize: '1rem', fontWeight: '600', color: '#111827', margin: 0 }}>
+                        <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
                           {photographer.firstName} {photographer.lastName}
                         </h3>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
                         <LocationIcon />
-                        <span style={{ fontSize: '0.8rem', color: '#6B7280' }}>
+                        <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>
                           {photographer.location.city}, {photographer.location.country}
                         </span>
                       </div>
                     </div>
 
                     {/* Last Booking Info */}
-                    <div style={{ marginTop: '0.75rem', padding: '0.75rem', backgroundColor: '#F9FAFB', borderRadius: '0.5rem' }}>
-                      <div style={{ fontSize: '0.75rem', color: '#6B7280', marginBottom: '0.25rem' }}>Last Booking</div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: '500', color: '#111827' }}>{photographer.lastEventName}</div>
-                      <div style={{ fontSize: '0.75rem', color: '#6B7280', marginTop: '0.125rem' }}>
+                    <div style={{ marginTop: '0.75rem', padding: '0.75rem', backgroundColor: colors.bgTertiary, borderRadius: '0.5rem' }}>
+                      <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Last Booking</div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>{photographer.lastEventName}</div>
+                      <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginTop: '0.125rem' }}>
                         {photographer.lastEventType} • {formatDate(photographer.lastBookingDate)}
                       </div>
                     </div>
@@ -1104,20 +1097,20 @@ const BookedPhotographersPage = () => {
                     {/* Rating */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem' }}>
                       {renderStars(photographer.rating)}
-                      <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>{photographer.rating}</span>
-                      <span style={{ fontSize: '0.8rem', color: '#6B7280' }}>({photographer.reviewCount} reviews)</span>
+                      <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{photographer.rating}</span>
+                      <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>({photographer.reviewCount} reviews)</span>
                     </div>
 
                     {/* Payment Status for Pending Bookings */}
                     {photographer.bookings.some(b => b.paymentStatus !== 'paid') && (
-                      <div style={{ marginTop: '0.75rem', padding: '0.5rem', backgroundColor: '#FEF3C7', borderRadius: '0.375rem' }}>
+                      <div style={{ marginTop: '0.75rem', padding: '0.5rem', backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FEF3C7', borderRadius: '0.375rem' }}>
                         {photographer.bookings.filter(b => b.paymentStatus !== 'paid').slice(0, 1).map((booking) => {
                           const paymentColor = getPaymentStatusColor(booking.paymentStatus);
                           const amountDue = booking.totalAmount - booking.paidAmount;
                           return (
                             <div key={booking.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <div>
-                                <div style={{ fontSize: '0.75rem', color: '#92400E', fontWeight: '500' }}>{booking.eventName}</div>
+                                <div style={{ fontSize: '0.75rem', color: actualTheme === 'dark' ? '#FCD34D' : '#92400E', fontWeight: '500' }}>{booking.eventName}</div>
                                 <span style={{
                                   backgroundColor: paymentColor.bg,
                                   color: paymentColor.text,
@@ -1155,10 +1148,10 @@ const BookedPhotographersPage = () => {
                     )}
 
                     {/* Price and Actions */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #E5E7EB' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', paddingTop: '1rem', borderTop: `1px solid ${colors.borderPrimary}` }}>
                       <div>
-                        <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>Total Spent</span>
-                        <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#083A85' }}>${photographer.totalSpent}</div>
+                        <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Total Spent</span>
+                        <div style={{ fontSize: '1.1rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>${photographer.totalSpent}</div>
                       </div>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                         {hasCompletedEvent(photographer) && (
@@ -1174,9 +1167,9 @@ const BookedPhotographersPage = () => {
                               setShowReviewModal(true);
                             }}
                             style={{
-                              backgroundColor: photographer.myReview ? '#F3F4F6' : '#083A85',
-                              color: photographer.myReview ? '#374151' : 'white',
-                              border: photographer.myReview ? '2px solid #D1D5DB' : '2px solid #062a63',
+                              backgroundColor: photographer.myReview ? colors.bgTertiary : '#083A85',
+                              color: photographer.myReview ? colors.textPrimary : 'white',
+                              border: photographer.myReview ? `2px solid ${colors.borderPrimary}` : '2px solid #062a63',
                               borderRadius: '0.375rem',
                               padding: '0.5rem 0.75rem',
                               fontSize: '0.85rem',
@@ -1218,7 +1211,7 @@ const BookedPhotographersPage = () => {
               ))}
             </div>
           ) : (
-            <div style={{ backgroundColor: 'white', borderRadius: '1rem', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)', border: '1px solid rgba(0, 0, 0, 0.1)', overflow: 'hidden' }}>
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '1rem', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)', border: '1px solid rgba(0, 0, 0, 0.1)', overflow: 'hidden' }}>
               {filteredPhotographers.map((photographer, index) => (
                 <div
                   key={photographer.id}
@@ -1226,17 +1219,17 @@ const BookedPhotographersPage = () => {
                     display: 'flex',
                     gap: '1.25rem',
                     padding: '1.25rem',
-                    borderBottom: index < filteredPhotographers.length - 1 ? '1px solid #E5E7EB' : 'none',
+                    borderBottom: index < filteredPhotographers.length - 1 ? `1px solid ${colors.borderPrimary}` : 'none',
                     cursor: 'pointer',
                     transition: 'background-color 0.2s ease'
                   }}
                   onClick={() => setSelectedPhotographer(photographer)}
                   onContextMenu={(e) => handleContextMenu(e, photographer)}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#F9FAFB';
+                    e.currentTarget.style.backgroundColor = actualTheme === 'dark' ? '#374151' : '#F9FAFB';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'white';
+                    e.currentTarget.style.backgroundColor = 'transparent';
                   }}
                 >
                   <div style={{ position: 'relative', width: '70px', height: '70px' }}>
@@ -1274,7 +1267,7 @@ const BookedPhotographersPage = () => {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#111827', margin: 0 }}>
+                          <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
                             {photographer.firstName} {photographer.lastName}
                           </h3>
                           <span style={{
@@ -1282,27 +1275,27 @@ const BookedPhotographersPage = () => {
                             fontWeight: '600',
                             padding: '0.125rem 0.5rem',
                             borderRadius: '0.25rem',
-                            backgroundColor: '#EFF6FF',
-                            color: '#1D4ED8'
+                            backgroundColor: actualTheme === 'dark' ? '#1E3A8A' : '#EFF6FF',
+                            color: actualTheme === 'dark' ? '#93C5FD' : '#1D4ED8'
                           }}>
                             {photographer.totalBookingsWithClient} booking{photographer.totalBookingsWithClient > 1 ? 's' : ''}
                           </span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
                           <LocationIcon />
-                          <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>
+                          <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
                             {photographer.location.city}, {photographer.location.country}
                           </span>
                           <span style={{ color: '#D1D5DB', margin: '0 0.5rem' }}>•</span>
-                          <span style={{ fontSize: '0.85rem', color: '#6B7280' }}>Last: {formatDate(photographer.lastBookingDate)}</span>
+                          <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Last: {formatDate(photographer.lastBookingDate)}</span>
                         </div>
-                        <div style={{ fontSize: '0.85rem', color: '#374151', marginTop: '0.25rem' }}>
+                        <div style={{ fontSize: '0.85rem', color: colors.textPrimary, marginTop: '0.25rem' }}>
                           {photographer.lastEventType}: {photographer.lastEventName}
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
                           {renderStars(photographer.rating)}
-                          <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#111827' }}>{photographer.rating}</span>
-                          <span style={{ fontSize: '0.8rem', color: '#6B7280' }}>({photographer.reviewCount} reviews)</span>
+                          <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{photographer.rating}</span>
+                          <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>({photographer.reviewCount} reviews)</span>
                         </div>
                       </div>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -1314,7 +1307,7 @@ const BookedPhotographersPage = () => {
                         </button>
                         <button
                           onClick={(e) => { e.stopPropagation(); handleContextMenu(e, photographer); }}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem', color: '#6B7280' }}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem', color: colors.textSecondary }}
                         >
                           <MoreIcon />
                         </button>
@@ -1323,8 +1316,8 @@ const BookedPhotographersPage = () => {
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'space-between', gap: '0.5rem' }}>
                     <div style={{ textAlign: 'right' }}>
-                      <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>Total Spent</span>
-                      <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#083A85' }}>${photographer.totalSpent}</div>
+                      <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Total Spent</span>
+                      <div style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>${photographer.totalSpent}</div>
                     </div>
                     {/* Payment Status in List View */}
                     {photographer.bookings.some(b => b.paymentStatus !== 'paid') && (
@@ -1363,9 +1356,9 @@ const BookedPhotographersPage = () => {
                           display: 'flex',
                           alignItems: 'center',
                           gap: '0.375rem',
-                          backgroundColor: 'white',
-                          color: '#6B7280',
-                          border: '1px solid #E5E7EB',
+                          backgroundColor: colors.bgCard,
+                          color: colors.textSecondary,
+                          border: `1px solid ${colors.borderPrimary}`,
                           borderRadius: '0.375rem',
                           padding: '0.5rem 0.75rem',
                           fontSize: '0.85rem',
@@ -1388,9 +1381,9 @@ const BookedPhotographersPage = () => {
                             setShowReviewModal(true);
                           }}
                           style={{
-                            backgroundColor: photographer.myReview ? '#F3F4F6' : '#083A85',
-                            color: photographer.myReview ? '#374151' : 'white',
-                            border: photographer.myReview ? '2px solid #D1D5DB' : '2px solid #062a63',
+                            backgroundColor: photographer.myReview ? colors.bgTertiary : '#083A85',
+                            color: photographer.myReview ? colors.textPrimary : 'white',
+                            border: photographer.myReview ? `2px solid ${colors.borderPrimary}` : '2px solid #062a63',
                             borderRadius: '0.375rem',
                             padding: '0.5rem 0.75rem',
                             fontSize: '0.85rem',
@@ -1441,10 +1434,10 @@ const BookedPhotographersPage = () => {
             position: 'fixed',
             top: contextMenu.y,
             left: contextMenu.x,
-            backgroundColor: 'white',
+            backgroundColor: colors.bgCard,
             borderRadius: '0.5rem',
             boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)',
-            border: '1px solid #E5E7EB',
+            border: `1px solid ${colors.borderPrimary}`,
             padding: '0.5rem 0',
             zIndex: 1000,
             minWidth: '180px'
@@ -1472,10 +1465,10 @@ const BookedPhotographersPage = () => {
                 background: 'none',
                 cursor: 'pointer',
                 fontSize: '0.9rem',
-                color: (item as { danger?: boolean }).danger ? '#DC2626' : '#374151',
+                color: (item as { danger?: boolean }).danger ? '#DC2626' : colors.textPrimary,
                 textAlign: 'left'
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#F3F4F6'; }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = actualTheme === 'dark' ? '#374151' : '#F3F4F6'; }}
               onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
             >
               {item.icon}
@@ -1515,29 +1508,17 @@ const BookedPhotographersPage = () => {
                   position: 'absolute',
                   top: '1rem',
                   right: '1rem',
-                  backgroundColor: 'rgba(255,255,255,0.95)',
-                  border: '2px solid #D1D5DB',
-                  borderRadius: '50%',
-                  width: '36px',
-                  height: '36px',
+                  backgroundColor: colors.bgTertiary,
+                  border: `2px solid ${colors.borderPrimary}`,
+                  borderRadius: '0.375rem',
+                  padding: '0.5rem',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: '#374151',
+                  color: colors.textPrimary,
                   zIndex: 5,
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                   transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#ffffff';
-                  e.currentTarget.style.color = '#111827';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.95)';
-                  e.currentTarget.style.color = '#374151';
-                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
                 }}
               >
                 <CloseIcon />
@@ -1586,76 +1567,76 @@ const BookedPhotographersPage = () => {
             {/* Profile Info - with padding to account for overlapping profile image */}
             <div style={{ paddingTop: '55px', paddingLeft: '1rem', marginBottom: '1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#111827', margin: 0 }}>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: colors.textPrimary, margin: 0 }}>
                   {selectedPhotographer.firstName} {selectedPhotographer.lastName}
                 </h2>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
                 <LocationIcon />
-                <span style={{ fontSize: '0.9rem', color: '#6B7280' }}>
+                <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>
                   {selectedPhotographer.location.city}, {selectedPhotographer.location.country}
                 </span>
               </div>
             </div>
 
             {/* Your History Stats */}
-            <div style={{ backgroundColor: '#FDF2F8', borderRadius: '0.75rem', padding: '1rem', marginBottom: '1.25rem' }}>
+            <div style={{ backgroundColor: actualTheme === 'dark' ? '#831843' : '#FDF2F8', borderRadius: '0.75rem', padding: '1rem', marginBottom: '1.25rem' }}>
               <h3 style={{ fontSize: '0.9rem', fontWeight: '600', color: '#F20C8F', marginBottom: '0.75rem' }}>Your History with {selectedPhotographer.firstName}</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
                 <div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#111827' }}>{selectedPhotographer.totalBookingsWithClient}</div>
-                  <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>Bookings</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: '700', color: colors.textPrimary }}>{selectedPhotographer.totalBookingsWithClient}</div>
+                  <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Bookings</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#111827' }}>${selectedPhotographer.totalSpent}</div>
-                  <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>Total Spent</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: '700', color: colors.textPrimary }}>${selectedPhotographer.totalSpent}</div>
+                  <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Total Spent</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#111827' }}>{formatDate(selectedPhotographer.lastBookingDate)}</div>
-                  <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>Last Booking</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: '700', color: colors.textPrimary }}>{formatDate(selectedPhotographer.lastBookingDate)}</div>
+                  <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Last Booking</div>
                 </div>
               </div>
-              <div style={{ marginTop: '0.75rem', padding: '0.75rem', backgroundColor: 'white', borderRadius: '0.5rem' }}>
-                <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>Last Event</div>
-                <div style={{ fontSize: '0.9rem', fontWeight: '500', color: '#111827' }}>{selectedPhotographer.lastEventName}</div>
-                <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>{selectedPhotographer.lastEventType}</div>
+              <div style={{ marginTop: '0.75rem', padding: '0.75rem', backgroundColor: colors.bgCard, borderRadius: '0.5rem' }}>
+                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Last Event</div>
+                <div style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>{selectedPhotographer.lastEventName}</div>
+                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{selectedPhotographer.lastEventType}</div>
               </div>
             </div>
 
             {/* Your Review */}
             {selectedPhotographer.myReview && (
-              <div style={{ backgroundColor: '#F9FAFB', borderRadius: '0.75rem', padding: '1rem', marginBottom: '1.25rem' }}>
+              <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.75rem', padding: '1rem', marginBottom: '1.25rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <h3 style={{ fontSize: '0.9rem', fontWeight: '600', color: '#374151' }}>Your Review</h3>
+                  <h3 style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>Your Review</h3>
                   {renderStars(selectedPhotographer.myRating || 0)}
                 </div>
-                <p style={{ fontSize: '0.9rem', color: '#6B7280', fontStyle: 'italic' }}>&quot;{selectedPhotographer.myReview}&quot;</p>
+                <p style={{ fontSize: '0.9rem', color: colors.textSecondary, fontStyle: 'italic' }}>&quot;{selectedPhotographer.myReview}&quot;</p>
               </div>
             )}
 
             {/* General Stats */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.25rem' }}>
-              <div style={{ backgroundColor: '#F9FAFB', borderRadius: '0.5rem', padding: '0.75rem', textAlign: 'center' }}>
-                <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#083A85' }}>{selectedPhotographer.rating}</div>
-                <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>Rating</div>
+              <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '0.75rem', textAlign: 'center' }}>
+                <div style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{selectedPhotographer.rating}</div>
+                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Rating</div>
               </div>
-              <div style={{ backgroundColor: '#F9FAFB', borderRadius: '0.5rem', padding: '0.75rem', textAlign: 'center' }}>
-                <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#083A85' }}>{selectedPhotographer.completedBookings}</div>
-                <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>Total Bookings</div>
+              <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '0.75rem', textAlign: 'center' }}>
+                <div style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{selectedPhotographer.completedBookings}</div>
+                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Total Bookings</div>
               </div>
-              <div style={{ backgroundColor: '#F9FAFB', borderRadius: '0.5rem', padding: '0.75rem', textAlign: 'center' }}>
-                <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#083A85' }}>{selectedPhotographer.experience} yrs</div>
-                <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>Experience</div>
+              <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '0.75rem', textAlign: 'center' }}>
+                <div style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{selectedPhotographer.experience} yrs</div>
+                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Experience</div>
               </div>
-              <div style={{ backgroundColor: '#F9FAFB', borderRadius: '0.5rem', padding: '0.75rem', textAlign: 'center' }}>
-                <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#083A85' }}>{selectedPhotographer.responseTime}</div>
-                <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>Response</div>
+              <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '0.75rem', textAlign: 'center' }}>
+                <div style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{selectedPhotographer.responseTime}</div>
+                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Response</div>
               </div>
             </div>
 
             {/* Portfolio Preview */}
             <div style={{ marginBottom: '1.25rem' }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: '600', color: '#111827', marginBottom: '0.75rem' }}>Portfolio</h3>
+              <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>Portfolio</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
                 {selectedPhotographer.portfolioImages.map((img, idx) => (
                   <div key={idx} style={{ position: 'relative', height: '100px', borderRadius: '0.5rem', overflow: 'hidden' }}>
@@ -1667,20 +1648,20 @@ const BookedPhotographersPage = () => {
 
             {/* Bio */}
             <div style={{ marginBottom: '1.25rem' }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: '600', color: '#111827', marginBottom: '0.5rem' }}>About</h3>
-              <p style={{ fontSize: '0.9rem', color: '#6B7280', lineHeight: '1.6' }}>{selectedPhotographer.bio}</p>
+              <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.5rem' }}>About</h3>
+              <p style={{ fontSize: '0.9rem', color: colors.textSecondary, lineHeight: '1.6' }}>{selectedPhotographer.bio}</p>
             </div>
 
             {/* Specializations */}
             <div style={{ marginBottom: '1.25rem' }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: '600', color: '#111827', marginBottom: '0.5rem' }}>Specializations</h3>
+              <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.5rem' }}>Specializations</h3>
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 {selectedPhotographer.specializations.map((spec) => (
                   <span
                     key={spec}
                     style={{
-                      backgroundColor: '#EFF6FF',
-                      color: '#1D4ED8',
+                      backgroundColor: actualTheme === 'dark' ? '#1E3A8A' : '#EFF6FF',
+                      color: actualTheme === 'dark' ? '#93C5FD' : '#1D4ED8',
                       padding: '0.375rem 0.75rem',
                       borderRadius: '9999px',
                       fontSize: '0.8rem',
@@ -1702,9 +1683,9 @@ const BookedPhotographersPage = () => {
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '0.5rem',
-                  backgroundColor: '#F3F4F6',
-                  color: '#374151',
-                  border: '2px solid #D1D5DB',
+                  backgroundColor: colors.bgTertiary,
+                  color: colors.textPrimary,
+                  border: `2px solid ${colors.borderPrimary}`,
                   borderRadius: '0.5rem',
                   padding: '0.75rem',
                   cursor: 'pointer'
@@ -1721,9 +1702,9 @@ const BookedPhotographersPage = () => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '0.5rem',
-                    backgroundColor: '#F3F4F6',
-                    color: '#374151',
-                    border: '2px solid #D1D5DB',
+                    backgroundColor: colors.bgTertiary,
+                    color: colors.textPrimary,
+                    border: `2px solid ${colors.borderPrimary}`,
                     borderRadius: '0.5rem',
                     padding: '0.75rem 1rem',
                     fontSize: '0.9rem',
@@ -1770,7 +1751,7 @@ const BookedPhotographersPage = () => {
       >
         {rebookPhotographer && (
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem', padding: '0.75rem', backgroundColor: '#FDF2F8', borderRadius: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem', padding: '0.75rem', backgroundColor: actualTheme === 'dark' ? '#831843' : '#FDF2F8', borderRadius: '0.5rem' }}>
               <div style={{ position: 'relative', width: '48px', height: '48px', flexShrink: 0 }}>
                 <img
                   src={rebookPhotographer.profileImage}
@@ -1803,31 +1784,31 @@ const BookedPhotographersPage = () => {
                 )}
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: '600', color: '#111827' }}>{rebookPhotographer.firstName} {rebookPhotographer.lastName}</div>
-                <div style={{ fontSize: '0.85rem', color: '#6B7280' }}>
+                <div style={{ fontWeight: '600', color: colors.textPrimary }}>{rebookPhotographer.firstName} {rebookPhotographer.lastName}</div>
+                <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
                   You&apos;ve booked {rebookPhotographer.totalBookingsWithClient} time{rebookPhotographer.totalBookingsWithClient > 1 ? 's' : ''} before
                 </div>
               </div>
             </div>
 
-            <div style={{ backgroundColor: '#F9FAFB', borderRadius: '0.5rem', padding: '0.75rem', marginBottom: '1rem' }}>
-              <div style={{ fontSize: '0.8rem', color: '#6B7280', marginBottom: '0.25rem' }}>Last booking</div>
-              <div style={{ fontSize: '0.9rem', fontWeight: '500', color: '#111827' }}>{rebookPhotographer.lastEventName}</div>
-              <div style={{ fontSize: '0.8rem', color: '#6B7280' }}>{rebookPhotographer.lastEventType} • {formatDate(rebookPhotographer.lastBookingDate)}</div>
+            <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '0.75rem', marginBottom: '1rem' }}>
+              <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Last booking</div>
+              <div style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>{rebookPhotographer.lastEventName}</div>
+              <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{rebookPhotographer.lastEventType} • {formatDate(rebookPhotographer.lastBookingDate)}</div>
             </div>
 
             <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
                 Event Type
               </label>
               <select style={{
                 width: '100%',
                 padding: '0.75rem',
-                border: '2px solid #D1D5DB',
+                border: `2px solid ${colors.borderPrimary}`,
                 borderRadius: '0.5rem',
                 fontSize: '0.9rem',
-                backgroundColor: 'white',
-                color: '#111827',
+                backgroundColor: colors.bgCard,
+                color: colors.textPrimary,
                 cursor: 'pointer'
               }}>
                 <option>Select event type</option>
@@ -1837,7 +1818,7 @@ const BookedPhotographersPage = () => {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
                   Date
                 </label>
                 <input
@@ -1845,16 +1826,16 @@ const BookedPhotographersPage = () => {
                   style={{
                     width: '100%',
                     padding: '0.75rem',
-                    border: '2px solid #D1D5DB',
+                    border: `2px solid ${colors.borderPrimary}`,
                     borderRadius: '0.5rem',
                     fontSize: '0.9rem',
-                    color: '#111827',
+                    color: colors.textPrimary,
                     cursor: 'pointer'
                   }}
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
                   Time
                 </label>
                 <input
@@ -1862,10 +1843,10 @@ const BookedPhotographersPage = () => {
                   style={{
                     width: '100%',
                     padding: '0.75rem',
-                    border: '2px solid #D1D5DB',
+                    border: `2px solid ${colors.borderPrimary}`,
                     borderRadius: '0.5rem',
                     fontSize: '0.9rem',
-                    color: '#111827',
+                    color: colors.textPrimary,
                     cursor: 'pointer'
                   }}
                 />
@@ -1873,7 +1854,7 @@ const BookedPhotographersPage = () => {
             </div>
 
             <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
                 Location
               </label>
               <input
@@ -1882,16 +1863,16 @@ const BookedPhotographersPage = () => {
                 style={{
                   width: '100%',
                   padding: '0.75rem',
-                  border: '2px solid #D1D5DB',
+                  border: `2px solid ${colors.borderPrimary}`,
                   borderRadius: '0.5rem',
                   fontSize: '0.9rem',
-                  color: '#111827'
+                  color: colors.textPrimary
                 }}
               />
             </div>
 
             <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
                 Additional Notes
               </label>
               <textarea
@@ -1899,12 +1880,12 @@ const BookedPhotographersPage = () => {
                 style={{
                   width: '100%',
                   padding: '0.75rem',
-                  border: '2px solid #D1D5DB',
+                  border: `2px solid ${colors.borderPrimary}`,
                   borderRadius: '0.5rem',
                   fontSize: '0.9rem',
                   minHeight: '80px',
                   resize: 'vertical',
-                  color: '#111827'
+                  color: colors.textPrimary
                 }}
               />
             </div>
@@ -1915,10 +1896,10 @@ const BookedPhotographersPage = () => {
                 style={{
                   flex: 1,
                   padding: '0.75rem 1rem',
-                  border: '2px solid #D1D5DB',
+                  border: `2px solid ${colors.borderPrimary}`,
                   borderRadius: '0.5rem',
-                  background: '#F3F4F6',
-                  color: '#374151',
+                  background: colors.bgTertiary,
+                  color: colors.textPrimary,
                   fontSize: '0.9rem',
                   fontWeight: '600',
                   cursor: 'pointer'
@@ -1992,13 +1973,13 @@ const BookedPhotographersPage = () => {
                 )}
               </div>
               <div>
-                <div style={{ fontWeight: '600', color: '#111827' }}>{reviewPhotographer.firstName} {reviewPhotographer.lastName}</div>
-                <div style={{ fontSize: '0.85rem', color: '#6B7280' }}>{reviewPhotographer.lastEventName}</div>
+                <div style={{ fontWeight: '600', color: colors.textPrimary }}>{reviewPhotographer.firstName} {reviewPhotographer.lastName}</div>
+                <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>{reviewPhotographer.lastEventName}</div>
               </div>
             </div>
 
             <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
                 Your Rating
               </label>
               <div style={{ display: 'flex', gap: '0.25rem' }}>
@@ -2022,7 +2003,7 @@ const BookedPhotographersPage = () => {
             </div>
 
             <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
                 Your Review
               </label>
               <textarea
@@ -2032,12 +2013,12 @@ const BookedPhotographersPage = () => {
                 style={{
                   width: '100%',
                   padding: '0.75rem',
-                  border: '2px solid #D1D5DB',
+                  border: `2px solid ${colors.borderPrimary}`,
                   borderRadius: '0.5rem',
                   fontSize: '0.9rem',
                   minHeight: '120px',
                   resize: 'vertical',
-                  color: '#111827'
+                  color: colors.textPrimary
                 }}
               />
             </div>
@@ -2046,14 +2027,14 @@ const BookedPhotographersPage = () => {
             <div style={{
               marginBottom: '1.25rem',
               padding: '1rem',
-              backgroundColor: '#FEF3C7',
+              backgroundColor: actualTheme === 'dark' ? '#374151' : '#EFF6FF',
               borderRadius: '0.5rem',
-              border: '1px solid #FCD34D'
+              border: actualTheme === 'dark' ? '1px solid #4B5563' : '1px solid #60A5FA'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: wantToTip ? '1rem' : '0' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ color: '#92400E' }}><TipIcon /></span>
-                  <span style={{ fontSize: '0.9rem', fontWeight: '500', color: '#92400E' }}>
+                  <span style={{ color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}><TipIcon /></span>
+                  <span style={{ fontSize: '0.9rem', fontWeight: '500', color: actualTheme === 'dark' ? '#F9FAFB' : '#083A85' }}>
                     Would you like to leave a tip for {reviewPhotographer.firstName}?
                   </span>
                 </div>
@@ -2066,7 +2047,7 @@ const BookedPhotographersPage = () => {
                     border: 'none',
                     cursor: 'pointer',
                     position: 'relative',
-                    backgroundColor: wantToTip ? '#F59E0B' : '#D1D5DB',
+                    backgroundColor: wantToTip ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : (actualTheme === 'dark' ? '#6B7280' : '#D1D5DB'),
                     transition: 'background-color 0.2s'
                   }}
                 >
@@ -2074,7 +2055,7 @@ const BookedPhotographersPage = () => {
                     width: '22px',
                     height: '22px',
                     borderRadius: '50%',
-                    backgroundColor: 'white',
+                    backgroundColor: colors.bgCard,
                     position: 'absolute',
                     top: '2px',
                     left: wantToTip ? '24px' : '2px',
@@ -2086,7 +2067,7 @@ const BookedPhotographersPage = () => {
 
               {wantToTip && (
                 <div>
-                  <div style={{ fontSize: '0.8rem', color: '#92400E', marginBottom: '0.75rem' }}>
+                  <div style={{ fontSize: '0.8rem', color: actualTheme === 'dark' ? '#D1D5DB' : '#083A85', marginBottom: '0.75rem' }}>
                     Show your appreciation for great work!
                   </div>
                   <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -2097,9 +2078,9 @@ const BookedPhotographersPage = () => {
                         style={{
                           padding: '0.5rem 1rem',
                           borderRadius: '0.375rem',
-                          border: tipAmount === amount ? '2px solid #F59E0B' : '2px solid #D1D5DB',
-                          backgroundColor: tipAmount === amount ? '#FEF3C7' : 'white',
-                          color: tipAmount === amount ? '#92400E' : '#374151',
+                          border: tipAmount === amount ? `2px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}` : `2px solid ${actualTheme === 'dark' ? '#6B7280' : colors.borderPrimary}`,
+                          backgroundColor: tipAmount === amount ? (actualTheme === 'dark' ? '#1E3A5F' : '#DBEAFE') : (actualTheme === 'dark' ? '#4B5563' : colors.bgCard),
+                          color: tipAmount === amount ? (actualTheme === 'dark' ? '#F9FAFB' : '#083A85') : (actualTheme === 'dark' ? '#F9FAFB' : colors.textPrimary),
                           fontSize: '0.9rem',
                           fontWeight: '600',
                           cursor: 'pointer',
@@ -2114,9 +2095,9 @@ const BookedPhotographersPage = () => {
                       style={{
                         padding: '0.5rem 1rem',
                         borderRadius: '0.375rem',
-                        border: tipAmount === 'custom' ? '2px solid #F59E0B' : '2px solid #D1D5DB',
-                        backgroundColor: tipAmount === 'custom' ? '#FEF3C7' : 'white',
-                        color: tipAmount === 'custom' ? '#92400E' : '#374151',
+                        border: tipAmount === 'custom' ? `2px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}` : `2px solid ${actualTheme === 'dark' ? '#6B7280' : colors.borderPrimary}`,
+                        backgroundColor: tipAmount === 'custom' ? (actualTheme === 'dark' ? '#1E3A5F' : '#DBEAFE') : (actualTheme === 'dark' ? '#4B5563' : colors.bgCard),
+                        color: tipAmount === 'custom' ? (actualTheme === 'dark' ? '#F9FAFB' : '#083A85') : (actualTheme === 'dark' ? '#F9FAFB' : colors.textPrimary),
                         fontSize: '0.9rem',
                         fontWeight: '600',
                         cursor: 'pointer',
@@ -2134,7 +2115,7 @@ const BookedPhotographersPage = () => {
                           left: '0.75rem',
                           top: '50%',
                           transform: 'translateY(-50%)',
-                          color: '#6B7280',
+                          color: colors.textSecondary,
                           fontWeight: '500'
                         }}>$</span>
                         <input
@@ -2146,10 +2127,18 @@ const BookedPhotographersPage = () => {
                           style={{
                             width: '100%',
                             padding: '0.5rem 0.75rem 0.5rem 1.5rem',
-                            border: '2px solid #D1D5DB',
+                            border: `2px solid ${actualTheme === 'dark' ? '#6B7280' : colors.borderPrimary}`,
                             borderRadius: '0.375rem',
                             fontSize: '0.9rem',
-                            color: '#111827'
+                            color: colors.textPrimary,
+                            backgroundColor: actualTheme === 'dark' ? '#4B5563' : colors.bgCard,
+                            outline: 'none'
+                          }}
+                          onFocus={(e) => {
+                            e.currentTarget.style.borderColor = actualTheme === 'dark' ? '#60A5FA' : '#083A85';
+                          }}
+                          onBlur={(e) => {
+                            e.currentTarget.style.borderColor = actualTheme === 'dark' ? '#6B7280' : colors.borderPrimary;
                           }}
                         />
                       </div>
@@ -2165,10 +2154,10 @@ const BookedPhotographersPage = () => {
                 style={{
                   flex: 1,
                   padding: '0.75rem 1rem',
-                  border: '2px solid #D1D5DB',
+                  border: `2px solid ${colors.borderPrimary}`,
                   borderRadius: '0.5rem',
-                  background: '#F3F4F6',
-                  color: '#374151',
+                  background: colors.bgTertiary,
+                  color: colors.textPrimary,
                   fontSize: '0.9rem',
                   fontWeight: '600',
                   cursor: 'pointer'
@@ -2205,14 +2194,14 @@ const BookedPhotographersPage = () => {
       >
         {reportPhotographer && (
           <div>
-            <p style={{ fontSize: '0.9rem', color: '#6B7280', marginBottom: '1rem' }}>
+            <p style={{ fontSize: '0.9rem', color: colors.textSecondary, marginBottom: '1rem' }}>
               Report {reportPhotographer.firstName} {reportPhotographer.lastName} for:
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.25rem' }}>
               {['Inappropriate content', 'Fake profile', 'Spam or scam', 'Unprofessional behavior', 'Other'].map((reason) => (
-                <label key={reason} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', border: '2px solid #D1D5DB', borderRadius: '0.5rem', cursor: 'pointer' }}>
+                <label key={reason} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', cursor: 'pointer' }}>
                   <input type="radio" name="report-reason" style={{ width: '16px', height: '16px' }} />
-                  <span style={{ fontSize: '0.9rem', color: '#374151' }}>{reason}</span>
+                  <span style={{ fontSize: '0.9rem', color: colors.textPrimary }}>{reason}</span>
                 </label>
               ))}
             </div>
@@ -2221,13 +2210,13 @@ const BookedPhotographersPage = () => {
               style={{
                 width: '100%',
                 padding: '0.75rem',
-                border: '2px solid #D1D5DB',
+                border: `2px solid ${colors.borderPrimary}`,
                 borderRadius: '0.5rem',
                 fontSize: '0.9rem',
                 minHeight: '80px',
                 resize: 'vertical',
                 marginBottom: '1rem',
-                color: '#111827'
+                color: colors.textPrimary
               }}
             />
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
@@ -2235,10 +2224,10 @@ const BookedPhotographersPage = () => {
                 onClick={() => setShowReportModal(false)}
                 style={{
                   padding: '0.625rem 1.25rem',
-                  border: '2px solid #D1D5DB',
+                  border: `2px solid ${colors.borderPrimary}`,
                   borderRadius: '0.5rem',
-                  background: '#F3F4F6',
-                  color: '#374151',
+                  background: colors.bgTertiary,
+                  color: colors.textPrimary,
                   fontSize: '0.9rem',
                   fontWeight: '600',
                   cursor: 'pointer'
@@ -2277,14 +2266,14 @@ const BookedPhotographersPage = () => {
           <div>
             {/* Failed Payment Warning */}
             {paymentBooking.booking.paymentStatus === 'failed' && (
-              <div style={{ backgroundColor: '#FEE2E2', borderRadius: '0.5rem', padding: '0.75rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ backgroundColor: actualTheme === 'dark' ? '#450A0A' : '#FEE2E2', borderRadius: '0.5rem', padding: '0.75rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <AlertCircleIcon />
-                <span style={{ fontSize: '0.85rem', color: '#DC2626' }}>Previous payment attempt failed. Please try again with a different payment method.</span>
+                <span style={{ fontSize: '0.85rem', color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626' }}>Previous payment attempt failed. Please try again with a different payment method.</span>
               </div>
             )}
 
             {/* Photographer Info */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', padding: '0.75rem', backgroundColor: '#F9FAFB', borderRadius: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', padding: '0.75rem', backgroundColor: colors.bgTertiary, borderRadius: '0.5rem' }}>
               <div style={{ position: 'relative', width: '48px', height: '48px', flexShrink: 0 }}>
                 <img
                   src={paymentBooking.photographer.profileImage}
@@ -2317,38 +2306,38 @@ const BookedPhotographersPage = () => {
                 )}
               </div>
               <div>
-                <div style={{ fontWeight: '600', color: '#111827' }}>{paymentBooking.photographer.firstName} {paymentBooking.photographer.lastName}</div>
-                <div style={{ fontSize: '0.85rem', color: '#6B7280' }}>{paymentBooking.booking.eventName}</div>
+                <div style={{ fontWeight: '600', color: colors.textPrimary }}>{paymentBooking.photographer.firstName} {paymentBooking.photographer.lastName}</div>
+                <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>{paymentBooking.booking.eventName}</div>
               </div>
             </div>
 
             {/* Amount Summary */}
-            <div style={{ backgroundColor: '#F9FAFB', borderRadius: '0.5rem', padding: '1rem', marginBottom: '1.25rem' }}>
+            <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '1rem', marginBottom: '1.25rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '0.9rem', color: '#6B7280' }}>Event</span>
-                <span style={{ fontSize: '0.9rem', fontWeight: '500', color: '#111827' }}>{paymentBooking.booking.eventType}</span>
+                <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Event</span>
+                <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>{paymentBooking.booking.eventType}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '0.9rem', color: '#6B7280' }}>Date</span>
-                <span style={{ fontSize: '0.9rem', fontWeight: '500', color: '#111827' }}>{formatDate(paymentBooking.booking.eventDate)}</span>
+                <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Date</span>
+                <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>{formatDate(paymentBooking.booking.eventDate)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '0.9rem', color: '#6B7280' }}>Package</span>
-                <span style={{ fontSize: '0.9rem', fontWeight: '500', color: '#111827' }}>{paymentBooking.booking.packageName}</span>
+                <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Package</span>
+                <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>{paymentBooking.booking.packageName}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '0.9rem', color: '#6B7280' }}>Total Amount</span>
-                <span style={{ fontSize: '0.9rem', fontWeight: '500', color: '#111827' }}>${paymentBooking.booking.totalAmount}</span>
+                <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Total Amount</span>
+                <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>${paymentBooking.booking.totalAmount}</span>
               </div>
               {paymentBooking.booking.paidAmount > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                  <span style={{ fontSize: '0.9rem', color: '#6B7280' }}>Already Paid</span>
+                  <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Already Paid</span>
                   <span style={{ fontSize: '0.9rem', fontWeight: '500', color: '#059669' }}>-${paymentBooking.booking.paidAmount}</span>
                 </div>
               )}
-              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: '1px solid #E5E7EB' }}>
-                <span style={{ fontSize: '1rem', fontWeight: '600', color: '#374151' }}>Amount Due</span>
-                <span style={{ fontSize: '1.25rem', fontWeight: '700', color: '#083A85' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: `1px solid ${colors.borderPrimary}` }}>
+                <span style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>Amount Due</span>
+                <span style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
                   ${paymentBooking.booking.totalAmount - paymentBooking.booking.paidAmount}
                 </span>
               </div>
@@ -2356,7 +2345,7 @@ const BookedPhotographersPage = () => {
 
             {/* Payment Method Selection */}
             <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.75rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.75rem' }}>
                 Payment Method
               </label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -2372,10 +2361,10 @@ const BookedPhotographersPage = () => {
                       alignItems: 'center',
                       gap: '0.75rem',
                       padding: '0.875rem',
-                      border: selectedPaymentMethod === method.id ? '2px solid #083A85' : '1px solid #E5E7EB',
+                      border: selectedPaymentMethod === method.id ? '2px solid #083A85' : `1px solid ${colors.borderPrimary}`,
                       borderRadius: '0.5rem',
                       cursor: 'pointer',
-                      backgroundColor: selectedPaymentMethod === method.id ? '#EFF6FF' : 'white'
+                      backgroundColor: selectedPaymentMethod === method.id ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard
                     }}
                   >
                     <input
@@ -2387,7 +2376,7 @@ const BookedPhotographersPage = () => {
                       style={{ width: '16px', height: '16px' }}
                     />
                     <span style={{ fontSize: '1.25rem' }}>{method.icon}</span>
-                    <span style={{ fontSize: '0.9rem', fontWeight: '500', color: '#374151' }}>{method.label}</span>
+                    <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>{method.label}</span>
                   </label>
                 ))}
               </div>
@@ -2397,7 +2386,7 @@ const BookedPhotographersPage = () => {
             {selectedPaymentMethod === 'card' && (
               <div style={{ marginBottom: '1.25rem' }}>
                 <div style={{ marginBottom: '1rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
                     Card Number
                   </label>
                   <input
@@ -2406,16 +2395,16 @@ const BookedPhotographersPage = () => {
                     style={{
                       width: '100%',
                       padding: '0.75rem',
-                      border: '2px solid #D1D5DB',
+                      border: `2px solid ${colors.borderPrimary}`,
                       borderRadius: '0.5rem',
                       fontSize: '0.9rem',
-                      color: '#111827'
+                      color: colors.textPrimary
                     }}
                   />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
                       Expiry Date
                     </label>
                     <input
@@ -2424,15 +2413,15 @@ const BookedPhotographersPage = () => {
                       style={{
                         width: '100%',
                         padding: '0.75rem',
-                        border: '2px solid #D1D5DB',
+                        border: `2px solid ${colors.borderPrimary}`,
                         borderRadius: '0.5rem',
                         fontSize: '0.9rem',
-                        color: '#111827'
+                        color: colors.textPrimary
                       }}
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
                       CVV
                     </label>
                     <input
@@ -2441,10 +2430,10 @@ const BookedPhotographersPage = () => {
                       style={{
                         width: '100%',
                         padding: '0.75rem',
-                        border: '2px solid #D1D5DB',
+                        border: `2px solid ${colors.borderPrimary}`,
                         borderRadius: '0.5rem',
                         fontSize: '0.9rem',
-                        color: '#111827'
+                        color: colors.textPrimary
                       }}
                     />
                   </div>
@@ -2455,7 +2444,7 @@ const BookedPhotographersPage = () => {
             {/* Mobile Money (shown when mobile is selected) */}
             {selectedPaymentMethod === 'mobile' && (
               <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
                   Phone Number
                 </label>
                 <input
@@ -2464,7 +2453,7 @@ const BookedPhotographersPage = () => {
                   style={{
                     width: '100%',
                     padding: '0.75rem',
-                    border: '2px solid #D1D5DB',
+                    border: `2px solid ${colors.borderPrimary}`,
                     borderRadius: '0.5rem',
                     fontSize: '0.9rem'
                   }}
@@ -2479,10 +2468,10 @@ const BookedPhotographersPage = () => {
                 style={{
                   flex: 1,
                   padding: '0.75rem 1rem',
-                  border: '2px solid #D1D5DB',
+                  border: `2px solid ${colors.borderPrimary}`,
                   borderRadius: '0.5rem',
-                  background: '#F3F4F6',
-                  color: '#374151',
+                  background: colors.bgTertiary,
+                  color: colors.textPrimary,
                   fontSize: '0.9rem',
                   fontWeight: '600',
                   cursor: 'pointer'

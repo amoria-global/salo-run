@@ -6,7 +6,9 @@
       "Bash(cmd /c \"rename app\\user\\photographers photographer\")",
       "Bash(find:*)",
       "Bash(npm install:*)",
-      "Bash(dir /b \"c:\\Users\\JOAST\\Documents\\connekt-dashboard\\app\\pages\\freelancer\")"
+      "Bash(dir /b \"c:\\Users\\JOAST\\Documents\\connekt-dashboard\\app\\pages\\freelancer\")",
+      "Bash(cd:*)",
+      "Bash(dir:*)"
     ]
   }
 }
