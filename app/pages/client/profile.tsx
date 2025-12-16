@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
+import { useUserProfile } from '../../context/UserProfileContext';
 
 // Camera icon for avatar edit
 const CameraIcon = () => (
@@ -16,6 +17,7 @@ const CameraIcon = () => (
 
 const ProfilePage = () => {
   const { colors, actualTheme } = useTheme();
+  const { profile, updateProfile } = useUserProfile();
   const [isEditEnabled, setIsEditEnabled] = useState(false);
 
   // East African countries with phone codes
@@ -37,18 +39,18 @@ const ProfilePage = () => {
     'Western Province': ['Karongi', 'Ngororero', 'Nyabihu', 'Nyamasheke', 'Rubavu', 'Rusizi', 'Rutsiro']
   };
 
-  // Form state
+  // Form state - uses profile data from context (will be from backend later)
   const [formData, setFormData] = useState({
-    fullName: 'Diane Marry',
-    username: 'diane_marry',
-    email: 'dianemarry@gmail.com',
-    phoneCode: '+250',
-    phoneNumber: '788 123 456',
-    title: 'Client',
-    country: 'Rwanda',
-    province: 'Kigali City',
-    district: 'Gasabo',
-    sector: 'Kimironko',
+    fullName: profile.fullName,
+    username: profile.username,
+    email: profile.email,
+    phoneCode: profile.phoneCode,
+    phoneNumber: profile.phoneNumber,
+    title: profile.title,
+    country: profile.country,
+    province: profile.province,
+    district: profile.district,
+    sector: profile.sector,
     // Fields only for photographers/freelancers
     companyName: 'Personal',
     workLocation: 'Kigali, Rwanda',
@@ -66,6 +68,11 @@ const ProfilePage = () => {
   const handleInputChange = (field: string, value: string) => {
     if (isEditEnabled) {
       setFormData(prev => ({ ...prev, [field]: value }));
+      // Update the shared UserProfileContext for profile fields
+      const profileFields = ['fullName', 'username', 'email', 'phoneCode', 'phoneNumber', 'title', 'country', 'province', 'district', 'sector'];
+      if (profileFields.includes(field)) {
+        updateProfile({ [field]: value });
+      }
     }
   };
 

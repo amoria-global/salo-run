@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Pragati_Narrow } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "./context/ThemeContext";
+import { UserProfileProvider } from "./context/UserProfileContext";
 
 const pragatiNarrow = Pragati_Narrow({
   weight: ["400", "700"],
@@ -29,7 +30,9 @@ export default function RootLayout({
       </head>
       <body className={`${pragatiNarrow.variable} font-sans antialiased`}>
         <ThemeProvider>
-          {children}
+          <UserProfileProvider>
+            {children}
+          </UserProfileProvider>
         </ThemeProvider>
       </body>
     </html>
