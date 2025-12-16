@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
@@ -22,8 +23,8 @@ const ViewIcon = () => (
 
 const CalendarIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="3" y="4" width="18" height="18" rx="2" stroke="#6B7280" strokeWidth="2"/>
-    <path d="M16 2V6M8 2V6M3 10H21" stroke="#6B7280" strokeWidth="2" strokeLinecap="round"/>
+    <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2"/>
+    <path d="M16 2V6M8 2V6M3 10H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
   </svg>
 );
 
@@ -36,19 +37,19 @@ const CopyIcon = () => (
 
 const ChevronLeftIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M15 18L9 12L15 6" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
 const ChevronRightIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M9 18L15 12L9 6" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
 const CloseIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M18 6L6 18M6 6L18 18" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
@@ -525,24 +526,27 @@ interface WithdrawModalProps {
   isOpen: boolean;
   onClose: () => void;
   availableBalance: number;
+  userType?: 'photographer' | 'freelancer';
 }
 
 interface WithdrawAccount {
   id: string;
-  type: 'mobile' | 'bank' | 'card';
+  type: 'mobile' | 'bank' | 'card' | 'mtn' | 'airtel';
   label: string;
   accountNumber: string;
   accountName: string;
   color: string;
 }
 
-const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availableBalance }) => {
+const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availableBalance, userType = 'photographer' }) => {
   const { colors, actualTheme } = useTheme();
+  const router = useRouter();
   const [withdrawAmount, setWithdrawAmount] = useState<string>('');
   const [selectedAccount, setSelectedAccount] = useState<string>('');
 
   const accounts: WithdrawAccount[] = [
-    { id: 'mtn', type: 'mobile', label: 'MTN Mobile Money', accountNumber: '0789 XXX 980', accountName: 'John Doe', color: '#F59E0B' },
+    { id: 'mtn', type: 'mtn', label: 'MTN Mobile Money', accountNumber: '0789 XXX 980', accountName: 'John Doe', color: '#F59E0B' },
+    { id: 'airtel', type: 'airtel', label: 'Airtel Money', accountNumber: '0738 XXX 456', accountName: 'John Doe', color: '#ED1C24' },
     { id: 'bank', type: 'bank', label: 'Bank of Kigali', accountNumber: '0012 XXXX 4532', accountName: 'John Doe', color: '#3B82F6' },
     { id: 'visa', type: 'card', label: 'Visa Debit Card', accountNumber: '**** **** **** 4187', accountName: 'John Doe', color: '#8B5CF6' }
   ];
@@ -554,16 +558,18 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
     setSelectedAccount('');
   };
 
-  const getIcon = (type: string, color: string) => {
+  const getAccountImage = (type: string) => {
     switch (type) {
-      case 'mobile':
-        return <MobileMoneyIcon color={color} />;
+      case 'mtn':
+        return '/mtn.png';
+      case 'airtel':
+        return '/airtel.png';
       case 'bank':
-        return <BankIcon color={color} />;
+        return '/bank.png';
       case 'card':
-        return <CardIcon color={color} />;
+        return '/cards.png';
       default:
-        return null;
+        return '/cards.png';
     }
   };
 
@@ -753,33 +759,37 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.875rem',
+                    gap: '1rem',
                     padding: '1rem',
-                    border: selectedAccount === account.id ? '2px solid #083A85' : `1px solid ${colors.borderPrimary}`,
+                    border: selectedAccount === account.id ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
                     borderRadius: '0.75rem',
                     cursor: 'pointer',
-                    backgroundColor: selectedAccount === account.id ? colors.bgTertiary : colors.bgCard,
+                    backgroundColor: selectedAccount === account.id ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
                     transition: 'all 0.2s'
                   }}
                 >
-                  {/* Icon Container */}
+                  {/* Image Container */}
                   <div style={{
                     width: '48px',
                     height: '48px',
-                    borderRadius: '0.75rem',
-                    backgroundColor: `${account.color}15`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    borderRadius: '0.5rem',
+                    overflow: 'hidden',
                     flexShrink: 0
                   }}>
-                    {getIcon(account.type, account.color)}
+                    <Image
+                      src={getAccountImage(account.type)}
+                      alt={account.label}
+                      width={48}
+                      height={48}
+                      unoptimized
+                      style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                    />
                   </div>
 
                   {/* Account Info */}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{
-                      fontSize: '0.9rem',
+                      fontSize: '0.95rem',
                       fontWeight: '600',
                       color: colors.textPrimary,
                       marginBottom: '0.125rem'
@@ -804,25 +814,33 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
                     </div>
                   </div>
 
-                  {/* Selection Indicator */}
+                  {/* Radio Selection Indicator */}
                   <div style={{
-                    width: '22px',
-                    height: '22px',
+                    width: '20px',
+                    height: '20px',
                     borderRadius: '50%',
-                    border: selectedAccount === account.id ? 'none' : '2px solid #D1D5DB',
-                    backgroundColor: selectedAccount === account.id ? '#083A85' : 'transparent',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'all 0.2s',
+                    border: selectedAccount === account.id ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                    backgroundColor: colors.bgCard,
                     flexShrink: 0
-                  }}>
-                    {selectedAccount === account.id && <CheckIcon />}
-                  </div>
+                  }} />
                 </div>
               ))}
             </div>
           </div>
+
+          {/* Info text about withdrawal accounts */}
+          <p style={{
+            fontSize: '0.8rem',
+            color: colors.textSecondary,
+            margin: '0.75rem 0 1.25rem 0',
+            textAlign: 'center'
+          }}>
+            <i className="bi bi-info-circle" style={{ marginRight: '0.375rem' }}></i>
+            Manage your withdrawal accounts in <span
+              onClick={() => router.push(`/user/${userType}/preferences?tab=payments`)}
+              style={{ color: colors.brandPrimary, fontWeight: '500', cursor: 'pointer', textDecoration: 'underline' }}
+            >Preferences → Withdrawal Accounts</span>
+          </p>
 
           {/* Actions */}
           <div style={{ display: 'flex', gap: '0.75rem' }}>
@@ -1736,6 +1754,7 @@ Amount: ${transaction.amount}
         isOpen={showWithdrawModal}
         onClose={() => setShowWithdrawModal(false)}
         availableBalance={availableBalance}
+        userType={userType}
       />
 
       {/* Tips Modal */}
