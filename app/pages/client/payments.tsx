@@ -2,9 +2,11 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
+import { useUserProfile } from '../../context/UserProfileContext';
 
 // Icons
 const DownloadIcon = () => (
@@ -22,8 +24,8 @@ const ViewIcon = () => (
 
 const CalendarIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="3" y="4" width="18" height="18" rx="2" stroke="#6B7280" strokeWidth="2"/>
-    <path d="M16 2V6M8 2V6M3 10H21" stroke="#6B7280" strokeWidth="2" strokeLinecap="round"/>
+    <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2"/>
+    <path d="M16 2V6M8 2V6M3 10H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
   </svg>
 );
 
@@ -36,19 +38,19 @@ const CopyIcon = () => (
 
 const ChevronLeftIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M15 18L9 12L15 6" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
 const ChevronRightIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M9 18L15 12L9 6" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
 const CloseIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M18 6L6 18M6 6L18 18" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
@@ -515,6 +517,7 @@ interface PayNowModalProps {
 
 const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) => {
   const { colors, actualTheme } = useTheme();
+  const router = useRouter();
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('card');
 
   if (!payment) return null;
@@ -544,126 +547,149 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
 
         {/* Payment Method Selection */}
         <div style={{ marginBottom: '1.25rem' }}>
-          <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.75rem' }}>
-            Payment Method
+          <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>
+            Select Payment Method
           </label>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {[
-              { id: 'card', label: 'Credit/Debit Card', icon: '💳' },
-              { id: 'mobile', label: 'Mobile Money (MTN, Airtel)', icon: '📱' },
-              { id: 'bank', label: 'Bank Transfer', icon: '🏦' }
-            ].map((method) => (
-              <label
-                key={method.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  padding: '0.875rem',
-                  border: selectedPaymentMethod === method.id ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
-                  cursor: 'pointer',
-                  backgroundColor: selectedPaymentMethod === method.id ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard
-                }}
-              >
-                <input
-                  type="radio"
-                  name="payment-method"
-                  value={method.id}
-                  checked={selectedPaymentMethod === method.id}
-                  onChange={() => setSelectedPaymentMethod(method.id)}
-                  style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                />
-                <span style={{ fontSize: '1.25rem' }}>{method.icon}</span>
-                <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>{method.label}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        {/* Card Details (shown when card is selected) */}
-        {selectedPaymentMethod === 'card' && (
-          <div style={{ marginBottom: '1.25rem' }}>
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                Card Number
-              </label>
-              <input
-                type="text"
-                placeholder="1234 5678 9012 3456"
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: `2px solid ${colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.9rem',
-                  backgroundColor: colors.bgCard,
-                  color: colors.textPrimary
-                }}
-              />
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                  Expiry Date
-                </label>
-                <input
-                  type="text"
-                  placeholder="MM/YY"
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    border: `2px solid ${colors.borderPrimary}`,
-                    borderRadius: '0.5rem',
-                    fontSize: '0.9rem',
-                    backgroundColor: colors.bgCard,
-                    color: colors.textPrimary
-                  }}
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                  CVV
-                </label>
-                <input
-                  type="text"
-                  placeholder="123"
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    border: `2px solid ${colors.borderPrimary}`,
-                    borderRadius: '0.5rem',
-                    fontSize: '0.9rem',
-                    backgroundColor: colors.bgCard,
-                    color: colors.textPrimary
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Mobile Money (shown when mobile is selected) */}
-        {selectedPaymentMethod === 'mobile' && (
-          <div style={{ marginBottom: '1.25rem' }}>
-            <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-              Phone Number
-            </label>
-            <input
-              type="tel"
-              placeholder="+250 78X XXX XXX"
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {/* Credit/Debit Card */}
+            <div
+              onClick={() => setSelectedPaymentMethod('card')}
               style={{
-                width: '100%',
-                padding: '0.75rem',
-                border: `2px solid ${colors.borderPrimary}`,
-                borderRadius: '0.5rem',
-                fontSize: '0.9rem',
-                backgroundColor: colors.bgCard,
-                color: colors.textPrimary
+                display: 'flex',
+                alignItems: 'center',
+                gap: '1rem',
+                padding: '1rem',
+                border: selectedPaymentMethod === 'card' ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                borderRadius: '0.75rem',
+                cursor: 'pointer',
+                backgroundColor: selectedPaymentMethod === 'card' ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
+                transition: 'all 0.2s'
               }}
-            />
+            >
+              <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0 }}>
+                <Image src="/cards.png" alt="Credit/Debit Card" width={48} height={48} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Credit/Debit Card</div>
+                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Pay with Visa, Mastercard, etc.</div>
+              </div>
+              <div style={{
+                width: '20px',
+                height: '20px',
+                borderRadius: '50%',
+                border: selectedPaymentMethod === 'card' ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                backgroundColor: colors.bgCard
+              }} />
+            </div>
+
+            {/* MTN Mobile Money */}
+            <div
+              onClick={() => setSelectedPaymentMethod('mtn')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '1rem',
+                padding: '1rem',
+                border: selectedPaymentMethod === 'mtn' ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                borderRadius: '0.75rem',
+                cursor: 'pointer',
+                backgroundColor: selectedPaymentMethod === 'mtn' ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
+                transition: 'all 0.2s'
+              }}
+            >
+              <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0 }}>
+                <Image src="/mtn.png" alt="MTN Mobile Money" width={48} height={48} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>MTN Mobile Money</div>
+                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Pay via MTN MoMo</div>
+              </div>
+              <div style={{
+                width: '20px',
+                height: '20px',
+                borderRadius: '50%',
+                border: selectedPaymentMethod === 'mtn' ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                backgroundColor: colors.bgCard
+              }} />
+            </div>
+
+            {/* Airtel Mobile Money */}
+            <div
+              onClick={() => setSelectedPaymentMethod('airtel')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '1rem',
+                padding: '1rem',
+                border: selectedPaymentMethod === 'airtel' ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                borderRadius: '0.75rem',
+                cursor: 'pointer',
+                backgroundColor: selectedPaymentMethod === 'airtel' ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
+                transition: 'all 0.2s'
+              }}
+            >
+              <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0 }}>
+                <Image src="/airtel.png" alt="Airtel Mobile Money" width={48} height={48} unoptimized style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Airtel Mobile Money</div>
+                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Pay via Airtel Money</div>
+              </div>
+              <div style={{
+                width: '20px',
+                height: '20px',
+                borderRadius: '50%',
+                border: selectedPaymentMethod === 'airtel' ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                backgroundColor: colors.bgCard
+              }} />
+            </div>
+
+            {/* Bank Transfer */}
+            <div
+              onClick={() => setSelectedPaymentMethod('bank')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '1rem',
+                padding: '1rem',
+                border: selectedPaymentMethod === 'bank' ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                borderRadius: '0.75rem',
+                cursor: 'pointer',
+                backgroundColor: selectedPaymentMethod === 'bank' ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
+                transition: 'all 0.2s'
+              }}
+            >
+              <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0 }}>
+                <Image src="/bank.png" alt="Bank Transfer" width={48} height={48} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Bank Transfer</div>
+                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Pay via bank account</div>
+              </div>
+              <div style={{
+                width: '20px',
+                height: '20px',
+                borderRadius: '50%',
+                border: selectedPaymentMethod === 'bank' ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                backgroundColor: colors.bgCard
+              }} />
+            </div>
           </div>
-        )}
+
+          {/* Info text about payment accounts */}
+          <p style={{
+            fontSize: '0.8rem',
+            color: colors.textSecondary,
+            margin: '0.75rem 0 1.25rem 0',
+            textAlign: 'center'
+          }}>
+            <i className="bi bi-info-circle" style={{ marginRight: '0.375rem' }}></i>
+            Manage your payment methods in <span
+              onClick={() => router.push('/user/client/preferences?tab=payments')}
+              style={{ color: colors.brandPrimary, fontWeight: '500', cursor: 'pointer', textDecoration: 'underline' }}
+            >Preferences → Payment Accounts</span>
+          </p>
+        </div>
 
         {/* Actions */}
         <div style={{ display: 'flex', gap: '0.75rem' }}>
@@ -1085,6 +1111,7 @@ const EventTypeBadge: React.FC<EventTypeBadgeProps> = ({ type }) => {
 
 const PaymentsPage = () => {
   const { colors, actualTheme } = useTheme();
+  const { profile } = useUserProfile();
   const [activeTimeFilter, setActiveTimeFilter] = useState<'1W' | '1M' | '3M' | '6M' | '1Y'>('1W');
   const [currentPage, setCurrentPage] = useState(1);
   const [chartType, setChartType] = useState<ChartType>('line');
@@ -1167,10 +1194,10 @@ Amount: ${payment.amount}
       date: 'Dec 08, 2024',
       platform: 'ConnektLive',
       gifters: [
-        { name: 'Michael K.', amount: 25.00 },
-        { name: 'Anonymous', amount: 10.00 },
-        { name: 'David W.', amount: 15.00 },
-        { name: 'Lisa P.', amount: 5.00 },
+        { name: 'Michael K.', amount: 25.00, message: 'Amazing work! Love your style!' },
+        { name: 'Anonymous', amount: 10.00, message: '' },
+        { name: 'David W.', amount: 15.00, message: 'Great content, keep it up!' },
+        { name: 'Lisa P.', amount: 5.00, message: 'Thanks for the tips!' },
       ]
     },
     {
@@ -1179,9 +1206,9 @@ Amount: ${payment.amount}
       date: 'Dec 07, 2024',
       platform: 'ConnektLive',
       gifters: [
-        { name: 'Sarah M.', amount: 15.00 },
-        { name: 'Emily R.', amount: 30.00 },
-        { name: 'John D.', amount: 20.00 },
+        { name: 'Sarah M.', amount: 15.00, message: 'Very informative session!' },
+        { name: 'Emily R.', amount: 30.00, message: 'You answered my question perfectly. Thank you so much!' },
+        { name: 'John D.', amount: 20.00, message: '' },
       ]
     },
     {
@@ -1190,8 +1217,8 @@ Amount: ${payment.amount}
       date: 'Dec 05, 2024',
       platform: 'ConnektLive',
       gifters: [
-        { name: 'James L.', amount: 50.00 },
-        { name: 'Maria G.', amount: 25.00 },
+        { name: 'James L.', amount: 50.00, message: 'Mind-blowing editing skills! I learned so much today.' },
+        { name: 'Maria G.', amount: 25.00, message: 'Best tutorial ever!' },
       ]
     },
     {
@@ -1200,9 +1227,9 @@ Amount: ${payment.amount}
       date: 'Dec 01, 2024',
       platform: 'ConnektLive',
       gifters: [
-        { name: 'Alex T.', amount: 10.00 },
-        { name: 'Chris B.', amount: 8.00 },
-        { name: 'Anonymous', amount: 12.00 },
+        { name: 'Alex T.', amount: 10.00, message: 'Love your setup!' },
+        { name: 'Chris B.', amount: 8.00, message: '' },
+        { name: 'Anonymous', amount: 12.00, message: 'Great review, very helpful!' },
       ]
     },
   ];
@@ -1212,6 +1239,36 @@ Amount: ${payment.amount}
   // State for gift senders modal
   const [showGiftSendersModal, setShowGiftSendersModal] = useState(false);
   const [selectedGiftStream, setSelectedGiftStream] = useState<typeof giftStreams[0] | null>(null);
+
+  // State for gifts payment method modal
+  const [showGiftsPaymentMethodModal, setShowGiftsPaymentMethodModal] = useState(false);
+  const [selectedGiftPaymentMethod, setSelectedGiftPaymentMethod] = useState<string | null>(null);
+  const [giftPaymentDetails, setGiftPaymentDetails] = useState({
+    mtnNumber: '',
+    airtelNumber: '',
+    bankName: '',
+    accountNumber: '',
+    accountName: '',
+    cardNumber: '',
+    cardExpiry: '',
+    cardCvv: '',
+    cardName: ''
+  });
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  // Check if Rwanda requires mobile money selection
+  const isRwanda = profile.country === 'Rwanda';
+  const hasMobileMoneySelected = selectedGiftPaymentMethod === 'mtn' || selectedGiftPaymentMethod === 'airtel';
+
+  // Validate that Rwanda users have selected a mobile money option
+  const validateGiftPaymentMethod = (): boolean => {
+    if (isRwanda && !hasMobileMoneySelected) {
+      setValidationError('For users in Rwanda, you must select either MTN or Airtel Mobile Money as a payment method.');
+      return false;
+    }
+    setValidationError(null);
+    return true;
+  };
 
   const handleViewGiftSenders = (stream: typeof giftStreams[0]) => {
     setSelectedGiftStream(stream);
@@ -1393,7 +1450,54 @@ Amount: ${payment.amount}
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div style={{ textAlign: 'right' }}>
+                {/* Withdrawal Setup Card */}
+                <div style={{
+                  backgroundColor: actualTheme === 'dark' ? '#14532D' : '#F0FDF4',
+                  border: `1px solid ${actualTheme === 'dark' ? '#166534' : '#BBF7D0'}`,
+                  borderRadius: '0.5rem',
+                  padding: '0.6rem 1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '1rem',
+                  maxWidth: '420px'
+                }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.15rem' }}>
+                      Withdraw Your Gift Earnings
+                    </div>
+                    <div style={{ fontSize: '0.82rem', color: colors.textSecondary, lineHeight: '1.35' }}>
+                      Set up your preferred account to receive payments from viewer gifts.
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowGiftsPaymentMethodModal(true)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.35rem',
+                      backgroundColor: '#16A34A',
+                      color: 'white',
+                      border: '2px solid #15803D',
+                      borderRadius: '0.375rem',
+                      padding: '0.45rem 0.85rem',
+                      fontSize: '0.85rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0
+                    }}
+                  >
+                    Set Up Withdrawal Method
+                  </button>
+                </div>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
+                  alignItems: 'flex-end',
+                  textAlign: 'right'
+                }}>
                   <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Total Gifts</div>
                   <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>${totalGifts.toFixed(2)}</div>
                 </div>
@@ -1404,6 +1508,8 @@ Amount: ${payment.amount}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
                 {giftStreams.map((stream) => {
                   const streamTotal = stream.gifters.reduce((s, g) => s + g.amount, 0);
+                  const latestMessageGifter = stream.gifters.find(g => g.message);
+                  const messagesCount = stream.gifters.filter(g => g.message).length;
                   return (
                     <div
                       key={stream.id}
@@ -1436,13 +1542,42 @@ Amount: ${payment.amount}
                         {stream.streamTitle}
                       </h3>
 
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.625rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                           <span style={{ color: colors.textSecondary }}><UsersIcon /></span>
                           <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{stream.gifters.length} gifters</span>
                         </div>
                         <span style={{ fontSize: '1.1rem', fontWeight: '700', color: '#16A34A' }}>${streamTotal.toFixed(2)}</span>
                       </div>
+
+                      {/* Latest Message Preview */}
+                      {latestMessageGifter && (
+                        <div style={{
+                          backgroundColor: actualTheme === 'dark' ? '#1F2937' : '#FFFFFF',
+                          borderRadius: '0.5rem',
+                          padding: '0.5rem 0.625rem',
+                          marginBottom: '0.75rem',
+                          border: `1px solid ${actualTheme === 'dark' ? '#374151' : '#E5E7EB'}`
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: '0.25rem' }}>
+                            <i className="bi bi-chat-quote" style={{ fontSize: '0.7rem', color: colors.textTertiary }}></i>
+                            <span style={{ fontSize: '0.7rem', color: colors.textTertiary }}>
+                              {messagesCount} message{messagesCount > 1 ? 's' : ''}
+                            </span>
+                          </div>
+                          <p style={{
+                            fontSize: '0.75rem',
+                            color: colors.textSecondary,
+                            margin: 0,
+                            fontStyle: 'italic',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            <span style={{ fontWeight: '600', fontStyle: 'normal', color: colors.textPrimary }}>{latestMessageGifter.name}:</span> &ldquo;{latestMessageGifter.message}&rdquo;
+                          </p>
+                        </div>
+                      )}
 
                       <button
                         onClick={() => handleViewGiftSenders(stream)}
@@ -1652,42 +1787,81 @@ Amount: ${payment.amount}
               <div style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>
                 {selectedGiftStream.gifters.length} Viewers Gifted
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {selectedGiftStream.gifters.map((gifter, index) => (
                   <div
                     key={index}
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '0.75rem',
+                      padding: '0.875rem',
                       backgroundColor: colors.bgTertiary,
-                      borderRadius: '0.5rem',
+                      borderRadius: '0.625rem',
                       border: `1px solid ${colors.borderPrimary}`
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <div style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '50%',
-                        backgroundColor: actualTheme === 'dark' ? '#166534' : '#DCFCE7',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '0.8rem',
-                        fontWeight: '600',
-                        color: actualTheme === 'dark' ? '#4ADE80' : '#16A34A'
-                      }}>
-                        {gifter.name === 'Anonymous' ? '?' : gifter.name.charAt(0)}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: gifter.message ? '0.625rem' : 0
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <div style={{
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '50%',
+                          backgroundColor: actualTheme === 'dark' ? '#166534' : '#DCFCE7',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.85rem',
+                          fontWeight: '600',
+                          color: actualTheme === 'dark' ? '#4ADE80' : '#16A34A'
+                        }}>
+                          {gifter.name === 'Anonymous' ? '?' : gifter.name.charAt(0)}
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, display: 'block' }}>
+                            {gifter.name}
+                          </span>
+                        </div>
                       </div>
-                      <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>
-                        {gifter.name}
+                      <span style={{ fontSize: '1rem', fontWeight: '700', color: '#16A34A' }}>
+                        ${gifter.amount.toFixed(2)}
                       </span>
                     </div>
-                    <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#16A34A' }}>
-                      ${gifter.amount.toFixed(2)}
-                    </span>
+                    {/* Message from viewer */}
+                    {gifter.message && (
+                      <div style={{
+                        backgroundColor: actualTheme === 'dark' ? '#1F2937' : '#FFFFFF',
+                        borderRadius: '0.5rem',
+                        padding: '0.625rem 0.75rem',
+                        marginLeft: '2.85rem',
+                        border: `1px solid ${actualTheme === 'dark' ? '#374151' : '#E5E7EB'}`,
+                        position: 'relative'
+                      }}>
+                        {/* Speech bubble pointer */}
+                        <div style={{
+                          position: 'absolute',
+                          top: '-6px',
+                          left: '12px',
+                          width: '12px',
+                          height: '12px',
+                          backgroundColor: actualTheme === 'dark' ? '#1F2937' : '#FFFFFF',
+                          borderLeft: `1px solid ${actualTheme === 'dark' ? '#374151' : '#E5E7EB'}`,
+                          borderTop: `1px solid ${actualTheme === 'dark' ? '#374151' : '#E5E7EB'}`,
+                          transform: 'rotate(45deg)'
+                        }} />
+                        <p style={{
+                          fontSize: '0.8rem',
+                          color: colors.textSecondary,
+                          margin: 0,
+                          fontStyle: 'italic',
+                          lineHeight: '1.4'
+                        }}>
+                          &ldquo;{gifter.message}&rdquo;
+                        </p>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1710,6 +1884,533 @@ Amount: ${payment.amount}
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Gifts Payment Method Modal */}
+      <Modal
+        isOpen={showGiftsPaymentMethodModal}
+        onClose={() => {
+          setShowGiftsPaymentMethodModal(false);
+          setSelectedGiftPaymentMethod(null);
+          setValidationError(null);
+        }}
+        title="Withdraw Your Gifts"
+        maxWidth="500px"
+      >
+        <div>
+          {/* Explainer Box */}
+          <div style={{
+            backgroundColor: actualTheme === 'dark' ? '#14532D' : '#F0FDF4',
+            border: `1px solid ${actualTheme === 'dark' ? '#166534' : '#BBF7D0'}`,
+            borderRadius: '0.5rem',
+            padding: '0.75rem 1rem',
+            marginBottom: '1rem',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '0.75rem'
+          }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              backgroundColor: actualTheme === 'dark' ? '#166534' : '#DCFCE7',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              <GiftIcon />
+            </div>
+            <div>
+              <div style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.25rem' }}>
+                Where should we send your gift earnings?
+              </div>
+              <div style={{ fontSize: '0.8rem', color: colors.textSecondary, lineHeight: '1.4' }}>
+                When viewers send you gifts during your live streams, this is the account where you&apos;ll receive those payments.
+              </div>
+            </div>
+          </div>
+
+          {/* Rwanda Mobile Money Requirement Notice */}
+          {isRwanda && (
+            <div style={{
+              backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF',
+              border: `1px solid ${actualTheme === 'dark' ? '#3B82F6' : '#BFDBFE'}`,
+              borderRadius: '0.5rem',
+              padding: '0.75rem 1rem',
+              marginBottom: '1rem',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '0.5rem'
+            }}>
+              <span style={{ fontSize: '1rem' }}>ℹ️</span>
+              <div style={{ fontSize: '0.85rem', color: actualTheme === 'dark' ? '#93C5FD' : '#1E40AF' }}>
+                <strong>Required for Rwanda:</strong> You must select either MTN or Airtel Mobile Money as a payment method. You can also add other methods optionally.
+              </div>
+            </div>
+          )}
+
+          {/* Validation Error */}
+          {validationError && (
+            <div style={{
+              backgroundColor: actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2',
+              border: `1px solid ${actualTheme === 'dark' ? '#F87171' : '#FECACA'}`,
+              borderRadius: '0.5rem',
+              padding: '0.75rem 1rem',
+              marginBottom: '1rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}>
+              <span style={{ fontSize: '1rem' }}>⚠️</span>
+              <span style={{ fontSize: '0.85rem', color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626' }}>
+                {validationError}
+              </span>
+            </div>
+          )}
+
+          {/* Payment Method Options */}
+          <div style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>
+            Select your withdrawal account:
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.25rem' }}>
+            {/* MTN Mobile Money */}
+            <div
+              onClick={() => {
+                setSelectedGiftPaymentMethod('mtn');
+                setValidationError(null);
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '1rem',
+                padding: '1rem',
+                border: selectedGiftPaymentMethod === 'mtn' ? '2px solid #16A34A' : (isRwanda && !hasMobileMoneySelected ? `2px solid #F59E0B` : `2px solid ${colors.borderPrimary}`),
+                borderRadius: '0.75rem',
+                cursor: 'pointer',
+                backgroundColor: selectedGiftPaymentMethod === 'mtn' ? (actualTheme === 'dark' ? '#14532D' : '#F0FDF4') : colors.bgCard,
+                transition: 'all 0.2s'
+              }}
+            >
+              <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0 }}>
+                <Image src="/mtn.png" alt="MTN Mobile Money" width={48} height={48} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>MTN Mobile Money</span>
+                  {isRwanda && (
+                    <span style={{
+                      fontSize: '0.65rem',
+                      fontWeight: '600',
+                      color: '#F59E0B',
+                      backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FEF3C7',
+                      padding: '0.15rem 0.4rem',
+                      borderRadius: '0.25rem',
+                      textTransform: 'uppercase'
+                    }}>Required</span>
+                  )}
+                </div>
+                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Receive gifts via MTN MoMo</div>
+              </div>
+              <div style={{
+                width: '20px',
+                height: '20px',
+                borderRadius: '50%',
+                border: selectedGiftPaymentMethod === 'mtn' ? '6px solid #16A34A' : `2px solid ${colors.borderPrimary}`,
+                backgroundColor: colors.bgCard
+              }} />
+            </div>
+
+            {/* Airtel Mobile Money */}
+            <div
+              onClick={() => {
+                setSelectedGiftPaymentMethod('airtel');
+                setValidationError(null);
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '1rem',
+                padding: '1rem',
+                border: selectedGiftPaymentMethod === 'airtel' ? '2px solid #16A34A' : (isRwanda && !hasMobileMoneySelected ? `2px solid #F59E0B` : `2px solid ${colors.borderPrimary}`),
+                borderRadius: '0.75rem',
+                cursor: 'pointer',
+                backgroundColor: selectedGiftPaymentMethod === 'airtel' ? (actualTheme === 'dark' ? '#14532D' : '#F0FDF4') : colors.bgCard,
+                transition: 'all 0.2s'
+              }}
+            >
+              <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0 }}>
+                <Image src="/airtel.png" alt="Airtel Mobile Money" width={48} height={48} style={{ objectFit: 'cover', width: '100%', height: '100%' }} unoptimized />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Airtel Mobile Money</span>
+                  {isRwanda && (
+                    <span style={{
+                      fontSize: '0.65rem',
+                      fontWeight: '600',
+                      color: '#F59E0B',
+                      backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FEF3C7',
+                      padding: '0.15rem 0.4rem',
+                      borderRadius: '0.25rem',
+                      textTransform: 'uppercase'
+                    }}>Required</span>
+                  )}
+                </div>
+                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Receive gifts via Airtel Money</div>
+              </div>
+              <div style={{
+                width: '20px',
+                height: '20px',
+                borderRadius: '50%',
+                border: selectedGiftPaymentMethod === 'airtel' ? '6px solid #16A34A' : `2px solid ${colors.borderPrimary}`,
+                backgroundColor: colors.bgCard
+              }} />
+            </div>
+
+            {/* Bank Account */}
+            <div
+              onClick={() => setSelectedGiftPaymentMethod('bank')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '1rem',
+                padding: '1rem',
+                border: selectedGiftPaymentMethod === 'bank' ? '2px solid #16A34A' : `2px solid ${colors.borderPrimary}`,
+                borderRadius: '0.75rem',
+                cursor: 'pointer',
+                backgroundColor: selectedGiftPaymentMethod === 'bank' ? (actualTheme === 'dark' ? '#14532D' : '#F0FDF4') : colors.bgCard,
+                transition: 'all 0.2s'
+              }}
+            >
+              <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0 }}>
+                <Image src="/bank.png" alt="Bank Account" width={48} height={48} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Bank Account</div>
+                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Receive gifts via bank transfer</div>
+              </div>
+              <div style={{
+                width: '20px',
+                height: '20px',
+                borderRadius: '50%',
+                border: selectedGiftPaymentMethod === 'bank' ? '6px solid #16A34A' : `2px solid ${colors.borderPrimary}`,
+                backgroundColor: colors.bgCard
+              }} />
+            </div>
+
+            {/* VISA/Debit/Credit Cards */}
+            <div
+              onClick={() => setSelectedGiftPaymentMethod('card')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '1rem',
+                padding: '1rem',
+                border: selectedGiftPaymentMethod === 'card' ? '2px solid #16A34A' : `2px solid ${colors.borderPrimary}`,
+                borderRadius: '0.75rem',
+                cursor: 'pointer',
+                backgroundColor: selectedGiftPaymentMethod === 'card' ? (actualTheme === 'dark' ? '#14532D' : '#F0FDF4') : colors.bgCard,
+                transition: 'all 0.2s'
+              }}
+            >
+              <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0 }}>
+                <Image src="/cards.png" alt="VISA/Debit/Credit Cards" width={48} height={48} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Debit/Credit Cards</div>
+                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Receive gifts to your card</div>
+              </div>
+              <div style={{
+                width: '20px',
+                height: '20px',
+                borderRadius: '50%',
+                border: selectedGiftPaymentMethod === 'card' ? '6px solid #16A34A' : `2px solid ${colors.borderPrimary}`,
+                backgroundColor: colors.bgCard
+              }} />
+            </div>
+          </div>
+
+          {/* Payment Details Form */}
+          {selectedGiftPaymentMethod && (
+            <div style={{
+              backgroundColor: colors.bgTertiary,
+              borderRadius: '0.75rem',
+              padding: '1rem',
+              marginBottom: '1.25rem',
+              border: `1px solid ${colors.borderPrimary}`
+            }}>
+              <h4 style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 1rem 0' }}>
+                {selectedGiftPaymentMethod === 'mtn' && 'MTN Mobile Money Details'}
+                {selectedGiftPaymentMethod === 'airtel' && 'Airtel Mobile Money Details'}
+                {selectedGiftPaymentMethod === 'bank' && 'Bank Account Details'}
+                {selectedGiftPaymentMethod === 'card' && 'Card Details'}
+              </h4>
+
+              {/* MTN Fields */}
+              {selectedGiftPaymentMethod === 'mtn' && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+                    MTN Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    placeholder="+256 78X XXX XXX"
+                    value={giftPaymentDetails.mtnNumber}
+                    onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, mtnNumber: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      border: `2px solid ${colors.borderPrimary}`,
+                      borderRadius: '0.5rem',
+                      fontSize: '0.9rem',
+                      backgroundColor: colors.bgCard,
+                      color: colors.textPrimary,
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* Airtel Fields */}
+              {selectedGiftPaymentMethod === 'airtel' && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+                    Airtel Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    placeholder="+256 70X XXX XXX"
+                    value={giftPaymentDetails.airtelNumber}
+                    onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, airtelNumber: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      border: `2px solid ${colors.borderPrimary}`,
+                      borderRadius: '0.5rem',
+                      fontSize: '0.9rem',
+                      backgroundColor: colors.bgCard,
+                      color: colors.textPrimary,
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* Bank Fields */}
+              {selectedGiftPaymentMethod === 'bank' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+                      Bank Name
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g., Stanbic Bank"
+                      value={giftPaymentDetails.bankName}
+                      onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, bankName: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        border: `2px solid ${colors.borderPrimary}`,
+                        borderRadius: '0.5rem',
+                        fontSize: '0.9rem',
+                        backgroundColor: colors.bgCard,
+                        color: colors.textPrimary,
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+                      Account Number
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Enter account number"
+                      value={giftPaymentDetails.accountNumber}
+                      onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, accountNumber: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        border: `2px solid ${colors.borderPrimary}`,
+                        borderRadius: '0.5rem',
+                        fontSize: '0.9rem',
+                        backgroundColor: colors.bgCard,
+                        color: colors.textPrimary,
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+                      Account Name
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Name on account"
+                      value={giftPaymentDetails.accountName}
+                      onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, accountName: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        border: `2px solid ${colors.borderPrimary}`,
+                        borderRadius: '0.5rem',
+                        fontSize: '0.9rem',
+                        backgroundColor: colors.bgCard,
+                        color: colors.textPrimary,
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Card Fields */}
+              {selectedGiftPaymentMethod === 'card' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+                      Card Number
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="1234 5678 9012 3456"
+                      value={giftPaymentDetails.cardNumber}
+                      onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, cardNumber: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        border: `2px solid ${colors.borderPrimary}`,
+                        borderRadius: '0.5rem',
+                        fontSize: '0.9rem',
+                        backgroundColor: colors.bgCard,
+                        color: colors.textPrimary,
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+                      Name on Card
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="John Doe"
+                      value={giftPaymentDetails.cardName}
+                      onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, cardName: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        border: `2px solid ${colors.borderPrimary}`,
+                        borderRadius: '0.5rem',
+                        fontSize: '0.9rem',
+                        backgroundColor: colors.bgCard,
+                        color: colors.textPrimary,
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+                        Expiry Date
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="MM/YY"
+                        value={giftPaymentDetails.cardExpiry}
+                        onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, cardExpiry: e.target.value })}
+                        style={{
+                          width: '100%',
+                          padding: '0.75rem',
+                          border: `2px solid ${colors.borderPrimary}`,
+                          borderRadius: '0.5rem',
+                          fontSize: '0.9rem',
+                          backgroundColor: colors.bgCard,
+                          color: colors.textPrimary,
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+                        CVV
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="123"
+                        value={giftPaymentDetails.cardCvv}
+                        onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, cardCvv: e.target.value })}
+                        style={{
+                          width: '100%',
+                          padding: '0.75rem',
+                          border: `2px solid ${colors.borderPrimary}`,
+                          borderRadius: '0.5rem',
+                          fontSize: '0.9rem',
+                          backgroundColor: colors.bgCard,
+                          color: colors.textPrimary,
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button
+              onClick={() => {
+                setShowGiftsPaymentMethodModal(false);
+                setSelectedGiftPaymentMethod(null);
+                setValidationError(null);
+              }}
+              style={{
+                flex: 1,
+                padding: '0.75rem 1rem',
+                border: `2px solid ${colors.borderPrimary}`,
+                borderRadius: '0.5rem',
+                background: colors.bgTertiary,
+                color: colors.textPrimary,
+                fontSize: '0.9rem',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                // Validate Rwanda mobile money requirement
+                if (!validateGiftPaymentMethod()) {
+                  return;
+                }
+                // Handle save payment method
+                setShowGiftsPaymentMethodModal(false);
+                setSelectedGiftPaymentMethod(null);
+                setValidationError(null);
+              }}
+              disabled={!selectedGiftPaymentMethod}
+              style={{
+                flex: 1,
+                padding: '0.75rem 1rem',
+                border: '2px solid #15803D',
+                borderRadius: '0.5rem',
+                background: selectedGiftPaymentMethod ? '#16A34A' : colors.bgTertiary,
+                color: selectedGiftPaymentMethod ? 'white' : colors.textSecondary,
+                fontSize: '0.9rem',
+                fontWeight: '600',
+                cursor: selectedGiftPaymentMethod ? 'pointer' : 'not-allowed',
+                opacity: selectedGiftPaymentMethod ? 1 : 0.6
+              }}
+            >
+              Save Withdrawal Method
+            </button>
+          </div>
+        </div>
       </Modal>
 
       {/* Print Styles */}

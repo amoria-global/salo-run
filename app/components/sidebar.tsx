@@ -152,12 +152,12 @@ export default function Sidebar() {
               lineHeight: '1'
             }}>Amoria</span>
             <Image
-              src="/logo.png"
+              src={actualTheme === 'dark' ? '/fav.png' : '/logo.png'}
               alt="Logo"
-              width={48}
-              height={59}
+              width={actualTheme === 'dark' ? 42 : 48}
+              height={actualTheme === 'dark' ? 47 : 59}
               style={{
-                marginLeft: '-0.625rem'
+                marginLeft: actualTheme === 'dark' ? '-0.48rem' : '-0.625rem'
               }}
             />
           </Link>
@@ -230,13 +230,11 @@ export default function Sidebar() {
               onMouseEnter={(e) => {
                 if (!isActive) {
                   e.currentTarget.style.backgroundColor = colors.bgHover;
-                  e.currentTarget.style.color = colors.textPrimary;
                 }
               }}
               onMouseLeave={(e) => {
                 if (!isActive) {
                   e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.color = colors.textSecondary;
                 }
               }}
               onMouseDown={(e) => {
@@ -336,7 +334,7 @@ export default function Sidebar() {
                 fontWeight: '400',
                 transition: 'all 0.2s',
                 backgroundColor: isActive ? colors.bgActive : 'transparent',
-                color: isActive ? colors.textInverse : colors.textSecondary,
+                color: isActive ? colors.textInverse : colors.textPrimary,
                 boxShadow: isActive ? '0 1px 2px 0 rgba(0, 0, 0, 0.05)' : 'none',
                 textDecoration: 'none'
               }}
@@ -344,13 +342,11 @@ export default function Sidebar() {
               onMouseEnter={(e) => {
                 if (!isActive) {
                   e.currentTarget.style.backgroundColor = colors.bgHover;
-                  e.currentTarget.style.color = colors.textPrimary;
                 }
               }}
               onMouseLeave={(e) => {
                 if (!isActive) {
                   e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.color = colors.textSecondary;
                 }
               }}
               onMouseDown={(e) => {

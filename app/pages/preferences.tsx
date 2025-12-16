@@ -1,6 +1,8 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import Image from 'next/image';
+import { useSearchParams } from 'next/navigation';
 import Sidebar from '../components/sidebar';
 import Topbar from '../components/topbar';
 import { useTheme, ThemeMode } from '../context/ThemeContext';
@@ -93,6 +95,20 @@ const CheckIcon = () => (
   </svg>
 );
 
+// Component to handle URL params - needs Suspense boundary
+const TabParamHandler = ({ setActiveTab }: { setActiveTab: (tab: 'appearance' | 'payments') => void }) => {
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'payments') {
+      setActiveTab('payments');
+    }
+  }, [searchParams, setActiveTab]);
+
+  return null;
+};
+
 const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) => {
   const { theme, setTheme, actualTheme, colors } = useTheme();
   const [activeTab, setActiveTab] = useState<'appearance' | 'payments'>('appearance');
@@ -100,7 +116,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
   const [showEditPaymentModal, setShowEditPaymentModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod | null>(null);
-  const [paymentType, setPaymentType] = useState<'card' | 'bank' | 'mobile'>('card');
+  const [paymentType, setPaymentType] = useState<'card' | 'bank' | 'mtn' | 'airtel'>('card');
 
   // Form states
   const [cardNumber, setCardNumber] = useState('');
@@ -203,13 +219,25 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
         isDefault: paymentMethods.length === 0,
         icon: 'bi-bank'
       };
-    } else {
+    } else if (paymentType === 'mtn') {
       const lastFour = mobileNumber.slice(-3);
       newPayment = {
         id: Date.now().toString(),
         type: 'mobile',
-        name: mobileProvider,
-        details: mobileNumber.replace(/(\d{3})(\d{2})(\d{3})(\d{3})/, '+$1 $2X XXX X$4').slice(0, -2) + lastFour.slice(-2),
+        name: 'MTN Mobile Money',
+        details: mobileNumber || 'MTN Mobile Money',
+        lastFour,
+        isDefault: paymentMethods.length === 0,
+        icon: 'bi-phone'
+      };
+    } else {
+      // Airtel
+      const lastFour = mobileNumber.slice(-3);
+      newPayment = {
+        id: Date.now().toString(),
+        type: 'mobile',
+        name: 'Airtel Money',
+        details: mobileNumber || 'Airtel Money',
         lastFour,
         isDefault: paymentMethods.length === 0,
         icon: 'bi-phone'
@@ -243,8 +271,22 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
     }
   };
 
+  const getPaymentImage = (type: 'card' | 'bank' | 'mobile', provider?: string) => {
+    if (type === 'mobile') {
+      if (provider?.toLowerCase().includes('mtn')) return '/mtn.png';
+      if (provider?.toLowerCase().includes('airtel')) return '/airtel.png';
+      return '/mtn.png'; // default
+    }
+    if (type === 'bank') return '/bank.png';
+    return '/cards.png';
+  };
+
   return (
     <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
+      {/* Handle URL params for tab selection */}
+      <Suspense fallback={null}>
+        <TabParamHandler setActiveTab={setActiveTab} />
+      </Suspense>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <Topbar userRole={userType} />
@@ -272,7 +314,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
           }}>
             {[
               { key: 'appearance' as const, label: 'Appearance', icon: 'bi-palette' },
-              { key: 'payments' as const, label: 'Payment Accounts', icon: 'bi-wallet2' }
+              { key: 'payments' as const, label: userType === 'client' ? 'Payment Accounts' : 'Withdrawal Accounts', icon: 'bi-wallet2' }
             ].map((tab) => (
               <button
                 key={tab.key}
@@ -490,7 +532,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                   }}
                 >
                   <PlusIcon />
-                  Add Payment Method
+                  {userType === 'client' ? 'Add Payment Method' : 'Add Withdrawal Account'}
                 </button>
               </div>
 
@@ -507,10 +549,10 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                   borderBottom: `1px solid ${colors.borderPrimary}`
                 }}>
                   <h2 style={{ fontSize: '1.125rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
-                    Saved Payment Methods
+                    {userType === 'client' ? 'Saved Payment Methods' : 'Saved Withdrawal Accounts'}
                   </h2>
                   <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0.25rem 0 0 0' }}>
-                    Manage your payment methods for bookings and transactions
+                    {userType === 'client' ? 'Manage your payment methods for bookings and transactions' : 'Manage your withdrawal accounts for receiving payments'}
                   </p>
                 </div>
 
@@ -530,10 +572,10 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                       <CreditCardIcon />
                     </div>
                     <p style={{ fontSize: '1rem', fontWeight: '500', color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
-                      No payment methods saved
+                      {userType === 'client' ? 'No payment methods saved' : 'No withdrawal accounts saved'}
                     </p>
                     <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: 0 }}>
-                      Add a card, bank account, or mobile money to get started
+                      {userType === 'client' ? 'Add a card, bank account, or mobile money to get started' : 'Add a bank account or mobile money to receive your earnings'}
                     </p>
                   </div>
                 ) : (
@@ -555,13 +597,17 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                             width: '48px',
                             height: '48px',
                             borderRadius: '0.5rem',
-                            backgroundColor: method.type === 'card' ? '#DBEAFE' : method.type === 'bank' ? '#D1FAE5' : '#FEF3C7',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: method.type === 'card' ? '#2563EB' : method.type === 'bank' ? '#059669' : '#D97706'
+                            overflow: 'hidden',
+                            flexShrink: 0
                           }}>
-                            {getPaymentIcon(method.type)}
+                            <Image
+                              src={getPaymentImage(method.type, method.name)}
+                              alt={method.name}
+                              width={48}
+                              height={48}
+                              unoptimized
+                              style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                            />
                           </div>
                           <div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -696,7 +742,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
             {/* Modal Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
-                Add Payment Method
+                {userType === 'client' ? 'Add Payment Method' : 'Add Withdrawal Account'}
               </h2>
               <button
                 onClick={() => { setShowAddPaymentModal(false); resetForm(); }}
@@ -712,44 +758,71 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
               </button>
             </div>
 
-            {/* Payment Type Tabs */}
+            {/* Payment Type Selection */}
             <div style={{
               display: 'flex',
-              gap: '0.5rem',
+              flexDirection: 'column',
+              gap: '0.625rem',
               marginBottom: '1.5rem'
             }}>
-              {[
-                { type: 'card' as const, label: 'Card', icon: <CreditCardIcon /> },
-                { type: 'bank' as const, label: 'Bank Account', icon: <BankIcon /> },
-                { type: 'mobile' as const, label: 'Mobile Money', icon: <MobileIcon /> }
-              ].map((option) => (
-                <button
+              {(userType === 'client' ? [
+                { type: 'card' as const, label: 'Credit/Debit Card', description: 'Pay with Visa, Mastercard, etc.', image: '/cards.png' },
+                { type: 'mtn' as const, label: 'MTN Mobile Money', description: 'Pay with MTN Mobile Money', image: '/mtn.png' },
+                { type: 'airtel' as const, label: 'Airtel Money', description: 'Pay with Airtel Money', image: '/airtel.png' },
+                { type: 'bank' as const, label: 'Bank Account', description: 'Direct bank transfer', image: '/bank.png' }
+              ] : [
+                { type: 'mtn' as const, label: 'MTN Mobile Money', description: 'Receive via MTN Mobile Money', image: '/mtn.png' },
+                { type: 'airtel' as const, label: 'Airtel Money', description: 'Receive via Airtel Money', image: '/airtel.png' },
+                { type: 'bank' as const, label: 'Bank Account', description: 'Receive via bank transfer', image: '/bank.png' }
+              ]).map((option) => (
+                <div
                   key={option.type}
                   onClick={() => setPaymentType(option.type)}
                   style={{
-                    flex: 1,
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.5rem',
-                    padding: '0.75rem',
-                    border: paymentType === option.type
-                      ? `2px solid ${colors.brandPrimary}`
-                      : `2px solid ${colors.borderPrimary}`,
-                    borderRadius: '0.5rem',
-                    backgroundColor: paymentType === option.type
-                      ? actualTheme === 'dark' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(8, 58, 133, 0.05)'
-                      : 'transparent',
-                    color: paymentType === option.type ? colors.brandPrimary : colors.textSecondary,
-                    fontSize: '0.85rem',
-                    fontWeight: '500',
+                    gap: '1rem',
+                    padding: '1rem',
+                    border: paymentType === option.type ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                    borderRadius: '0.75rem',
                     cursor: 'pointer',
+                    backgroundColor: paymentType === option.type ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
                     transition: 'all 0.2s'
                   }}
                 >
-                  {option.icon}
-                  {option.label}
-                </button>
+                  <div style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '0.5rem',
+                    overflow: 'hidden',
+                    flexShrink: 0
+                  }}>
+                    <Image
+                      src={option.image}
+                      alt={option.label}
+                      width={48}
+                      height={48}
+                      unoptimized
+                      style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>
+                      {option.label}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>
+                      {option.description}
+                    </div>
+                  </div>
+                  <div style={{
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '50%',
+                    border: paymentType === option.type ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                    backgroundColor: colors.bgCard,
+                    flexShrink: 0
+                  }} />
+                </div>
               ))}
             </div>
 
@@ -931,16 +1004,18 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
               </div>
             )}
 
-            {/* Mobile Money Form */}
-            {paymentType === 'mobile' && (
+            {/* MTN Mobile Money Form */}
+            {paymentType === 'mtn' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>
-                    Mobile Provider
+                    MTN Phone Number
                   </label>
-                  <select
-                    value={mobileProvider}
-                    onChange={(e) => setMobileProvider(e.target.value)}
+                  <input
+                    type="text"
+                    placeholder="+250 78X XXX XXX"
+                    value={mobileNumber}
+                    onChange={(e) => setMobileNumber(e.target.value)}
                     style={{
                       width: '100%',
                       padding: '0.75rem',
@@ -950,23 +1025,23 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                       backgroundColor: colors.bgInput,
                       color: colors.textPrimary,
                       outline: 'none',
-                      cursor: 'pointer',
                       boxSizing: 'border-box'
                     }}
-                  >
-                    <option value="">Select provider</option>
-                    <option value="MTN Mobile Money">MTN Mobile Money</option>
-                    <option value="Airtel Money">Airtel Money</option>
-                    <option value="M-Pesa">M-Pesa</option>
-                  </select>
+                  />
                 </div>
+              </div>
+            )}
+
+            {/* Airtel Money Form */}
+            {paymentType === 'airtel' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>
-                    Phone Number
+                    Airtel Phone Number
                   </label>
                   <input
                     type="text"
-                    placeholder="+250 78X XXX XXX"
+                    placeholder="+250 73X XXX XXX"
                     value={mobileNumber}
                     onChange={(e) => setMobileNumber(e.target.value)}
                     style={{
@@ -1017,7 +1092,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                   cursor: 'pointer'
                 }}
               >
-                Add Payment Method
+                {userType === 'client' ? 'Add Payment Method' : 'Add Withdrawal Account'}
               </button>
             </div>
           </div>
@@ -1081,7 +1156,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
               margin: 0,
               marginBottom: '0.75rem',
               textAlign: 'center'
-            }}>Delete Payment Method</h2>
+            }}>{userType === 'client' ? 'Delete Payment Method' : 'Delete Withdrawal Account'}</h2>
 
             <p style={{
               fontSize: '0.95rem',
@@ -1180,7 +1255,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
-                Edit Payment Method
+                {userType === 'client' ? 'Edit Payment Method' : 'Edit Withdrawal Account'}
               </h2>
               <button
                 onClick={() => { setShowEditPaymentModal(false); setSelectedPayment(null); }}
@@ -1202,18 +1277,22 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
               borderRadius: '0.5rem',
               marginBottom: '1rem'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <div style={{
-                  width: '40px',
-                  height: '40px',
+                  width: '48px',
+                  height: '48px',
                   borderRadius: '0.5rem',
-                  backgroundColor: selectedPayment.type === 'card' ? '#DBEAFE' : selectedPayment.type === 'bank' ? '#D1FAE5' : '#FEF3C7',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: selectedPayment.type === 'card' ? '#2563EB' : selectedPayment.type === 'bank' ? '#059669' : '#D97706'
+                  overflow: 'hidden',
+                  flexShrink: 0
                 }}>
-                  {getPaymentIcon(selectedPayment.type)}
+                  <Image
+                    src={getPaymentImage(selectedPayment.type, selectedPayment.name)}
+                    alt={selectedPayment.name}
+                    width={48}
+                    height={48}
+                    unoptimized
+                    style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                  />
                 </div>
                 <div>
                   <p style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
@@ -1227,7 +1306,9 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
             </div>
 
             <p style={{ fontSize: '0.9rem', color: colors.textSecondary, textAlign: 'center', margin: '0 0 1.5rem 0' }}>
-              For security reasons, you can only update the payment method by removing and adding a new one.
+              {userType === 'client'
+                ? 'For security reasons, you can only update the payment method by removing and adding a new one.'
+                : 'For security reasons, you can only update the withdrawal account by removing and adding a new one.'}
             </p>
 
             <button
