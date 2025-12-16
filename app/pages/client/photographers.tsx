@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
@@ -28,8 +29,8 @@ const HeartIcon = ({ filled }: { filled: boolean }) => (
 
 const LocationIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M21 10C21 17 12 23 12 23C12 23 3 17 3 10C3 7.61305 3.94821 5.32387 5.63604 3.63604C7.32387 1.94821 9.61305 1 12 1C14.3869 1 16.6761 1.94821 18.364 3.63604C20.0518 5.32387 21 7.61305 21 10Z" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    <circle cx="12" cy="10" r="3" stroke="#6B7280" strokeWidth="2"/>
+    <path d="M21 10C21 17 12 23 12 23C12 23 3 17 3 10C3 7.61305 3.94821 5.32387 5.63604 3.63604C7.32387 1.94821 9.61305 1 12 1C14.3869 1 16.6761 1.94821 18.364 3.63604C20.0518 5.32387 21 7.61305 21 10Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <circle cx="12" cy="10" r="3" stroke="currentColor" strokeWidth="2"/>
   </svg>
 );
 
@@ -58,13 +59,13 @@ const ListIcon = ({ active, activeColor = '#083A85' }: { active: boolean; active
 
 const FilterIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
 const CloseIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M18 6L6 18M6 6L18 18" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
@@ -275,6 +276,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
 
 const BookedPhotographersPage = () => {
   const { colors, actualTheme } = useTheme();
+  const router = useRouter();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpecialization, setSelectedSpecialization] = useState<string | null>(null);
@@ -292,10 +294,17 @@ const BookedPhotographersPage = () => {
   const [activeTab, setActiveTab] = useState<'all' | 'favorites' | 'pending_payments'>('all');
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewText, setReviewText] = useState('');
-  const [wantToTip, setWantToTip] = useState(false);
   const [tipAmount, setTipAmount] = useState<number | 'custom' | ''>('');
   const [customTipAmount, setCustomTipAmount] = useState('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  // New states for tip flow
+  const [showTipPromptModal, setShowTipPromptModal] = useState(false);
+  const [showTipSelectionModal, setShowTipSelectionModal] = useState(false);
+  const [showTipPaymentModal, setShowTipPaymentModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [pendingReviewPhotographer, setPendingReviewPhotographer] = useState<BookedPhotographer | null>(null);
+  const [selectedTipPaymentMethod, setSelectedTipPaymentMethod] = useState<string>('card');
   const [paymentBooking, setPaymentBooking] = useState<{ photographer: BookedPhotographer; booking: Booking } | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('card');
 
@@ -636,31 +645,71 @@ const BookedPhotographersPage = () => {
 
   const submitReview = () => {
     if (reviewPhotographer) {
-      // Calculate final tip amount
-      const finalTipAmount = wantToTip ? (tipAmount === 'custom' ? parseFloat(customTipAmount) || 0 : tipAmount || 0) : 0;
-
+      // Save the review first
       setPhotographers(prev => prev.map(p =>
         p.id === reviewPhotographer.id
           ? {
               ...p,
               myRating: reviewRating,
-              myReview: reviewText,
-              totalSpent: p.totalSpent + finalTipAmount // Add tip to total spent
+              myReview: reviewText
             }
           : p
       ));
+
+      // Store photographer for tip flow
+      setPendingReviewPhotographer(reviewPhotographer);
+
+      // Close review modal
       setShowReviewModal(false);
       setReviewRating(5);
       setReviewText('');
-      setWantToTip(false);
+
+      // Show tip prompt modal
+      setShowTipPromptModal(true);
+    }
+  };
+
+  const handleTipPromptYes = () => {
+    setShowTipPromptModal(false);
+    setShowTipSelectionModal(true);
+  };
+
+  const handleTipPromptNo = () => {
+    setShowTipPromptModal(false);
+    setSuccessMessage('Review submitted successfully!');
+    setShowSuccessModal(true);
+    setPendingReviewPhotographer(null);
+  };
+
+  const handleSendTip = () => {
+    setShowTipSelectionModal(false);
+    setShowTipPaymentModal(true);
+  };
+
+  const handleTipPaymentComplete = () => {
+    if (pendingReviewPhotographer) {
+      const finalTipAmount = tipAmount === 'custom' ? parseFloat(customTipAmount) || 0 : (tipAmount as number) || 0;
+
+      // Update photographer's total spent
+      setPhotographers(prev => prev.map(p =>
+        p.id === pendingReviewPhotographer.id
+          ? { ...p, totalSpent: p.totalSpent + finalTipAmount }
+          : p
+      ));
+
+      setShowTipPaymentModal(false);
       setTipAmount('');
       setCustomTipAmount('');
-
-      // Show success message if tip was included
-      if (finalTipAmount > 0) {
-        alert(`Thank you! Your review has been submitted and $${finalTipAmount} tip has been sent to ${reviewPhotographer.firstName}.`);
-      }
+      setSelectedTipPaymentMethod('card');
+      setSuccessMessage('Review submitted successfully!');
+      setShowSuccessModal(true);
+      setPendingReviewPhotographer(null);
     }
+  };
+
+  const handleSuccessClose = () => {
+    setShowSuccessModal(false);
+    setSuccessMessage('');
   };
 
   // Check if photographer has any completed events (reviews only allowed for past events)
@@ -1161,7 +1210,6 @@ const BookedPhotographersPage = () => {
                               setReviewPhotographer(photographer);
                               setReviewRating(photographer.myRating || 5);
                               setReviewText(photographer.myReview || '');
-                              setWantToTip(false);
                               setTipAmount('');
                               setCustomTipAmount('');
                               setShowReviewModal(true);
@@ -1375,7 +1423,6 @@ const BookedPhotographersPage = () => {
                             setReviewPhotographer(photographer);
                             setReviewRating(photographer.myRating || 5);
                             setReviewText(photographer.myReview || '');
-                            setWantToTip(false);
                             setTipAmount('');
                             setCustomTipAmount('');
                             setShowReviewModal(true);
@@ -2023,131 +2070,6 @@ const BookedPhotographersPage = () => {
               />
             </div>
 
-            {/* Tip Section */}
-            <div style={{
-              marginBottom: '1.25rem',
-              padding: '1rem',
-              backgroundColor: actualTheme === 'dark' ? '#374151' : '#EFF6FF',
-              borderRadius: '0.5rem',
-              border: actualTheme === 'dark' ? '1px solid #4B5563' : '1px solid #60A5FA'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: wantToTip ? '1rem' : '0' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}><TipIcon /></span>
-                  <span style={{ fontSize: '0.9rem', fontWeight: '500', color: actualTheme === 'dark' ? '#F9FAFB' : '#083A85' }}>
-                    Would you like to leave a tip for {reviewPhotographer.firstName}?
-                  </span>
-                </div>
-                <button
-                  onClick={() => setWantToTip(!wantToTip)}
-                  style={{
-                    width: '48px',
-                    height: '26px',
-                    borderRadius: '13px',
-                    border: 'none',
-                    cursor: 'pointer',
-                    position: 'relative',
-                    backgroundColor: wantToTip ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : (actualTheme === 'dark' ? '#6B7280' : '#D1D5DB'),
-                    transition: 'background-color 0.2s'
-                  }}
-                >
-                  <div style={{
-                    width: '22px',
-                    height: '22px',
-                    borderRadius: '50%',
-                    backgroundColor: colors.bgCard,
-                    position: 'absolute',
-                    top: '2px',
-                    left: wantToTip ? '24px' : '2px',
-                    transition: 'left 0.2s',
-                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)'
-                  }} />
-                </button>
-              </div>
-
-              {wantToTip && (
-                <div>
-                  <div style={{ fontSize: '0.8rem', color: actualTheme === 'dark' ? '#D1D5DB' : '#083A85', marginBottom: '0.75rem' }}>
-                    Show your appreciation for great work!
-                  </div>
-                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    {[5, 10, 20, 50].map((amount) => (
-                      <button
-                        key={amount}
-                        onClick={() => { setTipAmount(amount); setCustomTipAmount(''); }}
-                        style={{
-                          padding: '0.5rem 1rem',
-                          borderRadius: '0.375rem',
-                          border: tipAmount === amount ? `2px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}` : `2px solid ${actualTheme === 'dark' ? '#6B7280' : colors.borderPrimary}`,
-                          backgroundColor: tipAmount === amount ? (actualTheme === 'dark' ? '#1E3A5F' : '#DBEAFE') : (actualTheme === 'dark' ? '#4B5563' : colors.bgCard),
-                          color: tipAmount === amount ? (actualTheme === 'dark' ? '#F9FAFB' : '#083A85') : (actualTheme === 'dark' ? '#F9FAFB' : colors.textPrimary),
-                          fontSize: '0.9rem',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        ${amount}
-                      </button>
-                    ))}
-                    <button
-                      onClick={() => { setTipAmount('custom'); }}
-                      style={{
-                        padding: '0.5rem 1rem',
-                        borderRadius: '0.375rem',
-                        border: tipAmount === 'custom' ? `2px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}` : `2px solid ${actualTheme === 'dark' ? '#6B7280' : colors.borderPrimary}`,
-                        backgroundColor: tipAmount === 'custom' ? (actualTheme === 'dark' ? '#1E3A5F' : '#DBEAFE') : (actualTheme === 'dark' ? '#4B5563' : colors.bgCard),
-                        color: tipAmount === 'custom' ? (actualTheme === 'dark' ? '#F9FAFB' : '#083A85') : (actualTheme === 'dark' ? '#F9FAFB' : colors.textPrimary),
-                        fontSize: '0.9rem',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s'
-                      }}
-                    >
-                      Custom
-                    </button>
-                  </div>
-                  {tipAmount === 'custom' && (
-                    <div style={{ marginTop: '0.75rem' }}>
-                      <div style={{ position: 'relative' }}>
-                        <span style={{
-                          position: 'absolute',
-                          left: '0.75rem',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          color: colors.textSecondary,
-                          fontWeight: '500'
-                        }}>$</span>
-                        <input
-                          type="number"
-                          value={customTipAmount}
-                          onChange={(e) => setCustomTipAmount(e.target.value)}
-                          placeholder="Enter amount"
-                          min="1"
-                          style={{
-                            width: '100%',
-                            padding: '0.5rem 0.75rem 0.5rem 1.5rem',
-                            border: `2px solid ${actualTheme === 'dark' ? '#6B7280' : colors.borderPrimary}`,
-                            borderRadius: '0.375rem',
-                            fontSize: '0.9rem',
-                            color: colors.textPrimary,
-                            backgroundColor: actualTheme === 'dark' ? '#4B5563' : colors.bgCard,
-                            outline: 'none'
-                          }}
-                          onFocus={(e) => {
-                            e.currentTarget.style.borderColor = actualTheme === 'dark' ? '#60A5FA' : '#083A85';
-                          }}
-                          onBlur={(e) => {
-                            e.currentTarget.style.borderColor = actualTheme === 'dark' ? '#6B7280' : colors.borderPrimary;
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
             <div style={{ display: 'flex', gap: '0.75rem' }}>
               <button
                 onClick={() => setShowReviewModal(false)}
@@ -2345,121 +2267,81 @@ const BookedPhotographersPage = () => {
 
             {/* Payment Method Selection */}
             <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.75rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>
                 Payment Method
               </label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
                 {[
-                  { id: 'card', label: 'Credit/Debit Card', icon: '💳' },
-                  { id: 'mobile', label: 'Mobile Money (MTN, Airtel)', icon: '📱' },
-                  { id: 'bank', label: 'Bank Transfer', icon: '🏦' }
+                  { id: 'card', label: 'Credit/Debit Card', description: 'Pay with Visa, Mastercard, etc.', image: '/cards.png' },
+                  { id: 'mtn', label: 'MTN Mobile Money', description: 'Pay with MTN Mobile Money', image: '/mtn.png' },
+                  { id: 'airtel', label: 'Airtel Money', description: 'Pay with Airtel Money', image: '/airtel.png' },
+                  { id: 'bank', label: 'Bank Transfer', description: 'Direct bank transfer', image: '/bank.png' }
                 ].map((method) => (
-                  <label
+                  <div
                     key={method.id}
+                    onClick={() => setSelectedPaymentMethod(method.id)}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.75rem',
-                      padding: '0.875rem',
-                      border: selectedPaymentMethod === method.id ? '2px solid #083A85' : `1px solid ${colors.borderPrimary}`,
-                      borderRadius: '0.5rem',
+                      gap: '1rem',
+                      padding: '1rem',
+                      border: selectedPaymentMethod === method.id ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                      borderRadius: '0.75rem',
                       cursor: 'pointer',
-                      backgroundColor: selectedPaymentMethod === method.id ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard
+                      backgroundColor: selectedPaymentMethod === method.id ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
+                      transition: 'all 0.2s'
                     }}
                   >
-                    <input
-                      type="radio"
-                      name="photographer-payment-method"
-                      value={method.id}
-                      checked={selectedPaymentMethod === method.id}
-                      onChange={() => setSelectedPaymentMethod(method.id)}
-                      style={{ width: '16px', height: '16px' }}
-                    />
-                    <span style={{ fontSize: '1.25rem' }}>{method.icon}</span>
-                    <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>{method.label}</span>
-                  </label>
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '0.5rem',
+                      overflow: 'hidden',
+                      flexShrink: 0
+                    }}>
+                      <Image
+                        src={method.image}
+                        alt={method.label}
+                        width={48}
+                        height={48}
+                        unoptimized
+                        style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                      />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>
+                        {method.label}
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>
+                        {method.description}
+                      </div>
+                    </div>
+                    <div style={{
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '50%',
+                      border: selectedPaymentMethod === method.id ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                      backgroundColor: colors.bgCard,
+                      flexShrink: 0
+                    }} />
+                  </div>
                 ))}
               </div>
             </div>
 
-            {/* Card Details (shown when card is selected) */}
-            {selectedPaymentMethod === 'card' && (
-              <div style={{ marginBottom: '1.25rem' }}>
-                <div style={{ marginBottom: '1rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                    Card Number
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="1234 5678 9012 3456"
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      border: `2px solid ${colors.borderPrimary}`,
-                      borderRadius: '0.5rem',
-                      fontSize: '0.9rem',
-                      color: colors.textPrimary
-                    }}
-                  />
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                      Expiry Date
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="MM/YY"
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        border: `2px solid ${colors.borderPrimary}`,
-                        borderRadius: '0.5rem',
-                        fontSize: '0.9rem',
-                        color: colors.textPrimary
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                      CVV
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="123"
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        border: `2px solid ${colors.borderPrimary}`,
-                        borderRadius: '0.5rem',
-                        fontSize: '0.9rem',
-                        color: colors.textPrimary
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Mobile Money (shown when mobile is selected) */}
-            {selectedPaymentMethod === 'mobile' && (
-              <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                  Phone Number
-                </label>
-                <input
-                  type="tel"
-                  placeholder="+250 78X XXX XXX"
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    border: `2px solid ${colors.borderPrimary}`,
-                    borderRadius: '0.5rem',
-                    fontSize: '0.9rem'
-                  }}
-                />
-              </div>
-            )}
+            {/* Info text about payment accounts */}
+            <p style={{
+              fontSize: '0.8rem',
+              color: colors.textSecondary,
+              margin: '0.75rem 0 1.25rem 0',
+              textAlign: 'center'
+            }}>
+              <i className="bi bi-info-circle" style={{ marginRight: '0.375rem' }}></i>
+              Manage your payment methods in <span
+                onClick={() => router.push('/user/client/preferences?tab=payments')}
+                style={{ color: colors.brandPrimary, fontWeight: '500', cursor: 'pointer', textDecoration: 'underline' }}
+              >Preferences → Payment Accounts</span>
+            </p>
 
             {/* Actions */}
             <div style={{ display: 'flex', gap: '0.75rem' }}>
@@ -2497,6 +2379,450 @@ const BookedPhotographersPage = () => {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Tip Prompt Modal */}
+      <Modal
+        isOpen={showTipPromptModal}
+        onClose={() => {
+          setShowTipPromptModal(false);
+          setSuccessMessage('Review submitted successfully!');
+          setShowSuccessModal(true);
+          setPendingReviewPhotographer(null);
+        }}
+        title=""
+        maxWidth="400px"
+      >
+        {pendingReviewPhotographer && (
+          <div style={{ textAlign: 'center', padding: '1rem 0' }}>
+            <div style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
+              backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 1.25rem',
+              color: actualTheme === 'dark' ? '#60A5FA' : '#083A85'
+            }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05.82 1.87 2.65 1.87 1.96 0 2.4-.98 2.4-1.59 0-.83-.44-1.61-2.67-2.14-2.48-.6-4.18-1.62-4.18-3.67 0-1.72 1.39-2.84 3.11-3.21V4h2.67v1.95c1.86.45 2.79 1.86 2.85 3.39H14.3c-.05-1.11-.64-1.87-2.22-1.87-1.5 0-2.4.68-2.4 1.64 0 .84.65 1.39 2.67 1.91s4.18 1.39 4.18 3.91c-.01 1.83-1.38 2.83-3.12 3.16z" fill="currentColor"/>
+              </svg>
+            </div>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>
+              Would you like to leave a tip for {pendingReviewPhotographer.firstName}?
+            </h3>
+            <p style={{ fontSize: '0.9rem', color: colors.textSecondary, marginBottom: '1.5rem' }}>
+              Show your appreciation for their great work!
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                onClick={handleTipPromptNo}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem 1rem',
+                  border: `2px solid ${colors.borderPrimary}`,
+                  borderRadius: '0.5rem',
+                  background: colors.bgTertiary,
+                  color: colors.textPrimary,
+                  fontSize: '0.9rem',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                No
+              </button>
+              <button
+                onClick={handleTipPromptYes}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem 1rem',
+                  border: '2px solid #062a63',
+                  borderRadius: '0.5rem',
+                  background: '#083A85',
+                  color: 'white',
+                  fontSize: '0.9rem',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                Yes
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Tip Selection Modal */}
+      <Modal
+        isOpen={showTipSelectionModal}
+        onClose={() => {
+          setShowTipSelectionModal(false);
+          setTipAmount('');
+          setCustomTipAmount('');
+          setSuccessMessage('Review submitted successfully!');
+          setShowSuccessModal(true);
+          setPendingReviewPhotographer(null);
+        }}
+        title={`Tip for ${pendingReviewPhotographer?.firstName || ''}`}
+        maxWidth="400px"
+      >
+        {pendingReviewPhotographer && (
+          <div>
+            <div style={{ fontSize: '0.9rem', color: colors.textSecondary, marginBottom: '1rem' }}>
+              Select a tip amount to show your appreciation
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+              {[5, 10, 20, 50].map((amount) => (
+                <button
+                  key={amount}
+                  onClick={() => { setTipAmount(amount); setCustomTipAmount(''); }}
+                  style={{
+                    padding: '0.75rem 1.25rem',
+                    borderRadius: '0.5rem',
+                    border: tipAmount === amount ? `2px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}` : `2px solid ${colors.borderPrimary}`,
+                    backgroundColor: tipAmount === amount ? (actualTheme === 'dark' ? '#1E3A5F' : '#DBEAFE') : colors.bgCard,
+                    color: tipAmount === amount ? (actualTheme === 'dark' ? '#F9FAFB' : '#083A85') : colors.textPrimary,
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  ${amount}
+                </button>
+              ))}
+              <button
+                onClick={() => { setTipAmount('custom'); }}
+                style={{
+                  padding: '0.75rem 1.25rem',
+                  borderRadius: '0.5rem',
+                  border: tipAmount === 'custom' ? `2px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}` : `2px solid ${colors.borderPrimary}`,
+                  backgroundColor: tipAmount === 'custom' ? (actualTheme === 'dark' ? '#1E3A5F' : '#DBEAFE') : colors.bgCard,
+                  color: tipAmount === 'custom' ? (actualTheme === 'dark' ? '#F9FAFB' : '#083A85') : colors.textPrimary,
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+              >
+                Custom
+              </button>
+            </div>
+            {tipAmount === 'custom' && (
+              <div style={{ marginBottom: '1rem' }}>
+                <div style={{ position: 'relative' }}>
+                  <span style={{
+                    position: 'absolute',
+                    left: '0.75rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: colors.textSecondary,
+                    fontWeight: '500',
+                    fontSize: '1rem'
+                  }}>$</span>
+                  <input
+                    type="number"
+                    value={customTipAmount}
+                    onChange={(e) => setCustomTipAmount(e.target.value)}
+                    placeholder="Enter amount"
+                    min="1"
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem 0.75rem 0.75rem 1.75rem',
+                      border: `2px solid ${colors.borderPrimary}`,
+                      borderRadius: '0.5rem',
+                      fontSize: '1rem',
+                      color: colors.textPrimary,
+                      backgroundColor: colors.bgCard,
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
+              <button
+                onClick={() => {
+                  setShowTipSelectionModal(false);
+                  setTipAmount('');
+                  setCustomTipAmount('');
+                  setSuccessMessage('Review submitted successfully!');
+                  setShowSuccessModal(true);
+                  setPendingReviewPhotographer(null);
+                }}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem 1rem',
+                  border: `2px solid ${colors.borderPrimary}`,
+                  borderRadius: '0.5rem',
+                  background: colors.bgTertiary,
+                  color: colors.textPrimary,
+                  fontSize: '0.9rem',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSendTip}
+                disabled={!tipAmount || (tipAmount === 'custom' && (!customTipAmount || parseFloat(customTipAmount) <= 0))}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem 1rem',
+                  border: '2px solid #062a63',
+                  borderRadius: '0.5rem',
+                  background: (!tipAmount || (tipAmount === 'custom' && (!customTipAmount || parseFloat(customTipAmount) <= 0))) ? '#9CA3AF' : '#083A85',
+                  color: 'white',
+                  fontSize: '0.9rem',
+                  fontWeight: '600',
+                  cursor: (!tipAmount || (tipAmount === 'custom' && (!customTipAmount || parseFloat(customTipAmount) <= 0))) ? 'not-allowed' : 'pointer'
+                }}
+              >
+                Send Tip
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Tip Payment Modal */}
+      <Modal
+        isOpen={showTipPaymentModal}
+        onClose={() => {
+          setShowTipPaymentModal(false);
+          setTipAmount('');
+          setCustomTipAmount('');
+          setSelectedTipPaymentMethod('card');
+          setSuccessMessage('Review submitted successfully!');
+          setShowSuccessModal(true);
+          setPendingReviewPhotographer(null);
+        }}
+        title="Complete Tip Payment"
+        maxWidth="450px"
+      >
+        {pendingReviewPhotographer && (
+          <div>
+            {/* Photographer Info */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', padding: '0.75rem', backgroundColor: colors.bgTertiary, borderRadius: '0.5rem' }}>
+              <div style={{ position: 'relative', width: '48px', height: '48px', flexShrink: 0 }}>
+                <img
+                  src={pendingReviewPhotographer.profileImage}
+                  alt={pendingReviewPhotographer.firstName}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    borderRadius: '50%',
+                    border: '2px solid white',
+                    objectFit: 'cover',
+                    objectPosition: 'center'
+                  }}
+                />
+                {pendingReviewPhotographer.verified && (
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '0px',
+                    right: '0px',
+                    background: 'white',
+                    borderRadius: '50%',
+                    width: '18px',
+                    height: '18px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15)'
+                  }}>
+                    <i className="bi bi-patch-check-fill" style={{ color: '#3b82f6', fontSize: '0.75rem' }} />
+                  </div>
+                )}
+              </div>
+              <div>
+                <div style={{ fontWeight: '600', color: colors.textPrimary }}>{pendingReviewPhotographer.firstName} {pendingReviewPhotographer.lastName}</div>
+                <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Tip for great service</div>
+              </div>
+            </div>
+
+            {/* Tip Amount Summary */}
+            <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '1rem', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>Tip Amount</span>
+                <span style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
+                  ${tipAmount === 'custom' ? (parseFloat(customTipAmount) || 0) : tipAmount}
+                </span>
+              </div>
+            </div>
+
+            {/* Payment Method Selection */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>
+                Payment Method
+              </label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+                {[
+                  { id: 'card', label: 'Credit/Debit Card', description: 'Pay with Visa, Mastercard, etc.', image: '/cards.png' },
+                  { id: 'mtn', label: 'MTN Mobile Money', description: 'Pay with MTN Mobile Money', image: '/mtn.png' },
+                  { id: 'airtel', label: 'Airtel Money', description: 'Pay with Airtel Money', image: '/airtel.png' },
+                  { id: 'bank', label: 'Bank Transfer', description: 'Direct bank transfer', image: '/bank.png' }
+                ].map((method) => (
+                  <div
+                    key={method.id}
+                    onClick={() => setSelectedTipPaymentMethod(method.id)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '1rem',
+                      padding: '1rem',
+                      border: selectedTipPaymentMethod === method.id ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                      borderRadius: '0.75rem',
+                      cursor: 'pointer',
+                      backgroundColor: selectedTipPaymentMethod === method.id ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '0.5rem',
+                      overflow: 'hidden',
+                      flexShrink: 0
+                    }}>
+                      <Image
+                        src={method.image}
+                        alt={method.label}
+                        width={48}
+                        height={48}
+                        unoptimized
+                        style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                      />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>
+                        {method.label}
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>
+                        {method.description}
+                      </div>
+                    </div>
+                    <div style={{
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '50%',
+                      border: selectedTipPaymentMethod === method.id ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                      backgroundColor: colors.bgCard,
+                      flexShrink: 0
+                    }} />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Info text about payment accounts */}
+            <p style={{
+              fontSize: '0.8rem',
+              color: colors.textSecondary,
+              margin: '0.75rem 0 1.25rem 0',
+              textAlign: 'center'
+            }}>
+              <i className="bi bi-info-circle" style={{ marginRight: '0.375rem' }}></i>
+              Manage your payment methods in <span
+                onClick={() => router.push('/user/client/preferences?tab=payments')}
+                style={{ color: colors.brandPrimary, fontWeight: '500', cursor: 'pointer', textDecoration: 'underline' }}
+              >Preferences → Payment Accounts</span>
+            </p>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                onClick={() => {
+                  setShowTipPaymentModal(false);
+                  setTipAmount('');
+                  setCustomTipAmount('');
+                  setSelectedTipPaymentMethod('card');
+                  setSuccessMessage('Review submitted successfully!');
+                  setShowSuccessModal(true);
+                  setPendingReviewPhotographer(null);
+                }}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem 1rem',
+                  border: `2px solid ${colors.borderPrimary}`,
+                  borderRadius: '0.5rem',
+                  background: colors.bgTertiary,
+                  color: colors.textPrimary,
+                  fontSize: '0.9rem',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleTipPaymentComplete}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem 1rem',
+                  border: '2px solid #062a63',
+                  borderRadius: '0.5rem',
+                  background: '#083A85',
+                  color: 'white',
+                  fontSize: '0.9rem',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                Pay ${tipAmount === 'custom' ? (parseFloat(customTipAmount) || 0) : tipAmount}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Success Modal */}
+      <Modal
+        isOpen={showSuccessModal}
+        onClose={handleSuccessClose}
+        title=""
+        maxWidth="350px"
+      >
+        <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
+          <div style={{
+            width: '80px',
+            height: '80px',
+            borderRadius: '50%',
+            backgroundColor: '#D1FAE5',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 1.25rem'
+          }}>
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20 6L9 17L4 12" stroke="#059669" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+            {successMessage}
+          </h3>
+          <p style={{ fontSize: '0.9rem', color: colors.textSecondary, marginBottom: '1.5rem' }}>
+            Thank you for your feedback!
+          </p>
+          <button
+            onClick={handleSuccessClose}
+            style={{
+              padding: '0.75rem 2rem',
+              border: '2px solid #062a63',
+              borderRadius: '0.5rem',
+              background: '#083A85',
+              color: 'white',
+              fontSize: '0.9rem',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
+          >
+            Done
+          </button>
+        </div>
       </Modal>
     </div>
   );
