@@ -124,6 +124,150 @@ const ProfilePage = () => {
       height: '100vh',
       backgroundColor: colors.bgPrimary
     }}>
+      <style>{`
+        @media (max-width: 768px) {
+          .mobile-main-content {
+            padding: 1rem !important;
+            padding-bottom: 8rem !important;
+          }
+          .mobile-page-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 1rem !important;
+            margin-bottom: 1.5rem !important;
+            padding: 1.25rem !important;
+            background: linear-gradient(135deg, rgba(8, 58, 133, 0.05) 0%, rgba(8, 58, 133, 0.02) 100%) !important;
+            border-radius: 1rem !important;
+            border: 1px solid rgba(8, 58, 133, 0.1) !important;
+          }
+          .mobile-page-header h1 {
+            font-size: 1.4rem !important;
+            font-weight: 700 !important;
+            color: #083A85 !important;
+          }
+          .mobile-profile-section {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 1.5rem !important;
+          }
+          .mobile-profile-left {
+            width: 100% !important;
+            max-width: 100% !important;
+            order: 1 !important;
+          }
+          .mobile-profile-right {
+            width: 100% !important;
+            order: 2 !important;
+          }
+          .mobile-tabs {
+            flex-wrap: wrap !important;
+            gap: 0.5rem !important;
+            border-radius: 1rem 1rem 0 0 !important;
+            padding: 0.75rem !important;
+            background: linear-gradient(135deg, rgba(8, 58, 133, 0.03) 0%, rgba(8, 58, 133, 0.01) 100%) !important;
+          }
+          .mobile-tabs button {
+            flex: 1 !important;
+            min-width: auto !important;
+            font-size: 0.9rem !important;
+            padding: 0.75rem !important;
+            font-weight: 600 !important;
+            border-radius: 0.625rem !important;
+            transition: all 0.2s ease !important;
+          }
+          .mobile-tabs button:active {
+            transform: scale(0.98);
+          }
+          .mobile-form-grid-2 {
+            grid-template-columns: 1fr !important;
+            gap: 1rem !important;
+          }
+          .mobile-card {
+            padding: 1.25rem !important;
+            border-radius: 1rem !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+          }
+          .mobile-section-actions {
+            flex-direction: column !important;
+            gap: 0.75rem !important;
+          }
+          .mobile-section-actions button {
+            width: 100% !important;
+            padding: 0.875rem 1rem !important;
+            border-radius: 0.75rem !important;
+            transition: all 0.2s ease !important;
+            font-weight: 600 !important;
+          }
+          .mobile-section-actions button:active {
+            transform: scale(0.98);
+          }
+          .mobile-profile-card-name {
+            padding: 1rem 1.25rem 0.75rem !important;
+          }
+          .mobile-profile-card-stats {
+            padding: 1rem 1.25rem !important;
+          }
+          .mobile-profile-card-activity {
+            padding: 1rem 1.25rem !important;
+          }
+        }
+        @media (max-width: 640px) {
+          .mobile-main-content {
+            padding: 0.75rem !important;
+            padding-bottom: 10rem !important;
+          }
+          .mobile-page-header {
+            padding: 1rem !important;
+          }
+          .mobile-page-header h1 {
+            font-size: 1.2rem !important;
+          }
+          .mobile-tabs {
+            padding: 0.5rem !important;
+          }
+          .mobile-tabs button {
+            font-size: 0.85rem !important;
+            padding: 0.625rem 0.5rem !important;
+          }
+          .mobile-card {
+            padding: 1rem !important;
+          }
+          .mobile-profile-card-name {
+            padding: 0.75rem 1rem 0.5rem !important;
+          }
+          .mobile-profile-card-name h2 {
+            font-size: 1rem !important;
+            margin-bottom: 0.25rem !important;
+          }
+          .mobile-profile-card-name p:first-of-type {
+            font-size: 0.8rem !important;
+            margin-bottom: 0.15rem !important;
+          }
+          .mobile-profile-card-name p:last-of-type {
+            font-size: 0.75rem !important;
+          }
+          .mobile-profile-card-stats {
+            padding: 0.75rem 1rem !important;
+          }
+          .mobile-profile-card-stats > div > div:first-child {
+            font-size: 1.1rem !important;
+            margin-bottom: 0.15rem !important;
+          }
+          .mobile-profile-card-stats > div > div:last-child {
+            font-size: 0.7rem !important;
+          }
+          .mobile-profile-card-activity {
+            padding: 0.875rem 1rem !important;
+          }
+          .mobile-profile-card-activity h3 {
+            font-size: 0.8rem !important;
+            margin-bottom: 0.625rem !important;
+          }
+          .mobile-profile-card-activity span {
+            font-size: 0.75rem !important;
+          }
+        }
+      `}</style>
       <Sidebar />
 
       <div style={{
@@ -134,7 +278,7 @@ const ProfilePage = () => {
       }}>
         <Topbar userRole="client" giftAmount={225.00} />
 
-        <div style={{
+        <div className="mobile-main-content" style={{
           flex: 1,
           overflowY: 'auto',
           backgroundColor: colors.bgPrimary,
@@ -144,7 +288,7 @@ const ProfilePage = () => {
           paddingBottom: '1rem'
         }}>
           {/* Page Title */}
-          <h1 style={{
+          <h1 className="mobile-page-header" style={{
             fontSize: '1.5rem',
             fontWeight: '600',
             color: colors.textPrimary,
@@ -152,13 +296,13 @@ const ProfilePage = () => {
           }}>Profile</h1>
 
           {/* Main Content Grid */}
-          <div style={{
+          <div className="mobile-profile-section" style={{
             display: 'grid',
             gridTemplateColumns: '320px 1fr',
             gap: '1.5rem'
           }}>
             {/* Left Sidebar - Profile Card */}
-            <div style={{
+            <div className="mobile-profile-left" style={{
               display: 'flex',
               flexDirection: 'column',
               gap: '1rem'
@@ -224,7 +368,7 @@ const ProfilePage = () => {
                 </div>
 
                 {/* Name and Role */}
-                <div style={{
+                <div className="mobile-profile-card-name" style={{
                   textAlign: 'center',
                   padding: '1rem 1.5rem'
                 }}>
@@ -241,7 +385,7 @@ const ProfilePage = () => {
                 </div>
 
                 {/* Account Activity */}
-                <div style={{
+                <div className="mobile-profile-card-activity" style={{
                   borderTop: `1px solid ${colors.borderPrimary}`,
                   padding: '1.25rem'
                 }}>
@@ -286,7 +430,7 @@ const ProfilePage = () => {
             </div>
 
             {/* Right Section - Personal Information Form */}
-            <div style={{
+            <div className="mobile-profile-right mobile-card" style={{
               backgroundColor: colors.bgCard,
               borderRadius: '0.75rem',
               padding: '1.5rem',
@@ -294,7 +438,7 @@ const ProfilePage = () => {
               border: `1px solid ${colors.borderPrimary}`
             }}>
               {/* Header with Edit Toggle */}
-              <div style={{
+              <div className="mobile-section-actions" style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
@@ -352,7 +496,7 @@ const ProfilePage = () => {
               </div>
 
               {/* Form Grid */}
-              <div style={{
+              <div className="mobile-form-grid-2" style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(2, 1fr)',
                 gap: '1.25rem'
