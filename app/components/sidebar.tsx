@@ -95,6 +95,7 @@ const detectRoleFromPath = (pathname: string | null): UserRole => {
 export default function Sidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { colors, actualTheme } = useTheme();
 
   // Automatically detect role from current URL path
@@ -117,8 +118,112 @@ export default function Sidebar() {
     setIsCollapsed(!isCollapsed);
   };
 
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+  };
+
   return (
-    <aside style={{
+    <>
+      <style jsx>{`
+        /* Desktop styles */
+        .sidebar-container {
+          /* All desktop styles are handled by inline styles */
+        }
+
+        .mobile-menu-button {
+          display: none;
+        }
+
+        .mobile-overlay {
+          display: none;
+        }
+
+        /* Mobile responsive styles */
+        @media (max-width: 768px) {
+          .sidebar-container {
+            position: fixed !important;
+            left: ${isMobileMenuOpen ? '0' : '-100%'} !important;
+            top: 0 !important;
+            z-index: 1000 !important;
+            width: 16rem !important;
+            transition: left 0.3s ease-in-out !important;
+            border-top-right-radius: 0 !important;
+            border-bottom-right-radius: 0 !important;
+            box-shadow: ${isMobileMenuOpen ? '2px 0 10px rgba(0, 0, 0, 0.3)' : 'none'} !important;
+          }
+
+          .mobile-menu-button {
+            display: flex !important;
+            position: fixed !important;
+            top: 1rem !important;
+            left: 0.5rem !important;
+            z-index: 1001 !important;
+            background-color: ${colors.bgSecondary} !important;
+            border: 1px solid ${colors.borderPrimary} !important;
+            border-radius: 0.5rem !important;
+            padding: 0.4rem !important;
+            cursor: pointer !important;
+            align-items: center !important;
+            justify-content: center !important;
+            box-shadow: ${colors.shadowMd} !important;
+          }
+
+          .mobile-overlay {
+            display: ${isMobileMenuOpen ? 'block' : 'none'} !important;
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            background-color: rgba(0, 0, 0, 0.5) !important;
+            z-index: 999 !important;
+          }
+
+          .sidebar-toggle-desktop {
+            display: none !important;
+          }
+        }
+
+        /* Very small mobile */
+        @media (max-width: 480px) {
+          .sidebar-container {
+            width: 14rem !important;
+          }
+        }
+      `}</style>
+
+      {/* Mobile Menu Button */}
+      <button
+        className="mobile-menu-button"
+        onClick={toggleMobileMenu}
+        style={{
+          color: colors.textPrimary
+        }}
+      >
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+
+      {/* Mobile Overlay */}
+      <div className="mobile-overlay" onClick={closeMobileMenu} />
+
+      <aside className="sidebar-container" style={{
       display: 'flex',
       height: '100vh',
       flexDirection: 'column',
@@ -164,6 +269,7 @@ export default function Sidebar() {
         )}
         <button
           onClick={toggleSidebar}
+          className="sidebar-toggle-desktop"
           style={{
             color: colors.textPrimary,
             transition: 'color 0.3s',
@@ -208,6 +314,7 @@ export default function Sidebar() {
             <Link
               key={item.name}
               href={item.href}
+              onClick={closeMobileMenu}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -320,6 +427,7 @@ export default function Sidebar() {
             <Link
               key={item.name}
               href={item.href}
+              onClick={closeMobileMenu}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -367,5 +475,6 @@ export default function Sidebar() {
         })}
       </nav>
     </aside>
+    </>
   );
 }
