@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
+import DonateModal, { DonateButton } from '../../components/DonateModal';
 
 // Icons
 const SearchIcon = () => (
@@ -297,10 +298,12 @@ const BookedPhotographersPage = () => {
   const [tipAmount, setTipAmount] = useState<number | 'custom' | ''>('');
   const [customTipAmount, setCustomTipAmount] = useState('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showPaymentDonateModal, setShowPaymentDonateModal] = useState(false);
   // New states for tip flow
   const [showTipPromptModal, setShowTipPromptModal] = useState(false);
   const [showTipSelectionModal, setShowTipSelectionModal] = useState(false);
   const [showTipPaymentModal, setShowTipPaymentModal] = useState(false);
+  const [showTipDonateModal, setShowTipDonateModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [pendingReviewPhotographer, setPendingReviewPhotographer] = useState<BookedPhotographer | null>(null);
@@ -2344,7 +2347,8 @@ const BookedPhotographersPage = () => {
             </p>
 
             {/* Actions */}
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+              <DonateButton onClick={() => setShowPaymentDonateModal(true)} />
               <button
                 onClick={() => setShowPaymentModal(false)}
                 style={{
@@ -2377,6 +2381,9 @@ const BookedPhotographersPage = () => {
                 {paymentBooking.booking.paymentStatus === 'failed' ? 'Retry Payment' : 'Pay'} ${paymentBooking.booking.totalAmount - paymentBooking.booking.paidAmount}
               </button>
             </div>
+
+            {/* Donate Modal */}
+            <DonateModal isOpen={showPaymentDonateModal} onClose={() => setShowPaymentDonateModal(false)} />
           </div>
         )}
       </Modal>
@@ -2733,7 +2740,8 @@ const BookedPhotographersPage = () => {
             </p>
 
             {/* Actions */}
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+              <DonateButton onClick={() => setShowTipDonateModal(true)} />
               <button
                 onClick={() => {
                   setShowTipPaymentModal(false);
@@ -2775,6 +2783,9 @@ const BookedPhotographersPage = () => {
                 Pay ${tipAmount === 'custom' ? (parseFloat(customTipAmount) || 0) : tipAmount}
               </button>
             </div>
+
+            {/* Donate Modal */}
+            <DonateModal isOpen={showTipDonateModal} onClose={() => setShowTipDonateModal(false)} />
           </div>
         )}
       </Modal>

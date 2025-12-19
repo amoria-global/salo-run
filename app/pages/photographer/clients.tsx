@@ -6,6 +6,7 @@ import Topbar from '../../components/topbar';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useTheme } from '../../context/ThemeContext';
+import DonateModal, { DonateButton } from '../../components/DonateModal';
 
 // Icons
 const SearchIcon = () => (
@@ -247,6 +248,7 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; client: Client } | null>(null);
   const [showTipsModal, setShowTipsModal] = useState(false);
   const [tipsClient, setTipsClient] = useState<Client | null>(null);
+  const [showTipsDonateModal, setShowTipsDonateModal] = useState(false);
 
   // Sample clients data with real images
   const [clients, setClients] = useState<Client[]>([
@@ -1888,6 +1890,33 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                 </div>
               )}
             </div>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem', alignItems: 'center' }}>
+              <DonateButton onClick={() => setShowTipsDonateModal(true)} />
+              <button
+                onClick={() => {
+                  setShowTipsModal(false);
+                  setTipsClient(null);
+                }}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem 1rem',
+                  border: `2px solid ${colors.borderPrimary}`,
+                  borderRadius: '0.5rem',
+                  background: colors.bgTertiary,
+                  color: colors.textPrimary,
+                  fontSize: '0.9rem',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                Close
+              </button>
+            </div>
+
+            {/* Donate Modal */}
+            <DonateModal isOpen={showTipsDonateModal} onClose={() => setShowTipsDonateModal(false)} />
           </div>
         )}
       </Modal>
