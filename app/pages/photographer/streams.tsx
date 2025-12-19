@@ -254,7 +254,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
       justifyContent: 'center',
       zIndex: 1000,
     }} onClick={onClose}>
-      <div style={{
+      <div className="mobile-modal" style={{
         backgroundColor: colors.bgCard,
         borderRadius: '0.75rem',
         padding: '1.5rem',
@@ -263,6 +263,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
         maxHeight: '90vh',
         overflowY: 'auto',
         boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+        paddingBottom: '3rem'
       }} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
           <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>{title}</h3>
@@ -270,7 +271,9 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
             <CloseIcon />
           </button>
         </div>
-        {children}
+        <div style={{ paddingBottom: '2rem' }}>
+          {children}
+        </div>
       </div>
     </div>
   );
@@ -486,23 +489,128 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
 
   return (
     <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
+      <style>{`
+        @media (max-width: 768px) {
+          .mobile-header {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 1rem;
+          }
+          .mobile-stats-grid {
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 0.5rem !important;
+          }
+          .mobile-stats-grid > div {
+            padding: 0.75rem !important;
+          }
+          .mobile-stats-grid > div > div > div:first-child {
+            font-size: 0.7rem !important;
+          }
+          .mobile-stats-grid > div > div > div:last-child {
+            font-size: 1rem !important;
+          }
+          .mobile-filters {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 1rem !important;
+          }
+          .mobile-tabs {
+            width: 100% !important;
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch;
+          }
+          .mobile-search {
+            width: 100% !important;
+          }
+          .mobile-search input {
+            width: 100% !important;
+          }
+          .mobile-streams-grid {
+            grid-template-columns: 1fr !important;
+            gap: 1rem !important;
+            margin-bottom: 3rem !important;
+          }
+          .mobile-main-content {
+            padding: 0.75rem !important;
+            padding-bottom: 8rem !important;
+            overflow-y: auto !important;
+          }
+          .mobile-title {
+            font-size: 1.5rem !important;
+          }
+          .mobile-subtitle {
+            font-size: 0.85rem !important;
+          }
+          .mobile-modal {
+            width: 95% !important;
+            max-width: 95% !important;
+            padding: 1rem !important;
+            padding-bottom: 5rem !important;
+          }
+          .mobile-control-panel {
+            max-width: 95% !important;
+            padding-bottom: 8rem !important;
+          }
+        }
+        @media (max-width: 640px) {
+          .mobile-stats-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.4rem !important;
+          }
+          .mobile-stats-grid > div {
+            padding: 0.6rem !important;
+          }
+          .mobile-stats-grid > div > div > div:first-child {
+            font-size: 0.65rem !important;
+          }
+          .mobile-stats-grid > div > div > div:last-child {
+            font-size: 0.9rem !important;
+          }
+          .mobile-title {
+            font-size: 1.3rem !important;
+          }
+          .mobile-subtitle {
+            font-size: 0.8rem !important;
+          }
+          .mobile-tabs button {
+            font-size: 0.8rem !important;
+            padding: 0.4rem 0.8rem !important;
+          }
+          .mobile-streams-grid {
+            margin-bottom: 4rem !important;
+          }
+          .mobile-main-content {
+            padding: 0.5rem !important;
+            padding-bottom: 10rem !important;
+          }
+          .mobile-modal {
+            width: 95% !important;
+            max-width: 95% !important;
+            padding: 1rem !important;
+            padding-bottom: 6rem !important;
+          }
+          .mobile-control-panel {
+            padding-bottom: 10rem !important;
+          }
+        }
+      `}</style>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <Topbar userRole={userType} tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
-        <div style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, padding: '1.25rem' }}>
+        <div className="mobile-main-content" style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, padding: '1.25rem' }}>
 
           {/* Header */}
-          <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <header className="mobile-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
             <div>
-              <h1 style={{ fontSize: '1.8rem', lineHeight: '2rem', color: colors.textPrimary, fontWeight: '600', margin: 0 }}>My Streams</h1>
-              <p style={{ fontSize: '0.95rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
+              <h1 className="mobile-title" style={{ fontSize: '1.8rem', lineHeight: '2rem', color: colors.textPrimary, fontWeight: '600', margin: 0 }}>My Streams</h1>
+              <p className="mobile-subtitle" style={{ fontSize: '0.95rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
                 Manage and control your live event streams
               </p>
             </div>
           </header>
 
           {/* Stats Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+          <div className="mobile-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
             {[
               { label: 'Total Streams', value: stats.total, icon: <BroadcastIcon />, color: '#2563EB', bg: '#DBEAFE' },
               { label: 'Live Now', value: stats.live, icon: <PlayIcon />, color: '#059669', bg: '#D1FAE5' },
@@ -540,9 +648,9 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
           </div>
 
           {/* Search and Filters */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', gap: '1rem' }}>
+          <div className="mobile-filters" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', gap: '1rem' }}>
             {/* Tabs */}
-            <div style={{ display: 'flex', gap: '0.25rem', backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '0.25rem' }}>
+            <div className="mobile-tabs" style={{ display: 'flex', gap: '0.25rem', backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '0.25rem' }}>
               {([
                 { key: 'all' as const, label: 'All Streams' },
                 { key: 'live' as const, label: 'Live' },
@@ -571,7 +679,7 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
             </div>
 
             {/* Search */}
-            <div style={{ position: 'relative' }}>
+            <div className="mobile-search" style={{ position: 'relative' }}>
               <div style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)' }}>
                 <SearchIcon />
               </div>
@@ -612,7 +720,7 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
               <p style={{ fontSize: '1rem', color: colors.textSecondary }}>No streams found.</p>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem' }}>
+            <div className="mobile-streams-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem' }}>
               {filteredStreams.map((stream) => (
                 <div
                   key={stream.id}
@@ -876,14 +984,15 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
           justifyContent: 'center',
           zIndex: 1000,
         }} onClick={() => setShowControlPanel(null)}>
-          <div style={{
+          <div className="mobile-modal mobile-control-panel" style={{
             backgroundColor: colors.bgCard,
             borderRadius: '0 0 0.75rem 0.75rem',
             width: '90%',
             maxWidth: '700px',
             maxHeight: '90vh',
             overflowY: 'auto',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            paddingBottom: '5rem'
           }} onClick={(e) => e.stopPropagation()}>
             {/* Cover Image with Live Badge */}
             <div style={{ position: 'relative', height: '280px', overflow: 'hidden' }}>
@@ -1210,7 +1319,7 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
           justifyContent: 'center',
           zIndex: 1000,
         }} onClick={() => setShowStreamDetails(null)}>
-          <div style={{
+          <div className="mobile-modal" style={{
             backgroundColor: colors.bgCard,
             borderRadius: '0 0 0.75rem 0.75rem',
             maxWidth: '600px',
@@ -1218,6 +1327,7 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
             maxHeight: '90vh',
             overflowY: 'auto',
             boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            paddingBottom: '5rem'
           }} onClick={(e) => e.stopPropagation()}>
             {/* Cover Image with overlay */}
             <div style={{ position: 'relative', height: '160px', overflow: 'hidden' }}>
@@ -1392,13 +1502,15 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
           onClick={() => { setShowDeleteModal(false); setStreamToDelete(null); }}
         >
           <div
+            className="mobile-modal"
             style={{
               backgroundColor: colors.bgCard,
               borderRadius: '1rem',
               padding: '1.5rem',
               width: '400px',
               maxWidth: '90%',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              paddingBottom: '3rem'
             }}
             onClick={(e) => e.stopPropagation()}
           >
