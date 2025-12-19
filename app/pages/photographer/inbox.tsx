@@ -449,15 +449,35 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
           .mobile-chat-area.mobile-chat-active {
             display: flex !important;
           }
+          .mobile-conversations-list-header {
+            padding: 1.25rem 1rem !important;
+            background: linear-gradient(135deg, rgba(8, 58, 133, 0.05) 0%, rgba(8, 58, 133, 0.02) 100%) !important;
+            border-bottom: 2px solid rgba(8, 58, 133, 0.1) !important;
+          }
           .mobile-conversations-list-header h1 {
-            font-size: 1.1rem !important;
+            font-size: 1.3rem !important;
+            font-weight: 700 !important;
+          }
+          .mobile-filter-tabs {
+            margin-top: 1rem !important;
+          }
+          .mobile-filter-tabs button {
+            border-radius: 0.5rem !important;
+            transition: all 0.2s ease !important;
           }
           .mobile-messages-area {
+            padding: 1.5rem 1rem !important;
             padding-bottom: 8rem !important;
           }
           .mobile-message-input-container {
-            padding: 0.75rem !important;
+            padding: 1rem !important;
             padding-bottom: 5rem !important;
+            background: rgba(8, 58, 133, 0.02) !important;
+            border-top: 2px solid rgba(8, 58, 133, 0.1) !important;
+          }
+          .mobile-message-input-container input {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+            border: 2px solid rgba(8, 58, 133, 0.15) !important;
           }
           .mobile-message-input-container textarea {
             font-size: 0.9rem !important;
@@ -467,28 +487,44 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
             display: flex !important;
             align-items: center;
             gap: 0.5rem;
-            padding: 0.5rem;
-            background: none;
+            padding: 0.5rem 0.75rem;
+            background: rgba(8, 58, 133, 0.1);
             border: none;
+            border-radius: 0.5rem;
             color: #083A85;
             font-weight: 600;
             cursor: pointer;
             margin-right: 0.5rem;
+            transition: all 0.2s ease;
+          }
+          .mobile-back-button:active {
+            transform: scale(0.95);
+            background: rgba(8, 58, 133, 0.15);
+          }
+          .mobile-conversation-item {
+            border-radius: 0.75rem !important;
+            margin: 0.5rem 0.75rem !important;
+            border: 1px solid rgba(8, 58, 133, 0.1) !important;
+            transition: all 0.2s ease !important;
+          }
+          .mobile-conversation-item:active {
+            transform: scale(0.98);
           }
         }
         @media (max-width: 640px) {
           .mobile-conversations-list-header h1 {
-            font-size: 1rem !important;
+            font-size: 1.15rem !important;
           }
           .mobile-filter-tabs button {
             font-size: 0.75rem !important;
-            padding: 0.4rem 0.6rem !important;
+            padding: 0.5rem 0.75rem !important;
           }
           .mobile-messages-area {
+            padding: 1rem 0.75rem !important;
             padding-bottom: 10rem !important;
           }
           .mobile-message-input-container {
-            padding: 0.5rem !important;
+            padding: 0.75rem !important;
             padding-bottom: 7rem !important;
           }
         }
@@ -579,6 +615,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                 return (
                   <div
                     key={conv.id}
+                    className="mobile-conversation-item"
                     onClick={() => setSelectedConversation(conv.id)}
                     style={{
                       display: 'flex',
