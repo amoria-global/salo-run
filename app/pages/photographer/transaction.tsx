@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
+import DonateModal, { DonateButton } from '../../components/DonateModal';
 
 // Icons
 const DownloadIcon = () => (
@@ -543,6 +544,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
   const router = useRouter();
   const [withdrawAmount, setWithdrawAmount] = useState<string>('');
   const [selectedAccount, setSelectedAccount] = useState<string>('');
+  const [showDonateModal, setShowDonateModal] = useState(false);
 
   const accounts: WithdrawAccount[] = [
     { id: 'mtn', type: 'mtn', label: 'MTN Mobile Money', accountNumber: '0789 XXX 980', accountName: 'John Doe', color: '#F59E0B' },
@@ -843,7 +845,8 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
           </p>
 
           {/* Actions */}
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <DonateButton onClick={() => setShowDonateModal(true)} />
             <button
               onClick={onClose}
               style={{
@@ -887,6 +890,9 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
               Withdraw Funds
             </button>
           </div>
+
+          {/* Donate Modal */}
+          <DonateModal isOpen={showDonateModal} onClose={() => setShowDonateModal(false)} />
         </div>
       </div>
     </div>
@@ -1284,6 +1290,7 @@ const TransactionsPage = ({ userType = 'photographer' }: TransactionsPageProps) 
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [showTipsModal, setShowTipsModal] = useState(false);
+  const [showTipsDonateModal, setShowTipsDonateModal] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
   const handleViewTransaction = (transaction: Transaction) => {
@@ -1809,6 +1816,30 @@ Amount: ${transaction.amount}
               ))}
             </div>
           </div>
+
+          {/* Actions */}
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem', alignItems: 'center' }}>
+            <DonateButton onClick={() => setShowTipsDonateModal(true)} />
+            <button
+              onClick={() => setShowTipsModal(false)}
+              style={{
+                flex: 1,
+                padding: '0.75rem 1rem',
+                border: `2px solid ${colors.borderPrimary}`,
+                borderRadius: '0.5rem',
+                background: colors.bgTertiary,
+                color: colors.textPrimary,
+                fontSize: '0.9rem',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              Close
+            </button>
+          </div>
+
+          {/* Donate Modal */}
+          <DonateModal isOpen={showTipsDonateModal} onClose={() => setShowTipsDonateModal(false)} />
         </div>
       </Modal>
 
