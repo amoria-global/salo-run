@@ -127,7 +127,179 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
   }, []);
 
   return (
-    <div style={{
+    <>
+      <style jsx>{`
+        /* Desktop styles - keep everything as is */
+        .topbar-container {
+          /* All desktop styles are handled by inline styles */
+        }
+
+        /* Mobile responsive styles */
+        @media (max-width: 768px) {
+          .topbar-container {
+            border-radius: 0.75rem !important;
+            margin-left: 3.5rem !important;
+            margin-right: 0.5rem !important;
+            padding-left: 0.5rem !important;
+            padding-right: 0.5rem !important;
+            padding-top: 0.4rem !important;
+            padding-bottom: 0.4rem !important;
+            flex-wrap: nowrap !important;
+            gap: 0.5rem !important;
+          }
+
+          .topbar-title {
+            font-size: 0.9rem !important;
+            line-height: 1.2rem !important;
+            white-space: nowrap !important;
+          }
+
+          .topbar-right {
+            gap: 0.4rem !important;
+            flex-wrap: nowrap !important;
+            justify-content: flex-end !important;
+            overflow-x: auto !important;
+          }
+
+          /* Compact labels and values on mobile */
+          .topbar-balance span:first-child,
+          .topbar-tips span:first-child,
+          .topbar-bonus span:first-child {
+            font-size: 0.7rem !important;
+            font-weight: 500 !important;
+          }
+
+          .topbar-balance span:last-child,
+          .topbar-tips span:last-child,
+          .topbar-bonus span:last-child {
+            font-size: 0.8rem !important;
+            font-weight: 600 !important;
+          }
+
+          .topbar-balance,
+          .topbar-tips,
+          .topbar-bonus {
+            gap: 0.15rem !important;
+            flex-direction: column !important;
+            align-items: flex-start !important;
+          }
+
+          /* Hide profile name and amount on mobile, but keep avatar */
+          .topbar-profile-info {
+            display: none !important;
+          }
+
+          /* Ensure profile avatar and dropdown still work */
+          .profile-dropdown-container {
+            position: relative !important;
+          }
+
+          .profile-dropdown-container > div:first-child {
+            cursor: pointer !important;
+          }
+
+          .profile-dropdown-container img {
+            width: 2rem !important;
+            height: 2rem !important;
+          }
+
+          /* Make dropdown menu centered on mobile with margin */
+          .profile-dropdown-container > div:nth-child(2) {
+            position: absolute !important;
+            top: calc(100% + 0.5rem) !important;
+            right: 1rem !important;
+            left: auto !important;
+            transform: none !important;
+            z-index: 1002 !important;
+          }
+
+          /* Make notifications dropdown centered at top on mobile */
+          .notifications-container > div:nth-child(2) {
+            position: fixed !important;
+            top: 5rem !important;
+            right: auto !important;
+            left: 1rem !important;
+            transform: none !important;
+            width: calc(100vw - 2rem) !important;
+            max-width: 340px !important;
+            z-index: 1002 !important;
+          }
+
+          /* Adjust notification content for mobile */
+          .notifications-container > div:nth-child(2) > div:nth-child(2) {
+            max-height: 280px !important;
+          }
+
+          /* Reduce padding and font sizes in notification items on mobile */
+          .notifications-container > div:nth-child(2) > div:nth-child(2) > div {
+            padding: 0.6rem 0.75rem !important;
+          }
+
+          .notifications-container > div:nth-child(2) > div:nth-child(1) {
+            padding: 0.75rem 0.75rem !important;
+          }
+
+          .notifications-container > div:nth-child(2) > div:nth-child(1) h3 {
+            font-size: 0.9rem !important;
+          }
+
+          .notifications-container > div:nth-child(2) > div:nth-child(3) {
+            padding: 0.6rem !important;
+          }
+
+          /* Ensure topbar doesn't clip dropdown */
+          .topbar-container {
+            overflow: visible !important;
+          }
+
+          .topbar-right {
+            overflow: visible !important;
+          }
+        }
+
+        /* Extra small mobile (phones in portrait) */
+        @media (max-width: 480px) {
+          .topbar-container {
+            margin-left: 3.25rem !important;
+            margin-right: 0.25rem !important;
+            padding-left: 0.35rem !important;
+            padding-right: 0.35rem !important;
+            flex-direction: column !important;
+            gap: 0.5rem !important;
+          }
+
+          .topbar-title {
+            font-size: 0.85rem !important;
+            line-height: 1.1rem !important;
+            text-align: center !important;
+            width: 100% !important;
+          }
+
+          .topbar-right {
+            width: 100% !important;
+            justify-content: space-between !important;
+            gap: 0.3rem !important;
+          }
+
+          .topbar-balance span:first-child,
+          .topbar-tips span:first-child,
+          .topbar-bonus span:first-child {
+            font-size: 0.65rem !important;
+          }
+
+          .topbar-balance span:last-child,
+          .topbar-tips span:last-child,
+          .topbar-bonus span:last-child {
+            font-size: 0.75rem !important;
+          }
+
+          .profile-dropdown-container img {
+            width: 1.75rem !important;
+            height: 1.75rem !important;
+          }
+        }
+      `}</style>
+      <div className="topbar-container" style={{
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
@@ -145,14 +317,14 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
       boxShadow: colors.shadowSm
     }}>
       {/* Left side - Dashboard title */}
-      <h1 style={{
+      <h1 className="topbar-title" style={{
         fontSize: '1.35rem',
         lineHeight: '1.75rem',
         color: colors.textSecondary
       }}>{getRoleDisplayName(userRole)} Dashboard</h1>
 
       {/* Right side - Notification, Bonus, and Profile */}
-      <div style={{
+      <div className="topbar-right" style={{
         display: 'flex',
         alignItems: 'center',
         gap: '1.5rem'
@@ -160,6 +332,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
         {/* Notification Bell */}
         <div
           ref={notificationsRef}
+          className="notifications-container"
           style={{
             position: 'relative'
           }}
@@ -396,7 +569,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
 
         {/* Balance - Shows for photographer/freelancer only */}
         {(userRole === 'photographer' || userRole === 'freelancer') && (
-          <div style={{
+          <div className="topbar-balance" style={{
             display: 'flex',
             alignItems: 'center',
             gap: '0.5rem'
@@ -418,7 +591,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
 
         {/* Tips - Shows for photographer/freelancer only (from clients/viewers) */}
         {(userRole === 'photographer' || userRole === 'freelancer') && (
-          <div style={{
+          <div className="topbar-tips" style={{
             display: 'flex',
             alignItems: 'center',
             gap: '0.5rem'
@@ -439,7 +612,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
         )}
 
         {/* Bonus/Gift - Shows Gift for clients, Bonus for photographers/freelancers (platform rewards) */}
-        <div style={{
+        <div className="topbar-bonus" style={{
           display: 'flex',
           alignItems: 'center',
           gap: '0.5rem'
@@ -465,6 +638,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
         {/* Profile with Dropdown */}
         <div
           ref={dropdownRef}
+          className="profile-dropdown-container"
           style={{
             position: 'relative'
           }}
@@ -490,7 +664,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
                 height: '2.5rem'
               }}
             />
-            <div style={{
+            <div className="topbar-profile-info" style={{
               display: 'flex',
               flexDirection: 'column'
             }}>
@@ -646,5 +820,6 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
         </div>
       </div>
     </div>
+    </>
   );
 }
