@@ -943,32 +943,224 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
 
   return (
     <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
+      <style>{`
+        @media (max-width: 768px) {
+          .mobile-header {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 1rem;
+          }
+          .mobile-header button {
+            width: 100%;
+            justify-content: center;
+          }
+          .mobile-stats-grid {
+            grid-template-columns: repeat(4, 1fr) !important;
+            gap: 0.5rem !important;
+          }
+          .mobile-stats-grid > div {
+            padding: 0.75rem !important;
+          }
+          .mobile-stats-grid > div > div:first-child {
+            font-size: 0.7rem !important;
+            margin-bottom: 0.15rem !important;
+          }
+          .mobile-stats-grid > div > div:last-child {
+            font-size: 1.1rem !important;
+          }
+          .mobile-filters {
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+          .mobile-search-section {
+            width: 100% !important;
+          }
+          .mobile-search-section > div {
+            flex-direction: column !important;
+            width: 100% !important;
+          }
+          .mobile-search-section input {
+            width: 100% !important;
+          }
+          .mobile-view-toggle {
+            display: none !important;
+          }
+          .mobile-gallery-grid {
+            grid-template-columns: 1fr !important;
+            gap: 1rem !important;
+            margin-bottom: 2rem !important;
+          }
+          .mobile-gallery-grid > div {
+            margin-bottom: 1rem !important;
+          }
+          .mobile-album-card-content {
+            padding-bottom: 1rem !important;
+          }
+          .mobile-list-view {
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch;
+            margin-bottom: 2rem !important;
+          }
+          .mobile-list-view table {
+            min-width: 900px;
+          }
+          .mobile-main-content {
+            padding: 0.75rem !important;
+            padding-bottom: 8rem !important;
+            overflow-y: auto !important;
+          }
+          .mobile-title {
+            font-size: 1.5rem !important;
+          }
+          .mobile-subtitle {
+            font-size: 0.85rem !important;
+          }
+          .mobile-modal {
+            width: 95% !important;
+            max-width: 500px !important;
+            max-height: 85vh !important;
+            padding: 1rem !important;
+          }
+          .mobile-modal > div {
+            padding-bottom: 3rem !important;
+          }
+          .mobile-upload-area {
+            padding: 1.5rem 1rem !important;
+          }
+          .mobile-upload-area > div:first-child {
+            width: 48px !important;
+            height: 48px !important;
+          }
+          .mobile-upload-area > div:first-child i {
+            font-size: 1.25rem !important;
+          }
+          .mobile-cover-grid {
+            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)) !important;
+            gap: 0.4rem !important;
+            max-height: 150px !important;
+          }
+          .mobile-form-checkboxes {
+            flex-direction: column !important;
+            gap: 0.75rem !important;
+          }
+          .mobile-modal-actions {
+            flex-direction: column !important;
+            gap: 0.75rem !important;
+          }
+          .mobile-modal-actions button {
+            width: 100% !important;
+            justify-content: center !important;
+          }
+          .mobile-browse-modal-content {
+            padding-bottom: 8rem !important;
+          }
+          .mobile-browse-grid {
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
+            gap: 0.75rem !important;
+            padding-bottom: 5rem !important;
+          }
+        }
+        @media (max-width: 640px) {
+          .mobile-stats-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.4rem !important;
+          }
+          .mobile-stats-grid > div {
+            padding: 0.6rem !important;
+          }
+          .mobile-stats-grid > div > div:first-child {
+            font-size: 0.65rem !important;
+          }
+          .mobile-stats-grid > div > div:last-child {
+            font-size: 1rem !important;
+          }
+          .mobile-title {
+            font-size: 1.3rem !important;
+          }
+          .mobile-subtitle {
+            font-size: 0.8rem !important;
+          }
+          .mobile-filters button {
+            font-size: 0.8rem !important;
+            padding: 0.4rem 0.8rem !important;
+          }
+          .mobile-list-view table {
+            min-width: 700px;
+          }
+          .mobile-gallery-grid {
+            margin-bottom: 3rem !important;
+          }
+          .mobile-gallery-grid > div {
+            margin-bottom: 1.5rem !important;
+          }
+          .mobile-album-card-content {
+            padding-bottom: 1.5rem !important;
+          }
+          .mobile-list-view {
+            margin-bottom: 3rem !important;
+          }
+          .mobile-main-content {
+            padding: 0.5rem !important;
+            padding-bottom: 10rem !important;
+            overflow-y: auto !important;
+          }
+          .mobile-modal {
+            width: 95% !important;
+            max-width: 95% !important;
+            padding: 1rem !important;
+            padding-bottom: 5rem !important;
+          }
+          .mobile-upload-area {
+            padding: 1rem 0.75rem !important;
+          }
+          .mobile-upload-area > div:first-child {
+            width: 40px !important;
+            height: 40px !important;
+          }
+          .mobile-upload-area > div:first-child i {
+            font-size: 1.1rem !important;
+          }
+          .mobile-cover-grid {
+            grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)) !important;
+            gap: 0.3rem !important;
+            max-height: 120px !important;
+          }
+          .mobile-browse-modal-content {
+            padding-bottom: 12rem !important;
+          }
+          .mobile-browse-grid {
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important;
+            gap: 0.5rem !important;
+            padding-bottom: 8rem !important;
+          }
+        }
+      `}</style>
       <Sidebar />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <Topbar userRole={userType} tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
 
         {/* Main Content */}
-        <div style={{
+        <div className="mobile-main-content" style={{
           flex: 1,
           overflowY: 'auto',
           padding: '1.5rem'
         }}>
           {/* Header */}
-          <div style={{
+          <div className="mobile-header" style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             marginBottom: '1.5rem'
           }}>
             <div>
-              <h1 style={{
+              <h1 className="mobile-title" style={{
                 fontSize: '1.8rem',
                 fontWeight: '700',
                 color: colors.textPrimary,
                 margin: 0
               }}>My Gallery</h1>
-              <p style={{
+              <p className="mobile-subtitle" style={{
                 fontSize: '0.95rem',
                 color: colors.textSecondary,
                 marginTop: '0.25rem'
@@ -1003,7 +1195,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
           </div>
 
           {/* Stats Cards */}
-          <div style={{
+          <div className="mobile-stats-grid" style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(4, 1fr)',
             gap: '1rem',
@@ -1048,7 +1240,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
           </div>
 
           {/* Filters and Search */}
-          <div style={{
+          <div className="mobile-filters" style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -1079,7 +1271,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
               ))}
             </div>
 
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <div className="mobile-search-section" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
               {/* Search */}
               <div style={{ position: 'relative' }}>
                 <div style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)' }}>
@@ -1113,7 +1305,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
               </div>
 
               {/* View Mode Toggle */}
-              <div style={{
+              <div className="mobile-view-toggle" style={{
                 display: 'flex',
                 gap: '0.25rem',
                 backgroundColor: colors.bgTertiary,
@@ -1167,7 +1359,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
 
           {/* Gallery Grid - 3 columns */}
           {viewMode === 'grid' ? (
-            <div style={{
+            <div className="mobile-gallery-grid" style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(3, 1fr)',
               gap: '1.25rem'
@@ -1287,7 +1479,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                   </div>
 
                   {/* Card Content */}
-                  <div style={{ padding: '1rem' }}>
+                  <div className="mobile-album-card-content" style={{ padding: '1rem' }}>
                     {/* Title & Client */}
                     <div style={{ marginBottom: '0.75rem' }}>
                       <h3 style={{
@@ -1458,7 +1650,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
             </div>
           ) : (
             /* List View */
-            <div style={{
+            <div className="mobile-list-view" style={{
               backgroundColor: colors.bgCard,
               borderRadius: '1rem',
               overflow: 'hidden',
@@ -1718,6 +1910,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
           onClick={() => { resetUploadForm(false); setShowUploadModal(false); }}
         >
           <div
+            className="mobile-modal"
             style={{
               backgroundColor: colors.bgCard,
               borderRadius: '1rem',
@@ -1725,7 +1918,8 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
               width: '500px',
               maxHeight: '90vh',
               overflowY: 'auto',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              paddingBottom: '3rem'
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -1792,6 +1986,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
             />
             <label
               htmlFor="file-upload"
+              className="mobile-upload-area"
               style={{
                 display: 'block',
                 border: '2px dashed #D1D5DB',
@@ -1848,7 +2043,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                   color: colors.textSecondary,
                   margin: '0 0 0.75rem 0'
                 }}>Click on an image to set it as the album cover</p>
-                <div style={{
+                <div className="mobile-cover-grid" style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))',
                   gap: '0.5rem',
@@ -2043,7 +2238,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '1rem' }}>
+              <div className="mobile-form-checkboxes" style={{ display: 'flex', gap: '1rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <input
                     type="checkbox"
@@ -2073,7 +2268,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
             </div>
 
             {/* Modal Actions */}
-            <div style={{
+            <div className="mobile-modal-actions" style={{
               display: 'flex',
               gap: '0.75rem',
               marginTop: '1.5rem',
@@ -2144,13 +2339,15 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
           onClick={() => setShowViewModal(false)}
         >
           <div
+            className="mobile-modal"
             style={{
               backgroundColor: colors.bgCard,
               borderRadius: '1rem',
               width: '600px',
               maxHeight: '90vh',
               overflowY: 'auto',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              paddingBottom: '3rem'
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -2389,6 +2586,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
           onClick={() => setShowEditModal(false)}
         >
           <div
+            className="mobile-modal"
             style={{
               backgroundColor: colors.bgCard,
               borderRadius: '1rem',
@@ -2396,7 +2594,8 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
               width: '500px',
               maxHeight: '90vh',
               overflowY: 'auto',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              paddingBottom: '3rem'
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -2618,6 +2817,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
           onClick={() => setShowShareModal(false)}
         >
           <div
+            className="mobile-modal"
             style={{
               backgroundColor: colors.bgCard,
               borderRadius: '0.75rem',
@@ -2627,6 +2827,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
               maxHeight: '90vh',
               overflowY: 'auto',
               boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+              paddingBottom: '3rem'
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -3451,17 +3652,20 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
 
           {/* Image Grid */}
           <div
+            className="mobile-browse-modal-content"
             style={{
               flex: 1,
               overflowY: 'auto',
-              padding: '1.5rem'
+              padding: '1.5rem',
+              paddingBottom: '5rem'
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{
+            <div className="mobile-browse-grid" style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-              gap: '1rem'
+              gap: '1rem',
+              paddingBottom: '3rem'
             }}>
               {multiSelectAlbum.images.map((image, index) => (
                 <div
@@ -3695,13 +3899,15 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
           onClick={cancelDeleteAlbum}
         >
           <div
+            className="mobile-modal"
             style={{
               backgroundColor: colors.bgCard,
               borderRadius: '1rem',
               padding: '1.5rem',
               width: '400px',
               maxWidth: '90%',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              paddingBottom: '3rem'
             }}
             onClick={(e) => e.stopPropagation()}
           >
