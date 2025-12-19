@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import Sidebar from '../components/sidebar';
 import Topbar from '../components/topbar';
 import { useTheme, ThemeMode } from '../context/ThemeContext';
+import DonateModal, { DonateButton } from '../components/DonateModal';
 
 interface PaymentMethod {
   id: string;
@@ -115,6 +116,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
   const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
   const [showEditPaymentModal, setShowEditPaymentModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showDonateModal, setShowDonateModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod | null>(null);
   const [paymentType, setPaymentType] = useState<'card' | 'bank' | 'mtn' | 'airtel'>('card');
 
@@ -1061,7 +1063,8 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
             )}
 
             {/* Action Buttons */}
-            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', alignItems: 'center' }}>
+              <DonateButton onClick={() => setShowDonateModal(true)} />
               <button
                 onClick={() => { setShowAddPaymentModal(false); resetForm(); }}
                 style={{
@@ -1095,6 +1098,9 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                 {userType === 'client' ? 'Add Payment Method' : 'Add Withdrawal Account'}
               </button>
             </div>
+
+            {/* Donate Modal */}
+            <DonateModal isOpen={showDonateModal} onClose={() => setShowDonateModal(false)} />
           </div>
         </div>
       )}

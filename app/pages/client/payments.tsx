@@ -7,6 +7,7 @@ import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 import { useUserProfile } from '../../context/UserProfileContext';
+import DonateModal, { DonateButton } from '../../components/DonateModal';
 
 // Icons
 const DownloadIcon = () => (
@@ -519,6 +520,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
   const { colors, actualTheme } = useTheme();
   const router = useRouter();
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('card');
+  const [showDonateModal, setShowDonateModal] = useState(false);
 
   if (!payment) return null;
 
@@ -692,7 +694,8 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
         </div>
 
         {/* Actions */}
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <DonateButton onClick={() => setShowDonateModal(true)} />
           <button
             onClick={onClose}
             style={{
@@ -725,6 +728,9 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
             {payment.status === 'failed' ? 'Retry Payment' : 'Pay'} ${amountDue.toLocaleString()}
           </button>
         </div>
+
+        {/* Donate Modal */}
+        <DonateModal isOpen={showDonateModal} onClose={() => setShowDonateModal(false)} />
       </div>
     </Modal>
   );
@@ -1242,6 +1248,7 @@ Amount: ${payment.amount}
 
   // State for gifts payment method modal
   const [showGiftsPaymentMethodModal, setShowGiftsPaymentMethodModal] = useState(false);
+  const [showGiftsDonateModal, setShowGiftsDonateModal] = useState(false);
   const [selectedGiftPaymentMethod, setSelectedGiftPaymentMethod] = useState<string | null>(null);
   const [giftPaymentDetails, setGiftPaymentDetails] = useState({
     mtnNumber: '',
@@ -2361,7 +2368,8 @@ Amount: ${payment.amount}
           )}
 
           {/* Action Buttons */}
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <DonateButton onClick={() => setShowGiftsDonateModal(true)} />
             <button
               onClick={() => {
                 setShowGiftsPaymentMethodModal(false);
@@ -2410,6 +2418,9 @@ Amount: ${payment.amount}
               Save Withdrawal Method
             </button>
           </div>
+
+          {/* Donate Modal */}
+          <DonateModal isOpen={showGiftsDonateModal} onClose={() => setShowGiftsDonateModal(false)} />
         </div>
       </Modal>
 
