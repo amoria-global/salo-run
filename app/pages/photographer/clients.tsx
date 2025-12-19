@@ -194,7 +194,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
       justifyContent: 'center',
       zIndex: 1000,
     }} onClick={onClose}>
-      <div style={{
+      <div className="mobile-modal" style={{
         backgroundColor: colors.bgCard,
         borderRadius: '0.75rem',
         padding: '1.5rem',
@@ -698,6 +698,129 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
 
   return (
     <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
+      <style>{`
+        @media (max-width: 768px) {
+          .mobile-main-content {
+            padding: 1rem !important;
+            padding-bottom: 8rem !important;
+          }
+          .mobile-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 1rem !important;
+            margin-bottom: 1.5rem !important;
+            padding-bottom: 1rem !important;
+            border-bottom: 2px solid rgba(8, 58, 133, 0.1) !important;
+          }
+          .mobile-header-title h1 {
+            font-size: 1.4rem !important;
+            font-weight: 700 !important;
+          }
+          .mobile-header-title p {
+            font-size: 0.9rem !important;
+          }
+          .mobile-header-controls {
+            width: 100% !important;
+            justify-content: space-between !important;
+          }
+          .mobile-stats-grid {
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 0.75rem !important;
+            margin-bottom: 1.5rem !important;
+          }
+          .mobile-stats-card {
+            padding: 1rem !important;
+            border-radius: 1rem !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+            transition: all 0.2s ease !important;
+          }
+          .mobile-stats-card:active {
+            transform: scale(0.98);
+          }
+          .mobile-stats-card > div:first-child {
+            font-size: 0.75rem !important;
+            font-weight: 600 !important;
+          }
+          .mobile-stats-card > div:nth-child(2) {
+            font-size: 1.25rem !important;
+            font-weight: 700 !important;
+          }
+          .mobile-stats-card > div:last-child {
+            font-size: 0.7rem !important;
+          }
+          .mobile-tabs {
+            flex-wrap: wrap !important;
+            gap: 0.5rem !important;
+            margin-bottom: 1.25rem !important;
+          }
+          .mobile-tabs button {
+            font-size: 0.85rem !important;
+            padding: 0.5rem 1rem !important;
+            border-radius: 0.75rem !important;
+            transition: all 0.2s ease !important;
+          }
+          .mobile-tabs button:active {
+            transform: scale(0.95);
+          }
+          .mobile-search-bar {
+            margin-bottom: 1.25rem !important;
+          }
+          .mobile-search-bar input {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+            border-radius: 0.75rem !important;
+          }
+          .mobile-clients-grid {
+            grid-template-columns: 1fr !important;
+            gap: 1rem !important;
+          }
+          .mobile-client-card {
+            padding: 1rem !important;
+            border-radius: 1rem !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+            transition: all 0.2s ease !important;
+          }
+          .mobile-client-card:active {
+            transform: scale(0.98);
+          }
+          .mobile-modal {
+            width: 95% !important;
+            max-height: 85vh !important;
+            padding: 1.25rem !important;
+            padding-bottom: 5rem !important;
+            border-radius: 1rem !important;
+          }
+          .mobile-modal-content {
+            padding-bottom: 3rem !important;
+          }
+        }
+        @media (max-width: 640px) {
+          .mobile-main-content {
+            padding: 0.75rem !important;
+            padding-bottom: 10rem !important;
+          }
+          .mobile-stats-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.5rem !important;
+          }
+          .mobile-stats-card {
+            padding: 0.75rem !important;
+          }
+          .mobile-stats-card > div:nth-child(2) {
+            font-size: 1.1rem !important;
+          }
+          .mobile-header-title h1 {
+            font-size: 1.2rem !important;
+          }
+          .mobile-tabs button {
+            font-size: 0.8rem !important;
+            padding: 0.4rem 0.75rem !important;
+          }
+          .mobile-modal {
+            padding: 1rem !important;
+            padding-bottom: 7rem !important;
+          }
+        }
+      `}</style>
       <Sidebar />
 
       {/* Main Content */}
@@ -709,16 +832,16 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
       }}>
         <Topbar tipsAmount={totalTips} bonusAmount={platformBonus} balanceAmount={totalBalance} userRole={userType} />
 
-        <div style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
+        <div className="mobile-main-content" style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
           {/* Header */}
-          <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-            <div>
+          <header className="mobile-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+            <div className="mobile-header-title">
               <h1 style={{ fontSize: '1.8rem', lineHeight: '2rem', color: colors.textPrimary, fontWeight: '600' }}>My Clients</h1>
               <p style={{ fontSize: '0.95rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
                 Clients who&apos;ve booked your services - manage relationships
               </p>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div className="mobile-header-controls" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               {/* Sort Dropdown */}
               <div style={{ position: 'relative' }}>
                 <select
@@ -789,24 +912,24 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
           </header>
 
           {/* Stats Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
+          <div className="mobile-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+            <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Clients</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.brandPrimary }}>{clients.length}</div>
             </div>
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
+            <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Bookings</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.brandPrimary }}>
                 {clients.reduce((sum, c) => sum + c.totalBookings, 0)}
               </div>
             </div>
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
+            <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Earned</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.brandPrimary }}>
                 ${clients.reduce((sum, c) => sum + c.totalSpent, 0).toLocaleString()}
               </div>
             </div>
-            <div style={{ backgroundColor: totalTips > 0 ? (actualTheme === 'dark' ? '#78350F' : '#FFFBEB') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: totalTips > 0 ? `1px solid ${actualTheme === 'dark' ? '#92400E' : '#FCD34D'}` : `1px solid ${colors.borderPrimary}` }}>
+            <div className="mobile-stats-card" style={{ backgroundColor: totalTips > 0 ? (actualTheme === 'dark' ? '#78350F' : '#FFFBEB') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: totalTips > 0 ? `1px solid ${actualTheme === 'dark' ? '#92400E' : '#FCD34D'}` : `1px solid ${colors.borderPrimary}` }}>
               <div style={{ fontSize: '0.85rem', color: totalTips > 0 ? (actualTheme === 'dark' ? '#FCD34D' : '#92400E') : colors.textSecondary, marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 <GiftIcon />
                 Tips
@@ -816,7 +939,7 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
               </div>
               <div style={{ fontSize: '0.7rem', color: colors.textSecondary, marginTop: '0.25rem' }}>From clients</div>
             </div>
-            <div style={{ backgroundColor: platformBonus > 0 ? (actualTheme === 'dark' ? '#14532D' : '#F0FDF4') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: platformBonus > 0 ? `1px solid ${actualTheme === 'dark' ? '#166534' : '#BBF7D0'}` : `1px solid ${colors.borderPrimary}` }}>
+            <div className="mobile-stats-card" style={{ backgroundColor: platformBonus > 0 ? (actualTheme === 'dark' ? '#14532D' : '#F0FDF4') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: platformBonus > 0 ? `1px solid ${actualTheme === 'dark' ? '#166534' : '#BBF7D0'}` : `1px solid ${colors.borderPrimary}` }}>
               <div style={{ fontSize: '0.85rem', color: platformBonus > 0 ? (actualTheme === 'dark' ? '#4ADE80' : '#166534') : colors.textSecondary, marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 <GiftIcon />
                 Bonus
@@ -826,13 +949,13 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
               </div>
               <div style={{ fontSize: '0.7rem', color: colors.textSecondary, marginTop: '0.25rem' }}>{totalCompletedEvents}/10 events ({bonusEligibleSets > 0 ? '10%' : '0%'})</div>
             </div>
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
+            <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Favorites</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#F20C8F' }}>
                 {clients.filter(c => c.isFavorite).length}
               </div>
             </div>
-            <div style={{ backgroundColor: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#7F1D1D' : '#FEF2F2') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: totalPendingAmount > 0 ? `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}` : `1px solid ${colors.borderPrimary}` }}>
+            <div className="mobile-stats-card" style={{ backgroundColor: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#7F1D1D' : '#FEF2F2') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: totalPendingAmount > 0 ? `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}` : `1px solid ${colors.borderPrimary}` }}>
               <div style={{ fontSize: '0.85rem', color: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#FCA5A5' : '#B91C1C') : colors.textSecondary, marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 {totalPendingAmount > 0 && <AlertCircleIcon />}
                 Pending Payments
@@ -844,7 +967,7 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
           </div>
 
           {/* Tabs */}
-          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
+          <div className="mobile-tabs" style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
             {[
               { key: 'all', label: 'All Clients', count: clients.length },
               { key: 'active', label: 'Active', count: clients.filter(c => c.status === 'active').length },
@@ -887,7 +1010,7 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
           </div>
 
           {/* Search and Filters */}
-          <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+          <div className="mobile-search-bar" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
             {/* Search */}
             <div style={{ flex: 1, position: 'relative' }}>
               <div style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }}>
@@ -949,10 +1072,11 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
               </p>
             </div>
           ) : viewMode === 'grid' ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem' }}>
+            <div className="mobile-clients-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem' }}>
               {filteredClients.map((client) => (
                 <div
                   key={client.id}
+                  className="mobile-client-card"
                   style={{
                     backgroundColor: colors.bgCard,
                     borderRadius: '1rem',
