@@ -1802,7 +1802,7 @@ const BookedPhotographersPage = () => {
             </div>
 
             {/* Actions */}
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '4rem' }}>
               <button
                 onClick={() => toggleFavorite(selectedPhotographer.id)}
                 style={{
@@ -2017,7 +2017,7 @@ const BookedPhotographersPage = () => {
               />
             </div>
 
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '4rem' }}>
               <button
                 onClick={() => setShowRebookModal(false)}
                 style={{
@@ -2150,7 +2150,7 @@ const BookedPhotographersPage = () => {
               />
             </div>
 
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '4rem' }}>
               <button
                 onClick={() => setShowReviewModal(false)}
                 style={{
@@ -2221,7 +2221,7 @@ const BookedPhotographersPage = () => {
                 color: colors.textPrimary
               }}
             />
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginBottom: '4rem' }}>
               <button
                 onClick={() => setShowReportModal(false)}
                 style={{
@@ -2424,7 +2424,7 @@ const BookedPhotographersPage = () => {
             </p>
 
             {/* Actions */}
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '4rem' }}>
               <DonateButton onClick={() => setShowPaymentDonateModal(true)} />
               <button
                 onClick={() => setShowPaymentModal(false)}
@@ -2500,7 +2500,7 @@ const BookedPhotographersPage = () => {
             <p style={{ fontSize: '0.9rem', color: colors.textSecondary, marginBottom: '1.5rem' }}>
               Show your appreciation for their great work!
             </p>
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '4rem' }}>
               <button
                 onClick={handleTipPromptNo}
                 style={{
@@ -2626,7 +2626,7 @@ const BookedPhotographersPage = () => {
                 </div>
               </div>
             )}
-            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem', marginBottom: '4rem' }}>
               <button
                 onClick={() => {
                   setShowTipSelectionModal(false);
@@ -2817,7 +2817,7 @@ const BookedPhotographersPage = () => {
             </p>
 
             {/* Actions */}
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '4rem' }}>
               <DonateButton onClick={() => setShowTipDonateModal(true)} />
               <button
                 onClick={() => {
@@ -2905,7 +2905,8 @@ const BookedPhotographersPage = () => {
               color: 'white',
               fontSize: '0.9rem',
               fontWeight: '600',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              marginBottom: '4rem'
             }}
           >
             Done
