@@ -419,13 +419,130 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
 
   return (
     <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
+      <style>{`
+        @media (max-width: 768px) {
+          .mobile-inbox-container {
+            margin: 0 !important;
+          }
+          .mobile-conversations-list {
+            width: 100% !important;
+            border-radius: 0 !important;
+            border-left: none !important;
+            border-right: none !important;
+            border-top: none !important;
+          }
+          .mobile-conversations-list.mobile-chat-active {
+            display: none !important;
+          }
+          .mobile-topbar {
+            display: block;
+          }
+          .mobile-topbar.mobile-chat-active {
+            display: none !important;
+          }
+          .mobile-chat-area {
+            display: none !important;
+            width: 100% !important;
+            border-radius: 0 !important;
+            border: none !important;
+          }
+          .mobile-chat-area.mobile-chat-active {
+            display: flex !important;
+          }
+          .mobile-conversations-list-header {
+            padding: 1.25rem 1rem !important;
+            background: linear-gradient(135deg, rgba(8, 58, 133, 0.05) 0%, rgba(8, 58, 133, 0.02) 100%) !important;
+            border-bottom: 2px solid rgba(8, 58, 133, 0.1) !important;
+          }
+          .mobile-conversations-list-header h1 {
+            font-size: 1.3rem !important;
+            font-weight: 700 !important;
+          }
+          .mobile-filter-tabs {
+            margin-top: 1rem !important;
+          }
+          .mobile-filter-tabs button {
+            border-radius: 0.5rem !important;
+            transition: all 0.2s ease !important;
+          }
+          .mobile-messages-area {
+            padding: 1.5rem 1rem !important;
+            padding-bottom: 8rem !important;
+          }
+          .mobile-message-input-container {
+            padding: 1rem !important;
+            padding-bottom: 5rem !important;
+            background: rgba(8, 58, 133, 0.02) !important;
+            border-top: 2px solid rgba(8, 58, 133, 0.1) !important;
+          }
+          .mobile-message-input-container input {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+            border: 2px solid rgba(8, 58, 133, 0.15) !important;
+          }
+          .mobile-message-input-container textarea {
+            font-size: 0.9rem !important;
+            padding: 0.625rem !important;
+          }
+          .mobile-back-button {
+            display: flex !important;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            background: rgba(8, 58, 133, 0.1);
+            border: none;
+            border-radius: 0.5rem;
+            color: #083A85;
+            font-weight: 600;
+            cursor: pointer;
+            margin-right: 0.5rem;
+            transition: all 0.2s ease;
+          }
+          .mobile-back-button:active {
+            transform: scale(0.95);
+            background: rgba(8, 58, 133, 0.15);
+          }
+          .mobile-conversation-item {
+            border-radius: 0.75rem !important;
+            margin: 0.5rem 0.75rem !important;
+            border: 1px solid rgba(8, 58, 133, 0.1) !important;
+            transition: all 0.2s ease !important;
+          }
+          .mobile-conversation-item:active {
+            transform: scale(0.98);
+          }
+        }
+        @media (max-width: 640px) {
+          .mobile-conversations-list-header h1 {
+            font-size: 1.15rem !important;
+          }
+          .mobile-filter-tabs button {
+            font-size: 0.75rem !important;
+            padding: 0.5rem 0.75rem !important;
+          }
+          .mobile-messages-area {
+            padding: 1rem 0.75rem !important;
+            padding-bottom: 10rem !important;
+          }
+          .mobile-message-input-container {
+            padding: 0.75rem !important;
+            padding-bottom: 7rem !important;
+          }
+        }
+        @media (min-width: 769px) {
+          .mobile-back-button {
+            display: none !important;
+          }
+        }
+      `}</style>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar userRole={userType} tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
-        <div style={{ flex: 1, display: 'flex', overflow: 'hidden', margin: '0 1.25rem 1rem 1.25rem' }}>
+        <div className={`mobile-topbar ${selectedConversation ? 'mobile-chat-active' : ''}`}>
+          <Topbar userRole={userType} tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
+        </div>
+        <div className="mobile-inbox-container" style={{ flex: 1, display: 'flex', overflow: 'hidden', margin: '0 1.25rem 1rem 1.25rem' }}>
 
           {/* Conversations List */}
-          <div style={{
+          <div className={`mobile-conversations-list ${selectedConversation ? 'mobile-chat-active' : ''}`} style={{
             width: '340px',
             backgroundColor: colors.bgCard,
             borderRadius: '0.75rem 0 0 0.75rem',
@@ -437,7 +554,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
             boxShadow: colors.shadowSm
           }}>
             {/* Header */}
-            <div style={{ padding: '1rem', borderBottom: `1px solid ${colors.borderPrimary}` }}>
+            <div className="mobile-conversations-list-header" style={{ padding: '1rem', borderBottom: `1px solid ${colors.borderPrimary}` }}>
               <h1 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '1rem' }}>Messages</h1>
 
               {/* Search */}
@@ -465,7 +582,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
               </div>
 
               {/* Filter Tabs */}
-              <div style={{ display: 'flex', gap: '0.25rem' }}>
+              <div className="mobile-filter-tabs" style={{ display: 'flex', gap: '0.25rem' }}>
                 {(['all', 'unread', 'pinned'] as const).map((filter) => (
                   <button
                     key={filter}
@@ -498,6 +615,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                 return (
                   <div
                     key={conv.id}
+                    className="mobile-conversation-item"
                     onClick={() => setSelectedConversation(conv.id)}
                     style={{
                       display: 'flex',
@@ -589,7 +707,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
           </div>
 
           {/* Chat Area */}
-          <div style={{
+          <div className={`mobile-chat-area ${selectedConversation ? 'mobile-chat-active' : ''}`} style={{
             flex: 1,
             backgroundColor: colors.bgCard,
             borderRadius: '0 0.75rem 0.75rem 0',
@@ -611,6 +729,15 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                   borderBottom: `1px solid ${colors.borderPrimary}`
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <button
+                      className="mobile-back-button"
+                      onClick={() => setSelectedConversation(null)}
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Back
+                    </button>
                     <div style={{ position: 'relative', width: '44px', height: '44px', flexShrink: 0 }}>
                       <div style={{
                         width: '44px',
@@ -649,7 +776,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                   </div>
 
                 {/* Messages */}
-                <div style={{ flex: 1, overflowY: 'auto', padding: '1rem 1.25rem', backgroundColor: colors.bgTertiary }}>
+                <div className="mobile-messages-area" style={{ flex: 1, overflowY: 'auto', padding: '1rem 1.25rem', backgroundColor: colors.bgTertiary }}>
                   {selectedConv.messages.map((message, index) => {
                     const isOwn = message.senderId === currentUserId;
                     const showAvatar = index === 0 || selectedConv.messages[index - 1].senderId !== message.senderId;
@@ -837,7 +964,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                 </div>
 
                 {/* Message Input */}
-                <div style={{ padding: '1rem 1.25rem', borderTop: `1px solid ${colors.borderPrimary}`, position: 'relative' }}>
+                <div className="mobile-message-input-container" style={{ padding: '1rem 1.25rem', borderTop: `1px solid ${colors.borderPrimary}`, position: 'relative' }}>
                   {/* Emoji Picker */}
                   {showEmojiPicker && (
                     <div

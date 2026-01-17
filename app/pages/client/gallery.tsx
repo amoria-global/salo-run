@@ -456,6 +456,78 @@ const ClientGallery = () => {
 
   return (
     <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
+      <style>{`
+        @media (max-width: 768px) {
+          .mobile-main-content {
+            padding: 1rem !important;
+            padding-bottom: 8rem !important;
+          }
+          .mobile-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 1rem !important;
+          }
+          .mobile-title {
+            font-size: 1.5rem !important;
+          }
+          .mobile-stats-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.75rem !important;
+          }
+          .mobile-tabs {
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+          }
+          .mobile-albums-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .mobile-multi-select-header {
+            padding: 0.75rem 1rem !important;
+            flex-wrap: wrap !important;
+            gap: 0.75rem !important;
+          }
+          .mobile-multi-select-title {
+            font-size: 1rem !important;
+          }
+          .mobile-multi-select-grid {
+            padding: 1rem !important;
+            padding-bottom: 8rem !important;
+          }
+          .mobile-multi-select-grid > div {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+          .mobile-select-controls {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 0.75rem !important;
+            padding: 0.75rem 1rem !important;
+          }
+          .mobile-bulk-actions {
+            flex-wrap: wrap !important;
+            gap: 0.5rem !important;
+          }
+          .mobile-bulk-actions button {
+            font-size: 0.75rem !important;
+            padding: 0.375rem 0.75rem !important;
+          }
+        }
+        @media (max-width: 640px) {
+          .mobile-main-content {
+            padding: 0.75rem !important;
+            padding-bottom: 10rem !important;
+          }
+          .mobile-stats-grid {
+            grid-template-columns: 1fr 1fr !important;
+          }
+          .mobile-multi-select-grid {
+            padding-bottom: 10rem !important;
+          }
+          .mobile-multi-select-grid > div {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.5rem !important;
+          }
+        }
+      `}</style>
       <Sidebar />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -1255,6 +1327,7 @@ const ClientGallery = () => {
         >
           {/* Header */}
           <div
+            className="mobile-multi-select-header"
             style={{
               display: 'flex',
               justifyContent: 'space-between',
@@ -1266,7 +1339,7 @@ const ClientGallery = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <h2 style={{
+              <h2 className="mobile-multi-select-title" style={{
                 fontSize: '1.25rem',
                 fontWeight: '700',
                 color: 'white',
@@ -1337,6 +1410,7 @@ const ClientGallery = () => {
           {/* Selection Controls (visible when in select mode) */}
           {isSelectMode && (
             <div
+              className="mobile-select-controls"
               style={{
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -1381,7 +1455,7 @@ const ClientGallery = () => {
 
               {/* Bulk Actions */}
               {selectedImages.length > 0 && (
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <div className="mobile-bulk-actions" style={{ display: 'flex', gap: '0.75rem' }}>
                   <button
                     onClick={handleBulkDownload}
                     style={{
@@ -1470,6 +1544,7 @@ const ClientGallery = () => {
 
           {/* Image Grid */}
           <div
+            className="mobile-multi-select-grid"
             style={{
               flex: 1,
               overflowY: 'auto',

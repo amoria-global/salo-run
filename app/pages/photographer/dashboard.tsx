@@ -483,36 +483,128 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
   const basePath = userType === 'freelancer' ? '/user/freelancer' : '/user/photographer';
 
   return (
-    <div style={{
-      display: 'flex',
-      height: '100vh',
-      backgroundColor: colors.bgPrimary
-    }}>
-      <Sidebar />
+    <>
+      <style jsx>{`
+        /* Desktop styles */
+        .dashboard-container {
+          display: flex;
+          height: 100vh;
+          background-color: ${colors.bgPrimary};
+        }
 
-      <div style={{
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden'
-      }}>
-        <Topbar userRole={userType} tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
+        .dashboard-content {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
 
-        <div style={{
-          flex: 1,
-          overflowY: 'auto',
-          backgroundColor: colors.bgPrimary,
-          paddingLeft: '1.25rem',
-          paddingRight: '1.25rem',
-          paddingTop: '1rem',
-          paddingBottom: '1rem'
-        }}>
-          <header style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginTop: '0.125rem'
-          }}>
+        .dashboard-main {
+          flex: 1;
+          overflow-y: auto;
+          background-color: ${colors.bgPrimary};
+          padding-left: 1.25rem;
+          padding-right: 1.25rem;
+          padding-top: 1rem;
+          padding-bottom: 1rem;
+        }
+
+        .dashboard-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-top: 0.125rem;
+        }
+
+        .header-stats {
+          background-color: ${colors.bgCard};
+          border-radius: 0.5rem;
+          padding-left: 1.5rem;
+          padding-right: 1.5rem;
+          padding-top: 0.75rem;
+          padding-bottom: 0.75rem;
+          box-shadow: ${colors.shadowSm};
+          border: 1px solid ${colors.borderPrimary};
+          display: flex;
+          gap: 2rem;
+        }
+
+        .filter-buttons {
+          display: flex;
+          gap: 0.5rem;
+          margin-bottom: 1rem;
+        }
+
+        .stat-cards-grid {
+          display: grid;
+          grid-template-columns: repeat(5, 1fr);
+          gap: 0.75rem;
+          margin-bottom: 1rem;
+        }
+
+        .main-grid {
+          display: grid;
+          grid-template-columns: 1fr 320px;
+          gap: 1rem;
+        }
+
+        /* Mobile responsive styles */
+        @media (max-width: 768px) {
+          .dashboard-main {
+            padding-left: 0.75rem !important;
+            padding-right: 0.75rem !important;
+            padding-top: 0.75rem !important;
+          }
+
+          .dashboard-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 1rem !important;
+          }
+
+          .header-stats {
+            width: 100% !important;
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+            gap: 1rem !important;
+            overflow-x: auto !important;
+            justify-content: center !important;
+          }
+
+          .filter-buttons {
+            overflow-x: auto !important;
+            flex-wrap: nowrap !important;
+            width: 100% !important;
+          }
+
+          .stat-cards-grid {
+            grid-template-columns: 1fr !important;
+            gap: 0.5rem !important;
+          }
+
+          .main-grid {
+            grid-template-columns: 1fr !important;
+            gap: 0.75rem !important;
+          }
+        }
+
+        /* Extra small mobile (phones in portrait) */
+        @media (max-width: 480px) {
+          .dashboard-main {
+            padding-left: 0.5rem !important;
+            padding-right: 0.5rem !important;
+          }
+        }
+      `}</style>
+
+      <div className="dashboard-container">
+        <Sidebar />
+
+        <div className="dashboard-content">
+          <Topbar userRole={userType} tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
+
+          <div className="dashboard-main">
+            <header className="dashboard-header">
             <div>
               <h1 style={{
                 fontSize: '1.8rem',
@@ -531,239 +623,7 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
                 {staticMessage}
               </p>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              {/* FUTURE PLAN FEATURE - Comparison Mode UI commented out for later use
-              <button
-                onClick={toggleComparisonMode}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.5rem 1rem',
-                  borderRadius: '0.5rem',
-                  border: isComparisonMode ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`,
-                  backgroundColor: isComparisonMode ? '#F20C8F' : colors.bgCard,
-                  color: isComparisonMode ? 'white' : colors.textSecondary,
-                  cursor: 'pointer',
-                  fontSize: '0.875rem',
-                  fontWeight: '500',
-                  transition: 'all 0.3s',
-                  boxShadow: colors.shadowSm
-                }}
-              >
-                <CompareIcon />
-                {isComparisonMode ? 'Exit Comparison' : 'Compare Goals'}
-              </button>
-              {isComparisonMode && (
-                <>
-                  {futurePlans.length > 0 && (
-                    <div style={{ position: 'relative' }}>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowPlanDropdown(!showPlanDropdown);
-                        }}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.5rem',
-                          padding: '0.5rem 1rem',
-                          borderRadius: '0.5rem',
-                          border: `2px solid ${colors.borderPrimary}`,
-                          backgroundColor: colors.bgCard,
-                          color: colors.textPrimary,
-                          cursor: 'pointer',
-                          fontSize: '0.875rem',
-                          fontWeight: '500',
-                          transition: 'all 0.3s',
-                          boxShadow: colors.shadowSm,
-                          minWidth: '160px',
-                          justifyContent: 'space-between'
-                        }}
-                      >
-                        <span style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.5rem',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          <TargetIcon />
-                          {selectedPlan?.name || 'Select Plan'}
-                        </span>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, transform: showPlanDropdown ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
-                          <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </button>
-                      {showPlanDropdown && (
-                        <div style={{
-                          position: 'absolute',
-                          top: 'calc(100% + 4px)',
-                          left: 0,
-                          backgroundColor: colors.bgCard,
-                          borderRadius: '0.5rem',
-                          boxShadow: colors.shadowLg,
-                          border: `1px solid ${colors.borderPrimary}`,
-                          zIndex: 100,
-                          minWidth: '220px',
-                          maxHeight: '300px',
-                          overflowY: 'auto'
-                        }}>
-                          {futurePlans.map((plan) => (
-                            <div
-                              key={plan.id}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                padding: '0.75rem 1rem',
-                                cursor: 'pointer',
-                                backgroundColor: selectedPlan?.id === plan.id ? 'rgba(242, 12, 143, 0.1)' : 'transparent',
-                                borderLeft: selectedPlan?.id === plan.id ? '3px solid #F20C8F' : '3px solid transparent',
-                                transition: 'all 0.2s'
-                              }}
-                              onMouseEnter={(e) => {
-                                if (selectedPlan?.id !== plan.id) {
-                                  e.currentTarget.style.backgroundColor = colors.bgHover;
-                                }
-                              }}
-                              onMouseLeave={(e) => {
-                                if (selectedPlan?.id !== plan.id) {
-                                  e.currentTarget.style.backgroundColor = 'transparent';
-                                }
-                              }}
-                            >
-                              <div
-                                onClick={() => {
-                                  handleSelectPlan(plan);
-                                  setShowPlanDropdown(false);
-                                }}
-                                style={{ flex: 1 }}
-                              >
-                                <div style={{
-                                  fontWeight: '600',
-                                  color: colors.textPrimary,
-                                  fontSize: '0.875rem'
-                                }}>{plan.name}</div>
-                                <div style={{
-                                  fontSize: '0.7rem',
-                                  color: colors.textSecondary,
-                                  marginTop: '0.125rem'
-                                }}>
-                                  {plan.timePeriod === 'custom'
-                                    ? `${plan.customStartDate} - ${plan.customEndDate}`
-                                    : plan.timePeriod === 'today' ? 'Today' : plan.timePeriod === 'week' ? 'This Week' : 'This Month'}
-                                </div>
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleEditPlan(plan);
-                                  }}
-                                  style={{
-                                    padding: '0.375rem',
-                                    color: colors.textTertiary,
-                                    border: 'none',
-                                    background: 'none',
-                                    cursor: 'pointer',
-                                    borderRadius: '0.25rem',
-                                    transition: 'all 0.2s',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center'
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.color = colors.brandPrimary;
-                                    e.currentTarget.style.backgroundColor = 'rgba(8, 58, 133, 0.1)';
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.color = colors.textTertiary;
-                                    e.currentTarget.style.backgroundColor = 'transparent';
-                                  }}
-                                  title="Edit plan"
-                                >
-                                  <EditIcon />
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeletePlan(plan.id);
-                                    if (futurePlans.length === 1) {
-                                      setShowPlanDropdown(false);
-                                    }
-                                  }}
-                                  style={{
-                                    padding: '0.375rem',
-                                    color: colors.textTertiary,
-                                    border: 'none',
-                                    background: 'none',
-                                    cursor: 'pointer',
-                                    borderRadius: '0.25rem',
-                                    transition: 'all 0.2s',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center'
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.color = '#ff4444';
-                                    e.currentTarget.style.backgroundColor = 'rgba(255, 68, 68, 0.1)';
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.color = colors.textTertiary;
-                                    e.currentTarget.style.backgroundColor = 'transparent';
-                                  }}
-                                  title="Delete plan"
-                                >
-                                  <CloseIcon />
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  <button
-                    onClick={() => {
-                      setPlanTimePeriod(activeFilter);
-                      setShowPlanModal(true);
-                    }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      padding: '0.5rem 1rem',
-                      borderRadius: '0.5rem',
-                      border: `2px solid ${colors.brandPrimary}`,
-                      backgroundColor: colors.brandPrimary,
-                      color: 'white',
-                      cursor: 'pointer',
-                      fontSize: '0.875rem',
-                      fontWeight: '500',
-                      transition: 'all 0.3s',
-                      boxShadow: colors.shadowSm
-                    }}
-                  >
-                    <TargetIcon />
-                    New Plan
-                  </button>
-                </>
-              )}
-              */}
-              <div style={{
-              backgroundColor: colors.bgCard,
-              borderRadius: '0.5rem',
-              paddingLeft: '1.5rem',
-              paddingRight: '1.5rem',
-              paddingTop: '0.75rem',
-              paddingBottom: '0.75rem',
-              boxShadow: colors.shadowSm,
-              border: `1px solid ${colors.borderPrimary}`,
-              display: 'flex',
-              gap: '2rem'
-            }}>
+            <div className="header-stats">
               <div style={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -825,11 +685,7 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
             </div>
           </header>
 
-      <div style={{
-        display: 'flex',
-        gap: '0.5rem',
-        marginBottom: '1rem'
-      }}>
+      <div className="filter-buttons">
         <button
           onClick={() => setActiveFilter('today')}
           style={{
@@ -908,12 +764,7 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
         </button>
       </div>
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(5, 1fr)',
-        gap: '0.75rem',
-        marginBottom: '1rem'
-      }}>
+      <div className="stat-cards-grid">
         <StatCard
           title="Total Earnings"
           value="$2,600"
@@ -981,11 +832,7 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
         />
       </div>
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 320px',
-        gap: '1rem'
-      }}>
+      <div className="main-grid">
         <div>
           <section style={{
             backgroundColor: colors.bgCard,
@@ -1239,12 +1086,10 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
           </section>
         </div>
       </div>
-
+          </div>
         </div>
       </div>
-
-      {/* FUTURE PLAN FEATURE - Modal commented out for later use - see comments in code above */}
-    </div>
+    </>
   );
 };
 

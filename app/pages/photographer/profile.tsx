@@ -741,29 +741,242 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       height: '100vh',
       backgroundColor: colors.bgPrimary
     }}>
-      {/* CSS Keyframes for animations */}
       <style>{`
-        @keyframes slideDown {
-          0% {
-            opacity: 0;
-            transform: translateY(-20px);
-            max-height: 0;
+        /* Desktop enhancements */
+        .profile-header-enhanced {
+          background: linear-gradient(135deg, rgba(8, 58, 133, 0.03) 0%, rgba(8, 58, 133, 0.01) 100%);
+          padding: 1.5rem;
+          border-radius: 1rem;
+          margin-bottom: 1.5rem;
+        }
+        .save-button-enhanced {
+          background: linear-gradient(135deg, #083A85 0%, #0a4da8 100%) !important;
+          box-shadow: 0 4px 16px rgba(8, 58, 133, 0.3) !important;
+          transition: all 0.3s ease !important;
+        }
+        .save-button-enhanced:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(8, 58, 133, 0.4) !important;
+        }
+        .save-button-enhanced:active {
+          transform: translateY(0);
+        }
+        .completion-card-enhanced {
+          box-shadow: 0 8px 24px rgba(8, 58, 133, 0.2) !important;
+          border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        }
+        .profile-card-enhanced {
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
+          transition: all 0.3s ease !important;
+        }
+        .profile-card-enhanced:hover {
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+        }
+        .tab-button-enhanced {
+          transition: all 0.3s ease !important;
+          position: relative !important;
+        }
+        .tab-button-enhanced:hover {
+          transform: translateY(-2px);
+        }
+        .input-enhanced {
+          transition: all 0.2s ease !important;
+          border-radius: 0.75rem !important;
+        }
+        .input-enhanced:focus {
+          box-shadow: 0 0 0 3px rgba(8, 58, 133, 0.1) !important;
+          border-color: #083A85 !important;
+        }
+        .add-button-enhanced {
+          background: linear-gradient(135deg, rgba(8, 58, 133, 0.1) 0%, rgba(8, 58, 133, 0.05) 100%) !important;
+          transition: all 0.2s ease !important;
+        }
+        .add-button-enhanced:hover {
+          background: linear-gradient(135deg, rgba(8, 58, 133, 0.15) 0%, rgba(8, 58, 133, 0.1) 100%) !important;
+          transform: translateY(-1px);
+        }
+
+        @media (max-width: 768px) {
+          .mobile-main-content {
+            padding: 1rem !important;
+            padding-bottom: 8rem !important;
           }
-          100% {
-            opacity: 1;
-            transform: translateY(0);
-            max-height: 500px;
+          .mobile-page-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 1rem !important;
+            margin-bottom: 1.5rem !important;
+            padding: 1.25rem !important;
+            background: linear-gradient(135deg, rgba(8, 58, 133, 0.05) 0%, rgba(8, 58, 133, 0.02) 100%) !important;
+            border-radius: 1rem !important;
+            border: 1px solid rgba(8, 58, 133, 0.1) !important;
+          }
+          .mobile-page-header h1 {
+            font-size: 1.4rem !important;
+            font-weight: 700 !important;
+            color: #083A85 !important;
+          }
+          .mobile-page-header button {
+            width: 100% !important;
+            justify-content: center !important;
+            padding: 1rem 1.5rem !important;
+            font-size: 1rem !important;
+            font-weight: 600 !important;
+            border-radius: 0.75rem !important;
+            background: linear-gradient(135deg, #083A85 0%, #0a4da8 100%) !important;
+            box-shadow: 0 6px 16px rgba(8, 58, 133, 0.3) !important;
+            transition: all 0.2s ease !important;
+          }
+          .mobile-page-header button:active {
+            transform: scale(0.98);
+            box-shadow: 0 4px 12px rgba(8, 58, 133, 0.2) !important;
+          }
+          .mobile-completion-card {
+            flex-direction: column !important;
+            gap: 1.5rem !important;
+            text-align: center !important;
+            padding: 2rem 1.5rem !important;
+          }
+          .mobile-profile-section {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 1.5rem !important;
+          }
+          .mobile-profile-left {
+            width: 100% !important;
+            max-width: 100% !important;
+            order: 1 !important;
+          }
+          .mobile-profile-right {
+            width: 100% !important;
+            order: 2 !important;
+          }
+          .mobile-tabs {
+            flex-wrap: wrap !important;
+            gap: 0.5rem !important;
+            border-radius: 1rem 1rem 0 0 !important;
+            padding: 0.75rem !important;
+            background: linear-gradient(135deg, rgba(8, 58, 133, 0.03) 0%, rgba(8, 58, 133, 0.01) 100%) !important;
+          }
+          .mobile-tabs button {
+            flex: 1 !important;
+            min-width: auto !important;
+            font-size: 0.9rem !important;
+            padding: 0.75rem !important;
+            font-weight: 600 !important;
+            border-radius: 0.625rem !important;
+            transition: all 0.2s ease !important;
+          }
+          .mobile-tabs button:active {
+            transform: scale(0.98);
+          }
+          .mobile-form-grid-2 {
+            grid-template-columns: 1fr !important;
+            gap: 1rem !important;
+          }
+          .mobile-form-grid-3 {
+            grid-template-columns: 1fr !important;
+            gap: 1rem !important;
+          }
+          .mobile-form-grid-4 {
+            grid-template-columns: 1fr !important;
+            gap: 1rem !important;
+          }
+          .mobile-skill-item {
+            flex-direction: column !important;
+            gap: 0.75rem !important;
+            border-radius: 1rem !important;
+            padding: 1.25rem !important;
+            background: linear-gradient(135deg, rgba(8, 58, 133, 0.03) 0%, rgba(8, 58, 133, 0.01) 100%) !important;
+            border: 1px solid rgba(8, 58, 133, 0.1) !important;
+          }
+          .mobile-skill-item > div:first-child {
+            width: 100% !important;
+          }
+          .mobile-skill-item > div:last-child {
+            width: 100% !important;
+          }
+          .mobile-card {
+            padding: 1.25rem !important;
+            border-radius: 1rem !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+          }
+          .mobile-section-actions {
+            flex-direction: column !important;
+            gap: 0.75rem !important;
+          }
+          .mobile-section-actions button {
+            width: 100% !important;
+            padding: 0.875rem 1rem !important;
+            border-radius: 0.75rem !important;
+            transition: all 0.2s ease !important;
+            font-weight: 600 !important;
+          }
+          .mobile-section-actions button:active {
+            transform: scale(0.98);
           }
         }
-        @keyframes highlight {
-          0% {
-            box-shadow: 0 0 0 3px ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}40;
+        @media (max-width: 640px) {
+          .mobile-main-content {
+            padding: 0.75rem !important;
+            padding-bottom: 10rem !important;
           }
-          70% {
-            box-shadow: 0 0 0 3px ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}40;
+          .mobile-page-header {
+            padding: 1rem !important;
           }
-          100% {
-            box-shadow: none;
+          .mobile-page-header h1 {
+            font-size: 1.2rem !important;
+          }
+          .mobile-page-header button {
+            font-size: 0.95rem !important;
+            padding: 0.875rem 1.25rem !important;
+          }
+          .mobile-tabs {
+            padding: 0.5rem !important;
+          }
+          .mobile-tabs button {
+            font-size: 0.85rem !important;
+            padding: 0.625rem 0.5rem !important;
+          }
+          .mobile-card {
+            padding: 1rem !important;
+          }
+          .mobile-skill-item {
+            padding: 1rem !important;
+          }
+          .mobile-profile-card-name {
+            padding: 0.75rem 1rem 0.5rem !important;
+          }
+          .mobile-profile-card-name h2 {
+            font-size: 1rem !important;
+            margin-bottom: 0.25rem !important;
+          }
+          .mobile-profile-card-name p:first-of-type {
+            font-size: 0.8rem !important;
+            margin-bottom: 0.15rem !important;
+          }
+          .mobile-profile-card-name p:last-of-type {
+            font-size: 0.75rem !important;
+          }
+          .mobile-profile-card-stats {
+            padding: 0.75rem 1rem !important;
+          }
+          .mobile-profile-card-stats > div > div:first-child {
+            font-size: 1.1rem !important;
+            margin-bottom: 0.15rem !important;
+          }
+          .mobile-profile-card-stats > div > div:last-child {
+            font-size: 0.7rem !important;
+          }
+          .mobile-profile-card-activity {
+            padding: 0.875rem 1rem !important;
+          }
+          .mobile-profile-card-activity h3 {
+            font-size: 0.8rem !important;
+            margin-bottom: 0.625rem !important;
+          }
+          .mobile-profile-card-activity span {
+            font-size: 0.75rem !important;
           }
         }
       `}</style>
@@ -777,14 +990,14 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       }}>
         <Topbar userRole={userType} tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
 
-        <div style={{
+        <div className="mobile-main-content" style={{
           flex: 1,
           overflowY: 'auto',
           backgroundColor: colors.bgPrimary,
           padding: '1.25rem'
         }}>
           {/* Page Header */}
-          <div style={{
+          <div className="mobile-page-header" style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -796,6 +1009,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
               color: colors.textPrimary
             }}>Edit Profile</h1>
             <button
+              className="save-button-enhanced"
               style={{
                 backgroundColor: '#083A85',
                 color: 'white',
@@ -836,13 +1050,13 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           )}
 
           {/* Profile Completion Card */}
-          <div style={{
+          <div className="mobile-card completion-card-enhanced" style={{
             ...cardStyle,
             background: 'linear-gradient(135deg, #083A85 0%, #0a4da8 100%)',
             color: 'white',
             marginBottom: '1.5rem'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+            <div className="mobile-completion-card" style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
               {/* Circular Progress */}
               <div style={{ position: 'relative', width: '120px', height: '120px', flexShrink: 0 }}>
                 <svg width="120" height="120" viewBox="0 0 120 120" style={{ transform: 'rotate(-90deg)' }}>
@@ -927,15 +1141,15 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           </div>
 
           {/* Main Content Grid */}
-          <div style={{
+          <div className="mobile-profile-section" style={{
             display: 'grid',
             gridTemplateColumns: '320px 1fr',
             gap: '1.5rem'
           }}>
             {/* Left Sidebar - Profile Card */}
-            <div>
+            <div className="mobile-profile-left">
               {/* Profile Card */}
-              <div style={{
+              <div className="profile-card-enhanced" style={{
                 backgroundColor: colors.bgCard,
                 borderRadius: '0.75rem',
                 overflow: 'hidden',
@@ -1028,7 +1242,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                 </div>
 
                 {/* Name and Role */}
-                <div style={{
+                <div className="mobile-profile-card-name" style={{
                   textAlign: 'center',
                   padding: '1rem 1.5rem'
                 }}>
@@ -1052,17 +1266,18 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                 </div>
 
                 {/* Stats */}
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(3, 1fr)',
+                <div className="mobile-profile-card-stats" style={{
+                  display: 'flex',
+                  justifyContent: 'space-around',
+                  padding: '1rem',
                   borderTop: `1px solid ${colors.borderPrimary}`,
-                  padding: '1rem'
+                  borderBottom: `1px solid ${colors.borderPrimary}`
                 }}>
                   <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>4.9</div>
                     <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Rating</div>
                   </div>
-                  <div style={{ textAlign: 'center', borderLeft: `1px solid ${colors.borderPrimary}`, borderRight: `1px solid ${colors.borderPrimary}` }}>
+                  <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>127</div>
                     <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Reviews</div>
                   </div>
@@ -1073,8 +1288,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                 </div>
 
                 {/* Account Activity */}
-                <div style={{
-                  borderTop: `1px solid ${colors.borderPrimary}`,
+                <div className="mobile-profile-card-activity" style={{
                   padding: '1.25rem'
                 }}>
                   <h3 style={{
@@ -1110,9 +1324,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
             </div>
 
             {/* Right Section - Tabbed Form */}
-            <div>
+            <div className="mobile-profile-right">
               {/* Tabs */}
-              <div style={{
+              <div className="mobile-tabs" style={{
                 display: 'flex',
                 backgroundColor: colors.bgCard,
                 borderRadius: '0.75rem 0.75rem 0 0',
@@ -1146,7 +1360,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                     <div style={sectionTitleStyle}>
                       <span>Basic Information</span>
                     </div>
-                    <div style={{
+                    <div className="mobile-form-grid-2" style={{
                       display: 'grid',
                       gridTemplateColumns: 'repeat(2, 1fr)',
                       gap: '1rem',
@@ -1655,7 +1869,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '2rem' }}>
                       {portfolioData.skills.map((skill) => (
-                        <div key={skill.id} style={{
+                        <div key={skill.id} className="mobile-skill-item" style={{
                           display: 'flex',
                           alignItems: 'center',
                           gap: '1rem',
@@ -1890,41 +2104,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           position: 'relative',
                           ...(newlyAddedId === edu.id ? newItemAnimation : {})
                         }}>
-                          <button
-                            onClick={() => removeEducation(edu.id)}
-                            style={{
-                              position: 'absolute',
-                              top: '0.75rem',
-                              right: '0.75rem',
-                              padding: '0.5rem',
-                              backgroundColor: 'transparent',
-                              border: `1px solid ${colors.borderPrimary}`,
-                              borderRadius: '0.375rem',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: colors.textTertiary,
-                              transition: 'all 0.2s'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = '#FEE2E2';
-                              e.currentTarget.style.borderColor = '#EF4444';
-                              e.currentTarget.style.color = '#EF4444';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = 'transparent';
-                              e.currentTarget.style.borderColor = colors.borderPrimary;
-                              e.currentTarget.style.color = colors.textTertiary;
-                            }}
-                            title="Remove education"
-                          >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M3 6H5H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                              <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                          </button>
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', paddingRight: '2.5rem' }}>
+                          <div className="mobile-form-grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
                             <div>
                               <label style={labelStyle}>Degree/Certificate</label>
                               <input
@@ -2017,41 +2197,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           position: 'relative',
                           ...(newlyAddedId === qual.id ? newItemAnimation : {})
                         }}>
-                          <button
-                            onClick={() => removeQualification(qual.id)}
-                            style={{
-                              position: 'absolute',
-                              top: '0.75rem',
-                              right: '0.75rem',
-                              padding: '0.5rem',
-                              backgroundColor: 'transparent',
-                              border: `1px solid ${colors.borderPrimary}`,
-                              borderRadius: '0.375rem',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: colors.textTertiary,
-                              transition: 'all 0.2s'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = '#FEE2E2';
-                              e.currentTarget.style.borderColor = '#EF4444';
-                              e.currentTarget.style.color = '#EF4444';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = 'transparent';
-                              e.currentTarget.style.borderColor = colors.borderPrimary;
-                              e.currentTarget.style.color = colors.textTertiary;
-                            }}
-                            title="Remove certification"
-                          >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M3 6H5H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                              <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                          </button>
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', paddingRight: '2.5rem' }}>
+                          <div className="mobile-form-grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
                             <div>
                               <label style={labelStyle}>Certificate Title</label>
                               <input
@@ -2249,7 +2395,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       style={{ display: 'none' }}
                     />
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
+                    <div className="mobile-form-grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
                       {portfolioData.projects.map((project) => (
                         <div key={project.id} style={{
                           backgroundColor: colors.bgTertiary,

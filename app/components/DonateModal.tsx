@@ -34,7 +34,8 @@ export const DonateButton: React.FC<{ onClick: () => void }> = ({ onClick }) => 
       borderRadius: '9999px',
       cursor: 'pointer',
       transition: 'all 0.2s',
-      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+      width: '100%'
     }}
     title="Make a donation to charity"
     onMouseEnter={(e) => {
@@ -141,35 +142,78 @@ const DonateModal: React.FC<DonateModalProps> = ({ isOpen, onClose }) => {
   ];
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.6)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1100,
-    }} onClick={onClose}>
+    <>
+      <style>{`
+        @media (max-width: 640px) {
+          .donate-modal {
+            width: 95% !important;
+            margin: 0.5rem;
+            max-height: 85vh !important;
+            overflow-y: auto !important;
+          }
+          .donate-modal-header {
+            flex-direction: column !important;
+            gap: 0.5rem;
+          }
+          .donate-modal-header button {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+          }
+          .donate-modal-content {
+            padding: 1rem !important;
+            padding-bottom: 3rem !important;
+          }
+          .donate-causes-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .donate-quick-amounts {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+          .donate-actions {
+            flex-direction: column !important;
+            margin-bottom: 2rem !important;
+            gap: 0.5rem !important;
+          }
+          .donate-actions button {
+            width: 100% !important;
+            min-height: 42px !important;
+          }
+          .donate-cause-item {
+            padding: 0.75rem !important;
+          }
+        }
+      `}</style>
       <div style={{
-        backgroundColor: colors.bgCard,
-        borderRadius: '1rem',
-        width: '480px',
-        maxWidth: '95%',
-        maxHeight: '90vh',
-        overflowY: 'auto',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-      }} onClick={(e) => e.stopPropagation()}>
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1100,
+      }} onClick={onClose}>
+        <div className="donate-modal" style={{
+          backgroundColor: colors.bgCard,
+          borderRadius: '1rem',
+          width: '480px',
+          maxWidth: '95%',
+          maxHeight: '90vh',
+          overflowY: 'auto',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+        }} onClick={(e) => e.stopPropagation()}>
 
-        {/* Header */}
-        <div style={{
-          padding: '1.5rem 1.5rem 0 1.5rem',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start'
-        }}>
+          {/* Header */}
+          <div className="donate-modal-header" style={{
+            padding: '1.5rem 1.5rem 0 1.5rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            position: 'relative'
+          }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
               <div style={{
@@ -211,7 +255,7 @@ const DonateModal: React.FC<DonateModalProps> = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        <div style={{ padding: '1.25rem 1.5rem 1.5rem 1.5rem' }}>
+        <div className="donate-modal-content" style={{ padding: '1.25rem 1.5rem 1.5rem 1.5rem' }}>
           {/* Causes Description */}
           <div style={{
             background: actualTheme === 'dark' ? 'linear-gradient(135deg, rgba(242, 12, 143, 0.1) 0%, rgba(255, 107, 157, 0.05) 100%)' : 'linear-gradient(135deg, rgba(242, 12, 143, 0.08) 0%, rgba(255, 107, 157, 0.03) 100%)',
@@ -229,9 +273,9 @@ const DonateModal: React.FC<DonateModalProps> = ({ isOpen, onClose }) => {
             }}>
               Your donation helps support:
             </p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div className="donate-causes-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               {causeItems.map((cause, index) => (
-                <div key={index} style={{
+                <div key={index} className="donate-cause-item" style={{
                   display: 'flex',
                   alignItems: 'flex-start',
                   gap: '0.625rem',
@@ -305,13 +349,12 @@ const DonateModal: React.FC<DonateModalProps> = ({ isOpen, onClose }) => {
               />
             </div>
             {/* Quick amount buttons */}
-            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+            <div className="donate-quick-amounts" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.5rem', marginTop: '0.75rem' }}>
               {['5', '10', '25', '50', '100'].map((amount) => (
                 <button
                   key={amount}
                   onClick={() => setDonationAmount(amount)}
                   style={{
-                    flex: 1,
                     padding: '0.5rem',
                     border: donationAmount === amount ? '2px solid #F20C8F' : `1px solid ${colors.borderPrimary}`,
                     borderRadius: '0.5rem',
@@ -482,7 +525,7 @@ const DonateModal: React.FC<DonateModalProps> = ({ isOpen, onClose }) => {
           </div>
 
           {/* Actions */}
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <div className="donate-actions" style={{ display: 'flex', gap: '0.75rem' }}>
             <button
               onClick={onClose}
               style={{
@@ -527,6 +570,7 @@ const DonateModal: React.FC<DonateModalProps> = ({ isOpen, onClose }) => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 
