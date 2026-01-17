@@ -11,7 +11,25 @@ interface StatCardProps {
   icon: React.ReactNode;
   trend?: 'up' | 'down';
   href?: string;
+  // Comparison mode props
+  isComparisonMode?: boolean;
+  targetValue?: string;
 }
+
+// Helper to parse numeric value from string like "$2,600" or "3.9/5"
+const parseNumericValue = (value: string): number => {
+  const cleaned = value.replace(/[$,]/g, '');
+  const match = cleaned.match(/[\d.]+/);
+  return match ? parseFloat(match[0]) : 0;
+};
+
+// Calculate progress percentage
+const calculateProgress = (current: string, target: string): number => {
+  const currentNum = parseNumericValue(current);
+  const targetNum = parseNumericValue(target);
+  if (targetNum === 0) return 0;
+  return Math.min((currentNum / targetNum) * 100, 100);
+};
 
 export const StatCard: React.FC<StatCardProps> = ({
   title,
@@ -20,9 +38,14 @@ export const StatCard: React.FC<StatCardProps> = ({
   timeframe,
   icon,
   trend = 'up',
-  href
+  href,
+  isComparisonMode = false,
+  targetValue
 }) => {
   const { colors } = useTheme();
+
+  const progress = isComparisonMode && targetValue ? calculateProgress(value, targetValue) : 0;
+  const isGoalMet = progress >= 100;
 
   return (
     <div style={{
@@ -30,8 +53,30 @@ export const StatCard: React.FC<StatCardProps> = ({
       borderRadius: '0.5rem',
       padding: '0.875rem',
       boxShadow: colors.shadowSm,
-      height: '100%'
+      height: '100%',
+      border: isComparisonMode ? `2px solid ${isGoalMet ? colors.statusSuccess : colors.brandAccent}` : 'none',
+      position: 'relative',
+      overflow: 'hidden'
     }}>
+      {/* Progress bar background for comparison mode */}
+      {isComparisonMode && targetValue && (
+        <div style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: '4px',
+          backgroundColor: colors.borderPrimary
+        }}>
+          <div style={{
+            height: '100%',
+            width: `${progress}%`,
+            backgroundColor: isGoalMet ? colors.statusSuccess : '#F20C8F',
+            transition: 'width 0.5s ease-in-out'
+          }} />
+        </div>
+      )}
+
       <div style={{
         display: 'flex',
         alignItems: 'flex-start',
@@ -57,13 +102,46 @@ export const StatCard: React.FC<StatCardProps> = ({
           {icon}
         </div>
       </div>
+
+      {/* Current Value */}
       <div style={{
         fontSize: '1.5rem',
         lineHeight: '2rem',
         fontWeight: '700',
-        marginBottom: '0.375rem',
+        marginBottom: isComparisonMode && targetValue ? '0.25rem' : '0.375rem',
         color: colors.textPrimary
       }}>{value}</div>
+
+      {/* Target Value (Comparison Mode) */}
+      {isComparisonMode && targetValue && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          marginBottom: '0.375rem'
+        }}>
+          <span style={{
+            fontSize: '0.75rem',
+            color: colors.textTertiary
+          }}>Target:</span>
+          <span style={{
+            fontSize: '0.875rem',
+            fontWeight: '600',
+            color: '#F20C8F'
+          }}>{targetValue}</span>
+          <span style={{
+            fontSize: '0.7rem',
+            padding: '0.125rem 0.375rem',
+            borderRadius: '0.25rem',
+            backgroundColor: isGoalMet ? 'rgba(16, 185, 129, 0.1)' : 'rgba(242, 12, 143, 0.1)',
+            color: isGoalMet ? colors.statusSuccess : '#F20C8F',
+            fontWeight: '600'
+          }}>
+            {progress.toFixed(0)}%
+          </span>
+        </div>
+      )}
+
       <div style={{
         display: 'flex',
         alignItems: 'center',

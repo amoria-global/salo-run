@@ -16,6 +16,13 @@ const profileFormStorage = localforage.createInstance({
 // Storage key for the profile form
 const PROFILE_FORM_KEY = 'profile_form_draft';
 
+// Interface for day availability
+interface DayAvailability {
+  enabled: boolean;
+  startTime: string;
+  endTime: string;
+}
+
 // Interface for saved profile form data
 interface ProfileFormData {
   basicInfo: {
@@ -29,10 +36,9 @@ interface ProfileFormData {
     province: string;
     district: string;
     sector: string;
-    availabilityStartDay: string;
-    availabilityEndDay: string;
-    availableStartTime: string;
-    availableEndTime: string;
+    availability: {
+      [key: string]: DayAvailability;
+    };
   };
   overviewData: {
     about: string;
@@ -111,7 +117,9 @@ interface Qualification {
 interface Training {
   id: string;
   name: string;
+  issuer: string;
   year: string;
+  description: string;
 }
 
 interface Project {
@@ -170,13 +178,25 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   const timeOptions = [
     '6:00 AM', '7:00 AM', '8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM',
     '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM',
-    '6:00 PM', '7:00 PM', '8:00 PM', '9:00 PM', '10:00 PM'
+    '6:00 PM', '7:00 PM', '8:00 PM', '9:00 PM', '10:00 PM', '11:00 PM',
+    '12:00 AM'
   ];
 
   // Year options for selectors (from 1970 to current year + 10)
   const currentYear = new Date().getFullYear();
   const yearOptions = Array.from({ length: currentYear - 1970 + 11 }, (_, i) => (currentYear + 10 - i).toString());
   const yearOptionsWithPresent = ['Present', ...yearOptions];
+
+  // Default availability for each day
+  const defaultAvailability: { [key: string]: DayAvailability } = {
+    Monday: { enabled: true, startTime: '8:00 AM', endTime: '6:00 PM' },
+    Tuesday: { enabled: true, startTime: '8:00 AM', endTime: '6:00 PM' },
+    Wednesday: { enabled: true, startTime: '8:00 AM', endTime: '6:00 PM' },
+    Thursday: { enabled: true, startTime: '8:00 AM', endTime: '6:00 PM' },
+    Friday: { enabled: true, startTime: '8:00 AM', endTime: '6:00 PM' },
+    Saturday: { enabled: true, startTime: '9:00 AM', endTime: '4:00 PM' },
+    Sunday: { enabled: false, startTime: '9:00 AM', endTime: '4:00 PM' },
+  };
 
   // Basic Information State
   const [basicInfo, setBasicInfo] = useState({
@@ -190,10 +210,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     province: 'Kigali City',
     district: 'Gasabo',
     sector: 'Remera',
-    availabilityStartDay: 'Monday',
-    availabilityEndDay: 'Saturday',
-    availableStartTime: '8:00 AM',
-    availableEndTime: '6:00 PM',
+    availability: defaultAvailability,
   });
 
   // Overview Tab State
@@ -218,8 +235,8 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       { id: '1', title: 'Certified Professional Photographer', issuer: 'Professional Photographers of America', year: '2020', description: 'Advanced certification in professional photography practices.' }
     ] as Qualification[],
     training: [
-      { id: '1', name: 'Advanced Wedding Photography Workshop', year: '2022' },
-      { id: '2', name: 'Lighting Masterclass by Peter Hurley', year: '2021' },
+      { id: '1', name: 'Advanced Wedding Photography Workshop', issuer: 'Wedding Photography Academy', year: '2022', description: 'Intensive workshop covering advanced techniques for capturing wedding moments.' },
+      { id: '2', name: 'Lighting Masterclass', issuer: 'Peter Hurley Studios', year: '2021', description: 'Professional lighting techniques for portrait and commercial photography.' },
     ] as Training[],
     projects: [] as Project[],
   });
@@ -259,6 +276,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
   // New item input states
   const [newEquipment, setNewEquipment] = useState('');
+  const [editingEquipmentIndex, setEditingEquipmentIndex] = useState<number | null>(null);
+  const [editingSkillId, setEditingSkillId] = useState<string | null>(null);
+  const [newlyAddedId, setNewlyAddedId] = useState<string | null>(null);
   const [isRestoringDraft, setIsRestoringDraft] = useState(false);
   const [showDraftRestoredNotice, setShowDraftRestoredNotice] = useState(false);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -303,11 +323,20 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   useEffect(() => {
     const restoreDraft = async () => {
       try {
-        const savedDraft = await profileFormStorage.getItem<ProfileFormData>(`${PROFILE_FORM_KEY}_${userType}`);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const savedDraft = await profileFormStorage.getItem<any>(`${PROFILE_FORM_KEY}_${userType}`);
         if (savedDraft && savedDraft.userType === userType) {
           setIsRestoringDraft(true);
 
-          if (savedDraft.basicInfo) setBasicInfo(savedDraft.basicInfo);
+          if (savedDraft.basicInfo) {
+            // Migrate old format to new format if needed
+            const restoredBasicInfo = { ...savedDraft.basicInfo };
+            if (!restoredBasicInfo.availability) {
+              // Old format detected - migrate to new availability structure
+              restoredBasicInfo.availability = defaultAvailability;
+            }
+            setBasicInfo(restoredBasicInfo);
+          }
           if (savedDraft.overviewData) setOverviewData(savedDraft.overviewData);
           if (savedDraft.portfolioData) setPortfolioData(savedDraft.portfolioData);
           if (savedDraft.experienceData) setExperienceData(savedDraft.experienceData);
@@ -462,10 +491,24 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
   // Skill handlers
   const addSkill = () => {
+    const newSkillId = Date.now().toString();
+    setNewlyAddedId(newSkillId);
     setPortfolioData(prev => ({
       ...prev,
-      skills: [...prev.skills, { id: Date.now().toString(), name: '', level: 50 }]
+      skills: [{ id: newSkillId, name: '', level: 50 }, ...prev.skills]
     }));
+    setEditingSkillId(newSkillId);
+    setTimeout(() => setNewlyAddedId(null), 1500);
+  };
+
+  const removeSkill = (id: string) => {
+    setPortfolioData(prev => ({
+      ...prev,
+      skills: prev.skills.filter(s => s.id !== id)
+    }));
+    if (editingSkillId === id) {
+      setEditingSkillId(null);
+    }
   };
 
   const updateSkill = (id: string, field: keyof Skill, value: string | number) => {
@@ -477,10 +520,13 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
   // Education handlers
   const addEducation = () => {
+    const newId = Date.now().toString();
+    setNewlyAddedId(newId);
     setPortfolioData(prev => ({
       ...prev,
-      education: [...prev.education, { id: Date.now().toString(), degree: '', institution: '', fromYear: '', toYear: '', description: '' }]
+      education: [{ id: newId, degree: '', institution: '', fromYear: '', toYear: '', description: '' }, ...prev.education]
     }));
+    setTimeout(() => setNewlyAddedId(null), 1500);
   };
 
   const updateEducation = (id: string, field: keyof Education, value: string) => {
@@ -490,12 +536,22 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     }));
   };
 
-  // Qualification handlers
-  const addQualification = () => {
+  const removeEducation = (id: string) => {
     setPortfolioData(prev => ({
       ...prev,
-      qualifications: [...prev.qualifications, { id: Date.now().toString(), title: '', issuer: '', year: '', description: '' }]
+      education: prev.education.filter(e => e.id !== id)
     }));
+  };
+
+  // Qualification handlers
+  const addQualification = () => {
+    const newId = Date.now().toString();
+    setNewlyAddedId(newId);
+    setPortfolioData(prev => ({
+      ...prev,
+      qualifications: [{ id: newId, title: '', issuer: '', year: '', description: '' }, ...prev.qualifications]
+    }));
+    setTimeout(() => setNewlyAddedId(null), 1500);
   };
 
   const updateQualification = (id: string, field: keyof Qualification, value: string) => {
@@ -505,12 +561,22 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     }));
   };
 
-  // Training handlers
-  const addTraining = () => {
+  const removeQualification = (id: string) => {
     setPortfolioData(prev => ({
       ...prev,
-      training: [...prev.training, { id: Date.now().toString(), name: '', year: '' }]
+      qualifications: prev.qualifications.filter(q => q.id !== id)
     }));
+  };
+
+  // Training handlers
+  const addTraining = () => {
+    const newId = Date.now().toString();
+    setNewlyAddedId(newId);
+    setPortfolioData(prev => ({
+      ...prev,
+      training: [{ id: newId, name: '', issuer: '', year: '', description: '' }, ...prev.training]
+    }));
+    setTimeout(() => setNewlyAddedId(null), 1500);
   };
 
   // Update training field
@@ -521,26 +587,43 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     }));
   };
 
+  const removeTraining = (id: string) => {
+    setPortfolioData(prev => ({
+      ...prev,
+      training: prev.training.filter(t => t.id !== id)
+    }));
+  };
+
   // Experience handlers
   const addExperience = () => {
+    const newId = Date.now().toString();
+    setNewlyAddedId(newId);
     setExperienceData(prev => ({
       ...prev,
-      experiences: [...prev.experiences, {
-        id: Date.now().toString(),
+      experiences: [{
+        id: newId,
         position: '',
         company: '',
         location: '',
         startDate: '',
         endDate: '',
         description: ''
-      }]
+      }, ...prev.experiences]
     }));
+    setTimeout(() => setNewlyAddedId(null), 1500);
   };
 
   const updateExperience = (id: string, field: keyof Experience, value: string) => {
     setExperienceData(prev => ({
       ...prev,
       experiences: prev.experiences.map(e => e.id === id ? { ...e, [field]: value } : e)
+    }));
+  };
+
+  const removeExperience = (id: string) => {
+    setExperienceData(prev => ({
+      ...prev,
+      experiences: prev.experiences.filter(e => e.id !== id)
     }));
   };
 
@@ -565,6 +648,13 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     setPortfolioData(prev => ({
       ...prev,
       projects: prev.projects.map(p => p.id === id ? { ...p, [field]: value } : p)
+    }));
+  };
+
+  const removeProject = (id: string) => {
+    setPortfolioData(prev => ({
+      ...prev,
+      projects: prev.projects.filter(p => p.id !== id)
     }));
   };
 
@@ -638,6 +728,11 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between'
+  };
+
+  // Animation style for newly added items
+  const newItemAnimation = {
+    animation: 'slideDown 0.5s ease-out, highlight 1.5s ease-out',
   };
 
   return (
@@ -1397,54 +1492,118 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           />
                         )}
                       </div>
-                      <div>
-                        <label style={labelStyle}>Availability Days</label>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <select
-                            value={basicInfo.availabilityStartDay}
-                            onChange={(e) => setBasicInfo(prev => ({ ...prev, availabilityStartDay: e.target.value }))}
-                            style={{ ...inputStyle, flex: 1 }}
+                    </div>
+
+                    {/* Availability Days Section */}
+                    <div style={sectionTitleStyle}>
+                      <span>Availability Days</span>
+                    </div>
+                    <p style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '1rem' }}>
+                      Set your available hours for each day of the week
+                    </p>
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.75rem',
+                      marginBottom: '2rem'
+                    }}>
+                      {daysOfWeek.map((day) => {
+                        const dayAvailability = basicInfo.availability?.[day] || defaultAvailability[day];
+                        return (
+                          <div
+                            key={day}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '1rem',
+                              padding: '0.75rem 1rem',
+                              backgroundColor: dayAvailability.enabled ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgTertiary,
+                              borderRadius: '0.5rem',
+                              border: dayAvailability.enabled ? `2px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}` : `2px solid ${colors.borderPrimary}`,
+                              transition: 'all 0.2s'
+                            }}
                           >
-                            {daysOfWeek.map((day) => (
-                              <option key={day} value={day}>{day}</option>
-                            ))}
-                          </select>
-                          <span style={{ color: colors.textSecondary }}>to</span>
-                          <select
-                            value={basicInfo.availabilityEndDay}
-                            onChange={(e) => setBasicInfo(prev => ({ ...prev, availabilityEndDay: e.target.value }))}
-                            style={{ ...inputStyle, flex: 1 }}
-                          >
-                            {daysOfWeek.map((day) => (
-                              <option key={day} value={day}>{day}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                      <div>
-                        <label style={labelStyle}>Available Time</label>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <select
-                            value={basicInfo.availableStartTime}
-                            onChange={(e) => setBasicInfo(prev => ({ ...prev, availableStartTime: e.target.value }))}
-                            style={{ ...inputStyle, flex: 1 }}
-                          >
-                            {timeOptions.map((time) => (
-                              <option key={time} value={time}>{time}</option>
-                            ))}
-                          </select>
-                          <span style={{ color: colors.textSecondary }}>to</span>
-                          <select
-                            value={basicInfo.availableEndTime}
-                            onChange={(e) => setBasicInfo(prev => ({ ...prev, availableEndTime: e.target.value }))}
-                            style={{ ...inputStyle, flex: 1 }}
-                          >
-                            {timeOptions.map((time) => (
-                              <option key={time} value={time}>{time}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
+                            {/* Day Toggle */}
+                            <label style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.75rem',
+                              minWidth: '140px',
+                              cursor: 'pointer'
+                            }}>
+                              <input
+                                type="checkbox"
+                                checked={dayAvailability.enabled}
+                                onChange={(e) => setBasicInfo(prev => ({
+                                  ...prev,
+                                  availability: {
+                                    ...prev.availability,
+                                    [day]: { ...prev.availability[day], enabled: e.target.checked }
+                                  }
+                                }))}
+                                style={{
+                                  width: '18px',
+                                  height: '18px',
+                                  accentColor: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
+                                  cursor: 'pointer'
+                                }}
+                              />
+                              <span style={{
+                                fontWeight: '600',
+                                color: dayAvailability.enabled ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.textSecondary,
+                                fontSize: '0.95rem'
+                              }}>
+                                {day}
+                              </span>
+                            </label>
+
+                            {/* Time Range */}
+                            {dayAvailability.enabled ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
+                                <select
+                                  value={dayAvailability.startTime}
+                                  onChange={(e) => setBasicInfo(prev => ({
+                                    ...prev,
+                                    availability: {
+                                      ...prev.availability,
+                                      [day]: { ...prev.availability[day], startTime: e.target.value }
+                                    }
+                                  }))}
+                                  style={{ ...inputStyle, flex: 1, padding: '0.5rem 0.75rem' }}
+                                >
+                                  {timeOptions.map((time) => (
+                                    <option key={time} value={time}>{time}</option>
+                                  ))}
+                                </select>
+                                <span style={{ color: colors.textSecondary, fontSize: '0.875rem' }}>to</span>
+                                <select
+                                  value={dayAvailability.endTime}
+                                  onChange={(e) => setBasicInfo(prev => ({
+                                    ...prev,
+                                    availability: {
+                                      ...prev.availability,
+                                      [day]: { ...prev.availability[day], endTime: e.target.value }
+                                    }
+                                  }))}
+                                  style={{ ...inputStyle, flex: 1, padding: '0.5rem 0.75rem' }}
+                                >
+                                  {timeOptions.map((time) => (
+                                    <option key={time} value={time}>{time}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            ) : (
+                              <span style={{
+                                color: colors.textTertiary,
+                                fontSize: '0.875rem',
+                                fontStyle: 'italic'
+                              }}>
+                                Not available
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
 
                     {/* About */}
@@ -1536,16 +1695,136 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                       {overviewData.equipments.map((equipment, index) => (
-                        <input
+                        <div
                           key={index}
-                          type="text"
-                          value={equipment}
-                          onChange={(e) => updateEquipment(index, e.target.value)}
                           style={{
-                            ...inputStyle,
-                            backgroundColor: colors.bgTertiary
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: '0.75rem 1rem',
+                            backgroundColor: colors.bgTertiary,
+                            borderRadius: '0.5rem',
+                            border: `1px solid ${colors.borderPrimary}`
                           }}
-                        />
+                        >
+                          {editingEquipmentIndex === index ? (
+                            <>
+                              <input
+                                type="text"
+                                value={equipment}
+                                onChange={(e) => updateEquipment(index, e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    setEditingEquipmentIndex(null);
+                                  }
+                                  if (e.key === 'Escape') {
+                                    setEditingEquipmentIndex(null);
+                                  }
+                                }}
+                                autoFocus
+                                style={{
+                                  ...inputStyle,
+                                  flex: 1,
+                                  padding: '0.5rem 0.75rem'
+                                }}
+                              />
+                              <button
+                                onClick={() => setEditingEquipmentIndex(null)}
+                                style={{
+                                  padding: '0.5rem',
+                                  backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF',
+                                  border: `1px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}`,
+                                  borderRadius: '0.375rem',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  color: actualTheme === 'dark' ? '#60A5FA' : '#083A85'
+                                }}
+                                title="Save"
+                              >
+                                <CheckIcon />
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <span style={{
+                                flex: 1,
+                                fontSize: '0.95rem',
+                                color: colors.textPrimary
+                              }}>
+                                {equipment}
+                              </span>
+                              <button
+                                onClick={() => setEditingEquipmentIndex(index)}
+                                style={{
+                                  padding: '0.5rem',
+                                  backgroundColor: 'transparent',
+                                  border: `1px solid ${colors.borderPrimary}`,
+                                  borderRadius: '0.375rem',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  color: colors.textTertiary,
+                                  transition: 'all 0.2s'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.backgroundColor = actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF';
+                                  e.currentTarget.style.borderColor = actualTheme === 'dark' ? '#60A5FA' : '#083A85';
+                                  e.currentTarget.style.color = actualTheme === 'dark' ? '#60A5FA' : '#083A85';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.backgroundColor = 'transparent';
+                                  e.currentTarget.style.borderColor = colors.borderPrimary;
+                                  e.currentTarget.style.color = colors.textTertiary;
+                                }}
+                                title="Edit equipment"
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  <path d="M18.5 2.50001C18.8978 2.10219 19.4374 1.87869 20 1.87869C20.5626 1.87869 21.1022 2.10219 21.5 2.50001C21.8978 2.89784 22.1213 3.4374 22.1213 4.00001C22.1213 4.56262 21.8978 5.10219 21.5 5.50001L12 15L8 16L9 12L18.5 2.50001Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setOverviewData(prev => ({
+                                    ...prev,
+                                    equipments: prev.equipments.filter((_, i) => i !== index)
+                                  }));
+                                }}
+                                style={{
+                                  padding: '0.5rem',
+                                  backgroundColor: 'transparent',
+                                  border: `1px solid ${colors.borderPrimary}`,
+                                  borderRadius: '0.375rem',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  color: colors.textTertiary,
+                                  transition: 'all 0.2s'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.backgroundColor = '#FEE2E2';
+                                  e.currentTarget.style.borderColor = '#EF4444';
+                                  e.currentTarget.style.color = '#EF4444';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.backgroundColor = 'transparent';
+                                  e.currentTarget.style.borderColor = colors.borderPrimary;
+                                  e.currentTarget.style.color = colors.textTertiary;
+                                }}
+                                title="Remove equipment"
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M3 6H5H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                              </button>
+                            </>
+                          )}
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -1588,36 +1867,208 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                         <PlusIcon /> Add Skill
                       </button>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '2rem' }}>
                       {portfolioData.skills.map((skill) => (
                         <div key={skill.id} className="mobile-skill-item" style={{
                           display: 'flex',
                           alignItems: 'center',
                           gap: '1rem',
                           backgroundColor: colors.bgTertiary,
-                          padding: '1rem',
-                          borderRadius: '0.5rem'
+                          padding: '0.75rem 1rem',
+                          borderRadius: '0.5rem',
+                          border: `1px solid ${colors.borderPrimary}`,
+                          ...(newlyAddedId === skill.id ? newItemAnimation : {})
                         }}>
-                          <input
-                            type="text"
-                            value={skill.name}
-                            onChange={(e) => updateSkill(skill.id, 'name', e.target.value)}
-                            placeholder="Skill name"
-                            style={{ ...inputStyle, flex: 1 }}
-                          />
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: '200px' }}>
-                            <input
-                              type="range"
-                              min="0"
-                              max="100"
-                              value={skill.level}
-                              onChange={(e) => updateSkill(skill.id, 'level', parseInt(e.target.value))}
-                              style={{ flex: 1, accentColor: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}
-                            />
-                            <span style={{ fontSize: '0.875rem', fontWeight: '600', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85', minWidth: '40px' }}>
-                              {skill.level}%
-                            </span>
-                          </div>
+                          {editingSkillId === skill.id ? (
+                            <>
+                              <input
+                                type="text"
+                                value={skill.name}
+                                onChange={(e) => updateSkill(skill.id, 'name', e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && skill.name.trim()) {
+                                    setEditingSkillId(null);
+                                  }
+                                  if (e.key === 'Escape') {
+                                    if (!skill.name.trim()) {
+                                      removeSkill(skill.id);
+                                    } else {
+                                      setEditingSkillId(null);
+                                    }
+                                  }
+                                }}
+                                placeholder="Skill name"
+                                autoFocus
+                                style={{ ...inputStyle, flex: 1, padding: '0.5rem 0.75rem' }}
+                              />
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: '200px' }}>
+                                <input
+                                  type="range"
+                                  min="0"
+                                  max="100"
+                                  value={skill.level}
+                                  onChange={(e) => updateSkill(skill.id, 'level', parseInt(e.target.value))}
+                                  style={{ flex: 1, accentColor: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}
+                                />
+                                <span style={{ fontSize: '0.875rem', fontWeight: '600', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85', minWidth: '40px' }}>
+                                  {skill.level}%
+                                </span>
+                              </div>
+                              <button
+                                onClick={() => {
+                                  if (skill.name.trim()) {
+                                    setEditingSkillId(null);
+                                  }
+                                }}
+                                disabled={!skill.name.trim()}
+                                style={{
+                                  padding: '0.5rem',
+                                  backgroundColor: skill.name.trim() ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgTertiary,
+                                  border: `1px solid ${skill.name.trim() ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.borderPrimary}`,
+                                  borderRadius: '0.375rem',
+                                  cursor: skill.name.trim() ? 'pointer' : 'not-allowed',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  color: skill.name.trim() ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.textTertiary,
+                                  opacity: skill.name.trim() ? 1 : 0.5
+                                }}
+                                title="Save"
+                              >
+                                <CheckIcon />
+                              </button>
+                              <button
+                                onClick={() => removeSkill(skill.id)}
+                                style={{
+                                  padding: '0.5rem',
+                                  backgroundColor: 'transparent',
+                                  border: `1px solid ${colors.borderPrimary}`,
+                                  borderRadius: '0.375rem',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  color: colors.textTertiary,
+                                  transition: 'all 0.2s'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.backgroundColor = '#FEE2E2';
+                                  e.currentTarget.style.borderColor = '#EF4444';
+                                  e.currentTarget.style.color = '#EF4444';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.backgroundColor = 'transparent';
+                                  e.currentTarget.style.borderColor = colors.borderPrimary;
+                                  e.currentTarget.style.color = colors.textTertiary;
+                                }}
+                                title="Remove skill"
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M3 6H5H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <div style={{ flex: 1 }}>
+                                <span style={{
+                                  fontSize: '0.95rem',
+                                  fontWeight: '600',
+                                  color: colors.textPrimary
+                                }}>
+                                  {skill.name}
+                                </span>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: '160px' }}>
+                                <div style={{
+                                  flex: 1,
+                                  height: '8px',
+                                  backgroundColor: actualTheme === 'dark' ? '#374151' : '#E5E7EB',
+                                  borderRadius: '4px',
+                                  overflow: 'hidden'
+                                }}>
+                                  <div style={{
+                                    width: `${skill.level}%`,
+                                    height: '100%',
+                                    backgroundColor: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
+                                    borderRadius: '4px',
+                                    transition: 'width 0.3s ease'
+                                  }} />
+                                </div>
+                                <span style={{
+                                  fontSize: '0.875rem',
+                                  fontWeight: '600',
+                                  color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
+                                  minWidth: '40px'
+                                }}>
+                                  {skill.level}%
+                                </span>
+                              </div>
+                              <button
+                                onClick={() => setEditingSkillId(skill.id)}
+                                style={{
+                                  padding: '0.5rem',
+                                  backgroundColor: 'transparent',
+                                  border: `1px solid ${colors.borderPrimary}`,
+                                  borderRadius: '0.375rem',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  color: colors.textTertiary,
+                                  transition: 'all 0.2s'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.backgroundColor = actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF';
+                                  e.currentTarget.style.borderColor = actualTheme === 'dark' ? '#60A5FA' : '#083A85';
+                                  e.currentTarget.style.color = actualTheme === 'dark' ? '#60A5FA' : '#083A85';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.backgroundColor = 'transparent';
+                                  e.currentTarget.style.borderColor = colors.borderPrimary;
+                                  e.currentTarget.style.color = colors.textTertiary;
+                                }}
+                                title="Edit skill"
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  <path d="M18.5 2.50001C18.8978 2.10219 19.4374 1.87869 20 1.87869C20.5626 1.87869 21.1022 2.10219 21.5 2.50001C21.8978 2.89784 22.1213 3.4374 22.1213 4.00001C22.1213 4.56262 21.8978 5.10219 21.5 5.50001L12 15L8 16L9 12L18.5 2.50001Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                              </button>
+                              <button
+                                onClick={() => removeSkill(skill.id)}
+                                style={{
+                                  padding: '0.5rem',
+                                  backgroundColor: 'transparent',
+                                  border: `1px solid ${colors.borderPrimary}`,
+                                  borderRadius: '0.375rem',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  color: colors.textTertiary,
+                                  transition: 'all 0.2s'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.backgroundColor = '#FEE2E2';
+                                  e.currentTarget.style.borderColor = '#EF4444';
+                                  e.currentTarget.style.color = '#EF4444';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.backgroundColor = 'transparent';
+                                  e.currentTarget.style.borderColor = colors.borderPrimary;
+                                  e.currentTarget.style.color = colors.textTertiary;
+                                }}
+                                title="Remove skill"
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M3 6H5H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                              </button>
+                            </>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -1649,7 +2100,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                         <div key={edu.id} style={{
                           backgroundColor: colors.bgTertiary,
                           padding: '1.25rem',
-                          borderRadius: '0.5rem'
+                          borderRadius: '0.5rem',
+                          position: 'relative',
+                          ...(newlyAddedId === edu.id ? newItemAnimation : {})
                         }}>
                           <div className="mobile-form-grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
                             <div>
@@ -1740,7 +2193,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                         <div key={qual.id} style={{
                           backgroundColor: colors.bgTertiary,
                           padding: '1.25rem',
-                          borderRadius: '0.5rem'
+                          borderRadius: '0.5rem',
+                          position: 'relative',
+                          ...(newlyAddedId === qual.id ? newItemAnimation : {})
                         }}>
                           <div className="mobile-form-grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
                             <div>
@@ -1816,30 +2271,91 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
                       {portfolioData.training.map((training) => (
                         <div key={training.id} style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '1rem',
                           backgroundColor: colors.bgTertiary,
-                          padding: '1rem',
-                          borderRadius: '0.5rem'
+                          padding: '1.25rem',
+                          borderRadius: '0.5rem',
+                          position: 'relative',
+                          ...(newlyAddedId === training.id ? newItemAnimation : {})
                         }}>
-                          <input
-                            type="text"
-                            value={training.name}
-                            onChange={(e) => updateTraining(training.id, 'name', e.target.value)}
-                            placeholder="Training/Workshop name"
-                            style={{ ...inputStyle, flex: 1 }}
-                          />
-                          <select
-                            value={training.year}
-                            onChange={(e) => updateTraining(training.id, 'year', e.target.value)}
-                            style={{ ...inputStyle, width: '140px' }}
+                          <button
+                            onClick={() => removeTraining(training.id)}
+                            style={{
+                              position: 'absolute',
+                              top: '0.75rem',
+                              right: '0.75rem',
+                              padding: '0.5rem',
+                              backgroundColor: 'transparent',
+                              border: `1px solid ${colors.borderPrimary}`,
+                              borderRadius: '0.375rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: colors.textTertiary,
+                              transition: 'all 0.2s'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = '#FEE2E2';
+                              e.currentTarget.style.borderColor = '#EF4444';
+                              e.currentTarget.style.color = '#EF4444';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                              e.currentTarget.style.borderColor = colors.borderPrimary;
+                              e.currentTarget.style.color = colors.textTertiary;
+                            }}
+                            title="Remove training"
                           >
-                            <option value="">Year</option>
-                            {yearOptions.map((year) => (
-                              <option key={year} value={year}>{year}</option>
-                            ))}
-                          </select>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M3 6H5H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </button>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', paddingRight: '2.5rem' }}>
+                            <div>
+                              <label style={labelStyle}>Training/Workshop Name</label>
+                              <input
+                                type="text"
+                                value={training.name}
+                                onChange={(e) => updateTraining(training.id, 'name', e.target.value)}
+                                placeholder="e.g., Advanced Wedding Photography Workshop"
+                                style={inputStyle}
+                              />
+                            </div>
+                            <div>
+                              <label style={labelStyle}>Issuing Institution</label>
+                              <input
+                                type="text"
+                                value={training.issuer}
+                                onChange={(e) => updateTraining(training.id, 'issuer', e.target.value)}
+                                placeholder="e.g., Photography Academy"
+                                style={inputStyle}
+                              />
+                            </div>
+                            <div>
+                              <label style={labelStyle}>Year Completed</label>
+                              <select
+                                value={training.year}
+                                onChange={(e) => updateTraining(training.id, 'year', e.target.value)}
+                                style={inputStyle}
+                              >
+                                <option value="">Select Year</option>
+                                {yearOptions.map((year) => (
+                                  <option key={year} value={year}>{year}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div>
+                              <label style={labelStyle}>Description</label>
+                              <input
+                                type="text"
+                                value={training.description}
+                                onChange={(e) => updateTraining(training.id, 'description', e.target.value)}
+                                placeholder="Brief description of what you learned"
+                                style={inputStyle}
+                              />
+                            </div>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1895,6 +2411,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                             }}
                             style={{
                               height: '160px',
+                              position: 'relative',
                               backgroundColor: project.image ? 'transparent' : (actualTheme === 'dark' ? '#374151' : '#E5E7EB'),
                               backgroundImage: project.image ? `url(${project.image})` : 'none',
                               backgroundSize: 'cover',
@@ -1906,7 +2423,8 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                               transition: 'opacity 0.2s',
                               border: project.image ? 'none' : `2px dashed ${actualTheme === 'dark' ? '#6B7280' : '#9CA3AF'}`,
                               margin: project.image ? '0' : '0.5rem',
-                              borderRadius: project.image ? '0' : '0.5rem'
+                              borderRadius: project.image ? '0' : '0.5rem',
+                              overflow: 'hidden'
                             }}
                           >
                             {!project.image && (
@@ -1922,18 +2440,23 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                               </div>
                             )}
                             {project.image && (
-                              <div style={{
-                                position: 'absolute',
-                                inset: 0,
-                                backgroundColor: 'rgba(0,0,0,0.5)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                opacity: 0,
-                                transition: 'opacity 0.2s'
-                              }}
-                              onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-                              onMouseLeave={(e) => e.currentTarget.style.opacity = '0'}
+                              <div
+                                className="project-image-overlay"
+                                style={{
+                                  position: 'absolute',
+                                  top: 0,
+                                  left: 0,
+                                  right: 0,
+                                  bottom: 0,
+                                  backgroundColor: 'rgba(0,0,0,0.5)',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  opacity: 0,
+                                  transition: 'opacity 0.2s'
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                                onMouseLeave={(e) => e.currentTarget.style.opacity = '0'}
                               >
                                 <span style={{ color: 'white', fontSize: '0.85rem' }}>Change image</span>
                               </div>
@@ -1975,6 +2498,43 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                 style={{ ...inputStyle, fontSize: '0.9rem', padding: '0.5rem 0.75rem', resize: 'vertical' }}
                               />
                             </div>
+                            {/* Delete Button */}
+                            <button
+                              onClick={() => removeProject(project.id)}
+                              style={{
+                                width: '100%',
+                                marginTop: '1rem',
+                                padding: '0.5rem',
+                                backgroundColor: 'transparent',
+                                border: `1px solid ${colors.borderPrimary}`,
+                                borderRadius: '0.375rem',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '0.5rem',
+                                color: colors.textTertiary,
+                                fontSize: '0.85rem',
+                                transition: 'all 0.2s'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = '#FEE2E2';
+                                e.currentTarget.style.borderColor = '#EF4444';
+                                e.currentTarget.style.color = '#EF4444';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = 'transparent';
+                                e.currentTarget.style.borderColor = colors.borderPrimary;
+                                e.currentTarget.style.color = colors.textTertiary;
+                              }}
+                              title="Remove project"
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3 6H5H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                              Remove Project
+                            </button>
                           </div>
                         </div>
                       ))}
@@ -2053,9 +2613,45 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           backgroundColor: colors.bgTertiary,
                           padding: '1.5rem',
                           borderRadius: '0.75rem',
-                          border: `1px solid ${colors.borderPrimary}`
+                          border: `1px solid ${colors.borderPrimary}`,
+                          position: 'relative',
+                          ...(newlyAddedId === exp.id ? newItemAnimation : {})
                         }}>
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', marginBottom: '1rem' }}>
+                          <button
+                            onClick={() => removeExperience(exp.id)}
+                            style={{
+                              position: 'absolute',
+                              top: '0.75rem',
+                              right: '0.75rem',
+                              padding: '0.5rem',
+                              backgroundColor: 'transparent',
+                              border: `1px solid ${colors.borderPrimary}`,
+                              borderRadius: '0.375rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: colors.textTertiary,
+                              transition: 'all 0.2s'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = '#FEE2E2';
+                              e.currentTarget.style.borderColor = '#EF4444';
+                              e.currentTarget.style.color = '#EF4444';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                              e.currentTarget.style.borderColor = colors.borderPrimary;
+                              e.currentTarget.style.color = colors.textTertiary;
+                            }}
+                            title="Remove experience"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M3 6H5H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </button>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', marginBottom: '1rem', paddingRight: '2.5rem' }}>
                             <div>
                               <label style={labelStyle}>Position/Title *</label>
                               <input
