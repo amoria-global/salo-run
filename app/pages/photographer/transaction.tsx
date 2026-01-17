@@ -143,7 +143,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
       justifyContent: 'center',
       zIndex: 1000,
     }} onClick={onClose}>
-      <div style={{
+      <div className="mobile-modal mobile-modal-content" style={{
         backgroundColor: colors.bgCard,
         borderRadius: '0.75rem',
         padding: '1.5rem',
@@ -153,7 +153,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
         overflowY: 'auto',
         boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
       }} onClick={(e) => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+        <div className="mobile-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', position: 'relative' }}>
           <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>{title}</h3>
           <button className="no-print" onClick={onClose} style={{ background: colors.bgTertiary, border: `2px solid ${colors.borderPrimary}`, cursor: 'pointer', padding: '0.5rem', borderRadius: '0.375rem', color: colors.textPrimary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <CloseIcon />
@@ -590,7 +590,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
       justifyContent: 'center',
       zIndex: 1000,
     }} onClick={onClose}>
-      <div style={{
+      <div className="mobile-modal" style={{
         backgroundColor: colors.bgCard,
         borderRadius: '1rem',
         width: '420px',
@@ -600,11 +600,12 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
       }} onClick={(e) => e.stopPropagation()}>
 
         {/* Header */}
-        <div style={{
+        <div className="mobile-modal-header" style={{
           padding: '1.5rem 1.5rem 0 1.5rem',
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'center'
+          alignItems: 'center',
+          position: 'relative'
         }}>
           <div>
             <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: colors.textPrimary, margin: 0 }}>Withdraw Funds</h3>
@@ -629,9 +630,9 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
           </button>
         </div>
 
-        <div style={{ padding: '1.5rem' }}>
+        <div className="mobile-modal-content" style={{ padding: '1.5rem' }}>
           {/* Available Balance Card */}
-          <div style={{
+          <div className="mobile-balance-display" style={{
             background: 'linear-gradient(135deg, #083A85 0%, #1E40AF 100%)',
             borderRadius: '0.875rem',
             padding: '1.25rem',
@@ -660,17 +661,17 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
             }} />
 
             <div style={{ position: 'relative', zIndex: 1 }}>
-              <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.8)', marginBottom: '0.5rem', fontWeight: '500' }}>
+              <div className="mobile-balance-display-text" style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.8)', marginBottom: '0.5rem', fontWeight: '500' }}>
                 Available Balance
               </div>
-              <div style={{ fontSize: '2rem', fontWeight: '700', color: 'white', letterSpacing: '-0.02em' }}>
+              <div className="mobile-balance-display-amount" style={{ fontSize: '2rem', fontWeight: '700', color: 'white', letterSpacing: '-0.02em' }}>
                 ${availableBalance.toLocaleString()}.00
               </div>
             </div>
           </div>
 
           {/* Amount Input */}
-          <div style={{ marginBottom: '1.5rem' }}>
+          <div className="mobile-input-section" style={{ marginBottom: '1.5rem' }}>
             <label style={{
               display: 'block',
               fontSize: '0.875rem',
@@ -718,13 +719,12 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
               />
             </div>
             {/* Quick amount buttons */}
-            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+            <div className="mobile-quick-amounts" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', marginTop: '0.75rem' }}>
               {['100', '250', '500', '1000'].map((amount) => (
                 <button
                   key={amount}
                   onClick={() => setWithdrawAmount(amount)}
                   style={{
-                    flex: 1,
                     padding: '0.5rem',
                     border: withdrawAmount === amount ? '2px solid #083A85' : `1px solid ${colors.borderPrimary}`,
                     borderRadius: '0.5rem',
@@ -743,7 +743,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
           </div>
 
           {/* Account Selection */}
-          <div style={{ marginBottom: '1.5rem' }}>
+          <div className="mobile-account-section" style={{ marginBottom: '1.5rem' }}>
             <label style={{
               display: 'block',
               fontSize: '0.875rem',
@@ -753,11 +753,12 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
             }}>
               Withdraw To
             </label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+            <div className="mobile-account-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
               {accounts.map((account) => (
                 <div
                   key={account.id}
                   onClick={() => setSelectedAccount(account.id)}
+                  className="mobile-account-item"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -771,7 +772,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
                   }}
                 >
                   {/* Image Container */}
-                  <div style={{
+                  <div className="mobile-account-image" style={{
                     width: '48px',
                     height: '48px',
                     borderRadius: '0.5rem',
@@ -790,7 +791,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
 
                   {/* Account Info */}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{
+                    <div className="mobile-account-info" style={{
                       fontSize: '0.95rem',
                       fontWeight: '600',
                       color: colors.textPrimary,
@@ -798,7 +799,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
                     }}>
                       {account.label}
                     </div>
-                    <div style={{
+                    <div className="mobile-account-number" style={{
                       fontSize: '0.8rem',
                       color: colors.textSecondary,
                       display: 'flex',
@@ -831,7 +832,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
           </div>
 
           {/* Info text about withdrawal accounts */}
-          <p style={{
+          <p className="mobile-info-text" style={{
             fontSize: '0.8rem',
             color: colors.textSecondary,
             margin: '0.75rem 0 1.25rem 0',
@@ -845,8 +846,10 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
           </p>
 
           {/* Actions */}
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-            <DonateButton onClick={() => setShowDonateModal(true)} />
+          <div className="mobile-modal-actions" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <div className="donate-btn" style={{ flex: 1 }}>
+              <DonateButton onClick={() => setShowDonateModal(true)} />
+            </div>
             <button
               onClick={onClose}
               style={{
@@ -1378,15 +1381,281 @@ Amount: ${transaction.amount}
 
   return (
     <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
+      <style>{`
+        @media (max-width: 768px) {
+          .mobile-header {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 1rem;
+          }
+          .mobile-header button {
+            width: 100%;
+            justify-content: center;
+          }
+          .mobile-balance-card {
+            padding: 1rem !important;
+            overflow: visible !important;
+          }
+          .mobile-balance-card > div {
+            flex-direction: row !important;
+            gap: 1rem !important;
+            align-items: flex-start !important;
+            justify-content: flex-start !important;
+            overflow: visible !important;
+            flex-wrap: wrap !important;
+          }
+          .mobile-balance-card > div > div:first-child {
+            flex: 0 0 100% !important;
+            margin-bottom: 0.5rem !important;
+          }
+          .mobile-balance-card .wallet-icon-container {
+            width: 40px !important;
+            height: 40px !important;
+          }
+          .mobile-balance-card .balance-label {
+            font-size: 0.7rem !important;
+          }
+          .mobile-balance-amount {
+            font-size: 1.4rem !important;
+          }
+          .mobile-balance-stats {
+            display: grid !important;
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 0.75rem !important;
+            width: 100% !important;
+            overflow: visible !important;
+          }
+          .mobile-balance-stats > div {
+            min-width: 0 !important;
+          }
+          .mobile-balance-stats .stat-label {
+            font-size: 0.65rem !important;
+            margin-bottom: 0.15rem !important;
+            white-space: nowrap !important;
+          }
+          .mobile-balance-stats .stat-value {
+            font-size: 0.8rem !important;
+          }
+          .mobile-grid-2 {
+            grid-template-columns: 1fr !important;
+            overflow: visible !important;
+          }
+          .mobile-chart-grid {
+            grid-template-columns: 1fr !important;
+            grid-template-rows: auto auto !important;
+            overflow: visible !important;
+            gap: 1rem !important;
+          }
+          .mobile-earnings-summary {
+            width: 100% !important;
+            max-width: 100% !important;
+            padding: 1rem !important;
+            margin-right: 0 !important;
+          }
+          .mobile-earnings-summary h3 {
+            font-size: 1rem !important;
+            margin-bottom: 0.25rem !important;
+            font-weight: 600 !important;
+          }
+          .mobile-earnings-summary p {
+            font-size: 0.8rem !important;
+            margin-bottom: 1rem !important;
+          }
+          .mobile-earnings-summary button {
+            font-size: 0.85rem !important;
+            padding: 0.6rem 1.2rem !important;
+          }
+          .mobile-earnings-summary > div > div {
+            gap: 1rem !important;
+          }
+          .mobile-earnings-summary svg {
+            transform: scale(1);
+            transform-origin: center;
+            margin: 0.5rem 0 !important;
+          }
+          .mobile-earnings-summary .stat-label {
+            font-size: 0.75rem !important;
+          }
+          .mobile-earnings-summary .stat-value {
+            font-size: 1.1rem !important;
+            font-weight: 600 !important;
+          }
+          .mobile-table-container {
+            overflow-x: auto !important;
+            overflow-y: visible !important;
+            -webkit-overflow-scrolling: touch;
+            position: relative;
+          }
+          .mobile-table-container::after {
+            content: '→ Scroll';
+            position: sticky;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            background: linear-gradient(to right, transparent, rgba(0,0,0,0.1) 30%, rgba(0,0,0,0.3));
+            padding: 0.5rem 0.75rem;
+            font-size: 0.75rem;
+            color: white;
+            pointer-events: none;
+            border-radius: 0.25rem 0 0 0.25rem;
+            float: right;
+          }
+          .mobile-table-container table {
+            min-width: 900px;
+          }
+          .mobile-pagination {
+            flex-direction: column !important;
+            gap: 1rem !important;
+            align-items: stretch !important;
+            overflow: visible !important;
+          }
+          .mobile-pagination > div:last-child {
+            justify-content: center;
+          }
+          .mobile-main-content {
+            padding-left: 0.75rem !important;
+            padding-right: 0.75rem !important;
+            overflow-x: hidden !important;
+          }
+        }
+        @media (max-width: 640px) {
+          .mobile-title {
+            font-size: 1.5rem !important;
+          }
+          .mobile-balance-amount {
+            font-size: 1.5rem !important;
+          }
+          .mobile-table-container table {
+            min-width: 700px;
+          }
+          .mobile-modal {
+            width: 95% !important;
+            margin: 0.5rem;
+            max-height: 85vh !important;
+            overflow-y: auto !important;
+          }
+          .mobile-modal-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 0.25rem;
+            padding: 0.75rem 0.75rem 0 0.75rem !important;
+          }
+          .mobile-modal-header button {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            padding: 0.35rem !important;
+          }
+          .mobile-modal-header h3 {
+            font-size: 1rem !important;
+            margin-bottom: 0 !important;
+          }
+          .mobile-modal-header p {
+            font-size: 0.75rem !important;
+            margin: 0 !important;
+          }
+          .mobile-modal-content {
+            padding: 0.75rem !important;
+            padding-bottom: 3rem !important;
+          }
+          .mobile-balance-display {
+            padding: 0.75rem !important;
+            margin-bottom: 0.75rem !important;
+          }
+          .mobile-balance-display-text {
+            font-size: 0.7rem !important;
+            margin-bottom: 0.25rem !important;
+          }
+          .mobile-balance-display-amount {
+            font-size: 1.35rem !important;
+          }
+          .mobile-input-section {
+            margin-bottom: 0.75rem !important;
+          }
+          .mobile-input-section label {
+            font-size: 0.75rem !important;
+            margin-bottom: 0.35rem !important;
+          }
+          .mobile-input-section input {
+            padding: 0.65rem 0.75rem 0.65rem 1.5rem !important;
+            font-size: 0.95rem !important;
+          }
+          .mobile-quick-amounts {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.35rem !important;
+            margin-top: 0.4rem !important;
+          }
+          .mobile-quick-amounts button {
+            padding: 0.35rem !important;
+            font-size: 0.7rem !important;
+          }
+          .mobile-account-section {
+            margin-bottom: 0.75rem !important;
+          }
+          .mobile-account-section label {
+            font-size: 0.75rem !important;
+            margin-bottom: 0.4rem !important;
+          }
+          .mobile-account-list {
+            gap: 0.4rem !important;
+          }
+          .mobile-account-item {
+            padding: 0.5rem !important;
+            gap: 0.6rem !important;
+          }
+          .mobile-account-image {
+            width: 32px !important;
+            height: 32px !important;
+          }
+          .mobile-account-info {
+            font-size: 0.75rem !important;
+            margin-bottom: 0.05rem !important;
+          }
+          .mobile-account-number {
+            font-size: 0.65rem !important;
+            gap: 0.25rem !important;
+          }
+          .mobile-account-number span:nth-child(2) {
+            display: none !important;
+          }
+          .mobile-account-number span:nth-child(3) {
+            display: none !important;
+          }
+          .mobile-info-text {
+            font-size: 0.7rem !important;
+            margin: 0.4rem 0 0.75rem 0 !important;
+          }
+          .mobile-modal-actions {
+            flex-direction: column !important;
+            gap: 0.4rem !important;
+            margin-bottom: 2rem !important;
+          }
+          .mobile-modal-actions > * {
+            width: 100% !important;
+          }
+          .mobile-modal-actions button {
+            width: 100% !important;
+            padding: 0.65rem 0.75rem !important;
+            font-size: 0.8rem !important;
+            min-height: 42px !important;
+          }
+          .mobile-modal-actions .donate-btn {
+            width: 100% !important;
+          }
+          .mobile-modal-actions .donate-btn button {
+            padding: 0.55rem 0.75rem !important;
+          }
+        }
+      `}</style>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <Topbar userRole={userType} tipsAmount={totalTips} bonusAmount={platformBonus} balanceAmount={availableBalance} />
-        <div style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
+        <div className="mobile-main-content" style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
 
           {/* Header with Withdraw Button */}
-          <header style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <header className="mobile-header" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
-              <h1 style={{ fontSize: '1.8rem', lineHeight: '2rem', color: colors.textPrimary, fontWeight: '600' }}>Transactions</h1>
+              <h1 className="mobile-title" style={{ fontSize: '1.8rem', lineHeight: '2rem', color: colors.textPrimary, fontWeight: '600' }}>Transactions</h1>
               <p style={{ fontSize: '0.95rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
                 Manage your earnings and view transaction history
               </p>
@@ -1413,36 +1682,36 @@ Amount: ${transaction.amount}
           </header>
 
           {/* Available Balance Card */}
-          <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1.25rem', marginBottom: '1rem', boxShadow: colors.shadowSm }}>
+          <div className="mobile-balance-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1.25rem', marginBottom: '1rem', boxShadow: colors.shadowSm }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div style={{ width: '48px', height: '48px', backgroundColor: '#EFF6FF', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div className="wallet-icon-container" style={{ width: '48px', height: '48px', backgroundColor: '#EFF6FF', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <WalletIcon />
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Available to Withdraw</div>
-                  <div style={{ fontSize: '1.75rem', fontWeight: '700', color: colors.textPrimary }}>${availableBalance.toLocaleString()}</div>
+                  <div className="balance-label" style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Available to Withdraw</div>
+                  <div className="mobile-balance-amount" style={{ fontSize: '1.75rem', fontWeight: '700', color: colors.textPrimary }}>${availableBalance.toLocaleString()}</div>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: '2rem' }}>
+              <div className="mobile-balance-stats" style={{ display: 'flex', gap: '2rem' }}>
                 <div>
-                  <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Previous Deposit</div>
-                  <div style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>$450.00</div>
+                  <div className="stat-label" style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Previous Deposit</div>
+                  <div className="stat-value" style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>$450.00</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Last Withdrawal</div>
-                  <div style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>$1,345.00</div>
+                  <div className="stat-label" style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Last Withdrawal</div>
+                  <div className="stat-value" style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>$1,345.00</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Active Account</div>
-                  <div style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>*****980</div>
+                  <div className="stat-label" style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Active Account</div>
+                  <div className="stat-value" style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>*****980</div>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Tips and Bonus Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+          <div className="mobile-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
             {/* Tips Section - From Clients */}
             <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1.25rem', boxShadow: colors.shadowSm }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
@@ -1533,7 +1802,7 @@ Amount: ${transaction.amount}
           </div>
 
           {/* Top Row - Earnings Chart and Earnings Summary */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '1rem', marginBottom: '1rem' }}>
+          <div className="mobile-chart-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '1rem', marginBottom: '1rem' }}>
 
             {/* Earnings Chart */}
             <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1.25rem', boxShadow: colors.shadowSm }}>
@@ -1631,7 +1900,7 @@ Amount: ${transaction.amount}
             </div>
 
             {/* Earnings Summary */}
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1.25rem', boxShadow: colors.shadowSm }}>
+            <div className="mobile-earnings-summary" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1.25rem', boxShadow: colors.shadowSm }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                 <div>
                   <div style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>Earnings Summary</div>
@@ -1676,6 +1945,7 @@ Amount: ${transaction.amount}
               </button>
             </div>
 
+            <div className="mobile-table-container">
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ backgroundColor: colors.bgTertiary }}>
@@ -1724,9 +1994,10 @@ Amount: ${transaction.amount}
                 ))}
               </tbody>
             </table>
+            </div>
 
             {/* Pagination */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderTop: `1px solid ${colors.borderPrimary}` }}>
+            <div className="mobile-pagination" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderTop: `1px solid ${colors.borderPrimary}` }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Showing {resultsPerPage} of {totalResults} Results</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 <button onClick={() => setCurrentPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1} style={{ background: 'none', border: '2px solid #D1D5DB', borderRadius: '0.375rem', padding: '0.5rem', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', opacity: currentPage === 1 ? 0.5 : 1 }}>
@@ -1843,8 +2114,20 @@ Amount: ${transaction.amount}
         </div>
       </Modal>
 
-      {/* Print Styles */}
-      <style>{`
+      {/* Mobile Responsive & Print Styles */}
+      <style jsx global>{`
+        @media (max-width: 768px) {
+          header[style*="marginBottom"] {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 1rem !important;
+          }
+
+          header[style*="marginBottom"] > button {
+            width: 100% !important;
+          }
+        }
+
         @media print {
           .no-print {
             display: none !important;

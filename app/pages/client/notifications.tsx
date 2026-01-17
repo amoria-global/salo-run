@@ -266,24 +266,156 @@ const ClientNotifications = () => {
   ];
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
-      <Sidebar />
+    <>
+      <style jsx>{`
+        /* Desktop styles */
+        .notifications-container {
+          display: flex;
+          height: 100vh;
+          background-color: ${colors.bgPrimary};
+        }
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar userRole="client" giftAmount={225.00} />
+        .notifications-content {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
 
-        <div style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: '1.5rem'
-        }}>
-          {/* Header */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '1.5rem'
-          }}>
+        .notifications-main {
+          flex: 1;
+          overflow-y: auto;
+          padding: 1.5rem;
+        }
+
+        .notifications-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 1.5rem;
+        }
+
+        .header-actions {
+          display: flex;
+          gap: 0.75rem;
+        }
+
+        .stats-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 1rem;
+          margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+          background-color: ${colors.bgCard};
+          border-radius: 0.75rem;
+          padding: 1.25rem;
+          border: 1px solid ${colors.borderPrimary};
+        }
+
+        .filters-section {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 1rem;
+        }
+
+        .filter-buttons {
+          display: flex;
+          gap: 0.5rem;
+          flex-wrap: wrap;
+        }
+
+        /* Mobile responsive styles */
+        @media (max-width: 768px) {
+          .notifications-main {
+            padding: 0.75rem !important;
+            padding-bottom: 5rem !important;
+          }
+
+          .notifications-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 1rem !important;
+          }
+
+          .header-actions {
+            width: 100% !important;
+            justify-content: space-between !important;
+          }
+
+          .stats-grid {
+            grid-template-columns: repeat(4, 1fr) !important;
+            gap: 0.5rem !important;
+          }
+
+          .stat-card {
+            aspect-ratio: 1 / 1 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
+            align-items: center !important;
+            text-align: center !important;
+            padding: 0.75rem !important;
+          }
+
+          .stat-card > div:first-child {
+            font-size: 0.7rem !important;
+            margin-bottom: 0.15rem !important;
+          }
+
+          .stat-card > div:last-child {
+            font-size: 1.1rem !important;
+          }
+
+          .filters-section {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 0.75rem !important;
+          }
+
+          .filter-buttons {
+            overflow-x: auto !important;
+            flex-wrap: nowrap !important;
+            width: 100% !important;
+          }
+        }
+
+        /* Extra small mobile (phones in portrait) */
+        @media (max-width: 480px) {
+          .notifications-main {
+            padding: 0.5rem !important;
+            padding-bottom: 6rem !important;
+          }
+
+          .stats-grid {
+            gap: 0.4rem !important;
+          }
+
+          .stat-card {
+            padding: 0.5rem !important;
+          }
+
+          .stat-card > div:first-child {
+            font-size: 0.65rem !important;
+          }
+
+          .stat-card > div:last-child {
+            font-size: 1rem !important;
+          }
+        }
+      `}</style>
+
+      <div className="notifications-container">
+        <Sidebar />
+
+        <div className="notifications-content">
+          <Topbar userRole="client" giftAmount={225.00} />
+
+          <div className="notifications-main">
+            {/* Header */}
+            <div className="notifications-header">
             <div>
               <h1 style={{
                 fontSize: '1.8rem',
@@ -317,7 +449,7 @@ const ClientNotifications = () => {
               </p>
             </div>
 
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <div className="header-actions">
               {unreadCount > 0 && (
                 <button
                   onClick={markAllAsRead}
@@ -362,47 +494,22 @@ const ClientNotifications = () => {
           </div>
 
           {/* Stats Cards */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: '1rem',
-            marginBottom: '1.5rem'
-          }}>
-            <div style={{
-              backgroundColor: colors.bgCard,
-              borderRadius: '0.75rem',
-              padding: '1.25rem',
-              border: `1px solid ${colors.borderPrimary}`
-            }}>
+          <div className="stats-grid">
+            <div className="stat-card">
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Notifications</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{notifications.length}</div>
             </div>
-            <div style={{
-              backgroundColor: colors.bgCard,
-              borderRadius: '0.75rem',
-              padding: '1.25rem',
-              border: `1px solid ${colors.borderPrimary}`
-            }}>
+            <div className="stat-card">
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Unread</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#EF4444' }}>{unreadCount}</div>
             </div>
-            <div style={{
-              backgroundColor: colors.bgCard,
-              borderRadius: '0.75rem',
-              padding: '1.25rem',
-              border: `1px solid ${colors.borderPrimary}`
-            }}>
+            <div className="stat-card">
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>New Albums</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#9333EA' }}>
                 {notifications.filter(n => n.type === 'album').length}
               </div>
             </div>
-            <div style={{
-              backgroundColor: colors.bgCard,
-              borderRadius: '0.75rem',
-              padding: '1.25rem',
-              border: `1px solid ${colors.borderPrimary}`
-            }}>
+            <div className="stat-card">
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Gifts Received</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>
                 {notifications.filter(n => n.type === 'gift').length}
@@ -411,13 +518,8 @@ const ClientNotifications = () => {
           </div>
 
           {/* Filters */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '1rem'
-          }}>
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <div className="filters-section">
+            <div className="filter-buttons">
               {filterOptions.map(option => (
                 <button
                   key={option.value}
@@ -681,7 +783,8 @@ const ClientNotifications = () => {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 

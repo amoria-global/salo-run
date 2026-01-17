@@ -470,36 +470,128 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
   const basePath = userType === 'freelancer' ? '/user/freelancer' : '/user/photographer';
 
   return (
-    <div style={{
-      display: 'flex',
-      height: '100vh',
-      backgroundColor: colors.bgPrimary
-    }}>
-      <Sidebar />
+    <>
+      <style jsx>{`
+        /* Desktop styles */
+        .dashboard-container {
+          display: flex;
+          height: 100vh;
+          background-color: ${colors.bgPrimary};
+        }
 
-      <div style={{
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden'
-      }}>
-        <Topbar userRole={userType} tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
+        .dashboard-content {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
 
-        <div style={{
-          flex: 1,
-          overflowY: 'auto',
-          backgroundColor: colors.bgPrimary,
-          paddingLeft: '1.25rem',
-          paddingRight: '1.25rem',
-          paddingTop: '1rem',
-          paddingBottom: '1rem'
-        }}>
-          <header style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginTop: '0.125rem'
-          }}>
+        .dashboard-main {
+          flex: 1;
+          overflow-y: auto;
+          background-color: ${colors.bgPrimary};
+          padding-left: 1.25rem;
+          padding-right: 1.25rem;
+          padding-top: 1rem;
+          padding-bottom: 1rem;
+        }
+
+        .dashboard-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-top: 0.125rem;
+        }
+
+        .header-stats {
+          background-color: ${colors.bgCard};
+          border-radius: 0.5rem;
+          padding-left: 1.5rem;
+          padding-right: 1.5rem;
+          padding-top: 0.75rem;
+          padding-bottom: 0.75rem;
+          box-shadow: ${colors.shadowSm};
+          border: 1px solid ${colors.borderPrimary};
+          display: flex;
+          gap: 2rem;
+        }
+
+        .filter-buttons {
+          display: flex;
+          gap: 0.5rem;
+          margin-bottom: 1rem;
+        }
+
+        .stat-cards-grid {
+          display: grid;
+          grid-template-columns: repeat(5, 1fr);
+          gap: 0.75rem;
+          margin-bottom: 1rem;
+        }
+
+        .main-grid {
+          display: grid;
+          grid-template-columns: 1fr 320px;
+          gap: 1rem;
+        }
+
+        /* Mobile responsive styles */
+        @media (max-width: 768px) {
+          .dashboard-main {
+            padding-left: 0.75rem !important;
+            padding-right: 0.75rem !important;
+            padding-top: 0.75rem !important;
+          }
+
+          .dashboard-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 1rem !important;
+          }
+
+          .header-stats {
+            width: 100% !important;
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+            gap: 1rem !important;
+            overflow-x: auto !important;
+            justify-content: center !important;
+          }
+
+          .filter-buttons {
+            overflow-x: auto !important;
+            flex-wrap: nowrap !important;
+            width: 100% !important;
+          }
+
+          .stat-cards-grid {
+            grid-template-columns: 1fr !important;
+            gap: 0.5rem !important;
+          }
+
+          .main-grid {
+            grid-template-columns: 1fr !important;
+            gap: 0.75rem !important;
+          }
+        }
+
+        /* Extra small mobile (phones in portrait) */
+        @media (max-width: 480px) {
+          .dashboard-main {
+            padding-left: 0.5rem !important;
+            padding-right: 0.5rem !important;
+          }
+        }
+      `}</style>
+
+      <div className="dashboard-container">
+        <Sidebar />
+
+        <div className="dashboard-content">
+          <Topbar userRole={userType} tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
+
+          <div className="dashboard-main">
+            <header className="dashboard-header">
             <div>
               <h1 style={{
                 fontSize: '1.8rem',
@@ -752,6 +844,7 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
               display: 'flex',
               gap: '2rem'
             }}>
+            <div className="header-stats">
               <div style={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -813,11 +906,7 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
             </div>
           </header>
 
-      <div style={{
-        display: 'flex',
-        gap: '0.5rem',
-        marginBottom: '1rem'
-      }}>
+      <div className="filter-buttons">
         <button
           onClick={() => setActiveFilter('today')}
           style={{
@@ -896,12 +985,7 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
         </button>
       </div>
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(5, 1fr)',
-        gap: '0.75rem',
-        marginBottom: '1rem'
-      }}>
+      <div className="stat-cards-grid">
         <StatCard
           title="Total Earnings"
           value="$2,600"
@@ -959,11 +1043,7 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
         />
       </div>
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 320px',
-        gap: '1rem'
-      }}>
+      <div className="main-grid">
         <div>
           <section style={{
             backgroundColor: colors.bgCard,
@@ -1581,6 +1661,10 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
         </div>
       )}
     </div>
+          </div>
+        </div>
+      </div>
+    </>
   );
 };
 
