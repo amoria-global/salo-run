@@ -985,21 +985,102 @@ const MyEventsPage = () => {
 
   return (
     <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
+      <style>{`
+        @media (max-width: 768px) {
+          .mobile-main-content {
+            padding: 1rem !important;
+            padding-bottom: 8rem !important;
+          }
+          .mobile-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 1rem !important;
+          }
+          .mobile-title {
+            font-size: 1.5rem !important;
+          }
+          .mobile-subtitle {
+            font-size: 0.85rem !important;
+          }
+          .mobile-create-btn {
+            width: 100% !important;
+            justify-content: center !important;
+          }
+          .mobile-search {
+            max-width: 100% !important;
+          }
+          .mobile-tabs {
+            width: 100% !important;
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch;
+          }
+          .mobile-tabs button {
+            white-space: nowrap !important;
+            flex-shrink: 0 !important;
+          }
+          .mobile-events-grid {
+            grid-template-columns: 1fr !important;
+            gap: 1rem !important;
+          }
+          .mobile-event-card {
+            border-radius: 0.75rem !important;
+          }
+          .mobile-event-image {
+            height: 140px !important;
+          }
+          .mobile-event-content {
+            padding: 1rem !important;
+          }
+          .mobile-event-title {
+            font-size: 1rem !important;
+          }
+          .mobile-event-actions {
+            flex-direction: row !important;
+            gap: 0.5rem !important;
+          }
+        }
+        @media (max-width: 640px) {
+          .mobile-main-content {
+            padding: 0.75rem !important;
+            padding-bottom: 10rem !important;
+          }
+          .mobile-title {
+            font-size: 1.3rem !important;
+          }
+          .mobile-subtitle {
+            font-size: 0.8rem !important;
+          }
+          .mobile-tabs button {
+            font-size: 0.85rem !important;
+            padding: 0.4rem 0.75rem !important;
+          }
+          .mobile-event-image {
+            height: 120px !important;
+          }
+          .mobile-event-content {
+            padding: 0.875rem !important;
+          }
+          .mobile-event-title {
+            font-size: 0.95rem !important;
+          }
+        }
+      `}</style>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <Topbar userRole="client" giftAmount={225.00} />
-        <div style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
+        <div className="mobile-main-content" style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
 
           {/* Header */}
-          <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <header className="mobile-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
             <div>
-              <h1 style={{ fontSize: '1.8rem', lineHeight: '2rem', color: colors.textPrimary, fontWeight: '600' }}>My Events</h1>
-              <p style={{ fontSize: '0.95rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
+              <h1 className="mobile-title" style={{ fontSize: '1.8rem', lineHeight: '2rem', color: colors.textPrimary, fontWeight: '600' }}>My Events</h1>
+              <p className="mobile-subtitle" style={{ fontSize: '0.95rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
                 Create and manage your events
               </p>
             </div>
             <button
               onClick={() => setShowCreateModal(true)}
+              className="mobile-create-btn"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -1021,7 +1102,7 @@ const MyEventsPage = () => {
 
           {/* Search */}
           <div style={{ marginBottom: '1.5rem' }}>
-            <div style={{ position: 'relative', maxWidth: '400px' }}>
+            <div className="mobile-search" style={{ position: 'relative', maxWidth: '400px' }}>
               <div style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }}>
                 <SearchIcon />
               </div>
@@ -1046,7 +1127,7 @@ const MyEventsPage = () => {
           </div>
 
           {/* Tabs */}
-          <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '1.5rem', backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '0.25rem', width: 'fit-content' }}>
+          <div className="mobile-tabs" style={{ display: 'flex', gap: '0.25rem', marginBottom: '1.5rem', backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '0.25rem', width: 'fit-content' }}>
             {([
               { key: 'upcoming' as const, label: 'Upcoming', count: upcomingCount },
               { key: 'past' as const, label: 'Past', count: pastCount },
@@ -1112,10 +1193,11 @@ const MyEventsPage = () => {
               </button>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1.25rem' }}>
+            <div className="mobile-events-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1.25rem' }}>
               {filteredEvents.map((event) => (
                 <div
                   key={event.id}
+                  className="mobile-event-card"
                   style={{
                     backgroundColor: colors.bgCard,
                     borderRadius: '0.75rem',
@@ -1125,7 +1207,7 @@ const MyEventsPage = () => {
                   }}
                 >
                   {/* Cover Image */}
-                  <div style={{ position: 'relative', height: '160px' }}>
+                  <div className="mobile-event-image" style={{ position: 'relative', height: '160px' }}>
                     <Image
                       src={event.coverImage}
                       alt={event.title}
@@ -1201,8 +1283,8 @@ const MyEventsPage = () => {
                   </div>
 
                   {/* Event Info */}
-                  <div style={{ padding: '1rem' }}>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>
+                  <div className="mobile-event-content" style={{ padding: '1rem' }}>
+                    <h3 className="mobile-event-title" style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>
                       {event.title}
                     </h3>
 
@@ -1231,8 +1313,8 @@ const MyEventsPage = () => {
                     </div>
 
                     {/* Actions */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.75rem', borderTop: `1px solid ${colors.borderPrimary}` }}>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <div className="mobile-event-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.75rem', borderTop: `1px solid ${colors.borderPrimary}` }}>
+                      <div style={{ display: 'flex', gap: '0.5rem', flex: 1 }}>
                         <button
                           onClick={() => setShowEventDetails(event)}
                           style={{
@@ -1532,7 +1614,7 @@ const MyEventsPage = () => {
           </div>
 
           {/* Action Buttons */}
-          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', paddingTop: '1rem', borderTop: `1px solid ${colors.borderPrimary}` }}>
+          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', paddingTop: '1rem', borderTop: `1px solid ${colors.borderPrimary}`, marginBottom: '4rem' }}>
             <button onClick={() => { resetCreateForm(); setShowCreateModal(false); }} style={{ padding: '0.75rem 1.25rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Cancel</button>
             <button onClick={handleCreateEvent} disabled={!createTitle || !createCategory || !createDate || !createTime} style={{ padding: '0.75rem 1.25rem', border: '2px solid #062a63', borderRadius: '0.5rem', background: (!createTitle || !createCategory || !createDate || !createTime) ? '#9CA3AF' : '#083A85', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: (!createTitle || !createCategory || !createDate || !createTime) ? 'not-allowed' : 'pointer', opacity: (!createTitle || !createCategory || !createDate || !createTime) ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>Create Event ✓</button>
           </div>
@@ -1774,7 +1856,7 @@ const MyEventsPage = () => {
             </div>
 
             {/* Actions */}
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '4rem' }}>
               {showEventDetails.status === 'upcoming' && (
                 <>
                   <button
@@ -1951,6 +2033,7 @@ const MyEventsPage = () => {
                   {copiedLink ? 'Copied!' : 'Copy'}
                 </button>
               </div>
+              <div style={{ marginBottom: '4rem' }}></div>
             </div>
           </div>
         )}
@@ -2039,7 +2122,8 @@ const MyEventsPage = () => {
             {/* Action Buttons */}
             <div style={{
               display: 'flex',
-              gap: '0.75rem'
+              gap: '0.75rem',
+              marginBottom: '4rem'
             }}>
               <button
                 onClick={() => setShowDeleteModal(false)}
@@ -2257,7 +2341,7 @@ const MyEventsPage = () => {
             </div>
 
             {/* Action Buttons */}
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', paddingTop: '1rem', borderTop: `1px solid ${colors.borderPrimary}` }}>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', paddingTop: '1rem', borderTop: `1px solid ${colors.borderPrimary}`, marginBottom: '4rem' }}>
               <button
                 onClick={() => { setShowEditModal(false); setEditEvent(null); }}
                 style={{

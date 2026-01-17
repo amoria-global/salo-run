@@ -366,12 +366,105 @@ const ClientStreamsPage = () => {
 
   return (
     <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
+      <style>{`
+        @media (max-width: 768px) {
+          .mobile-header {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 1rem;
+          }
+          .mobile-title {
+            font-size: 1.5rem !important;
+          }
+          .mobile-subtitle {
+            font-size: 0.85rem !important;
+          }
+          .mobile-stats-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.5rem !important;
+          }
+          .mobile-stats-grid > div {
+            padding: 0.75rem !important;
+          }
+          .mobile-stats-grid > div > div > div:first-child {
+            font-size: 0.7rem !important;
+          }
+          .mobile-stats-grid > div > div > div:last-child {
+            font-size: 1rem !important;
+          }
+          .mobile-filters {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 1rem !important;
+          }
+          .mobile-search {
+            width: 100% !important;
+            max-width: 100% !important;
+          }
+          .mobile-search input {
+            width: 100% !important;
+          }
+          .mobile-filter-buttons {
+            overflow-x: auto !important;
+            flex-wrap: nowrap !important;
+            width: 100% !important;
+            -webkit-overflow-scrolling: touch;
+          }
+          .mobile-streams-grid {
+            grid-template-columns: 1fr !important;
+            gap: 1rem !important;
+            margin-bottom: 3rem !important;
+          }
+          .mobile-main-content {
+            padding: 0.75rem !important;
+            padding-bottom: 8rem !important;
+            overflow-y: auto !important;
+          }
+          .mobile-modal {
+            width: 95% !important;
+            max-width: 95% !important;
+            padding: 1rem !important;
+          }
+        }
+        @media (max-width: 640px) {
+          .mobile-stats-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.4rem !important;
+          }
+          .mobile-stats-grid > div {
+            padding: 0.6rem !important;
+          }
+          .mobile-stats-grid > div > div > div:first-child {
+            font-size: 0.65rem !important;
+          }
+          .mobile-stats-grid > div > div > div:last-child {
+            font-size: 0.9rem !important;
+          }
+          .mobile-title {
+            font-size: 1.3rem !important;
+          }
+          .mobile-subtitle {
+            font-size: 0.8rem !important;
+          }
+          .mobile-filter-buttons button {
+            font-size: 0.8rem !important;
+            padding: 0.4rem 0.8rem !important;
+          }
+          .mobile-streams-grid {
+            margin-bottom: 4rem !important;
+          }
+          .mobile-main-content {
+            padding: 0.5rem !important;
+            padding-bottom: 10rem !important;
+          }
+        }
+      `}</style>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <Topbar userRole="client" />
-        <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
+        <div className="mobile-main-content" style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
           {/* Page Header */}
-          <div style={{ marginBottom: '1.5rem' }}>
+          <div className="mobile-header" style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
               <div style={{
                 width: '40px',
@@ -386,10 +479,10 @@ const ClientStreamsPage = () => {
                 <BroadcastIcon />
               </div>
               <div>
-                <h1 style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.textPrimary, margin: 0 }}>
+                <h1 className="mobile-title" style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.textPrimary, margin: 0 }}>
                   Completed Streams
                 </h1>
-                <p style={{ fontSize: '0.875rem', color: colors.textSecondary, margin: 0 }}>
+                <p className="mobile-subtitle" style={{ fontSize: '0.875rem', color: colors.textSecondary, margin: 0 }}>
                   View messages and videos from your past event streams
                 </p>
               </div>
@@ -397,7 +490,7 @@ const ClientStreamsPage = () => {
           </div>
 
           {/* Stats Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+          <div className="mobile-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
             <div style={{ ...cardStyle, padding: '1.25rem', cursor: 'default' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <div style={{ width: '40px', height: '40px', borderRadius: '0.5rem', backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#DBEAFE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: actualTheme === 'dark' ? '#60A5FA' : '#1D4ED8' }}>
@@ -451,8 +544,8 @@ const ClientStreamsPage = () => {
           </div>
 
           {/* Search and Filter Bar */}
-          <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', alignItems: 'center' }}>
-            <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
+          <div className="mobile-filters" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', alignItems: 'center' }}>
+            <div className="mobile-search" style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
               <input
                 type="text"
                 placeholder="Search completed streams..."
@@ -473,7 +566,7 @@ const ClientStreamsPage = () => {
                 <SearchIcon />
               </div>
             </div>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <div className="mobile-filter-buttons filter-buttons">
               {eventTypes.map(type => (
                 <button
                   key={type}
@@ -498,7 +591,7 @@ const ClientStreamsPage = () => {
           </div>
 
           {/* Streams Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '1.25rem' }}>
+          <div className="mobile-streams-grid streams-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '1.25rem' }}>
             {filteredStreams.map(stream => {
               const unviewedCount = getUnviewedVideoCount(stream);
               return (
@@ -997,7 +1090,7 @@ const ClientStreamsPage = () => {
         )}
       </Modal>
 
-      <style jsx global>{`
+      <style global>{`
         @keyframes pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.5; }

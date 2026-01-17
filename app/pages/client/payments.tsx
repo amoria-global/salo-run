@@ -694,7 +694,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
         </div>
 
         {/* Actions */}
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '4rem' }}>
           <DonateButton onClick={() => setShowDonateModal(true)} />
           <button
             onClick={onClose}
@@ -1288,25 +1288,106 @@ Amount: ${payment.amount}
 
   return (
     <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
+      <style>{`
+        @media (max-width: 768px) {
+          .mobile-header {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 1rem;
+          }
+          .mobile-title {
+            font-size: 1.5rem !important;
+          }
+          .mobile-subtitle {
+            font-size: 0.85rem !important;
+          }
+          .mobile-top-row {
+            grid-template-columns: 1fr !important;
+            gap: 1rem !important;
+          }
+          .mobile-chart-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 1rem !important;
+          }
+          .mobile-stats-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.75rem !important;
+          }
+          .mobile-stats-grid > div {
+            padding: 0.75rem !important;
+          }
+          .mobile-stats-grid > div > div:first-child {
+            font-size: 0.75rem !important;
+          }
+          .mobile-stats-grid > div > div:last-child {
+            font-size: 1.2rem !important;
+          }
+          .mobile-tabs {
+            flex-wrap: wrap !important;
+            gap: 0.5rem !important;
+          }
+          .mobile-filters {
+            flex-direction: column !important;
+            gap: 0.75rem !important;
+          }
+          .mobile-payments-grid {
+            grid-template-columns: 1fr !important;
+            gap: 1rem !important;
+          }
+          .mobile-gift-streams-grid {
+            grid-template-columns: 1fr !important;
+            gap: 1rem !important;
+          }
+          .mobile-main-content {
+            padding: 0.75rem !important;
+            padding-bottom: 8rem !important;
+          }
+        }
+        @media (max-width: 640px) {
+          .mobile-title {
+            font-size: 1.3rem !important;
+          }
+          .mobile-subtitle {
+            font-size: 0.8rem !important;
+          }
+          .mobile-stats-grid {
+            gap: 0.5rem !important;
+          }
+          .mobile-stats-grid > div {
+            padding: 0.6rem !important;
+          }
+          .mobile-stats-grid > div > div:first-child {
+            font-size: 0.7rem !important;
+          }
+          .mobile-stats-grid > div > div:last-child {
+            font-size: 1.1rem !important;
+          }
+          .mobile-main-content {
+            padding: 0.5rem !important;
+            padding-bottom: 10rem !important;
+          }
+        }
+      `}</style>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <Topbar userRole="client" giftAmount={totalGifts} />
-        <div style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
+        <div className="mobile-main-content" style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
 
           {/* Header */}
-          <header style={{ marginBottom: '1.5rem' }}>
-            <h1 style={{ fontSize: '1.8rem', lineHeight: '2rem', color: colors.textPrimary, fontWeight: '600' }}>Payments</h1>
-            <p style={{ fontSize: '0.95rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
+          <header className="mobile-header" style={{ marginBottom: '1.5rem' }}>
+            <h1 className="mobile-title" style={{ fontSize: '1.8rem', lineHeight: '2rem', color: colors.textPrimary, fontWeight: '600' }}>Payments</h1>
+            <p className="mobile-subtitle" style={{ fontSize: '0.95rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
               Manage your payments and view transaction history
             </p>
           </header>
 
           {/* Top Row - Spending Chart and Payment Summary */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '1rem', marginBottom: '1rem' }}>
+          <div className="mobile-top-row" style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '1rem', marginBottom: '1rem' }}>
 
             {/* Spending Chart */}
             <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+              <div className="mobile-chart-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
                 <div>
                   <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Spending</div>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '1rem' }}>
@@ -1456,63 +1537,30 @@ Amount: ${payment.amount}
                   <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: 0 }}>From live-stream viewers on ConnektLive</p>
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                {/* Withdrawal Setup Card */}
-                <div style={{
-                  backgroundColor: actualTheme === 'dark' ? '#14532D' : '#F0FDF4',
-                  border: `1px solid ${actualTheme === 'dark' ? '#166534' : '#BBF7D0'}`,
-                  borderRadius: '0.5rem',
-                  padding: '0.6rem 1rem',
-                  display: 'flex',
+              <button
+                onClick={() => setShowGiftsPaymentMethodModal(true)}
+                style={{
+                  display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '1rem',
-                  maxWidth: '420px'
-                }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.15rem' }}>
-                      Withdraw Your Gift Earnings
-                    </div>
-                    <div style={{ fontSize: '0.82rem', color: colors.textSecondary, lineHeight: '1.35' }}>
-                      Set up your preferred account to receive payments from viewer gifts.
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setShowGiftsPaymentMethodModal(true)}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.35rem',
-                      backgroundColor: '#16A34A',
-                      color: 'white',
-                      border: '2px solid #15803D',
-                      borderRadius: '0.375rem',
-                      padding: '0.45rem 0.85rem',
-                      fontSize: '0.85rem',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap',
-                      flexShrink: 0
-                    }}
-                  >
-                    Set Up Withdrawal Method
-                  </button>
-                </div>
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
                   justifyContent: 'center',
-                  alignItems: 'flex-end',
-                  textAlign: 'right'
-                }}>
-                  <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Total Gifts</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>${totalGifts.toFixed(2)}</div>
-                </div>
-              </div>
+                  gap: '0.35rem',
+                  backgroundColor: '#16A34A',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  padding: '0.6rem 1rem',
+                  fontSize: '0.85rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                Set Up Withdrawal Method
+              </button>
             </div>
 
             <div style={{ padding: '1rem 1.25rem' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
+              <div className="mobile-gift-streams-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
                 {giftStreams.map((stream) => {
                   const streamTotal = stream.gifters.reduce((s, g) => s + g.amount, 0);
                   const latestMessageGifter = stream.gifters.find(g => g.message);
@@ -1522,64 +1570,66 @@ Amount: ${payment.amount}
                       key={stream.id}
                       style={{
                         backgroundColor: actualTheme === 'dark' ? '#14532D' : '#F0FDF4',
-                        borderRadius: '0.75rem',
+                        borderRadius: '0.5rem',
                         border: `1px solid ${actualTheme === 'dark' ? '#166534' : '#BBF7D0'}`,
-                        padding: '1rem',
+                        padding: '0.65rem',
                         boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      {/* Header row: Platform badge, date, and amount */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                           <LiveStreamIcon />
                           <span style={{
-                            fontSize: '0.7rem',
+                            fontSize: '0.65rem',
                             color: '#EF4444',
                             backgroundColor: '#FEE2E2',
-                            padding: '0.15rem 0.4rem',
+                            padding: '0.1rem 0.35rem',
                             borderRadius: '0.25rem',
                             fontWeight: '500'
                           }}>
                             {stream.platform}
                           </span>
+                          <span style={{ fontSize: '0.7rem', color: colors.textSecondary }}>{stream.date}</span>
                         </div>
-                        <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>{stream.date}</span>
+                        <span style={{ fontSize: '1.05rem', fontWeight: '700', color: '#16A34A' }}>${streamTotal.toFixed(2)}</span>
                       </div>
 
-                      <h3 style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
+                      {/* Title row */}
+                      <h3 style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.35rem 0', lineHeight: '1.3' }}>
                         {stream.streamTitle}
                       </h3>
 
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.625rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                          <span style={{ color: colors.textSecondary }}><UsersIcon /></span>
-                          <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{stream.gifters.length} gifters</span>
-                        </div>
-                        <span style={{ fontSize: '1.1rem', fontWeight: '700', color: '#16A34A' }}>${streamTotal.toFixed(2)}</span>
+                      {/* Gifters count */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.4rem' }}>
+                        <span style={{ color: colors.textSecondary }}><UsersIcon /></span>
+                        <span style={{ fontSize: '0.72rem', color: colors.textSecondary }}>{stream.gifters.length} gifter{stream.gifters.length !== 1 ? 's' : ''}</span>
                       </div>
 
                       {/* Latest Message Preview */}
                       {latestMessageGifter && (
                         <div style={{
                           backgroundColor: actualTheme === 'dark' ? '#1F2937' : '#FFFFFF',
-                          borderRadius: '0.5rem',
-                          padding: '0.5rem 0.625rem',
-                          marginBottom: '0.75rem',
+                          borderRadius: '0.375rem',
+                          padding: '0.35rem 0.45rem',
+                          marginBottom: '0.45rem',
                           border: `1px solid ${actualTheme === 'dark' ? '#374151' : '#E5E7EB'}`
                         }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: '0.25rem' }}>
-                            <i className="bi bi-chat-quote" style={{ fontSize: '0.7rem', color: colors.textTertiary }}></i>
-                            <span style={{ fontSize: '0.7rem', color: colors.textTertiary }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.15rem' }}>
+                            <i className="bi bi-chat-quote" style={{ fontSize: '0.6rem', color: colors.textTertiary }}></i>
+                            <span style={{ fontSize: '0.6rem', color: colors.textTertiary }}>
                               {messagesCount} message{messagesCount > 1 ? 's' : ''}
                             </span>
                           </div>
                           <p style={{
-                            fontSize: '0.75rem',
+                            fontSize: '0.68rem',
                             color: colors.textSecondary,
                             margin: 0,
                             fontStyle: 'italic',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
+                            whiteSpace: 'nowrap',
+                            lineHeight: '1.3'
                           }}>
                             <span style={{ fontWeight: '600', fontStyle: 'normal', color: colors.textPrimary }}>{latestMessageGifter.name}:</span> &ldquo;{latestMessageGifter.message}&rdquo;
                           </p>
@@ -1593,19 +1643,19 @@ Amount: ${payment.amount}
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          gap: '0.5rem',
+                          gap: '0.35rem',
                           backgroundColor: '#16A34A',
                           color: 'white',
                           border: '2px solid #15803D',
-                          borderRadius: '0.5rem',
-                          padding: '0.5rem 0.75rem',
-                          fontSize: '0.85rem',
+                          borderRadius: '0.375rem',
+                          padding: '0.4rem 0.6rem',
+                          fontSize: '0.78rem',
                           fontWeight: '600',
                           cursor: 'pointer'
                         }}
                       >
                         <UsersIcon />
-                        View Gift Senders
+                        View Senders
                       </button>
                     </div>
                   );
@@ -1624,16 +1674,17 @@ Amount: ${payment.amount}
               </button>
             </div>
 
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
+            <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
                 <tr style={{ backgroundColor: colors.bgTertiary }}>
-                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase' }}>Date</th>
-                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase' }}>Event / Photographer</th>
-                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase' }}>Method</th>
-                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase' }}>Amount</th>
-                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase' }}>Status</th>
-                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase' }}>Invoice</th>
-                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase' }}>Action</th>
+                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase', backgroundColor: colors.bgTertiary }}>Date</th>
+                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase', backgroundColor: colors.bgTertiary }}>Event / Photographer</th>
+                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase', backgroundColor: colors.bgTertiary }}>Method</th>
+                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase', backgroundColor: colors.bgTertiary }}>Amount</th>
+                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase', backgroundColor: colors.bgTertiary }}>Status</th>
+                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase', backgroundColor: colors.bgTertiary }}>Invoice</th>
+                  <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase', backgroundColor: colors.bgTertiary }}>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -1714,6 +1765,7 @@ Amount: ${payment.amount}
                 ))}
               </tbody>
             </table>
+            </div>
 
             {/* Pagination */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderTop: `1px solid ${colors.borderPrimary}` }}>
@@ -1882,7 +1934,8 @@ Amount: ${payment.amount}
               padding: '0.75rem 1rem',
               backgroundColor: actualTheme === 'dark' ? '#14532D' : '#DCFCE7',
               borderRadius: '0.5rem',
-              border: `1px solid ${actualTheme === 'dark' ? '#166534' : '#BBF7D0'}`
+              border: `1px solid ${actualTheme === 'dark' ? '#166534' : '#BBF7D0'}`,
+              marginBottom: '4rem'
             }}>
               <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>Total from this stream</span>
               <span style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#4ADE80' : '#16A34A' }}>
@@ -2368,7 +2421,7 @@ Amount: ${payment.amount}
           )}
 
           {/* Action Buttons */}
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '4rem' }}>
             <DonateButton onClick={() => setShowGiftsDonateModal(true)} />
             <button
               onClick={() => {

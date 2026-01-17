@@ -308,6 +308,74 @@ const ClientDashboard = () => {
       height: '100vh',
       backgroundColor: colors.bgPrimary
     }}>
+      <style jsx>{`
+        @media (max-width: 768px) {
+          .mobile-main-content {
+            padding: 1rem !important;
+            padding-bottom: 8rem !important;
+          }
+          .mobile-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 1rem !important;
+            margin-bottom: 1.5rem !important;
+          }
+          .mobile-header h1 {
+            font-size: 1.5rem !important;
+          }
+          .mobile-header-stats {
+            width: 100% !important;
+            flex-direction: column !important;
+            gap: 0.75rem !important;
+            padding: 1rem !important;
+          }
+          .mobile-header-stat {
+            width: 100% !important;
+            flex-direction: row !important;
+            justify-content: space-between !important;
+            padding: 0.75rem !important;
+            border-bottom: 1px solid ${colors.borderPrimary} !important;
+          }
+          .mobile-header-stat:last-child {
+            border-bottom: none !important;
+          }
+          .mobile-filter-tabs {
+            flex-wrap: wrap !important;
+            gap: 0.5rem !important;
+          }
+          .mobile-filter-tabs button {
+            font-size: 0.85rem !important;
+            padding: 0.5rem 0.75rem !important;
+          }
+          .mobile-stats-grid {
+            grid-template-columns: 1fr !important;
+            gap: 0.75rem !important;
+          }
+          .mobile-main-grid {
+            grid-template-columns: 1fr !important;
+            gap: 1rem !important;
+          }
+          .mobile-pending-payments {
+            padding: 1rem !important;
+          }
+          .mobile-card {
+            padding: 1rem !important;
+          }
+        }
+        @media (max-width: 640px) {
+          .mobile-main-content {
+            padding: 0.75rem !important;
+            padding-bottom: 10rem !important;
+          }
+          .mobile-header h1 {
+            font-size: 1.3rem !important;
+          }
+          .mobile-filter-tabs button {
+            font-size: 0.8rem !important;
+            padding: 0.5rem 0.625rem !important;
+          }
+        }
+      `}</style>
       <Sidebar />
 
       <div style={{
@@ -318,7 +386,7 @@ const ClientDashboard = () => {
       }}>
         <Topbar userRole="client" giftAmount={225.00} />
 
-        <div style={{
+        <div className="mobile-main-content" style={{
           flex: 1,
           overflowY: 'auto',
           backgroundColor: colors.bgPrimary,
@@ -327,7 +395,7 @@ const ClientDashboard = () => {
           paddingTop: '1rem',
           paddingBottom: '1rem'
         }}>
-          <header style={{
+          <header className="mobile-header" style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -351,7 +419,7 @@ const ClientDashboard = () => {
                 {staticMessage}
               </p>
             </div>
-            <div style={{
+            <div className="mobile-header-stats" style={{
               backgroundColor: colors.bgCard,
               borderRadius: '0.5rem',
               paddingLeft: '1.5rem',
@@ -363,7 +431,7 @@ const ClientDashboard = () => {
               display: 'flex',
               gap: '2rem'
             }}>
-              <div style={{
+              <div className="mobile-header-stat" style={{
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center'
@@ -382,7 +450,7 @@ const ClientDashboard = () => {
                   color: colors.textPrimary
                 }}>$9.64k</span>
               </div>
-              <div style={{
+              <div className="mobile-header-stat" style={{
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center'
@@ -401,7 +469,7 @@ const ClientDashboard = () => {
                   color: colors.textPrimary
                 }}>12</span>
               </div>
-              <div style={{
+              <div className="mobile-header-stat" style={{
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center'
@@ -423,7 +491,7 @@ const ClientDashboard = () => {
             </div>
           </header>
 
-      <div style={{
+      <div className="mobile-filter-tabs" style={{
         display: 'flex',
         gap: '0.5rem',
         marginBottom: '1rem'
@@ -506,7 +574,7 @@ const ClientDashboard = () => {
         </button>
       </div>
 
-      <div style={{
+      <div className="mobile-stats-grid" style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(5, 1fr)',
         gap: '0.75rem',
@@ -561,7 +629,7 @@ const ClientDashboard = () => {
 
       {/* Pending Payments Alert */}
       {pendingPayments.length > 0 && (
-        <div style={{
+        <div className="mobile-pending-payments" style={{
           backgroundColor: hasFailedPayments ? (actualTheme === 'dark' ? '#450A0A' : '#FEF2F2') : (actualTheme === 'dark' ? '#422006' : '#FFFBEB'),
           border: `1px solid ${hasFailedPayments ? (actualTheme === 'dark' ? '#991B1B' : '#FECACA') : (actualTheme === 'dark' ? '#854D0E' : '#FDE68A')}`,
           borderRadius: '0.75rem',
@@ -729,13 +797,13 @@ const ClientDashboard = () => {
         </div>
       )}
 
-      <div style={{
+      <div className="mobile-main-grid" style={{
         display: 'grid',
         gridTemplateColumns: '1fr 320px',
         gap: '1rem'
       }}>
         <div>
-          <section style={{
+          <section className="mobile-card" style={{
             backgroundColor: colors.bgCard,
             borderRadius: '0.5rem',
             padding: '1rem',
@@ -752,7 +820,7 @@ const ClientDashboard = () => {
             <PerformanceChart data={performanceData} height={200} />
           </section>
 
-          <section style={{
+          <section className="mobile-card" style={{
             backgroundColor: colors.bgCard,
             borderRadius: '0.5rem',
             padding: '1rem',
@@ -914,7 +982,7 @@ const ClientDashboard = () => {
         </div>
 
         <div>
-          <section style={{
+          <section className="mobile-card" style={{
             backgroundColor: colors.bgCard,
             borderRadius: '0.5rem',
             padding: '1rem',
@@ -939,7 +1007,7 @@ const ClientDashboard = () => {
             </div>
           </section>
 
-          <section style={{
+          <section className="mobile-card" style={{
             backgroundColor: colors.bgCard,
             borderRadius: '0.5rem',
             padding: '1rem',
