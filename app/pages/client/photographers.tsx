@@ -729,20 +729,97 @@ const BookedPhotographersPage = () => {
 
   return (
     <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
+      <style>{`
+        @media (max-width: 768px) {
+          .mobile-header {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 1rem;
+          }
+          .mobile-title {
+            font-size: 1.5rem !important;
+          }
+          .mobile-subtitle {
+            font-size: 0.85rem !important;
+          }
+          .mobile-header-actions {
+            flex-direction: column !important;
+            gap: 0.75rem !important;
+          }
+          .mobile-stats-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.75rem !important;
+          }
+          .mobile-stats-grid > div {
+            padding: 0.75rem !important;
+          }
+          .mobile-stats-grid > div > div:first-child {
+            font-size: 0.75rem !important;
+          }
+          .mobile-stats-grid > div > div:last-child {
+            font-size: 1.2rem !important;
+          }
+          .mobile-tabs {
+            flex-wrap: wrap !important;
+            gap: 0.5rem !important;
+          }
+          .mobile-search-filters {
+            flex-direction: column !important;
+            gap: 0.75rem !important;
+          }
+          .mobile-filter-buttons {
+            overflow-x: auto !important;
+            flex-wrap: nowrap !important;
+            -webkit-overflow-scrolling: touch;
+          }
+          .mobile-photographers-grid {
+            grid-template-columns: 1fr !important;
+            gap: 1rem !important;
+          }
+          .mobile-main-content {
+            padding: 0.75rem !important;
+            padding-bottom: 8rem !important;
+          }
+        }
+        @media (max-width: 640px) {
+          .mobile-title {
+            font-size: 1.3rem !important;
+          }
+          .mobile-subtitle {
+            font-size: 0.8rem !important;
+          }
+          .mobile-stats-grid {
+            gap: 0.5rem !important;
+          }
+          .mobile-stats-grid > div {
+            padding: 0.6rem !important;
+          }
+          .mobile-stats-grid > div > div:first-child {
+            font-size: 0.7rem !important;
+          }
+          .mobile-stats-grid > div > div:last-child {
+            font-size: 1.1rem !important;
+          }
+          .mobile-main-content {
+            padding: 0.5rem !important;
+            padding-bottom: 10rem !important;
+          }
+        }
+      `}</style>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <Topbar userRole="client" giftAmount={225.00} />
-        <div style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
+        <div className="mobile-main-content" style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
 
           {/* Header */}
-          <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <header className="mobile-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
             <div>
-              <h1 style={{ fontSize: '1.8rem', lineHeight: '2rem', color: colors.textPrimary, fontWeight: '600' }}>Booked Photographers</h1>
-              <p style={{ fontSize: '0.95rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
+              <h1 className="mobile-title" style={{ fontSize: '1.8rem', lineHeight: '2rem', color: colors.textPrimary, fontWeight: '600' }}>Booked Photographers</h1>
+              <p className="mobile-subtitle" style={{ fontSize: '0.95rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
                 Photographers you&apos;ve worked with - rebook your favorites
               </p>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div className="mobile-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               {/* Sort Dropdown */}
               <div style={{ position: 'relative' }}>
                 <select
@@ -814,7 +891,7 @@ const BookedPhotographersPage = () => {
           </header>
 
           {/* Stats Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+          <div className="mobile-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
             <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Photographers</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{photographers.length}</div>
@@ -849,7 +926,7 @@ const BookedPhotographersPage = () => {
           </div>
 
           {/* Tabs */}
-          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
+          <div className="mobile-tabs" style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
             {[
               { key: 'all', label: 'All Photographers', count: photographers.length },
               { key: 'favorites', label: 'Favorites', count: photographers.filter(p => p.isFavorite).length },
@@ -891,7 +968,7 @@ const BookedPhotographersPage = () => {
           </div>
 
           {/* Search and Filters */}
-          <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+          <div className="mobile-search-filters" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
             {/* Search */}
             <div style={{ flex: 1, position: 'relative' }}>
               <div style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }}>
@@ -998,7 +1075,7 @@ const BookedPhotographersPage = () => {
               </p>
             </div>
           ) : viewMode === 'grid' ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem' }}>
+            <div className="mobile-photographers-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem' }}>
               {filteredPhotographers.map((photographer) => (
                 <div
                   key={photographer.id}
@@ -1725,7 +1802,7 @@ const BookedPhotographersPage = () => {
             </div>
 
             {/* Actions */}
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '4rem' }}>
               <button
                 onClick={() => toggleFavorite(selectedPhotographer.id)}
                 style={{
@@ -1940,7 +2017,7 @@ const BookedPhotographersPage = () => {
               />
             </div>
 
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '4rem' }}>
               <button
                 onClick={() => setShowRebookModal(false)}
                 style={{
@@ -2073,7 +2150,7 @@ const BookedPhotographersPage = () => {
               />
             </div>
 
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '4rem' }}>
               <button
                 onClick={() => setShowReviewModal(false)}
                 style={{
@@ -2144,7 +2221,7 @@ const BookedPhotographersPage = () => {
                 color: colors.textPrimary
               }}
             />
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginBottom: '4rem' }}>
               <button
                 onClick={() => setShowReportModal(false)}
                 style={{
@@ -2347,7 +2424,7 @@ const BookedPhotographersPage = () => {
             </p>
 
             {/* Actions */}
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '4rem' }}>
               <DonateButton onClick={() => setShowPaymentDonateModal(true)} />
               <button
                 onClick={() => setShowPaymentModal(false)}
@@ -2423,7 +2500,7 @@ const BookedPhotographersPage = () => {
             <p style={{ fontSize: '0.9rem', color: colors.textSecondary, marginBottom: '1.5rem' }}>
               Show your appreciation for their great work!
             </p>
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '4rem' }}>
               <button
                 onClick={handleTipPromptNo}
                 style={{
@@ -2549,7 +2626,7 @@ const BookedPhotographersPage = () => {
                 </div>
               </div>
             )}
-            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem', marginBottom: '4rem' }}>
               <button
                 onClick={() => {
                   setShowTipSelectionModal(false);
@@ -2740,7 +2817,7 @@ const BookedPhotographersPage = () => {
             </p>
 
             {/* Actions */}
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '4rem' }}>
               <DonateButton onClick={() => setShowTipDonateModal(true)} />
               <button
                 onClick={() => {
@@ -2828,7 +2905,8 @@ const BookedPhotographersPage = () => {
               color: 'white',
               fontSize: '0.9rem',
               fontWeight: '600',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              marginBottom: '4rem'
             }}
           >
             Done
