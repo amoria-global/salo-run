@@ -103,6 +103,106 @@ interface DonateModalProps {
   onClose: () => void;
 }
 
+// Donate Prompt Modal - asks user if they want to make a donation (Yes/No)
+interface DonatePromptModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onYes: () => void;
+  onNo: () => void;
+}
+
+export const DonatePromptModal: React.FC<DonatePromptModalProps> = ({ isOpen, onClose, onYes, onNo }) => {
+  const { colors, actualTheme } = useTheme();
+
+  if (!isOpen) return null;
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1150,
+    }} onClick={onClose}>
+      <div style={{
+        backgroundColor: colors.bgCard,
+        borderRadius: '1rem',
+        width: '400px',
+        maxWidth: '95%',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+        padding: '1.5rem',
+      }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            width: '64px',
+            height: '64px',
+            borderRadius: '50%',
+            background: actualTheme === 'dark'
+              ? 'linear-gradient(135deg, rgba(242, 12, 143, 0.2) 0%, rgba(255, 107, 157, 0.1) 100%)'
+              : 'linear-gradient(135deg, rgba(242, 12, 143, 0.15) 0%, rgba(255, 107, 157, 0.08) 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 1.25rem',
+            border: `2px solid ${actualTheme === 'dark' ? 'rgba(242, 12, 143, 0.3)' : 'rgba(242, 12, 143, 0.2)'}`
+          }}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" fill="#F20C8F" stroke="#F20C8F" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>
+            Would you like to make a donation?
+          </h3>
+          <p style={{ fontSize: '0.9rem', color: colors.textSecondary, marginBottom: '1.5rem', lineHeight: '1.5' }}>
+            Your contribution helps support families in need, medical bills, school requirements, and food for children.
+          </p>
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button
+              onClick={onNo}
+              style={{
+                flex: 1,
+                padding: '0.75rem 1rem',
+                border: `2px solid ${colors.borderPrimary}`,
+                borderRadius: '0.5rem',
+                background: colors.bgTertiary,
+                color: colors.textPrimary,
+                fontSize: '0.9rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              No, thanks
+            </button>
+            <button
+              onClick={onYes}
+              style={{
+                flex: 1,
+                padding: '0.75rem 1rem',
+                border: '2px solid #c00a72',
+                borderRadius: '0.5rem',
+                background: 'linear-gradient(135deg, #F20C8F 0%, #FF6B9D 100%)',
+                color: 'white',
+                fontSize: '0.9rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              Yes, continue
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const DonateModal: React.FC<DonateModalProps> = ({ isOpen, onClose }) => {
   const { colors, actualTheme } = useTheme();
   const router = useRouter();

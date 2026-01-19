@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import Sidebar from '../components/sidebar';
 import Topbar from '../components/topbar';
 import { useTheme, ThemeMode } from '../context/ThemeContext';
-import DonateModal, { DonateButton } from '../components/DonateModal';
+import DonateModal, { DonateButton, DonatePromptModal } from '../components/DonateModal';
 
 interface PaymentMethod {
   id: string;
@@ -117,6 +117,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
   const [showEditPaymentModal, setShowEditPaymentModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDonateModal, setShowDonateModal] = useState(false);
+  const [showDonatePromptModal, setShowDonatePromptModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod | null>(null);
   const [paymentType, setPaymentType] = useState<'card' | 'bank' | 'mtn' | 'airtel'>('card');
 
@@ -517,7 +518,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
               {/* Add Payment Button */}
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
                 <button
-                  onClick={() => setShowAddPaymentModal(true)}
+                  onClick={() => setShowDonatePromptModal(true)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -1064,7 +1065,6 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
 
             {/* Action Buttons */}
             <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', alignItems: 'center' }}>
-              <DonateButton onClick={() => setShowDonateModal(true)} />
               <button
                 onClick={() => { setShowAddPaymentModal(false); resetForm(); }}
                 style={{
@@ -1098,12 +1098,26 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                 {userType === 'client' ? 'Add Payment Method' : 'Add Withdrawal Account'}
               </button>
             </div>
-
-            {/* Donate Modal */}
-            <DonateModal isOpen={showDonateModal} onClose={() => setShowDonateModal(false)} />
           </div>
         </div>
       )}
+
+      {/* Add Payment Donate Prompt Modal - Shows before add payment modal */}
+      <DonatePromptModal
+        isOpen={showDonatePromptModal}
+        onClose={() => setShowDonatePromptModal(false)}
+        onNo={() => {
+          setShowDonatePromptModal(false);
+          setShowAddPaymentModal(true);
+        }}
+        onYes={() => {
+          setShowDonatePromptModal(false);
+          setShowDonateModal(true);
+        }}
+      />
+
+      {/* Donate Modal */}
+      <DonateModal isOpen={showDonateModal} onClose={() => setShowDonateModal(false)} />
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && selectedPayment && (
