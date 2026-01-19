@@ -7,7 +7,7 @@ import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 import { useUserProfile } from '../../context/UserProfileContext';
-import DonateModal, { DonateButton } from '../../components/DonateModal';
+import DonateModal, { DonateButton, DonatePromptModal } from '../../components/DonateModal';
 
 // Icons
 const DownloadIcon = () => (
@@ -520,7 +520,6 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
   const { colors, actualTheme } = useTheme();
   const router = useRouter();
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('card');
-  const [showDonateModal, setShowDonateModal] = useState(false);
 
   if (!payment) return null;
 
@@ -694,8 +693,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
         </div>
 
         {/* Actions */}
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '4rem' }}>
-          <DonateButton onClick={() => setShowDonateModal(true)} />
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           <button
             onClick={onClose}
             style={{
@@ -728,9 +726,6 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
             {payment.status === 'failed' ? 'Retry Payment' : 'Pay'} ${amountDue.toLocaleString()}
           </button>
         </div>
-
-        {/* Donate Modal */}
-        <DonateModal isOpen={showDonateModal} onClose={() => setShowDonateModal(false)} />
       </div>
     </Modal>
   );
@@ -1124,6 +1119,8 @@ const PaymentsPage = () => {
   const [showReportModal, setShowReportModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showPayNowModal, setShowPayNowModal] = useState(false);
+  const [showPayNowDonatePromptModal, setShowPayNowDonatePromptModal] = useState(false);
+  const [showPayNowDonateModal, setShowPayNowDonateModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [payNowPayment, setPayNowPayment] = useState<Payment | null>(null);
 
@@ -1134,7 +1131,7 @@ const PaymentsPage = () => {
 
   const handlePayNow = (payment: Payment) => {
     setPayNowPayment(payment);
-    setShowPayNowModal(true);
+    setShowPayNowDonatePromptModal(true);
   };
 
   const handleDownloadReceipt = (payment: Payment) => {
@@ -1249,6 +1246,7 @@ Amount: ${payment.amount}
   // State for gifts payment method modal
   const [showGiftsPaymentMethodModal, setShowGiftsPaymentMethodModal] = useState(false);
   const [showGiftsDonateModal, setShowGiftsDonateModal] = useState(false);
+  const [showGiftsDonatePromptModal, setShowGiftsDonatePromptModal] = useState(false);
   const [selectedGiftPaymentMethod, setSelectedGiftPaymentMethod] = useState<string | null>(null);
   const [giftPaymentDetails, setGiftPaymentDetails] = useState({
     mtnNumber: '',
@@ -1537,26 +1535,59 @@ Amount: ${payment.amount}
                   <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: 0 }}>From live-stream viewers on ConnektLive</p>
                 </div>
               </div>
-              <button
-                onClick={() => setShowGiftsPaymentMethodModal(true)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.35rem',
-                  backgroundColor: '#16A34A',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '0.375rem',
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                {/* Withdrawal Setup Card */}
+                <div style={{
+                  backgroundColor: actualTheme === 'dark' ? '#14532D' : '#F0FDF4',
+                  border: `1px solid ${actualTheme === 'dark' ? '#166534' : '#BBF7D0'}`,
+                  borderRadius: '0.5rem',
                   padding: '0.6rem 1rem',
-                  fontSize: '0.85rem',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                Set Up Withdrawal Method
-              </button>
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '1rem',
+                  maxWidth: '420px'
+                }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.15rem' }}>
+                      Withdraw Your Gift Earnings
+                    </div>
+                    <div style={{ fontSize: '0.82rem', color: colors.textSecondary, lineHeight: '1.35' }}>
+                      Set up your preferred account to receive payments from viewer gifts.
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowGiftsDonatePromptModal(true)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.35rem',
+                      backgroundColor: '#16A34A',
+                      color: 'white',
+                      border: '2px solid #15803D',
+                      borderRadius: '0.375rem',
+                      padding: '0.45rem 0.85rem',
+                      fontSize: '0.85rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0
+                    }}
+                  >
+                    Set Up Withdrawal Method
+                  </button>
+                </div>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
+                  alignItems: 'flex-end',
+                  textAlign: 'right'
+                }}>
+                  <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Total Gifts</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>${totalGifts.toFixed(2)}</div>
+                </div>
+              </div>
             </div>
 
             <div style={{ padding: '1rem 1.25rem' }}>
@@ -1799,6 +1830,23 @@ Amount: ${payment.amount}
         onClose={() => setShowPaymentModal(false)}
         payment={selectedPayment}
       />
+      {/* Pay Now Donate Prompt Modal - Shows before pay now modal */}
+      <DonatePromptModal
+        isOpen={showPayNowDonatePromptModal}
+        onClose={() => setShowPayNowDonatePromptModal(false)}
+        onNo={() => {
+          setShowPayNowDonatePromptModal(false);
+          setShowPayNowModal(true);
+        }}
+        onYes={() => {
+          setShowPayNowDonatePromptModal(false);
+          setShowPayNowDonateModal(true);
+        }}
+      />
+
+      {/* Pay Now Donate Modal */}
+      <DonateModal isOpen={showPayNowDonateModal} onClose={() => setShowPayNowDonateModal(false)} />
+
       <PayNowModal
         isOpen={showPayNowModal}
         onClose={() => setShowPayNowModal(false)}
@@ -2421,8 +2469,7 @@ Amount: ${payment.amount}
           )}
 
           {/* Action Buttons */}
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '4rem' }}>
-            <DonateButton onClick={() => setShowGiftsDonateModal(true)} />
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
             <button
               onClick={() => {
                 setShowGiftsPaymentMethodModal(false);
@@ -2471,11 +2518,25 @@ Amount: ${payment.amount}
               Save Withdrawal Method
             </button>
           </div>
-
-          {/* Donate Modal */}
-          <DonateModal isOpen={showGiftsDonateModal} onClose={() => setShowGiftsDonateModal(false)} />
         </div>
       </Modal>
+
+      {/* Gifts Donate Prompt Modal - Shows before gifts payment modal */}
+      <DonatePromptModal
+        isOpen={showGiftsDonatePromptModal}
+        onClose={() => setShowGiftsDonatePromptModal(false)}
+        onNo={() => {
+          setShowGiftsDonatePromptModal(false);
+          setShowGiftsPaymentMethodModal(true);
+        }}
+        onYes={() => {
+          setShowGiftsDonatePromptModal(false);
+          setShowGiftsDonateModal(true);
+        }}
+      />
+
+      {/* Gifts Donate Modal */}
+      <DonateModal isOpen={showGiftsDonateModal} onClose={() => setShowGiftsDonateModal(false)} />
 
       {/* Print Styles */}
       <style>{`

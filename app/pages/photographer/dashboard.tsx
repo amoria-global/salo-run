@@ -17,12 +17,6 @@ import {
   StarIcon
 } from '../../components/dashboard';
 
-/* ============================================
-   FUTURE PLAN FEATURE - COMMENTED OUT FOR LATER USE
-   Uncomment when API is ready to support this feature
-   ============================================ */
-
-/*
 // Compare icon for toggle button
 const CompareIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -74,7 +68,6 @@ interface FuturePlan {
   }[];
   createdAt: string;
 }
-*/
 
 // Eye icon for view details
 const EyeIcon = () => (
@@ -176,7 +169,6 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
   const [greetings, setGreetings] = useState(getGreetings(getTimeOfDay()));
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
-  /* FUTURE PLAN FEATURE - State commented out for later use
   // Comparison mode state
   const [isComparisonMode, setIsComparisonMode] = useState(false);
   const [showPlanModal, setShowPlanModal] = useState(false);
@@ -197,7 +189,6 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
     customStartDate: '',
     customEndDate: ''
   });
-  */
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -205,18 +196,16 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
       if (activeDropdown) {
         setActiveDropdown(null);
       }
-      /* FUTURE PLAN FEATURE - commented out
       if (showPlanDropdown) {
         setShowPlanDropdown(false);
       }
-      */
     };
 
     document.addEventListener('click', handleClickOutside);
     return () => {
       document.removeEventListener('click', handleClickOutside);
     };
-  }, [activeDropdown]); // Removed showPlanDropdown from dependencies
+  }, [activeDropdown, showPlanDropdown]);
 
   useEffect(() => {
     // Update time of day and greetings
@@ -247,7 +236,6 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
     setActiveDropdown(activeDropdown === id ? null : id);
   };
 
-  /* FUTURE PLAN FEATURE - All functions commented out for later use
   // Reset plan form
   const resetPlanForm = () => {
     setPlanForm({
@@ -411,7 +399,6 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
       setShowPlanModal(true);
     }
   };
-  */ // END FUTURE PLAN FEATURE FUNCTIONS
 
   const currentGreeting = greetings[greetingIndex];
   const staticMessage = getStaticMessage(timeOfDay);
@@ -623,7 +610,237 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
                 {staticMessage}
               </p>
             </div>
-            <div className="header-stats">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <button
+                onClick={toggleComparisonMode}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '0.5rem',
+                  border: isComparisonMode ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`,
+                  backgroundColor: isComparisonMode ? '#F20C8F' : colors.bgCard,
+                  color: isComparisonMode ? 'white' : colors.textSecondary,
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
+                  transition: 'all 0.3s',
+                  boxShadow: colors.shadowSm
+                }}
+              >
+                <CompareIcon />
+                {isComparisonMode ? 'Exit Comparison' : 'Compare Goals'}
+              </button>
+              {isComparisonMode && (
+                <>
+                  {futurePlans.length > 0 && (
+                    <div style={{ position: 'relative' }}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowPlanDropdown(!showPlanDropdown);
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          padding: '0.5rem 1rem',
+                          borderRadius: '0.5rem',
+                          border: `2px solid ${colors.borderPrimary}`,
+                          backgroundColor: colors.bgCard,
+                          color: colors.textPrimary,
+                          cursor: 'pointer',
+                          fontSize: '0.875rem',
+                          fontWeight: '500',
+                          transition: 'all 0.3s',
+                          boxShadow: colors.shadowSm,
+                          minWidth: '160px',
+                          justifyContent: 'space-between'
+                        }}
+                      >
+                        <span style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          <TargetIcon />
+                          {selectedPlan?.name || 'Select Plan'}
+                        </span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, transform: showPlanDropdown ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
+                          <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </button>
+                      {showPlanDropdown && (
+                        <div style={{
+                          position: 'absolute',
+                          top: 'calc(100% + 4px)',
+                          left: 0,
+                          backgroundColor: colors.bgCard,
+                          borderRadius: '0.5rem',
+                          boxShadow: colors.shadowLg,
+                          border: `1px solid ${colors.borderPrimary}`,
+                          zIndex: 100,
+                          minWidth: '220px',
+                          maxHeight: '300px',
+                          overflowY: 'auto'
+                        }}>
+                          {futurePlans.map((plan) => (
+                            <div
+                              key={plan.id}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '0.75rem 1rem',
+                                cursor: 'pointer',
+                                backgroundColor: selectedPlan?.id === plan.id ? 'rgba(242, 12, 143, 0.1)' : 'transparent',
+                                borderLeft: selectedPlan?.id === plan.id ? '3px solid #F20C8F' : '3px solid transparent',
+                                transition: 'all 0.2s'
+                              }}
+                              onMouseEnter={(e) => {
+                                if (selectedPlan?.id !== plan.id) {
+                                  e.currentTarget.style.backgroundColor = colors.bgHover;
+                                }
+                              }}
+                              onMouseLeave={(e) => {
+                                if (selectedPlan?.id !== plan.id) {
+                                  e.currentTarget.style.backgroundColor = 'transparent';
+                                }
+                              }}
+                            >
+                              <div
+                                onClick={() => {
+                                  handleSelectPlan(plan);
+                                  setShowPlanDropdown(false);
+                                }}
+                                style={{ flex: 1 }}
+                              >
+                                <div style={{
+                                  fontWeight: '600',
+                                  color: colors.textPrimary,
+                                  fontSize: '0.875rem'
+                                }}>{plan.name}</div>
+                                <div style={{
+                                  fontSize: '0.7rem',
+                                  color: colors.textSecondary,
+                                  marginTop: '0.125rem'
+                                }}>
+                                  {plan.timePeriod === 'custom'
+                                    ? `${plan.customStartDate} - ${plan.customEndDate}`
+                                    : plan.timePeriod === 'today' ? 'Today' : plan.timePeriod === 'week' ? 'This Week' : 'This Month'}
+                                </div>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEditPlan(plan);
+                                  }}
+                                  style={{
+                                    padding: '0.375rem',
+                                    color: colors.textTertiary,
+                                    border: 'none',
+                                    background: 'none',
+                                    cursor: 'pointer',
+                                    borderRadius: '0.25rem',
+                                    transition: 'all 0.2s',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.color = colors.brandPrimary;
+                                    e.currentTarget.style.backgroundColor = 'rgba(8, 58, 133, 0.1)';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.color = colors.textTertiary;
+                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                  }}
+                                  title="Edit plan"
+                                >
+                                  <EditIcon />
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeletePlan(plan.id);
+                                    if (futurePlans.length === 1) {
+                                      setShowPlanDropdown(false);
+                                    }
+                                  }}
+                                  style={{
+                                    padding: '0.375rem',
+                                    color: colors.textTertiary,
+                                    border: 'none',
+                                    background: 'none',
+                                    cursor: 'pointer',
+                                    borderRadius: '0.25rem',
+                                    transition: 'all 0.2s',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.color = '#ff4444';
+                                    e.currentTarget.style.backgroundColor = 'rgba(255, 68, 68, 0.1)';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.color = colors.textTertiary;
+                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                  }}
+                                  title="Delete plan"
+                                >
+                                  <CloseIcon />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <button
+                    onClick={() => {
+                      setPlanTimePeriod(activeFilter);
+                      setShowPlanModal(true);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      padding: '0.5rem 1rem',
+                      borderRadius: '0.5rem',
+                      border: `2px solid ${colors.brandPrimary}`,
+                      backgroundColor: colors.brandPrimary,
+                      color: 'white',
+                      cursor: 'pointer',
+                      fontSize: '0.875rem',
+                      fontWeight: '500',
+                      transition: 'all 0.3s',
+                      boxShadow: colors.shadowSm
+                    }}
+                  >
+                    <TargetIcon />
+                    New Plan
+                  </button>
+                </>
+              )}
+              <div style={{
+              backgroundColor: colors.bgCard,
+              borderRadius: '0.5rem',
+              paddingLeft: '1.5rem',
+              paddingRight: '1.5rem',
+              paddingTop: '0.75rem',
+              paddingBottom: '0.75rem',
+              boxShadow: colors.shadowSm,
+              border: `1px solid ${colors.borderPrimary}`,
+              display: 'flex',
+              gap: '2rem'
+            }}>
               <div style={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -773,10 +990,8 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
           icon={<MoneyIcon />}
           trend="up"
           href={`${basePath}/earnings`}
-          /* FUTURE PLAN FEATURE - comparison props commented out
           isComparisonMode={isComparisonMode && !!selectedPlan}
           targetValue={selectedPlan?.targetEarnings}
-          */
         />
         <StatCard
           title="Pending"
@@ -786,10 +1001,8 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
           icon={<ClockIcon />}
           trend="down"
           href={`${basePath}/pending-payments`}
-          /* FUTURE PLAN FEATURE - comparison props commented out
           isComparisonMode={isComparisonMode && !!selectedPlan}
           targetValue={selectedPlan?.targetPending}
-          */
         />
         <StatCard
           title="Total clients"
@@ -799,10 +1012,8 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
           icon={<UsersIcon />}
           trend="up"
           href={`${basePath}/clients`}
-          /* FUTURE PLAN FEATURE - comparison props commented out
           isComparisonMode={isComparisonMode && !!selectedPlan}
           targetValue={selectedPlan?.targetClients}
-          */
         />
         <StatCard
           title="Bonuses"
@@ -812,10 +1023,8 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
           icon={<GiftIcon />}
           trend="down"
           href={`${basePath}/bonuses`}
-          /* FUTURE PLAN FEATURE - comparison props commented out
           isComparisonMode={isComparisonMode && !!selectedPlan}
           targetValue={selectedPlan?.targetBonuses}
-          */
         />
         <StatCard
           title="Ratings"
@@ -825,10 +1034,8 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
           icon={<StarIcon />}
           trend="up"
           href={`${basePath}/reviews`}
-          /* FUTURE PLAN FEATURE - comparison props commented out
           isComparisonMode={isComparisonMode && !!selectedPlan}
           targetValue={selectedPlan?.targetRatings}
-          */
         />
       </div>
 
@@ -847,17 +1054,12 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
               fontWeight: '100',
               color: colors.textPrimary,
               marginBottom: '1rem'
-            }}>Performance</h2>
-            {/* FUTURE PLAN FEATURE - comparison title commented out
-            Performance {isComparisonMode && selectedPlan && <span style={{ fontSize: '0.75rem', color: colors.textSecondary, fontWeight: '400' }}>(vs {selectedPlan.name})</span>}
-            */}
+            }}>Performance {isComparisonMode && selectedPlan && <span style={{ fontSize: '0.75rem', color: colors.textSecondary, fontWeight: '400' }}>(vs {selectedPlan.name})</span>}</h2>
             <PerformanceChart
               data={performanceData}
               height={200}
-              /* FUTURE PLAN FEATURE - comparison props commented out
               isComparisonMode={isComparisonMode && !!selectedPlan}
               targetData={selectedPlan ? generatePerformanceTargets(selectedPlan) : undefined}
-              */
             />
           </section>
 
@@ -1086,9 +1288,375 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
           </section>
         </div>
       </div>
-          </div>
+
         </div>
       </div>
+
+      {/* Future Plan Creation Modal */}
+      {showPlanModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: colors.bgCard,
+            borderRadius: '0.75rem',
+            padding: '1.5rem',
+            width: '90%',
+            maxWidth: '600px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            boxShadow: colors.shadowLg
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1.5rem'
+            }}>
+              <h2 style={{
+                fontSize: '1.5rem',
+                fontWeight: '600',
+                color: colors.textPrimary,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                {editingPlan ? <EditIcon /> : <TargetIcon />}
+                {editingPlan ? 'Edit Future Plan' : 'Create Future Plan'}
+              </h2>
+              <button
+                onClick={() => {
+                  setShowPlanModal(false);
+                  resetPlanForm();
+                }}
+                style={{
+                  padding: '0.5rem',
+                  color: colors.textTertiary,
+                  border: 'none',
+                  background: 'none',
+                  cursor: 'pointer',
+                  borderRadius: '0.25rem'
+                }}
+              >
+                <CloseIcon />
+              </button>
+            </div>
+
+            {/* Plan Name */}
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                color: colors.textSecondary,
+                marginBottom: '0.5rem'
+              }}>Plan Name *</label>
+              <input
+                type="text"
+                value={planForm.name}
+                onChange={(e) => setPlanForm(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="e.g., Q1 Goals, Weekly Target"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  borderRadius: '0.5rem',
+                  border: `1px solid ${colors.borderPrimary}`,
+                  backgroundColor: colors.bgPrimary,
+                  color: colors.textPrimary,
+                  fontSize: '0.9rem'
+                }}
+              />
+            </div>
+
+            {/* Time Period Selection */}
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                color: colors.textSecondary,
+                marginBottom: '0.5rem'
+              }}>Time Period</label>
+              <div style={{
+                display: 'flex',
+                gap: '0.5rem'
+              }}>
+                {(['today', 'week', 'month', 'custom'] as const).map((period) => (
+                  <button
+                    key={period}
+                    onClick={() => setPlanTimePeriod(period)}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      borderRadius: '0.375rem',
+                      border: planTimePeriod === period ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`,
+                      backgroundColor: planTimePeriod === period ? '#F20C8F' : colors.bgPrimary,
+                      color: planTimePeriod === period ? 'white' : colors.textSecondary,
+                      cursor: 'pointer',
+                      fontSize: '0.85rem',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {period === 'today' ? 'Today' : period === 'week' ? 'This Week' : period === 'month' ? 'This Month' : 'Custom'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Custom Date Range */}
+            {planTimePeriod === 'custom' && (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '1rem',
+                marginBottom: '1rem'
+              }}>
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '0.875rem',
+                    fontWeight: '500',
+                    color: colors.textSecondary,
+                    marginBottom: '0.5rem'
+                  }}>Start Date</label>
+                  <input
+                    type="date"
+                    value={planForm.customStartDate}
+                    onChange={(e) => setPlanForm(prev => ({ ...prev, customStartDate: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      borderRadius: '0.5rem',
+                      border: `1px solid ${colors.borderPrimary}`,
+                      backgroundColor: colors.bgPrimary,
+                      color: colors.textPrimary,
+                      fontSize: '0.9rem'
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '0.875rem',
+                    fontWeight: '500',
+                    color: colors.textSecondary,
+                    marginBottom: '0.5rem'
+                  }}>End Date</label>
+                  <input
+                    type="date"
+                    value={planForm.customEndDate}
+                    onChange={(e) => setPlanForm(prev => ({ ...prev, customEndDate: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      borderRadius: '0.5rem',
+                      border: `1px solid ${colors.borderPrimary}`,
+                      backgroundColor: colors.bgPrimary,
+                      color: colors.textPrimary,
+                      fontSize: '0.9rem'
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Target Stats Fields */}
+            <div style={{
+              borderTop: `1px solid ${colors.borderPrimary}`,
+              paddingTop: '1rem',
+              marginBottom: '1rem'
+            }}>
+              <h3 style={{
+                fontSize: '1rem',
+                fontWeight: '600',
+                color: colors.textPrimary,
+                marginBottom: '1rem'
+              }}>Target Statistics</h3>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '1rem'
+              }}>
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '0.875rem',
+                    fontWeight: '500',
+                    color: colors.textSecondary,
+                    marginBottom: '0.5rem'
+                  }}>Target Earnings *</label>
+                  <input
+                    type="text"
+                    value={planForm.targetEarnings}
+                    onChange={(e) => setPlanForm(prev => ({ ...prev, targetEarnings: e.target.value }))}
+                    placeholder="e.g., $5,000"
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      borderRadius: '0.5rem',
+                      border: `1px solid ${colors.borderPrimary}`,
+                      backgroundColor: colors.bgPrimary,
+                      color: colors.textPrimary,
+                      fontSize: '0.9rem'
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '0.875rem',
+                    fontWeight: '500',
+                    color: colors.textSecondary,
+                    marginBottom: '0.5rem'
+                  }}>Target Pending</label>
+                  <input
+                    type="text"
+                    value={planForm.targetPending}
+                    onChange={(e) => setPlanForm(prev => ({ ...prev, targetPending: e.target.value }))}
+                    placeholder="e.g., $500"
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      borderRadius: '0.5rem',
+                      border: `1px solid ${colors.borderPrimary}`,
+                      backgroundColor: colors.bgPrimary,
+                      color: colors.textPrimary,
+                      fontSize: '0.9rem'
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '0.875rem',
+                    fontWeight: '500',
+                    color: colors.textSecondary,
+                    marginBottom: '0.5rem'
+                  }}>Target Clients</label>
+                  <input
+                    type="text"
+                    value={planForm.targetClients}
+                    onChange={(e) => setPlanForm(prev => ({ ...prev, targetClients: e.target.value }))}
+                    placeholder="e.g., 10"
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      borderRadius: '0.5rem',
+                      border: `1px solid ${colors.borderPrimary}`,
+                      backgroundColor: colors.bgPrimary,
+                      color: colors.textPrimary,
+                      fontSize: '0.9rem'
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '0.875rem',
+                    fontWeight: '500',
+                    color: colors.textSecondary,
+                    marginBottom: '0.5rem'
+                  }}>Target Bonuses</label>
+                  <input
+                    type="text"
+                    value={planForm.targetBonuses}
+                    onChange={(e) => setPlanForm(prev => ({ ...prev, targetBonuses: e.target.value }))}
+                    placeholder="e.g., $100"
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      borderRadius: '0.5rem',
+                      border: `1px solid ${colors.borderPrimary}`,
+                      backgroundColor: colors.bgPrimary,
+                      color: colors.textPrimary,
+                      fontSize: '0.9rem'
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '0.875rem',
+                    fontWeight: '500',
+                    color: colors.textSecondary,
+                    marginBottom: '0.5rem'
+                  }}>Target Ratings</label>
+                  <input
+                    type="text"
+                    value={planForm.targetRatings}
+                    onChange={(e) => setPlanForm(prev => ({ ...prev, targetRatings: e.target.value }))}
+                    placeholder="e.g., 4.5/5"
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      borderRadius: '0.5rem',
+                      border: `1px solid ${colors.borderPrimary}`,
+                      backgroundColor: colors.bgPrimary,
+                      color: colors.textPrimary,
+                      fontSize: '0.9rem'
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: '0.75rem'
+            }}>
+              <button
+                onClick={() => {
+                  setShowPlanModal(false);
+                  resetPlanForm();
+                }}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  borderRadius: '0.5rem',
+                  border: `1px solid ${colors.borderPrimary}`,
+                  backgroundColor: 'transparent',
+                  color: colors.textSecondary,
+                  cursor: 'pointer',
+                  fontSize: '0.9rem',
+                  fontWeight: '500'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSavePlan}
+                disabled={!planForm.name || !planForm.targetEarnings}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  borderRadius: '0.5rem',
+                  border: 'none',
+                  backgroundColor: (!planForm.name || !planForm.targetEarnings) ? colors.textTertiary : '#F20C8F',
+                  color: 'white',
+                  cursor: (!planForm.name || !planForm.targetEarnings) ? 'not-allowed' : 'pointer',
+                  fontSize: '0.9rem',
+                  fontWeight: '500',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                {editingPlan ? <EditIcon /> : <TargetIcon />}
+                {editingPlan ? 'Save Changes' : 'Create Plan'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
     </>
   );
 };

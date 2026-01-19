@@ -6,7 +6,7 @@ import Topbar from '../../components/topbar';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useTheme } from '../../context/ThemeContext';
-import DonateModal, { DonateButton } from '../../components/DonateModal';
+import DonateModal, { DonateButton, DonatePromptModal } from '../../components/DonateModal';
 
 // Icons
 const SearchIcon = () => (
@@ -249,6 +249,7 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
   const [showTipsModal, setShowTipsModal] = useState(false);
   const [tipsClient, setTipsClient] = useState<Client | null>(null);
   const [showTipsDonateModal, setShowTipsDonateModal] = useState(false);
+  const [showTipsDonatePromptModal, setShowTipsDonatePromptModal] = useState(false);
 
   // Sample clients data with real images
   const [clients, setClients] = useState<Client[]>([
@@ -1333,7 +1334,7 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                       onClick={(e) => {
                         e.stopPropagation();
                         setTipsClient(client);
-                        setShowTipsModal(true);
+                        setShowTipsDonatePromptModal(true);
                       }}
                       style={{
                         width: '100%',
@@ -1578,7 +1579,7 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                       onClick={(e) => {
                         e.stopPropagation();
                         setTipsClient(client);
-                        setShowTipsModal(true);
+                        setShowTipsDonatePromptModal(true);
                       }}
                       style={{
                         padding: '0.25rem 0.5rem',
@@ -2017,7 +2018,6 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
 
             {/* Actions */}
             <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem', alignItems: 'center' }}>
-              <DonateButton onClick={() => setShowTipsDonateModal(true)} />
               <button
                 onClick={() => {
                   setShowTipsModal(false);
@@ -2038,12 +2038,26 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                 Close
               </button>
             </div>
-
-            {/* Donate Modal */}
-            <DonateModal isOpen={showTipsDonateModal} onClose={() => setShowTipsDonateModal(false)} />
           </div>
         )}
       </Modal>
+
+      {/* Tips Donate Prompt Modal - Shows before tips modal */}
+      <DonatePromptModal
+        isOpen={showTipsDonatePromptModal}
+        onClose={() => setShowTipsDonatePromptModal(false)}
+        onNo={() => {
+          setShowTipsDonatePromptModal(false);
+          setShowTipsModal(true);
+        }}
+        onYes={() => {
+          setShowTipsDonatePromptModal(false);
+          setShowTipsDonateModal(true);
+        }}
+      />
+
+      {/* Tips Donate Modal */}
+      <DonateModal isOpen={showTipsDonateModal} onClose={() => setShowTipsDonateModal(false)} />
     </div>
   );
 }
