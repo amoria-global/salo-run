@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
-import DonateModal, { DonateButton } from '../../components/DonateModal';
+import DonateModal, { DonateButton, DonatePromptModal } from '../../components/DonateModal';
 
 // Icons
 const SearchIcon = () => (
@@ -299,11 +299,13 @@ const BookedPhotographersPage = () => {
   const [customTipAmount, setCustomTipAmount] = useState('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showPaymentDonateModal, setShowPaymentDonateModal] = useState(false);
+  const [showPaymentDonatePromptModal, setShowPaymentDonatePromptModal] = useState(false);
   // New states for tip flow
   const [showTipPromptModal, setShowTipPromptModal] = useState(false);
   const [showTipSelectionModal, setShowTipSelectionModal] = useState(false);
   const [showTipPaymentModal, setShowTipPaymentModal] = useState(false);
   const [showTipDonateModal, setShowTipDonateModal] = useState(false);
+  const [showTipDonatePromptModal, setShowTipDonatePromptModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [pendingReviewPhotographer, setPendingReviewPhotographer] = useState<BookedPhotographer | null>(null);
@@ -686,7 +688,7 @@ const BookedPhotographersPage = () => {
 
   const handleSendTip = () => {
     setShowTipSelectionModal(false);
-    setShowTipPaymentModal(true);
+    setShowTipDonatePromptModal(true);
   };
 
   const handleTipPaymentComplete = () => {
@@ -1253,7 +1255,7 @@ const BookedPhotographersPage = () => {
                                 </span>
                               </div>
                               <button
-                                onClick={(e) => { e.stopPropagation(); setPaymentBooking({ photographer, booking }); setShowPaymentModal(true); }}
+                                onClick={(e) => { e.stopPropagation(); setPaymentBooking({ photographer, booking }); setShowPaymentDonatePromptModal(true); }}
                                 style={{
                                   backgroundColor: booking.paymentStatus === 'failed' ? '#F20C8F' : '#083A85',
                                   color: 'white',
@@ -1456,7 +1458,7 @@ const BookedPhotographersPage = () => {
                           return (
                             <button
                               key={booking.id}
-                              onClick={(e) => { e.stopPropagation(); setPaymentBooking({ photographer, booking }); setShowPaymentModal(true); }}
+                              onClick={(e) => { e.stopPropagation(); setPaymentBooking({ photographer, booking }); setShowPaymentDonatePromptModal(true); }}
                               style={{
                                 backgroundColor: booking.paymentStatus === 'failed' ? '#F20C8F' : '#083A85',
                                 color: 'white',
@@ -2458,12 +2460,26 @@ const BookedPhotographersPage = () => {
                 {paymentBooking.booking.paymentStatus === 'failed' ? 'Retry Payment' : 'Pay'} ${paymentBooking.booking.totalAmount - paymentBooking.booking.paidAmount}
               </button>
             </div>
-
-            {/* Donate Modal */}
-            <DonateModal isOpen={showPaymentDonateModal} onClose={() => setShowPaymentDonateModal(false)} />
           </div>
         )}
       </Modal>
+
+      {/* Payment Donate Prompt Modal - Shows before payment modal */}
+      <DonatePromptModal
+        isOpen={showPaymentDonatePromptModal}
+        onClose={() => setShowPaymentDonatePromptModal(false)}
+        onNo={() => {
+          setShowPaymentDonatePromptModal(false);
+          setShowPaymentModal(true);
+        }}
+        onYes={() => {
+          setShowPaymentDonatePromptModal(false);
+          setShowPaymentDonateModal(true);
+        }}
+      />
+
+      {/* Payment Donate Modal */}
+      <DonateModal isOpen={showPaymentDonateModal} onClose={() => setShowPaymentDonateModal(false)} />
 
       {/* Tip Prompt Modal */}
       <Modal
@@ -2860,12 +2876,26 @@ const BookedPhotographersPage = () => {
                 Pay ${tipAmount === 'custom' ? (parseFloat(customTipAmount) || 0) : tipAmount}
               </button>
             </div>
-
-            {/* Donate Modal */}
-            <DonateModal isOpen={showTipDonateModal} onClose={() => setShowTipDonateModal(false)} />
           </div>
         )}
       </Modal>
+
+      {/* Tip Donate Prompt Modal - Shows before tip payment modal */}
+      <DonatePromptModal
+        isOpen={showTipDonatePromptModal}
+        onClose={() => setShowTipDonatePromptModal(false)}
+        onNo={() => {
+          setShowTipDonatePromptModal(false);
+          setShowTipPaymentModal(true);
+        }}
+        onYes={() => {
+          setShowTipDonatePromptModal(false);
+          setShowTipDonateModal(true);
+        }}
+      />
+
+      {/* Tip Donate Modal */}
+      <DonateModal isOpen={showTipDonateModal} onClose={() => setShowTipDonateModal(false)} />
 
       {/* Success Modal */}
       <Modal
