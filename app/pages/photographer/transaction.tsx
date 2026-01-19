@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
-import DonateModal, { DonateButton } from '../../components/DonateModal';
+import DonateModal, { DonateButton, DonatePromptModal } from '../../components/DonateModal';
 
 // Icons
 const DownloadIcon = () => (
@@ -544,7 +544,6 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
   const router = useRouter();
   const [withdrawAmount, setWithdrawAmount] = useState<string>('');
   const [selectedAccount, setSelectedAccount] = useState<string>('');
-  const [showDonateModal, setShowDonateModal] = useState(false);
 
   const accounts: WithdrawAccount[] = [
     { id: 'mtn', type: 'mtn', label: 'MTN Mobile Money', accountNumber: '0789 XXX 980', accountName: 'John Doe', color: '#F59E0B' },
@@ -846,10 +845,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
           </p>
 
           {/* Actions */}
-          <div className="mobile-modal-actions" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-            <div className="donate-btn" style={{ flex: 1 }}>
-              <DonateButton onClick={() => setShowDonateModal(true)} />
-            </div>
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
             <button
               onClick={onClose}
               style={{
@@ -893,9 +889,6 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
               Withdraw Funds
             </button>
           </div>
-
-          {/* Donate Modal */}
-          <DonateModal isOpen={showDonateModal} onClose={() => setShowDonateModal(false)} />
         </div>
       </div>
     </div>
@@ -1292,8 +1285,11 @@ const TransactionsPage = ({ userType = 'photographer' }: TransactionsPageProps) 
   const [showReportModal, setShowReportModal] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [showWithdrawDonatePromptModal, setShowWithdrawDonatePromptModal] = useState(false);
+  const [showWithdrawDonateModal, setShowWithdrawDonateModal] = useState(false);
   const [showTipsModal, setShowTipsModal] = useState(false);
   const [showTipsDonateModal, setShowTipsDonateModal] = useState(false);
+  const [showTipsDonatePromptModal, setShowTipsDonatePromptModal] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
   const handleViewTransaction = (transaction: Transaction) => {
@@ -1661,7 +1657,7 @@ Amount: ${transaction.amount}
               </p>
             </div>
             <button
-              onClick={() => setShowWithdrawModal(true)}
+              onClick={() => setShowWithdrawDonatePromptModal(true)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -1735,7 +1731,7 @@ Amount: ${transaction.amount}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                   <span style={{ fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary }}>Recent Tips</span>
                   <button
-                    onClick={() => setShowTipsModal(true)}
+                    onClick={() => setShowTipsDonatePromptModal(true)}
                     style={{ fontSize: '0.8rem', color: '#16A34A', fontWeight: '500', background: 'none', border: 'none', cursor: 'pointer' }}
                   >
                     View All
@@ -2028,6 +2024,23 @@ Amount: ${transaction.amount}
         onClose={() => setShowTransactionModal(false)}
         transaction={selectedTransaction}
       />
+      {/* Withdraw Donate Prompt Modal - Shows before withdraw modal */}
+      <DonatePromptModal
+        isOpen={showWithdrawDonatePromptModal}
+        onClose={() => setShowWithdrawDonatePromptModal(false)}
+        onNo={() => {
+          setShowWithdrawDonatePromptModal(false);
+          setShowWithdrawModal(true);
+        }}
+        onYes={() => {
+          setShowWithdrawDonatePromptModal(false);
+          setShowWithdrawDonateModal(true);
+        }}
+      />
+
+      {/* Withdraw Donate Modal */}
+      <DonateModal isOpen={showWithdrawDonateModal} onClose={() => setShowWithdrawDonateModal(false)} />
+
       <WithdrawModal
         isOpen={showWithdrawModal}
         onClose={() => setShowWithdrawModal(false)}
@@ -2090,7 +2103,6 @@ Amount: ${transaction.amount}
 
           {/* Actions */}
           <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem', alignItems: 'center' }}>
-            <DonateButton onClick={() => setShowTipsDonateModal(true)} />
             <button
               onClick={() => setShowTipsModal(false)}
               style={{
@@ -2108,26 +2120,28 @@ Amount: ${transaction.amount}
               Close
             </button>
           </div>
-
-          {/* Donate Modal */}
-          <DonateModal isOpen={showTipsDonateModal} onClose={() => setShowTipsDonateModal(false)} />
         </div>
       </Modal>
 
-      {/* Mobile Responsive & Print Styles */}
-      <style jsx global>{`
-        @media (max-width: 768px) {
-          header[style*="marginBottom"] {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-            gap: 1rem !important;
-          }
+      {/* Tips Donate Prompt Modal - Shows before tips modal */}
+      <DonatePromptModal
+        isOpen={showTipsDonatePromptModal}
+        onClose={() => setShowTipsDonatePromptModal(false)}
+        onNo={() => {
+          setShowTipsDonatePromptModal(false);
+          setShowTipsModal(true);
+        }}
+        onYes={() => {
+          setShowTipsDonatePromptModal(false);
+          setShowTipsDonateModal(true);
+        }}
+      />
 
-          header[style*="marginBottom"] > button {
-            width: 100% !important;
-          }
-        }
+      {/* Tips Donate Modal */}
+      <DonateModal isOpen={showTipsDonateModal} onClose={() => setShowTipsDonateModal(false)} />
 
+      {/* Print Styles */}
+      <style>{`
         @media print {
           .no-print {
             display: none !important;
