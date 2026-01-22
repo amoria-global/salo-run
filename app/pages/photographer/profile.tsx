@@ -283,6 +283,44 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   const [showDraftRestoredNotice, setShowDraftRestoredNotice] = useState(false);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Input validation error states
+  const [validationErrors, setValidationErrors] = useState({
+    fullName: '',
+    username: '',
+    phoneNumber: ''
+  });
+
+  // Validation handlers for sensitive input fields
+  const handleFullNameChange = (value: string) => {
+    // Allow only letters, spaces, and common name characters (hyphens, apostrophes)
+    if (value === '' || /^[a-zA-Z\s'-]*$/.test(value)) {
+      setBasicInfo(prev => ({ ...prev, fullName: value }));
+      setValidationErrors(prev => ({ ...prev, fullName: '' }));
+    } else {
+      setValidationErrors(prev => ({ ...prev, fullName: 'Only letters, spaces, hyphens and apostrophes allowed' }));
+    }
+  };
+
+  const handleUsernameChange = (value: string) => {
+    // Allow only alphanumeric characters and underscores
+    if (value === '' || /^[a-zA-Z0-9_]*$/.test(value)) {
+      setBasicInfo(prev => ({ ...prev, username: value }));
+      setValidationErrors(prev => ({ ...prev, username: '' }));
+    } else {
+      setValidationErrors(prev => ({ ...prev, username: 'Only letters, numbers and underscores allowed' }));
+    }
+  };
+
+  const handlePhoneNumberChange = (value: string) => {
+    // Allow only numbers and spaces (for formatting like "788 456 789")
+    if (value === '' || /^[\d\s]*$/.test(value)) {
+      setBasicInfo(prev => ({ ...prev, phoneNumber: value }));
+      setValidationErrors(prev => ({ ...prev, phoneNumber: '' }));
+    } else {
+      setValidationErrors(prev => ({ ...prev, phoneNumber: 'Only numbers and spaces allowed' }));
+    }
+  };
+
   // Auto-save profile form data to IndexedDB
   const saveProfileDraft = useCallback(async () => {
     const formData: ProfileFormData = {
@@ -682,7 +720,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   const inputStyle = {
     width: '100%',
     padding: '0.75rem 1rem',
-    border: `2px solid ${colors.borderPrimary}`,
+    borderWidth: '2px',
+    borderStyle: 'solid' as const,
+    borderColor: colors.borderPrimary,
     borderRadius: '0.5rem',
     fontSize: '0.95rem',
     color: colors.textPrimary,
@@ -697,6 +737,18 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     fontWeight: '500' as const,
     color: colors.textPrimary,
     marginBottom: '0.5rem'
+  };
+
+  const inputErrorStyle = {
+    ...inputStyle,
+    borderColor: '#EF4444'
+  };
+
+  const errorMessageStyle = {
+    color: '#EF4444',
+    fontSize: '0.75rem',
+    marginTop: '0.25rem',
+    display: 'block'
   };
 
   const tabStyle = (isActive: boolean) => ({
@@ -1371,18 +1423,24 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                         <input
                           type="text"
                           value={basicInfo.fullName}
-                          onChange={(e) => setBasicInfo(prev => ({ ...prev, fullName: e.target.value }))}
-                          style={inputStyle}
+                          onChange={(e) => handleFullNameChange(e.target.value)}
+                          style={validationErrors.fullName ? inputErrorStyle : inputStyle}
                         />
+                        {validationErrors.fullName && (
+                          <span style={errorMessageStyle}>{validationErrors.fullName}</span>
+                        )}
                       </div>
                       <div>
                         <label style={labelStyle}>Username</label>
                         <input
                           type="text"
                           value={basicInfo.username}
-                          onChange={(e) => setBasicInfo(prev => ({ ...prev, username: e.target.value }))}
-                          style={inputStyle}
+                          onChange={(e) => handleUsernameChange(e.target.value)}
+                          style={validationErrors.username ? inputErrorStyle : inputStyle}
                         />
+                        {validationErrors.username && (
+                          <span style={errorMessageStyle}>{validationErrors.username}</span>
+                        )}
                       </div>
                       <div>
                         <label style={labelStyle}>Email</label>
@@ -1410,10 +1468,13 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           <input
                             type="tel"
                             value={basicInfo.phoneNumber}
-                            onChange={(e) => setBasicInfo(prev => ({ ...prev, phoneNumber: e.target.value }))}
-                            style={{ ...inputStyle, flex: 1 }}
+                            onChange={(e) => handlePhoneNumberChange(e.target.value)}
+                            style={validationErrors.phoneNumber ? { ...inputErrorStyle, flex: 1 } : { ...inputStyle, flex: 1 }}
                           />
                         </div>
+                        {validationErrors.phoneNumber && (
+                          <span style={errorMessageStyle}>{validationErrors.phoneNumber}</span>
+                        )}
                       </div>
                       <div>
                         <label style={labelStyle}>Specialty *</label>
