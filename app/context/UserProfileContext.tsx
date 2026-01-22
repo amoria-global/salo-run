@@ -1,6 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useDashboardAuth, type DashboardUser } from '../providers/AuthProvider';
 
 export interface UserProfile {
   fullName: string;
@@ -20,24 +21,79 @@ interface UserProfileContextType {
   updateProfile: (updates: Partial<UserProfile>) => void;
 }
 
-// Default profile data (will be replaced by backend data later)
-const defaultProfile: UserProfile = {
-  fullName: 'Diane Marry',
-  username: 'diane_marry',
-  email: 'dianemarry@gmail.com',
-  phoneCode: '+250',
-  phoneNumber: '788 123 456',
-  title: 'Client',
-  country: 'Rwanda',
-  province: 'Kigali City',
-  district: 'Gasabo',
-  sector: 'Kimironko',
-};
+/**
+ * Create profile from auth user data
+ */
+function createProfileFromUser(user: DashboardUser | null): UserProfile {
+  if (!user) {
+    return {
+      fullName: '',
+      username: '',
+      email: '',
+      phoneCode: '+250',
+      phoneNumber: '',
+      title: 'Client',
+      country: 'Rwanda',
+      province: 'Kigali City',
+      district: 'Gasabo',
+      sector: 'Kimironko',
+    };
+  }
+
+  // Parse phone number to extract code and number
+  const phone = user.phone || '';
+  let phoneCode = '+250';
+  let phoneNumber = phone;
+
+  // Try to extract country code if present
+  if (phone.startsWith('+')) {
+    const match = phone.match(/^(\+\d{1,4})\s*(.*)$/);
+    if (match) {
+      phoneCode = match[1];
+      phoneNumber = match[2];
+    }
+  }
+
+  return {
+    fullName: `${user.firstName} ${user.lastName}`.trim(),
+    username: user.email?.split('@')[0] || '',
+    email: user.email || '',
+    phoneCode,
+    phoneNumber,
+    title: user.customerType === 'photographer' ? 'Photographer' : 'Client',
+    country: 'Rwanda',
+    province: 'Kigali City',
+    district: 'Gasabo',
+    sector: 'Kimironko',
+  };
+}
 
 const UserProfileContext = createContext<UserProfileContextType | undefined>(undefined);
 
 export function UserProfileProvider({ children }: { children: ReactNode }) {
-  const [profile, setProfile] = useState<UserProfile>(defaultProfile);
+  // Get user from auth context
+  let authUser: DashboardUser | null = null;
+  try {
+    const auth = useDashboardAuth();
+    authUser = auth.user;
+  } catch {
+    // Auth provider not ready yet, use null
+  }
+
+  const [profile, setProfile] = useState<UserProfile>(() => createProfileFromUser(authUser));
+
+  // Update profile when auth user changes
+  useEffect(() => {
+    if (authUser) {
+      setProfile(prev => ({
+        ...prev,
+        fullName: `${authUser.firstName} ${authUser.lastName}`.trim(),
+        email: authUser.email || prev.email,
+        username: authUser.email?.split('@')[0] || prev.username,
+        title: authUser.customerType === 'photographer' ? 'Photographer' : 'Client',
+      }));
+    }
+  }, [authUser?.id, authUser?.firstName, authUser?.lastName, authUser?.email, authUser?.customerType]);
 
   const updateProfile = (updates: Partial<UserProfile>) => {
     setProfile(prev => ({ ...prev, ...updates }));
