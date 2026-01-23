@@ -512,6 +512,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [shareToClientSuccess, setShareToClientSuccess] = useState(false);
   const [shareType, setShareType] = useState<'album' | 'images'>('album'); // 'album' for full album, 'images' for selected images
+  const [maxImagesInput, setMaxImagesInput] = useState<string>('');
 
   // Upload form state
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
@@ -728,8 +729,6 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
     // Reset form and close modal
     resetUploadForm();
     setShowUploadModal(false);
-
-    alert(`Successfully uploaded ${selectedFiles.length} photo(s)!`);
   };
 
   const categories = ['All', 'Wedding', 'Portrait', 'Event', 'Product', 'Fashion', 'Architecture'];
@@ -860,7 +859,6 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
         });
       } else {
         navigator.clipboard.writeText(shareText);
-        alert('Share link copied to clipboard!');
       }
     }
   };
@@ -869,7 +867,6 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
     if (selectedImages.length > 0) {
       const confirmDelete = window.confirm(`Are you sure you want to delete ${selectedImages.length} image(s)?`);
       if (confirmDelete) {
-        alert(`${selectedImages.length} image(s) deleted successfully!`);
         setSelectedImages([]);
       }
     }
@@ -2764,7 +2761,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
             justifyContent: 'center',
             zIndex: 1000,
           }}
-          onClick={() => setShowShareModal(false)}
+          onClick={() => { setShowShareModal(false); setMaxImagesInput(''); }}
         >
           <div
             style={{
@@ -2782,7 +2779,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Send Album to Client</h3>
               <button
-                onClick={() => setShowShareModal(false)}
+                onClick={() => { setShowShareModal(false); setMaxImagesInput(''); }}
                 style={{
                   background: colors.bgTertiary,
                   border: `2px solid ${colors.borderSecondary}`,
@@ -2808,9 +2805,44 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
               </div>
             </div>
 
+            {/* Maximum Images Input */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.375rem' }}>
+                Maximum Images
+              </label>
+              <input
+                type="number"
+                min="1"
+                placeholder="Enter number of maximum images to be selected"
+                value={maxImagesInput}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '' || (/^\d+$/.test(val) && parseInt(val) > 0)) {
+                    setMaxImagesInput(val);
+                  }
+                }}
+                style={{
+                  width: '100%',
+                  padding: '0.625rem 1rem',
+                  border: `2px solid ${maxImagesInput && parseInt(maxImagesInput) > 0 ? '#16A34A' : colors.borderPrimary}`,
+                  borderRadius: '0.5rem',
+                  fontSize: '0.9rem',
+                  color: colors.textPrimary,
+                  backgroundColor: colors.bgCard,
+                  outline: 'none'
+                }}
+              />
+              {!maxImagesInput && (
+                <p style={{ fontSize: '0.75rem', color: '#F59E0B', margin: '0.375rem 0 0 0' }}>
+                  Please enter the maximum number of images the client can select
+                </p>
+              )}
+            </div>
+
             {/* Send to Client Section */}
             {(() => {
               const dedicatedClient = clientsList.find(c => c.id === sharePhoto.clientId);
+              const isSendEnabled = maxImagesInput && parseInt(maxImagesInput) > 0;
               return dedicatedClient ? (
                 <div style={{
                   backgroundColor: actualTheme === 'dark' ? '#064E3B' : '#F0FDF4',
@@ -2842,33 +2874,35 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                   </div>
                   <button
                     onClick={() => {
+                      if (!isSendEnabled) return;
                       setSelectedClientId(dedicatedClient.id);
                       setShareType('album');
-                      // Simulate sending
-                      alert(`Album "${sharePhoto.title}" has been sent to ${dedicatedClient.firstName} ${dedicatedClient.lastName}!`);
                       setShowShareModal(false);
+                      setMaxImagesInput('');
                     }}
+                    disabled={!isSendEnabled}
                     style={{
                       width: '100%',
                       padding: '0.875rem 1rem',
                       border: 'none',
                       borderRadius: '0.5rem',
-                      backgroundColor: '#16A34A',
+                      backgroundColor: isSendEnabled ? '#16A34A' : '#9CA3AF',
                       color: 'white',
                       fontSize: '0.95rem',
                       fontWeight: '600',
-                      cursor: 'pointer',
+                      cursor: isSendEnabled ? 'pointer' : 'not-allowed',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '0.5rem',
-                      transition: 'all 0.2s'
+                      transition: 'all 0.2s',
+                      opacity: isSendEnabled ? 1 : 0.7
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = '#15803D';
+                      if (isSendEnabled) e.currentTarget.style.backgroundColor = '#15803D';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = '#16A34A';
+                      if (isSendEnabled) e.currentTarget.style.backgroundColor = '#16A34A';
                     }}
                   >
                     <SendIcon />
