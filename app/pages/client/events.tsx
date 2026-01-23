@@ -1064,6 +1064,35 @@ const MyEventsPage = () => {
             font-size: 0.95rem !important;
           }
         }
+        @media (max-width: 375px) {
+          .mobile-main-content {
+            padding: 0.5rem !important;
+            padding-bottom: 5rem !important;
+          }
+          .mobile-title {
+            font-size: 1.2rem !important;
+          }
+          .mobile-subtitle {
+            font-size: 0.75rem !important;
+          }
+          .mobile-tabs button {
+            font-size: 0.75rem !important;
+            padding: 0.35rem 0.5rem !important;
+          }
+          .mobile-event-image {
+            height: 100px !important;
+          }
+          .mobile-event-content {
+            padding: 0.75rem !important;
+          }
+          .mobile-event-title {
+            font-size: 0.85rem !important;
+          }
+          .mobile-create-btn {
+            padding: 0.5rem 0.75rem !important;
+            font-size: 0.8rem !important;
+          }
+        }
       `}</style>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>

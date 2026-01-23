@@ -1003,7 +1003,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
           }
           .mobile-main-content {
             padding: 0.75rem !important;
-            padding-bottom: 8rem !important;
+            padding-bottom: 5rem !important;
             overflow-y: auto !important;
           }
           .mobile-title {
@@ -1017,15 +1017,10 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
             max-width: 500px !important;
             max-height: 85vh !important;
             padding: 1rem !important;
-            padding-bottom: 5rem !important;
-          }
-          .mobile-browse-modal-content {
-            padding-bottom: 8rem !important;
           }
           .mobile-browse-grid {
             grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
             gap: 0.75rem !important;
-            padding-bottom: 5rem !important;
           }
         }
         @media (max-width: 640px) {
@@ -1069,21 +1064,64 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
           }
           .mobile-main-content {
             padding: 0.5rem !important;
-            padding-bottom: 10rem !important;
+            padding-bottom: 5rem !important;
           }
           .mobile-modal {
             width: 95% !important;
             max-width: 95% !important;
             padding: 1rem !important;
-            padding-bottom: 6rem !important;
-          }
-          .mobile-browse-modal-content {
-            padding-bottom: 12rem !important;
           }
           .mobile-browse-grid {
             grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important;
             gap: 0.5rem !important;
-            padding-bottom: 8rem !important;
+          }
+        }
+        @media (max-width: 375px) {
+          .mobile-main-content {
+            padding: 0.375rem !important;
+            padding-bottom: 5rem !important;
+          }
+          .mobile-title {
+            font-size: 1.2rem !important;
+          }
+          .mobile-subtitle {
+            font-size: 0.75rem !important;
+          }
+          .mobile-stats-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.3rem !important;
+          }
+          .mobile-stats-grid > div {
+            padding: 0.5rem !important;
+          }
+          .mobile-stats-grid > div > div:first-child {
+            font-size: 0.6rem !important;
+          }
+          .mobile-stats-grid > div > div:last-child {
+            font-size: 0.9rem !important;
+          }
+          .mobile-header {
+            gap: 0.75rem !important;
+          }
+          .mobile-header button {
+            font-size: 0.75rem !important;
+            padding: 0.4rem 0.6rem !important;
+          }
+          .mobile-filters button {
+            font-size: 0.7rem !important;
+            padding: 0.3rem 0.6rem !important;
+          }
+          .mobile-gallery-grid {
+            gap: 0.75rem !important;
+          }
+          .mobile-modal {
+            width: 98% !important;
+            max-width: 98% !important;
+            padding: 0.75rem !important;
+          }
+          .mobile-browse-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.375rem !important;
           }
         }
       `}</style>
@@ -2764,6 +2802,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
           onClick={() => { setShowShareModal(false); setMaxImagesInput(''); }}
         >
           <div
+            className="mobile-modal"
             style={{
               backgroundColor: colors.bgCard,
               borderRadius: '0.75rem',
