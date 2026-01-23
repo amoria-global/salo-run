@@ -647,12 +647,16 @@ const ClientGallery = () => {
         @media (max-width: 768px) {
           .mobile-main-content {
             padding: 1rem !important;
-            padding-bottom: 8rem !important;
+            padding-bottom: 5rem !important;
           }
           .mobile-header {
             flex-direction: column !important;
             align-items: flex-start !important;
             gap: 1rem !important;
+          }
+          .mobile-header-buttons {
+            flex-wrap: wrap !important;
+            gap: 0.375rem !important;
           }
           .mobile-title {
             font-size: 1.5rem !important;
@@ -668,6 +672,9 @@ const ClientGallery = () => {
           .mobile-albums-grid {
             grid-template-columns: 1fr !important;
           }
+          .mobile-photobooks-grid {
+            grid-template-columns: 1fr !important;
+          }
           .mobile-multi-select-header {
             padding: 0.75rem 1rem !important;
             flex-wrap: wrap !important;
@@ -678,7 +685,6 @@ const ClientGallery = () => {
           }
           .mobile-multi-select-grid {
             padding: 1rem !important;
-            padding-bottom: 8rem !important;
           }
           .mobile-multi-select-grid > div {
             grid-template-columns: repeat(2, 1fr) !important;
@@ -697,21 +703,114 @@ const ClientGallery = () => {
             font-size: 0.75rem !important;
             padding: 0.375rem 0.75rem !important;
           }
+          .mobile-wizard-images {
+            grid-template-columns: repeat(3, 1fr) !important;
+          }
+          .mobile-book-container {
+            flex-direction: column !important;
+            min-height: auto !important;
+          }
+          .mobile-book-container > div {
+            height: 250px !important;
+            border-radius: 0.5rem !important;
+          }
+          .mobile-mosaic-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            grid-auto-rows: 150px !important;
+          }
         }
         @media (max-width: 640px) {
           .mobile-main-content {
             padding: 0.75rem !important;
-            padding-bottom: 10rem !important;
+            padding-bottom: 5rem !important;
           }
           .mobile-stats-grid {
             grid-template-columns: 1fr 1fr !important;
           }
-          .mobile-multi-select-grid {
-            padding-bottom: 10rem !important;
-          }
           .mobile-multi-select-grid > div {
             grid-template-columns: repeat(2, 1fr) !important;
             gap: 0.5rem !important;
+          }
+          .mobile-wizard-images {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+          .mobile-header-buttons {
+            gap: 0.25rem !important;
+          }
+          .mobile-header-buttons button {
+            font-size: 0.7rem !important;
+            padding: 0.375rem 0.5rem !important;
+          }
+          .mobile-book-container > div {
+            height: 200px !important;
+          }
+          .mobile-mosaic-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            grid-auto-rows: 120px !important;
+          }
+        }
+        @media (max-width: 375px) {
+          .mobile-main-content {
+            padding: 0.5rem !important;
+            padding-bottom: 5rem !important;
+          }
+          .mobile-stats-grid {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 0.375rem !important;
+          }
+          .mobile-stats-grid > div {
+            padding: 0.5rem !important;
+          }
+          .mobile-header {
+            gap: 0.75rem !important;
+          }
+          .mobile-header-buttons {
+            flex-wrap: wrap !important;
+            gap: 0.25rem !important;
+          }
+          .mobile-header-buttons button {
+            font-size: 0.65rem !important;
+            padding: 0.3rem 0.4rem !important;
+          }
+          .mobile-title {
+            font-size: 1.25rem !important;
+          }
+          .mobile-albums-grid {
+            grid-template-columns: 1fr !important;
+            gap: 0.75rem !important;
+          }
+          .mobile-photobooks-grid {
+            grid-template-columns: 1fr !important;
+            gap: 0.75rem !important;
+          }
+          .mobile-wizard-images {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.375rem !important;
+          }
+          .mobile-book-container {
+            flex-direction: column !important;
+            min-height: auto !important;
+            gap: 0.25rem !important;
+          }
+          .mobile-book-container > div {
+            height: 160px !important;
+            border-radius: 0.375rem !important;
+          }
+          .mobile-mosaic-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            grid-auto-rows: 100px !important;
+            gap: 0.375rem !important;
+          }
+          .mobile-multi-select-grid > div {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.375rem !important;
+          }
+          .mobile-select-controls {
+            padding: 0.5rem 0.75rem !important;
+          }
+          .mobile-bulk-actions button {
+            font-size: 0.7rem !important;
+            padding: 0.3rem 0.5rem !important;
           }
         }
       `}</style>
@@ -721,12 +820,12 @@ const ClientGallery = () => {
         <Topbar userRole="client" giftAmount={225.00} />
 
         {/* Main Content */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem' }}>
+        <div className="mobile-main-content" style={{ flex: 1, overflowY: 'auto', padding: '1.25rem' }}>
           {/* Header */}
-          <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <header className="mobile-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <h1 style={{ fontSize: '1.8rem', lineHeight: '2rem', color: colors.textPrimary, fontWeight: '600', margin: 0 }}>My Gallery</h1>
+                <h1 className="mobile-title" style={{ fontSize: '1.8rem', lineHeight: '2rem', color: colors.textPrimary, fontWeight: '600', margin: 0 }}>My Gallery</h1>
                 <span style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -749,7 +848,7 @@ const ClientGallery = () => {
                 Albums and photos from your completed events, shared by your photographers
               </p>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div className="mobile-header-buttons" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <button
                 onClick={() => setViewMode('grid')}
                 style={{
@@ -831,7 +930,7 @@ const ClientGallery = () => {
           </header>
 
           {/* Stats Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+          <div className="mobile-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
             <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Albums</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{albums.length}</div>
@@ -852,7 +951,7 @@ const ClientGallery = () => {
 
           {/* Filters */}
           <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', marginBottom: '1.5rem', border: `1px solid ${colors.borderPrimary}` }}>
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <div className="mobile-tabs" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
               {/* Search */}
               <div style={{ flex: 1, minWidth: '200px' }}>
                 <input
@@ -917,7 +1016,7 @@ const ClientGallery = () => {
           <>
           {/* Albums Grid/List */}
           {viewMode === 'grid' ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem' }}>
+            <div className="mobile-albums-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem' }}>
               {filteredAlbums.map((album) => (
                 <div
                   key={album.id}
@@ -1177,7 +1276,7 @@ const ClientGallery = () => {
                 </button>
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem' }}>
+              <div className="mobile-photobooks-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem' }}>
                 {filteredPhotobooks.map((photobook) => (
                   <div
                     key={photobook.id}
@@ -2427,7 +2526,7 @@ const ClientGallery = () => {
                     Maximum {MAX_IMAGE_SELECTION} images reached
                   </p>
                 )}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', maxHeight: '300px', overflowY: 'auto' }}>
+                <div className="mobile-wizard-images" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', maxHeight: '300px', overflowY: 'auto' }}>
                   {wizardSelectedAlbum.images.map((image, index) => {
                     const isSelected = wizardSelectedImages.includes(image);
                     const isMaxReached = !isSelected && wizardSelectedImages.length >= MAX_IMAGE_SELECTION;
@@ -2483,7 +2582,7 @@ const ClientGallery = () => {
               <div>
                 <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>Choose Cover Image</h3>
                 <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: '0 0 1rem 0' }}>Select an image as your photobook cover/thumbnail</p>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', maxHeight: '300px', overflowY: 'auto' }}>
+                <div className="mobile-wizard-images" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', maxHeight: '300px', overflowY: 'auto' }}>
                   {wizardSelectedImages.map((image, index) => (
                     <button
                       key={index}
@@ -3152,7 +3251,7 @@ const ClientGallery = () => {
                 gap: '1.5rem'
               }}>
                 {/* Book Container */}
-                <div style={{
+                <div className="mobile-book-container" style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0',
@@ -3414,7 +3513,7 @@ const ClientGallery = () => {
               </div>
             ) : selectedPhotobook.layout === 'mosaic' ? (
               /* Mosaic Layout */
-              <div style={{
+              <div className="mobile-mosaic-grid" style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(4, 1fr)',
                 gridAutoRows: '180px',
