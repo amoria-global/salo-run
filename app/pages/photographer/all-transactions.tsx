@@ -119,11 +119,7 @@ const allTransactionsData = [
   },
 ];
 
-interface AllTransactionsProps {
-  userType?: 'photographer' | 'freelancer';
-}
-
-const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) => {
+const AllTransactions = () => {
   const { colors, actualTheme } = useTheme();
   const [transactions] = useState(allTransactionsData);
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
@@ -305,7 +301,7 @@ const AllTransactions = ({ userType = 'photographer' }: AllTransactionsProps) =>
       <Sidebar />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar userRole={userType} tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
+        <Topbar userRole="photographer" tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
 
         {/* Main Content */}
         <div style={{

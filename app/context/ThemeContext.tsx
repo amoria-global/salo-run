@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { usePathname } from 'next/navigation';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
-export type UserRole = 'photographer' | 'freelancer' | 'client' | 'default';
+export type UserRole = 'photographer' | 'client' | 'default';
 
 interface ThemeContextType {
   theme: ThemeMode;
@@ -18,9 +18,6 @@ interface ThemeContextType {
 const detectRoleFromPath = (pathname: string | null): UserRole => {
   if (pathname && pathname.includes('/user/photographer')) {
     return 'photographer';
-  }
-  if (pathname && pathname.includes('/user/freelancer')) {
-    return 'freelancer';
   }
   if (pathname && pathname.includes('/user/client')) {
     return 'client';

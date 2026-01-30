@@ -527,7 +527,6 @@ interface WithdrawModalProps {
   isOpen: boolean;
   onClose: () => void;
   availableBalance: number;
-  userType?: 'photographer' | 'freelancer';
 }
 
 interface WithdrawAccount {
@@ -539,7 +538,7 @@ interface WithdrawAccount {
   color: string;
 }
 
-const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availableBalance, userType = 'photographer' }) => {
+const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availableBalance }) => {
   const { colors, actualTheme } = useTheme();
   const router = useRouter();
   const [withdrawAmount, setWithdrawAmount] = useState<string>('');
@@ -839,7 +838,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
           }}>
             <i className="bi bi-info-circle" style={{ marginRight: '0.375rem' }}></i>
             Manage your withdrawal accounts in <span
-              onClick={() => router.push(`/user/${userType}/preferences?tab=payments`)}
+              onClick={() => router.push('/user/photographer/preferences?tab=payments')}
               style={{ color: colors.brandPrimary, fontWeight: '500', cursor: 'pointer', textDecoration: 'underline' }}
             >Preferences → Withdrawal Accounts</span>
           </p>
@@ -1273,11 +1272,7 @@ const ServiceTypeBadge: React.FC<ServiceTypeBadgeProps> = ({ type }) => {
   );
 };
 
-interface TransactionsPageProps {
-  userType?: 'photographer' | 'freelancer';
-}
-
-const TransactionsPage = ({ userType = 'photographer' }: TransactionsPageProps) => {
+const TransactionsPage = () => {
   const { colors, actualTheme } = useTheme();
   const [activeTimeFilter, setActiveTimeFilter] = useState<'1W' | '1M' | '3M' | '6M' | '1Y'>('1W');
   const [currentPage, setCurrentPage] = useState(1);
@@ -1645,7 +1640,7 @@ Amount: ${transaction.amount}
       `}</style>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar userRole={userType} tipsAmount={totalTips} bonusAmount={platformBonus} balanceAmount={availableBalance} />
+        <Topbar userRole="photographer" tipsAmount={totalTips} bonusAmount={platformBonus} balanceAmount={availableBalance} />
         <div className="mobile-main-content" style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
 
           {/* Header with Withdraw Button */}
@@ -2045,7 +2040,6 @@ Amount: ${transaction.amount}
         isOpen={showWithdrawModal}
         onClose={() => setShowWithdrawModal(false)}
         availableBalance={availableBalance}
-        userType={userType}
       />
 
       {/* Tips Modal */}

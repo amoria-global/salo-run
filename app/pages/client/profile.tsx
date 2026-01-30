@@ -51,7 +51,7 @@ const ProfilePage = () => {
     province: profile.province,
     district: profile.district,
     sector: profile.sector,
-    // Fields only for photographers/freelancers
+    // Fields only for photographers
     companyName: 'Personal',
     workLocation: 'Kigali, Rwanda',
     availabilityDays: 'Weekends',

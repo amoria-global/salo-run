@@ -75,7 +75,7 @@ const SettingsIcon = () => (
   </svg>
 );
 
-// Notification types specific to photographers/freelancers
+// Notification types specific to photographers
 type NotificationType = 'payment' | 'tip' | 'bonus' | 'security' | 'album' | 'review';
 
 interface Notification {
@@ -90,7 +90,7 @@ interface Notification {
   actionUrl?: string;
 }
 
-// Sample notifications data for photographer/freelancer
+// Sample notifications data for photographer
 const photographerNotifications: Notification[] = [
   {
     id: '1',
@@ -209,11 +209,7 @@ const photographerNotifications: Notification[] = [
   }
 ];
 
-interface NotificationsProps {
-  userType?: 'photographer' | 'freelancer';
-}
-
-const Notifications = ({ userType = 'photographer' }: NotificationsProps) => {
+const Notifications = () => {
   const { colors, actualTheme } = useTheme();
   const [notifications, setNotifications] = useState(photographerNotifications);
   const [activeFilter, setActiveFilter] = useState<'all' | NotificationType>('all');
@@ -473,7 +469,7 @@ const Notifications = ({ userType = 'photographer' }: NotificationsProps) => {
         <Sidebar />
 
         <div className="notifications-content">
-          <Topbar userRole={userType} tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
+          <Topbar userRole="photographer" tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
 
           <div className="notifications-main">
           {/* Header */}

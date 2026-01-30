@@ -1064,6 +1064,35 @@ const MyEventsPage = () => {
             font-size: 0.95rem !important;
           }
         }
+        @media (max-width: 375px) {
+          .mobile-main-content {
+            padding: 0.5rem !important;
+            padding-bottom: 5rem !important;
+          }
+          .mobile-title {
+            font-size: 1.2rem !important;
+          }
+          .mobile-subtitle {
+            font-size: 0.75rem !important;
+          }
+          .mobile-tabs button {
+            font-size: 0.75rem !important;
+            padding: 0.35rem 0.5rem !important;
+          }
+          .mobile-event-image {
+            height: 100px !important;
+          }
+          .mobile-event-content {
+            padding: 0.75rem !important;
+          }
+          .mobile-event-title {
+            font-size: 0.85rem !important;
+          }
+          .mobile-create-btn {
+            padding: 0.5rem 0.75rem !important;
+            font-size: 0.8rem !important;
+          }
+        }
       `}</style>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -1527,21 +1556,15 @@ const MyEventsPage = () => {
             </div>
           </div>
 
-          {/* Section: Pricing & Capacity */}
+          {/* Section: Capacity */}
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
               <DollarIcon />
-              <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Pricing & Capacity</span>
+              <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Capacity</span>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Live Stream Access Fee (Optional)</label>
-                <input type="text" value={createPrice} onChange={(e) => setCreatePrice(e.target.value)} placeholder="e.g., 15,000 RWF or Free" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Expected Attendees *</label>
-                <input type="number" value={createMaxGuests} onChange={(e) => setCreateMaxGuests(e.target.value)} placeholder="e.g., 500" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
-              </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Expected Attendees *</label>
+              <input type="number" value={createMaxGuests} onChange={(e) => setCreateMaxGuests(e.target.value)} placeholder="e.g., 500" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
             </div>
           </div>
 
@@ -2277,21 +2300,15 @@ const MyEventsPage = () => {
               </div>
             </div>
 
-            {/* Section: Pricing & Capacity */}
+            {/* Section: Capacity */}
             <div style={{ marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                 <DollarIcon />
-                <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Pricing & Capacity</span>
+                <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Capacity</span>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Live Stream Access Fee (Optional)</label>
-                  <input type="text" value={editPrice} onChange={(e) => setEditPrice(e.target.value)} placeholder="e.g., 15,000 RWF or Free" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Expected Attendees *</label>
-                  <input type="number" value={editMaxGuests} onChange={(e) => setEditMaxGuests(e.target.value)} placeholder="e.g., 500" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
-                </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Expected Attendees *</label>
+                <input type="number" value={editMaxGuests} onChange={(e) => setEditMaxGuests(e.target.value)} placeholder="e.g., 500" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
               </div>
             </div>
 
