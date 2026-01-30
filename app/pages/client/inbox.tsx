@@ -111,7 +111,11 @@ interface Conversation {
   messages: Message[];
 }
 
-const InboxPage = () => {
+interface InboxPageProps {
+  userRole?: 'client' | 'event-coordinator';
+}
+
+const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
   const { colors, actualTheme } = useTheme();
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -526,7 +530,7 @@ const InboxPage = () => {
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div className={`mobile-topbar ${selectedConversation ? 'mobile-chat-active' : ''}`}>
-          <Topbar userRole="client" giftAmount={225.00} />
+          <Topbar userRole={userRole} giftAmount={userRole === 'client' ? 225.00 : undefined} liveStreamFeeAmount={userRole === 'event-coordinator' ? 3250.00 : undefined} />
         </div>
         <div className="mobile-inbox-container" style={{ flex: 1, display: 'flex', overflow: 'hidden', margin: '0 1.25rem 1rem 1.25rem' }}>
 

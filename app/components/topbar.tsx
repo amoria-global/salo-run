@@ -60,21 +60,22 @@ interface TopbarProps {
   bonusAmount?: number;
   tipsAmount?: number; // Tips from viewers/clients
   giftAmount?: number;
-  balanceAmount?: number; // For photographer/freelancer - unwithdrawn paid amount + tips + bonuses
-  userRole?: 'client' | 'photographer' | 'freelancer' | 'admin';
+  balanceAmount?: number; // For photographer - unwithdrawn paid amount + tips + bonuses
+  liveStreamFeeAmount?: number; // For event-coordinator - Live Stream Access Fee revenue
+  userRole?: 'client' | 'photographer' | 'admin' | 'event-coordinator';
 }
 
-export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmount, userRole = 'client' }: TopbarProps) {
+export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmount, liveStreamFeeAmount, userRole = 'client' }: TopbarProps) {
   const { colors, actualTheme } = useTheme();
 
   const getRoleDisplayName = (role: string) => {
     switch (role) {
       case 'photographer':
         return 'Photographer';
-      case 'freelancer':
-        return 'Freelancer';
       case 'admin':
         return 'Admin';
+      case 'event-coordinator':
+        return 'Event Coordinator';
       case 'client':
       default:
         return 'Client';
@@ -550,8 +551,8 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
                 <a
                   href={userRole === 'photographer'
                     ? '/user/photographer/notifications'
-                    : userRole === 'freelancer'
-                      ? '/user/freelancer/notifications'
+                    : userRole === 'event-coordinator'
+                      ? '/user/event-coordinator/notifications'
                       : '/user/client/notifications'}
                   style={{
                     color: '#2563EB',
@@ -567,8 +568,8 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
           )}
         </div>
 
-        {/* Balance - Shows for photographer/freelancer only */}
-        {(userRole === 'photographer' || userRole === 'freelancer') && (
+        {/* Balance - Shows for photographer only */}
+        {userRole === 'photographer' && (
           <div className="topbar-balance" style={{
             display: 'flex',
             alignItems: 'center',
@@ -589,8 +590,8 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
           </div>
         )}
 
-        {/* Tips - Shows for photographer/freelancer only (from clients/viewers) */}
-        {(userRole === 'photographer' || userRole === 'freelancer') && (
+        {/* Tips - Shows for photographer only (from clients/viewers) */}
+        {userRole === 'photographer' && (
           <div className="topbar-tips" style={{
             display: 'flex',
             alignItems: 'center',
@@ -611,7 +612,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
           </div>
         )}
 
-        {/* Bonus/Gift - Shows Gift for clients, Bonus for photographers/freelancers (platform rewards) */}
+        {/* Bonus/Gift/Live Stream Fees - Shows Gift for clients, Live Stream Fees for event-coordinator, Bonus for photographers (platform rewards) */}
         <div className="topbar-bonus" style={{
           display: 'flex',
           alignItems: 'center',
@@ -622,17 +623,21 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
             lineHeight: '1.5rem',
             fontWeight: '600',
             color: colors.textPrimary
-          }}>{userRole === 'client' ? 'Gifts:' : 'Bonus:'}</span>
+          }}>{userRole === 'client' ? 'Gifts:' : userRole === 'event-coordinator' ? 'Stream Fees:' : 'Bonus:'}</span>
           <span style={{
             fontSize: '1.15rem',
             lineHeight: '1.5rem',
             fontWeight: '600',
             color: userRole === 'client'
               ? (giftAmount && giftAmount > 0 ? colors.statusSuccess : colors.brandPrimary)
-              : (bonusAmount && bonusAmount > 0 ? colors.statusSuccess : colors.brandPrimary)
+              : userRole === 'event-coordinator'
+                ? (liveStreamFeeAmount && liveStreamFeeAmount > 0 ? colors.statusSuccess : colors.brandPrimary)
+                : (bonusAmount && bonusAmount > 0 ? colors.statusSuccess : colors.brandPrimary)
           }}>${userRole === 'client'
             ? (giftAmount !== undefined ? giftAmount.toFixed(2) : '0.00')
-            : (bonusAmount !== undefined ? bonusAmount.toFixed(2) : '0.00')}</span>
+            : userRole === 'event-coordinator'
+              ? (liveStreamFeeAmount !== undefined ? liveStreamFeeAmount.toFixed(2) : '0.00')
+              : (bonusAmount !== undefined ? bonusAmount.toFixed(2) : '0.00')}</span>
         </div>
 
         {/* Profile with Dropdown */}
@@ -686,7 +691,9 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
                   color: colors.textPrimary
                 }}>${userRole === 'client'
                   ? (giftAmount !== undefined ? giftAmount.toFixed(2) : '0.00')
-                  : (balanceAmount !== undefined ? balanceAmount.toFixed(2) : '0.00')}</span>
+                  : userRole === 'event-coordinator'
+                    ? (liveStreamFeeAmount !== undefined ? liveStreamFeeAmount.toFixed(2) : '0.00')
+                    : (balanceAmount !== undefined ? balanceAmount.toFixed(2) : '0.00')}</span>
                 <i style={{
                   fontSize: '0.75rem',
                   lineHeight: '1rem',

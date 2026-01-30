@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useState, useMemo } from "react";
 import { useTheme } from "../context/ThemeContext";
 
-type UserRole = "photographer" | "client" | "freelancer";
+type UserRole = "photographer" | "client" | "event-coordinator";
 
 interface NavigationItem {
   name: string;
@@ -20,8 +20,8 @@ const getNotificationCounts = (role: UserRole) => {
   // Sample notification counts - in production, these would be fetched from backend
   const counts = {
     photographer: { notifications: 5, messages: 6 },
-    freelancer: { notifications: 3, messages: 4 },
-    client: { notifications: 4, messages: 2 }
+    client: { notifications: 4, messages: 2 },
+    "event-coordinator": { notifications: 6, messages: 3 }
   };
   return counts[role];
 };
@@ -37,15 +37,6 @@ const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
     { name: "Inbox", href: "/user/photographer/inbox", icon: "bi-chat-dots" },
     { name: "Clients", href: "/user/photographer/clients", icon: "bi-people" },
   ],
-  freelancer: [
-    { name: "Home", href: "/user/freelancer/dashboard", icon: "bi-house" },
-    { name: "Notifications", href: "/user/freelancer/notifications", icon: "bi-bell" },
-    { name: "Transactions", href: "/user/freelancer/transaction", icon: "bi-arrow-repeat" },
-    { name: "Gallery", href: "/user/freelancer/gallery", icon: "bi-image" },
-    { name: "Streams", href: "/user/freelancer/streams", icon: "bi-broadcast" },
-    { name: "Inbox", href: "/user/freelancer/inbox", icon: "bi-chat-dots" },
-    { name: "Clients", href: "/user/freelancer/clients", icon: "bi-people" },
-  ],
   client: [
     { name: "Home", href: "/user/client/home", icon: "bi-house" },
     { name: "Notifications", href: "/user/client/notifications", icon: "bi-bell" },
@@ -55,6 +46,16 @@ const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
     { name: "Photographers", href: "/user/client/photographers", icon: "bi-camera" },
     { name: "Payments", href: "/user/client/payments", icon: "bi-credit-card" },
     { name: "Inbox", href: "/user/client/inbox", icon: "bi-chat-dots" },
+  ],
+  "event-coordinator": [
+    { name: "Home", href: "/user/event-coordinator/home", icon: "bi-house" },
+    { name: "Notifications", href: "/user/event-coordinator/notifications", icon: "bi-bell" },
+    { name: "My Events", href: "/user/event-coordinator/events", icon: "bi-calendar-event" },
+    { name: "Streams", href: "/user/event-coordinator/streams", icon: "bi-broadcast" },
+    { name: "Gallery", href: "/user/event-coordinator/gallery", icon: "bi-image" },
+    { name: "Photographers", href: "/user/event-coordinator/photographers", icon: "bi-camera" },
+    { name: "Payments", href: "/user/event-coordinator/payments", icon: "bi-credit-card" },
+    { name: "Inbox", href: "/user/event-coordinator/inbox", icon: "bi-chat-dots" },
   ],
 };
 
@@ -66,10 +67,10 @@ const getBottomNavigationItems = (role: UserRole): NavigationItem[] => {
       { name: "Preferences", href: "/user/photographer/preferences", icon: "bi-sliders" },
       { name: "Logout", href: "/", icon: "bi-box-arrow-right" },
     ];
-  } else if (role === "freelancer") {
+  } else if (role === "event-coordinator") {
     return [
-      { name: "Profile", href: "/user/freelancer/profile", icon: "bi-person" },
-      { name: "Preferences", href: "/user/freelancer/preferences", icon: "bi-sliders" },
+      { name: "Profile", href: "/user/event-coordinator/profile", icon: "bi-person" },
+      { name: "Preferences", href: "/user/event-coordinator/preferences", icon: "bi-sliders" },
       { name: "Logout", href: "/", icon: "bi-box-arrow-right" },
     ];
   } else {
@@ -86,8 +87,8 @@ const detectRoleFromPath = (pathname: string | null): UserRole => {
   if (pathname && pathname.includes("/user/photographer")) {
     return "photographer";
   }
-  if (pathname && pathname.includes("/user/freelancer")) {
-    return "freelancer";
+  if (pathname && pathname.includes("/user/event-coordinator")) {
+    return "event-coordinator";
   }
   return "client";
 };
