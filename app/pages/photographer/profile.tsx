@@ -39,6 +39,12 @@ interface ProfileFormData {
     availability: {
       [key: string]: DayAvailability;
     };
+    // Employment Information (optional)
+    employmentStatus?: '' | 'self-employed' | 'employed';
+    companyName?: string;
+    companyAddress?: string;
+    positionRole?: string;
+    employmentType?: '' | 'full-time' | 'part-time' | 'contract';
   };
   overviewData: {
     about: string;
@@ -56,7 +62,6 @@ interface ProfileFormData {
   experienceData: {
     experiences: { id: string; position: string; company: string; location: string; startDate: string; endDate: string; description: string }[];
   };
-  userType: 'photographer' | 'freelancer';
   savedAt: number;
 }
 
@@ -140,11 +145,7 @@ interface Experience {
   description: string;
 }
 
-interface PhotographerProfilePageProps {
-  userType?: 'photographer' | 'freelancer';
-}
-
-const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProfilePageProps) => {
+const PhotographerProfilePage = () => {
   const { colors, actualTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<'overview' | 'portfolio' | 'experience'>('overview');
 
@@ -201,7 +202,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   // Basic Information State
   const [basicInfo, setBasicInfo] = useState({
     fullName: 'John Smith',
-    username: userType === 'freelancer' ? 'john_freelancer' : 'john_photographer',
+    username: 'john_photographer',
     email: 'johnsmith@gmail.com',
     phoneCode: '+250',
     phoneNumber: '788 456 789',
@@ -211,6 +212,12 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     district: 'Gasabo',
     sector: 'Remera',
     availability: defaultAvailability,
+    // Employment Information (optional - for photographers working for companies)
+    employmentStatus: '' as '' | 'self-employed' | 'employed',
+    companyName: '',
+    companyAddress: '',
+    positionRole: '',
+    employmentType: '' as '' | 'full-time' | 'part-time' | 'contract',
   });
 
   // Overview Tab State
@@ -290,6 +297,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     phoneNumber: ''
   });
 
+  // Edit mode state - when false, all fields are disabled
+  const [isEditEnabled, setIsEditEnabled] = useState(false);
+
   // Validation handlers for sensitive input fields
   const handleFullNameChange = (value: string) => {
     // Allow only letters, spaces, and common name characters (hyphens, apostrophes)
@@ -328,16 +338,15 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       overviewData,
       portfolioData,
       experienceData,
-      userType,
       savedAt: Date.now()
     };
 
     try {
-      await profileFormStorage.setItem(`${PROFILE_FORM_KEY}_${userType}`, formData);
+      await profileFormStorage.setItem(PROFILE_FORM_KEY, formData);
     } catch (error) {
       console.error('Failed to save profile draft:', error);
     }
-  }, [basicInfo, overviewData, portfolioData, experienceData, userType]);
+  }, [basicInfo, overviewData, portfolioData, experienceData]);
 
   // Debounced auto-save when form fields change
   useEffect(() => {
@@ -362,8 +371,8 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     const restoreDraft = async () => {
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const savedDraft = await profileFormStorage.getItem<any>(`${PROFILE_FORM_KEY}_${userType}`);
-        if (savedDraft && savedDraft.userType === userType) {
+        const savedDraft = await profileFormStorage.getItem<any>(PROFILE_FORM_KEY);
+        if (savedDraft) {
           setIsRestoringDraft(true);
 
           if (savedDraft.basicInfo) {
@@ -372,6 +381,14 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
             if (!restoredBasicInfo.availability) {
               // Old format detected - migrate to new availability structure
               restoredBasicInfo.availability = defaultAvailability;
+            }
+            // Ensure employment fields exist
+            if (!restoredBasicInfo.employmentStatus) {
+              restoredBasicInfo.employmentStatus = '';
+              restoredBasicInfo.companyName = '';
+              restoredBasicInfo.companyAddress = '';
+              restoredBasicInfo.positionRole = '';
+              restoredBasicInfo.employmentType = '';
             }
             setBasicInfo(restoredBasicInfo);
           }
@@ -392,7 +409,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     };
 
     restoreDraft();
-  }, [userType]);
+  }, []);
 
   // Calculate profile completion percentage
   const profileCompletion = useMemo(() => {
@@ -726,9 +743,11 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     borderRadius: '0.5rem',
     fontSize: '0.95rem',
     color: colors.textPrimary,
-    backgroundColor: colors.bgCard,
+    backgroundColor: isEditEnabled ? colors.bgCard : colors.bgTertiary,
     outline: 'none',
-    transition: 'border-color 0.2s'
+    transition: 'border-color 0.2s, background-color 0.2s',
+    cursor: isEditEnabled ? 'text' : 'not-allowed',
+    opacity: isEditEnabled ? 1 : 0.7
   };
 
   const labelStyle = {
@@ -742,6 +761,12 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   const inputErrorStyle = {
     ...inputStyle,
     borderColor: '#EF4444'
+  };
+
+  // Style for select inputs
+  const selectStyle = {
+    ...inputStyle,
+    cursor: isEditEnabled ? 'pointer' : 'not-allowed'
   };
 
   const errorMessageStyle = {
@@ -1040,7 +1065,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         flexDirection: 'column',
         overflow: 'hidden'
       }}>
-        <Topbar userRole={userType} tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
+        <Topbar userRole="photographer" tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
 
         <div className="mobile-main-content" style={{
           flex: 1,
@@ -1060,24 +1085,73 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
               fontWeight: '700',
               color: colors.textPrimary
             }}>Edit Profile</h1>
-            <button
-              className="save-button-enhanced"
-              style={{
-                backgroundColor: '#083A85',
-                color: 'white',
-                border: '2px solid #062a63',
-                borderRadius: '0.5rem',
-                padding: '0.75rem 1.5rem',
-                fontSize: '0.95rem',
-                fontWeight: '600',
-                cursor: 'pointer',
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              {/* Edit Toggle Switch */}
+              <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem'
-              }}
-            >
-              Save Changes
-            </button>
+                gap: '0.75rem'
+              }}>
+                <span style={{
+                  fontSize: '0.9rem',
+                  color: colors.textSecondary
+                }}>Edit</span>
+                <button
+                  onClick={() => setIsEditEnabled(!isEditEnabled)}
+                  style={{
+                    width: '48px',
+                    height: '26px',
+                    borderRadius: '13px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    backgroundColor: isEditEnabled ? '#083A85' : (actualTheme === 'dark' ? '#4B5563' : '#D1D5DB'),
+                    transition: 'background-color 0.2s'
+                  }}
+                >
+                  <div style={{
+                    width: '22px',
+                    height: '22px',
+                    borderRadius: '50%',
+                    backgroundColor: colors.bgCard,
+                    position: 'absolute',
+                    top: '2px',
+                    left: isEditEnabled ? '24px' : '2px',
+                    transition: 'left 0.2s',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)'
+                  }} />
+                </button>
+                <span style={{
+                  fontSize: '0.9rem',
+                  fontWeight: '500',
+                  color: isEditEnabled ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : '#6B7280'
+                }}>
+                  {isEditEnabled ? 'Enabled' : 'Disabled'}
+                </span>
+              </div>
+              {/* Save Changes Button */}
+              <button
+                className="save-button-enhanced"
+                disabled={!isEditEnabled}
+                style={{
+                  backgroundColor: isEditEnabled ? '#083A85' : colors.bgTertiary,
+                  color: isEditEnabled ? 'white' : colors.textSecondary,
+                  border: isEditEnabled ? '2px solid #062a63' : `2px solid ${colors.borderPrimary}`,
+                  borderRadius: '0.5rem',
+                  padding: '0.75rem 1.5rem',
+                  fontSize: '0.95rem',
+                  fontWeight: '600',
+                  cursor: isEditEnabled ? 'pointer' : 'not-allowed',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  opacity: isEditEnabled ? 1 : 0.6,
+                  transition: 'all 0.2s'
+                }}
+              >
+                Save Changes
+              </button>
+            </div>
           </div>
 
           {/* Draft Restored Notice */}
@@ -1424,6 +1498,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           type="text"
                           value={basicInfo.fullName}
                           onChange={(e) => handleFullNameChange(e.target.value)}
+                          disabled={!isEditEnabled}
                           style={validationErrors.fullName ? inputErrorStyle : inputStyle}
                         />
                         {validationErrors.fullName && (
@@ -1436,6 +1511,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           type="text"
                           value={basicInfo.username}
                           onChange={(e) => handleUsernameChange(e.target.value)}
+                          disabled={!isEditEnabled}
                           style={validationErrors.username ? inputErrorStyle : inputStyle}
                         />
                         {validationErrors.username && (
@@ -1448,7 +1524,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           type="email"
                           value={basicInfo.email}
                           disabled
-                          style={{ ...inputStyle, backgroundColor: colors.bgTertiary, cursor: 'not-allowed' }}
+                          style={{ ...inputStyle, backgroundColor: colors.bgTertiary, cursor: 'not-allowed', opacity: 0.7 }}
                         />
                       </div>
                       <div>
@@ -1457,7 +1533,8 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           <select
                             value={basicInfo.phoneCode}
                             onChange={(e) => setBasicInfo(prev => ({ ...prev, phoneCode: e.target.value }))}
-                            style={{ ...inputStyle, width: '110px' }}
+                            disabled={!isEditEnabled}
+                            style={{ ...selectStyle, width: '110px' }}
                           >
                             {eastAfricanCountries.map((country) => (
                               <option key={country.code} value={country.code}>
@@ -1469,6 +1546,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                             type="tel"
                             value={basicInfo.phoneNumber}
                             onChange={(e) => handlePhoneNumberChange(e.target.value)}
+                            disabled={!isEditEnabled}
                             style={validationErrors.phoneNumber ? { ...inputErrorStyle, flex: 1 } : { ...inputStyle, flex: 1 }}
                           />
                         </div>
@@ -1481,7 +1559,8 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                         <select
                           value={basicInfo.specialty}
                           onChange={(e) => setBasicInfo(prev => ({ ...prev, specialty: e.target.value as 'Photographer' | 'Videographer' }))}
-                          style={inputStyle}
+                          disabled={!isEditEnabled}
+                          style={selectStyle}
                         >
                           <option value="Photographer">Photographer</option>
                           <option value="Videographer">Videographer</option>
@@ -1491,13 +1570,14 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                         <label style={labelStyle}>Country</label>
                         <select
                           value={basicInfo.country}
+                          disabled={!isEditEnabled}
                           onChange={(e) => {
                             setBasicInfo(prev => ({ ...prev, country: e.target.value }));
                             if (e.target.value !== 'Rwanda') {
                               setBasicInfo(prev => ({ ...prev, province: '', district: '', sector: '' }));
                             }
                           }}
-                          style={inputStyle}
+                          style={selectStyle}
                         >
                           {eastAfricanCountries.map((country) => (
                             <option key={country.name} value={country.name}>
@@ -1511,11 +1591,12 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                         {basicInfo.country === 'Rwanda' ? (
                           <select
                             value={basicInfo.province}
+                            disabled={!isEditEnabled}
                             onChange={(e) => {
                               const districts = rwandaProvinces[e.target.value] || [];
                               setBasicInfo(prev => ({ ...prev, province: e.target.value, district: districts[0] || '' }));
                             }}
-                            style={inputStyle}
+                            style={selectStyle}
                           >
                             {Object.keys(rwandaProvinces).map((province) => (
                               <option key={province} value={province}>{province}</option>
@@ -1527,6 +1608,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                             value={basicInfo.province}
                             onChange={(e) => setBasicInfo(prev => ({ ...prev, province: e.target.value }))}
                             placeholder="Enter province"
+                            disabled={!isEditEnabled}
                             style={inputStyle}
                           />
                         )}
@@ -1537,7 +1619,8 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           <select
                             value={basicInfo.district}
                             onChange={(e) => setBasicInfo(prev => ({ ...prev, district: e.target.value }))}
-                            style={inputStyle}
+                            disabled={!isEditEnabled}
+                            style={selectStyle}
                           >
                             {(rwandaProvinces[basicInfo.province] || []).map((district) => (
                               <option key={district} value={district}>{district}</option>
@@ -1549,9 +1632,112 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                             value={basicInfo.district}
                             onChange={(e) => setBasicInfo(prev => ({ ...prev, district: e.target.value }))}
                             placeholder="Enter district"
+                            disabled={!isEditEnabled}
                             style={inputStyle}
                           />
                         )}
+                      </div>
+                    </div>
+
+                    {/* Employment Information Section (Optional) */}
+                    <div style={sectionTitleStyle}>
+                      <span>Employment Information</span>
+                      <span style={{ fontSize: '0.8rem', fontWeight: '400', color: colors.textSecondary, marginLeft: '0.5rem' }}>(Optional)</span>
+                    </div>
+                    <p style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '1rem' }}>
+                      If you work for a photography company or studio, you can add your employment details here
+                    </p>
+                    <div className="mobile-form-grid-2" style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(2, 1fr)',
+                      gap: '1.25rem',
+                      marginBottom: '1.5rem'
+                    }}>
+                      <div>
+                        <label style={labelStyle}>Employment Status</label>
+                        <select
+                          value={basicInfo.employmentStatus}
+                          disabled={!isEditEnabled}
+                          onChange={(e) => setBasicInfo(prev => ({
+                            ...prev,
+                            employmentStatus: e.target.value as '' | 'self-employed' | 'employed',
+                            // Clear company fields if switching to self-employed or empty
+                            ...(e.target.value !== 'employed' ? {
+                              companyName: '',
+                              companyAddress: '',
+                              positionRole: '',
+                              employmentType: ''
+                            } : {})
+                          }))}
+                          style={selectStyle}
+                        >
+                          <option value="">Not specified</option>
+                          <option value="self-employed">Self-Employed / Independent</option>
+                          <option value="employed">Employed by Company</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Employment Type</label>
+                        <select
+                          value={basicInfo.employmentType}
+                          onChange={(e) => setBasicInfo(prev => ({ ...prev, employmentType: e.target.value as '' | 'full-time' | 'part-time' | 'contract' }))}
+                          disabled={!isEditEnabled || basicInfo.employmentStatus !== 'employed'}
+                          style={{
+                            ...selectStyle,
+                            opacity: (!isEditEnabled || basicInfo.employmentStatus !== 'employed') ? 0.5 : 1,
+                            cursor: (!isEditEnabled || basicInfo.employmentStatus !== 'employed') ? 'not-allowed' : 'pointer'
+                          }}
+                        >
+                          <option value="">Select type</option>
+                          <option value="full-time">Full-Time</option>
+                          <option value="part-time">Part-Time</option>
+                          <option value="contract">Contract / Freelance</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Company Name</label>
+                        <input
+                          type="text"
+                          value={basicInfo.companyName}
+                          onChange={(e) => setBasicInfo(prev => ({ ...prev, companyName: e.target.value }))}
+                          placeholder="e.g., Elite Photography Studios"
+                          disabled={!isEditEnabled || basicInfo.employmentStatus !== 'employed'}
+                          style={{
+                            ...inputStyle,
+                            opacity: (!isEditEnabled || basicInfo.employmentStatus !== 'employed') ? 0.5 : 1,
+                            cursor: (!isEditEnabled || basicInfo.employmentStatus !== 'employed') ? 'not-allowed' : 'text'
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Position / Role</label>
+                        <input
+                          type="text"
+                          value={basicInfo.positionRole}
+                          onChange={(e) => setBasicInfo(prev => ({ ...prev, positionRole: e.target.value }))}
+                          placeholder="e.g., Senior Photographer"
+                          disabled={!isEditEnabled || basicInfo.employmentStatus !== 'employed'}
+                          style={{
+                            ...inputStyle,
+                            opacity: (!isEditEnabled || basicInfo.employmentStatus !== 'employed') ? 0.5 : 1,
+                            cursor: (!isEditEnabled || basicInfo.employmentStatus !== 'employed') ? 'not-allowed' : 'text'
+                          }}
+                        />
+                      </div>
+                      <div style={{ gridColumn: 'span 2' }}>
+                        <label style={labelStyle}>Company Address</label>
+                        <input
+                          type="text"
+                          value={basicInfo.companyAddress}
+                          onChange={(e) => setBasicInfo(prev => ({ ...prev, companyAddress: e.target.value }))}
+                          placeholder="e.g., KN 5 Rd, Kigali, Rwanda"
+                          disabled={!isEditEnabled || basicInfo.employmentStatus !== 'employed'}
+                          style={{
+                            ...inputStyle,
+                            opacity: (!isEditEnabled || basicInfo.employmentStatus !== 'employed') ? 0.5 : 1,
+                            cursor: (!isEditEnabled || basicInfo.employmentStatus !== 'employed') ? 'not-allowed' : 'text'
+                          }}
+                        />
                       </div>
                     </div>
 
@@ -1590,11 +1776,13 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                               alignItems: 'center',
                               gap: '0.75rem',
                               minWidth: '140px',
-                              cursor: 'pointer'
+                              cursor: isEditEnabled ? 'pointer' : 'not-allowed',
+                              opacity: isEditEnabled ? 1 : 0.7
                             }}>
                               <input
                                 type="checkbox"
                                 checked={dayAvailability.enabled}
+                                disabled={!isEditEnabled}
                                 onChange={(e) => setBasicInfo(prev => ({
                                   ...prev,
                                   availability: {
@@ -1606,7 +1794,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                   width: '18px',
                                   height: '18px',
                                   accentColor: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
-                                  cursor: 'pointer'
+                                  cursor: isEditEnabled ? 'pointer' : 'not-allowed'
                                 }}
                               />
                               <span style={{
@@ -1623,6 +1811,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
                                 <select
                                   value={dayAvailability.startTime}
+                                  disabled={!isEditEnabled}
                                   onChange={(e) => setBasicInfo(prev => ({
                                     ...prev,
                                     availability: {
@@ -1630,7 +1819,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                       [day]: { ...prev.availability[day], startTime: e.target.value }
                                     }
                                   }))}
-                                  style={{ ...inputStyle, flex: 1, padding: '0.5rem 0.75rem' }}
+                                  style={{ ...selectStyle, flex: 1, padding: '0.5rem 0.75rem' }}
                                 >
                                   {timeOptions.map((time) => (
                                     <option key={time} value={time}>{time}</option>
@@ -1639,6 +1828,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                 <span style={{ color: colors.textSecondary, fontSize: '0.875rem' }}>to</span>
                                 <select
                                   value={dayAvailability.endTime}
+                                  disabled={!isEditEnabled}
                                   onChange={(e) => setBasicInfo(prev => ({
                                     ...prev,
                                     availability: {
@@ -1646,7 +1836,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                       [day]: { ...prev.availability[day], endTime: e.target.value }
                                     }
                                   }))}
-                                  style={{ ...inputStyle, flex: 1, padding: '0.5rem 0.75rem' }}
+                                  style={{ ...selectStyle, flex: 1, padding: '0.5rem 0.75rem' }}
                                 >
                                   {timeOptions.map((time) => (
                                     <option key={time} value={time}>{time}</option>
@@ -1676,6 +1866,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       onChange={(e) => setOverviewData(prev => ({ ...prev, about: e.target.value }))}
                       placeholder="Tell clients about yourself, your experience, and what makes you unique..."
                       rows={4}
+                      disabled={!isEditEnabled}
                       style={{ ...inputStyle, resize: 'vertical', marginBottom: '2rem' }}
                     />
 
@@ -1697,7 +1888,8 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                         return (
                           <button
                             key={specialty}
-                            onClick={() => toggleSpecialty(specialty)}
+                            onClick={() => isEditEnabled && toggleSpecialty(specialty)}
+                            disabled={!isEditEnabled}
                             style={{
                               padding: '0.5rem 1rem',
                               borderRadius: '2rem',
@@ -1706,11 +1898,12 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                               color: isSelected ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.textSecondary,
                               fontSize: '0.875rem',
                               fontWeight: '500',
-                              cursor: 'pointer',
+                              cursor: isEditEnabled ? 'pointer' : 'not-allowed',
                               display: 'flex',
                               alignItems: 'center',
                               gap: '0.375rem',
-                              transition: 'all 0.2s'
+                              transition: 'all 0.2s',
+                              opacity: isEditEnabled ? 1 : 0.7
                             }}
                           >
                             {isSelected && <CheckIcon />}
@@ -1733,22 +1926,25 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                         value={newEquipment}
                         onChange={(e) => setNewEquipment(e.target.value)}
                         placeholder="e.g., Canon EOS R5"
-                        onKeyPress={(e) => e.key === 'Enter' && addEquipment()}
+                        onKeyPress={(e) => e.key === 'Enter' && isEditEnabled && addEquipment()}
+                        disabled={!isEditEnabled}
                         style={{ ...inputStyle, flex: 1 }}
                       />
                       <button
                         onClick={addEquipment}
+                        disabled={!isEditEnabled}
                         style={{
-                          backgroundColor: '#083A85',
-                          color: 'white',
-                          border: 'none',
+                          backgroundColor: isEditEnabled ? '#083A85' : colors.bgTertiary,
+                          color: isEditEnabled ? 'white' : colors.textSecondary,
+                          border: isEditEnabled ? 'none' : `2px solid ${colors.borderPrimary}`,
                           borderRadius: '0.5rem',
                           padding: '0 1rem',
-                          cursor: 'pointer',
+                          cursor: isEditEnabled ? 'pointer' : 'not-allowed',
                           display: 'flex',
                           alignItems: 'center',
                           gap: '0.375rem',
-                          fontWeight: '500'
+                          fontWeight: '500',
+                          opacity: isEditEnabled ? 1 : 0.6
                         }}
                       >
                         <PlusIcon /> Add
@@ -1817,23 +2013,27 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                 {equipment}
                               </span>
                               <button
-                                onClick={() => setEditingEquipmentIndex(index)}
+                                onClick={() => isEditEnabled && setEditingEquipmentIndex(index)}
+                                disabled={!isEditEnabled}
                                 style={{
                                   padding: '0.5rem',
                                   backgroundColor: 'transparent',
                                   border: `1px solid ${colors.borderPrimary}`,
                                   borderRadius: '0.375rem',
-                                  cursor: 'pointer',
+                                  cursor: isEditEnabled ? 'pointer' : 'not-allowed',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
                                   color: colors.textTertiary,
-                                  transition: 'all 0.2s'
+                                  transition: 'all 0.2s',
+                                  opacity: isEditEnabled ? 1 : 0.5
                                 }}
                                 onMouseEnter={(e) => {
-                                  e.currentTarget.style.backgroundColor = actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF';
-                                  e.currentTarget.style.borderColor = actualTheme === 'dark' ? '#60A5FA' : '#083A85';
-                                  e.currentTarget.style.color = actualTheme === 'dark' ? '#60A5FA' : '#083A85';
+                                  if (isEditEnabled) {
+                                    e.currentTarget.style.backgroundColor = actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF';
+                                    e.currentTarget.style.borderColor = actualTheme === 'dark' ? '#60A5FA' : '#083A85';
+                                    e.currentTarget.style.color = actualTheme === 'dark' ? '#60A5FA' : '#083A85';
+                                  }
                                 }}
                                 onMouseLeave={(e) => {
                                   e.currentTarget.style.backgroundColor = 'transparent';
@@ -1849,27 +2049,33 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                               </button>
                               <button
                                 onClick={() => {
-                                  setOverviewData(prev => ({
-                                    ...prev,
-                                    equipments: prev.equipments.filter((_, i) => i !== index)
-                                  }));
+                                  if (isEditEnabled) {
+                                    setOverviewData(prev => ({
+                                      ...prev,
+                                      equipments: prev.equipments.filter((_, i) => i !== index)
+                                    }));
+                                  }
                                 }}
+                                disabled={!isEditEnabled}
                                 style={{
                                   padding: '0.5rem',
                                   backgroundColor: 'transparent',
                                   border: `1px solid ${colors.borderPrimary}`,
                                   borderRadius: '0.375rem',
-                                  cursor: 'pointer',
+                                  cursor: isEditEnabled ? 'pointer' : 'not-allowed',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
                                   color: colors.textTertiary,
-                                  transition: 'all 0.2s'
+                                  transition: 'all 0.2s',
+                                  opacity: isEditEnabled ? 1 : 0.5
                                 }}
                                 onMouseEnter={(e) => {
-                                  e.currentTarget.style.backgroundColor = '#FEE2E2';
-                                  e.currentTarget.style.borderColor = '#EF4444';
-                                  e.currentTarget.style.color = '#EF4444';
+                                  if (isEditEnabled) {
+                                    e.currentTarget.style.backgroundColor = '#FEE2E2';
+                                    e.currentTarget.style.borderColor = '#EF4444';
+                                    e.currentTarget.style.color = '#EF4444';
+                                  }
                                 }}
                                 onMouseLeave={(e) => {
                                   e.currentTarget.style.backgroundColor = 'transparent';
@@ -1903,6 +2109,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       onChange={(e) => setPortfolioData(prev => ({ ...prev, beliefs: e.target.value }))}
                       placeholder="Share your professional philosophy and what you believe makes great photography..."
                       rows={3}
+                      disabled={!isEditEnabled}
                       style={{ ...inputStyle, resize: 'vertical', marginBottom: '2rem' }}
                     />
 
@@ -1911,18 +2118,20 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       <span>Skills</span>
                       <button
                         onClick={addSkill}
+                        disabled={!isEditEnabled}
                         style={{
-                          backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF',
-                          color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
-                          border: `1px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}`,
+                          backgroundColor: isEditEnabled ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgTertiary,
+                          color: isEditEnabled ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.textSecondary,
+                          border: `1px solid ${isEditEnabled ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.borderPrimary}`,
                           borderRadius: '0.375rem',
                           padding: '0.375rem 0.75rem',
                           fontSize: '0.8rem',
                           fontWeight: '500',
-                          cursor: 'pointer',
+                          cursor: isEditEnabled ? 'pointer' : 'not-allowed',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '0.25rem'
+                          gap: '0.25rem',
+                          opacity: isEditEnabled ? 1 : 0.6
                         }}
                       >
                         <PlusIcon /> Add Skill
@@ -2139,18 +2348,20 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       <span>Education</span>
                       <button
                         onClick={addEducation}
+                        disabled={!isEditEnabled}
                         style={{
-                          backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF',
-                          color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
-                          border: `1px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}`,
+                          backgroundColor: isEditEnabled ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgTertiary,
+                          color: isEditEnabled ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.textSecondary,
+                          border: `1px solid ${isEditEnabled ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.borderPrimary}`,
                           borderRadius: '0.375rem',
                           padding: '0.375rem 0.75rem',
                           fontSize: '0.8rem',
                           fontWeight: '500',
-                          cursor: 'pointer',
+                          cursor: isEditEnabled ? 'pointer' : 'not-allowed',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '0.25rem'
+                          gap: '0.25rem',
+                          opacity: isEditEnabled ? 1 : 0.6
                         }}
                       >
                         <PlusIcon /> Add Education
@@ -2232,18 +2443,20 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       <span>Certifications</span>
                       <button
                         onClick={addQualification}
+                        disabled={!isEditEnabled}
                         style={{
-                          backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF',
-                          color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
-                          border: `1px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}`,
+                          backgroundColor: isEditEnabled ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgTertiary,
+                          color: isEditEnabled ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.textSecondary,
+                          border: `1px solid ${isEditEnabled ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.borderPrimary}`,
                           borderRadius: '0.375rem',
                           padding: '0.375rem 0.75rem',
                           fontSize: '0.8rem',
                           fontWeight: '500',
-                          cursor: 'pointer',
+                          cursor: isEditEnabled ? 'pointer' : 'not-allowed',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '0.25rem'
+                          gap: '0.25rem',
+                          opacity: isEditEnabled ? 1 : 0.6
                         }}
                       >
                         <PlusIcon /> Add Certification
@@ -2312,18 +2525,20 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       <span>Training & Workshops</span>
                       <button
                         onClick={addTraining}
+                        disabled={!isEditEnabled}
                         style={{
-                          backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF',
-                          color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
-                          border: `1px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}`,
+                          backgroundColor: isEditEnabled ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgTertiary,
+                          color: isEditEnabled ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.textSecondary,
+                          border: `1px solid ${isEditEnabled ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.borderPrimary}`,
                           borderRadius: '0.375rem',
                           padding: '0.375rem 0.75rem',
                           fontSize: '0.8rem',
                           fontWeight: '500',
-                          cursor: 'pointer',
+                          cursor: isEditEnabled ? 'pointer' : 'not-allowed',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '0.25rem'
+                          gap: '0.25rem',
+                          opacity: isEditEnabled ? 1 : 0.6
                         }}
                       >
                         <PlusIcon /> Add Training
@@ -2426,18 +2641,20 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       <span>Featured Projects</span>
                       <button
                         onClick={addProject}
+                        disabled={!isEditEnabled}
                         style={{
-                          backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF',
-                          color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
-                          border: `1px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}`,
+                          backgroundColor: isEditEnabled ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgTertiary,
+                          color: isEditEnabled ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.textSecondary,
+                          border: `1px solid ${isEditEnabled ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.borderPrimary}`,
                           borderRadius: '0.375rem',
                           padding: '0.375rem 0.75rem',
                           fontSize: '0.8rem',
                           fontWeight: '500',
-                          cursor: 'pointer',
+                          cursor: isEditEnabled ? 'pointer' : 'not-allowed',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '0.25rem'
+                          gap: '0.25rem',
+                          opacity: isEditEnabled ? 1 : 0.6
                         }}
                       >
                         <PlusIcon /> Add Project
@@ -2618,18 +2835,20 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           </p>
                           <button
                             onClick={addProject}
+                            disabled={!isEditEnabled}
                             style={{
-                              backgroundColor: '#083A85',
-                              color: 'white',
-                              border: 'none',
+                              backgroundColor: isEditEnabled ? '#083A85' : colors.bgTertiary,
+                              color: isEditEnabled ? 'white' : colors.textSecondary,
+                              border: isEditEnabled ? 'none' : `2px solid ${colors.borderPrimary}`,
                               borderRadius: '0.5rem',
                               padding: '0.75rem 1.5rem',
                               fontSize: '0.9rem',
                               fontWeight: '500',
-                              cursor: 'pointer',
+                              cursor: isEditEnabled ? 'pointer' : 'not-allowed',
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: '0.5rem'
+                              gap: '0.5rem',
+                              opacity: isEditEnabled ? 1 : 0.6
                             }}
                           >
                             <PlusIcon /> Add Your First Project
@@ -2647,18 +2866,20 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       <span>Work Experience</span>
                       <button
                         onClick={addExperience}
+                        disabled={!isEditEnabled}
                         style={{
-                          backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF',
-                          color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
-                          border: `1px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}`,
+                          backgroundColor: isEditEnabled ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgTertiary,
+                          color: isEditEnabled ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.textSecondary,
+                          border: `1px solid ${isEditEnabled ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.borderPrimary}`,
                           borderRadius: '0.375rem',
                           padding: '0.375rem 0.75rem',
                           fontSize: '0.8rem',
                           fontWeight: '500',
-                          cursor: 'pointer',
+                          cursor: isEditEnabled ? 'pointer' : 'not-allowed',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '0.25rem'
+                          gap: '0.25rem',
+                          opacity: isEditEnabled ? 1 : 0.6
                         }}
                       >
                         <PlusIcon /> Add Experience
@@ -2797,18 +3018,20 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           </p>
                           <button
                             onClick={addExperience}
+                            disabled={!isEditEnabled}
                             style={{
-                              backgroundColor: '#083A85',
-                              color: 'white',
-                              border: 'none',
+                              backgroundColor: isEditEnabled ? '#083A85' : colors.bgTertiary,
+                              color: isEditEnabled ? 'white' : colors.textSecondary,
+                              border: isEditEnabled ? 'none' : `2px solid ${colors.borderPrimary}`,
                               borderRadius: '0.5rem',
                               padding: '0.75rem 1.5rem',
                               fontSize: '0.9rem',
                               fontWeight: '500',
-                              cursor: 'pointer',
+                              cursor: isEditEnabled ? 'pointer' : 'not-allowed',
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: '0.5rem'
+                              gap: '0.5rem',
+                              opacity: isEditEnabled ? 1 : 0.6
                             }}
                           >
                             <PlusIcon /> Add Your First Experience

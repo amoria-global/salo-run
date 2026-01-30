@@ -30,6 +30,14 @@ const GiftIcon = () => (
   </svg>
 );
 
+const StreamFeeIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+    <path d="M12 6V18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    <path d="M15 9.5C15 8.12 13.66 7 12 7C10.34 7 9 8.12 9 9.5C9 10.88 10.34 12 12 12C13.66 12 15 13.12 15 14.5C15 15.88 13.66 17 12 17C10.34 17 9 15.88 9 14.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
+
 const ShieldIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -76,8 +84,8 @@ const SettingsIcon = () => (
   </svg>
 );
 
-// Notification types specific to clients
-type NotificationType = 'album' | 'gift' | 'security' | 'booking' | 'photographer';
+// Notification types specific to clients and event coordinators
+type NotificationType = 'album' | 'gift' | 'security' | 'booking' | 'photographer' | 'streamfee';
 
 interface Notification {
   id: string;
@@ -210,9 +218,130 @@ const clientNotifications: Notification[] = [
   }
 ];
 
-const ClientNotifications = () => {
+// Sample notifications data for event coordinator dashboard
+const eventCoordinatorNotifications: Notification[] = [
+  {
+    id: '1',
+    type: 'album',
+    title: 'New Album Received',
+    message: 'John Studio shared "Tech Summit 2025" album with you - 245 photos',
+    timestamp: '5 minutes ago',
+    read: false,
+    avatar: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg',
+    albumPreview: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400',
+    actionUrl: '/user/event-coordinator/gallery'
+  },
+  {
+    id: '2',
+    type: 'streamfee',
+    title: 'Stream Fee Payment Received',
+    message: 'You received $3,675.00 from 245 viewers for "Tech Summit 2025" live stream',
+    timestamp: '30 minutes ago',
+    read: false,
+    amount: 3675.00
+  },
+  {
+    id: '3',
+    type: 'security',
+    title: 'New Login Detected',
+    message: 'Your account was accessed from Firefox on Windows 10. Location: Kigali, Rwanda',
+    timestamp: '1 hour ago',
+    read: false,
+    actionUrl: '/user/event-coordinator/profile'
+  },
+  {
+    id: '4',
+    type: 'streamfee',
+    title: 'Stream Fee Payment Received',
+    message: 'You received $2,100.00 from 140 viewers for "Music Festival Night" live stream',
+    timestamp: '2 hours ago',
+    read: false,
+    amount: 2100.00
+  },
+  {
+    id: '5',
+    type: 'booking',
+    title: 'Booking Confirmed',
+    message: 'Your photography session with Elite Photography has been confirmed for Dec 20, 2025',
+    timestamp: '3 hours ago',
+    read: true,
+    avatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
+    actionUrl: '/user/event-coordinator/events'
+  },
+  {
+    id: '6',
+    type: 'streamfee',
+    title: 'Withdrawal Completed',
+    message: 'Your withdrawal of $5,000.00 to MTN Mobile Money has been processed successfully',
+    timestamp: '5 hours ago',
+    read: true,
+    amount: 5000.00
+  },
+  {
+    id: '7',
+    type: 'photographer',
+    title: 'Photographer Accepted Request',
+    message: 'Sarah Lens accepted your photography request for the Corporate Gala event',
+    timestamp: '6 hours ago',
+    read: true,
+    avatar: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg',
+    actionUrl: '/user/event-coordinator/events'
+  },
+  {
+    id: '8',
+    type: 'security',
+    title: 'Password Changed Successfully',
+    message: 'Your password was successfully updated. If this wasn\'t you, contact support immediately.',
+    timestamp: 'Yesterday',
+    read: true
+  },
+  {
+    id: '9',
+    type: 'album',
+    title: 'Album Updated',
+    message: 'Alex Frames added 50 new photos to "Annual Conference" album',
+    timestamp: 'Yesterday',
+    read: true,
+    avatar: 'https://i.pinimg.com/1200x/09/23/45/092345eac1919407e0c49f67e285b831.jpg',
+    albumPreview: 'https://images.unsplash.com/photo-1560439514-4e9645039924?w=400',
+    actionUrl: '/user/event-coordinator/gallery'
+  },
+  {
+    id: '10',
+    type: 'streamfee',
+    title: 'New Viewers Joined',
+    message: '89 new paid viewers joined your "Product Launch" live stream',
+    timestamp: '2 days ago',
+    read: true,
+    amount: 1335.00
+  },
+  {
+    id: '11',
+    type: 'booking',
+    title: 'Event Reminder',
+    message: 'Reminder: Your corporate event photography session is tomorrow at 2:00 PM',
+    timestamp: '2 days ago',
+    read: true,
+    actionUrl: '/user/event-coordinator/events'
+  },
+  {
+    id: '12',
+    type: 'security',
+    title: 'Two-Factor Authentication Enabled',
+    message: 'Two-factor authentication has been enabled for your account security.',
+    timestamp: '3 days ago',
+    read: true
+  }
+];
+
+interface NotificationsPageProps {
+  userRole?: 'client' | 'event-coordinator';
+}
+
+const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) => {
   const { colors, actualTheme } = useTheme();
-  const [notifications, setNotifications] = useState(clientNotifications);
+  const initialNotifications = userRole === 'event-coordinator' ? eventCoordinatorNotifications : clientNotifications;
+  const [notifications, setNotifications] = useState(initialNotifications);
   const [activeFilter, setActiveFilter] = useState<'all' | NotificationType>('all');
   const [showSettings, setShowSettings] = useState(false);
 
@@ -224,6 +353,8 @@ const ClientNotifications = () => {
         return { icon: <ImageIcon />, bg: actualTheme === 'dark' ? '#581C87' : '#F3E8FF', color: actualTheme === 'dark' ? '#C084FC' : '#9333EA' };
       case 'gift':
         return { icon: <GiftIcon />, bg: actualTheme === 'dark' ? '#14532D' : '#DCFCE7', color: actualTheme === 'dark' ? '#4ADE80' : '#16A34A' };
+      case 'streamfee':
+        return { icon: <StreamFeeIcon />, bg: actualTheme === 'dark' ? '#14532D' : '#DCFCE7', color: actualTheme === 'dark' ? '#4ADE80' : '#16A34A' };
       case 'security':
         return { icon: <ShieldIcon />, bg: actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2', color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626' };
       case 'booking':
@@ -257,13 +388,21 @@ const ClientNotifications = () => {
     ? notifications
     : notifications.filter(n => n.type === activeFilter);
 
-  const filterOptions: { value: 'all' | NotificationType; label: string }[] = [
-    { value: 'all', label: 'All' },
-    { value: 'album', label: 'Albums' },
-    { value: 'gift', label: 'Gifts' },
-    { value: 'booking', label: 'Bookings' },
-    { value: 'security', label: 'Security' }
-  ];
+  const filterOptions: { value: 'all' | NotificationType; label: string }[] = userRole === 'event-coordinator'
+    ? [
+        { value: 'all', label: 'All' },
+        { value: 'album', label: 'Albums' },
+        { value: 'streamfee', label: 'Stream Fees' },
+        { value: 'booking', label: 'Bookings' },
+        { value: 'security', label: 'Security' }
+      ]
+    : [
+        { value: 'all', label: 'All' },
+        { value: 'album', label: 'Albums' },
+        { value: 'gift', label: 'Gifts' },
+        { value: 'booking', label: 'Bookings' },
+        { value: 'security', label: 'Security' }
+      ];
 
   return (
     <>
@@ -411,7 +550,7 @@ const ClientNotifications = () => {
         <Sidebar />
 
         <div className="notifications-content">
-          <Topbar userRole="client" giftAmount={225.00} />
+          <Topbar userRole={userRole} giftAmount={userRole === 'client' ? 225.00 : undefined} liveStreamFeeAmount={userRole === 'event-coordinator' ? 3250.00 : undefined} />
 
           <div className="notifications-main">
             {/* Header */}
@@ -445,7 +584,7 @@ const ClientNotifications = () => {
                 color: colors.textSecondary,
                 marginTop: '0.25rem'
               }}>
-                Stay updated with new albums, gifts, bookings, and account activity
+                Stay updated with new albums, {userRole === 'event-coordinator' ? 'stream fees' : 'gifts'}, bookings, and account activity
               </p>
             </div>
 
@@ -510,9 +649,11 @@ const ClientNotifications = () => {
               </div>
             </div>
             <div className="stat-card">
-              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Gifts Received</div>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>
+                {userRole === 'event-coordinator' ? 'Stream Fees' : 'Gifts Received'}
+              </div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>
-                {notifications.filter(n => n.type === 'gift').length}
+                {notifications.filter(n => n.type === (userRole === 'event-coordinator' ? 'streamfee' : 'gift')).length}
               </div>
             </div>
           </div>

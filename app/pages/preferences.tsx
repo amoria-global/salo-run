@@ -20,7 +20,7 @@ interface PaymentMethod {
 }
 
 interface PreferencesPageProps {
-  userType?: 'photographer' | 'freelancer' | 'client';
+  userType?: 'photographer' | 'client' | 'event-coordinator';
 }
 
 // SVG Icons
