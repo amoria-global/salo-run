@@ -5,11 +5,7 @@ import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 
-interface PayrollReportProps {
-  userType?: 'photographer' | 'freelancer';
-}
-
-const PayrollReport = ({ userType = 'photographer' }: PayrollReportProps) => {
+const PayrollReport = () => {
   const { colors, actualTheme } = useTheme();
   const reportRef = useRef<HTMLDivElement>(null);
 
@@ -139,7 +135,7 @@ const PayrollReport = ({ userType = 'photographer' }: PayrollReportProps) => {
 
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <div className="no-print">
-            <Topbar userRole={userType} tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
+            <Topbar userRole="photographer" tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
           </div>
 
           {/* Main Content */}

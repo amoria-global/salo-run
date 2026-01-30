@@ -119,11 +119,7 @@ interface Conversation {
   messages: Message[];
 }
 
-interface InboxProps {
-  userType?: 'photographer' | 'freelancer';
-}
-
-const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
+const InboxPage = () => {
   const { colors, actualTheme } = useTheme();
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -159,7 +155,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
       id: '1',
       participants: [
         { id: '1', name: 'Sarah Johnson', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'client', isOnline: true },
-        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: userType, isOnline: true }
+        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'photographer', isOnline: true }
       ],
       lastMessage: { content: 'Thank you for the beautiful photos!', senderId: '1', createdAt: '2025-07-19T14:30:00' },
       unreadCount: 2,
@@ -179,7 +175,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
       id: '2',
       participants: [
         { id: '2', name: 'Michael Chen', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'client', isOnline: false, lastSeen: '2 hours ago' },
-        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: userType, isOnline: true }
+        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'photographer', isOnline: true }
       ],
       lastMessage: { content: 'When can we schedule the portrait session?', senderId: '2', createdAt: '2025-07-18T16:45:00' },
       unreadCount: 0,
@@ -195,7 +191,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
       id: '3',
       participants: [
         { id: '3', name: 'Emily Rodriguez', image: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg', userType: 'client', isOnline: true },
-        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: userType, isOnline: true }
+        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'photographer', isOnline: true }
       ],
       lastMessage: { content: 'I received the edited photos. They look amazing!', senderId: '3', createdAt: '2025-07-17T09:30:00' },
       unreadCount: 1,
@@ -210,7 +206,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
       id: '4',
       participants: [
         { id: '4', name: 'David Park', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'client', isOnline: false, lastSeen: '1 day ago' },
-        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: userType, isOnline: true }
+        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'photographer', isOnline: true }
       ],
       lastMessage: { content: 'Can you also do video coverage?', senderId: '4', createdAt: '2025-07-15T11:20:00' },
       unreadCount: 0,
@@ -227,7 +223,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
       id: '5',
       participants: [
         { id: '5', name: 'Jessica Williams', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'client', isOnline: true },
-        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: userType, isOnline: true }
+        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'photographer', isOnline: true }
       ],
       lastMessage: { content: 'Looking forward to the engagement shoot!', senderId: '5', createdAt: '2025-07-14T09:15:00' },
       unreadCount: 1,
@@ -242,7 +238,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
       id: '6',
       participants: [
         { id: '6', name: 'Robert Martinez', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'client', isOnline: false, lastSeen: '3 hours ago' },
-        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: userType, isOnline: true }
+        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'photographer', isOnline: true }
       ],
       lastMessage: { content: 'Can you send me a quote for the real estate photos?', senderId: '6', createdAt: '2025-07-13T16:30:00' },
       unreadCount: 0,
@@ -257,7 +253,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
       id: '7',
       participants: [
         { id: '7', name: 'Amanda Lee', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'client', isOnline: true },
-        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: userType, isOnline: true }
+        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'photographer', isOnline: true }
       ],
       lastMessage: { content: 'The family portraits turned out beautiful!', senderId: '7', createdAt: '2025-07-12T18:00:00' },
       unreadCount: 0,
@@ -272,7 +268,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
       id: '8',
       participants: [
         { id: '8', name: 'Chris Thompson', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'client', isOnline: false, lastSeen: '5 hours ago' },
-        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: userType, isOnline: true }
+        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'photographer', isOnline: true }
       ],
       lastMessage: { content: 'Do you do sports photography?', senderId: '8', createdAt: '2025-07-11T14:45:00' },
       unreadCount: 2,
@@ -287,7 +283,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
       id: '9',
       participants: [
         { id: '9', name: 'Sophia Brown', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'client', isOnline: true },
-        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: userType, isOnline: true }
+        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'photographer', isOnline: true }
       ],
       lastMessage: { content: 'I need maternity photos for next month.', senderId: '9', createdAt: '2025-07-10T11:30:00' },
       unreadCount: 0,
@@ -537,7 +533,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div className={`mobile-topbar ${selectedConversation ? 'mobile-chat-active' : ''}`}>
-          <Topbar userRole={userType} tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
+          <Topbar userRole="photographer" tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
         </div>
         <div className="mobile-inbox-container" style={{ flex: 1, display: 'flex', overflow: 'hidden', margin: '0 1.25rem 1rem 1.25rem' }}>
 
