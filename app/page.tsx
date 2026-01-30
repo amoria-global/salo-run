@@ -22,12 +22,14 @@ const ClientIcon = () => (
   </svg>
 );
 
-const FreelancerIcon = () => (
+const EventCoordinatorIcon = () => (
   <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="12" cy="7" r="3.5" stroke="currentColor" strokeWidth="1.5"/>
-    <path d="M5 20C5 16.134 8.13401 13 12 13C15.866 13 19 16.134 19 20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-    <path d="M12 13V17M12 17L9 15M12 17L15 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <rect x="8" y="19" width="8" height="2" rx="0.5" stroke="currentColor" strokeWidth="1.5"/>
+    <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.5"/>
+    <path d="M16 2V6M8 2V6M3 10H21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    <circle cx="8" cy="15" r="1.5" fill="currentColor"/>
+    <circle cx="12" cy="15" r="1.5" fill="currentColor"/>
+    <circle cx="16" cy="15" r="1.5" fill="currentColor"/>
+    <path d="M8 18H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
   </svg>
 );
 
@@ -40,11 +42,11 @@ const ArrowRightIcon = () => (
 export default function Home() {
   const router = useRouter();
 
-  const handleRoleSelect = (role: 'photographer' | 'client' | 'freelancer') => {
+  const handleRoleSelect = (role: 'photographer' | 'client' | 'event-coordinator') => {
     if (role === 'photographer') {
       router.push('/user/photographer/dashboard');
-    } else if (role === 'freelancer') {
-      router.push('/user/freelancer/dashboard');
+    } else if (role === 'event-coordinator') {
+      router.push('/user/event-coordinator/home');
     } else {
       router.push('/user/client/home');
     }
@@ -143,7 +145,7 @@ export default function Home() {
           display: 'grid',
           gridTemplateColumns: 'repeat(3, 1fr)',
           gap: '1.5rem',
-          maxWidth: '1000px',
+          maxWidth: '900px',
           margin: '0 auto'
         }}>
           {/* Photographer Card */}
@@ -210,7 +212,7 @@ export default function Home() {
               marginBottom: '1.5rem',
               lineHeight: '1.5'
             }}>
-              Company employed photographer managing bookings and clients
+              Professional photographer managing bookings and clients
             </p>
 
             <div style={{
@@ -296,9 +298,9 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Freelancer Card */}
+          {/* Event Coordinator Card */}
           <div
-            onClick={() => handleRoleSelect('freelancer')}
+            onClick={() => handleRoleSelect('event-coordinator')}
             style={{
               backgroundColor: 'white',
               borderRadius: '1.25rem',
@@ -310,9 +312,9 @@ export default function Home() {
               overflow: 'hidden'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = '#10B981';
+              e.currentTarget.style.borderColor = '#F20C8F';
               e.currentTarget.style.transform = 'translateY(-4px)';
-              e.currentTarget.style.boxShadow = '0 20px 40px -12px rgba(16, 185, 129, 0.2)';
+              e.currentTarget.style.boxShadow = '0 20px 40px -12px rgba(242, 12, 143, 0.2)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.borderColor = '#E5E7EB';
@@ -324,14 +326,14 @@ export default function Home() {
               width: '80px',
               height: '80px',
               borderRadius: '1rem',
-              background: 'linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)',
+              background: 'linear-gradient(135deg, #FDF2F8 0%, #FCE7F3 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               margin: '0 auto 1.5rem auto',
-              color: '#10B981'
+              color: '#F20C8F'
             }}>
-              <FreelancerIcon />
+              <EventCoordinatorIcon />
             </div>
 
             <h2 style={{
@@ -340,7 +342,7 @@ export default function Home() {
               color: '#111827',
               marginBottom: '0.5rem'
             }}>
-              Freelancer
+              Event Coordinator
             </h2>
             <p style={{
               fontSize: '0.95rem',
@@ -348,7 +350,7 @@ export default function Home() {
               marginBottom: '1.5rem',
               lineHeight: '1.5'
             }}>
-              Self-employed photographer managing your own bookings and clients
+              Commercial client organizing events with live stream ticketing
             </p>
 
             <div style={{
@@ -356,7 +358,7 @@ export default function Home() {
               alignItems: 'center',
               justifyContent: 'center',
               gap: '0.5rem',
-              color: '#10B981',
+              color: '#F20C8F',
               fontWeight: '600',
               fontSize: '0.95rem'
             }}>

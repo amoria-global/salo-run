@@ -137,7 +137,7 @@ const QRCodeIcon = () => (
   </svg>
 );
 
-// Sample album data from photographers/freelancers
+// Sample album data from photographers
 const clientAlbumsData = [
   {
     id: 1,
@@ -256,7 +256,11 @@ const clientAlbumsData = [
   }
 ];
 
-const ClientGallery = () => {
+interface GalleryPageProps {
+  userRole?: 'client' | 'event-coordinator';
+}
+
+const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   const { colors, actualTheme } = useTheme();
   const [albums, setAlbums] = useState(clientAlbumsData);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -917,7 +921,7 @@ const ClientGallery = () => {
       <Sidebar />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar userRole="client" giftAmount={225.00} />
+        <Topbar userRole={userRole} giftAmount={userRole === 'client' ? 225.00 : undefined} liveStreamFeeAmount={userRole === 'event-coordinator' ? 3250.00 : undefined} />
 
         {/* Main Content */}
         <div className="mobile-main-content" style={{ flex: 1, overflowY: 'auto', padding: '1.25rem' }}>

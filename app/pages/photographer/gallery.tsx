@@ -26,7 +26,6 @@ interface AddAlbumFormData {
   uploadShared: boolean;
   selectedCoverIndex: number;
   uploadedImagePreviews: string[];
-  userType: 'photographer' | 'freelancer';
   savedAt: number;
 }
 
@@ -478,11 +477,7 @@ const galleryData = [
   }
 ];
 
-interface GalleryProps {
-  userType?: 'photographer' | 'freelancer';
-}
-
-const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
+const Gallery = () => {
   const { colors, actualTheme } = useTheme();
   const [photos, setPhotos] = useState(galleryData);
   const [filterCategory, setFilterCategory] = useState('All');
@@ -545,7 +540,6 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
       uploadShared,
       selectedCoverIndex,
       uploadedImagePreviews,
-      userType,
       savedAt: Date.now()
     };
 
@@ -555,12 +549,12 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
 
     if (hasData) {
       try {
-        await galleryFormStorage.setItem(`${ADD_ALBUM_FORM_KEY}_${userType}`, formData);
+        await galleryFormStorage.setItem(ADD_ALBUM_FORM_KEY, formData);
       } catch (error) {
         console.error('Failed to save album draft:', error);
       }
     }
-  }, [uploadTitle, uploadCategory, uploadClientId, uploadDescription, uploadFeatured, uploadShared, selectedCoverIndex, uploadedImagePreviews, userType]);
+  }, [uploadTitle, uploadCategory, uploadClientId, uploadDescription, uploadFeatured, uploadShared, selectedCoverIndex, uploadedImagePreviews]);
 
   // Debounced auto-save when form fields change
   useEffect(() => {
@@ -585,8 +579,8 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
     const restoreDraft = async () => {
       if (showUploadModal) {
         try {
-          const savedDraft = await galleryFormStorage.getItem<AddAlbumFormData>(`${ADD_ALBUM_FORM_KEY}_${userType}`);
-          if (savedDraft && savedDraft.userType === userType) {
+          const savedDraft = await galleryFormStorage.getItem<AddAlbumFormData>(ADD_ALBUM_FORM_KEY);
+          if (savedDraft) {
             setIsRestoringDraft(true);
             setUploadTitle(savedDraft.uploadTitle || '');
             setUploadCategory(savedDraft.uploadCategory || '');
@@ -611,16 +605,16 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
     };
 
     restoreDraft();
-  }, [showUploadModal, userType]);
+  }, [showUploadModal]);
 
   // Clear saved album draft from IndexedDB
   const clearAlbumDraft = useCallback(async () => {
     try {
-      await galleryFormStorage.removeItem(`${ADD_ALBUM_FORM_KEY}_${userType}`);
+      await galleryFormStorage.removeItem(ADD_ALBUM_FORM_KEY);
     } catch (error) {
       console.error('Failed to clear album draft:', error);
     }
-  }, [userType]);
+  }, []);
 
   // Reset upload form
   const resetUploadForm = (clearDraft: boolean = true) => {
@@ -1128,7 +1122,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
       <Sidebar />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar userRole={userType} tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
+        <Topbar userRole="photographer" tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
 
         {/* Main Content */}
         <div className="mobile-main-content" style={{

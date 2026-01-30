@@ -149,10 +149,6 @@ const getTimeOfDay = () => {
   return 'night';
 };
 
-interface PhotographerDashboardProps {
-  userType?: 'photographer' | 'freelancer';
-}
-
 interface Client {
   id: string;
   name: string;
@@ -161,7 +157,7 @@ interface Client {
   avatar: string;
 }
 
-const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashboardProps) => {
+const PhotographerDashboard = () => {
   const { colors, actualTheme } = useTheme();
   const [activeFilter, setActiveFilter] = useState<'today' | 'week' | 'month' | 'custom'>('week');
   const [timeOfDay, setTimeOfDay] = useState(getTimeOfDay());
@@ -466,8 +462,8 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
     }
   ];
 
-  // Determine the base path based on user type
-  const basePath = userType === 'freelancer' ? '/user/freelancer' : '/user/photographer';
+  // Base path for navigation
+  const basePath = '/user/photographer';
 
   return (
     <>
@@ -588,7 +584,7 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
         <Sidebar />
 
         <div className="dashboard-content">
-          <Topbar userRole={userType} tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
+          <Topbar userRole="photographer" tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
 
           <div className="dashboard-main">
             <header className="dashboard-header">

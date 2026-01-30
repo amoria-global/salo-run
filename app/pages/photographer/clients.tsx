@@ -232,11 +232,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
   );
 };
 
-interface ClientsProps {
-  userType?: 'photographer' | 'freelancer';
-}
-
-export default function Clients({ userType = 'photographer' }: ClientsProps) {
+export default function Clients() {
   const { colors, actualTheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
@@ -831,7 +827,7 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
         flexDirection: 'column',
         overflow: 'hidden'
       }}>
-        <Topbar tipsAmount={totalTips} bonusAmount={platformBonus} balanceAmount={totalBalance} userRole={userType} />
+        <Topbar tipsAmount={totalTips} bonusAmount={platformBonus} balanceAmount={totalBalance} userRole="photographer" />
 
         <div className="mobile-main-content" style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
           {/* Header */}
