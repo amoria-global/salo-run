@@ -24,6 +24,7 @@ export function middleware(request: NextRequest) {
   // Define public paths that don't require authentication
   const publicPaths = [
     '/auth',
+    '/api/auth/callback', // Auth callback for receiving token from redirect
     '/_next',
     '/api',
     '/favicon.ico',
