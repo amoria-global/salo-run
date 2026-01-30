@@ -279,11 +279,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
   );
 };
 
-interface PhotographerStreamsPageProps {
-  userType?: 'photographer' | 'freelancer';
-}
-
-const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStreamsPageProps) => {
+const PhotographerStreamsPage = () => {
   const { colors, actualTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<'all' | 'live' | 'upcoming' | 'past'>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -596,7 +592,7 @@ const PhotographerStreamsPage = ({ userType = 'photographer' }: PhotographerStre
       `}</style>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar userRole={userType} tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
+        <Topbar userRole="photographer" tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
         <div className="mobile-main-content" style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, padding: '1.25rem' }}>
 
           {/* Header */}

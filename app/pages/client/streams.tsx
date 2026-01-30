@@ -293,7 +293,11 @@ const sampleCompletedStreams: CompletedStream[] = [
   },
 ];
 
-const ClientStreamsPage = () => {
+interface StreamsPageProps {
+  userRole?: 'client' | 'event-coordinator';
+}
+
+const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
   const { colors, actualTheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStream, setSelectedStream] = useState<CompletedStream | null>(null);
@@ -461,7 +465,7 @@ const ClientStreamsPage = () => {
       `}</style>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar userRole="client" />
+        <Topbar userRole={userRole} giftAmount={userRole === 'client' ? 225.00 : undefined} liveStreamFeeAmount={userRole === 'event-coordinator' ? 3250.00 : undefined} />
         <div className="mobile-main-content" style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
           {/* Page Header */}
           <div className="mobile-header" style={{ marginBottom: '1.5rem' }}>
@@ -1090,7 +1094,7 @@ const ClientStreamsPage = () => {
         )}
       </Modal>
 
-      <style global>{`
+      <style jsx global>{`
         @keyframes pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.5; }
