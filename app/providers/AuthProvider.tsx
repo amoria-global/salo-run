@@ -124,6 +124,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
  * Get API URL
  */
 function getApiUrl(): string {
+  // In production (Vercel), use the proxy to avoid mixed content
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    return '/api/proxy';
+  }
   return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
 }
 
