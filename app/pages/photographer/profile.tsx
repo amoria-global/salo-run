@@ -6,6 +6,7 @@ import localforage from 'localforage';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
+import { useDashboardAuth } from '../../providers/AuthProvider';
 
 // Configure localforage for profile form data
 const profileFormStorage = localforage.createInstance({
@@ -86,6 +87,12 @@ const CheckIcon = () => (
   </svg>
 );
 
+const XIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
 const ImageIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2"/>
@@ -145,9 +152,45 @@ interface Experience {
   description: string;
 }
 
-const PhotographerProfilePage = () => {
+interface ToastMessage {
+  id: string;
+  type: 'success' | 'error';
+  message: string;
+}
+
+interface PhotographerProfilePageProps {
+  userType?: 'photographer' | 'freelancer';
+}
+
+const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProfilePageProps) => {
   const { colors, actualTheme } = useTheme();
+  const { token, user } = useDashboardAuth();
   const [activeTab, setActiveTab] = useState<'overview' | 'portfolio' | 'experience'>('overview');
+  const [savingEducation, setSavingEducation] = useState<string | null>(null);
+  const [savingTraining, setSavingTraining] = useState<string | null>(null);
+  const [savingSkill, setSavingSkill] = useState<string | null>(null);
+  const [savingEquipment, setSavingEquipment] = useState<string | null>(null);
+  const [savingAvailability, setSavingAvailability] = useState<string | null>(null);
+  const [savingProject, setSavingProject] = useState<string | null>(null);
+  const [savingProfilePicture, setSavingProfilePicture] = useState(false);
+  const [savingCoverPhoto, setSavingCoverPhoto] = useState(false);
+
+  // Toast notifications state
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+  // Toast helper functions
+  const showToast = (type: 'success' | 'error', message: string) => {
+    const id = Date.now().toString();
+    setToasts(prev => [...prev, { id, type, message }]);
+    // Auto-dismiss after 3 seconds
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 3000);
+  };
+
+  const dismissToast = (id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  };
 
   // East African countries with phone codes
   const eastAfricanCountries = [
@@ -199,20 +242,20 @@ const PhotographerProfilePage = () => {
     Sunday: { enabled: false, startTime: '9:00 AM', endTime: '4:00 PM' },
   };
 
-  // Basic Information State
+  // Basic Information State - initialized empty, loaded from user context
   const [basicInfo, setBasicInfo] = useState({
-    fullName: 'John Smith',
-    username: 'john_photographer',
-    email: 'johnsmith@gmail.com',
+    fullName: '',
+    username: '',
+    email: '',
     phoneCode: '+250',
-    phoneNumber: '788 456 789',
+    phoneNumber: '',
     specialty: 'Photographer' as 'Photographer' | 'Videographer',
     country: 'Rwanda',
-    province: 'Kigali City',
-    district: 'Gasabo',
-    sector: 'Remera',
-    availability: defaultAvailability,
-    // Employment Information (optional - for photographers working for companies)
+    province: '',
+    district: '',
+    sector: '',
+    availability: {} as { [key: string]: DayAvailability },
+    // Employment Information
     employmentStatus: '' as '' | 'self-employed' | 'employed',
     companyName: '',
     companyAddress: '',
@@ -220,60 +263,30 @@ const PhotographerProfilePage = () => {
     employmentType: '' as '' | 'full-time' | 'part-time' | 'contract',
   });
 
-  // Overview Tab State
+  // Overview Tab State - initialized empty, loaded from user context
   const [overviewData, setOverviewData] = useState({
-    about: 'Professional photographer with over 10 years of experience specializing in weddings, corporate events, and portrait photography. Passionate about capturing life\'s precious moments with creativity and precision.',
-    specialties: ['Wedding', 'Portrait', 'Corporate'] as string[],
-    equipments: ['Canon EOS R5', 'Sony A7 IV', 'DJI Mavic 3 Pro'] as string[],
+    about: '',
+    specialties: [] as string[],
+    equipments: [] as string[],
   });
 
-  // Portfolio Tab State
+  // Portfolio Tab State - initialized empty, loaded from user context
   const [portfolioData, setPortfolioData] = useState({
-    beliefs: 'I believe that every moment tells a story. My philosophy is to capture authentic emotions and create timeless memories that families will cherish for generations.',
-    skills: [
-      { id: '1', name: 'Portrait Photography', level: 95 },
-      { id: '2', name: 'Wedding Photography', level: 90 },
-      { id: '3', name: 'Event Coverage', level: 85 },
-    ] as Skill[],
-    education: [
-      { id: '1', degree: 'Bachelor of Fine Arts in Photography', institution: 'School of Visual Arts', fromYear: '2015', toYear: '2019', description: 'Specialized in commercial and artistic photography with honors.' }
-    ] as Education[],
-    qualifications: [
-      { id: '1', title: 'Certified Professional Photographer', issuer: 'Professional Photographers of America', year: '2020', description: 'Advanced certification in professional photography practices.' }
-    ] as Qualification[],
-    training: [
-      { id: '1', name: 'Advanced Wedding Photography Workshop', issuer: 'Wedding Photography Academy', year: '2022', description: 'Intensive workshop covering advanced techniques for capturing wedding moments.' },
-      { id: '2', name: 'Lighting Masterclass', issuer: 'Peter Hurley Studios', year: '2021', description: 'Professional lighting techniques for portrait and commercial photography.' },
-    ] as Training[],
+    beliefs: '',
+    skills: [] as Skill[],
+    education: [] as Education[],
+    qualifications: [] as Qualification[],
+    training: [] as Training[],
     projects: [] as Project[],
   });
 
-  // Experience Tab State
+  // Experience Tab State - initialized empty, loaded from user context
   const [experienceData, setExperienceData] = useState({
-    experiences: [
-      {
-        id: '1',
-        position: 'Lead Wedding Photographer',
-        company: 'Elite Studios',
-        location: 'Kigali, Rwanda',
-        startDate: '2020',
-        endDate: 'Present',
-        description: 'Leading a team of photographers for high-end wedding coverage. Responsible for client consultations, creative direction, and post-production workflow.'
-      },
-      {
-        id: '2',
-        position: 'Freelance Photographer',
-        company: 'Self-Employed',
-        location: 'Kigali, Rwanda',
-        startDate: '2018',
-        endDate: '2020',
-        description: 'Provided photography services for corporate events, portraits, and small weddings. Built a client base of over 50 regular customers.'
-      }
-    ] as Experience[],
+    experiences: [] as Experience[],
   });
 
-  // Image state
-  const [profileImage, setProfileImage] = useState<string>('https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg');
+  // Image state - initialized empty, loaded from user context
+  const [profileImage, setProfileImage] = useState<string | null>(null);
   const [bannerImage, setBannerImage] = useState<string | null>(null);
 
   // File input refs
@@ -409,7 +422,100 @@ const PhotographerProfilePage = () => {
     };
 
     restoreDraft();
-  }, []);
+  }, [userType]);
+
+  // Load user data from auth context
+  useEffect(() => {
+    if (user) {
+      // Set basic info from user
+      setBasicInfo(prev => ({
+        ...prev,
+        fullName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+        email: user.email || '',
+        phoneNumber: user.phone || '',
+        specialty: (user.customerType === 'Videographer' ? 'Videographer' : 'Photographer') as 'Photographer' | 'Videographer',
+      }));
+
+      // Set overview data
+      setOverviewData(prev => ({
+        ...prev,
+        about: user.about || '',
+        specialties: user.specialties || [],
+        equipments: user.equipments?.map(e => e.name) || [],
+      }));
+
+      // Set portfolio data
+      setPortfolioData(prev => ({
+        ...prev,
+        beliefs: user.professionalPhilosophy || '',
+        skills: user.professionalSkills?.map(s => ({
+          id: s.id || String(Date.now()),
+          name: s.name,
+          level: s.skillPercentage,
+        })) || [],
+        education: user.educationLevels?.map(e => ({
+          id: e.id || String(Date.now()),
+          degree: e.degree,
+          institution: e.institution,
+          fromYear: e.startDate?.split('-')[0] || '',
+          toYear: e.endDate?.split('-')[0] || 'Present',
+          description: e.description || '',
+        })) || [],
+        qualifications: user.certifications?.map(c => ({
+          id: c.id || String(Date.now()),
+          title: c.title,
+          issuer: c.institution,
+          year: c.yearObtained,
+          description: c.description || '',
+        })) || [],
+        training: user.trainings?.map(t => ({
+          id: t.id || String(Date.now()),
+          name: t.title,
+          issuer: t.institution,
+          year: t.yearObtained,
+          description: t.description || '',
+        })) || [],
+        projects: user.projects?.map(p => ({
+          id: p.id || String(Date.now()),
+          image: p.projectImage || '',
+          title: p.title,
+          description: p.description || '',
+          year: String(p.year),
+        })) || [],
+      }));
+
+      // Set availability from user data
+      if (user.availabilities && user.availabilities.length > 0) {
+        const availabilityMap: { [key: string]: DayAvailability } = {};
+        user.availabilities.forEach(a => {
+          const day = a.dayOfWeek.charAt(0).toUpperCase() + a.dayOfWeek.slice(1).toLowerCase();
+          const formatTime = (time: { hour: number; minute: number }) => {
+            const hour = time.hour;
+            const minute = time.minute;
+            const period = hour >= 12 ? 'PM' : 'AM';
+            const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+            return `${displayHour}:${minute.toString().padStart(2, '0')} ${period}`;
+          };
+          availabilityMap[day] = {
+            enabled: true,
+            startTime: formatTime(a.startTime),
+            endTime: formatTime(a.endTime),
+          };
+        });
+        // Fill in missing days as disabled
+        daysOfWeek.forEach(day => {
+          if (!availabilityMap[day]) {
+            availabilityMap[day] = { enabled: false, startTime: '9:00 AM', endTime: '5:00 PM' };
+          }
+        });
+        setBasicInfo(prev => ({ ...prev, availability: availabilityMap }));
+      }
+
+      // Set images
+      if (user.profilePicture) setProfileImage(user.profilePicture);
+      if (user.coverPicture) setBannerImage(user.coverPicture);
+    }
+  }, [user]);
 
   // Calculate profile completion percentage
   const profileCompletion = useMemo(() => {
@@ -526,13 +632,19 @@ const PhotographerProfilePage = () => {
   };
 
   // Equipment handlers
-  const addEquipment = () => {
+  const addEquipment = async () => {
     if (newEquipment.trim()) {
+      const equipmentName = newEquipment.trim();
+      // Add to local state
       setOverviewData(prev => ({
         ...prev,
-        equipments: [...prev.equipments, newEquipment.trim()]
+        equipments: [...prev.equipments, equipmentName]
       }));
       setNewEquipment('');
+      // Also add to API and show toast
+      const success = await addEquipmentToAPI(equipmentName);
+      showToast(success ? 'success' : 'error',
+        success ? 'Equipment added successfully' : 'Failed to add equipment');
     }
   };
 
@@ -556,14 +668,19 @@ const PhotographerProfilePage = () => {
     setTimeout(() => setNewlyAddedId(null), 1500);
   };
 
-  const removeSkill = (id: string) => {
-    setPortfolioData(prev => ({
-      ...prev,
-      skills: prev.skills.filter(s => s.id !== id)
-    }));
-    if (editingSkillId === id) {
-      setEditingSkillId(null);
+  const removeSkill = async (id: string) => {
+    const success = await deleteSkillFromAPI(id);
+    if (success) {
+      setPortfolioData(prev => ({
+        ...prev,
+        skills: prev.skills.filter(s => s.id !== id)
+      }));
+      if (editingSkillId === id) {
+        setEditingSkillId(null);
+      }
     }
+    showToast(success ? 'success' : 'error',
+      success ? 'Skill deleted successfully' : 'Failed to delete skill');
   };
 
   const updateSkill = (id: string, field: keyof Skill, value: string | number) => {
@@ -591,11 +708,521 @@ const PhotographerProfilePage = () => {
     }));
   };
 
-  const removeEducation = (id: string) => {
-    setPortfolioData(prev => ({
-      ...prev,
-      education: prev.education.filter(e => e.id !== id)
-    }));
+  const removeEducation = async (id: string) => {
+    const success = await deleteEducationFromAPI(id);
+    if (success) {
+      setPortfolioData(prev => ({
+        ...prev,
+        education: prev.education.filter(e => e.id !== id)
+      }));
+    }
+    showToast(success ? 'success' : 'error',
+      success ? 'Education deleted successfully' : 'Failed to delete education');
+  };
+
+  // Save education to API
+  const saveEducationToAPI = async (edu: Education) => {
+    if (!token) {
+      console.error('No auth token available');
+      return false;
+    }
+
+    if (!edu.degree || !edu.institution) {
+      console.error('Degree and institution are required');
+      return false;
+    }
+
+    setSavingEducation(edu.id);
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+
+      const response = await fetch(`${apiUrl}/api/remote/photographer/add-education-level`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'api-token': apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          degree: edu.degree,
+          institution: edu.institution,
+          startDate: edu.fromYear ? `${edu.fromYear}-01-01` : '',
+          endDate: edu.toYear === 'Present' ? '' : (edu.toYear ? `${edu.toYear}-01-01` : ''),
+          description: edu.description || '',
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('Failed to save education:', response.status);
+        return false;
+      }
+
+      console.log('Education saved successfully');
+      return true;
+    } catch (error) {
+      console.error('Error saving education:', error);
+      return false;
+    } finally {
+      setSavingEducation(null);
+    }
+  };
+
+  // Add training/certification to API
+  const addTrainingToAPI = async (training: Training, type: 'TRAINING' | 'CERTIFICATION' = 'TRAINING') => {
+    if (!token) {
+      console.error('No auth token available');
+      return false;
+    }
+
+    if (!training.name) {
+      console.error('Training name is required');
+      return false;
+    }
+
+    setSavingTraining(training.id);
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+
+      const response = await fetch(`${apiUrl}/api/remote/photographer/add-trainting-certification`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'api-token': apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: training.name,
+          institution: training.issuer || '',
+          yearObtained: training.year || '',
+          description: training.description || '',
+          type: type,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('Failed to add training:', response.status);
+        return false;
+      }
+
+      console.log('Training added successfully');
+      return true;
+    } catch (error) {
+      console.error('Error adding training:', error);
+      return false;
+    } finally {
+      setSavingTraining(null);
+    }
+  };
+
+  // Add skill to API
+  const addSkillToAPI = async (skill: Skill) => {
+    if (!token) {
+      console.error('No auth token available');
+      return false;
+    }
+
+    if (!skill.name) {
+      console.error('Skill name is required');
+      return false;
+    }
+
+    setSavingSkill(skill.id);
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+
+      const response = await fetch(`${apiUrl}/api/remote/photographer/add-professional-skills`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'api-token': apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: skill.name,
+          skillPercentage: skill.level,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('Failed to add skill:', response.status);
+        return false;
+      }
+
+      console.log('Skill added successfully');
+      return true;
+    } catch (error) {
+      console.error('Error adding skill:', error);
+      return false;
+    } finally {
+      setSavingSkill(null);
+    }
+  };
+
+  // Add equipment to API
+  const addEquipmentToAPI = async (name: string) => {
+    if (!token) {
+      console.error('No auth token available');
+      return false;
+    }
+
+    if (!name) {
+      console.error('Equipment name is required');
+      return false;
+    }
+
+    setSavingEquipment(name);
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+
+      const response = await fetch(`${apiUrl}/api/remote/photographer/add-equipment`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'api-token': apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: name,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('Failed to add equipment:', response.status);
+        return false;
+      }
+
+      console.log('Equipment added successfully');
+      return true;
+    } catch (error) {
+      console.error('Error adding equipment:', error);
+      return false;
+    } finally {
+      setSavingEquipment(null);
+    }
+  };
+
+  // Helper to convert time string to API format
+  const parseTimeToAPI = (timeStr: string) => {
+    const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+    if (!match) return { hour: 0, minute: 0, second: 0, nano: 0 };
+
+    let hour = parseInt(match[1]);
+    const minute = parseInt(match[2]);
+    const period = match[3].toUpperCase();
+
+    if (period === 'PM' && hour !== 12) hour += 12;
+    if (period === 'AM' && hour === 12) hour = 0;
+
+    return { hour, minute, second: 0, nano: 0 };
+  };
+
+  // Add availability to API
+  const addAvailabilityToAPI = async (day: string, startTime: string, endTime: string) => {
+    if (!token) {
+      console.error('No auth token available');
+      return false;
+    }
+
+    setSavingAvailability(day);
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+
+      const response = await fetch(`${apiUrl}/api/remote/photographer/add-availability`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'api-token': apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          dayOfWeek: day.toUpperCase(),
+          startTime: parseTimeToAPI(startTime),
+          endTime: parseTimeToAPI(endTime),
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('Failed to add availability:', response.status);
+        return false;
+      }
+
+      console.log('Availability added successfully');
+      return true;
+    } catch (error) {
+      console.error('Error adding availability:', error);
+      return false;
+    } finally {
+      setSavingAvailability(null);
+    }
+  };
+
+  // Save profile picture to API
+  const saveProfilePictureToAPI = async (file: File) => {
+    if (!token) {
+      console.error('No auth token available');
+      return false;
+    }
+
+    setSavingProfilePicture(true);
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+
+      const formData = new FormData();
+      formData.append('profilePicture', file);
+
+      const response = await fetch(`${apiUrl}/api/remote/photographer/update-profile-picture`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'api-token': apiKey,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        console.error('Failed to save profile picture:', response.status);
+        return false;
+      }
+
+      console.log('Profile picture saved successfully');
+      return true;
+    } catch (error) {
+      console.error('Error saving profile picture:', error);
+      return false;
+    } finally {
+      setSavingProfilePicture(false);
+    }
+  };
+
+  // Save cover photo to API
+  const saveCoverPhotoToAPI = async (file: File) => {
+    if (!token) {
+      console.error('No auth token available');
+      return false;
+    }
+
+    setSavingCoverPhoto(true);
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+
+      const formData = new FormData();
+      formData.append('coverPhoto', file);
+
+      const response = await fetch(`${apiUrl}/api/remote/photographer/update-cover-photo`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'api-token': apiKey,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        console.error('Failed to save cover photo:', response.status);
+        return false;
+      }
+
+      console.log('Cover photo saved successfully');
+      return true;
+    } catch (error) {
+      console.error('Error saving cover photo:', error);
+      return false;
+    } finally {
+      setSavingCoverPhoto(false);
+    }
+  };
+
+  // Add project to API (multipart/form-data)
+  const addProjectToAPI = async (project: Project, imageFile?: File) => {
+    if (!token) {
+      console.error('No auth token available');
+      return false;
+    }
+
+    if (!project.title) {
+      console.error('Project title is required');
+      return false;
+    }
+
+    setSavingProject(project.id);
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+
+      const formData = new FormData();
+      formData.append('requestDTO', new Blob([JSON.stringify({
+        title: project.title,
+        description: project.description || '',
+        year: parseInt(project.year) || new Date().getFullYear(),
+      })], { type: 'application/json' }));
+
+      // If we have an image file, use it; otherwise try to convert base64 to blob
+      if (imageFile) {
+        formData.append('projectImage', imageFile);
+      } else if (project.image && project.image.startsWith('data:')) {
+        // Convert base64 to blob
+        const response = await fetch(project.image);
+        const blob = await response.blob();
+        formData.append('projectImage', blob, 'project-image.jpg');
+      }
+
+      const apiResponse = await fetch(`${apiUrl}/api/remote/photographer/add-project-portfolio`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'api-token': apiKey,
+        },
+        body: formData,
+      });
+
+      if (!apiResponse.ok) {
+        console.error('Failed to add project:', apiResponse.status);
+        return false;
+      }
+
+      console.log('Project added successfully');
+      return true;
+    } catch (error) {
+      console.error('Error adding project:', error);
+      return false;
+    } finally {
+      setSavingProject(null);
+    }
+  };
+
+  // Delete skill from API
+  const deleteSkillFromAPI = async (skillId: string) => {
+    if (!token) return false;
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+      const response = await fetch(`${apiUrl}/api/remote/photographer/delete-professional-skills/${skillId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'api-token': apiKey,
+        },
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('Error deleting skill:', error);
+      return false;
+    }
+  };
+
+  // Delete equipment from API
+  const deleteEquipmentFromAPI = async (equipmentId: string) => {
+    if (!token) return false;
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+      const response = await fetch(`${apiUrl}/api/remote/photographer/delete-equipment/${equipmentId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'api-token': apiKey,
+        },
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('Error deleting equipment:', error);
+      return false;
+    }
+  };
+
+  // Delete education from API
+  const deleteEducationFromAPI = async (educationId: string) => {
+    if (!token) return false;
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+      const response = await fetch(`${apiUrl}/api/remote/photographer/delete-education-level/${educationId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'api-token': apiKey,
+        },
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('Error deleting education:', error);
+      return false;
+    }
+  };
+
+  // Delete availability from API
+  const deleteAvailabilityFromAPI = async (availabilityId: string) => {
+    if (!token) return false;
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+      const response = await fetch(`${apiUrl}/api/remote/photographer/delete-availability/${availabilityId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'api-token': apiKey,
+        },
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('Error deleting availability:', error);
+      return false;
+    }
+  };
+
+  // Delete project from API
+  const deleteProjectFromAPI = async (projectId: string) => {
+    if (!token) return false;
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+      const response = await fetch(`${apiUrl}/api/remote/photographer/delete-add-project-portfolio/${projectId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'api-token': apiKey,
+        },
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      return false;
+    }
+  };
+
+  // Delete training/certification from API
+  const deleteTrainingFromAPI = async (trainingId: string) => {
+    if (!token) return false;
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+      const response = await fetch(`${apiUrl}/api/remote/photographer/delete-trainting-certification/${trainingId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'api-token': apiKey,
+        },
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('Error deleting training:', error);
+      return false;
+    }
   };
 
   // Qualification handlers
@@ -616,11 +1243,16 @@ const PhotographerProfilePage = () => {
     }));
   };
 
-  const removeQualification = (id: string) => {
-    setPortfolioData(prev => ({
-      ...prev,
-      qualifications: prev.qualifications.filter(q => q.id !== id)
-    }));
+  const removeQualification = async (id: string) => {
+    const success = await deleteTrainingFromAPI(id); // Certifications use same endpoint as training
+    if (success) {
+      setPortfolioData(prev => ({
+        ...prev,
+        qualifications: prev.qualifications.filter(q => q.id !== id)
+      }));
+    }
+    showToast(success ? 'success' : 'error',
+      success ? 'Certification deleted successfully' : 'Failed to delete certification');
   };
 
   // Training handlers
@@ -642,11 +1274,16 @@ const PhotographerProfilePage = () => {
     }));
   };
 
-  const removeTraining = (id: string) => {
-    setPortfolioData(prev => ({
-      ...prev,
-      training: prev.training.filter(t => t.id !== id)
-    }));
+  const removeTraining = async (id: string) => {
+    const success = await deleteTrainingFromAPI(id);
+    if (success) {
+      setPortfolioData(prev => ({
+        ...prev,
+        training: prev.training.filter(t => t.id !== id)
+      }));
+    }
+    showToast(success ? 'success' : 'error',
+      success ? 'Training deleted successfully' : 'Failed to delete training');
   };
 
   // Experience handlers
@@ -706,11 +1343,16 @@ const PhotographerProfilePage = () => {
     }));
   };
 
-  const removeProject = (id: string) => {
-    setPortfolioData(prev => ({
-      ...prev,
-      projects: prev.projects.filter(p => p.id !== id)
-    }));
+  const removeProject = async (id: string) => {
+    const success = await deleteProjectFromAPI(id);
+    if (success) {
+      setPortfolioData(prev => ({
+        ...prev,
+        projects: prev.projects.filter(p => p.id !== id)
+      }));
+    }
+    showToast(success ? 'success' : 'error',
+      success ? 'Project deleted successfully' : 'Failed to delete project');
   };
 
   const handleProjectImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -1336,15 +1978,25 @@ const PhotographerProfilePage = () => {
                       height: '100px',
                       borderRadius: '50%',
                       overflow: 'hidden',
-                      border: '4px solid white'
+                      border: '4px solid white',
+                      backgroundColor: colors.bgTertiary,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
                     }}>
-                      <Image
-                        src={profileImage}
-                        alt="Profile"
-                        width={100}
-                        height={100}
-                        style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                      />
+                      {profileImage ? (
+                        <Image
+                          src={profileImage}
+                          alt="Profile"
+                          width={100}
+                          height={100}
+                          style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                        />
+                      ) : (
+                        <span style={{ fontSize: '2rem', color: colors.textSecondary }}>
+                          {basicInfo.fullName ? basicInfo.fullName.charAt(0).toUpperCase() : '?'}
+                        </span>
+                      )}
                     </div>
                     <button
                       onClick={() => profileInputRef.current?.click()}
@@ -2337,6 +2989,27 @@ const PhotographerProfilePage = () => {
                                   <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                 </svg>
                               </button>
+                              <button
+                                onClick={async () => {
+                                  const success = await addSkillToAPI(skill);
+                                  showToast(success ? 'success' : 'error',
+                                    success ? 'Skill saved successfully' : 'Failed to save skill');
+                                }}
+                                disabled={savingSkill === skill.id || !skill.name}
+                                style={{
+                                  padding: '0.5rem 0.75rem',
+                                  backgroundColor: savingSkill === skill.id ? '#9CA3AF' : '#083A85',
+                                  color: '#FFFFFF',
+                                  border: 'none',
+                                  borderRadius: '0.375rem',
+                                  cursor: savingSkill === skill.id || !skill.name ? 'not-allowed' : 'pointer',
+                                  fontSize: '0.75rem',
+                                  fontWeight: '500',
+                                }}
+                                title="Save to server"
+                              >
+                                {savingSkill === skill.id ? '...' : 'Save'}
+                              </button>
                             </>
                           )}
                         </div>
@@ -2433,6 +3106,44 @@ const PhotographerProfilePage = () => {
                                 style={inputStyle}
                               />
                             </div>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
+                            <button
+                              onClick={() => removeEducation(edu.id)}
+                              style={{
+                                backgroundColor: 'transparent',
+                                color: '#EF4444',
+                                border: '1px solid #EF4444',
+                                borderRadius: '0.375rem',
+                                padding: '0.375rem 0.75rem',
+                                fontSize: '0.8rem',
+                                fontWeight: '500',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              Remove
+                            </button>
+                            <button
+                              onClick={async () => {
+                                const success = await saveEducationToAPI(edu);
+                                showToast(success ? 'success' : 'error',
+                                  success ? 'Education saved successfully' : 'Failed to save education');
+                              }}
+                              disabled={savingEducation === edu.id || !edu.degree || !edu.institution}
+                              style={{
+                                backgroundColor: savingEducation === edu.id ? '#9CA3AF' : '#083A85',
+                                color: '#FFFFFF',
+                                border: 'none',
+                                borderRadius: '0.375rem',
+                                padding: '0.375rem 0.75rem',
+                                fontSize: '0.8rem',
+                                fontWeight: '500',
+                                cursor: savingEducation === edu.id || !edu.degree || !edu.institution ? 'not-allowed' : 'pointer',
+                                opacity: !edu.degree || !edu.institution ? 0.5 : 1,
+                              }}
+                            >
+                              {savingEducation === edu.id ? 'Saving...' : 'Save'}
+                            </button>
                           </div>
                         </div>
                       ))}
@@ -2632,6 +3343,29 @@ const PhotographerProfilePage = () => {
                               />
                             </div>
                           </div>
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                            <button
+                              onClick={async () => {
+                                const success = await addTrainingToAPI(training, 'TRAINING');
+                                showToast(success ? 'success' : 'error',
+                                  success ? 'Training saved successfully' : 'Failed to save training');
+                              }}
+                              disabled={savingTraining === training.id || !training.name}
+                              style={{
+                                backgroundColor: savingTraining === training.id ? '#9CA3AF' : '#083A85',
+                                color: '#FFFFFF',
+                                border: 'none',
+                                borderRadius: '0.375rem',
+                                padding: '0.375rem 0.75rem',
+                                fontSize: '0.8rem',
+                                fontWeight: '500',
+                                cursor: savingTraining === training.id || !training.name ? 'not-allowed' : 'pointer',
+                                opacity: !training.name ? 0.5 : 1,
+                              }}
+                            >
+                              {savingTraining === training.id ? 'Saving...' : 'Save'}
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -2812,6 +3546,30 @@ const PhotographerProfilePage = () => {
                                 <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                               </svg>
                               Remove Project
+                            </button>
+                            {/* Save Button */}
+                            <button
+                              onClick={async () => {
+                                const success = await addProjectToAPI(project);
+                                showToast(success ? 'success' : 'error',
+                                  success ? 'Project saved successfully' : 'Failed to save project');
+                              }}
+                              disabled={savingProject === project.id || !project.title}
+                              style={{
+                                width: '100%',
+                                marginTop: '0.5rem',
+                                padding: '0.5rem',
+                                backgroundColor: savingProject === project.id ? '#9CA3AF' : '#083A85',
+                                color: '#FFFFFF',
+                                border: 'none',
+                                borderRadius: '0.375rem',
+                                cursor: savingProject === project.id || !project.title ? 'not-allowed' : 'pointer',
+                                fontSize: '0.85rem',
+                                fontWeight: '500',
+                                opacity: !project.title ? 0.5 : 1,
+                              }}
+                            >
+                              {savingProject === project.id ? 'Saving...' : 'Save Project'}
                             </button>
                           </div>
                         </div>
@@ -3045,6 +3803,51 @@ const PhotographerProfilePage = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Toast Notifications */}
+      <div style={{
+        position: 'fixed',
+        bottom: '1rem',
+        right: '1rem',
+        zIndex: 9999,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.5rem'
+      }}>
+        {toasts.map(toast => (
+          <div
+            key={toast.id}
+            style={{
+              padding: '0.75rem 1rem',
+              borderRadius: '0.5rem',
+              backgroundColor: toast.type === 'success' ? '#10B981' : '#EF4444',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+              minWidth: '200px'
+            }}
+          >
+            {toast.type === 'success' ? <CheckIcon /> : <XIcon />}
+            <span style={{ flex: 1 }}>{toast.message}</span>
+            <button
+              onClick={() => dismissToast(toast.id)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'white',
+                cursor: 'pointer',
+                padding: '0 0.25rem',
+                fontSize: '1.25rem',
+                lineHeight: 1
+              }}
+            >
+              ×
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   );

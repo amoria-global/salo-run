@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Pragati_Narrow } from "next/font/google";
 import "./globals.css";
+import { DashboardAuthProvider } from "./providers/AuthProvider";
 import { ThemeProvider } from "./context/ThemeContext";
 import { UserProfileProvider } from "./context/UserProfileContext";
 
@@ -29,11 +30,13 @@ export default function RootLayout({
         />
       </head>
       <body className={`${pragatiNarrow.variable} font-sans antialiased`}>
-        <ThemeProvider>
-          <UserProfileProvider>
-            {children}
-          </UserProfileProvider>
-        </ThemeProvider>
+        <DashboardAuthProvider>
+          <ThemeProvider>
+            <UserProfileProvider>
+              {children}
+            </UserProfileProvider>
+          </ThemeProvider>
+        </DashboardAuthProvider>
       </body>
     </html>
   );

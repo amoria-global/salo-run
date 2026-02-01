@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { useTheme } from "../context/ThemeContext";
+import { useDashboardAuth } from "../providers/AuthProvider";
 
 // Icons for dropdown menu
 const ProfileIcon = () => (
@@ -67,6 +68,20 @@ interface TopbarProps {
 
 export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmount, liveStreamFeeAmount, userRole = 'client' }: TopbarProps) {
   const { colors, actualTheme } = useTheme();
+  const { user } = useDashboardAuth();
+
+  const getUserDisplayName = () => {
+    if (user?.firstName && user?.lastName) {
+      return `${user.firstName} ${user.lastName}`;
+    }
+    if (user?.firstName) {
+      return user.firstName;
+    }
+    if (user?.email) {
+      return user.email.split('@')[0];
+    }
+    return 'User';
+  };
 
   const getRoleDisplayName = (role: string) => {
     switch (role) {
@@ -678,7 +693,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
                 lineHeight: '1.5rem',
                 fontWeight: '700',
                 color: colors.brandPrimary
-              }}>Diane Mary</span>
+              }}>{getUserDisplayName()}</span>
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -731,13 +746,13 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
                   color: colors.brandPrimary,
                   marginBottom: '0.25rem'
                 }}>
-                  Diane Marry
+                  {getUserDisplayName()}
                 </div>
                 <div style={{
                   fontSize: '0.9rem',
                   color: colors.textSecondary
                 }}>
-                  ID: <span style={{ color: '#EC4899', fontWeight: '600' }}>12004573</span>
+                  {user?.email && <span>{user.email}</span>}
                 </div>
               </div>
 

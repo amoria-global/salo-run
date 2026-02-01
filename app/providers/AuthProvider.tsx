@@ -1,0 +1,532 @@
+'use client';
+
+import React, { createContext, useContext, useState, useEffect, useCallback, Suspense } from 'react';
+import { useSearchParams, usePathname } from 'next/navigation';
+
+/**
+ * Availability time structure from API
+ */
+export interface AvailabilityTime {
+  hour: number;
+  minute: number;
+  second: number;
+  nano: number;
+}
+
+/**
+ * Availability day structure from API
+ */
+export interface UserAvailability {
+  id?: string;
+  dayOfWeek: string;
+  startTime: AvailabilityTime;
+  endTime: AvailabilityTime;
+}
+
+/**
+ * Skill structure from API
+ */
+export interface UserSkill {
+  id?: string;
+  name: string;
+  skillPercentage: number;
+}
+
+/**
+ * Equipment structure from API
+ */
+export interface UserEquipment {
+  id?: string;
+  name: string;
+}
+
+/**
+ * Education level structure from API
+ */
+export interface UserEducation {
+  id?: string;
+  degree: string;
+  institution: string;
+  startDate: string;
+  endDate: string;
+  description: string;
+}
+
+/**
+ * Certification/Training structure from API
+ */
+export interface UserCertification {
+  id?: string;
+  title: string;
+  institution: string;
+  yearObtained: string;
+  description: string;
+  type: 'TRAINING' | 'CERTIFICATION';
+}
+
+/**
+ * Project structure from API
+ */
+export interface UserProject {
+  id?: string;
+  title: string;
+  description: string;
+  year: number;
+  projectImage?: string;
+}
+
+/**
+ * User data stored in dashboard auth context
+ */
+export interface DashboardUser {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  customerId: string;
+  customerType: string;
+  profilePicture?: string;
+  coverPicture?: string;
+  address?: string;
+  about?: string;
+  professionalPhilosophy?: string;
+  specialties?: string[];
+  rating?: number;
+  availabilities?: UserAvailability[];
+  projects?: UserProject[];
+  professionalSkills?: UserSkill[];
+  equipments?: UserEquipment[];
+  educationLevels?: UserEducation[];
+  certifications?: UserCertification[];
+  trainings?: UserCertification[];
+}
+
+/**
+ * Dashboard Auth context type definition
+ */
+interface AuthContextType {
+  user: DashboardUser | null;
+  token: string | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  logout: () => void;
+  refreshToken: () => Promise<boolean>;
+  updateUser: (userData: Partial<DashboardUser>) => void;
+}
+
+const AUTH_TOKEN_KEY = 'authToken';
+const AUTH_USER_KEY = 'authUser';
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+/**
+ * Get API URL
+ */
+function getApiUrl(): string {
+  return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+}
+
+/**
+ * Get API key
+ */
+function getApiKey(): string {
+  return process.env.NEXT_PUBLIC_API_KEY || '';
+}
+
+/**
+ * Get token from cookie
+ */
+function getCookieToken(): string | null {
+  if (typeof document === 'undefined') return null;
+  const cookies = document.cookie.split(';');
+  const tokenCookie = cookies.find(c => c.trim().startsWith('authToken='));
+  if (tokenCookie) {
+    return tokenCookie.split('=')[1];
+  }
+  return null;
+}
+
+/**
+ * Set token in cookie
+ */
+function setTokenCookie(token: string): void {
+  if (typeof document === 'undefined') return;
+  const maxAge = 60 * 60 * 24 * 7; // 7 days
+  document.cookie = `authToken=${token}; path=/; max-age=${maxAge}; samesite=lax`;
+}
+
+/**
+ * Fetch user profile from public photographers list by email
+ */
+async function fetchUserFromPhotographersList(email: string): Promise<DashboardUser | null> {
+  try {
+    const response = await fetch(
+      `${getApiUrl()}/api/remote/public/photographers/list?page=0&size=100&sortColumn=createdAt&sortDirection=asc`
+    );
+
+    if (!response.ok) {
+      console.error('[Dashboard Auth] Failed to fetch photographers list:', response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    const photographers = data.data?.content || [];
+
+    // Find photographer by email
+    const photographer = photographers.find(
+      (p: { email: string }) => p.email.toLowerCase() === email.toLowerCase()
+    );
+
+    if (!photographer) {
+      console.error('[Dashboard Auth] Photographer not found for email:', email);
+      return null;
+    }
+
+    console.log('[Dashboard Auth] Found photographer:', photographer.firstName, photographer.lastName);
+
+    // Map to DashboardUser with all profile data
+    return {
+      id: photographer.id || '',
+      firstName: photographer.firstName || '',
+      lastName: photographer.lastName || '',
+      email: photographer.email || '',
+      phone: photographer.phone || '',
+      customerId: photographer.id || '',
+      customerType: photographer.customerType || 'Photographer',
+      profilePicture: photographer.profilePicture || undefined,
+      coverPicture: photographer.coverPicture || undefined,
+      address: photographer.address || undefined,
+      about: photographer.about || undefined,
+      professionalPhilosophy: photographer.professionalPhilosophy || undefined,
+      specialties: photographer.specialties || [],
+      rating: photographer.rating || 0,
+      availabilities: photographer.availabilities || [],
+      projects: photographer.projects || [],
+      professionalSkills: photographer.professionalSkills || [],
+      equipments: photographer.equipments || [],
+      educationLevels: photographer.educationLevels || [],
+      certifications: photographer.certifications || [],
+      trainings: photographer.trainings || [],
+    };
+  } catch (error) {
+    console.error('[Dashboard Auth] Error fetching photographers list:', error);
+    return null;
+  }
+}
+
+/**
+ * Validate token by adding an education level
+ * If the request succeeds, the token is valid
+ */
+async function validateTokenWithEducation(token: string): Promise<boolean> {
+  try {
+    const response = await fetch(
+      `${getApiUrl()}/api/remote/photographer/add-education-level`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'api-token': getApiKey(),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          degree: 'validation_test',
+          institution: 'validation_test',
+          startDate: '2024-01-01',
+          endDate: '2024-01-02',
+          description: 'Token validation entry',
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      console.error('[Dashboard Auth] Token validation failed:', response.status);
+      return false;
+    }
+
+    console.log('[Dashboard Auth] Token validation successful');
+    return true;
+  } catch (error) {
+    console.error('[Dashboard Auth] Token validation error:', error);
+    return false;
+  }
+}
+
+/**
+ * Inner component that uses searchParams
+ */
+function AuthProviderInner({ children }: { children: React.ReactNode }) {
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const [user, setUser] = useState<DashboardUser | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Initialize from URL token, cookie, or localStorage
+  useEffect(() => {
+    const initAuth = async () => {
+      // Check for token and email in URL params (primary method)
+      const urlToken = searchParams.get('token');
+      const urlEmail = searchParams.get('email');
+      // Check for token in cookie
+      const cookieToken = getCookieToken();
+      // Check localStorage
+      const storedToken = typeof window !== 'undefined' ? localStorage.getItem(AUTH_TOKEN_KEY) : null;
+      const storedUserStr = typeof window !== 'undefined' ? localStorage.getItem(AUTH_USER_KEY) : null;
+
+      // Priority: URL > cookie > localStorage
+      const activeToken = urlToken || cookieToken || storedToken;
+
+      if (activeToken) {
+        // Validate token using education endpoints
+        const isValid = await validateTokenWithEducation(activeToken);
+
+        if (isValid) {
+          setToken(activeToken);
+
+          // Save token to cookie and localStorage
+          if (typeof window !== 'undefined') {
+            setTokenCookie(activeToken);
+            localStorage.setItem(AUTH_TOKEN_KEY, activeToken);
+          }
+
+          // Fetch user profile from photographers list if email is provided
+          if (urlEmail) {
+            const userProfile = await fetchUserFromPhotographersList(urlEmail);
+            if (userProfile) {
+              setUser(userProfile);
+              if (typeof window !== 'undefined') {
+                localStorage.setItem(AUTH_USER_KEY, JSON.stringify(userProfile));
+              }
+            }
+          } else if (storedUserStr) {
+            // Load user from localStorage if no email but stored data available
+            try {
+              const storedUser = JSON.parse(storedUserStr);
+              setUser(storedUser);
+            } catch {
+              // Invalid JSON, ignore
+            }
+          }
+
+          // Clean up URL params (token and email)
+          if ((urlToken || urlEmail) && typeof window !== 'undefined') {
+            const url = new URL(window.location.href);
+            url.searchParams.delete('token');
+            url.searchParams.delete('email');
+            window.history.replaceState({}, '', url.pathname + url.search);
+          }
+        } else {
+          // Invalid token - clear storage
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem(AUTH_TOKEN_KEY);
+            localStorage.removeItem(AUTH_USER_KEY);
+            document.cookie = 'authToken=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+          }
+        }
+      }
+
+      setIsLoading(false);
+    };
+
+    initAuth();
+  }, [searchParams]);
+
+  // Validate token every 5 minutes
+  useEffect(() => {
+    if (!token) return;
+
+    const FIVE_MINUTES = 5 * 60 * 1000;
+
+    const intervalId = setInterval(async () => {
+      console.log('[Dashboard Auth] Running periodic token validation...');
+      const isValid = await validateTokenWithEducation(token);
+
+      if (!isValid) {
+        console.log('[Dashboard Auth] Token validation failed, clearing session...');
+        // Clear storage
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem(AUTH_TOKEN_KEY);
+          localStorage.removeItem(AUTH_USER_KEY);
+          document.cookie = 'authToken=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+        }
+        setToken(null);
+        setUser(null);
+      } else {
+        console.log('[Dashboard Auth] Token validation successful');
+      }
+    }, FIVE_MINUTES);
+
+    return () => clearInterval(intervalId);
+  }, [token]);
+
+  // Listen for storage events (cross-tab sync)
+  useEffect(() => {
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === AUTH_USER_KEY) {
+        if (event.newValue) {
+          try {
+            const newUser = JSON.parse(event.newValue);
+            setUser(newUser);
+          } catch {
+            setUser(null);
+          }
+        } else {
+          // User was removed (logged out in another tab)
+          setUser(null);
+        }
+      }
+
+      // Also check for token changes
+      if (event.key === AUTH_TOKEN_KEY) {
+        if (!event.newValue) {
+          // Token removed
+          setToken(null);
+          setUser(null);
+        } else {
+          setToken(event.newValue);
+        }
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', handleStorageChange);
+      return () => window.removeEventListener('storage', handleStorageChange);
+    }
+  }, []);
+
+  /**
+   * Refresh the auth token
+   */
+  const refreshTokenFn = useCallback(async (): Promise<boolean> => {
+    if (!token) return false;
+
+    try {
+      const response = await fetch(
+        `${getApiUrl()}/api/remote/auth/api/v1/remote/refresh-token`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'api-token': getApiKey(),
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.token) {
+          setToken(data.token);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(AUTH_TOKEN_KEY, data.token);
+          }
+          return true;
+        }
+      }
+      return false;
+    } catch (error) {
+      console.error('[Dashboard Auth] Token refresh failed:', error);
+      return false;
+    }
+  }, [token]);
+
+  /**
+   * Logout - clear all auth data
+   */
+  const logout = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(AUTH_TOKEN_KEY);
+      localStorage.removeItem(AUTH_USER_KEY);
+      // Clear auth cookie
+      document.cookie = 'authToken=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+    }
+    setUser(null);
+    setToken(null);
+  }, []);
+
+  /**
+   * Update user data
+   */
+  const updateUser = useCallback((userData: Partial<DashboardUser>) => {
+    setUser(prev => {
+      if (!prev) return null;
+      const updated = { ...prev, ...userData };
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(AUTH_USER_KEY, JSON.stringify(updated));
+      }
+      return updated;
+    });
+  }, []);
+
+  const value: AuthContextType = {
+    user,
+    token,
+    isAuthenticated: !!token && !isLoading,
+    isLoading,
+    logout,
+    refreshToken: refreshTokenFn,
+    updateUser,
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+/**
+ * DashboardAuthProvider component
+ * Manages authentication state for the dashboard app
+ * - Reads token from URL query param (passed from home app)
+ * - Validates token with backend
+ * - Stores token in localStorage
+ * - Redirects to home login if no valid token
+ */
+export function DashboardAuthProvider({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100vh',
+        backgroundColor: '#f9fafb'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            border: '3px solid #e5e7eb',
+            borderTopColor: '#083A85',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 16px'
+          }} />
+          <p style={{ color: '#6b7280', fontSize: '14px' }}>Loading...</p>
+        </div>
+        <style>{`
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    }>
+      <AuthProviderInner>{children}</AuthProviderInner>
+    </Suspense>
+  );
+}
+
+/**
+ * Hook to access dashboard auth context
+ */
+export function useDashboardAuth(): AuthContextType {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useDashboardAuth must be used within a DashboardAuthProvider');
+  }
+  return context;
+}
+
+export default DashboardAuthProvider;
