@@ -8,6 +8,16 @@ import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 import { useDashboardAuth } from '../../providers/AuthProvider';
 
+/**
+ * Get API URL - uses proxy in production to avoid mixed content
+ */
+function getApiUrl(): string {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    return '/api/proxy';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+}
+
 // Configure localforage for profile form data
 const profileFormStorage = localforage.createInstance({
   name: 'connekt-dashboard',
@@ -735,7 +745,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     setSavingEducation(edu.id);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+      const apiUrl = getApiUrl();
       const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
 
       const response = await fetch(`${apiUrl}/api/remote/photographer/add-education-level`, {
@@ -784,7 +794,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     setSavingTraining(training.id);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+      const apiUrl = getApiUrl();
       const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
 
       const response = await fetch(`${apiUrl}/api/remote/photographer/add-trainting-certification`, {
@@ -833,7 +843,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     setSavingSkill(skill.id);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+      const apiUrl = getApiUrl();
       const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
 
       const response = await fetch(`${apiUrl}/api/remote/photographer/add-professional-skills`, {
@@ -879,7 +889,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     setSavingEquipment(name);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+      const apiUrl = getApiUrl();
       const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
 
       const response = await fetch(`${apiUrl}/api/remote/photographer/add-equipment`, {
@@ -934,7 +944,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     setSavingAvailability(day);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+      const apiUrl = getApiUrl();
       const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
 
       const response = await fetch(`${apiUrl}/api/remote/photographer/add-availability`, {
@@ -976,7 +986,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     setSavingProfilePicture(true);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+      const apiUrl = getApiUrl();
       const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
 
       const formData = new FormData();
@@ -1016,7 +1026,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     setSavingCoverPhoto(true);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+      const apiUrl = getApiUrl();
       const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
 
       const formData = new FormData();
@@ -1061,7 +1071,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     setSavingProject(project.id);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+      const apiUrl = getApiUrl();
       const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
 
       const formData = new FormData();
@@ -1109,7 +1119,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   const deleteSkillFromAPI = async (skillId: string) => {
     if (!token) return false;
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+      const apiUrl = getApiUrl();
       const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
       const response = await fetch(`${apiUrl}/api/remote/photographer/delete-professional-skills/${skillId}`, {
         method: 'POST',
@@ -1129,7 +1139,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   const deleteEquipmentFromAPI = async (equipmentId: string) => {
     if (!token) return false;
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+      const apiUrl = getApiUrl();
       const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
       const response = await fetch(`${apiUrl}/api/remote/photographer/delete-equipment/${equipmentId}`, {
         method: 'POST',
@@ -1149,7 +1159,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   const deleteEducationFromAPI = async (educationId: string) => {
     if (!token) return false;
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+      const apiUrl = getApiUrl();
       const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
       const response = await fetch(`${apiUrl}/api/remote/photographer/delete-education-level/${educationId}`, {
         method: 'POST',
@@ -1169,7 +1179,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   const deleteAvailabilityFromAPI = async (availabilityId: string) => {
     if (!token) return false;
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+      const apiUrl = getApiUrl();
       const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
       const response = await fetch(`${apiUrl}/api/remote/photographer/delete-availability/${availabilityId}`, {
         method: 'POST',
@@ -1189,7 +1199,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   const deleteProjectFromAPI = async (projectId: string) => {
     if (!token) return false;
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+      const apiUrl = getApiUrl();
       const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
       const response = await fetch(`${apiUrl}/api/remote/photographer/delete-add-project-portfolio/${projectId}`, {
         method: 'POST',
@@ -1209,7 +1219,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   const deleteTrainingFromAPI = async (trainingId: string) => {
     if (!token) return false;
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+      const apiUrl = getApiUrl();
       const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
       const response = await fetch(`${apiUrl}/api/remote/photographer/delete-trainting-certification/${trainingId}`, {
         method: 'POST',
