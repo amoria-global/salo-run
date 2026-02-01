@@ -255,6 +255,12 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     district: '',
     sector: '',
     availability: {} as { [key: string]: DayAvailability },
+    // Employment Information
+    employmentStatus: '' as '' | 'self-employed' | 'employed',
+    companyName: '',
+    companyAddress: '',
+    positionRole: '',
+    employmentType: '' as '' | 'full-time' | 'part-time' | 'contract',
   });
 
   // Overview Tab State - initialized empty, loaded from user context
