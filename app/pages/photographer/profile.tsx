@@ -174,7 +174,7 @@ interface PhotographerProfilePageProps {
 
 const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProfilePageProps) => {
   const { colors, actualTheme } = useTheme();
-  const { token, user } = useDashboardAuth();
+  const { token, user, refreshUserProfile } = useDashboardAuth();
   const [activeTab, setActiveTab] = useState<'overview' | 'portfolio' | 'experience'>('overview');
   const [savingEducation, setSavingEducation] = useState<string | null>(null);
   const [savingTraining, setSavingTraining] = useState<string | null>(null);
@@ -461,7 +461,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         skills: user.professionalSkills?.map(s => ({
           id: s.id || String(Date.now()),
           name: s.name,
-          level: s.skillPercentage,
+          level: s.skillPercentage ?? s.proficiencyLevel ?? 0,
         })) || [],
         education: user.educationLevels?.map(e => ({
           id: e.id || String(Date.now()),
@@ -770,6 +770,8 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       }
 
       console.log('Education saved successfully');
+      // Refresh profile to get updated data with server-generated IDs
+      await refreshUserProfile();
       return true;
     } catch (error) {
       console.error('Error saving education:', error);
@@ -819,6 +821,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       }
 
       console.log('Training added successfully');
+      await refreshUserProfile();
       return true;
     } catch (error) {
       console.error('Error adding training:', error);
@@ -865,6 +868,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       }
 
       console.log('Skill added successfully');
+      await refreshUserProfile();
       return true;
     } catch (error) {
       console.error('Error adding skill:', error);
@@ -910,6 +914,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       }
 
       console.log('Equipment added successfully');
+      await refreshUserProfile();
       return true;
     } catch (error) {
       console.error('Error adding equipment:', error);
@@ -967,6 +972,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       }
 
       console.log('Availability added successfully');
+      await refreshUserProfile();
       return true;
     } catch (error) {
       console.error('Error adding availability:', error);
@@ -1007,6 +1013,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       }
 
       console.log('Profile picture saved successfully');
+      await refreshUserProfile();
       return true;
     } catch (error) {
       console.error('Error saving profile picture:', error);
@@ -1047,6 +1054,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       }
 
       console.log('Cover photo saved successfully');
+      await refreshUserProfile();
       return true;
     } catch (error) {
       console.error('Error saving cover photo:', error);
@@ -1106,6 +1114,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       }
 
       console.log('Project added successfully');
+      await refreshUserProfile();
       return true;
     } catch (error) {
       console.error('Error adding project:', error);
@@ -1128,6 +1137,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           'api-token': apiKey,
         },
       });
+      if (response.ok) {
+        await refreshUserProfile();
+      }
       return response.ok;
     } catch (error) {
       console.error('Error deleting skill:', error);
@@ -1148,6 +1160,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           'api-token': apiKey,
         },
       });
+      if (response.ok) {
+        await refreshUserProfile();
+      }
       return response.ok;
     } catch (error) {
       console.error('Error deleting equipment:', error);
@@ -1168,6 +1183,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           'api-token': apiKey,
         },
       });
+      if (response.ok) {
+        await refreshUserProfile();
+      }
       return response.ok;
     } catch (error) {
       console.error('Error deleting education:', error);
@@ -1188,6 +1206,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           'api-token': apiKey,
         },
       });
+      if (response.ok) {
+        await refreshUserProfile();
+      }
       return response.ok;
     } catch (error) {
       console.error('Error deleting availability:', error);
@@ -1208,6 +1229,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           'api-token': apiKey,
         },
       });
+      if (response.ok) {
+        await refreshUserProfile();
+      }
       return response.ok;
     } catch (error) {
       console.error('Error deleting project:', error);
@@ -1228,6 +1252,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           'api-token': apiKey,
         },
       });
+      if (response.ok) {
+        await refreshUserProfile();
+      }
       return response.ok;
     } catch (error) {
       console.error('Error deleting training:', error);
