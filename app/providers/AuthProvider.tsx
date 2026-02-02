@@ -25,11 +25,13 @@ export interface UserAvailability {
 
 /**
  * Skill structure from API
+ * Supports both skillPercentage (old format) and proficiencyLevel (new format)
  */
 export interface UserSkill {
   id?: string;
   name: string;
-  skillPercentage: number;
+  skillPercentage?: number;    // Old API format
+  proficiencyLevel?: number;   // New API format (profile-summary)
 }
 
 /**
@@ -100,6 +102,12 @@ export interface DashboardUser {
   educationLevels?: UserEducation[];
   certifications?: UserCertification[];
   trainings?: UserCertification[];
+  // New fields from profile-summary endpoint
+  joinedFrom?: string;
+  reviews?: unknown[];
+  packages?: unknown[];
+  profileReviewStatus?: string;
+  reviewComment?: string;
 }
 
 /**
@@ -113,6 +121,7 @@ interface AuthContextType {
   logout: () => void;
   refreshToken: () => Promise<boolean>;
   updateUser: (userData: Partial<DashboardUser>) => void;
+  refreshUserProfile: () => Promise<boolean>;
 }
 
 const AUTH_TOKEN_KEY = 'authToken';
@@ -161,99 +170,87 @@ function setTokenCookie(token: string): void {
 }
 
 /**
- * Fetch user profile from public photographers list by email
+ * Map professional skills to support both API formats (skillPercentage and proficiencyLevel)
  */
-async function fetchUserFromPhotographersList(email: string): Promise<DashboardUser | null> {
-  try {
-    const response = await fetch(
-      `${getApiUrl()}/api/remote/public/photographers/list?page=0&size=100&sortColumn=createdAt&sortDirection=asc`
-    );
-
-    if (!response.ok) {
-      console.error('[Dashboard Auth] Failed to fetch photographers list:', response.status);
-      return null;
-    }
-
-    const data = await response.json();
-    const photographers = data.data?.content || [];
-
-    // Find photographer by email
-    const photographer = photographers.find(
-      (p: { email: string }) => p.email.toLowerCase() === email.toLowerCase()
-    );
-
-    if (!photographer) {
-      console.error('[Dashboard Auth] Photographer not found for email:', email);
-      return null;
-    }
-
-    console.log('[Dashboard Auth] Found photographer:', photographer.firstName, photographer.lastName);
-
-    // Map to DashboardUser with all profile data
-    return {
-      id: photographer.id || '',
-      firstName: photographer.firstName || '',
-      lastName: photographer.lastName || '',
-      email: photographer.email || '',
-      phone: photographer.phone || '',
-      customerId: photographer.id || '',
-      customerType: photographer.customerType || 'Photographer',
-      profilePicture: photographer.profilePicture || undefined,
-      coverPicture: photographer.coverPicture || undefined,
-      address: photographer.address || undefined,
-      about: photographer.about || undefined,
-      professionalPhilosophy: photographer.professionalPhilosophy || undefined,
-      specialties: photographer.specialties || [],
-      rating: photographer.rating || 0,
-      availabilities: photographer.availabilities || [],
-      projects: photographer.projects || [],
-      professionalSkills: photographer.professionalSkills || [],
-      equipments: photographer.equipments || [],
-      educationLevels: photographer.educationLevels || [],
-      certifications: photographer.certifications || [],
-      trainings: photographer.trainings || [],
-    };
-  } catch (error) {
-    console.error('[Dashboard Auth] Error fetching photographers list:', error);
-    return null;
-  }
+function mapProfessionalSkills(skills: Array<{
+  id?: string;
+  name: string;
+  proficiencyLevel?: number;
+  skillPercentage?: number;
+}>): UserSkill[] {
+  return skills.map(skill => ({
+    id: skill.id,
+    name: skill.name,
+    skillPercentage: skill.skillPercentage ?? skill.proficiencyLevel ?? 0,
+    proficiencyLevel: skill.proficiencyLevel ?? skill.skillPercentage ?? 0,
+  }));
 }
 
 /**
- * Validate token by adding an education level
- * If the request succeeds, the token is valid
+ * Fetch photographer profile summary using Bearer token
+ * This is the preferred method for authenticated users
  */
-async function validateTokenWithEducation(token: string): Promise<boolean> {
+async function fetchPhotographerProfileSummary(token: string): Promise<DashboardUser | null> {
   try {
     const response = await fetch(
-      `${getApiUrl()}/api/remote/photographer/add-education-level`,
+      `${getApiUrl()}/api/remote/photographer/profile-summary`,
       {
-        method: 'POST',
+        method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
           'api-token': getApiKey(),
-          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          degree: 'validation_test',
-          institution: 'validation_test',
-          startDate: '2024-01-01',
-          endDate: '2024-01-02',
-          description: 'Token validation entry',
-        }),
       }
     );
 
     if (!response.ok) {
-      console.error('[Dashboard Auth] Token validation failed:', response.status);
-      return false;
+      console.error('[Dashboard Auth] Failed to fetch profile summary:', response.status);
+      return null;
     }
 
-    console.log('[Dashboard Auth] Token validation successful');
-    return true;
+    const result = await response.json();
+
+    if (result.action !== 1 || !result.data) {
+      console.error('[Dashboard Auth] Invalid profile summary response:', result.message);
+      return null;
+    }
+
+    const data = result.data;
+    console.log('[Dashboard Auth] Fetched profile summary for:', data.firstName, data.lastName);
+
+    // Map API response to DashboardUser format
+    return {
+      id: data.id || '',
+      firstName: data.firstName || '',
+      lastName: data.lastName || '',
+      email: data.email || '',
+      phone: data.phone || '',
+      customerId: data.id || '',
+      customerType: data.customerType || 'Photographer',
+      profilePicture: data.profilePicture || undefined,
+      coverPicture: data.coverPicture || undefined,
+      address: data.address || undefined,
+      about: data.about || undefined,
+      professionalPhilosophy: data.professionalPhilosophy || undefined,
+      specialties: data.specialties || [],
+      rating: data.rating || 0,
+      availabilities: data.availabilities || [],
+      projects: data.projects || [],
+      professionalSkills: mapProfessionalSkills(data.professionalSkills || []),
+      equipments: data.equipments || [],
+      educationLevels: data.educationLevels || [],
+      certifications: data.certifications || [],
+      trainings: data.trainings || [],
+      // New fields from profile-summary endpoint
+      joinedFrom: data.joinedFrom || undefined,
+      reviews: data.reviews || [],
+      packages: data.packages || [],
+      profileReviewStatus: data.profileReviewStatus || undefined,
+      reviewComment: data.reviewComment || undefined,
+    };
   } catch (error) {
-    console.error('[Dashboard Auth] Token validation error:', error);
-    return false;
+    console.error('[Dashboard Auth] Error fetching profile summary:', error);
+    return null;
   }
 }
 
@@ -270,9 +267,8 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
   // Initialize from URL token, cookie, or localStorage
   useEffect(() => {
     const initAuth = async () => {
-      // Check for token and email in URL params (primary method)
+      // Check for token in URL params (primary method)
       const urlToken = searchParams.get('token');
-      const urlEmail = searchParams.get('email');
       // Check for token in cookie
       const cookieToken = getCookieToken();
       // Check localStorage
@@ -283,43 +279,43 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
       const activeToken = urlToken || cookieToken || storedToken;
 
       if (activeToken) {
-        // Validate token using education endpoints
-        const isValid = await validateTokenWithEducation(activeToken);
+        // Fetch profile summary - this also validates the token (will fail if token is invalid)
+        const userProfile = await fetchPhotographerProfileSummary(activeToken);
 
-        if (isValid) {
+        if (userProfile) {
+          // Token is valid and profile fetched successfully
           setToken(activeToken);
+          setUser(userProfile);
 
-          // Save token to cookie and localStorage
+          // Save token and user to cookie and localStorage
           if (typeof window !== 'undefined') {
             setTokenCookie(activeToken);
             localStorage.setItem(AUTH_TOKEN_KEY, activeToken);
+            localStorage.setItem(AUTH_USER_KEY, JSON.stringify(userProfile));
           }
 
-          // Fetch user profile from photographers list if email is provided
-          if (urlEmail) {
-            const userProfile = await fetchUserFromPhotographersList(urlEmail);
-            if (userProfile) {
-              setUser(userProfile);
-              if (typeof window !== 'undefined') {
-                localStorage.setItem(AUTH_USER_KEY, JSON.stringify(userProfile));
-              }
-            }
-          } else if (storedUserStr) {
-            // Load user from localStorage if no email but stored data available
-            try {
-              const storedUser = JSON.parse(storedUserStr);
-              setUser(storedUser);
-            } catch {
-              // Invalid JSON, ignore
-            }
-          }
-
-          // Clean up URL params (token and email)
-          if ((urlToken || urlEmail) && typeof window !== 'undefined') {
+          // Clean up URL token param
+          if (urlToken && typeof window !== 'undefined') {
             const url = new URL(window.location.href);
             url.searchParams.delete('token');
-            url.searchParams.delete('email');
+            url.searchParams.delete('email'); // Clean up email too if present (legacy)
             window.history.replaceState({}, '', url.pathname + url.search);
+          }
+        } else if (storedUserStr && storedToken === activeToken) {
+          // Profile fetch failed but we have cached data - use it temporarily
+          // This handles offline/network issues
+          try {
+            const storedUser = JSON.parse(storedUserStr);
+            setToken(activeToken);
+            setUser(storedUser);
+            console.log('[Dashboard Auth] Using cached user profile');
+          } catch {
+            // Invalid JSON - clear storage
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem(AUTH_TOKEN_KEY);
+              localStorage.removeItem(AUTH_USER_KEY);
+              document.cookie = 'authToken=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+            }
           }
         } else {
           // Invalid token - clear storage
@@ -337,17 +333,17 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     initAuth();
   }, [searchParams]);
 
-  // Validate token every 5 minutes
+  // Validate token and refresh profile every 5 minutes
   useEffect(() => {
     if (!token) return;
 
     const FIVE_MINUTES = 5 * 60 * 1000;
 
     const intervalId = setInterval(async () => {
-      console.log('[Dashboard Auth] Running periodic token validation...');
-      const isValid = await validateTokenWithEducation(token);
+      console.log('[Dashboard Auth] Running periodic profile refresh...');
+      const userProfile = await fetchPhotographerProfileSummary(token);
 
-      if (!isValid) {
+      if (!userProfile) {
         console.log('[Dashboard Auth] Token validation failed, clearing session...');
         // Clear storage
         if (typeof window !== 'undefined') {
@@ -358,7 +354,12 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
         setToken(null);
         setUser(null);
       } else {
-        console.log('[Dashboard Auth] Token validation successful');
+        // Update user with fresh data
+        setUser(userProfile);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(AUTH_USER_KEY, JSON.stringify(userProfile));
+        }
+        console.log('[Dashboard Auth] Profile refresh successful');
       }
     }, FIVE_MINUTES);
 
@@ -463,6 +464,32 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  /**
+   * Refresh user profile from API
+   * Call this after any profile update operation to get fresh data
+   */
+  const refreshUserProfile = useCallback(async (): Promise<boolean> => {
+    if (!token) {
+      console.error('[Dashboard Auth] No token available for profile refresh');
+      return false;
+    }
+
+    console.log('[Dashboard Auth] Refreshing user profile...');
+    const userProfile = await fetchPhotographerProfileSummary(token);
+
+    if (userProfile) {
+      setUser(userProfile);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(AUTH_USER_KEY, JSON.stringify(userProfile));
+      }
+      console.log('[Dashboard Auth] Profile refreshed successfully');
+      return true;
+    }
+
+    console.error('[Dashboard Auth] Failed to refresh profile');
+    return false;
+  }, [token]);
+
   const value: AuthContextType = {
     user,
     token,
@@ -471,6 +498,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     logout,
     refreshToken: refreshTokenFn,
     updateUser,
+    refreshUserProfile,
   };
 
   return (
