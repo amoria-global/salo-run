@@ -319,6 +319,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   const [setupCurrentImageIndex, setSetupCurrentImageIndex] = useState(0);
   const [showCoverPicker, setShowCoverPicker] = useState(false);
   const [setupCoverImage, setSetupCoverImage] = useState<string>('');
+  const [step3ViewMode, setStep3ViewMode] = useState<'album-grid' | 'image-selection'>('album-grid');
 
   // Delete photobook modal states
   const [showDeletePhotobookModal, setShowDeletePhotobookModal] = useState(false);
@@ -565,6 +566,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
     setSetupCurrentImageIndex(0);
     setShowCoverPicker(false);
     setSetupCoverImage('');
+    setStep3ViewMode('album-grid');
   };
 
   // Opens the cover picker instead of saving directly
@@ -915,6 +917,126 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
           .mobile-bulk-actions button {
             font-size: 0.7rem !important;
             padding: 0.3rem 0.5rem !important;
+          }
+        }
+
+        /* Step 3 Fullscreen Image Viewer Responsive Styles */
+        @media (max-width: 1024px) {
+          .step3-fullscreen-image {
+            width: calc(100vw - 140px) !important;
+            max-width: none !important;
+            height: calc(100vh - 160px) !important;
+            padding: 0 60px !important;
+          }
+          .step3-nav-button {
+            width: 48px !important;
+            height: 48px !important;
+          }
+          .step3-thumbnail-strip {
+            padding: 0.4rem 0.75rem !important;
+          }
+          .step3-thumbnail {
+            width: 44px !important;
+            height: 33px !important;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .step3-fullscreen-image {
+            width: calc(100vw - 100px) !important;
+            height: calc(100vh - 140px) !important;
+            padding: 0 40px !important;
+          }
+          .step3-nav-button {
+            width: 40px !important;
+            height: 40px !important;
+            left: 0.5rem !important;
+          }
+          .step3-nav-button-right {
+            right: 0.5rem !important;
+            left: auto !important;
+          }
+          .step3-header {
+            padding: 0.75rem 1rem !important;
+            flex-wrap: wrap !important;
+            gap: 0.5rem !important;
+          }
+          .step3-header-info {
+            flex-wrap: wrap !important;
+            gap: 0.5rem !important;
+          }
+          .step3-header-buttons {
+            gap: 0.4rem !important;
+          }
+          .step3-header-buttons button {
+            padding: 0.4rem 0.6rem !important;
+            font-size: 0.75rem !important;
+          }
+          .step3-btn-text {
+            display: none !important;
+          }
+          .step3-thumbnail-strip {
+            padding: 0.35rem 0.5rem !important;
+          }
+          .step3-thumbnail {
+            width: 40px !important;
+            height: 30px !important;
+          }
+          .step3-image-grid-container {
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important;
+            gap: 0.4rem !important;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .step3-fullscreen-image {
+            width: calc(100vw - 60px) !important;
+            height: calc(100vh - 120px) !important;
+            padding: 0 25px !important;
+          }
+          .step3-nav-button {
+            width: 36px !important;
+            height: 36px !important;
+            left: 0.25rem !important;
+          }
+          .step3-nav-button-right {
+            right: 0.25rem !important;
+            left: auto !important;
+          }
+          .step3-header {
+            padding: 0.5rem 0.75rem !important;
+          }
+          .step3-header-info {
+            gap: 0.35rem !important;
+          }
+          .step3-header-info > div:first-child {
+            display: none !important;
+          }
+          .step3-header-buttons button {
+            padding: 0.35rem 0.5rem !important;
+            font-size: 0.7rem !important;
+          }
+          .step3-thumbnail-strip {
+            padding: 0.25rem 0.35rem !important;
+            gap: 0.25rem !important;
+          }
+          .step3-thumbnail {
+            width: 32px !important;
+            height: 24px !important;
+          }
+          .step3-image-grid-container {
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)) !important;
+            gap: 0.3rem !important;
+            padding: 0.5rem !important;
+          }
+          .step3-grid-badge {
+            width: 20px !important;
+            height: 20px !important;
+            font-size: 0.6rem !important;
+          }
+          .step3-grid-checkmark {
+            width: 18px !important;
+            height: 18px !important;
           }
         }
       `}</style>
@@ -2999,8 +3121,8 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
         </div>
       )}
 
-      {/* Setup Wizard Step 3 - Full-Screen Image Browser */}
-      {showSetupWizard && setupStep === 3 && setupSelectedAlbum && (
+      {/* Setup Wizard Step 3 - Image Grid View */}
+      {showSetupWizard && setupStep === 3 && step3ViewMode === 'album-grid' && setupSelectedAlbum && (
         <div
           style={{
             position: 'fixed',
@@ -3038,20 +3160,10 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                     {setupSelectedAlbum.title}
                   </h3>
                   <p style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.6)', margin: 0 }}>
-                    {setupSelectedAlbum.photographer} · Step 3 of 3
+                    Step 3 of 3 · {setupSelectedAlbum.images.length} photos
                   </p>
                 </div>
               </div>
-              <span style={{
-                backgroundColor: 'rgba(8, 58, 133, 0.8)',
-                color: 'white',
-                padding: '0.375rem 0.75rem',
-                borderRadius: '9999px',
-                fontSize: '0.8rem',
-                fontWeight: '500'
-              }}>
-                {setupCurrentImageIndex + 1} of {setupSelectedAlbum.images.length}
-              </span>
               {/* Selection counter */}
               <span style={{
                 backgroundColor: setupSelectedImages.length === MAX_IMAGE_SELECTION ? 'rgba(5, 150, 105, 0.8)' : 'rgba(255, 255, 255, 0.15)',
@@ -3064,62 +3176,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                 {setupSelectedImages.length}/{MAX_IMAGE_SELECTION} selected
               </span>
             </div>
-
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              {/* Select / Deselect / Locked button */}
-              {(() => {
-                const currentImg = setupSelectedAlbum.images[setupCurrentImageIndex];
-                const isSel = setupSelectedImages.includes(currentImg);
-                const isLck = !isSel && setupSelectedImages.length >= MAX_IMAGE_SELECTION;
-                return (
-                  <button
-                    onClick={() => !isLck && toggleSetupImageSelection(currentImg)}
-                    disabled={isLck}
-                    style={{
-                      padding: '0.5rem 0.75rem',
-                      backgroundColor: isSel ? 'rgba(220, 38, 38, 0.8)' : isLck ? 'rgba(255, 255, 255, 0.05)' : 'rgba(8, 58, 133, 0.8)',
-                      border: '1px solid rgba(255, 255, 255, 0.2)',
-                      borderRadius: '0.5rem',
-                      color: 'white',
-                      cursor: isLck ? 'not-allowed' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.375rem',
-                      fontSize: '0.8rem',
-                      fontWeight: '600',
-                      opacity: isLck ? 0.5 : 1,
-                      transition: 'all 0.2s'
-                    }}
-                    title={isLck ? `Maximum ${MAX_IMAGE_SELECTION} images selected` : isSel ? 'Remove from selection' : 'Add to selection'}
-                  >
-                    {isSel ? (
-                      <>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <line x1="18" y1="6" x2="6" y2="18"></line>
-                          <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
-                        Remove
-                      </>
-                    ) : isLck ? (
-                      <>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                        </svg>
-                        Locked
-                      </>
-                    ) : (
-                      <>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <line x1="12" y1="5" x2="12" y2="19"></line>
-                          <line x1="5" y1="12" x2="19" y2="12"></line>
-                        </svg>
-                        Select
-                      </>
-                    )}
-                  </button>
-                );
-              })()}
               {/* Back button */}
               <button
                 onClick={() => setSetupStep(2)}
@@ -3137,8 +3194,6 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                   fontWeight: '600',
                   transition: 'all 0.2s'
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'; }}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="15 18 9 12 15 6"></polyline>
@@ -3185,6 +3240,369 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                   justifyContent: 'center',
                   transition: 'all 0.2s'
                 }}
+              >
+                <CloseIcon />
+              </button>
+            </div>
+          </div>
+
+          {/* Image Grid */}
+          <div style={{
+            flex: 1,
+            overflowY: 'auto',
+            padding: '1rem'
+          }}>
+            <div
+              className="step3-image-grid-container"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+                gap: '0.5rem',
+                maxWidth: '1000px',
+                margin: '0 auto'
+              }}>
+              {setupSelectedAlbum.images.map((image, index) => {
+                const isSelected = setupSelectedImages.includes(image);
+                const isLocked = !isSelected && setupSelectedImages.length >= MAX_IMAGE_SELECTION;
+                return (
+                  <div
+                    key={index}
+                    onClick={() => !isLocked && toggleSetupImageSelection(image)}
+                    onDoubleClick={() => {
+                      setSetupCurrentImageIndex(index);
+                      setStep3ViewMode('image-selection');
+                    }}
+                    style={{
+                      position: 'relative',
+                      borderRadius: '0.5rem',
+                      overflow: 'hidden',
+                      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                      border: isSelected
+                        ? '2px solid #083A85'
+                        : '1px solid rgba(255, 255, 255, 0.1)',
+                      cursor: isLocked ? 'not-allowed' : 'pointer',
+                      opacity: isLocked ? 0.5 : 1,
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {/* Image Thumbnail */}
+                    <div style={{
+                      position: 'relative',
+                      aspectRatio: '1/1',
+                      overflow: 'hidden'
+                    }}>
+                      <Image
+                        src={image}
+                        alt={`Photo ${index + 1}`}
+                        fill
+                        style={{ objectFit: 'cover' }}
+                      />
+                      {/* Number Badge */}
+                      <div
+                        className="step3-grid-badge"
+                        style={{
+                          position: 'absolute',
+                          top: '0.4rem',
+                          right: '0.4rem',
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '50%',
+                          backgroundColor: isSelected ? '#083A85' : 'rgba(0, 0, 0, 0.7)',
+                          color: 'white',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.7rem',
+                          fontWeight: '700',
+                          border: isSelected ? '2px solid white' : '1px solid rgba(255, 255, 255, 0.3)'
+                        }}>
+                        {index + 1}
+                      </div>
+                      {/* Selected checkmark */}
+                      {isSelected && (
+                        <div
+                          className="step3-grid-checkmark"
+                          style={{
+                            position: 'absolute',
+                            top: '0.4rem',
+                            left: '0.4rem',
+                            width: '22px',
+                            height: '22px',
+                            borderRadius: '50%',
+                            backgroundColor: '#16A34A',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                        </div>
+                      )}
+                      {/* Locked overlay */}
+                      {isLocked && (
+                        <div style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Setup Wizard Step 3 - Full-Screen Image Browser */}
+      {showSetupWizard && setupStep === 3 && step3ViewMode === 'image-selection' && setupSelectedAlbum && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.95)',
+            display: 'flex',
+            flexDirection: 'column',
+            zIndex: 2000
+          }}
+        >
+          {/* Header */}
+          <div
+            className="step3-header"
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '1rem 1.5rem',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+            }}>
+            <div className="step3-header-info" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '0.5rem',
+                  overflow: 'hidden',
+                  position: 'relative'
+                }}>
+                  <Image src={setupSelectedAlbum.thumbnail} alt={setupSelectedAlbum.title} fill style={{ objectFit: 'cover' }} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1rem', fontWeight: '600', color: 'white', margin: 0 }}>
+                    {setupSelectedAlbum.title}
+                  </h3>
+                  <p style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.6)', margin: 0 }}>
+                    {setupSelectedAlbum.photographer} · Step 3 of 3
+                  </p>
+                </div>
+              </div>
+              <span style={{
+                backgroundColor: 'rgba(8, 58, 133, 0.8)',
+                color: 'white',
+                padding: '0.375rem 0.75rem',
+                borderRadius: '9999px',
+                fontSize: '0.8rem',
+                fontWeight: '500'
+              }}>
+                {setupCurrentImageIndex + 1} of {setupSelectedAlbum.images.length}
+              </span>
+              {/* Selection counter */}
+              <span style={{
+                backgroundColor: setupSelectedImages.length === MAX_IMAGE_SELECTION ? 'rgba(5, 150, 105, 0.8)' : 'rgba(255, 255, 255, 0.15)',
+                color: 'white',
+                padding: '0.375rem 0.75rem',
+                borderRadius: '9999px',
+                fontSize: '0.8rem',
+                fontWeight: '600'
+              }}>
+                {setupSelectedImages.length}/{MAX_IMAGE_SELECTION} selected
+              </span>
+            </div>
+
+            <div className="step3-header-buttons" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              {/* Select / Deselect / Locked button */}
+              {(() => {
+                const currentImg = setupSelectedAlbum.images[setupCurrentImageIndex];
+                const isSel = setupSelectedImages.includes(currentImg);
+                const isLck = !isSel && setupSelectedImages.length >= MAX_IMAGE_SELECTION;
+                return (
+                  <button
+                    onClick={() => !isLck && toggleSetupImageSelection(currentImg)}
+                    disabled={isLck}
+                    style={{
+                      padding: '0.5rem 0.75rem',
+                      backgroundColor: isSel ? 'rgba(220, 38, 38, 0.8)' : isLck ? 'rgba(255, 255, 255, 0.05)' : 'rgba(8, 58, 133, 0.8)',
+                      border: '1px solid rgba(255, 255, 255, 0.2)',
+                      borderRadius: '0.5rem',
+                      color: 'white',
+                      cursor: isLck ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.375rem',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      opacity: isLck ? 0.5 : 1,
+                      transition: 'all 0.2s'
+                    }}
+                    title={isLck ? `Maximum ${MAX_IMAGE_SELECTION} images selected` : isSel ? 'Remove from selection' : 'Add to selection'}
+                  >
+                    {isSel ? (
+                      <>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="18" y1="6" x2="6" y2="18"></line>
+                          <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                        <span className="step3-btn-text">Remove</span>
+                      </>
+                    ) : isLck ? (
+                      <>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                        <span className="step3-btn-text">Locked</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="12" y1="5" x2="12" y2="19"></line>
+                          <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        <span className="step3-btn-text">Select</span>
+                      </>
+                    )}
+                  </button>
+                );
+              })()}
+              {/* Add to Photobook button */}
+              {(() => {
+                const currentImg = setupSelectedAlbum.images[setupCurrentImageIndex];
+                const isAlreadyAdded = setupSelectedImages.includes(currentImg);
+                const isMaxReached = setupSelectedImages.length >= MAX_IMAGE_SELECTION;
+                return (
+                  <button
+                    onClick={() => {
+                      if (!isAlreadyAdded && !isMaxReached) {
+                        toggleSetupImageSelection(currentImg);
+                      }
+                    }}
+                    disabled={isAlreadyAdded || isMaxReached}
+                    style={{
+                      padding: '0.5rem 0.75rem',
+                      backgroundColor: isAlreadyAdded ? 'rgba(5, 150, 105, 0.8)' : isMaxReached ? 'rgba(255, 255, 255, 0.05)' : 'rgba(124, 58, 237, 0.8)',
+                      border: '1px solid rgba(255, 255, 255, 0.2)',
+                      borderRadius: '0.5rem',
+                      color: 'white',
+                      cursor: isAlreadyAdded || isMaxReached ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.375rem',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      opacity: isMaxReached && !isAlreadyAdded ? 0.5 : 1,
+                      transition: 'all 0.2s'
+                    }}
+                    title={isAlreadyAdded ? 'Already in photobook' : isMaxReached ? `Maximum ${MAX_IMAGE_SELECTION} images` : 'Add to photobook'}
+                  >
+                    {isAlreadyAdded ? (
+                      <>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        <span className="step3-btn-text">Added</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                        <span className="step3-btn-text">Add to Photobook</span>
+                      </>
+                    )}
+                  </button>
+                );
+              })()}
+              {/* Back button - go back to album grid */}
+              <button
+                onClick={() => setStep3ViewMode('album-grid')}
+                style={{
+                  padding: '0.5rem 0.75rem',
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '0.5rem',
+                  color: 'white',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.375rem',
+                  fontSize: '0.8rem',
+                  fontWeight: '600',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'; }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+                <span className="step3-btn-text">Back</span>
+              </button>
+              {/* Save button */}
+              <button
+                onClick={saveSetupWizard}
+                disabled={setupSelectedImages.length === 0}
+                style={{
+                  padding: '0.5rem 0.75rem',
+                  backgroundColor: setupSelectedImages.length === 0 ? 'rgba(255, 255, 255, 0.05)' : 'rgba(5, 150, 105, 0.9)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '0.5rem',
+                  color: 'white',
+                  cursor: setupSelectedImages.length === 0 ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.375rem',
+                  fontSize: '0.8rem',
+                  fontWeight: '600',
+                  opacity: setupSelectedImages.length === 0 ? 0.5 : 1,
+                  transition: 'all 0.2s'
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span className="step3-btn-text">Save</span>
+              </button>
+              {/* Close button */}
+              <button
+                onClick={resetSetupWizard}
+                style={{
+                  padding: '0.625rem',
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '0.5rem',
+                  color: 'white',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s'
+                }}
                 onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'; }}
               >
@@ -3205,6 +3623,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
           }}>
             {/* Previous Button */}
             <button
+              className="step3-nav-button"
               onClick={() => setupCurrentImageIndex > 0 && setSetupCurrentImageIndex(setupCurrentImageIndex - 1)}
               style={{
                 position: 'absolute',
@@ -3240,18 +3659,21 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
             </button>
 
             {/* Image Display */}
-            <div style={{
-              position: 'relative',
-              width: '100%',
-              height: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '0 100px'
-            }}>
+            <div
+              className="step3-fullscreen-image"
+              style={{
+                position: 'relative',
+                width: '100%',
+                height: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '0 70px'
+              }}>
               <div style={{
-                width: 'min(calc(100vh - 160px), calc(100vw - 250px))',
-                height: 'min(calc(100vh - 160px), calc(100vw - 250px))',
+                width: 'calc(100vw - 160px)',
+                maxWidth: '1800px',
+                height: 'calc(100vh - 180px)',
                 position: 'relative',
                 borderRadius: '0.5rem',
                 overflow: 'hidden',
@@ -3261,7 +3683,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                   src={setupSelectedAlbum.images[setupCurrentImageIndex]}
                   alt={`${setupSelectedAlbum.title} - Image ${setupCurrentImageIndex + 1}`}
                   fill
-                  style={{ objectFit: 'cover' }}
+                  style={{ objectFit: 'contain' }}
                 />
                 {/* Selected badge on image */}
                 {setupSelectedImages.includes(setupSelectedAlbum.images[setupCurrentImageIndex]) && (
@@ -3313,6 +3735,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
 
             {/* Next Button */}
             <button
+              className="step3-nav-button step3-nav-button-right"
               onClick={() => setupCurrentImageIndex < setupSelectedAlbum.images.length - 1 && setSetupCurrentImageIndex(setupCurrentImageIndex + 1)}
               style={{
                 position: 'absolute',
@@ -3349,16 +3772,18 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
           </div>
 
           {/* Thumbnail Strip */}
-          <div style={{
-            padding: '1rem 1.5rem 1.5rem',
-            borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-            backgroundColor: 'rgba(0, 0, 0, 0.3)'
-          }}>
+          <div
+            className="step3-thumbnail-strip"
+            style={{
+              padding: '0.5rem 1rem',
+              borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+              backgroundColor: 'rgba(0, 0, 0, 0.3)'
+            }}>
             <div style={{
               display: 'flex',
-              gap: '0.75rem',
+              gap: '0.35rem',
               overflowX: 'auto',
-              paddingBottom: '0.5rem',
+              paddingBottom: '0.25rem',
               justifyContent: 'center'
             }}>
               {setupSelectedAlbum.images.map((image, index) => {
@@ -3366,19 +3791,20 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                 const isThumbLocked = !isThumbSelected && setupSelectedImages.length >= MAX_IMAGE_SELECTION;
                 return (
                   <button
+                    className="step3-thumbnail"
                     key={index}
                     onClick={() => setSetupCurrentImageIndex(index)}
                     style={{
                       position: 'relative',
-                      width: '80px',
-                      height: '60px',
-                      borderRadius: '0.5rem',
+                      width: '48px',
+                      height: '36px',
+                      borderRadius: '0.25rem',
                       overflow: 'hidden',
                       border: isThumbSelected
-                        ? '3px solid #083A85'
+                        ? '2px solid #083A85'
                         : setupCurrentImageIndex === index
-                          ? '3px solid rgba(255, 255, 255, 0.8)'
-                          : '3px solid transparent',
+                          ? '2px solid rgba(255, 255, 255, 0.8)'
+                          : '2px solid transparent',
                       cursor: 'pointer',
                       flexShrink: 0,
                       transition: 'all 0.2s',
@@ -3391,17 +3817,17 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                     {isThumbSelected && (
                       <div style={{
                         position: 'absolute',
-                        top: '2px',
-                        right: '2px',
-                        width: '18px',
-                        height: '18px',
+                        top: '1px',
+                        right: '1px',
+                        width: '12px',
+                        height: '12px',
                         borderRadius: '50%',
                         backgroundColor: '#083A85',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center'
                       }}>
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="20 6 9 17 4 12"></polyline>
                         </svg>
                       </div>
@@ -3419,7 +3845,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                         alignItems: 'center',
                         justifyContent: 'center'
                       }}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                           <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                         </svg>
@@ -3432,7 +3858,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                         bottom: 0,
                         left: 0,
                         right: 0,
-                        height: '3px',
+                        height: '2px',
                         backgroundColor: isThumbSelected ? '#083A85' : 'white'
                       }} />
                     )}
