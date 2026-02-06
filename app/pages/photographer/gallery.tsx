@@ -13,7 +13,7 @@ const galleryFormStorage = localforage.createInstance({
   storeName: 'gallery_album_draft'
 });
 
-// Storage key for the add album form
+// Storage key for the add albums form
 const ADD_ALBUM_FORM_KEY = 'add_album_form_draft';
 
 // Interface for saved album form data
