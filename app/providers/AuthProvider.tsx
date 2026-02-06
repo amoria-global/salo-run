@@ -226,7 +226,7 @@ async function fetchPhotographerProfileSummary(token: string): Promise<Dashboard
       email: data.email || '',
       phone: data.phone || '',
       customerId: data.id || '',
-      customerType: data.customerType || 'Photographer',
+      customerType: data.customerType || '',
       profilePicture: data.profilePicture || undefined,
       coverPicture: data.coverPicture || undefined,
       address: data.address || undefined,
