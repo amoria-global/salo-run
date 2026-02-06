@@ -2430,8 +2430,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
             </p>
 
             {/* Actions */}
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '4rem' }}>
-              <DonateButton onClick={() => setShowPaymentDonateModal(true)} />
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
               <button
                 onClick={() => setShowPaymentModal(false)}
                 style={{
@@ -2837,8 +2836,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
             </p>
 
             {/* Actions */}
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '4rem' }}>
-              <DonateButton onClick={() => setShowTipDonateModal(true)} />
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
               <button
                 onClick={() => {
                   setShowTipPaymentModal(false);
