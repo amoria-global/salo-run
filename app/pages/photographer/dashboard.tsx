@@ -1673,13 +1673,14 @@ const PhotographerDashboard = () => {
       )}
     </div>
 
-      {/* Profile Completion Modal for new photographers */}
+      {/* Profile Completion Modal for new photographers - DISABLED
       <CompleteProfileModal
         isOpen={showProfileModal}
         onComplete={() => {
           setShowProfileModal(false);
         }}
       />
+      */}
     </>
   );
 };
