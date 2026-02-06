@@ -1,0 +1,1262 @@
+'use client';
+
+import React, { useState, useEffect, useMemo } from 'react';
+import { useTheme } from '../context/ThemeContext';
+import { useDashboardAuth } from '../providers/AuthProvider';
+
+// API helpers
+function getApiUrl(): string {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    return '/api/proxy';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+}
+
+function getApiKey(): string {
+  return process.env.NEXT_PUBLIC_API_KEY || '';
+}
+
+interface CompleteProfileModalProps {
+  isOpen: boolean;
+  onComplete: () => void;
+}
+
+// All possible step indices and labels
+const ALL_STEPS = [
+  { index: 0, label: 'Bio & Location' },
+  { index: 1, label: 'Employment' },
+  { index: 2, label: 'Specialties & Equipment' },
+  { index: 3, label: 'Philosophy & Skills' },
+  { index: 4, label: 'Education' },
+  { index: 5, label: 'Certifications & Training' },
+];
+
+const availableSpecialties = [
+  'Wedding', 'Birthday', 'Corporate', 'Portrait', 'Family', 'Events',
+  'Concerts', 'Fashion', 'Product', 'Real Estate', 'Sports', 'Documentary',
+];
+
+interface SkillEntry {
+  id: string;
+  name: string;
+  level: number;
+}
+
+interface EducationEntry {
+  id: string;
+  degree: string;
+  institution: string;
+  fromYear: string;
+  toYear: string;
+  description: string;
+}
+
+interface CertEntry {
+  id: string;
+  title: string;
+  issuer: string;
+  year: string;
+  description: string;
+}
+
+interface TrainingEntry {
+  id: string;
+  title: string;
+  issuer: string;
+  year: string;
+  description: string;
+}
+
+const PlusIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const TrashIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const RemoveTagIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, onComplete }) => {
+  const { colors, actualTheme } = useTheme();
+  const { user, token, refreshUserProfile } = useDashboardAuth();
+
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
+  const [submissionStatus, setSubmissionStatus] = useState('');
+  const [error, setError] = useState('');
+  const [isMobile, setIsMobile] = useState(false);
+  const [prefilled, setPrefilled] = useState(false);
+  const [toasts, setToasts] = useState<{ id: string; type: 'success' | 'error'; message: string }[]>([]);
+
+  const showToast = (type: 'success' | 'error', message: string) => {
+    const id = Date.now().toString();
+    setToasts(prev => [...prev, { id, type, message }]);
+    setTimeout(() => { setToasts(prev => prev.filter(t => t.id !== id)); }, 3000);
+  };
+
+  const dismissToast = (id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  };
+
+  // Step 1: Bio & Location
+  const [bio, setBio] = useState('');
+  const [location, setLocation] = useState('');
+
+  // Step 2: Employment
+  const [employmentStatus, setEmploymentStatus] = useState<'' | 'self-employed' | 'employed'>('');
+  const [companyName, setCompanyName] = useState('');
+  const [companyAddress, setCompanyAddress] = useState('');
+  const [positionRole, setPositionRole] = useState('');
+  const [employmentType, setEmploymentType] = useState<'' | 'full-time' | 'part-time' | 'contract'>('');
+
+  // Step 3: Specialties & Equipment
+  const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([]);
+  const [equipmentList, setEquipmentList] = useState<string[]>([]);
+  const [newEquipment, setNewEquipment] = useState('');
+
+  // Step 4: Philosophy & Skills
+  const [philosophy, setPhilosophy] = useState('');
+  const [skills, setSkills] = useState<SkillEntry[]>([]);
+  const [newSkillName, setNewSkillName] = useState('');
+  const [newSkillLevel, setNewSkillLevel] = useState(50);
+
+  // Step 5: Education
+  const [educationEntries, setEducationEntries] = useState<EducationEntry[]>([]);
+
+  // Step 6: Certifications & Training
+  const [certEntries, setCertEntries] = useState<CertEntry[]>([]);
+  const [trainingEntries, setTrainingEntries] = useState<TrainingEntry[]>([]);
+
+  // Responsive check
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Pre-fill form from user profile data
+  useEffect(() => {
+    if (user && !prefilled) {
+      if (user.about) setBio(user.about);
+      if (user.address) setLocation(user.address);
+      if (user.specialties?.length) setSelectedSpecialties([...user.specialties]);
+      if (user.equipments?.length) setEquipmentList(user.equipments.map(e => e.name));
+      if (user.professionalPhilosophy) setPhilosophy(user.professionalPhilosophy);
+      if (user.professionalSkills?.length) {
+        setSkills(user.professionalSkills.map(s => ({
+          id: s.id || Date.now().toString() + Math.random(),
+          name: s.name,
+          level: s.proficiencyLevel ?? s.skillPercentage ?? 50,
+        })));
+      }
+      if (user.educationLevels?.length) {
+        setEducationEntries(user.educationLevels.map(e => ({
+          id: e.id || Date.now().toString() + Math.random(),
+          degree: e.degree,
+          institution: e.institution,
+          fromYear: e.startDate?.split('-')[0] || '',
+          toYear: e.endDate?.split('-')[0] || '',
+          description: e.description || '',
+        })));
+      }
+      if (user.certifications?.length) {
+        setCertEntries(user.certifications.map(c => ({
+          id: c.id || Date.now().toString() + Math.random(),
+          title: c.title,
+          issuer: c.institution,
+          year: c.yearObtained,
+          description: c.description || '',
+        })));
+      }
+      if (user.trainings?.length) {
+        setTrainingEntries(user.trainings.map(t => ({
+          id: t.id || Date.now().toString() + Math.random(),
+          title: t.title,
+          issuer: t.institution,
+          year: t.yearObtained,
+          description: t.description || '',
+        })));
+      }
+      setPrefilled(true);
+    }
+  }, [user, prefilled]);
+
+  // Detect which steps have missing data — only show those
+  const activeSteps = useMemo(() => {
+    if (!user) return ALL_STEPS;
+    const missing: typeof ALL_STEPS = [];
+
+    if (!user.about || !user.address) missing.push(ALL_STEPS[0]);
+    if (!user.specialties?.length || !user.equipments?.length) missing.push(ALL_STEPS[2]);
+    if (!user.professionalPhilosophy || !user.professionalSkills?.length) missing.push(ALL_STEPS[3]);
+    if (!user.educationLevels?.length) missing.push(ALL_STEPS[4]);
+    if (!user.certifications?.length && !user.trainings?.length) missing.push(ALL_STEPS[5]);
+
+    // Always include Employment (step 1) if any other steps are missing
+    if (missing.length > 0) {
+      missing.splice(1, 0, ALL_STEPS[1]);
+    }
+
+    return missing.length > 0 ? missing : ALL_STEPS;
+  }, [user]);
+
+  // Year options
+  const currentYear = new Date().getFullYear();
+  const yearOptions = Array.from({ length: currentYear - 1970 + 11 }, (_, i) => (currentYear + 10 - i).toString());
+
+  if (!isOpen) return null;
+
+  const currentStepData = activeSteps[currentStepIndex];
+  const totalSteps = activeSteps.length;
+
+  const toggleSpecialty = (specialty: string) => {
+    setSelectedSpecialties(prev =>
+      prev.includes(specialty)
+        ? prev.filter(s => s !== specialty)
+        : [...prev, specialty]
+    );
+  };
+
+  const addEquipment = () => {
+    const trimmed = newEquipment.trim();
+    if (trimmed && !equipmentList.includes(trimmed)) {
+      setEquipmentList(prev => [...prev, trimmed]);
+      setNewEquipment('');
+    }
+  };
+
+  const removeEquipment = (item: string) => {
+    setEquipmentList(prev => prev.filter(e => e !== item));
+  };
+
+  const addSkill = () => {
+    const trimmed = newSkillName.trim();
+    if (trimmed && !skills.find(s => s.name === trimmed)) {
+      setSkills(prev => [...prev, { id: Date.now().toString(), name: trimmed, level: newSkillLevel }]);
+      setNewSkillName('');
+      setNewSkillLevel(50);
+    }
+  };
+
+  const removeSkill = (id: string) => {
+    setSkills(prev => prev.filter(s => s.id !== id));
+  };
+
+  const addEducation = () => {
+    setEducationEntries(prev => [...prev, {
+      id: Date.now().toString(),
+      degree: '',
+      institution: '',
+      fromYear: '',
+      toYear: '',
+      description: '',
+    }]);
+  };
+
+  const updateEducation = (id: string, field: keyof EducationEntry, value: string) => {
+    setEducationEntries(prev => prev.map(e => e.id === id ? { ...e, [field]: value } : e));
+  };
+
+  const removeEducation = (id: string) => {
+    setEducationEntries(prev => prev.filter(e => e.id !== id));
+  };
+
+  const addCertification = () => {
+    setCertEntries(prev => [...prev, {
+      id: Date.now().toString(),
+      title: '',
+      issuer: '',
+      year: '',
+      description: '',
+    }]);
+  };
+
+  const updateCertification = (id: string, field: keyof CertEntry, value: string) => {
+    setCertEntries(prev => prev.map(c => c.id === id ? { ...c, [field]: value } : c));
+  };
+
+  const removeCertification = (id: string) => {
+    setCertEntries(prev => prev.filter(c => c.id !== id));
+  };
+
+  const addTraining = () => {
+    setTrainingEntries(prev => [...prev, {
+      id: Date.now().toString(),
+      title: '',
+      issuer: '',
+      year: '',
+      description: '',
+    }]);
+  };
+
+  const updateTraining = (id: string, field: keyof TrainingEntry, value: string) => {
+    setTrainingEntries(prev => prev.map(t => t.id === id ? { ...t, [field]: value } : t));
+  };
+
+  const removeTraining = (id: string) => {
+    setTrainingEntries(prev => prev.filter(t => t.id !== id));
+  };
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    setError('');
+    setSubmissionStatus('');
+
+    const apiUrl = getApiUrl();
+    const headers = {
+      'Authorization': `Bearer ${token}`,
+      'api-token': getApiKey(),
+      'Content-Type': 'application/json',
+    };
+
+    let successCount = 0;
+    let failCount = 0;
+    const errors: string[] = [];
+
+    const apiCall = async (label: string, endpoint: string, body: Record<string, unknown>): Promise<boolean> => {
+      try {
+        setSubmissionStatus(`Saving ${label}...`);
+        const response = await fetch(`${apiUrl}${endpoint}`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(body),
+        });
+        if (!response.ok) {
+          const result = await response.json().catch(() => null);
+          throw new Error(result?.message || `Failed to save ${label}`);
+        }
+        successCount++;
+        return true;
+      } catch (err) {
+        failCount++;
+        const msg = err instanceof Error ? err.message : `Failed to save ${label}`;
+        errors.push(msg);
+        showToast('error', msg);
+        return false;
+      }
+    };
+
+    try {
+      // 1. Save basic text fields (about, address, philosophy, specialties)
+      if (bio || location || philosophy || selectedSpecialties.length > 0) {
+        await apiCall('bio & details', '/api/remote/photographer/update-important-details', {
+          about: bio,
+          address: location,
+          professionalPhilosophy: philosophy,
+          specialties: selectedSpecialties,
+        });
+      }
+
+      // 2. Save equipment (only new items)
+      const existingEquipmentNames = new Set((user?.equipments || []).map(e => e.name));
+      for (const name of equipmentList.filter(n => !existingEquipmentNames.has(n))) {
+        await apiCall(`equipment "${name}"`, '/api/remote/photographer/add-equipment', { name });
+      }
+
+      // 3. Save professional skills (only new skills)
+      const existingSkillNames = new Set((user?.professionalSkills || []).map(s => s.name));
+      for (const skill of skills.filter(s => !existingSkillNames.has(s.name))) {
+        await apiCall(`skill "${skill.name}"`, '/api/remote/photographer/add-professional-skills', {
+          name: skill.name,
+          skillPercentage: skill.level,
+        });
+      }
+
+      // 4. Save education entries (only new)
+      const existingEduKeys = new Set((user?.educationLevels || []).map(e => `${e.degree}|${e.institution}`));
+      for (const edu of educationEntries.filter(e => e.degree && e.institution && !existingEduKeys.has(`${e.degree}|${e.institution}`))) {
+        await apiCall(`education "${edu.degree}"`, '/api/remote/photographer/add-education-level', {
+          degree: edu.degree,
+          institution: edu.institution,
+          startDate: edu.fromYear ? `${edu.fromYear}-01-01` : '',
+          endDate: edu.toYear === 'Present' ? '' : (edu.toYear ? `${edu.toYear}-01-01` : ''),
+          description: edu.description || '',
+        });
+      }
+
+      // 5. Save certifications (only new)
+      const existingCertKeys = new Set((user?.certifications || []).map(c => `${c.title}|${c.institution}`));
+      for (const cert of certEntries.filter(c => c.title && c.issuer && !existingCertKeys.has(`${c.title}|${c.issuer}`))) {
+        await apiCall(`certification "${cert.title}"`, '/api/remote/photographer/add-trainting-certification', {
+          title: cert.title,
+          institution: cert.issuer,
+          yearObtained: cert.year || '',
+          description: cert.description || '',
+          type: 'CERTIFICATION',
+        });
+      }
+
+      // 6. Save training entries (only new)
+      const existingTrainingKeys = new Set((user?.trainings || []).map(t => `${t.title}|${t.institution}`));
+      for (const training of trainingEntries.filter(t => t.title && t.issuer && !existingTrainingKeys.has(`${t.title}|${t.issuer}`))) {
+        await apiCall(`training "${training.title}"`, '/api/remote/photographer/add-trainting-certification', {
+          title: training.title,
+          institution: training.issuer,
+          yearObtained: training.year || '',
+          description: training.description || '',
+          type: 'TRAINING',
+        });
+      }
+
+      // 7. Refresh profile and handle result
+      setSubmissionStatus('Refreshing profile...');
+      await refreshUserProfile();
+
+      if (failCount === 0) {
+        showToast('success', 'Profile completed successfully!');
+        setTimeout(() => { onComplete(); }, 1000);
+      } else if (successCount > 0) {
+        setError(`Saved ${successCount} item(s), but ${failCount} failed: ${errors.join('; ')}`);
+        showToast('error', `${failCount} item(s) failed to save. Please review and try again.`);
+      } else {
+        setError('Failed to save profile: ' + errors.join('; '));
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+      showToast('error', 'An unexpected error occurred');
+    } finally {
+      setSubmitting(false);
+      setSubmissionStatus('');
+    }
+  };
+
+  const goNext = () => {
+    if (currentStepIndex < totalSteps - 1) setCurrentStepIndex(prev => prev + 1);
+  };
+
+  const goBack = () => {
+    if (currentStepIndex > 0) setCurrentStepIndex(prev => prev - 1);
+  };
+
+  // Shared input style
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '0.75rem 1rem',
+    border: `2px solid ${colors.borderPrimary}`,
+    borderRadius: '0.75rem',
+    fontSize: '0.9rem',
+    color: colors.textPrimary,
+    backgroundColor: colors.bgCard,
+    outline: 'none',
+    transition: 'border-color 0.2s, box-shadow 0.2s',
+    boxSizing: 'border-box',
+  };
+
+  const labelStyle: React.CSSProperties = {
+    display: 'block',
+    fontSize: '0.85rem',
+    fontWeight: 600,
+    color: colors.textPrimary,
+    marginBottom: '0.375rem',
+  };
+
+  const focusHandler = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    e.currentTarget.style.borderColor = '#083A85';
+    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(8, 58, 133, 0.1)';
+  };
+
+  const blurHandler = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    e.currentTarget.style.borderColor = colors.borderPrimary;
+    e.currentTarget.style.boxShadow = 'none';
+  };
+
+  // Render step content based on the actual step index
+  const renderStep = () => {
+    if (!currentStepData) return null;
+    switch (currentStepData.index) {
+      case 0: return renderBioLocation();
+      case 1: return renderEmployment();
+      case 2: return renderSpecialtiesEquipment();
+      case 3: return renderPhilosophySkills();
+      case 4: return renderEducation();
+      case 5: return renderCertTraining();
+      default: return null;
+    }
+  };
+
+  const renderBioLocation = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div>
+        <label style={labelStyle}>About You <span style={{ color: '#6b7280', fontWeight: 400 }}>(Tell clients about yourself)</span></label>
+        <textarea
+          value={bio}
+          onChange={e => setBio(e.target.value)}
+          placeholder="I'm a passionate photographer with 5+ years of experience specializing in..."
+          rows={4}
+          style={{ ...inputStyle, resize: 'vertical' }}
+          onFocus={focusHandler}
+          onBlur={blurHandler}
+        />
+        <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
+          {bio.length} characters {bio.length < 50 && bio.length > 0 ? '(minimum 50 recommended)' : ''}
+        </div>
+      </div>
+      <div>
+        <label style={labelStyle}>Location</label>
+        <input
+          type="text"
+          value={location}
+          onChange={e => setLocation(e.target.value)}
+          placeholder="e.g., Kigali, Rwanda"
+          style={inputStyle}
+          onFocus={focusHandler}
+          onBlur={blurHandler}
+        />
+      </div>
+    </div>
+  );
+
+  const renderEmployment = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div>
+        <label style={labelStyle}>Employment Status</label>
+        <select
+          value={employmentStatus}
+          onChange={e => setEmploymentStatus(e.target.value as '' | 'self-employed' | 'employed')}
+          style={inputStyle}
+          onFocus={focusHandler}
+          onBlur={blurHandler}
+        >
+          <option value="">Select status</option>
+          <option value="self-employed">Self-employed</option>
+          <option value="employed">Employed</option>
+        </select>
+      </div>
+
+      {employmentStatus === 'employed' && (
+        <>
+          <div>
+            <label style={labelStyle}>Company Name</label>
+            <input
+              type="text"
+              value={companyName}
+              onChange={e => setCompanyName(e.target.value)}
+              placeholder="e.g., Amoria Studios"
+              style={inputStyle}
+              onFocus={focusHandler}
+              onBlur={blurHandler}
+            />
+          </div>
+          <div>
+            <label style={labelStyle}>Company Address</label>
+            <input
+              type="text"
+              value={companyAddress}
+              onChange={e => setCompanyAddress(e.target.value)}
+              placeholder="e.g., KG 123 St, Kigali"
+              style={inputStyle}
+              onFocus={focusHandler}
+              onBlur={blurHandler}
+            />
+          </div>
+          <div>
+            <label style={labelStyle}>Position / Role</label>
+            <input
+              type="text"
+              value={positionRole}
+              onChange={e => setPositionRole(e.target.value)}
+              placeholder="e.g., Lead Photographer"
+              style={inputStyle}
+              onFocus={focusHandler}
+              onBlur={blurHandler}
+            />
+          </div>
+          <div>
+            <label style={labelStyle}>Employment Type</label>
+            <select
+              value={employmentType}
+              onChange={e => setEmploymentType(e.target.value as '' | 'full-time' | 'part-time' | 'contract')}
+              style={inputStyle}
+              onFocus={focusHandler}
+              onBlur={blurHandler}
+            >
+              <option value="">Select type</option>
+              <option value="full-time">Full-time</option>
+              <option value="part-time">Part-time</option>
+              <option value="contract">Contract</option>
+            </select>
+          </div>
+        </>
+      )}
+
+      {employmentStatus === '' && (
+        <p style={{ fontSize: '0.85rem', color: colors.textSecondary, fontStyle: 'italic' }}>
+          This section is optional. You can proceed to the next step.
+        </p>
+      )}
+    </div>
+  );
+
+  const renderSpecialtiesEquipment = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      <div>
+        <label style={labelStyle}>Specialties <span style={{ color: '#6b7280', fontWeight: 400 }}>(Select your areas of expertise)</span></label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.375rem' }}>
+          {availableSpecialties.map(specialty => {
+            const isSelected = selectedSpecialties.includes(specialty);
+            return (
+              <button
+                key={specialty}
+                onClick={() => toggleSpecialty(specialty)}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '9999px',
+                  border: isSelected ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                  backgroundColor: isSelected
+                    ? (actualTheme === 'dark' ? 'rgba(8, 58, 133, 0.2)' : 'rgba(8, 58, 133, 0.08)')
+                    : colors.bgCard,
+                  color: isSelected ? '#083A85' : colors.textSecondary,
+                  fontSize: '0.85rem',
+                  fontWeight: isSelected ? 600 : 500,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+              >
+                {specialty}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div>
+        <label style={labelStyle}>Equipment</label>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <input
+            type="text"
+            value={newEquipment}
+            onChange={e => setNewEquipment(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addEquipment(); } }}
+            placeholder="e.g., Canon EOS R5"
+            style={{ ...inputStyle, flex: 1 }}
+            onFocus={focusHandler}
+            onBlur={blurHandler}
+          />
+          <button
+            onClick={addEquipment}
+            style={{
+              padding: '0.75rem 1rem',
+              backgroundColor: '#083A85',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '0.75rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.25rem',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              flexShrink: 0,
+            }}
+          >
+            <PlusIcon /> Add
+          </button>
+        </div>
+        {equipmentList.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.75rem' }}>
+            {equipmentList.map(item => (
+              <span
+                key={item}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.375rem',
+                  padding: '0.375rem 0.75rem',
+                  backgroundColor: actualTheme === 'dark' ? 'rgba(8, 58, 133, 0.15)' : 'rgba(8, 58, 133, 0.08)',
+                  borderRadius: '9999px',
+                  fontSize: '0.8rem',
+                  color: colors.textPrimary,
+                  fontWeight: 500,
+                }}
+              >
+                {item}
+                <button
+                  onClick={() => removeEquipment(item)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: '#EF4444',
+                    padding: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  <RemoveTagIcon />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderPhilosophySkills = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      <div>
+        <label style={labelStyle}>Professional Philosophy</label>
+        <textarea
+          value={philosophy}
+          onChange={e => setPhilosophy(e.target.value)}
+          placeholder="What drives your work? What's your approach to photography?"
+          rows={3}
+          style={{ ...inputStyle, resize: 'vertical' }}
+          onFocus={focusHandler}
+          onBlur={blurHandler}
+        />
+      </div>
+
+      <div>
+        <label style={labelStyle}>Skills</label>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+          <input
+            type="text"
+            value={newSkillName}
+            onChange={e => setNewSkillName(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSkill(); } }}
+            placeholder="Skill name"
+            style={{ ...inputStyle, flex: 1, minWidth: isMobile ? '100%' : '140px' }}
+            onFocus={focusHandler}
+            onBlur={blurHandler}
+          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: isMobile ? '100%' : 'auto' }}>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={newSkillLevel}
+              onChange={e => setNewSkillLevel(Number(e.target.value))}
+              style={{ width: isMobile ? '100%' : '100px', accentColor: '#083A85' }}
+            />
+            <span style={{ fontSize: '0.8rem', color: colors.textSecondary, fontWeight: 600, minWidth: '32px' }}>
+              {newSkillLevel}%
+            </span>
+          </div>
+          <button
+            onClick={addSkill}
+            style={{
+              padding: '0.75rem 1rem',
+              backgroundColor: '#083A85',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '0.75rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.25rem',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              flexShrink: 0,
+            }}
+          >
+            <PlusIcon /> Add
+          </button>
+        </div>
+
+        {skills.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.75rem' }}>
+            {skills.map(skill => (
+              <div
+                key={skill.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.625rem 0.875rem',
+                  backgroundColor: actualTheme === 'dark' ? 'rgba(255,255,255,0.03)' : '#f9fafb',
+                  borderRadius: '0.5rem',
+                  border: `1px solid ${colors.borderPrimary}`,
+                }}
+              >
+                <div style={{ flex: 1 }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: colors.textPrimary }}>{skill.name}</span>
+                  <div style={{
+                    marginTop: '0.25rem',
+                    height: '6px',
+                    backgroundColor: actualTheme === 'dark' ? 'rgba(255,255,255,0.1)' : '#e5e7eb',
+                    borderRadius: '3px',
+                    overflow: 'hidden',
+                    maxWidth: '200px',
+                  }}>
+                    <div style={{
+                      height: '100%',
+                      width: `${skill.level}%`,
+                      backgroundColor: '#083A85',
+                      borderRadius: '3px',
+                      transition: 'width 0.3s',
+                    }} />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>{skill.level}%</span>
+                  <button
+                    onClick={() => removeSkill(skill.id)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: '#EF4444',
+                      padding: '0.25rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <TrashIcon />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderEducation = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <label style={{ ...labelStyle, marginBottom: 0 }}>Education</label>
+        <button
+          onClick={addEducation}
+          style={{
+            padding: '0.5rem 0.875rem',
+            backgroundColor: '#083A85',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '0.5rem',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.25rem',
+            fontSize: '0.8rem',
+            fontWeight: 600,
+          }}
+        >
+          <PlusIcon /> Add Education
+        </button>
+      </div>
+
+      {educationEntries.length === 0 && (
+        <p style={{ fontSize: '0.85rem', color: colors.textSecondary, fontStyle: 'italic', textAlign: 'center', padding: '1rem 0' }}>
+          No education entries yet. Click &quot;Add Education&quot; to add one.
+        </p>
+      )}
+
+      {educationEntries.map((entry, index) => (
+        <div
+          key={entry.id}
+          style={{
+            padding: '1rem',
+            border: `1px solid ${colors.borderPrimary}`,
+            borderRadius: '0.75rem',
+            backgroundColor: actualTheme === 'dark' ? 'rgba(255,255,255,0.02)' : '#fafafa',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textSecondary }}>Education #{index + 1}</span>
+            <button
+              onClick={() => removeEducation(entry.id)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#EF4444', display: 'flex', alignItems: 'center', padding: '0.25rem' }}
+            >
+              <TrashIcon />
+            </button>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+            <input type="text" value={entry.degree} onChange={e => updateEducation(entry.id, 'degree', e.target.value)} placeholder="Degree (e.g., Bachelor of Fine Arts)" style={inputStyle} onFocus={focusHandler} onBlur={blurHandler} />
+            <input type="text" value={entry.institution} onChange={e => updateEducation(entry.id, 'institution', e.target.value)} placeholder="Institution" style={inputStyle} onFocus={focusHandler} onBlur={blurHandler} />
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <select value={entry.fromYear} onChange={e => updateEducation(entry.id, 'fromYear', e.target.value)} style={{ ...inputStyle, flex: 1 }} onFocus={focusHandler} onBlur={blurHandler}>
+                <option value="">From Year</option>
+                {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
+              </select>
+              <select value={entry.toYear} onChange={e => updateEducation(entry.id, 'toYear', e.target.value)} style={{ ...inputStyle, flex: 1 }} onFocus={focusHandler} onBlur={blurHandler}>
+                <option value="">To Year</option>
+                <option value="Present">Present</option>
+                {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
+              </select>
+            </div>
+            <textarea value={entry.description} onChange={e => updateEducation(entry.id, 'description', e.target.value)} placeholder="Brief description (optional)" rows={2} style={{ ...inputStyle, resize: 'vertical' }} onFocus={focusHandler} onBlur={blurHandler} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  const renderCertTraining = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      {/* Certifications */}
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+          <label style={{ ...labelStyle, marginBottom: 0 }}>Certifications</label>
+          <button onClick={addCertification} style={{ padding: '0.5rem 0.875rem', backgroundColor: '#083A85', color: '#fff', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem', fontWeight: 600 }}>
+            <PlusIcon /> Add
+          </button>
+        </div>
+
+        {certEntries.length === 0 && (
+          <p style={{ fontSize: '0.85rem', color: colors.textSecondary, fontStyle: 'italic', textAlign: 'center', padding: '0.5rem 0' }}>
+            No certifications yet.
+          </p>
+        )}
+
+        {certEntries.map((entry, index) => (
+          <div key={entry.id} style={{ padding: '0.875rem', border: `1px solid ${colors.borderPrimary}`, borderRadius: '0.75rem', backgroundColor: actualTheme === 'dark' ? 'rgba(255,255,255,0.02)' : '#fafafa', marginBottom: '0.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textSecondary }}>Certification #{index + 1}</span>
+              <button onClick={() => removeCertification(entry.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#EF4444', display: 'flex', alignItems: 'center', padding: '0.25rem' }}><TrashIcon /></button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <input type="text" value={entry.title} onChange={e => updateCertification(entry.id, 'title', e.target.value)} placeholder="Certification title" style={inputStyle} onFocus={focusHandler} onBlur={blurHandler} />
+              <input type="text" value={entry.issuer} onChange={e => updateCertification(entry.id, 'issuer', e.target.value)} placeholder="Issuing institution" style={inputStyle} onFocus={focusHandler} onBlur={blurHandler} />
+              <select value={entry.year} onChange={e => updateCertification(entry.id, 'year', e.target.value)} style={inputStyle} onFocus={focusHandler} onBlur={blurHandler}>
+                <option value="">Year obtained</option>
+                {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
+              </select>
+              <textarea value={entry.description} onChange={e => updateCertification(entry.id, 'description', e.target.value)} placeholder="Description (optional)" rows={2} style={{ ...inputStyle, resize: 'vertical' }} onFocus={focusHandler} onBlur={blurHandler} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Training & Workshops */}
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+          <label style={{ ...labelStyle, marginBottom: 0 }}>Training &amp; Workshops</label>
+          <button onClick={addTraining} style={{ padding: '0.5rem 0.875rem', backgroundColor: '#083A85', color: '#fff', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem', fontWeight: 600 }}>
+            <PlusIcon /> Add
+          </button>
+        </div>
+
+        {trainingEntries.length === 0 && (
+          <p style={{ fontSize: '0.85rem', color: colors.textSecondary, fontStyle: 'italic', textAlign: 'center', padding: '0.5rem 0' }}>
+            No training entries yet.
+          </p>
+        )}
+
+        {trainingEntries.map((entry, index) => (
+          <div key={entry.id} style={{ padding: '0.875rem', border: `1px solid ${colors.borderPrimary}`, borderRadius: '0.75rem', backgroundColor: actualTheme === 'dark' ? 'rgba(255,255,255,0.02)' : '#fafafa', marginBottom: '0.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textSecondary }}>Training #{index + 1}</span>
+              <button onClick={() => removeTraining(entry.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#EF4444', display: 'flex', alignItems: 'center', padding: '0.25rem' }}><TrashIcon /></button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <input type="text" value={entry.title} onChange={e => updateTraining(entry.id, 'title', e.target.value)} placeholder="Training / Workshop name" style={inputStyle} onFocus={focusHandler} onBlur={blurHandler} />
+              <input type="text" value={entry.issuer} onChange={e => updateTraining(entry.id, 'issuer', e.target.value)} placeholder="Institution / Organizer" style={inputStyle} onFocus={focusHandler} onBlur={blurHandler} />
+              <select value={entry.year} onChange={e => updateTraining(entry.id, 'year', e.target.value)} style={inputStyle} onFocus={focusHandler} onBlur={blurHandler}>
+                <option value="">Year</option>
+                {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
+              </select>
+              <textarea value={entry.description} onChange={e => updateTraining(entry.id, 'description', e.target.value)} placeholder="Description (optional)" rows={2} style={{ ...inputStyle, resize: 'vertical' }} onFocus={focusHandler} onBlur={blurHandler} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      <style>{`
+        @media (max-width: 640px) {
+          .profile-modal-content {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            border-radius: 1rem 1rem 0 0 !important;
+            max-height: 95vh !important;
+            position: fixed !important;
+            bottom: 0 !important;
+            top: auto !important;
+          }
+          .profile-modal-body {
+            padding: 1rem !important;
+          }
+        }
+      `}</style>
+
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.6)',
+          backdropFilter: 'blur(4px)',
+          WebkitBackdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: isMobile ? 'flex-end' : 'center',
+          justifyContent: 'center',
+          zIndex: 1100,
+        }}
+      >
+        <div
+          className="profile-modal-content"
+          onClick={e => e.stopPropagation()}
+          style={{
+            backgroundColor: colors.bgCard,
+            borderRadius: isMobile ? '1rem 1rem 0 0' : '1rem',
+            width: '580px',
+            maxWidth: '95%',
+            maxHeight: isMobile ? '95vh' : '85vh',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          }}
+        >
+          {/* Header */}
+          <div style={{
+            padding: isMobile ? '1rem 1rem 0.75rem' : '1.25rem 1.5rem 1rem',
+            borderBottom: `1px solid ${colors.borderPrimary}`,
+            flexShrink: 0,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #083A85 0%, #0d5ab8 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <i className="bi bi-person-badge" style={{ fontSize: '16px', color: '#fff' }}></i>
+              </div>
+              <h3 style={{ fontSize: isMobile ? '1rem' : '1.15rem', fontWeight: 700, color: colors.textPrimary, margin: 0 }}>
+                Complete Your Profile
+              </h3>
+            </div>
+            <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: '0.375rem 0 0 0' }}>
+              {currentStepData?.label} — Fill in the missing sections to get discovered by clients
+            </p>
+
+            {/* Progress Bar */}
+            <div style={{ display: 'flex', gap: '0.25rem', marginTop: '0.75rem' }}>
+              {activeSteps.map((_, i) => (
+                <div
+                  key={i}
+                  style={{
+                    flex: 1,
+                    height: '4px',
+                    borderRadius: '2px',
+                    backgroundColor: i <= currentStepIndex
+                      ? '#083A85'
+                      : (actualTheme === 'dark' ? 'rgba(255,255,255,0.1)' : '#e5e7eb'),
+                    transition: 'background-color 0.3s',
+                  }}
+                />
+              ))}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.375rem' }}>
+              <span style={{ fontSize: '0.7rem', color: colors.textSecondary }}>
+                Step {currentStepIndex + 1} of {totalSteps}
+              </span>
+              <span style={{ fontSize: '0.7rem', color: colors.textSecondary }}>
+                {Math.round(((currentStepIndex + 1) / totalSteps) * 100)}%
+              </span>
+            </div>
+          </div>
+
+          {/* Body - scrollable */}
+          <div
+            className="profile-modal-body"
+            style={{
+              padding: isMobile ? '1rem' : '1.25rem 1.5rem',
+              overflowY: 'auto',
+              flex: 1,
+            }}
+          >
+            {renderStep()}
+          </div>
+
+          {/* Error */}
+          {error && (
+            <div style={{
+              padding: '0.625rem 1.5rem',
+              backgroundColor: actualTheme === 'dark' ? 'rgba(239, 68, 68, 0.1)' : '#FEF2F2',
+              color: '#EF4444',
+              fontSize: '0.85rem',
+              fontWeight: 500,
+              borderTop: `1px solid ${actualTheme === 'dark' ? 'rgba(239, 68, 68, 0.2)' : '#FECACA'}`,
+            }}>
+              {error}
+            </div>
+          )}
+
+          {/* Footer */}
+          <div style={{
+            padding: isMobile ? '0.75rem 1rem' : '1rem 1.5rem',
+            borderTop: `1px solid ${colors.borderPrimary}`,
+            display: 'flex',
+            justifyContent: 'flex-end',
+            alignItems: 'center',
+            flexShrink: 0,
+            gap: '0.625rem',
+          }}>
+            {currentStepIndex > 0 && (
+              <button
+                onClick={goBack}
+                style={{
+                  padding: '0.625rem 1.25rem',
+                  border: `2px solid ${colors.borderPrimary}`,
+                  borderRadius: '0.625rem',
+                  background: colors.bgTertiary,
+                  color: colors.textPrimary,
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.backgroundColor = colors.bgHover || colors.bgTertiary;
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.backgroundColor = colors.bgTertiary;
+                }}
+              >
+                Back
+              </button>
+            )}
+
+            {currentStepIndex < totalSteps - 1 ? (
+              <button
+                onClick={goNext}
+                style={{
+                  padding: '0.625rem 1.5rem',
+                  border: '2px solid #083A85',
+                  borderRadius: '0.625rem',
+                  background: 'linear-gradient(135deg, #083A85 0%, #0d5ab8 100%)',
+                  color: '#fff',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(8, 58, 133, 0.3)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              >
+                Next
+              </button>
+            ) : (
+              <button
+                onClick={handleSubmit}
+                disabled={submitting}
+                style={{
+                  padding: '0.625rem 1.5rem',
+                  border: submitting ? '2px solid #9CA3AF' : '2px solid #083A85',
+                  borderRadius: '0.625rem',
+                  background: submitting ? '#9CA3AF' : 'linear-gradient(135deg, #083A85 0%, #0d5ab8 100%)',
+                  color: '#fff',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  cursor: submitting ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.375rem',
+                }}
+                onMouseEnter={e => {
+                  if (!submitting) e.currentTarget.style.boxShadow = '0 4px 12px rgba(8, 58, 133, 0.3)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              >
+                {submitting && (
+                  <div style={{
+                    width: '14px',
+                    height: '14px',
+                    border: '2px solid rgba(255,255,255,0.3)',
+                    borderTopColor: '#fff',
+                    borderRadius: '50%',
+                    animation: 'profileModalSpin 0.8s linear infinite',
+                  }} />
+                )}
+                {submitting ? (submissionStatus || 'Submitting...') : 'Submit Profile'}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Toast Notifications */}
+      <div style={{
+        position: 'fixed',
+        bottom: '1rem',
+        right: '1rem',
+        zIndex: 9999,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.5rem',
+      }}>
+        {toasts.map(toast => (
+          <div
+            key={toast.id}
+            style={{
+              padding: '0.75rem 1rem',
+              borderRadius: '0.5rem',
+              backgroundColor: toast.type === 'success' ? '#10B981' : '#EF4444',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+              minWidth: '250px',
+              maxWidth: '400px',
+              fontSize: '0.85rem',
+              fontWeight: 500,
+            }}
+          >
+            {toast.type === 'success' ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )}
+            <span style={{ flex: 1 }}>{toast.message}</span>
+            <button
+              onClick={() => dismissToast(toast.id)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'white',
+                cursor: 'pointer',
+                padding: '0 0.25rem',
+                fontSize: '1.25rem',
+                lineHeight: 1,
+              }}
+            >
+              &times;
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <style>{`
+        @keyframes profileModalSpin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+    </>
+  );
+};
+
+export default CompleteProfileModal;
