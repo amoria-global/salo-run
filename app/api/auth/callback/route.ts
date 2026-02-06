@@ -14,8 +14,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL(`${landingUrl}/user/auth/login`));
   }
 
-  // Create response that redirects to dashboard
-  const dashboardUrl = new URL('/user/photographer/dashboard', request.url);
+  // Route to the correct dashboard based on user type
+  const customerType = request.nextUrl.searchParams.get('type') || '';
+  let route = '/'; // default to role selection
+  if (customerType.toLowerCase() === 'photographer') route = '/user/photographer/dashboard';
+  else if (customerType.toLowerCase() === 'client') route = '/user/client/home';
+  else if (customerType.toLowerCase() === 'event-coordinator') route = '/user/event-coordinator/home';
+  const dashboardUrl = new URL(route, request.url);
   const response = NextResponse.redirect(dashboardUrl);
 
   // Set auth token as cookie
