@@ -6,6 +6,7 @@ import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 import { useDashboardAuth } from '../../providers/AuthProvider';
+import CompleteProfileModal from '../../components/CompleteProfileModal';
 import {
   StatCard,
   ActivityItem,
@@ -176,6 +177,9 @@ const PhotographerDashboard = () => {
   const [showPlanDropdown, setShowPlanDropdown] = useState(false);
   const [editingPlan, setEditingPlan] = useState<FuturePlan | null>(null);
 
+  // Profile completion modal state
+  const [showProfileModal, setShowProfileModal] = useState(false);
+
   // Form state for creating future plan
   const [planForm, setPlanForm] = useState({
     name: '',
@@ -229,6 +233,19 @@ const PhotographerDashboard = () => {
       clearInterval(timeInterval);
     };
   }, [timeOfDay, greetings.length]);
+
+  // Show profile completion modal when profile fields are missing
+  useEffect(() => {
+    if (user && user.customerType?.toLowerCase() === 'photographer') {
+      const isIncomplete = !user.about || !user.address ||
+        !user.specialties?.length || !user.equipments?.length ||
+        !user.professionalPhilosophy || !user.professionalSkills?.length ||
+        !user.educationLevels?.length ||
+        (!user.certifications?.length && !user.trainings?.length);
+
+      setShowProfileModal(isIncomplete);
+    }
+  }, [user]);
 
   const toggleDropdown = (id: string) => {
     setActiveDropdown(activeDropdown === id ? null : id);
@@ -1655,6 +1672,14 @@ const PhotographerDashboard = () => {
         </div>
       )}
     </div>
+
+      {/* Profile Completion Modal for new photographers */}
+      <CompleteProfileModal
+        isOpen={showProfileModal}
+        onComplete={() => {
+          setShowProfileModal(false);
+        }}
+      />
     </>
   );
 };
