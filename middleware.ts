@@ -23,6 +23,7 @@ export function middleware(request: NextRequest) {
 
   // Define public paths that don't require authentication
   const publicPaths = [
+    '/', // Home/role selection page
     '/auth',
     '/api/auth/callback', // Auth callback for receiving token from redirect
     '/_next',
@@ -31,8 +32,10 @@ export function middleware(request: NextRequest) {
     '/logo.png',
   ];
 
-  // Check if the current path is public
-  const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
+  // Check if the current path is public (exact match for '/', prefix match for others)
+  const isPublicPath = publicPaths.some(path =>
+    path === '/' ? pathname === '/' : pathname.startsWith(path)
+  );
 
   // Also check for static files
   const isStaticFile = pathname.includes('.') && !pathname.endsWith('.html');
