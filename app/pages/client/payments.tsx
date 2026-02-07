@@ -1250,6 +1250,8 @@ Amount: ${payment.amount}
   const [selectedGiftPaymentMethod, setSelectedGiftPaymentMethod] = useState<string | null>(null);
   const [giftPaymentDetails, setGiftPaymentDetails] = useState({
     mtnNumber: '',
+
+    
     airtelNumber: '',
     bankName: '',
     accountNumber: '',
