@@ -135,7 +135,7 @@ export default function WelcomeunlockModal({
               }}
             >
 
-                yes, Continue to Payment
+                Yes, Continue to Payment
             </button>
 
             {/* cancel Button */}
