@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { useTheme } from "../context/ThemeContext";
 import { useDashboardAuth } from "../providers/AuthProvider";
@@ -68,7 +67,7 @@ interface TopbarProps {
 
 export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmount, liveStreamFeeAmount, userRole = 'client' }: TopbarProps) {
   const { colors, actualTheme } = useTheme();
-  const { user } = useDashboardAuth();
+  const { user, logout } = useDashboardAuth();
 
   const getUserDisplayName = () => {
     if (user?.firstName && user?.lastName) {
@@ -672,18 +671,33 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
               cursor: 'pointer'
             }}
           >
-            <Image
-              src="https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg"
-              alt="Profile"
-              width={40}
-              height={40}
-              style={{
-                borderRadius: '9999px',
-                objectFit: 'cover',
+            {user?.profilePicture ? (
+              <img
+                src={user.profilePicture}
+                alt="Profile"
+                style={{
+                  borderRadius: '9999px',
+                  objectFit: 'cover',
+                  width: '2.5rem',
+                  height: '2.5rem'
+                }}
+              />
+            ) : (
+              <div style={{
                 width: '2.5rem',
-                height: '2.5rem'
-              }}
-            />
+                height: '2.5rem',
+                borderRadius: '9999px',
+                backgroundColor: '#083A85',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontWeight: '600',
+                fontSize: '1rem',
+              }}>
+                {user?.firstName ? user.firstName.charAt(0).toUpperCase() : '?'}
+              </div>
+            )}
             <div className="topbar-profile-info" style={{
               display: 'flex',
               flexDirection: 'column'
@@ -763,7 +777,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
                 gap: '0.25rem'
               }}>
                 <a
-                  href="/user/client/profile"
+                  href={`/user/${userRole}/profile`}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -812,18 +826,21 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
                   Preferences
                 </a>
 
-                <a
-                  href="/logout"
+                <button
+                  onClick={logout}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.75rem',
                     padding: '0.75rem',
                     borderRadius: '0.5rem',
-                    textDecoration: 'none',
+                    border: 'none',
+                    background: 'none',
                     color: colors.textSecondary,
                     fontSize: '0.95rem',
                     fontWeight: '500',
+                    cursor: 'pointer',
+                    width: '100%',
                     transition: 'background-color 0.2s'
                   }}
                   onMouseEnter={(e) => {
@@ -835,7 +852,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
                 >
                   <LogoutIcon />
                   Logout
-                </a>
+                </button>
               </div>
             </div>
           )}

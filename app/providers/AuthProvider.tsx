@@ -203,6 +203,17 @@ async function fetchPhotographerProfileSummary(token: string): Promise<Dashboard
       }
     );
 
+    if (response.status === 401) {
+      // Session expired — clear auth and redirect to login
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('authUser');
+        document.cookie = 'authToken=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+        const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL || 'http://localhost:3000';
+        window.location.href = `${landingUrl}/user/auth/login`;
+      }
+      return null;
+    }
     if (!response.ok) {
       console.error('[Dashboard Auth] Failed to fetch profile summary:', response.status);
       return null;
@@ -292,6 +303,10 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
             setTokenCookie(activeToken);
             localStorage.setItem(AUTH_TOKEN_KEY, activeToken);
             localStorage.setItem(AUTH_USER_KEY, JSON.stringify(userProfile));
+            // Store role cookie for middleware route protection
+            if (userProfile.customerType) {
+              document.cookie = `userRole=${userProfile.customerType}; path=/; max-age=${60*60*24*7}; samesite=lax`;
+            }
           }
 
           // Clean up URL token param
@@ -358,6 +373,10 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
         setUser(userProfile);
         if (typeof window !== 'undefined') {
           localStorage.setItem(AUTH_USER_KEY, JSON.stringify(userProfile));
+          // Keep role cookie fresh
+          if (userProfile.customerType) {
+            document.cookie = `userRole=${userProfile.customerType}; path=/; max-age=${60*60*24*7}; samesite=lax`;
+          }
         }
         console.log('[Dashboard Auth] Profile refresh successful');
       }
@@ -445,9 +464,16 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
       localStorage.removeItem(AUTH_USER_KEY);
       // Clear auth cookie
       document.cookie = 'authToken=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+      // Clear role cookie
+      document.cookie = 'userRole=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
     }
     setUser(null);
     setToken(null);
+    // Redirect to home app login
+    if (typeof window !== 'undefined') {
+      const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL || 'http://localhost:3000';
+      window.location.href = `${landingUrl}/user/auth/login`;
+    }
   }, []);
 
   /**
