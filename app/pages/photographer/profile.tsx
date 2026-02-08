@@ -162,6 +162,25 @@ interface Experience {
   description: string;
 }
 
+interface PackageFeature {
+  id: string;
+  featureName: string;
+  isIncluded: boolean;
+  displayOrder: number;
+}
+
+interface DeliveryPackage {
+  id: string;
+  packageName: string;
+  price: string;
+  currencyId: string;
+  priceUnit: string;
+  durationHours: string;
+  description: string;
+  isActive: boolean;
+  features: PackageFeature[];
+}
+
 interface ToastMessage {
   id: string;
   type: 'success' | 'error';
@@ -175,7 +194,7 @@ interface PhotographerProfilePageProps {
 const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProfilePageProps) => {
   const { colors, actualTheme } = useTheme();
   const { token, user, refreshUserProfile } = useDashboardAuth();
-  const [activeTab, setActiveTab] = useState<'overview' | 'portfolio' | 'experience'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'portfolio' | 'experience' | 'packages'>('overview');
   const [savingEducation, setSavingEducation] = useState<string | null>(null);
   const [savingTraining, setSavingTraining] = useState<string | null>(null);
   const [savingSkill, setSavingSkill] = useState<string | null>(null);
@@ -220,6 +239,17 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     'Southern Province': ['Gisagara', 'Huye', 'Kamonyi', 'Muhanga', 'Nyamagabe', 'Nyanza', 'Nyaruguru', 'Ruhango'],
     'Western Province': ['Karongi', 'Ngororero', 'Nyabihu', 'Nyamasheke', 'Rubavu', 'Rusizi', 'Rutsiro']
   };
+
+  // Available package features for dropdown
+  const availableFeatures = [
+    'Unlimited photos & videos',
+    'Online gallery storage (provided by platform)',
+    'Same-day preview',
+    'Professional editing',
+    'Printed photo album',
+    'Live-streaming',
+    'Other preferences',
+  ];
 
   // Available specialties
   const availableSpecialties = [
@@ -294,6 +324,128 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   const [experienceData, setExperienceData] = useState({
     experiences: [] as Experience[],
   });
+
+  // Delivery Packages Tab State
+  const [packages, setPackages] = useState<DeliveryPackage[]>([]);
+  const [savingPackageId, setSavingPackageId] = useState<string | null>(null);
+  const [expandedPackageId, setExpandedPackageId] = useState<string | null>(null);
+  const [currencies, setCurrencies] = useState<{ id: string; code: string; name: string }[]>([]);
+
+  // Package handler functions
+  const addPackage = () => {
+    const newId = Date.now().toString();
+    setNewlyAddedId(newId);
+    const newPackage: DeliveryPackage = {
+      id: newId,
+      packageName: '',
+      price: '',
+      currencyId: 'USD',
+      priceUnit: 'per event',
+      durationHours: '',
+      description: '',
+      isActive: true,
+      features: [],
+    };
+    setPackages(prev => [newPackage, ...prev]);
+    setExpandedPackageId(newId);
+    setTimeout(() => setNewlyAddedId(null), 1500);
+  };
+
+  const updatePackage = (id: string, field: keyof DeliveryPackage, value: string | boolean) => {
+    setPackages(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
+  };
+
+  const removePackage = (id: string) => {
+    setPackages(prev => prev.filter(p => p.id !== id));
+    if (expandedPackageId === id) setExpandedPackageId(null);
+  };
+
+  const addFeatureToPackage = (packageId: string) => {
+    setPackages(prev => prev.map(p => {
+      if (p.id !== packageId) return p;
+      const newFeature: PackageFeature = {
+        id: Date.now().toString(),
+        featureName: '',
+        isIncluded: true,
+        displayOrder: p.features.length + 1,
+      };
+      return { ...p, features: [...p.features, newFeature] };
+    }));
+  };
+
+  const updateFeature = (packageId: string, featureId: string, field: keyof PackageFeature, value: string | boolean | number) => {
+    setPackages(prev => prev.map(p => {
+      if (p.id !== packageId) return p;
+      return {
+        ...p,
+        features: p.features.map(f => f.id === featureId ? { ...f, [field]: value } : f),
+      };
+    }));
+  };
+
+  const removeFeature = (packageId: string, featureId: string) => {
+    setPackages(prev => prev.map(p => {
+      if (p.id !== packageId) return p;
+      return {
+        ...p,
+        features: p.features
+          .filter(f => f.id !== featureId)
+          .map((f, idx) => ({ ...f, displayOrder: idx + 1 })),
+      };
+    }));
+  };
+
+  const savePackageToAPI = async (pkg: DeliveryPackage) => {
+    if (!token) {
+      showToast('error', 'No auth token available');
+      return;
+    }
+    if (!pkg.packageName) {
+      showToast('error', 'Package name is required');
+      return;
+    }
+
+    setSavingPackageId(pkg.id);
+    try {
+      const apiUrl = getApiUrl();
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+
+      const response = await fetch(`${apiUrl}/api/remote/photographer/packages`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'api-token': apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          packageName: pkg.packageName,
+          price: parseFloat(pkg.price) || 0,
+          currencyId: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pkg.currencyId) ? pkg.currencyId : null,
+          priceUnit: pkg.priceUnit,
+          durationHours: parseFloat(pkg.durationHours) || 0,
+          description: pkg.description,
+          isActive: pkg.isActive,
+          features: pkg.features.map(f => ({
+            featureName: f.featureName,
+            isIncluded: f.isIncluded,
+            displayOrder: f.displayOrder,
+          })),
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => '');
+        throw new Error(`Failed to save ${pkg.packageName}: ${response.status} ${errorText}`);
+      }
+
+      showToast('success', `Package "${pkg.packageName}" saved successfully`);
+    } catch (error) {
+      console.error('Error saving package:', error);
+      showToast('error', error instanceof Error ? error.message : 'Failed to save package');
+    } finally {
+      setSavingPackageId(null);
+    }
+  };
 
   // Image state - initialized empty, loaded from user context
   const [profileImage, setProfileImage] = useState<string | null>(null);
@@ -388,6 +540,29 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       }
     };
   }, [isRestoringDraft, saveProfileDraft]);
+
+  // Fetch currencies on mount
+  useEffect(() => {
+    const fetchCurrencies = async () => {
+      try {
+        const apiUrl = getApiUrl();
+        const response = await fetch(`${apiUrl}/api/remote/public/currencies`);
+        if (response.ok) {
+          const result = await response.json();
+          if (result.data && Array.isArray(result.data)) {
+            setCurrencies(result.data.map((c: { id: string; code?: string; currencyCode?: string; name?: string; currencyName?: string }) => ({
+              id: c.id,
+              code: c.code || c.currencyCode || '',
+              name: c.name || c.currencyName || '',
+            })));
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch currencies:', error);
+      }
+    };
+    fetchCurrencies();
+  }, []);
 
   // Restore saved draft on component mount
   useEffect(() => {
@@ -1551,6 +1726,10 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           background: linear-gradient(135deg, rgba(8, 58, 133, 0.15) 0%, rgba(8, 58, 133, 0.1) 100%) !important;
           transform: translateY(-1px);
         }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
 
         @media (max-width: 768px) {
           .mobile-main-content {
@@ -2156,6 +2335,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                 </button>
                 <button onClick={() => setActiveTab('experience')} style={tabStyle(activeTab === 'experience')}>
                   Working Experience
+                </button>
+                <button onClick={() => setActiveTab('packages')} style={tabStyle(activeTab === 'packages')}>
+                  Delivery Packages
                 </button>
               </div>
 
@@ -3830,6 +4012,473 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                             }}
                           >
                             <PlusIcon /> Add Your First Experience
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Delivery Packages Tab */}
+                {activeTab === 'packages' && (
+                  <div>
+                    {/* Description Section */}
+                    <div style={{
+                      backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF',
+                      borderRadius: '0.75rem',
+                      padding: '1.25rem',
+                      marginBottom: '2rem',
+                      border: `1px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}20`
+                    }}>
+                      <p style={{
+                        fontSize: '0.95rem',
+                        color: colors.textPrimary,
+                        lineHeight: '1.6',
+                        margin: 0
+                      }}>
+                        Create custom delivery packages to present your photography services to clients. Define your own package names, pricing, duration, and features. Each package is saved individually.
+                      </p>
+                    </div>
+
+                    {/* Your Listed Packages Summary */}
+                    {packages.filter(p => p.packageName).length > 0 && (
+                      <div style={{ marginBottom: '2rem' }}>
+                        <div style={sectionTitleStyle}>
+                          <span>Your Listed Packages</span>
+                        </div>
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+                          gap: '1rem'
+                        }}>
+                          {packages.filter(p => p.packageName).map((pkg) => (
+                            <div key={pkg.id} style={{
+                              backgroundColor: colors.bgTertiary,
+                              borderRadius: '0.75rem',
+                              padding: '1.25rem',
+                              border: `1px solid ${colors.borderPrimary}`,
+                              display: 'flex',
+                              flexDirection: 'column',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s',
+                            }}
+                            onClick={() => setExpandedPackageId(expandedPackageId === pkg.id ? null : pkg.id)}
+                            >
+                              <h4 style={{
+                                fontSize: '1rem',
+                                fontWeight: '600',
+                                color: colors.textPrimary,
+                                margin: '0 0 0.5rem 0',
+                              }}>
+                                {pkg.packageName}
+                              </h4>
+                              {pkg.price && (
+                                <div style={{
+                                  fontSize: '1.5rem',
+                                  fontWeight: '700',
+                                  color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
+                                  marginBottom: '0.25rem'
+                                }}>
+                                  {parseFloat(pkg.price).toLocaleString()} <span style={{ fontSize: '0.85rem', fontWeight: '500' }}>{currencies.find(c => c.id === pkg.currencyId)?.code || pkg.currencyId}</span>
+                                </div>
+                              )}
+                              <p style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.75rem' }}>
+                                {pkg.durationHours || '0'}h · {pkg.priceUnit}
+                              </p>
+                              {pkg.features.filter(f => f.featureName).length > 0 && (
+                                <div style={{
+                                  borderTop: `1px solid ${colors.borderPrimary}`,
+                                  paddingTop: '0.75rem',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: '0.35rem',
+                                  flex: 1
+                                }}>
+                                  {pkg.features.filter(f => f.featureName).map((f) => (
+                                    <div key={f.id} style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '0.4rem',
+                                      fontSize: '0.8rem',
+                                      color: f.isIncluded ? colors.textPrimary : colors.textSecondary,
+                                      textDecoration: f.isIncluded ? 'none' : 'line-through',
+                                    }}>
+                                      {f.isIncluded ? <CheckIcon /> : <XIcon />}
+                                      {f.featureName}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              <div style={{
+                                marginTop: '0.75rem',
+                                padding: '0.35rem 0.75rem',
+                                borderRadius: '0.375rem',
+                                backgroundColor: pkg.isActive
+                                  ? (actualTheme === 'dark' ? '#065F46' : '#D1FAE5')
+                                  : (actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2'),
+                                color: pkg.isActive
+                                  ? (actualTheme === 'dark' ? '#6EE7B7' : '#065F46')
+                                  : (actualTheme === 'dark' ? '#FCA5A5' : '#991B1B'),
+                                fontSize: '0.75rem',
+                                fontWeight: '500',
+                                textAlign: 'center'
+                              }}>
+                                {pkg.isActive ? 'Active' : 'Inactive'}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Your Packages Section */}
+                    <div style={sectionTitleStyle}>
+                      <span>Your Packages</span>
+                      <button
+                        onClick={addPackage}
+                        disabled={!isEditEnabled || packages.length >= 3}
+                        style={{
+                          backgroundColor: (isEditEnabled && packages.length < 3) ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgTertiary,
+                          color: (isEditEnabled && packages.length < 3) ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.textSecondary,
+                          border: `1px solid ${(isEditEnabled && packages.length < 3) ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.borderPrimary}`,
+                          borderRadius: '0.375rem',
+                          padding: '0.375rem 0.75rem',
+                          fontSize: '0.8rem',
+                          fontWeight: '500',
+                          cursor: (isEditEnabled && packages.length < 3) ? 'pointer' : 'not-allowed',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                          opacity: (isEditEnabled && packages.length < 3) ? 1 : 0.6
+                        }}
+                      >
+                        <PlusIcon /> Add Package {packages.length > 0 ? `(${3 - packages.length} left)` : ''}
+                      </button>
+                    </div>
+                    <p style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '1.5rem' }}>
+                      Create and customize your delivery packages with pricing, duration, and features
+                    </p>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                      {packages.map((pkg) => (
+                        <div key={pkg.id} style={{
+                          backgroundColor: colors.bgTertiary,
+                          padding: '1.5rem',
+                          borderRadius: '0.75rem',
+                          border: `1px solid ${colors.borderPrimary}`,
+                          position: 'relative',
+                          ...(newlyAddedId === pkg.id ? newItemAnimation : {})
+                        }}>
+                          {/* Collapse/Expand Header */}
+                          <div
+                            onClick={() => setExpandedPackageId(expandedPackageId === pkg.id ? null : pkg.id)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                              <div style={{
+                                width: '40px',
+                                height: '40px',
+                                borderRadius: '0.5rem',
+                                backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M20 7L12 3L4 7M20 7L12 11M20 7V17L12 21M12 11L4 7M12 11V21M4 7V17L12 21" stroke={actualTheme === 'dark' ? '#60A5FA' : '#083A85'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                              </div>
+                              <div>
+                                <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
+                                  {pkg.packageName || 'New Package'}
+                                </h3>
+                                {pkg.price && (
+                                  <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
+                                    {parseFloat(pkg.price).toLocaleString()} {currencies.find(c => c.id === pkg.currencyId)?.code || pkg.currencyId} · {pkg.priceUnit}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <div style={{
+                                width: '8px', height: '8px', borderRadius: '50%',
+                                backgroundColor: pkg.isActive ? '#10B981' : '#EF4444'
+                              }} />
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+                                style={{ transform: expandedPackageId === pkg.id ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
+                                <path d="M6 9L12 15L18 9" stroke={colors.textSecondary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            </div>
+                          </div>
+
+                          {/* Expanded Form Content */}
+                          {expandedPackageId === pkg.id && (
+                            <div style={{ marginTop: '1.5rem', borderTop: `1px solid ${colors.borderPrimary}`, paddingTop: '1.5rem' }}>
+                              {/* Remove Button */}
+                              <button
+                                onClick={() => removePackage(pkg.id)}
+                                style={{
+                                  position: 'absolute', top: '0.75rem', right: '0.75rem',
+                                  padding: '0.5rem', backgroundColor: 'transparent',
+                                  border: `1px solid ${colors.borderPrimary}`, borderRadius: '0.375rem',
+                                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  color: colors.textTertiary, transition: 'all 0.2s'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.backgroundColor = '#FEE2E2';
+                                  e.currentTarget.style.borderColor = '#EF4444';
+                                  e.currentTarget.style.color = '#EF4444';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.backgroundColor = 'transparent';
+                                  e.currentTarget.style.borderColor = colors.borderPrimary;
+                                  e.currentTarget.style.color = colors.textTertiary;
+                                }}
+                                title="Remove package"
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M3 6H5H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                              </button>
+
+                              {/* Row 1: Package Name + Active toggle */}
+                              <div className="mobile-form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '1rem', marginBottom: '1rem', alignItems: 'end' }}>
+                                <div>
+                                  <label style={labelStyle}>Package Name *</label>
+                                  <select value={pkg.packageName}
+                                    onChange={(e) => updatePackage(pkg.id, 'packageName', e.target.value)}
+                                    disabled={!isEditEnabled} style={selectStyle}>
+                                    <option value="">Select a package</option>
+                                    {['Essential', 'Custom', 'Premium']
+                                      .filter(name => name === pkg.packageName || !packages.some(p => p.id !== pkg.id && p.packageName === name))
+                                      .map(name => (
+                                        <option key={name} value={name}>{name}</option>
+                                      ))}
+                                  </select>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', paddingBottom: '0.75rem' }}>
+                                  <label style={{ fontSize: '0.875rem', fontWeight: '500', color: colors.textPrimary }}>Active</label>
+                                  <div
+                                    onClick={() => isEditEnabled && updatePackage(pkg.id, 'isActive', !pkg.isActive)}
+                                    style={{
+                                      width: '44px', height: '24px', borderRadius: '12px',
+                                      backgroundColor: pkg.isActive ? '#083A85' : (actualTheme === 'dark' ? '#4B5563' : '#D1D5DB'),
+                                      cursor: isEditEnabled ? 'pointer' : 'not-allowed',
+                                      position: 'relative', transition: 'background-color 0.2s',
+                                    }}
+                                  >
+                                    <div style={{
+                                      width: '20px', height: '20px', borderRadius: '50%',
+                                      backgroundColor: 'white', position: 'absolute', top: '2px',
+                                      left: pkg.isActive ? '22px' : '2px', transition: 'left 0.2s',
+                                    }} />
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Row 2: Price + Currency + Price Unit + Duration */}
+                              <div className="mobile-form-grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1rem' }}>
+                                <div>
+                                  <label style={labelStyle}>Price *</label>
+                                  <input type="number" min="0" value={pkg.price}
+                                    onChange={(e) => updatePackage(pkg.id, 'price', e.target.value)}
+                                    placeholder="Enter price" disabled={!isEditEnabled} style={inputStyle} />
+                                </div>
+                                <div>
+                                  <label style={labelStyle}>Currency *</label>
+                                  <select value={pkg.currencyId}
+                                    onChange={(e) => updatePackage(pkg.id, 'currencyId', e.target.value)}
+                                    disabled={!isEditEnabled} style={selectStyle}>
+                                    {currencies.length > 0 ? (
+                                      <>
+                                        <option value="">Select currency</option>
+                                        {currencies.map((c) => (
+                                          <option key={c.id} value={c.id}>{c.code}{c.name ? ` - ${c.name}` : ''}</option>
+                                        ))}
+                                      </>
+                                    ) : (
+                                      <>
+                                        <option value="USD">USD</option>
+                                        <option value="RWF">RWF</option>
+                                        <option value="EUR">EUR</option>
+                                        <option value="GBP">GBP</option>
+                                        <option value="KES">KES</option>
+                                      </>
+                                    )}
+                                  </select>
+                                </div>
+                                <div>
+                                  <label style={labelStyle}>Price Unit *</label>
+                                  <select value={pkg.priceUnit}
+                                    onChange={(e) => updatePackage(pkg.id, 'priceUnit', e.target.value)}
+                                    disabled={!isEditEnabled} style={selectStyle}>
+                                    <option value="per event">Per Event</option>
+                                    <option value="per hour">Per Hour</option>
+                                    <option value="per day">Per Day</option>
+                                  </select>
+                                </div>
+                                <div>
+                                  <label style={labelStyle}>Duration (hours) *</label>
+                                  <input type="number" min="0" value={pkg.durationHours}
+                                    onChange={(e) => updatePackage(pkg.id, 'durationHours', e.target.value)}
+                                    placeholder="e.g., 4" disabled={!isEditEnabled} style={inputStyle} />
+                                </div>
+                              </div>
+
+                              {/* Row 3: Description */}
+                              <div style={{ marginBottom: '1.25rem' }}>
+                                <label style={labelStyle}>Description</label>
+                                <textarea value={pkg.description}
+                                  onChange={(e) => updatePackage(pkg.id, 'description', e.target.value)}
+                                  placeholder="Describe what this package includes..."
+                                  rows={3} disabled={!isEditEnabled}
+                                  style={{ ...inputStyle, resize: 'vertical' as const }} />
+                              </div>
+
+                              {/* Row 4: Features Section */}
+                              <div style={{ marginBottom: '1.25rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                                  <label style={{ ...labelStyle, marginBottom: 0 }}>Features</label>
+                                  <button onClick={() => addFeatureToPackage(pkg.id)}
+                                    disabled={!isEditEnabled || pkg.features.length >= availableFeatures.length}
+                                    style={{
+                                      backgroundColor: 'transparent',
+                                      color: (isEditEnabled && pkg.features.length < availableFeatures.length) ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.textSecondary,
+                                      border: `1px solid ${(isEditEnabled && pkg.features.length < availableFeatures.length) ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.borderPrimary}`,
+                                      borderRadius: '0.375rem', padding: '0.25rem 0.5rem',
+                                      fontSize: '0.75rem', fontWeight: '500',
+                                      cursor: (isEditEnabled && pkg.features.length < availableFeatures.length) ? 'pointer' : 'not-allowed',
+                                      display: 'flex', alignItems: 'center', gap: '0.25rem',
+                                      opacity: (isEditEnabled && pkg.features.length < availableFeatures.length) ? 1 : 0.6,
+                                    }}
+                                  >
+                                    <PlusIcon /> Add Feature {pkg.features.length > 0 ? `(${availableFeatures.length - pkg.features.length} left)` : ''}
+                                  </button>
+                                </div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                  {pkg.features.map((feature) => (
+                                    <div key={feature.id} style={{
+                                      display: 'flex', alignItems: 'center', gap: '0.75rem',
+                                      backgroundColor: colors.bgCard, padding: '0.5rem 0.75rem',
+                                      borderRadius: '0.375rem', border: `1px solid ${colors.borderPrimary}`,
+                                    }}>
+                                      {/* isIncluded toggle */}
+                                      <div
+                                        onClick={() => isEditEnabled && updateFeature(pkg.id, feature.id, 'isIncluded', !feature.isIncluded)}
+                                        style={{
+                                          width: '36px', height: '20px', borderRadius: '10px', flexShrink: 0,
+                                          backgroundColor: feature.isIncluded ? '#10B981' : (actualTheme === 'dark' ? '#4B5563' : '#D1D5DB'),
+                                          cursor: isEditEnabled ? 'pointer' : 'not-allowed',
+                                          position: 'relative', transition: 'background-color 0.2s',
+                                        }}
+                                      >
+                                        <div style={{
+                                          width: '16px', height: '16px', borderRadius: '50%',
+                                          backgroundColor: 'white', position: 'absolute', top: '2px',
+                                          left: feature.isIncluded ? '18px' : '2px', transition: 'left 0.2s',
+                                        }} />
+                                      </div>
+                                      {/* Feature name dropdown */}
+                                      <select value={feature.featureName}
+                                        onChange={(e) => updateFeature(pkg.id, feature.id, 'featureName', e.target.value)}
+                                        disabled={!isEditEnabled}
+                                        style={{ ...selectStyle, flex: 1, padding: '0.5rem 0.75rem' }}>
+                                        <option value="">Select a feature</option>
+                                        {availableFeatures
+                                          .filter(f => f === feature.featureName || !pkg.features.some(pf => pf.featureName === f))
+                                          .map((f) => (
+                                            <option key={f} value={f}>{f}</option>
+                                          ))}
+                                      </select>
+                                      {/* Remove feature button */}
+                                      <button
+                                        onClick={() => removeFeature(pkg.id, feature.id)}
+                                        disabled={!isEditEnabled}
+                                        style={{
+                                          padding: '0.25rem', backgroundColor: 'transparent',
+                                          border: 'none', cursor: isEditEnabled ? 'pointer' : 'not-allowed',
+                                          color: colors.textTertiary, display: 'flex', flexShrink: 0,
+                                        }}
+                                        title="Remove feature"
+                                      >
+                                        <XIcon />
+                                      </button>
+                                    </div>
+                                  ))}
+
+                                  {pkg.features.length === 0 && (
+                                    <p style={{ fontSize: '0.8rem', color: colors.textSecondary, fontStyle: 'italic', margin: 0 }}>
+                                      No features added yet. Click &quot;Add Feature&quot; to select features for this package.
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Save Button (per package) */}
+                              {isEditEnabled && (
+                                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                  <button
+                                    onClick={() => savePackageToAPI(pkg)}
+                                    disabled={savingPackageId === pkg.id || !pkg.packageName}
+                                    style={{
+                                      backgroundColor: (savingPackageId === pkg.id || !pkg.packageName) ? '#9CA3AF' : '#083A85',
+                                      color: 'white', border: 'none', borderRadius: '0.5rem',
+                                      padding: '0.5rem 1.25rem', fontSize: '0.85rem', fontWeight: '600',
+                                      cursor: (savingPackageId === pkg.id || !pkg.packageName) ? 'not-allowed' : 'pointer',
+                                      display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                      transition: 'all 0.2s',
+                                    }}
+                                  >
+                                    {savingPackageId === pkg.id ? (
+                                      <>
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ animation: 'spin 1s linear infinite' }}>
+                                          <path d="M12 2V6M12 18V22M6 12H2M22 12H18M19.07 4.93L16.24 7.76M7.76 16.24L4.93 19.07M19.07 19.07L16.24 16.24M7.76 7.76L4.93 4.93" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                        </svg>
+                                        Saving...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <CheckIcon />
+                                        Save Package
+                                      </>
+                                    )}
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+
+                      {packages.length === 0 && (
+                        <div style={{
+                          textAlign: 'center', padding: '3rem',
+                          backgroundColor: colors.bgTertiary, borderRadius: '0.75rem',
+                          border: '2px dashed #E5E7EB'
+                        }}>
+                          <p style={{ color: colors.textSecondary, marginBottom: '1rem' }}>
+                            No delivery packages created yet
+                          </p>
+                          <button onClick={addPackage} disabled={!isEditEnabled}
+                            style={{
+                              backgroundColor: isEditEnabled ? '#083A85' : colors.bgTertiary,
+                              color: isEditEnabled ? 'white' : colors.textSecondary,
+                              border: isEditEnabled ? 'none' : `2px solid ${colors.borderPrimary}`,
+                              borderRadius: '0.5rem', padding: '0.75rem 1.5rem',
+                              fontSize: '0.9rem', fontWeight: '500',
+                              cursor: isEditEnabled ? 'pointer' : 'not-allowed',
+                              display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                              opacity: isEditEnabled ? 1 : 0.6
+                            }}
+                          >
+                            <PlusIcon /> Create Your First Package
                           </button>
                         </div>
                       )}
