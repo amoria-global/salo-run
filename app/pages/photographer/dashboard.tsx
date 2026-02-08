@@ -243,7 +243,22 @@ const PhotographerDashboard = () => {
         !user.educationLevels?.length ||
         (!user.certifications?.length && !user.trainings?.length);
 
-      setShowProfileModal(isIncomplete);
+      if (isIncomplete) {
+        const skipped = sessionStorage.getItem('profileModalSkipped');
+        if (skipped) {
+          try {
+            const { timestamp } = JSON.parse(skipped);
+            const thirtyMin = 30 * 60 * 1000;
+            setShowProfileModal(Date.now() - timestamp > thirtyMin);
+          } catch {
+            setShowProfileModal(true);
+          }
+        } else {
+          setShowProfileModal(true);
+        }
+      } else {
+        setShowProfileModal(false);
+      }
     }
   }, [user]);
 
@@ -1677,6 +1692,10 @@ const PhotographerDashboard = () => {
       <CompleteProfileModal
         isOpen={showProfileModal}
         onComplete={() => {
+          setShowProfileModal(false);
+        }}
+        onSkip={() => {
+          sessionStorage.setItem('profileModalSkipped', JSON.stringify({ timestamp: Date.now() }));
           setShowProfileModal(false);
         }}
       />

@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
-import Image from 'next/image';
 import localforage from 'localforage';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
@@ -203,6 +202,8 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   const [savingProject, setSavingProject] = useState<string | null>(null);
   const [savingProfilePicture, setSavingProfilePicture] = useState(false);
   const [savingCoverPhoto, setSavingCoverPhoto] = useState(false);
+  const [savingImportantDetails, setSavingImportantDetails] = useState(false);
+  const importantDetailsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Toast notifications state
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -474,6 +475,55 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
   // Edit mode state - when false, all fields are disabled
   const [isEditEnabled, setIsEditEnabled] = useState(false);
+  const [isSavingAll, setIsSavingAll] = useState(false);
+  const [isSavingAvailability, setIsSavingAvailability] = useState(false);
+
+  // Save all changes handler for the "Save Changes" button
+  const handleSaveAllChanges = async () => {
+    if (!token) return;
+    setIsSavingAll(true);
+    try {
+      const success = await saveImportantDetailsToAPI({
+        about: overviewData.about,
+        address: [basicInfo.district, basicInfo.province].filter(Boolean).join(', '),
+        specialties: overviewData.specialties,
+        professionalPhilosophy: portfolioData.beliefs,
+      });
+      if (success) {
+        showToast('success', 'Profile saved successfully!');
+      } else {
+        showToast('error', 'Failed to save profile');
+      }
+    } catch {
+      showToast('error', 'Failed to save profile');
+    } finally {
+      setIsSavingAll(false);
+    }
+  };
+
+  // Save all availability days
+  const handleSaveAvailability = async () => {
+    if (!token) return;
+    setIsSavingAvailability(true);
+    try {
+      const daysToSave = daysOfWeek.filter(day => basicInfo.availability?.[day]?.enabled);
+      let allSuccess = true;
+      for (const day of daysToSave) {
+        const dayData = basicInfo.availability[day];
+        const success = await addAvailabilityToAPI(day, dayData.startTime, dayData.endTime);
+        if (!success) allSuccess = false;
+      }
+      if (allSuccess) {
+        showToast('success', 'Availability saved successfully!');
+      } else {
+        showToast('error', 'Some availability entries failed to save');
+      }
+    } catch {
+      showToast('error', 'Failed to save availability');
+    } finally {
+      setIsSavingAvailability(false);
+    }
+  };
 
   // Validation handlers for sensitive input fields
   const handleFullNameChange = (value: string) => {
@@ -784,6 +834,8 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         setProfileImage(reader.result as string);
       };
       reader.readAsDataURL(file);
+      // Save to API
+      saveProfilePictureToAPI(file);
     }
   };
 
@@ -803,17 +855,20 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         setBannerImage(reader.result as string);
       };
       reader.readAsDataURL(file);
+      // Save to API
+      saveCoverPhotoToAPI(file);
     }
   };
 
-  // Specialty toggle
+  // Specialty toggle — auto-saves to API
   const toggleSpecialty = (specialty: string) => {
-    setOverviewData(prev => ({
-      ...prev,
-      specialties: prev.specialties.includes(specialty)
+    setOverviewData(prev => {
+      const newSpecialties = prev.specialties.includes(specialty)
         ? prev.specialties.filter(s => s !== specialty)
-        : [...prev.specialties, specialty]
-    }));
+        : [...prev.specialties, specialty];
+      debouncedSaveImportantDetails({ specialties: newSpecialties });
+      return { ...prev, specialties: newSpecialties };
+    });
   };
 
   // Equipment handlers
@@ -1098,6 +1153,65 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       setSavingEquipment(null);
     }
   };
+
+  // Save important details (about, address, specialties, philosophy) to API
+  const saveImportantDetailsToAPI = async (data: {
+    about?: string;
+    address?: string;
+    specialties?: string[];
+    professionalPhilosophy?: string;
+  }): Promise<boolean> => {
+    if (!token) return false;
+    try {
+      const apiUrl = getApiUrl();
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+      const response = await fetch(`${apiUrl}/api/remote/photographer/update-important-details`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'api-token': apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) return false;
+      await refreshUserProfile();
+      return true;
+    } catch (error) {
+      console.error('Error saving important details:', error);
+      return false;
+    }
+  };
+
+  // Debounced auto-save for important details (2s debounce to batch rapid changes)
+  const debouncedSaveImportantDetails = useCallback((data: {
+    about?: string;
+    address?: string;
+    specialties?: string[];
+    professionalPhilosophy?: string;
+  }) => {
+    if (importantDetailsTimeoutRef.current) {
+      clearTimeout(importantDetailsTimeoutRef.current);
+    }
+    importantDetailsTimeoutRef.current = setTimeout(async () => {
+      setSavingImportantDetails(true);
+      const success = await saveImportantDetailsToAPI(data);
+      setSavingImportantDetails(false);
+      if (success) {
+        showToast('success', 'Changes saved');
+      }
+    }, 2000);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (importantDetailsTimeoutRef.current) {
+        clearTimeout(importantDetailsTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Helper to convert time string to API format
   const parseTimeToAPI = (timeStr: string) => {
@@ -1990,24 +2104,25 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
               {/* Save Changes Button */}
               <button
                 className="save-button-enhanced"
-                disabled={!isEditEnabled}
+                disabled={!isEditEnabled || isSavingAll}
+                onClick={handleSaveAllChanges}
                 style={{
-                  backgroundColor: isEditEnabled ? '#083A85' : colors.bgTertiary,
+                  backgroundColor: isEditEnabled && !isSavingAll ? '#083A85' : colors.bgTertiary,
                   color: isEditEnabled ? 'white' : colors.textSecondary,
                   border: isEditEnabled ? '2px solid #062a63' : `2px solid ${colors.borderPrimary}`,
                   borderRadius: '0.5rem',
                   padding: '0.75rem 1.5rem',
                   fontSize: '0.95rem',
                   fontWeight: '600',
-                  cursor: isEditEnabled ? 'pointer' : 'not-allowed',
+                  cursor: isEditEnabled && !isSavingAll ? 'pointer' : 'not-allowed',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.5rem',
-                  opacity: isEditEnabled ? 1 : 0.6,
+                  opacity: isEditEnabled && !isSavingAll ? 1 : 0.6,
                   transition: 'all 0.2s'
                 }}
               >
-                Save Changes
+                {isSavingAll ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
           </div>
@@ -2201,11 +2316,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       justifyContent: 'center'
                     }}>
                       {profileImage ? (
-                        <Image
+                        <img
                           src={profileImage}
                           alt="Profile"
-                          width={100}
-                          height={100}
                           style={{ objectFit: 'cover', width: '100%', height: '100%' }}
                         />
                       ) : (
@@ -2268,15 +2381,15 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                   borderBottom: `1px solid ${colors.borderPrimary}`
                 }}>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>4.9</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{user?.rating?.toFixed(1) || '0.0'}</div>
                     <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Rating</div>
                   </div>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>127</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{user?.reviews?.length || 0}</div>
                     <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Reviews</div>
                   </div>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>85</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{user?.projects?.length || 0}</div>
                     <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Jobs</div>
                   </div>
                 </div>
@@ -2310,7 +2423,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       alignItems: 'center'
                     }}>
                       <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Member Since</span>
-                      <span style={{ fontSize: '0.85rem', color: colors.textPrimary, fontWeight: '500' }}>Jan 2024</span>
+                      <span style={{ fontSize: '0.85rem', color: colors.textPrimary, fontWeight: '500' }}>
+                        {user?.joinedFrom ? new Date(user.joinedFrom).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '-'}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -2728,13 +2843,43 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       })}
                     </div>
 
+                    {/* Save Availability Button */}
+                    {isEditEnabled && (
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.5rem' }}>
+                        <button
+                          onClick={handleSaveAvailability}
+                          disabled={isSavingAvailability}
+                          style={{
+                            backgroundColor: isSavingAvailability ? '#6B7280' : '#083A85',
+                            color: 'white',
+                            border: '2px solid #062a63',
+                            borderRadius: '0.5rem',
+                            padding: '0.5rem 1.25rem',
+                            fontSize: '0.85rem',
+                            fontWeight: '600',
+                            cursor: isSavingAvailability ? 'not-allowed' : 'pointer',
+                            opacity: isSavingAvailability ? 0.7 : 1,
+                          }}
+                        >
+                          {isSavingAvailability ? 'Saving...' : 'Save Availability'}
+                        </button>
+                      </div>
+                    )}
+
                     {/* About */}
                     <div style={sectionTitleStyle}>
                       <span>About</span>
+                      {savingImportantDetails && (
+                        <span style={{ fontSize: '0.75rem', color: colors.textTertiary, fontWeight: 400 }}>Saving...</span>
+                      )}
                     </div>
                     <textarea
                       value={overviewData.about}
-                      onChange={(e) => setOverviewData(prev => ({ ...prev, about: e.target.value }))}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setOverviewData(prev => ({ ...prev, about: val }));
+                        debouncedSaveImportantDetails({ about: val });
+                      }}
                       placeholder="Tell clients about yourself, your experience, and what makes you unique..."
                       rows={4}
                       disabled={!isEditEnabled}
@@ -2974,10 +3119,17 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                     {/* Beliefs / Philosophy */}
                     <div style={sectionTitleStyle}>
                       <span>Professional Philosophy</span>
+                      {savingImportantDetails && (
+                        <span style={{ fontSize: '0.75rem', color: colors.textTertiary, fontWeight: 400 }}>Saving...</span>
+                      )}
                     </div>
                     <textarea
                       value={portfolioData.beliefs}
-                      onChange={(e) => setPortfolioData(prev => ({ ...prev, beliefs: e.target.value }))}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setPortfolioData(prev => ({ ...prev, beliefs: val }));
+                        debouncedSaveImportantDetails({ professionalPhilosophy: val });
+                      }}
                       placeholder="Share your professional philosophy and what you believe makes great photography..."
                       rows={3}
                       disabled={!isEditEnabled}
@@ -3401,7 +3553,41 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           position: 'relative',
                           ...(newlyAddedId === qual.id ? newItemAnimation : {})
                         }}>
-                          <div className="mobile-form-grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
+                          <button
+                            onClick={() => removeQualification(qual.id)}
+                            style={{
+                              position: 'absolute',
+                              top: '0.75rem',
+                              right: '0.75rem',
+                              padding: '0.5rem',
+                              backgroundColor: 'transparent',
+                              border: `1px solid ${colors.borderPrimary}`,
+                              borderRadius: '0.375rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: colors.textTertiary,
+                              transition: 'all 0.2s'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = '#FEE2E2';
+                              e.currentTarget.style.borderColor = '#EF4444';
+                              e.currentTarget.style.color = '#EF4444';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                              e.currentTarget.style.borderColor = colors.borderPrimary;
+                              e.currentTarget.style.color = colors.textTertiary;
+                            }}
+                            title="Remove certification"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M3 6H5H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </button>
+                          <div className="mobile-form-grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', paddingRight: '2.5rem' }}>
                             <div>
                               <label style={labelStyle}>Certificate Title</label>
                               <input
@@ -3445,6 +3631,32 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                 style={inputStyle}
                               />
                             </div>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                            <button
+                              onClick={async () => {
+                                const success = await addTrainingToAPI(
+                                  { id: qual.id, name: qual.title, issuer: qual.issuer, year: qual.year, description: qual.description },
+                                  'CERTIFICATION'
+                                );
+                                showToast(success ? 'success' : 'error',
+                                  success ? 'Certification saved successfully' : 'Failed to save certification');
+                              }}
+                              disabled={savingTraining === qual.id || !qual.title}
+                              style={{
+                                backgroundColor: savingTraining === qual.id ? '#9CA3AF' : '#083A85',
+                                color: '#FFFFFF',
+                                border: 'none',
+                                borderRadius: '0.375rem',
+                                padding: '0.375rem 0.75rem',
+                                fontSize: '0.8rem',
+                                fontWeight: '500',
+                                cursor: savingTraining === qual.id || !qual.title ? 'not-allowed' : 'pointer',
+                                opacity: !qual.title ? 0.5 : 1,
+                              }}
+                            >
+                              {savingTraining === qual.id ? 'Saving...' : 'Save'}
+                            </button>
                           </div>
                         </div>
                       ))}

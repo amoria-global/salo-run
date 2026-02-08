@@ -1,12 +1,25 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useTheme } from '../../context/ThemeContext';
+import { useDashboardAuth } from '../../providers/AuthProvider';
 import DonateModal, { DonateButton, DonatePromptModal } from '../../components/DonateModal';
+
+// API helpers
+function getApiUrl(): string {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    return '/api/proxy';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+}
+
+function getApiKey(): string {
+  return process.env.NEXT_PUBLIC_API_KEY || '';
+}
 
 // Icons
 const SearchIcon = () => (
@@ -167,6 +180,34 @@ interface Client {
 
 type FilterType = 'all' | 'active' | 'inactive' | 'favorites' | 'pending_payments';
 type ViewMode = 'grid' | 'list';
+type PageTab = 'clients' | 'bookings';
+type BookingsFilter = 'all' | 'pending' | 'accepted' | 'rejected';
+
+// API Booking interface — flexible to handle various response shapes
+interface APIBooking {
+  id: string;
+  status?: string;
+  bookingStatus?: string;
+  clientName?: string;
+  clientEmail?: string;
+  clientPhone?: string;
+  customerName?: string;
+  customerEmail?: string;
+  eventType?: string;
+  eventDate?: string;
+  eventTime?: string;
+  location?: string;
+  address?: string;
+  packageName?: string;
+  totalAmount?: number;
+  amount?: number;
+  price?: number;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
+}
 
 // Modal Component
 interface ModalProps {
@@ -234,6 +275,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
 
 export default function Clients() {
   const { colors, actualTheme } = useTheme();
+  const { token } = useDashboardAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -246,6 +288,124 @@ export default function Clients() {
   const [tipsClient, setTipsClient] = useState<Client | null>(null);
   const [showTipsDonateModal, setShowTipsDonateModal] = useState(false);
   const [showTipsDonatePromptModal, setShowTipsDonatePromptModal] = useState(false);
+
+  // Page tab state
+  const [pageTab, setPageTab] = useState<PageTab>('clients');
+
+  // Bookings state
+  const [bookings, setBookings] = useState<APIBooking[]>([]);
+  const [bookingsLoading, setBookingsLoading] = useState(false);
+  const [bookingsFilter, setBookingsFilter] = useState<BookingsFilter>('all');
+  const [processingBookingId, setProcessingBookingId] = useState<string | null>(null);
+
+  // Fetch bookings from API
+  const fetchBookings = useCallback(async () => {
+    if (!token) return;
+    setBookingsLoading(true);
+    try {
+      const response = await fetch(`${getApiUrl()}/api/remote/photographer/bookings`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'api-token': getApiKey(),
+        },
+      });
+      const result = await response.json();
+      if (result.action === 1 && Array.isArray(result.data)) {
+        setBookings(result.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch bookings:', error);
+    } finally {
+      setBookingsLoading(false);
+    }
+  }, [token]);
+
+  // Fetch bookings on mount
+  useEffect(() => {
+    if (token) fetchBookings();
+  }, [token, fetchBookings]);
+
+  // Accept a booking
+  const acceptBooking = async (bookingId: string) => {
+    if (!token) return;
+    setProcessingBookingId(bookingId);
+    try {
+      const response = await fetch(
+        `${getApiUrl()}/api/remote/photographer/bookings/${bookingId}/accept`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'api-token': getApiKey(),
+          },
+        }
+      );
+      const result = await response.json();
+      if (result.action === 1) {
+        await fetchBookings();
+      }
+    } catch (error) {
+      console.error('Failed to accept booking:', error);
+    } finally {
+      setProcessingBookingId(null);
+    }
+  };
+
+  // Reject a booking
+  const rejectBooking = async (bookingId: string) => {
+    if (!token) return;
+    setProcessingBookingId(bookingId);
+    try {
+      const response = await fetch(
+        `${getApiUrl()}/api/remote/photographer/bookings/${bookingId}/reject`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'api-token': getApiKey(),
+          },
+        }
+      );
+      const result = await response.json();
+      if (result.action === 1) {
+        await fetchBookings();
+      }
+    } catch (error) {
+      console.error('Failed to reject booking:', error);
+    } finally {
+      setProcessingBookingId(null);
+    }
+  };
+
+  // Helper to get booking status
+  const getBookingStatus = (booking: APIBooking): string => {
+    return (booking.status || booking.bookingStatus || 'pending').toLowerCase();
+  };
+
+  // Helper to get client display name from booking
+  const getBookingClientName = (booking: APIBooking): string => {
+    return booking.clientName || booking.customerName || 'Unknown Client';
+  };
+
+  // Helper to get booking amount
+  const getBookingAmount = (booking: APIBooking): number => {
+    return booking.totalAmount || booking.amount || booking.price || 0;
+  };
+
+  // Filter bookings
+  const filteredBookings = bookings.filter(b => {
+    if (bookingsFilter === 'all') return true;
+    const status = getBookingStatus(b);
+    if (bookingsFilter === 'pending') return status === 'pending';
+    if (bookingsFilter === 'accepted') return status === 'accepted' || status === 'confirmed';
+    if (bookingsFilter === 'rejected') return status === 'rejected' || status === 'cancelled';
+    return true;
+  });
+
+  // Booking counts
+  const pendingCount = bookings.filter(b => getBookingStatus(b) === 'pending').length;
+  const acceptedCount = bookings.filter(b => ['accepted', 'confirmed'].includes(getBookingStatus(b))).length;
+  const rejectedCount = bookings.filter(b => ['rejected', 'cancelled'].includes(getBookingStatus(b))).length;
 
   // Sample clients data with real images
   const [clients, setClients] = useState<Client[]>([
@@ -817,6 +977,10 @@ export default function Clients() {
             padding-bottom: 7rem !important;
           }
         }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
       `}</style>
       <Sidebar />
 
@@ -908,6 +1072,57 @@ export default function Clients() {
             </div>
           </header>
 
+          {/* Page Tabs: Clients | Bookings */}
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+            {[
+              { key: 'clients' as PageTab, label: 'Clients', count: clients.length },
+              { key: 'bookings' as PageTab, label: 'Bookings', count: bookings.length, pendingCount },
+            ].map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setPageTab(tab.key)}
+                style={{
+                  padding: '0.625rem 1.25rem',
+                  border: pageTab === tab.key ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                  borderRadius: '0.5rem',
+                  backgroundColor: pageTab === tab.key ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
+                  color: pageTab === tab.key ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.textSecondary,
+                  fontSize: '0.9rem',
+                  fontWeight: pageTab === tab.key ? '600' : '500',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  transition: 'all 0.2s',
+                }}
+              >
+                {tab.label}
+                <span style={{
+                  backgroundColor: pageTab === tab.key ? 'rgba(8, 58, 133, 0.15)' : colors.bgTertiary,
+                  padding: '0.125rem 0.5rem',
+                  borderRadius: '9999px',
+                  fontSize: '0.8rem',
+                }}>
+                  {tab.count}
+                </span>
+                {tab.key === 'bookings' && pendingCount > 0 && (
+                  <span style={{
+                    backgroundColor: '#FEF3C7',
+                    color: '#B45309',
+                    padding: '0.125rem 0.5rem',
+                    borderRadius: '9999px',
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                  }}>
+                    {pendingCount} pending
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* Clients Tab Content */}
+          {pageTab === 'clients' && (<>
           {/* Stats Cards */}
           <div className="mobile-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
             <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
@@ -1601,6 +1816,215 @@ export default function Clients() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+          </>)}
+
+          {/* Bookings Tab Content */}
+          {pageTab === 'bookings' && (
+            <div>
+              {/* Bookings Filter Tabs */}
+              <div className="mobile-tabs" style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                {([
+                  { key: 'all' as BookingsFilter, label: 'All', count: bookings.length },
+                  { key: 'pending' as BookingsFilter, label: 'Pending', count: pendingCount },
+                  { key: 'accepted' as BookingsFilter, label: 'Accepted', count: acceptedCount },
+                  { key: 'rejected' as BookingsFilter, label: 'Rejected', count: rejectedCount },
+                ]).map(tab => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setBookingsFilter(tab.key)}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      border: bookingsFilter === tab.key ? '2px solid #083A85' : `1px solid ${colors.borderPrimary}`,
+                      borderRadius: '2rem',
+                      backgroundColor: bookingsFilter === tab.key ? '#083A85' : colors.bgCard,
+                      color: bookingsFilter === tab.key ? 'white' : colors.textSecondary,
+                      fontSize: '0.85rem',
+                      fontWeight: bookingsFilter === tab.key ? '600' : '500',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.375rem',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    {tab.label}
+                    <span style={{
+                      backgroundColor: bookingsFilter === tab.key ? 'rgba(255,255,255,0.2)' : colors.bgTertiary,
+                      padding: '0.125rem 0.5rem',
+                      borderRadius: '9999px',
+                      fontSize: '0.8rem',
+                    }}>
+                      {tab.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Bookings List */}
+              {bookingsLoading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {[1, 2, 3].map(i => (
+                    <div key={i} style={{
+                      backgroundColor: colors.bgCard,
+                      borderRadius: '0.75rem',
+                      padding: '1.25rem',
+                      border: `1px solid ${colors.borderPrimary}`,
+                      animation: 'pulse 1.5s ease-in-out infinite',
+                    }}>
+                      <div style={{ height: '1rem', width: '40%', backgroundColor: colors.bgTertiary, borderRadius: '0.25rem', marginBottom: '0.75rem' }} />
+                      <div style={{ height: '0.875rem', width: '60%', backgroundColor: colors.bgTertiary, borderRadius: '0.25rem', marginBottom: '0.5rem' }} />
+                      <div style={{ height: '0.875rem', width: '30%', backgroundColor: colors.bgTertiary, borderRadius: '0.25rem' }} />
+                    </div>
+                  ))}
+                </div>
+              ) : filteredBookings.length === 0 ? (
+                <div style={{
+                  backgroundColor: colors.bgCard,
+                  borderRadius: '0.75rem',
+                  padding: '3rem',
+                  textAlign: 'center',
+                  border: `1px solid ${colors.borderPrimary}`,
+                }}>
+                  <CalendarIcon />
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, marginTop: '1rem' }}>
+                    No bookings found
+                  </h3>
+                  <p style={{ fontSize: '0.9rem', color: colors.textSecondary, marginTop: '0.5rem' }}>
+                    {bookingsFilter === 'pending'
+                      ? 'No pending bookings to review.'
+                      : bookingsFilter === 'accepted'
+                      ? 'No accepted bookings yet.'
+                      : bookingsFilter === 'rejected'
+                      ? 'No rejected bookings.'
+                      : 'You don\'t have any bookings yet. They will appear here when clients book your services.'}
+                  </p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {filteredBookings.map(booking => {
+                    const status = getBookingStatus(booking);
+                    const isPending = status === 'pending';
+                    const isProcessing = processingBookingId === booking.id;
+                    const statusColors: Record<string, { bg: string; text: string }> = {
+                      pending: { bg: '#FEF3C7', text: '#B45309' },
+                      accepted: { bg: '#DCFCE7', text: '#15803D' },
+                      confirmed: { bg: '#DCFCE7', text: '#15803D' },
+                      rejected: { bg: '#FEE2E2', text: '#DC2626' },
+                      cancelled: { bg: '#FEE2E2', text: '#DC2626' },
+                    };
+                    const sc = statusColors[status] || { bg: '#F3F4F6', text: '#6B7280' };
+
+                    return (
+                      <div key={booking.id} style={{
+                        backgroundColor: colors.bgCard,
+                        borderRadius: '0.75rem',
+                        padding: '1.25rem',
+                        border: `1px solid ${isPending ? '#FCD34D' : colors.borderPrimary}`,
+                        transition: 'all 0.2s',
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                          <div>
+                            <h4 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
+                              {getBookingClientName(booking)}
+                            </h4>
+                            {(booking.eventType || booking.packageName) && (
+                              <p style={{ fontSize: '0.85rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
+                                {[booking.eventType, booking.packageName].filter(Boolean).join(' - ')}
+                              </p>
+                            )}
+                          </div>
+                          <span style={{
+                            backgroundColor: sc.bg,
+                            color: sc.text,
+                            padding: '0.25rem 0.75rem',
+                            borderRadius: '9999px',
+                            fontSize: '0.8rem',
+                            fontWeight: '600',
+                            textTransform: 'capitalize',
+                          }}>
+                            {status}
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.75rem' }}>
+                          {booking.eventDate && (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                              <CalendarIcon /> {new Date(booking.eventDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              {booking.eventTime && ` at ${booking.eventTime}`}
+                            </span>
+                          )}
+                          {(booking.location || booking.address) && (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                              <LocationIcon /> {booking.location || booking.address}
+                            </span>
+                          )}
+                          {getBookingAmount(booking) > 0 && (
+                            <span style={{ fontWeight: '600', color: colors.textPrimary }}>
+                              ${getBookingAmount(booking).toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+
+                        {booking.notes && (
+                          <p style={{ fontSize: '0.85rem', color: colors.textTertiary, marginBottom: '0.75rem', fontStyle: 'italic' }}>
+                            &ldquo;{booking.notes}&rdquo;
+                          </p>
+                        )}
+
+                        {booking.createdAt && (
+                          <p style={{ fontSize: '0.75rem', color: colors.textTertiary, marginBottom: isPending ? '0.75rem' : 0 }}>
+                            Booked {new Date(booking.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </p>
+                        )}
+
+                        {isPending && (
+                          <div style={{ display: 'flex', gap: '0.75rem', paddingTop: '0.75rem', borderTop: `1px solid ${colors.borderPrimary}` }}>
+                            <button
+                              onClick={() => acceptBooking(booking.id)}
+                              disabled={isProcessing}
+                              style={{
+                                flex: 1,
+                                padding: '0.625rem 1rem',
+                                backgroundColor: isProcessing ? '#9CA3AF' : '#15803D',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '0.5rem',
+                                fontSize: '0.85rem',
+                                fontWeight: '600',
+                                cursor: isProcessing ? 'not-allowed' : 'pointer',
+                                transition: 'all 0.2s',
+                              }}
+                            >
+                              {isProcessing ? 'Processing...' : 'Accept'}
+                            </button>
+                            <button
+                              onClick={() => rejectBooking(booking.id)}
+                              disabled={isProcessing}
+                              style={{
+                                flex: 1,
+                                padding: '0.625rem 1rem',
+                                backgroundColor: 'transparent',
+                                color: '#DC2626',
+                                border: '2px solid #DC2626',
+                                borderRadius: '0.5rem',
+                                fontSize: '0.85rem',
+                                fontWeight: '600',
+                                cursor: isProcessing ? 'not-allowed' : 'pointer',
+                                transition: 'all 0.2s',
+                                opacity: isProcessing ? 0.5 : 1,
+                              }}
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>
