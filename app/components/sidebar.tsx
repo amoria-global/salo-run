@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { useState, useMemo } from "react";
 import { useTheme } from "../context/ThemeContext";
+import { useDashboardAuth } from "../providers/AuthProvider";
 
 type UserRole = "photographer" | "client" | "event-coordinator";
 
@@ -97,6 +98,7 @@ export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { colors, actualTheme } = useTheme();
+  const { logout } = useDashboardAuth();
 
   // Automatically detect role from current URL path
   const currentRole = useMemo(() => detectRoleFromPath(pathname), [pathname]);
@@ -427,7 +429,14 @@ export default function Sidebar() {
             <Link
               key={item.name}
               href={item.href}
-              onClick={closeMobileMenu}
+              onClick={(e) => {
+                if (item.name === 'Logout') {
+                  e.preventDefault();
+                  logout();
+                } else {
+                  closeMobileMenu();
+                }
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',

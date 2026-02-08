@@ -61,6 +61,25 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  // Role-based access control: prevent users from accessing other roles' pages
+  const userRole = request.cookies.get('userRole')?.value;
+
+  if (userRole && pathname.startsWith('/user/')) {
+    // Extract the role segment from the URL: /user/{role}/...
+    const pathRole = pathname.split('/')[2]; // 'client', 'photographer', 'event-coordinator'
+
+    if (pathRole && pathRole !== userRole) {
+      // User is trying to access a different role's pages — redirect to their correct dashboard
+      const roleHomePaths: Record<string, string> = {
+        'photographer': '/user/photographer/dashboard',
+        'client': '/user/client/home',
+        'event-coordinator': '/user/event-coordinator/home',
+      };
+      const correctPath = roleHomePaths[userRole] || '/user/client/home';
+      return NextResponse.redirect(new URL(correctPath, request.url));
+    }
+  }
+
   return NextResponse.next();
 }
 

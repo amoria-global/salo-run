@@ -1,11 +1,18 @@
 "use client";
 
-import React, { useState, useRef } from 'react';
-import Image from 'next/image';
+import React, { useState, useRef, useEffect } from 'react';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 import { useUserProfile } from '../../context/UserProfileContext';
+import { useDashboardAuth } from '../../providers/AuthProvider';
+
+function getApiUrl(): string {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    return '/api/proxy';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+}
 
 // Camera icon for avatar edit
 const CameraIcon = () => (
@@ -18,7 +25,10 @@ const CameraIcon = () => (
 const ProfilePage = () => {
   const { colors, actualTheme } = useTheme();
   const { profile, updateProfile } = useUserProfile();
+  const { token, user } = useDashboardAuth();
   const [isEditEnabled, setIsEditEnabled] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   // East African countries with phone codes
   const eastAfricanCountries = [
@@ -59,8 +69,8 @@ const ProfilePage = () => {
     website: 'www.eventsplusrw.com'
   });
 
-  // Profile image state
-  const [profileImage, setProfileImage] = useState<string>('https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg');
+  // Profile image state - initialized from context/user data
+  const [profileImage, setProfileImage] = useState<string>(profile.profilePicture || '');
 
   // File input ref
   const profileInputRef = useRef<HTMLInputElement>(null);
@@ -71,6 +81,61 @@ const ProfilePage = () => {
     username: '',
     phoneNumber: ''
   });
+
+  // Sync profile image from user data when it loads
+  useEffect(() => {
+    if (user?.profilePicture) setProfileImage(user.profilePicture);
+  }, [user?.profilePicture]);
+
+  // Sync form data when profile context updates
+  useEffect(() => {
+    if (profile.fullName) {
+      setFormData(prev => ({
+        ...prev,
+        fullName: profile.fullName,
+        username: profile.username,
+        email: profile.email,
+        phoneCode: profile.phoneCode,
+        phoneNumber: profile.phoneNumber,
+        country: profile.country || prev.country,
+        province: profile.province || prev.province,
+        district: profile.district || prev.district,
+        sector: profile.sector || prev.sector,
+      }));
+    }
+  }, [profile.fullName, profile.username, profile.email, profile.phoneCode, profile.phoneNumber, profile.country, profile.province, profile.district, profile.sector]);
+
+  // Save profile to API
+  const handleSaveProfile = async () => {
+    if (!token) return;
+    setIsSaving(true);
+    try {
+      const apiUrl = getApiUrl();
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+      const response = await fetch(`${apiUrl}/api/remote/photographer/update-important-details`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'api-token': apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          address: [formData.sector, formData.district, formData.province, formData.country].filter(Boolean).join(', '),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to save: ${response.status}`);
+      }
+
+      alert('Profile updated successfully!');
+    } catch (err) {
+      console.error('Save profile error:', err);
+      alert(err instanceof Error ? err.message : 'Failed to save profile');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleInputChange = (field: string, value: string) => {
     if (isEditEnabled) {
@@ -118,7 +183,7 @@ const ProfilePage = () => {
   };
 
   // Handle profile image upload
-  const handleProfileImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProfileImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       // Validate file type
@@ -131,11 +196,38 @@ const ProfilePage = () => {
         alert('Image size should be less than 5MB');
         return;
       }
+      // Show preview immediately
       const reader = new FileReader();
       reader.onloadend = () => {
         setProfileImage(reader.result as string);
       };
       reader.readAsDataURL(file);
+
+      // Upload to API
+      if (token) {
+        setIsUploadingImage(true);
+        try {
+          const apiUrl = getApiUrl();
+          const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+          const uploadData = new FormData();
+          uploadData.append('profilePicture', file);
+          const response = await fetch(`${apiUrl}/api/remote/photographer/update-profile-picture`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'api-token': apiKey,
+            },
+            body: uploadData,
+          });
+          if (!response.ok) {
+            console.error('Failed to upload profile picture:', response.status);
+          }
+        } catch (err) {
+          console.error('Profile picture upload error:', err);
+        } finally {
+          setIsUploadingImage(false);
+        }
+      }
     }
   };
 
@@ -391,15 +483,44 @@ const ProfilePage = () => {
                       height: '100px',
                       borderRadius: '50%',
                       overflow: 'hidden',
-                      border: '4px solid white'
+                      border: '4px solid white',
+                      backgroundColor: colors.bgTertiary,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      position: 'relative',
                     }}>
-                      <Image
-                        src={profileImage}
-                        alt="Profile"
-                        width={100}
-                        height={100}
-                        style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                      />
+                      {profileImage ? (
+                        <img
+                          src={profileImage}
+                          alt="Profile"
+                          style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                        />
+                      ) : (
+                        <span style={{ fontSize: '2rem', color: colors.textSecondary, fontWeight: '600' }}>
+                          {formData.fullName ? formData.fullName.charAt(0).toUpperCase() : '?'}
+                        </span>
+                      )}
+                      {isUploadingImage && (
+                        <div style={{
+                          position: 'absolute',
+                          inset: 0,
+                          backgroundColor: 'rgba(0,0,0,0.4)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderRadius: '50%',
+                        }}>
+                          <div style={{
+                            width: '20px',
+                            height: '20px',
+                            border: '2px solid #fff',
+                            borderTopColor: 'transparent',
+                            borderRadius: '50%',
+                            animation: 'spin 0.8s linear infinite',
+                          }} />
+                        </div>
+                      )}
                     </div>
                     <button
                       onClick={() => profileInputRef.current?.click()}
@@ -432,7 +553,7 @@ const ProfilePage = () => {
                     fontWeight: '700',
                     color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
                     marginBottom: '0.25rem'
-                  }}>{formData.organizationName || 'Events Plus Rwanda'}</h2>
+                  }}>{formData.fullName || 'User'}</h2>
                   <p style={{
                     fontSize: '0.95rem',
                     color: colors.textSecondary
@@ -461,7 +582,7 @@ const ProfilePage = () => {
                       alignItems: 'center'
                     }}>
                       <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Last Login</span>
-                      <span style={{ fontSize: '0.9rem', color: colors.textPrimary, fontWeight: '500' }}>Today, 2:30 PM</span>
+                      <span style={{ fontSize: '0.9rem', color: colors.textPrimary, fontWeight: '500' }}>Today</span>
                     </div>
                     <div style={{
                       display: 'flex',
@@ -469,15 +590,9 @@ const ProfilePage = () => {
                       alignItems: 'center'
                     }}>
                       <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Joined Since</span>
-                      <span style={{ fontSize: '0.9rem', color: colors.textPrimary, fontWeight: '500' }}>Jan 15, 2024</span>
-                    </div>
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
-                    }}>
-                      <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Last Updated</span>
-                      <span style={{ fontSize: '0.9rem', color: colors.textPrimary, fontWeight: '500' }}>Nov 20, 2025</span>
+                      <span style={{ fontSize: '0.9rem', color: colors.textPrimary, fontWeight: '500' }}>
+                        {user?.joinedFrom ? new Date(user.joinedFrom).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '-'}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -867,30 +982,32 @@ const ProfilePage = () => {
                 marginTop: '1.5rem'
               }}>
                 <button
-                  disabled={!isEditEnabled}
+                  disabled={!isEditEnabled || isSaving}
+                  onClick={handleSaveProfile}
                   style={{
-                    backgroundColor: isEditEnabled ? '#083A85' : '#9CA3AF',
+                    backgroundColor: isEditEnabled && !isSaving ? '#083A85' : '#9CA3AF',
                     color: 'white',
                     border: isEditEnabled ? '2px solid #062a63' : '2px solid #6B7280',
                     borderRadius: '0.5rem',
                     padding: '0.75rem 2rem',
                     fontSize: '1rem',
                     fontWeight: '600',
-                    cursor: isEditEnabled ? 'pointer' : 'not-allowed',
-                    transition: 'background-color 0.2s'
+                    cursor: isEditEnabled && !isSaving ? 'pointer' : 'not-allowed',
+                    transition: 'background-color 0.2s',
+                    opacity: isSaving ? 0.7 : 1,
                   }}
                   onMouseEnter={(e) => {
-                    if (isEditEnabled) {
+                    if (isEditEnabled && !isSaving) {
                       e.currentTarget.style.backgroundColor = '#062a63';
                     }
                   }}
                   onMouseLeave={(e) => {
-                    if (isEditEnabled) {
+                    if (isEditEnabled && !isSaving) {
                       e.currentTarget.style.backgroundColor = '#083A85';
                     }
                   }}
                 >
-                  Update
+                  {isSaving ? 'Saving...' : 'Update'}
                 </button>
               </div>
             </div>
