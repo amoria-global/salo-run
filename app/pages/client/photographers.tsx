@@ -1,12 +1,20 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
+import { useDashboardAuth } from '../../providers/AuthProvider';
 import DonateModal, { DonateButton, DonatePromptModal } from '../../components/DonateModal';
+
+function getApiUrl(): string {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    return '/api/proxy';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+}
 
 // Icons
 const SearchIcon = () => (
@@ -281,6 +289,7 @@ interface PhotographersPageProps {
 
 const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps) => {
   const { colors, actualTheme } = useTheme();
+  const { token, user } = useDashboardAuth();
   const router = useRouter();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
@@ -299,6 +308,11 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
   const [activeTab, setActiveTab] = useState<'all' | 'favorites' | 'pending_payments'>('all');
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewText, setReviewText] = useState('');
+  const [reviewEvents, setReviewEvents] = useState<{id: string; title: string; eventDate: string}[]>([]);
+  const [selectedReviewEventId, setSelectedReviewEventId] = useState<string>('');
+  const [reviewEventsLoading, setReviewEventsLoading] = useState(false);
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
   const [tipAmount, setTipAmount] = useState<number | 'custom' | ''>('');
   const [customTipAmount, setCustomTipAmount] = useState('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -559,6 +573,53 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
 
   const specializations = ['Weddings', 'Events', 'Portraits', 'Birthdays', 'Corporate', 'Fashion', 'Festivals', 'Concerts'];
 
+  // Fetch completed events when review modal opens
+  useEffect(() => {
+    if (!showReviewModal || !reviewPhotographer || !token) return;
+
+    const fetchEvents = async () => {
+      setReviewEventsLoading(true);
+      setReviewError(null);
+      try {
+        const apiUrl = getApiUrl();
+        const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+        const response = await fetch(`${apiUrl}/api/remote/public/events/list?page=0&size=100&sortColumn=createdAt&sortDirection=desc`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'api-token': apiKey,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) throw new Error('Failed to fetch events');
+
+        const result = await response.json();
+        const events = result?.data?.content || result?.content || [];
+
+        // Filter for completed events involving this photographer
+        const completedEvents = events
+          .filter((evt: { status?: string; photographerId?: string }) =>
+            evt.photographerId === reviewPhotographer.id &&
+            (evt.status === 'COMPLETED' || evt.status === 'completed')
+          )
+          .map((evt: { id: string; title?: string; eventDate?: string }) => ({
+            id: evt.id,
+            title: evt.title || 'Untitled Event',
+            eventDate: evt.eventDate || '',
+          }));
+
+        setReviewEvents(completedEvents);
+      } catch (err) {
+        console.error('Failed to fetch events for review:', err);
+        setReviewEvents([]);
+      } finally {
+        setReviewEventsLoading(false);
+      }
+    };
+
+    fetchEvents();
+  }, [showReviewModal, reviewPhotographer, token]);
+
   const toggleFavorite = (id: string) => {
     setPhotographers(prev => prev.map(p =>
       p.id === id ? { ...p, isFavorite: !p.isFavorite } : p
@@ -652,29 +713,69 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
     );
   };
 
-  const submitReview = () => {
-    if (reviewPhotographer) {
-      // Save the review first
+  const submitReview = async () => {
+    if (!reviewPhotographer) return;
+
+    if (!selectedReviewEventId) {
+      setReviewError('Please select an event to review');
+      return;
+    }
+
+    if (!reviewText.trim()) {
+      setReviewError('Please write a review comment');
+      return;
+    }
+
+    setIsSubmittingReview(true);
+    setReviewError(null);
+
+    try {
+      const apiUrl = getApiUrl();
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+      const response = await fetch(`${apiUrl}/api/remote/photographer-reviews`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'api-token': apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          eventId: selectedReviewEventId,
+          rating: reviewRating,
+          comment: reviewText,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => '');
+        throw new Error(errorText || `Failed to submit review: ${response.status}`);
+      }
+
+      // Update local state
       setPhotographers(prev => prev.map(p =>
         p.id === reviewPhotographer.id
-          ? {
-              ...p,
-              myRating: reviewRating,
-              myReview: reviewText
-            }
+          ? { ...p, myRating: reviewRating, myReview: reviewText }
           : p
       ));
 
       // Store photographer for tip flow
       setPendingReviewPhotographer(reviewPhotographer);
 
-      // Close review modal
+      // Close review modal and reset
       setShowReviewModal(false);
       setReviewRating(5);
       setReviewText('');
+      setSelectedReviewEventId('');
+      setReviewEvents([]);
+      setReviewError(null);
 
       // Show tip prompt modal
       setShowTipPromptModal(true);
+    } catch (err) {
+      console.error('Submit review error:', err);
+      setReviewError(err instanceof Error ? err.message : 'Failed to submit review');
+    } finally {
+      setIsSubmittingReview(false);
     }
   };
 
@@ -2068,7 +2169,12 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
       {/* Review Modal */}
       <Modal
         isOpen={showReviewModal}
-        onClose={() => setShowReviewModal(false)}
+        onClose={() => {
+          setShowReviewModal(false);
+          setSelectedReviewEventId('');
+          setReviewEvents([]);
+          setReviewError(null);
+        }}
         title={reviewPhotographer?.myReview ? 'Edit Your Review' : 'Leave a Review'}
       >
         {reviewPhotographer && (
@@ -2110,6 +2216,67 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                 <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>{reviewPhotographer.lastEventName}</div>
               </div>
             </div>
+
+            {/* Event Selector */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+                Select Event *
+              </label>
+              {reviewEventsLoading ? (
+                <div style={{ padding: '0.75rem', fontSize: '0.85rem', color: colors.textSecondary, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{
+                    width: '16px',
+                    height: '16px',
+                    border: '2px solid #e5e7eb',
+                    borderTopColor: '#083A85',
+                    borderRadius: '50%',
+                    animation: 'spin 0.8s linear infinite',
+                  }} />
+                  Loading completed events...
+                </div>
+              ) : reviewEvents.length === 0 ? (
+                <div style={{ padding: '0.75rem', fontSize: '0.85rem', color: '#9CA3AF', background: colors.bgTertiary, borderRadius: '0.5rem', border: `2px solid ${colors.borderPrimary}` }}>
+                  No completed events with this photographer
+                </div>
+              ) : (
+                <select
+                  value={selectedReviewEventId}
+                  onChange={(e) => setSelectedReviewEventId(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    border: `2px solid ${colors.borderPrimary}`,
+                    borderRadius: '0.5rem',
+                    fontSize: '0.9rem',
+                    color: colors.textPrimary,
+                    background: colors.bgPrimary,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <option value="">-- Select an event --</option>
+                  {reviewEvents.map((evt) => (
+                    <option key={evt.id} value={evt.id}>
+                      {evt.title}{evt.eventDate ? ` (${new Date(evt.eventDate).toLocaleDateString()})` : ''}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            {/* Review Error */}
+            {reviewError && (
+              <div style={{
+                padding: '0.75rem',
+                marginBottom: '1rem',
+                background: '#FEF2F2',
+                border: '1px solid #FECACA',
+                borderRadius: '0.5rem',
+                color: '#DC2626',
+                fontSize: '0.85rem',
+              }}>
+                {reviewError}
+              </div>
+            )}
 
             <div style={{ marginBottom: '1.25rem' }}>
               <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
@@ -2158,7 +2325,12 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
 
             <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '4rem' }}>
               <button
-                onClick={() => setShowReviewModal(false)}
+                onClick={() => {
+                  setShowReviewModal(false);
+                  setSelectedReviewEventId('');
+                  setReviewEvents([]);
+                  setReviewError(null);
+                }}
                 style={{
                   flex: 1,
                   padding: '0.75rem 1rem',
@@ -2175,19 +2347,21 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
               </button>
               <button
                 onClick={submitReview}
+                disabled={isSubmittingReview || !selectedReviewEventId}
                 style={{
                   flex: 1,
                   padding: '0.75rem 1rem',
                   border: '2px solid #062a63',
                   borderRadius: '0.5rem',
-                  background: '#083A85',
+                  background: isSubmittingReview || !selectedReviewEventId ? '#6B7280' : '#083A85',
                   color: 'white',
                   fontSize: '0.9rem',
                   fontWeight: '600',
-                  cursor: 'pointer'
+                  cursor: isSubmittingReview || !selectedReviewEventId ? 'not-allowed' : 'pointer',
+                  opacity: isSubmittingReview ? 0.7 : 1,
                 }}
               >
-                {reviewPhotographer.myReview ? 'Update Review' : 'Submit Review'}
+                {isSubmittingReview ? 'Submitting...' : reviewPhotographer.myReview ? 'Update Review' : 'Submit Review'}
               </button>
             </div>
           </div>

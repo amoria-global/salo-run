@@ -14,6 +14,8 @@ export interface UserProfile {
   province: string;
   district: string;
   sector: string;
+  profilePicture?: string;
+  joinedFrom?: string;
 }
 
 interface UserProfileContextType {
@@ -54,17 +56,49 @@ function createProfileFromUser(user: DashboardUser | null): UserProfile {
     }
   }
 
+  // Parse address if available (format: "sector, district, province, country" or similar)
+  let country = 'Rwanda';
+  let province = '';
+  let district = '';
+  let sector = '';
+  if (user.address) {
+    const parts = user.address.split(',').map(p => p.trim());
+    if (parts.length >= 4) {
+      sector = parts[0];
+      district = parts[1];
+      province = parts[2];
+      country = parts[3];
+    } else if (parts.length >= 2) {
+      district = parts[0];
+      province = parts[1];
+      if (parts[2]) country = parts[2];
+    } else {
+      sector = user.address;
+    }
+  }
+
+  // Map customerType to display title
+  const typeMap: Record<string, string> = {
+    photographer: 'Photographer',
+    'event-coordinator': 'Event Coordinator',
+    client: 'Client',
+    Videographer: 'Videographer',
+  };
+  const title = typeMap[user.customerType] || user.customerType || 'Client';
+
   return {
     fullName: `${user.firstName} ${user.lastName}`.trim(),
     username: user.email?.split('@')[0] || '',
     email: user.email || '',
     phoneCode,
     phoneNumber,
-    title: user.customerType === 'photographer' ? 'Photographer' : 'Client',
-    country: 'Rwanda',
-    province: 'Kigali City',
-    district: 'Gasabo',
-    sector: 'Kimironko',
+    title,
+    country,
+    province,
+    district,
+    sector,
+    profilePicture: user.profilePicture || undefined,
+    joinedFrom: user.joinedFrom || undefined,
   };
 }
 
@@ -85,15 +119,23 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
   // Update profile when auth user changes
   useEffect(() => {
     if (authUser) {
+      const typeMap: Record<string, string> = {
+        photographer: 'Photographer',
+        'event-coordinator': 'Event Coordinator',
+        client: 'Client',
+        Videographer: 'Videographer',
+      };
       setProfile(prev => ({
         ...prev,
         fullName: `${authUser.firstName} ${authUser.lastName}`.trim(),
         email: authUser.email || prev.email,
         username: authUser.email?.split('@')[0] || prev.username,
-        title: authUser.customerType === 'photographer' ? 'Photographer' : 'Client',
+        title: typeMap[authUser.customerType] || authUser.customerType || prev.title,
+        profilePicture: authUser.profilePicture || prev.profilePicture,
+        joinedFrom: authUser.joinedFrom || prev.joinedFrom,
       }));
     }
-  }, [authUser?.id, authUser?.firstName, authUser?.lastName, authUser?.email, authUser?.customerType]);
+  }, [authUser?.id, authUser?.firstName, authUser?.lastName, authUser?.email, authUser?.customerType, authUser?.profilePicture, authUser?.joinedFrom]);
 
   const updateProfile = (updates: Partial<UserProfile>) => {
     setProfile(prev => ({ ...prev, ...updates }));

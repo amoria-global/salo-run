@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useDashboardAuth } from '../providers/AuthProvider';
 
@@ -19,16 +19,16 @@ function getApiKey(): string {
 interface CompleteProfileModalProps {
   isOpen: boolean;
   onComplete: () => void;
+  onSkip?: () => void;
 }
 
 // All possible step indices and labels
 const ALL_STEPS = [
   { index: 0, label: 'Bio & Location' },
-  { index: 1, label: 'Employment' },
-  { index: 2, label: 'Specialties & Equipment' },
-  { index: 3, label: 'Philosophy & Skills' },
-  { index: 4, label: 'Education' },
-  { index: 5, label: 'Certifications & Training' },
+  { index: 1, label: 'Specialties & Equipment' },
+  { index: 2, label: 'Philosophy & Skills' },
+  { index: 3, label: 'Education' },
+  { index: 4, label: 'Certifications & Training' },
 ];
 
 const availableSpecialties = [
@@ -85,7 +85,7 @@ const RemoveTagIcon = () => (
   </svg>
 );
 
-const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, onComplete }) => {
+const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, onComplete, onSkip }) => {
   const { colors, actualTheme } = useTheme();
   const { user, token, refreshUserProfile } = useDashboardAuth();
 
@@ -111,14 +111,7 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, onC
   const [bio, setBio] = useState('');
   const [location, setLocation] = useState('');
 
-  // Step 2: Employment
-  const [employmentStatus, setEmploymentStatus] = useState<'' | 'self-employed' | 'employed'>('');
-  const [companyName, setCompanyName] = useState('');
-  const [companyAddress, setCompanyAddress] = useState('');
-  const [positionRole, setPositionRole] = useState('');
-  const [employmentType, setEmploymentType] = useState<'' | 'full-time' | 'part-time' | 'contract'>('');
-
-  // Step 3: Specialties & Equipment
+  // Step 2: Specialties & Equipment
   const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([]);
   const [equipmentList, setEquipmentList] = useState<string[]>([]);
   const [newEquipment, setNewEquipment] = useState('');
@@ -191,24 +184,26 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, onC
     }
   }, [user, prefilled]);
 
-  // Detect which steps have missing data — only show those
-  const activeSteps = useMemo(() => {
-    if (!user) return ALL_STEPS;
-    const missing: typeof ALL_STEPS = [];
+  // Freeze which steps are shown when the modal opens — computed once on open,
+  // not re-derived on every user refresh (which would shift steps mid-flow).
+  const [activeSteps, setActiveSteps] = useState<typeof ALL_STEPS>(ALL_STEPS);
 
-    if (!user.about || !user.address) missing.push(ALL_STEPS[0]);
-    if (!user.specialties?.length || !user.equipments?.length) missing.push(ALL_STEPS[2]);
-    if (!user.professionalPhilosophy || !user.professionalSkills?.length) missing.push(ALL_STEPS[3]);
-    if (!user.educationLevels?.length) missing.push(ALL_STEPS[4]);
-    if (!user.certifications?.length && !user.trainings?.length) missing.push(ALL_STEPS[5]);
-
-    // Always include Employment (step 1) if any other steps are missing
-    if (missing.length > 0) {
-      missing.splice(1, 0, ALL_STEPS[1]);
+  useEffect(() => {
+    if (isOpen && user) {
+      const missing: typeof ALL_STEPS = [];
+      if (!user.about || !user.address) missing.push(ALL_STEPS[0]);
+      if (!user.specialties?.length || !user.equipments?.length) missing.push(ALL_STEPS[1]);
+      if (!user.professionalPhilosophy || !user.professionalSkills?.length) missing.push(ALL_STEPS[2]);
+      if (!user.educationLevels?.length) missing.push(ALL_STEPS[3]);
+      if (!user.certifications?.length && !user.trainings?.length) missing.push(ALL_STEPS[4]);
+      setActiveSteps(missing.length > 0 ? missing : ALL_STEPS);
+      setCurrentStepIndex(0);
+      setPrefilled(false);
+      setError('');
     }
-
-    return missing.length > 0 ? missing : ALL_STEPS;
-  }, [user]);
+  // Only recompute when the modal opens, not on every user change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   // Year options
   const currentYear = new Date().getFullYear();
@@ -307,120 +302,152 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, onC
     setTrainingEntries(prev => prev.filter(t => t.id !== id));
   };
 
-  const handleSubmit = async () => {
+  // Shared API call helper
+  const apiCall = async (label: string, endpoint: string, body?: Record<string, unknown>): Promise<boolean> => {
+    const apiUrl = getApiUrl();
+    const headers: Record<string, string> = {
+      'Authorization': `Bearer ${token}`,
+      'api-token': getApiKey(),
+    };
+    if (body !== undefined) {
+      headers['Content-Type'] = 'application/json';
+    }
+    try {
+      setSubmissionStatus(`Saving ${label}...`);
+      const response = await fetch(`${apiUrl}${endpoint}`, {
+        method: 'POST',
+        headers,
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+      });
+      if (!response.ok) {
+        const result = await response.json().catch(() => null);
+        throw new Error(result?.message || `Failed to save ${label}`);
+      }
+      return true;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : `Failed to save ${label}`;
+      showToast('error', msg);
+      return false;
+    }
+  };
+
+  // Save the current slide's data to its endpoint(s)
+  const saveCurrentStep = async (): Promise<boolean> => {
+    if (!currentStepData) return false;
+    let allOk = true;
+
+    switch (currentStepData.index) {
+      case 0: {
+        // Bio & Location → update-important-details
+        if (bio || location) {
+          const ok = await apiCall('bio & location', '/api/remote/photographer/update-important-details', {
+            about: bio,
+            address: location,
+          });
+          if (!ok) allOk = false;
+        }
+        break;
+      }
+      case 1: {
+        // Specialties & Equipment
+        if (selectedSpecialties.length > 0) {
+          const ok = await apiCall('specialties', '/api/remote/photographer/update-important-details', {
+            specialties: selectedSpecialties,
+          });
+          if (!ok) allOk = false;
+        }
+        // Add new equipment items
+        const existingEquipmentNames = new Set((user?.equipments || []).map(e => e.name));
+        for (const name of equipmentList.filter(n => !existingEquipmentNames.has(n))) {
+          const ok = await apiCall(`equipment "${name}"`, '/api/remote/photographer/add-equipment', { name });
+          if (!ok) allOk = false;
+        }
+        break;
+      }
+      case 2: {
+        // Philosophy & Skills
+        if (philosophy) {
+          const ok = await apiCall('philosophy', '/api/remote/photographer/update-important-details', {
+            professionalPhilosophy: philosophy,
+          });
+          if (!ok) allOk = false;
+        }
+        // Add new skills
+        const existingSkillNames = new Set((user?.professionalSkills || []).map(s => s.name));
+        for (const skill of skills.filter(s => !existingSkillNames.has(s.name))) {
+          const ok = await apiCall(`skill "${skill.name}"`, '/api/remote/photographer/add-professional-skills', {
+            name: skill.name,
+            skillPercentage: skill.level,
+          });
+          if (!ok) allOk = false;
+        }
+        break;
+      }
+      case 3: {
+        // Education — add new entries
+        const existingEduKeys = new Set((user?.educationLevels || []).map(e => `${e.degree}|${e.institution}`));
+        for (const edu of educationEntries.filter(e => e.degree && e.institution && !existingEduKeys.has(`${e.degree}|${e.institution}`))) {
+          const ok = await apiCall(`education "${edu.degree}"`, '/api/remote/photographer/add-education-level', {
+            degree: edu.degree,
+            institution: edu.institution,
+            startDate: edu.fromYear ? `${edu.fromYear}-01-01` : '',
+            endDate: edu.toYear === 'Present' ? '' : (edu.toYear ? `${edu.toYear}-01-01` : ''),
+            description: edu.description || '',
+          });
+          if (!ok) allOk = false;
+        }
+        break;
+      }
+      case 4: {
+        // Certifications & Training — add new entries
+        const existingCertKeys = new Set((user?.certifications || []).map(c => `${c.title}|${c.institution}`));
+        for (const cert of certEntries.filter(c => c.title && c.issuer && !existingCertKeys.has(`${c.title}|${c.issuer}`))) {
+          const ok = await apiCall(`certification "${cert.title}"`, '/api/remote/photographer/add-trainting-certification', {
+            title: cert.title,
+            institution: cert.issuer,
+            yearObtained: cert.year || '',
+            description: cert.description || '',
+            type: 'CERTIFICATION',
+          });
+          if (!ok) allOk = false;
+        }
+        const existingTrainingKeys = new Set((user?.trainings || []).map(t => `${t.title}|${t.institution}`));
+        for (const training of trainingEntries.filter(t => t.title && t.issuer && !existingTrainingKeys.has(`${t.title}|${t.issuer}`))) {
+          const ok = await apiCall(`training "${training.title}"`, '/api/remote/photographer/add-trainting-certification', {
+            title: training.title,
+            institution: training.issuer,
+            yearObtained: training.year || '',
+            description: training.description || '',
+            type: 'TRAINING',
+          });
+          if (!ok) allOk = false;
+        }
+        break;
+      }
+    }
+
+    return allOk;
+  };
+
+  // Save current slide and advance to next
+  const saveAndNext = async () => {
     setSubmitting(true);
     setError('');
     setSubmissionStatus('');
 
-    const apiUrl = getApiUrl();
-    const headers = {
-      'Authorization': `Bearer ${token}`,
-      'api-token': getApiKey(),
-      'Content-Type': 'application/json',
-    };
-
-    let successCount = 0;
-    let failCount = 0;
-    const errors: string[] = [];
-
-    const apiCall = async (label: string, endpoint: string, body: Record<string, unknown>): Promise<boolean> => {
-      try {
-        setSubmissionStatus(`Saving ${label}...`);
-        const response = await fetch(`${apiUrl}${endpoint}`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(body),
-        });
-        if (!response.ok) {
-          const result = await response.json().catch(() => null);
-          throw new Error(result?.message || `Failed to save ${label}`);
-        }
-        successCount++;
-        return true;
-      } catch (err) {
-        failCount++;
-        const msg = err instanceof Error ? err.message : `Failed to save ${label}`;
-        errors.push(msg);
-        showToast('error', msg);
-        return false;
-      }
-    };
-
     try {
-      // 1. Save basic text fields (about, address, philosophy, specialties)
-      if (bio || location || philosophy || selectedSpecialties.length > 0) {
-        await apiCall('bio & details', '/api/remote/photographer/update-important-details', {
-          about: bio,
-          address: location,
-          professionalPhilosophy: philosophy,
-          specialties: selectedSpecialties,
-        });
+      const ok = await saveCurrentStep();
+      if (!ok) {
+        setError('Some items failed to save. Please review and try again.');
+        return;
       }
 
-      // 2. Save equipment (only new items)
-      const existingEquipmentNames = new Set((user?.equipments || []).map(e => e.name));
-      for (const name of equipmentList.filter(n => !existingEquipmentNames.has(n))) {
-        await apiCall(`equipment "${name}"`, '/api/remote/photographer/add-equipment', { name });
-      }
-
-      // 3. Save professional skills (only new skills)
-      const existingSkillNames = new Set((user?.professionalSkills || []).map(s => s.name));
-      for (const skill of skills.filter(s => !existingSkillNames.has(s.name))) {
-        await apiCall(`skill "${skill.name}"`, '/api/remote/photographer/add-professional-skills', {
-          name: skill.name,
-          skillPercentage: skill.level,
-        });
-      }
-
-      // 4. Save education entries (only new)
-      const existingEduKeys = new Set((user?.educationLevels || []).map(e => `${e.degree}|${e.institution}`));
-      for (const edu of educationEntries.filter(e => e.degree && e.institution && !existingEduKeys.has(`${e.degree}|${e.institution}`))) {
-        await apiCall(`education "${edu.degree}"`, '/api/remote/photographer/add-education-level', {
-          degree: edu.degree,
-          institution: edu.institution,
-          startDate: edu.fromYear ? `${edu.fromYear}-01-01` : '',
-          endDate: edu.toYear === 'Present' ? '' : (edu.toYear ? `${edu.toYear}-01-01` : ''),
-          description: edu.description || '',
-        });
-      }
-
-      // 5. Save certifications (only new)
-      const existingCertKeys = new Set((user?.certifications || []).map(c => `${c.title}|${c.institution}`));
-      for (const cert of certEntries.filter(c => c.title && c.issuer && !existingCertKeys.has(`${c.title}|${c.issuer}`))) {
-        await apiCall(`certification "${cert.title}"`, '/api/remote/photographer/add-trainting-certification', {
-          title: cert.title,
-          institution: cert.issuer,
-          yearObtained: cert.year || '',
-          description: cert.description || '',
-          type: 'CERTIFICATION',
-        });
-      }
-
-      // 6. Save training entries (only new)
-      const existingTrainingKeys = new Set((user?.trainings || []).map(t => `${t.title}|${t.institution}`));
-      for (const training of trainingEntries.filter(t => t.title && t.issuer && !existingTrainingKeys.has(`${t.title}|${t.issuer}`))) {
-        await apiCall(`training "${training.title}"`, '/api/remote/photographer/add-trainting-certification', {
-          title: training.title,
-          institution: training.issuer,
-          yearObtained: training.year || '',
-          description: training.description || '',
-          type: 'TRAINING',
-        });
-      }
-
-      // 7. Refresh profile and handle result
+      // Refresh profile to get fresh data for deduplication
       setSubmissionStatus('Refreshing profile...');
       await refreshUserProfile();
 
-      if (failCount === 0) {
-        showToast('success', 'Profile completed successfully!');
-        setTimeout(() => { onComplete(); }, 1000);
-      } else if (successCount > 0) {
-        setError(`Saved ${successCount} item(s), but ${failCount} failed: ${errors.join('; ')}`);
-        showToast('error', `${failCount} item(s) failed to save. Please review and try again.`);
-      } else {
-        setError('Failed to save profile: ' + errors.join('; '));
-      }
+      showToast('success', `${currentStepData?.label} saved!`);
+      setCurrentStepIndex(prev => prev + 1);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
       showToast('error', 'An unexpected error occurred');
@@ -430,8 +457,41 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, onC
     }
   };
 
-  const goNext = () => {
-    if (currentStepIndex < totalSteps - 1) setCurrentStepIndex(prev => prev + 1);
+  // Save last slide then call submit-profile endpoint
+  const saveLastAndSubmit = async () => {
+    setSubmitting(true);
+    setError('');
+    setSubmissionStatus('');
+
+    try {
+      // Save the current slide's data first
+      const ok = await saveCurrentStep();
+      if (!ok) {
+        setError('Some items failed to save. Please review and try again.');
+        return;
+      }
+
+      // Call submit-profile (POST with token only, no body)
+      setSubmissionStatus('Submitting profile...');
+      const submitOk = await apiCall('profile submission', '/api/remote/photographer/submit-profile');
+      if (!submitOk) {
+        setError('Profile submission failed. Please try again.');
+        return;
+      }
+
+      // Refresh profile with final data
+      setSubmissionStatus('Refreshing profile...');
+      await refreshUserProfile();
+
+      showToast('success', 'Profile completed successfully!');
+      setTimeout(() => { onComplete(); }, 1000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+      showToast('error', 'An unexpected error occurred');
+    } finally {
+      setSubmitting(false);
+      setSubmissionStatus('');
+    }
   };
 
   const goBack = () => {
@@ -475,11 +535,10 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, onC
     if (!currentStepData) return null;
     switch (currentStepData.index) {
       case 0: return renderBioLocation();
-      case 1: return renderEmployment();
-      case 2: return renderSpecialtiesEquipment();
-      case 3: return renderPhilosophySkills();
-      case 4: return renderEducation();
-      case 5: return renderCertTraining();
+      case 1: return renderSpecialtiesEquipment();
+      case 2: return renderPhilosophySkills();
+      case 3: return renderEducation();
+      case 4: return renderCertTraining();
       default: return null;
     }
   };
@@ -513,87 +572,6 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, onC
           onBlur={blurHandler}
         />
       </div>
-    </div>
-  );
-
-  const renderEmployment = () => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      <div>
-        <label style={labelStyle}>Employment Status</label>
-        <select
-          value={employmentStatus}
-          onChange={e => setEmploymentStatus(e.target.value as '' | 'self-employed' | 'employed')}
-          style={inputStyle}
-          onFocus={focusHandler}
-          onBlur={blurHandler}
-        >
-          <option value="">Select status</option>
-          <option value="self-employed">Self-employed</option>
-          <option value="employed">Employed</option>
-        </select>
-      </div>
-
-      {employmentStatus === 'employed' && (
-        <>
-          <div>
-            <label style={labelStyle}>Company Name</label>
-            <input
-              type="text"
-              value={companyName}
-              onChange={e => setCompanyName(e.target.value)}
-              placeholder="e.g., Amoria Studios"
-              style={inputStyle}
-              onFocus={focusHandler}
-              onBlur={blurHandler}
-            />
-          </div>
-          <div>
-            <label style={labelStyle}>Company Address</label>
-            <input
-              type="text"
-              value={companyAddress}
-              onChange={e => setCompanyAddress(e.target.value)}
-              placeholder="e.g., KG 123 St, Kigali"
-              style={inputStyle}
-              onFocus={focusHandler}
-              onBlur={blurHandler}
-            />
-          </div>
-          <div>
-            <label style={labelStyle}>Position / Role</label>
-            <input
-              type="text"
-              value={positionRole}
-              onChange={e => setPositionRole(e.target.value)}
-              placeholder="e.g., Lead Photographer"
-              style={inputStyle}
-              onFocus={focusHandler}
-              onBlur={blurHandler}
-            />
-          </div>
-          <div>
-            <label style={labelStyle}>Employment Type</label>
-            <select
-              value={employmentType}
-              onChange={e => setEmploymentType(e.target.value as '' | 'full-time' | 'part-time' | 'contract')}
-              style={inputStyle}
-              onFocus={focusHandler}
-              onBlur={blurHandler}
-            >
-              <option value="">Select type</option>
-              <option value="full-time">Full-time</option>
-              <option value="part-time">Part-time</option>
-              <option value="contract">Contract</option>
-            </select>
-          </div>
-        </>
-      )}
-
-      {employmentStatus === '' && (
-        <p style={{ fontSize: '0.85rem', color: colors.textSecondary, fontStyle: 'italic' }}>
-          This section is optional. You can proceed to the next step.
-        </p>
-      )}
     </div>
   );
 
@@ -1099,11 +1077,32 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, onC
             padding: isMobile ? '0.75rem 1rem' : '1rem 1.5rem',
             borderTop: `1px solid ${colors.borderPrimary}`,
             display: 'flex',
-            justifyContent: 'flex-end',
+            justifyContent: 'space-between',
             alignItems: 'center',
             flexShrink: 0,
             gap: '0.625rem',
           }}>
+            {/* Skip button - left side */}
+            <button
+              onClick={onSkip}
+              disabled={submitting}
+              style={{
+                padding: '0.625rem 1rem',
+                border: 'none',
+                borderRadius: '0.625rem',
+                background: 'none',
+                color: colors.textSecondary,
+                fontSize: '0.8rem',
+                fontWeight: 500,
+                cursor: submitting ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s',
+                opacity: submitting ? 0.5 : 1,
+              }}
+            >
+              Skip for now
+            </button>
+
+            <div style={{ display: 'flex', gap: '0.625rem', alignItems: 'center' }}>
             {currentStepIndex > 0 && (
               <button
                 onClick={goBack}
@@ -1131,30 +1130,44 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, onC
 
             {currentStepIndex < totalSteps - 1 ? (
               <button
-                onClick={goNext}
+                onClick={saveAndNext}
+                disabled={submitting}
                 style={{
                   padding: '0.625rem 1.5rem',
-                  border: '2px solid #083A85',
+                  border: submitting ? '2px solid #9CA3AF' : '2px solid #083A85',
                   borderRadius: '0.625rem',
-                  background: 'linear-gradient(135deg, #083A85 0%, #0d5ab8 100%)',
+                  background: submitting ? '#9CA3AF' : 'linear-gradient(135deg, #083A85 0%, #0d5ab8 100%)',
                   color: '#fff',
                   fontSize: '0.85rem',
                   fontWeight: 600,
-                  cursor: 'pointer',
+                  cursor: submitting ? 'not-allowed' : 'pointer',
                   transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.375rem',
                 }}
                 onMouseEnter={e => {
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(8, 58, 133, 0.3)';
+                  if (!submitting) e.currentTarget.style.boxShadow = '0 4px 12px rgba(8, 58, 133, 0.3)';
                 }}
                 onMouseLeave={e => {
                   e.currentTarget.style.boxShadow = 'none';
                 }}
               >
-                Next
+                {submitting && (
+                  <div style={{
+                    width: '14px',
+                    height: '14px',
+                    border: '2px solid rgba(255,255,255,0.3)',
+                    borderTopColor: '#fff',
+                    borderRadius: '50%',
+                    animation: 'profileModalSpin 0.8s linear infinite',
+                  }} />
+                )}
+                {submitting ? (submissionStatus || 'Saving...') : 'Save & Next'}
               </button>
             ) : (
               <button
-                onClick={handleSubmit}
+                onClick={saveLastAndSubmit}
                 disabled={submitting}
                 style={{
                   padding: '0.625rem 1.5rem',
@@ -1190,6 +1203,7 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, onC
                 {submitting ? (submissionStatus || 'Submitting...') : 'Submit Profile'}
               </button>
             )}
+            </div>
           </div>
         </div>
       </div>
