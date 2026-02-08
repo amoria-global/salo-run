@@ -25,7 +25,7 @@ interface AddAlbumFormData {
 }
 
 // Streams Types
-type StreamStatus = 'scheduled' | 'preparing' | 'live' | 'ended' | 'replay_ready';
+type StreamStatus = 'scheduled' | 'upcoming' | 'live' | 'ended' | 'replay_ready';
 
 interface Stream {
   id: string;
@@ -57,6 +57,23 @@ interface LiveComment {
   userAvatar: string;
   message: string;
   time: string;
+}
+
+// RTMP Types
+type RtmpConnectionStatus = 'idle' | 'waiting_for_encoder' | 'receiving_signal' | 'live';
+type StreamHealthLevel = 'good' | 'fair' | 'poor';
+
+interface RtmpConfig {
+  serverUrl: string;
+  streamKey: string;
+}
+
+interface RtmpControlPanelState {
+  connectionStatus: RtmpConnectionStatus;
+  streamHealth: StreamHealthLevel;
+  uploadSpeed: string;
+  showStreamKey: boolean;
+  showEncoderInstructions: boolean;
 }
 
 // ============================================
@@ -531,29 +548,6 @@ const streamsData: Stream[] = [
     createdAt: '2025-06-01'
   },
   {
-    id: 'str2',
-    eventId: 'evt2',
-    eventTitle: 'My 30th Birthday Bash',
-    eventType: 'Birthday',
-    clientName: 'Emma Johnson',
-    clientImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg',
-    title: '30th Birthday Live Celebration',
-    description: 'Celebrating three decades of life! Live from Lake Kivu Resort.',
-    status: 'scheduled',
-    scheduledDate: '2025-07-25',
-    scheduledTime: '18:00',
-    duration: '4 hours',
-    coverImage: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=800',
-    viewerCount: 0,
-    peakViewers: 0,
-    maxViewers: 200,
-    streamKey: 'sk_live_3pL8wYzTuV5H6xQr',
-    inviteUrl: 'https://connekt.app/stream/str_3pL8wYzTuV5H',
-    isPublic: true,
-    earnings: 0,
-    createdAt: '2025-06-15'
-  },
-  {
     id: 'str3',
     eventId: 'evt3',
     eventTitle: 'Corporate Event 2025',
@@ -562,7 +556,7 @@ const streamsData: Stream[] = [
     clientImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
     title: 'Annual Conference Live Stream',
     description: 'Streaming the annual tech conference with keynote speeches and panels.',
-    status: 'preparing',
+    status: 'upcoming',
     scheduledDate: '2025-07-20',
     scheduledTime: '09:00',
     duration: '6 hours',
@@ -622,6 +616,200 @@ const streamsData: Stream[] = [
   }
 ];
 
+// Stream Status Badge Component
+const StreamStatusBadge: React.FC<{ status: StreamStatus }> = ({ status }) => {
+  const { actualTheme } = useTheme();
+  const getStatusStyle = () => {
+    switch (status) {
+      case 'scheduled':
+        return { backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#DBEAFE', color: actualTheme === 'dark' ? '#60A5FA' : '#1D4ED8' };
+      case 'upcoming':
+        return { backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FEF3C7', color: actualTheme === 'dark' ? '#FCD34D' : '#B45309' };
+      case 'live':
+        return { backgroundColor: actualTheme === 'dark' ? '#14532D' : '#D1FAE5', color: actualTheme === 'dark' ? '#4ADE80' : '#059669' };
+      case 'ended':
+        return { backgroundColor: actualTheme === 'dark' ? '#374151' : '#F3F4F6', color: actualTheme === 'dark' ? '#9CA3AF' : '#6B7280' };
+      case 'replay_ready':
+        return { backgroundColor: actualTheme === 'dark' ? '#4C1D95' : '#E0E7FF', color: actualTheme === 'dark' ? '#A78BFA' : '#5B21B6' };
+      default:
+        return { backgroundColor: actualTheme === 'dark' ? '#374151' : '#F3F4F6', color: actualTheme === 'dark' ? '#9CA3AF' : '#6B7280' };
+    }
+  };
+
+  const style = getStatusStyle();
+  const labelMap: Record<StreamStatus, string> = {
+    'scheduled': 'Scheduled',
+    'upcoming': 'Upcoming',
+    'live': 'LIVE',
+    'ended': 'Ended',
+    'replay_ready': 'Replay Ready'
+  };
+
+  return (
+    <span style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '0.375rem',
+      padding: '0.25rem 0.75rem',
+      borderRadius: '9999px',
+      fontSize: '0.75rem',
+      fontWeight: '600',
+      ...style
+    }}>
+      {status === 'live' && (
+        <span style={{
+          width: '8px',
+          height: '8px',
+          borderRadius: '50%',
+          backgroundColor: '#DC2626',
+          animation: 'pulse 1.5s infinite'
+        }}/>
+      )}
+      {labelMap[status]}
+    </span>
+  );
+};
+
+// RTMP Connection Status Badge Component
+const RtmpConnectionStatusBadge: React.FC<{ status: RtmpConnectionStatus }> = ({ status }) => {
+  const { actualTheme } = useTheme();
+
+  const getStatusStyle = () => {
+    switch (status) {
+      case 'idle':
+        return { backgroundColor: actualTheme === 'dark' ? '#374151' : '#F3F4F6', color: actualTheme === 'dark' ? '#9CA3AF' : '#6B7280' };
+      case 'waiting_for_encoder':
+        return { backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FEF3C7', color: actualTheme === 'dark' ? '#FCD34D' : '#B45309' };
+      case 'receiving_signal':
+        return { backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#DBEAFE', color: actualTheme === 'dark' ? '#60A5FA' : '#1D4ED8' };
+      case 'live':
+        return { backgroundColor: actualTheme === 'dark' ? '#14532D' : '#D1FAE5', color: actualTheme === 'dark' ? '#4ADE80' : '#059669' };
+      default:
+        return { backgroundColor: actualTheme === 'dark' ? '#374151' : '#F3F4F6', color: actualTheme === 'dark' ? '#9CA3AF' : '#6B7280' };
+    }
+  };
+
+  const style = getStatusStyle();
+  const labelMap: Record<RtmpConnectionStatus, string> = {
+    'idle': 'Idle',
+    'waiting_for_encoder': 'Waiting for Encoder',
+    'receiving_signal': 'Receiving Signal',
+    'live': 'Live'
+  };
+
+  const getPulseColor = () => {
+    switch (status) {
+      case 'waiting_for_encoder': return '#F59E0B';
+      case 'receiving_signal': return '#3B82F6';
+      case 'live': return '#10B981';
+      default: return '#6B7280';
+    }
+  };
+
+  return (
+    <span style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '0.375rem',
+      padding: '0.375rem 0.75rem',
+      borderRadius: '9999px',
+      fontSize: '0.8rem',
+      fontWeight: '600',
+      ...style
+    }}>
+      <span style={{
+        width: '8px',
+        height: '8px',
+        borderRadius: '50%',
+        backgroundColor: getPulseColor(),
+        animation: status !== 'idle' ? 'pulse 1.5s infinite' : 'none'
+      }}/>
+      {labelMap[status]}
+    </span>
+  );
+};
+
+// Stream Health Indicator Component
+const StreamHealthIndicator: React.FC<{ health: StreamHealthLevel }> = ({ health }) => {
+  const { actualTheme } = useTheme();
+
+  const getHealthStyle = () => {
+    switch (health) {
+      case 'good':
+        return { backgroundColor: actualTheme === 'dark' ? '#14532D' : '#D1FAE5', color: actualTheme === 'dark' ? '#4ADE80' : '#059669', label: 'Good' };
+      case 'fair':
+        return { backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FEF3C7', color: actualTheme === 'dark' ? '#FCD34D' : '#B45309', label: 'Fair' };
+      case 'poor':
+        return { backgroundColor: actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2', color: actualTheme === 'dark' ? '#F87171' : '#DC2626', label: 'Poor' };
+      default:
+        return { backgroundColor: actualTheme === 'dark' ? '#14532D' : '#D1FAE5', color: actualTheme === 'dark' ? '#4ADE80' : '#059669', label: 'Good' };
+    }
+  };
+
+  const style = getHealthStyle();
+
+  return (
+    <span style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '0.25rem',
+      padding: '0.25rem 0.5rem',
+      borderRadius: '0.25rem',
+      fontSize: '0.75rem',
+      fontWeight: '600',
+      backgroundColor: style.backgroundColor,
+      color: style.color
+    }}>
+      {style.label}
+    </span>
+  );
+};
+
+// Chevron Icon for collapsible sections
+const ChevronDownIcon = ({ rotated }: { rotated: boolean }) => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    style={{
+      transform: rotated ? 'rotate(180deg)' : 'rotate(0deg)',
+      transition: 'transform 0.2s ease'
+    }}
+  >
+    <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+// Eye/Hide Icon for stream key visibility
+const EyeOffIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+// Server Icon for RTMP section
+const ServerIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="2" y="2" width="20" height="8" rx="2" stroke="currentColor" strokeWidth="2"/>
+    <rect x="2" y="14" width="20" height="8" rx="2" stroke="currentColor" strokeWidth="2"/>
+    <line x1="6" y1="6" x2="6.01" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    <line x1="6" y1="18" x2="6.01" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
+
+// Signal Icon for connection status
+const SignalIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M5 12.55a11 11 0 0 1 14.08 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M1.42 9a16 16 0 0 1 21.16 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M8.53 16.11a6 6 0 0 1 6.95 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <line x1="12" y1="20" x2="12.01" y2="20" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
+
 // ============================================
 // MAIN COMPONENT
 // ============================================
@@ -630,7 +818,7 @@ const PhotographerEventsPage = () => {
   const { colors, actualTheme } = useTheme();
 
   // View toggle state
-  const [activeView, setActiveView] = useState<'gallery' | 'streams'>('gallery');
+  const [activeView, setActiveView] = useState<'gallery' | 'streams'>('streams');
 
   // ============================================
   // GALLERY STATE
@@ -688,7 +876,7 @@ const PhotographerEventsPage = () => {
   // ============================================
   // STREAMS STATE
   // ============================================
-  const [streamsActiveTab, setStreamsActiveTab] = useState<'all' | 'live' | 'upcoming' | 'past'>('all');
+  const [streamsActiveTab, setStreamsActiveTab] = useState<'all' | 'live' | 'upcoming' | 'completed'>('all');
   const [streamsSearchQuery, setStreamsSearchQuery] = useState('');
   const [showStreamDetails, setShowStreamDetails] = useState<Stream | null>(null);
   const [showControlPanel, setShowControlPanel] = useState<Stream | null>(null);
@@ -707,6 +895,41 @@ const PhotographerEventsPage = () => {
   ]);
 
   const [streams, setStreams] = useState<Stream[]>(streamsData);
+
+  // RTMP Control Panel State - Separate state for each card
+  const [rtmpStates, setRtmpStates] = useState<Record<string, RtmpControlPanelState>>({});
+  const [copiedRtmpField, setCopiedRtmpField] = useState<string | null>(null);
+
+  // Dev mode flag for simulation buttons
+  const [devMode] = useState(process.env.NODE_ENV === 'development');
+
+  // Mock RTMP config per stream - in production this would come from backend
+  const getRtmpConfig = useCallback((streamId: string): RtmpConfig => ({
+    serverUrl: 'rtmp://stream.amoriaconnekt.com/live',
+    streamKey: `sk_live_${streamId}_${Date.now().toString(36).slice(-6)}`
+  }), []);
+
+  // Get or initialize RTMP state for a stream
+  const getRtmpState = useCallback((streamId: string): RtmpControlPanelState => {
+    return rtmpStates[streamId] || {
+      connectionStatus: 'idle',
+      streamHealth: 'good',
+      uploadSpeed: '0 Kbps',
+      showStreamKey: false,
+      showEncoderInstructions: false
+    };
+  }, [rtmpStates]);
+
+  // Update RTMP state for a specific stream
+  const updateRtmpState = useCallback((streamId: string, updates: Partial<RtmpControlPanelState>) => {
+    setRtmpStates(prev => ({
+      ...prev,
+      [streamId]: {
+        ...getRtmpState(streamId),
+        ...updates
+      }
+    }));
+  }, [getRtmpState]);
 
   // ============================================
   // GALLERY FUNCTIONS
@@ -1008,6 +1231,52 @@ const PhotographerEventsPage = () => {
     setShowControlPanel(null);
   };
 
+  // RTMP Control Panel Handlers
+  const handleCopyRtmpField = (fieldId: string, value: string) => {
+    navigator.clipboard.writeText(value);
+    setCopiedRtmpField(fieldId);
+    setTimeout(() => setCopiedRtmpField(null), 2000);
+  };
+
+  const handleRtmpStartStream = (stream: Stream) => {
+    updateRtmpState(stream.id, {
+      connectionStatus: 'waiting_for_encoder',
+      uploadSpeed: '0 Kbps',
+      streamHealth: 'good'
+    });
+  };
+
+  const handleSimulateSignal = (stream: Stream) => {
+    updateRtmpState(stream.id, {
+      connectionStatus: 'receiving_signal',
+      uploadSpeed: '4500 Kbps',
+      streamHealth: 'good'
+    });
+  };
+
+  const handleRtmpGoLive = (stream: Stream) => {
+    updateRtmpState(stream.id, {
+      connectionStatus: 'live',
+      uploadSpeed: '6000 Kbps',
+      streamHealth: 'good'
+    });
+    // Also update the stream status
+    setStreams(streams.map(s =>
+      s.id === stream.id ? { ...s, status: 'live' as StreamStatus } : s
+    ));
+  };
+
+  const handleRtmpEndStream = (stream: Stream) => {
+    updateRtmpState(stream.id, {
+      connectionStatus: 'idle',
+      uploadSpeed: '0 Kbps'
+    });
+    setStreams(streams.map(s =>
+      s.id === stream.id ? { ...s, status: 'ended' as StreamStatus } : s
+    ));
+    setShowControlPanel(null);
+  };
+
   const filteredStreams = streams.filter(stream => {
     const matchesSearch = streamsSearchQuery === '' ||
       stream.title.toLowerCase().includes(streamsSearchQuery.toLowerCase()) ||
@@ -1015,15 +1284,15 @@ const PhotographerEventsPage = () => {
       stream.clientName.toLowerCase().includes(streamsSearchQuery.toLowerCase());
 
     if (streamsActiveTab === 'live') return matchesSearch && stream.status === 'live';
-    if (streamsActiveTab === 'upcoming') return matchesSearch && (stream.status === 'scheduled' || stream.status === 'preparing');
-    if (streamsActiveTab === 'past') return matchesSearch && (stream.status === 'ended' || stream.status === 'replay_ready');
+    if (streamsActiveTab === 'upcoming') return matchesSearch && stream.status === 'upcoming';
+    if (streamsActiveTab === 'completed') return matchesSearch && (stream.status === 'ended' || stream.status === 'replay_ready');
     return matchesSearch;
   });
 
   const streamsStats = {
     total: streams.length,
     live: streams.filter(s => s.status === 'live').length,
-    upcoming: streams.filter(s => s.status === 'scheduled' || s.status === 'preparing').length,
+    upcoming: streams.filter(s => s.status === 'upcoming').length,
     totalEarnings: streams.reduce((acc, s) => acc + s.earnings, 0)
   };
 
@@ -1031,7 +1300,7 @@ const PhotographerEventsPage = () => {
     switch (status) {
       case 'live': return { bg: 'rgba(239, 68, 68, 0.1)', text: '#EF4444', border: '#EF4444' };
       case 'scheduled': return { bg: 'rgba(59, 130, 246, 0.1)', text: '#3B82F6', border: '#3B82F6' };
-      case 'preparing': return { bg: 'rgba(245, 158, 11, 0.1)', text: '#F59E0B', border: '#F59E0B' };
+      case 'upcoming': return { bg: 'rgba(245, 158, 11, 0.1)', text: '#F59E0B', border: '#F59E0B' };
       case 'ended': return { bg: 'rgba(107, 114, 128, 0.1)', text: '#6B7280', border: '#6B7280' };
       case 'replay_ready': return { bg: 'rgba(16, 185, 129, 0.1)', text: '#10B981', border: '#10B981' };
       default: return { bg: 'rgba(107, 114, 128, 0.1)', text: '#6B7280', border: '#6B7280' };
@@ -1042,7 +1311,7 @@ const PhotographerEventsPage = () => {
     switch (status) {
       case 'live': return 'LIVE';
       case 'scheduled': return 'Scheduled';
-      case 'preparing': return 'Preparing';
+      case 'upcoming': return 'Upcoming';
       case 'ended': return 'Ended';
       case 'replay_ready': return 'Replay Ready';
       default: return status;
@@ -1180,51 +1449,65 @@ const PhotographerEventsPage = () => {
             <div className="view-toggle-container" style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '0.5rem',
-              backgroundColor: colors.bgTertiary,
-              padding: '0.25rem',
-              borderRadius: '0.5rem',
-              border: `1px solid ${colors.borderPrimary}`
+              gap: '0.25rem',
+              backgroundColor: actualTheme === 'dark' ? '#1E293B' : '#E2E8F0',
+              padding: '0.375rem',
+              borderRadius: '0.75rem',
+              boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.1)'
             }}>
-              <button
-                onClick={() => setActiveView('gallery')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.5rem 1rem',
-                  backgroundColor: activeView === 'gallery' ? '#083A85' : 'transparent',
-                  color: activeView === 'gallery' ? 'white' : colors.textSecondary,
-                  border: 'none',
-                  borderRadius: '0.375rem',
-                  fontSize: '0.875rem',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <GalleryViewIcon active={activeView === 'gallery'} />
-                Gallery
-              </button>
               <button
                 onClick={() => setActiveView('streams')}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.5rem',
-                  padding: '0.5rem 1rem',
-                  backgroundColor: activeView === 'streams' ? '#083A85' : 'transparent',
-                  color: activeView === 'streams' ? 'white' : colors.textSecondary,
+                  padding: '0.625rem 1.25rem',
+                  backgroundColor: activeView === 'streams'
+                    ? '#083A85'
+                    : (actualTheme === 'dark' ? 'transparent' : 'transparent'),
+                  color: activeView === 'streams'
+                    ? 'white'
+                    : (actualTheme === 'dark' ? '#94A3B8' : '#64748B'),
                   border: 'none',
-                  borderRadius: '0.375rem',
+                  borderRadius: '0.5rem',
                   fontSize: '0.875rem',
                   fontWeight: '600',
                   cursor: 'pointer',
-                  transition: 'all 0.2s'
+                  transition: 'all 0.2s',
+                  boxShadow: activeView === 'streams'
+                    ? '0 2px 8px rgba(8, 58, 133, 0.4)'
+                    : 'none'
                 }}
               >
                 <StreamsViewIcon active={activeView === 'streams'} />
                 Streams
+              </button>
+              <button
+                onClick={() => setActiveView('gallery')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.625rem 1.25rem',
+                  backgroundColor: activeView === 'gallery'
+                    ? '#083A85'
+                    : (actualTheme === 'dark' ? 'transparent' : 'transparent'),
+                  color: activeView === 'gallery'
+                    ? 'white'
+                    : (actualTheme === 'dark' ? '#94A3B8' : '#64748B'),
+                  border: 'none',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.875rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  boxShadow: activeView === 'gallery'
+                    ? '0 2px 8px rgba(8, 58, 133, 0.4)'
+                    : 'none'
+                }}
+              >
+                <GalleryViewIcon active={activeView === 'gallery'} />
+                Gallery
               </button>
             </div>
           </div>
@@ -1643,9 +1926,9 @@ const PhotographerEventsPage = () => {
                             flex: 1,
                             padding: '0.5rem',
                             borderRadius: '0.375rem',
-                            border: '2px solid #16A34A',
-                            backgroundColor: '#F0FDF4',
-                            color: '#16A34A',
+                            border: '2px solid #15803D',
+                            backgroundColor: '#16A34A',
+                            color: 'white',
                             fontSize: '0.8rem',
                             fontWeight: '600',
                             cursor: 'pointer',
@@ -1783,7 +2066,7 @@ const PhotographerEventsPage = () => {
               }}>
                 {/* Tab Filter */}
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  {(['all', 'live', 'upcoming', 'past'] as const).map(tab => (
+                  {(['all', 'live', 'upcoming', 'completed'] as const).map(tab => (
                     <button
                       key={tab}
                       onClick={() => setStreamsActiveTab(tab)}
@@ -1886,12 +2169,12 @@ const PhotographerEventsPage = () => {
                           fontWeight: '600',
                           backgroundColor: stream.status === 'live' ? (actualTheme === 'dark' ? '#14532D' : '#D1FAE5') :
                                           stream.status === 'scheduled' ? (actualTheme === 'dark' ? '#1E3A5F' : '#DBEAFE') :
-                                          stream.status === 'preparing' ? (actualTheme === 'dark' ? '#78350F' : '#FEF3C7') :
+                                          stream.status === 'upcoming' ? (actualTheme === 'dark' ? '#78350F' : '#FEF3C7') :
                                           stream.status === 'replay_ready' ? (actualTheme === 'dark' ? '#4C1D95' : '#E0E7FF') :
                                           (actualTheme === 'dark' ? '#374151' : '#F3F4F6'),
                           color: stream.status === 'live' ? (actualTheme === 'dark' ? '#4ADE80' : '#059669') :
                                 stream.status === 'scheduled' ? (actualTheme === 'dark' ? '#60A5FA' : '#1D4ED8') :
-                                stream.status === 'preparing' ? (actualTheme === 'dark' ? '#FCD34D' : '#B45309') :
+                                stream.status === 'upcoming' ? (actualTheme === 'dark' ? '#FCD34D' : '#B45309') :
                                 stream.status === 'replay_ready' ? (actualTheme === 'dark' ? '#A78BFA' : '#5B21B6') :
                                 (actualTheme === 'dark' ? '#9CA3AF' : '#6B7280')
                         }}>
@@ -2005,9 +2288,9 @@ const PhotographerEventsPage = () => {
                               alignItems: 'center',
                               justifyContent: 'center',
                               gap: '0.375rem',
-                              backgroundColor: '#3B82F6',
+                              backgroundColor: '#DC2626',
                               color: 'white',
-                              border: '2px solid #2563EB',
+                              border: '2px solid #B91C1C',
                               borderRadius: '0.375rem',
                               padding: '0.5rem',
                               fontSize: '0.85rem',
@@ -2019,9 +2302,9 @@ const PhotographerEventsPage = () => {
                             Control Panel
                           </button>
                         )}
-                        {stream.status === 'preparing' && (
+                        {stream.status === 'upcoming' && (
                           <button
-                            onClick={() => handleStartStream(stream)}
+                            onClick={() => setShowControlPanel(stream)}
                             style={{
                               flex: 1,
                               display: 'flex',
@@ -2038,31 +2321,8 @@ const PhotographerEventsPage = () => {
                               cursor: 'pointer'
                             }}
                           >
-                            <PlayIcon />
-                            Go Live
-                          </button>
-                        )}
-                        {stream.status === 'scheduled' && (
-                          <button
-                            onClick={() => setShowStreamDetails(stream)}
-                            style={{
-                              flex: 1,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '0.375rem',
-                              backgroundColor: '#083A85',
-                              color: 'white',
-                              border: '2px solid #062a63',
-                              borderRadius: '0.375rem',
-                              padding: '0.5rem',
-                              fontSize: '0.85rem',
-                              fontWeight: '600',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            <SettingsIcon />
-                            Setup
+                            <BroadcastIcon />
+                            Control Panel
                           </button>
                         )}
                         {(stream.status === 'ended' || stream.status === 'replay_ready') && (
@@ -2255,6 +2515,7 @@ const PhotographerEventsPage = () => {
 
             {/* Content */}
             <div style={{ padding: '1.5rem' }}>
+              {/* Event Title */}
               <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
                 {showControlPanel.eventTitle}
               </h2>
@@ -2262,11 +2523,27 @@ const PhotographerEventsPage = () => {
                 {showControlPanel.title}
               </h3>
 
-              {/* Stream URL */}
+              {/* Description */}
+              <div style={{
+                backgroundColor: colors.bgTertiary,
+                borderRadius: '0.5rem',
+                padding: '1rem',
+                marginBottom: '1.25rem',
+                border: `1px solid ${colors.borderPrimary}`
+              }}>
+                <p style={{ fontSize: '0.9rem', color: colors.textPrimary, margin: 0, lineHeight: '1.6' }}>
+                  {showControlPanel.description}
+                </p>
+              </div>
+
+              {/* Stream URL for Viewers */}
               <div style={{ marginBottom: '1.25rem' }}>
                 <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.5rem' }}>
                   Stream Viewing Link
                 </label>
+                <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: '0 0 0.5rem 0' }}>
+                  Share this link with viewers to watch the stream
+                </p>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <input
                     type="text"
@@ -2295,7 +2572,8 @@ const PhotographerEventsPage = () => {
                       color: 'white',
                       fontSize: '0.9rem',
                       fontWeight: '600',
-                      cursor: 'pointer'
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
                     }}
                   >
                     <CopyIcon />
@@ -2304,28 +2582,450 @@ const PhotographerEventsPage = () => {
                 </div>
               </div>
 
-              {/* End Stream Button */}
-              <button
-                onClick={() => handleEndStream(showControlPanel)}
-                style={{
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                  padding: '1rem',
-                  backgroundColor: '#DC2626',
-                  color: 'white',
-                  border: '2px solid #B91C1C',
-                  borderRadius: '0.5rem',
-                  fontSize: '1rem',
-                  fontWeight: '700',
-                  cursor: 'pointer'
-                }}
-              >
-                <StopIcon />
-                End Stream
-              </button>
+              {/* RTMP Stream Configuration (Pro) */}
+              <div style={{
+                backgroundColor: actualTheme === 'dark' ? '#312E81' : '#EEF2FF',
+                borderRadius: '0.75rem',
+                padding: '1.25rem',
+                marginBottom: '1.25rem',
+                border: `1px solid ${actualTheme === 'dark' ? '#4338CA' : '#C7D2FE'}`
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    backgroundColor: '#6366F1',
+                    borderRadius: '0.5rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white'
+                  }}>
+                    <ServerIcon />
+                  </div>
+                  <div>
+                    <h4 style={{ fontSize: '1rem', fontWeight: '600', color: actualTheme === 'dark' ? '#A5B4FC' : '#3730A3', margin: 0 }}>
+                      RTMP Stream Configuration (Pro)
+                    </h4>
+                    <p style={{ fontSize: '0.8rem', color: actualTheme === 'dark' ? '#C7D2FE' : '#4338CA', margin: '0.125rem 0 0 0' }}>
+                      Configure your external encoder or OBS
+                    </p>
+                  </div>
+                </div>
+
+                {/* Stream Server URL */}
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: actualTheme === 'dark' ? '#A5B4FC' : '#3730A3', marginBottom: '0.5rem' }}>
+                    Stream Server URL
+                  </label>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <input
+                      type="text"
+                      value={getRtmpConfig(showControlPanel.id).serverUrl}
+                      readOnly
+                      style={{
+                        flex: 1,
+                        padding: '0.75rem',
+                        border: `2px solid ${actualTheme === 'dark' ? '#4338CA' : '#A5B4FC'}`,
+                        borderRadius: '0.5rem',
+                        fontSize: '0.85rem',
+                        backgroundColor: actualTheme === 'dark' ? '#1E1B4B' : 'white',
+                        color: colors.textPrimary,
+                        fontFamily: 'monospace'
+                      }}
+                    />
+                    <button
+                      onClick={() => handleCopyRtmpField(`server-${showControlPanel.id}`, getRtmpConfig(showControlPanel.id).serverUrl)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.375rem',
+                        padding: '0.75rem 1rem',
+                        border: copiedRtmpField === `server-${showControlPanel.id}` ? '2px solid #059669' : `2px solid ${actualTheme === 'dark' ? '#4338CA' : '#6366F1'}`,
+                        borderRadius: '0.5rem',
+                        background: copiedRtmpField === `server-${showControlPanel.id}` ? '#10B981' : '#6366F1',
+                        color: 'white',
+                        fontSize: '0.85rem',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <CopyIcon />
+                      {copiedRtmpField === `server-${showControlPanel.id}` ? 'Copied!' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Stream Key */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: actualTheme === 'dark' ? '#A5B4FC' : '#3730A3', marginBottom: '0.5rem' }}>
+                    Stream Key
+                  </label>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <div style={{ flex: 1, position: 'relative' }}>
+                      <input
+                        type={getRtmpState(showControlPanel.id).showStreamKey ? 'text' : 'password'}
+                        value={getRtmpConfig(showControlPanel.id).streamKey}
+                        readOnly
+                        style={{
+                          width: '100%',
+                          padding: '0.75rem',
+                          paddingRight: '2.5rem',
+                          border: `2px solid ${actualTheme === 'dark' ? '#4338CA' : '#A5B4FC'}`,
+                          borderRadius: '0.5rem',
+                          fontSize: '0.85rem',
+                          backgroundColor: actualTheme === 'dark' ? '#1E1B4B' : 'white',
+                          color: colors.textPrimary,
+                          fontFamily: 'monospace'
+                        }}
+                      />
+                      <button
+                        onClick={() => updateRtmpState(showControlPanel.id, { showStreamKey: !getRtmpState(showControlPanel.id).showStreamKey })}
+                        style={{
+                          position: 'absolute',
+                          right: '0.5rem',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: '0.25rem',
+                          color: actualTheme === 'dark' ? '#A5B4FC' : '#6366F1',
+                          display: 'flex',
+                          alignItems: 'center'
+                        }}
+                        title={getRtmpState(showControlPanel.id).showStreamKey ? 'Hide stream key' : 'Show stream key'}
+                      >
+                        {getRtmpState(showControlPanel.id).showStreamKey ? <EyeOffIcon /> : <EyeIcon />}
+                      </button>
+                    </div>
+                    <button
+                      onClick={() => handleCopyRtmpField(`key-${showControlPanel.id}`, getRtmpConfig(showControlPanel.id).streamKey)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.375rem',
+                        padding: '0.75rem 1rem',
+                        border: copiedRtmpField === `key-${showControlPanel.id}` ? '2px solid #059669' : `2px solid ${actualTheme === 'dark' ? '#4338CA' : '#6366F1'}`,
+                        borderRadius: '0.5rem',
+                        background: copiedRtmpField === `key-${showControlPanel.id}` ? '#10B981' : '#6366F1',
+                        color: 'white',
+                        fontSize: '0.85rem',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <CopyIcon />
+                      {copiedRtmpField === `key-${showControlPanel.id}` ? 'Copied!' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Stream Status & Connection UI */}
+              <div style={{
+                backgroundColor: actualTheme === 'dark' ? '#1F2937' : '#F9FAFB',
+                borderRadius: '0.75rem',
+                padding: '1.25rem',
+                marginBottom: '1.25rem',
+                border: `1px solid ${colors.borderPrimary}`
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    backgroundColor: actualTheme === 'dark' ? '#374151' : '#E5E7EB',
+                    borderRadius: '0.5rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: colors.textPrimary
+                  }}>
+                    <SignalIcon />
+                  </div>
+                  <div>
+                    <h4 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
+                      Stream Health & Connection
+                    </h4>
+                    <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: '0.125rem 0 0 0' }}>
+                      Monitor your stream connection status
+                    </p>
+                  </div>
+                </div>
+
+                {/* Status Grid */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: '1rem'
+                }}>
+                  {/* Connection Status */}
+                  <div style={{
+                    backgroundColor: actualTheme === 'dark' ? '#111827' : 'white',
+                    borderRadius: '0.5rem',
+                    padding: '0.75rem',
+                    border: `1px solid ${colors.borderPrimary}`,
+                    textAlign: 'center'
+                  }}>
+                    <p style={{ fontSize: '0.7rem', color: colors.textSecondary, margin: '0 0 0.375rem 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Connection
+                    </p>
+                    <RtmpConnectionStatusBadge status={getRtmpState(showControlPanel.id).connectionStatus} />
+                  </div>
+
+                  {/* Upload Speed */}
+                  <div style={{
+                    backgroundColor: actualTheme === 'dark' ? '#111827' : 'white',
+                    borderRadius: '0.5rem',
+                    padding: '0.75rem',
+                    border: `1px solid ${colors.borderPrimary}`,
+                    textAlign: 'center'
+                  }}>
+                    <p style={{ fontSize: '0.7rem', color: colors.textSecondary, margin: '0 0 0.375rem 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Upload Speed
+                    </p>
+                    <span style={{
+                      fontSize: '0.9rem',
+                      fontWeight: '600',
+                      color: colors.textPrimary
+                    }}>
+                      {getRtmpState(showControlPanel.id).uploadSpeed}
+                    </span>
+                  </div>
+
+                  {/* Stream Health */}
+                  <div style={{
+                    backgroundColor: actualTheme === 'dark' ? '#111827' : 'white',
+                    borderRadius: '0.5rem',
+                    padding: '0.75rem',
+                    border: `1px solid ${colors.borderPrimary}`,
+                    textAlign: 'center'
+                  }}>
+                    <p style={{ fontSize: '0.7rem', color: colors.textSecondary, margin: '0 0 0.375rem 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Health
+                    </p>
+                    <StreamHealthIndicator health={getRtmpState(showControlPanel.id).streamHealth} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Encoder Instructions - Collapsible */}
+              <div style={{
+                backgroundColor: actualTheme === 'dark' ? '#1C1917' : '#FFFBEB',
+                borderRadius: '0.75rem',
+                marginBottom: '1.25rem',
+                border: `1px solid ${actualTheme === 'dark' ? '#78350F' : '#FCD34D'}`,
+                overflow: 'hidden'
+              }}>
+                <button
+                  onClick={() => updateRtmpState(showControlPanel.id, { showEncoderInstructions: !getRtmpState(showControlPanel.id).showEncoderInstructions })}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '1rem 1.25rem',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: actualTheme === 'dark' ? '#FCD34D' : '#92400E'
+                  }}
+                >
+                  <span style={{ fontWeight: '600', fontSize: '0.9rem' }}>
+                    How to Connect Using OBS or Hardware Encoder
+                  </span>
+                  <ChevronDownIcon rotated={getRtmpState(showControlPanel.id).showEncoderInstructions} />
+                </button>
+                {getRtmpState(showControlPanel.id).showEncoderInstructions && (
+                  <div style={{ padding: '0 1.25rem 1.25rem 1.25rem' }}>
+                    <ol style={{
+                      margin: 0,
+                      paddingLeft: '1.25rem',
+                      fontSize: '0.85rem',
+                      color: actualTheme === 'dark' ? '#FDE68A' : '#78350F',
+                      lineHeight: '1.8'
+                    }}>
+                      <li>Open OBS or your hardware encoder</li>
+                      <li>Go to Settings &gt; Stream</li>
+                      <li>Set Server URL to the provided RTMP Server URL above</li>
+                      <li>Set Stream Key to the provided key above</li>
+                      <li>Click &quot;Start Streaming&quot; in your encoder</li>
+                      <li>Once connected, click &quot;Go Live&quot; below to broadcast</li>
+                    </ol>
+                  </div>
+                )}
+              </div>
+
+              {/* RTMP Stream Control Buttons */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {/* Start Stream Button - Shown when idle */}
+                {getRtmpState(showControlPanel.id).connectionStatus === 'idle' && showControlPanel.status !== 'live' && (
+                  <button
+                    onClick={() => handleRtmpStartStream(showControlPanel)}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem',
+                      padding: '1rem',
+                      backgroundColor: '#6366F1',
+                      color: 'white',
+                      border: '2px solid #4F46E5',
+                      borderRadius: '0.5rem',
+                      fontSize: '1rem',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <BroadcastIcon />
+                    Start Stream
+                  </button>
+                )}
+
+                {/* Waiting for Encoder - Shown when waiting */}
+                {getRtmpState(showControlPanel.id).connectionStatus === 'waiting_for_encoder' && (
+                  <>
+                    <button
+                      disabled
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.5rem',
+                        padding: '1rem',
+                        backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FEF3C7',
+                        color: actualTheme === 'dark' ? '#FCD34D' : '#B45309',
+                        border: `2px solid ${actualTheme === 'dark' ? '#B45309' : '#FCD34D'}`,
+                        borderRadius: '0.5rem',
+                        fontSize: '1rem',
+                        fontWeight: '700',
+                        cursor: 'not-allowed',
+                        opacity: 0.9
+                      }}
+                    >
+                      <span style={{
+                        width: '10px',
+                        height: '10px',
+                        borderRadius: '50%',
+                        backgroundColor: '#F59E0B',
+                        animation: 'pulse 1.5s infinite'
+                      }}/>
+                      Waiting for Encoder Signal...
+                    </button>
+                    {/* Dev-only simulate signal button */}
+                    {devMode && (
+                      <button
+                        onClick={() => handleSimulateSignal(showControlPanel)}
+                        style={{
+                          width: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.5rem',
+                          padding: '0.75rem',
+                          backgroundColor: actualTheme === 'dark' ? '#374151' : '#F3F4F6',
+                          color: colors.textSecondary,
+                          border: `2px dashed ${colors.borderPrimary}`,
+                          borderRadius: '0.5rem',
+                          fontSize: '0.85rem',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        [DEV] Simulate Encoder Signal
+                      </button>
+                    )}
+                  </>
+                )}
+
+                {/* Go Live Button - Shown when receiving signal */}
+                {getRtmpState(showControlPanel.id).connectionStatus === 'receiving_signal' && (
+                  <button
+                    onClick={() => handleRtmpGoLive(showControlPanel)}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem',
+                      padding: '1rem',
+                      backgroundColor: '#059669',
+                      color: 'white',
+                      border: '2px solid #047857',
+                      borderRadius: '0.5rem',
+                      fontSize: '1rem',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <BroadcastIcon />
+                    Go Live Now
+                  </button>
+                )}
+
+                {/* End Stream Button - Shown when live */}
+                {(getRtmpState(showControlPanel.id).connectionStatus === 'live' || showControlPanel.status === 'live') && (
+                  <button
+                    onClick={() => handleRtmpEndStream(showControlPanel)}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem',
+                      padding: '1rem',
+                      backgroundColor: '#DC2626',
+                      color: 'white',
+                      border: '2px solid #B91C1C',
+                      borderRadius: '0.5rem',
+                      fontSize: '1rem',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <StopIcon />
+                    End Stream
+                  </button>
+                )}
+
+                {/* Delete Event Button - Shown when not streaming */}
+                {getRtmpState(showControlPanel.id).connectionStatus === 'idle' && showControlPanel.status !== 'live' && (
+                  <button
+                    onClick={() => {
+                      setStreamToDelete(showControlPanel);
+                      setShowStreamsDeleteModal(true);
+                      setShowControlPanel(null);
+                    }}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem',
+                      padding: '0.75rem',
+                      backgroundColor: 'transparent',
+                      color: '#DC2626',
+                      border: '2px solid #FCA5A5',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.9rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <TrashIcon />
+                    Delete Event
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -2347,22 +3047,30 @@ const PhotographerEventsPage = () => {
         }} onClick={() => setShowStreamDetails(null)}>
           <div className="mobile-modal" style={{
             backgroundColor: colors.bgCard,
-            borderRadius: '0.75rem',
+            borderRadius: '0 0 0.75rem 0.75rem',
             maxWidth: '600px',
             width: '90%',
             maxHeight: '90vh',
             overflowY: 'auto',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
-            paddingBottom: '3rem'
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            paddingBottom: '5rem'
           }} onClick={(e) => e.stopPropagation()}>
-            {/* Cover Image */}
-            <div style={{ position: 'relative', height: '160px', overflow: 'hidden', borderRadius: '0.75rem 0.75rem 0 0' }}>
-              <Image
-                src={showStreamDetails.coverImage}
-                alt={showStreamDetails.title}
-                fill
-                style={{ objectFit: 'cover' }}
-              />
+            {/* Cover Image with overlay */}
+            <div style={{ position: 'relative', height: '160px', overflow: 'hidden' }}>
+              <div style={{
+                width: '100%',
+                height: '160px',
+                backgroundImage: `url(${showStreamDetails.coverImage})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center'
+              }}>
+                <div style={{
+                  position: 'absolute',
+                  inset: 0,
+                  backgroundColor: 'rgba(13, 27, 42, 0.3)'
+                }} />
+              </div>
+              {/* Close Button */}
               <button
                 onClick={() => setShowStreamDetails(null)}
                 style={{
@@ -2374,11 +3082,20 @@ const PhotographerEventsPage = () => {
                   borderRadius: '0.375rem',
                   padding: '0.5rem',
                   cursor: 'pointer',
-                  color: colors.textPrimary
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: colors.textPrimary,
+                  zIndex: 5,
+                  transition: 'all 0.2s'
                 }}
               >
                 <CloseIcon />
               </button>
+              {/* Status Badge */}
+              <div style={{ position: 'absolute', top: '1rem', left: '1rem', zIndex: 5 }}>
+                <StreamStatusBadge status={showStreamDetails.status} />
+              </div>
             </div>
 
             {/* Content */}
@@ -2392,13 +3109,13 @@ const PhotographerEventsPage = () => {
 
               {/* Client Info */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem', padding: '0.75rem', backgroundColor: colors.bgTertiary, borderRadius: '0.5rem' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
                   <Image
                     src={showStreamDetails.clientImage}
                     alt={showStreamDetails.clientName}
                     width={40}
                     height={40}
-                    style={{ objectFit: 'cover' }}
+                    style={{ objectFit: 'cover', width: '100%', height: '100%' }}
                   />
                 </div>
                 <div>
@@ -2420,6 +3137,13 @@ const PhotographerEventsPage = () => {
                 </div>
                 <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '0.75rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', color: colors.textSecondary }}>
+                    <ClockIcon />
+                    <span style={{ fontSize: '0.8rem' }}>Duration</span>
+                  </div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>{showStreamDetails.duration}</div>
+                </div>
+                <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', color: colors.textSecondary }}>
                     <UsersIcon />
                     <span style={{ fontSize: '0.8rem' }}>Peak Viewers</span>
                   </div>
@@ -2434,14 +3158,52 @@ const PhotographerEventsPage = () => {
                   </div>
                   <div style={{ fontSize: '0.95rem', fontWeight: '600', color: actualTheme === 'dark' ? '#4ADE80' : '#059669' }}>${showStreamDetails.earnings}</div>
                 </div>
-                <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '0.75rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', color: colors.textSecondary }}>
-                    <ClockIcon />
-                    <span style={{ fontSize: '0.8rem' }}>Duration</span>
-                  </div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>{showStreamDetails.duration}</div>
-                </div>
               </div>
+
+              {/* Stream Key (for upcoming streams) */}
+              {showStreamDetails.streamKey && showStreamDetails.status === 'upcoming' && (
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <div style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>Stream Key</div>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <input
+                      type="password"
+                      value={showStreamDetails.streamKey}
+                      readOnly
+                      style={{
+                        flex: 1,
+                        padding: '0.625rem 0.875rem',
+                        border: `2px solid ${colors.borderPrimary}`,
+                        borderRadius: '0.375rem',
+                        fontSize: '0.9rem',
+                        backgroundColor: colors.bgTertiary,
+                        color: colors.textPrimary
+                      }}
+                    />
+                    <button
+                      onClick={() => handleCopyKey(showStreamDetails.streamKey!)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.375rem',
+                        padding: '0.625rem 1rem',
+                        border: copiedKey ? '2px solid #059669' : '2px solid #062a63',
+                        borderRadius: '0.375rem',
+                        background: copiedKey ? '#10B981' : '#083A85',
+                        color: 'white',
+                        fontSize: '0.9rem',
+                        fontWeight: '500',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <CopyIcon />
+                      {copiedKey ? 'Copied!' : 'Copy'}
+                    </button>
+                  </div>
+                  <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: '0.5rem 0 0 0' }}>
+                    Use this key with OBS or your streaming software
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -2506,12 +3268,13 @@ const PhotographerEventsPage = () => {
                   flex: 1,
                   padding: '0.75rem 1rem',
                   borderRadius: '0.5rem',
-                  border: `2px solid ${colors.borderPrimary}`,
-                  backgroundColor: colors.bgCard,
-                  color: colors.textPrimary,
+                  border: '1px solid #7a7c7d',
+                  backgroundColor: actualTheme === 'dark' ? '#1E293B' : '#E2E8F0',
+                  color: actualTheme === 'dark' ? '#FFFFFF' : '#000000',
                   fontSize: '0.95rem',
                   fontWeight: '600',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
                 }}
               >
                 Cancel
@@ -2601,12 +3364,13 @@ const PhotographerEventsPage = () => {
                   flex: 1,
                   padding: '0.75rem 1rem',
                   borderRadius: '0.5rem',
-                  border: `2px solid ${colors.borderPrimary}`,
-                  backgroundColor: colors.bgCard,
-                  color: colors.textPrimary,
+                  border: '1px solid #7a7c7d',
+                  backgroundColor: actualTheme === 'dark' ? '#1E293B' : '#E2E8F0',
+                  color: actualTheme === 'dark' ? '#FFFFFF' : '#000000',
                   fontSize: '0.95rem',
                   fontWeight: '600',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
                 }}
               >
                 Cancel
@@ -2660,8 +3424,8 @@ const PhotographerEventsPage = () => {
             style={{
               backgroundColor: colors.bgCard,
               borderRadius: '1rem',
-              width: '600px',
-              maxWidth: '90%',
+              width: '750px',
+              maxWidth: '95%',
               maxHeight: '90vh',
               overflowY: 'auto',
               boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
@@ -2838,16 +3602,17 @@ const PhotographerEventsPage = () => {
                       flex: 1,
                       padding: '0.75rem',
                       borderRadius: '0.5rem',
-                      border: `2px solid ${colors.borderPrimary}`,
-                      backgroundColor: colors.bgTertiary,
-                      color: colors.textPrimary,
+                      border: '1px solid #7a7c7d',
+                      backgroundColor: actualTheme === 'dark' ? '#1E293B' : '#E2E8F0',
+                      color: actualTheme === 'dark' ? '#FFFFFF' : '#000000',
                       fontSize: '0.9rem',
                       fontWeight: '600',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '0.5rem'
+                      gap: '0.5rem',
+                      transition: 'all 0.2s'
                     }}
                   >
                     <i className="bi bi-pencil"></i>
@@ -2863,8 +3628,8 @@ const PhotographerEventsPage = () => {
                       padding: '0.75rem',
                       borderRadius: '0.5rem',
                       border: '2px solid #16A34A',
-                      backgroundColor: '#F0FDF4',
-                      color: '#16A34A',
+                      backgroundColor: '#16A34A',
+                      color: 'white',
                       fontSize: '0.9rem',
                       fontWeight: '600',
                       cursor: 'pointer',
@@ -2907,8 +3672,8 @@ const PhotographerEventsPage = () => {
               backgroundColor: colors.bgCard,
               borderRadius: '0.75rem',
               padding: '1.5rem',
-              maxWidth: '500px',
-              width: '90%',
+              width: '750px',
+              maxWidth: '95%',
               maxHeight: '90vh',
               overflowY: 'auto',
               boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
@@ -3095,8 +3860,8 @@ const PhotographerEventsPage = () => {
               backgroundColor: colors.bgCard,
               borderRadius: '1rem',
               padding: '1.5rem',
-              width: '500px',
-              maxWidth: '90%',
+              width: '750px',
+              maxWidth: '95%',
               maxHeight: '90vh',
               overflowY: 'auto',
               boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
@@ -3269,13 +4034,14 @@ const PhotographerEventsPage = () => {
                 style={{
                   flex: 1,
                   padding: '0.75rem 1rem',
-                  backgroundColor: colors.bgTertiary,
-                  border: `2px solid ${colors.borderPrimary}`,
+                  backgroundColor: actualTheme === 'dark' ? '#1E293B' : '#E2E8F0',
+                  border: '1px solid #7a7c7d',
                   borderRadius: '0.5rem',
                   fontSize: '0.9rem',
                   fontWeight: '600',
-                  color: colors.textPrimary,
-                  cursor: 'pointer'
+                  color: actualTheme === 'dark' ? '#FFFFFF' : '#000000',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
                 }}
               >
                 Cancel
@@ -3328,7 +4094,8 @@ const PhotographerEventsPage = () => {
               backgroundColor: colors.bgCard,
               borderRadius: '1rem',
               padding: '1.5rem',
-              width: '500px',
+              width: '750px',
+              maxWidth: '95%',
               maxHeight: '90vh',
               overflowY: 'auto',
               boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
@@ -3592,12 +4359,13 @@ const PhotographerEventsPage = () => {
                   flex: 1,
                   padding: '0.75rem 1rem',
                   borderRadius: '0.5rem',
-                  border: `2px solid ${colors.borderPrimary}`,
-                  backgroundColor: colors.bgCard,
-                  color: colors.textPrimary,
+                  border: '1px solid #7a7c7d',
+                  backgroundColor: actualTheme === 'dark' ? '#1E293B' : '#E2E8F0',
+                  color: actualTheme === 'dark' ? '#FFFFFF' : '#000000',
                   fontSize: '0.95rem',
                   fontWeight: '600',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
                 }}
               >
                 Cancel
