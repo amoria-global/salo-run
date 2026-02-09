@@ -62,7 +62,7 @@ export function middleware(request: NextRequest) {
   }
 
   // Role-based access control: prevent users from accessing other roles' pages
-  const userRole = request.cookies.get('userRole')?.value;
+  const userRole = request.cookies.get('userRole')?.value?.toLowerCase();
 
   if (userRole && pathname.startsWith('/user/')) {
     // Extract the role segment from the URL: /user/{role}/...
