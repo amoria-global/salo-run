@@ -116,6 +116,17 @@ export const DonatePromptModal: React.FC<DonatePromptModalProps> = ({ isOpen, on
 
   if (!isOpen) return null;
 
+  // Create a wrapper function that stops propagation
+  const handleNoClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Stop the event from bubbling up
+    onNo(); // Call the original onNo handler
+  };
+
+  const handleYesClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Also stop propagation for consistency
+    onYes();
+  };
+
   return (
     <div style={{
       position: 'fixed',
@@ -163,7 +174,7 @@ export const DonatePromptModal: React.FC<DonatePromptModalProps> = ({ isOpen, on
           </p>
           <div style={{ display: 'flex', gap: '0.75rem' }}>
             <button
-              onClick={onNo}
+              onClick={handleNoClick}
               style={{
                 flex: 1,
                 padding: '0.75rem 1rem',
@@ -180,7 +191,7 @@ export const DonatePromptModal: React.FC<DonatePromptModalProps> = ({ isOpen, on
               No, thanks
             </button>
             <button
-              onClick={onYes}
+              onClick={handleYesClick} 
               style={{
                 flex: 1,
                 padding: '0.75rem 1rem',
