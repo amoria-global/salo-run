@@ -187,8 +187,96 @@ function mapProfessionalSkills(skills: Array<{
 }
 
 /**
+ * Token refresh mutex — prevents multiple simultaneous refresh attempts
+ */
+let isRefreshing = false;
+let refreshPromise: Promise<string | null> | null = null;
+
+/**
+ * Attempt to refresh the auth token using the refresh endpoint.
+ * Uses a mutex so concurrent 401s only trigger one refresh call.
+ * Returns the new token on success, or null on failure.
+ */
+async function attemptDashboardTokenRefresh(currentToken: string): Promise<string | null> {
+  if (isRefreshing && refreshPromise) return refreshPromise;
+  isRefreshing = true;
+
+  refreshPromise = (async () => {
+    try {
+      const response = await fetch(
+        `${getApiUrl()}/api/remote/auth/api/v1/remote/refresh-token`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${currentToken}`,
+            'api-token': getApiKey(),
+          },
+        }
+      );
+      if (response.ok) {
+        const data = await response.json();
+        if (data.token) {
+          // Update all storage locations
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('authToken', data.token);
+            setTokenCookie(data.token);
+          }
+          console.log('[Dashboard Auth] Token refreshed successfully');
+          return data.token;
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error('[Dashboard Auth] Token refresh failed:', error);
+      return null;
+    } finally {
+      isRefreshing = false;
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
+
+/**
+ * Map API profile data to DashboardUser format
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapProfileData(data: any): DashboardUser {
+  return {
+    id: data.id || '',
+    firstName: data.firstName || '',
+    lastName: data.lastName || '',
+    email: data.email || '',
+    phone: data.phone || '',
+    customerId: data.id || '',
+    customerType: data.customerType || '',
+    profilePicture: data.profilePicture || undefined,
+    coverPicture: data.coverPicture || undefined,
+    address: data.address || undefined,
+    about: data.about || undefined,
+    professionalPhilosophy: data.professionalPhilosophy || undefined,
+    specialties: data.specialties || [],
+    rating: data.rating || 0,
+    availabilities: data.availabilities || [],
+    projects: data.projects || [],
+    professionalSkills: mapProfessionalSkills(data.professionalSkills || []),
+    equipments: data.equipments || [],
+    educationLevels: data.educationLevels || [],
+    certifications: data.certifications || [],
+    trainings: data.trainings || [],
+    joinedFrom: data.joinedFrom || undefined,
+    reviews: data.reviews || [],
+    packages: data.packages || [],
+    profileReviewStatus: data.profileReviewStatus || undefined,
+    reviewComment: data.reviewComment || undefined,
+  };
+}
+
+/**
  * Fetch photographer profile summary using Bearer token
  * This is the preferred method for authenticated users
+ * On 401, attempts token refresh before giving up
  */
 async function fetchPhotographerProfileSummary(token: string): Promise<DashboardUser | null> {
   try {
@@ -204,7 +292,31 @@ async function fetchPhotographerProfileSummary(token: string): Promise<Dashboard
     );
 
     if (response.status === 401) {
-      // Session expired — clear auth and redirect to login
+      // Attempt token refresh before clearing session
+      console.log('[Dashboard Auth] Got 401, attempting token refresh...');
+      const newToken = await attemptDashboardTokenRefresh(token);
+      if (newToken) {
+        // Retry with new token
+        const retryResponse = await fetch(
+          `${getApiUrl()}/api/remote/photographer/profile-summary`,
+          {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${newToken}`,
+              'api-token': getApiKey(),
+            },
+          }
+        );
+        if (retryResponse.ok) {
+          const retryResult = await retryResponse.json();
+          if (retryResult.action === 1 && retryResult.data) {
+            console.log('[Dashboard Auth] Profile fetch succeeded after token refresh');
+            return mapProfileData(retryResult.data);
+          }
+        }
+      }
+      // Refresh failed — clear auth and redirect to login
+      console.log('[Dashboard Auth] Token refresh failed, redirecting to login');
       if (typeof window !== 'undefined') {
         localStorage.removeItem('authToken');
         localStorage.removeItem('authUser');
@@ -226,39 +338,8 @@ async function fetchPhotographerProfileSummary(token: string): Promise<Dashboard
       return null;
     }
 
-    const data = result.data;
-    console.log('[Dashboard Auth] Fetched profile summary for:', data.firstName, data.lastName);
-
-    // Map API response to DashboardUser format
-    return {
-      id: data.id || '',
-      firstName: data.firstName || '',
-      lastName: data.lastName || '',
-      email: data.email || '',
-      phone: data.phone || '',
-      customerId: data.id || '',
-      customerType: data.customerType || '',
-      profilePicture: data.profilePicture || undefined,
-      coverPicture: data.coverPicture || undefined,
-      address: data.address || undefined,
-      about: data.about || undefined,
-      professionalPhilosophy: data.professionalPhilosophy || undefined,
-      specialties: data.specialties || [],
-      rating: data.rating || 0,
-      availabilities: data.availabilities || [],
-      projects: data.projects || [],
-      professionalSkills: mapProfessionalSkills(data.professionalSkills || []),
-      equipments: data.equipments || [],
-      educationLevels: data.educationLevels || [],
-      certifications: data.certifications || [],
-      trainings: data.trainings || [],
-      // New fields from profile-summary endpoint
-      joinedFrom: data.joinedFrom || undefined,
-      reviews: data.reviews || [],
-      packages: data.packages || [],
-      profileReviewStatus: data.profileReviewStatus || undefined,
-      reviewComment: data.reviewComment || undefined,
-    };
+    console.log('[Dashboard Auth] Fetched profile summary for:', result.data.firstName, result.data.lastName);
+    return mapProfileData(result.data);
   } catch (error) {
     console.error('[Dashboard Auth] Error fetching profile summary:', error);
     return null;
@@ -294,18 +375,19 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
         const userProfile = await fetchPhotographerProfileSummary(activeToken);
 
         if (userProfile) {
-          // Token is valid and profile fetched successfully
-          setToken(activeToken);
+          // Token may have been refreshed during profile fetch — use latest from storage
+          const latestToken = (typeof window !== 'undefined' ? localStorage.getItem(AUTH_TOKEN_KEY) : null) || activeToken;
+          setToken(latestToken);
           setUser(userProfile);
 
           // Save token and user to cookie and localStorage
           if (typeof window !== 'undefined') {
-            setTokenCookie(activeToken);
-            localStorage.setItem(AUTH_TOKEN_KEY, activeToken);
+            setTokenCookie(latestToken);
+            localStorage.setItem(AUTH_TOKEN_KEY, latestToken);
             localStorage.setItem(AUTH_USER_KEY, JSON.stringify(userProfile));
             // Store role cookie for middleware route protection
             if (userProfile.customerType) {
-              document.cookie = `userRole=${userProfile.customerType}; path=/; max-age=${60*60*24*7}; samesite=lax`;
+              document.cookie = `userRole=${userProfile.customerType.toLowerCase()}; path=/; max-age=${60*60*24*7}; samesite=lax`;
             }
           }
 
@@ -356,26 +438,28 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 
     const intervalId = setInterval(async () => {
       console.log('[Dashboard Auth] Running periodic profile refresh...');
+      // fetchPhotographerProfileSummary now handles 401 internally:
+      // on 401 it tries token refresh, retries, and redirects to login if refresh fails
       const userProfile = await fetchPhotographerProfileSummary(token);
 
       if (!userProfile) {
-        console.log('[Dashboard Auth] Token validation failed, clearing session...');
-        // Clear storage
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem(AUTH_TOKEN_KEY);
-          localStorage.removeItem(AUTH_USER_KEY);
-          document.cookie = 'authToken=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
-        }
-        setToken(null);
-        setUser(null);
+        // Profile fetch returned null — either a non-401 error (network issue)
+        // or 401 handler already triggered redirect. Don't double-clear.
+        console.log('[Dashboard Auth] Periodic profile refresh returned null');
       } else {
+        // Success — sync latest token from storage (may have been refreshed)
+        const latestToken = (typeof window !== 'undefined' ? localStorage.getItem(AUTH_TOKEN_KEY) : null) || token;
+        if (latestToken !== token) {
+          console.log('[Dashboard Auth] Token was refreshed during periodic check, syncing state');
+          setToken(latestToken);
+        }
         // Update user with fresh data
         setUser(userProfile);
         if (typeof window !== 'undefined') {
           localStorage.setItem(AUTH_USER_KEY, JSON.stringify(userProfile));
           // Keep role cookie fresh
           if (userProfile.customerType) {
-            document.cookie = `userRole=${userProfile.customerType}; path=/; max-age=${60*60*24*7}; samesite=lax`;
+            document.cookie = `userRole=${userProfile.customerType.toLowerCase()}; path=/; max-age=${60*60*24*7}; samesite=lax`;
           }
         }
         console.log('[Dashboard Auth] Profile refresh successful');
@@ -444,6 +528,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
           setToken(data.token);
           if (typeof window !== 'undefined') {
             localStorage.setItem(AUTH_TOKEN_KEY, data.token);
+            setTokenCookie(data.token);
           }
           return true;
         }
@@ -585,6 +670,40 @@ export function useDashboardAuth(): AuthContextType {
     throw new Error('useDashboardAuth must be used within a DashboardAuthProvider');
   }
   return context;
+}
+
+/**
+ * Authenticated fetch utility for dashboard pages.
+ * Automatically adds Bearer token and api-token headers.
+ * On 401, attempts token refresh and retries the request once.
+ * Pages can use this instead of raw fetch() for automatic token refresh.
+ *
+ * Usage: const response = await dashboardAuthFetch(`${apiUrl}/api/remote/...`);
+ */
+export async function dashboardAuthFetch(
+  url: string,
+  options: RequestInit = {}
+): Promise<Response> {
+  const currentToken = (typeof window !== 'undefined' ? localStorage.getItem('authToken') : null) || getCookieToken();
+  if (!currentToken) throw new Error('No auth token available');
+
+  const headers: Record<string, string> = {
+    'Authorization': `Bearer ${currentToken}`,
+    'api-token': getApiKey(),
+    ...(options.headers as Record<string, string> || {}),
+  };
+
+  let response = await fetch(url, { ...options, headers });
+
+  if (response.status === 401) {
+    const newToken = await attemptDashboardTokenRefresh(currentToken);
+    if (newToken) {
+      headers['Authorization'] = `Bearer ${newToken}`;
+      response = await fetch(url, { ...options, headers });
+    }
+  }
+
+  return response;
 }
 
 export default DashboardAuthProvider;
