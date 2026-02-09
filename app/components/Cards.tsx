@@ -1,5 +1,6 @@
 import React from 'react';
 import Image from 'next/image';
+import { Unlock } from 'lucide-react';
 
 interface Album {
   id: string | number;
@@ -14,7 +15,13 @@ interface Album {
   images: any[]; // You can replace 'any' with a more specific type if you have one
   receivedDate: string;
   date: string;
-  isArchived?: boolean; // Add this field
+  isArchived?: boolean;
+  payment?: {
+    amountDue: number;
+    status: string;
+    eventName: string;
+    photographerName: string;
+  };
 }
 
 interface AlbumCardProps {
@@ -63,10 +70,7 @@ const AlbumCard: React.FC<AlbumCardProps> = ({
           overflow: 'hidden',
           border: `1px solid ${colors.borderPrimary}`,
           transition: 'all 0.2s',
-          cursor: isArchived ? 'not-allowed' : 'pointer',
-          opacity: isArchived ? 0.7 : 1
         }}
-        onClick={() => onCardClick(album)}
         onMouseEnter={(e) => {
           if (!isArchived) {
             e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
@@ -151,7 +155,7 @@ const AlbumCard: React.FC<AlbumCardProps> = ({
 
         {/* Album Info */}
         <div style={{ padding: '1rem' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0, marginBottom: '0.5rem' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0, marginBottom: '0.5rem', textAlign:'left' }}>
             {album.title}
           </h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
@@ -161,34 +165,43 @@ const AlbumCard: React.FC<AlbumCardProps> = ({
             <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>{album.photographer}</span>
           </div>
           <div style={{ fontSize: '0.8rem', color: '#9CA3AF', marginBottom: '0.75rem' }}>
-           <p style={{textAlign:'left'}}>Received: {album.receivedDate}</p> 
+            <p style={{textAlign:'left'}}>Received: {album.receivedDate}</p> 
           </div>
 
           {/* Action Buttons */}
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <button
               onClick={(e) => {
-                e.stopPropagation();
+                e.stopPropagation(); // Prevent event bubbling
+                onCardClick(album);
+              }}
+              onMouseEnter={(e) => {
                 if (!isArchived) {
-                  onBrowseClick(album);
+                  e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
                 }
               }}
-              disabled={isArchived}
+              onMouseLeave={(e) => {
+                if (!isArchived) {
+                  e.currentTarget.style.boxShadow = 'none';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }
+              }}
               style={{
+                cursor: 'pointer',
                 flex: 1,
                 padding: '0.5rem',
                 borderRadius: '0.375rem',
-                border: `2px solid ${isArchived ? '#9CA3AF' : '#062a63'}`,
-                backgroundColor: isArchived ? '#E5E7EB' : '#083A85',
-                color: isArchived ? '#6B7280' : 'white',
+                border: '2px solid #062a63',
+                backgroundColor: '#083A85',
+                color: 'white',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                cursor: isArchived ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '0.25rem',
-                opacity: isArchived ? 0.6 : 1
+                transition: 'all 0.2s',
               }}
             >
               {isArchived ? <LockIcon /> : <EyeIcon />}
@@ -210,12 +223,10 @@ const AlbumCard: React.FC<AlbumCardProps> = ({
         padding: '0.75rem 1rem',
         borderBottom: `1px solid ${colors.borderPrimary}`,
         alignItems: 'center',
-        cursor: isArchived ? 'not-allowed' : 'pointer',
         transition: 'background-color 0.2s',
         backgroundColor: colors.bgCard,
-        opacity: isArchived ? 0.7 : 1
+        cursor: 'pointer',
       }}
-      onClick={() => !isArchived && onCardClick(album)}
       onMouseEnter={(e) => {
         if (!isArchived) {
           e.currentTarget.style.backgroundColor = colors.bgTertiary;
@@ -250,7 +261,7 @@ const AlbumCard: React.FC<AlbumCardProps> = ({
             justifyContent: 'center',
             backgroundColor: 'rgba(0, 0, 0, 0.4)'
           }}>
-            <div style={{ transform: 'scale(0.6)' }}>
+            <div style={{ transform: 'scale(0.6)', color: 'white' }}>
               <LockIcon />
             </div>
           </div>
@@ -276,8 +287,8 @@ const AlbumCard: React.FC<AlbumCardProps> = ({
           )}
         </div>
         <div style={{ fontSize: '0.8rem', color: '#9CA3AF' }}>
-           <p>Received: {album.receivedDate}</p> 
-            </div>
+          <p>Received: {album.receivedDate}</p> 
+        </div>
       </div>
 
       {/* Photographer */}
@@ -308,25 +319,38 @@ const AlbumCard: React.FC<AlbumCardProps> = ({
       <div style={{ display: 'flex', gap: '0.5rem' }}>
         <button
           onClick={(e) => {
-            e.stopPropagation();
+            e.stopPropagation(); // Prevent parent div click
+            onCardClick(album);
+          }}
+          onMouseEnter={(e) => {
             if (!isArchived) {
-              onBrowseClick(album);
+              e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
+              e.currentTarget.style.transform = 'translateY(-2px)';
             }
           }}
-          disabled={isArchived}
+          onMouseLeave={(e) => {
+            if (!isArchived) {
+              e.currentTarget.style.boxShadow = 'none';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }
+          }}
           style={{
             padding: '0.375rem 0.75rem',
+            cursor: 'pointer',
             borderRadius: '0.375rem',
-            border: `2px solid ${isArchived ? '#9CA3AF' : '#062a63'}`,
-            backgroundColor: isArchived ? '#E5E7EB' : '#083A85',
-            color: isArchived ? '#6B7280' : 'white',
+            border: `2px solid '#083A85'`,
+            backgroundColor: '#083A85',
+            color: 'white',
             fontSize: '0.8rem',
             fontWeight: '500',
-            cursor: isArchived ? 'not-allowed' : 'pointer',
-            opacity: isArchived ? 0.6 : 1
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.25rem',
+            transition: 'all 0.2s',
           }}
         >
-          {isArchived ? 'Archived' : 'Browse'}
+          <LockIcon /> <span>{isArchived ? 'Unlock' : 'Browse'}</span>
         </button>
       </div>
     </div>

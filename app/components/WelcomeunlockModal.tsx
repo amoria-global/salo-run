@@ -5,6 +5,7 @@ import React from "react";
 
 interface WelcomeUnlockModalProps {
   title: string ;
+  description:string;
   onYes: boolean | (() => void);
   onNo: boolean | (() => void);
   onCancel: () => void;
@@ -13,6 +14,7 @@ interface WelcomeUnlockModalProps {
 
 export default function WelcomeunlockModal({
   title,
+  description,
   onYes,
   onNo,
     onCancel,
@@ -91,6 +93,7 @@ export default function WelcomeunlockModal({
             >
             {title}
             </h2>
+            <p>{description}</p>
 
           </div>
 
