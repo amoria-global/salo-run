@@ -7,10 +7,28 @@ import Image from 'next/image';
 import { useTheme } from '../../context/ThemeContext';
 import AlbumCard from '@/app/components/Cards';
 import UnlockModal from '@/app/components/UnlockModal';
-import { UnlockPromptModal } from '@/app/components/UnlockModal';
-import { Archive, ArchiveIcon, ArchiveRestore, Eye, GiftIcon } from 'lucide-react';
+import PayNowModal from '@/app/components/UnlockModal';
+import { Archive, ArchiveIcon, ArchiveRestore, Eye, GiftIcon, Pointer } from 'lucide-react';
 import { useUserProfile } from '@/app/context/UserProfileContext';
 import PostModal from '@/app/components/WelcomeunlockModal';
+import DonateModal, { DonatePromptModal } from '@/app/components/DonateModal';
+
+type PaymentStatus = 'paid' | 'pending' | 'failed' | 'refunded' | 'partially_paid';
+
+interface Payment {
+  id: number;
+  date: string;
+  eventName: string;
+  eventType: string;
+  photographerName: string;
+  photographerImage: string;
+  method: string;
+  amount: string;
+  amountNum: number;
+  paidAmount: number;
+  status: PaymentStatus;
+  invoiceNumber: string;
+}
 
 // Icons
 const CloseIcon = () => (
@@ -149,6 +167,12 @@ const clientAlbumsData = [
     id: 1,
     title: 'Johnson Wedding - Ceremony',
     photographer: 'Sarah Anderson',
+    payment: {
+      amountDue: 150.00,
+      status: 'pending',
+      eventName: 'Johnson Wedding',
+      photographerName: 'Sarah Anderson'
+    },
     photographerAvatar: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg',
     category: 'Wedding',
     date: 'Dec 15, 2024',
@@ -173,7 +197,12 @@ const clientAlbumsData = [
     photographer: 'Sarah Anderson',
     photographerAvatar: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg',
     category: 'Wedding',
-    
+    payment: {
+      amountDue: 150.00,
+      status: 'pending',
+      eventName: 'Johnson Wedding - Reception',
+      photographerName: 'Sarah Anderson'
+    },
     date: 'Dec 15, 2024',
     receivedDate: 'Dec 18, 2024',
     thumbnail: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=400',
@@ -192,6 +221,12 @@ const clientAlbumsData = [
     id: 3,
     title: 'Family Portrait Session',
     photographer: 'Mike Chen',
+    payment: {
+      amountDue: 150,
+      status: 'pending',
+      eventName: 'Family Portrait Session',
+      photographerName: 'Mike Chen'
+    },
     photographerAvatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
     category: 'Portrait',
     date: 'Nov 28, 2024',
@@ -211,6 +246,12 @@ const clientAlbumsData = [
     id: 4,
     title: 'Company Annual Gala',
     photographer: 'David Kim',
+    payment: {
+      amountDue: 150.00,
+      status: 'pending',
+      eventName: 'Company Annual Gala',
+      photographerName: 'David Kim'
+    },
     photographerAvatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
     category: 'Event',
     date: 'Nov 15, 2024',
@@ -232,6 +273,12 @@ const clientAlbumsData = [
     id: 5,
     title: 'Product Catalog - Spring Collection',
     photographer: 'Emily Zhang',
+    payment: {
+      amountDue: 150.00,
+      status: 'pending',
+      eventName: 'Product Catalog - Spring Collection',
+      photographerName: 'Emily Zhang'
+    },
     photographerAvatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg',
     category: 'Product',
     date: 'Oct 10, 2024',
@@ -251,9 +298,16 @@ const clientAlbumsData = [
     id: 6,
     title: 'Birthday Celebration',
     photographer: 'Alex Rivera',
+    payment: {
+      amountDue: 150.00,
+      status: 'pending',
+      eventName: 'Birthday Celebration',
+      photographerName: 'Alex Rivera'
+    },
     photographerAvatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
     category: 'Event',
     date: 'Sep 22, 2024',
+    isArchived: false,
     receivedDate: 'Sep 25, 2024',
     thumbnail: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=400',
     photoCount: 89,
@@ -266,6 +320,17 @@ const clientAlbumsData = [
       'https://images.unsplash.com/photo-1527529482837-4698179dc6ce?w=800'
     ]
   }
+];
+
+const payments: Payment[] = [
+  { id: 1, date: 'Nov, 20 14:05 PM', eventName: 'Sarah & James Wedding', eventType: 'Wedding', photographerName: 'John Studio', photographerImage: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg', method: 'Credit Card', amount: '$450.0', amountNum: 450, paidAmount: 450, status: 'paid', invoiceNumber: 'INV-2024-001' },
+  { id: 2, date: 'Nov, 18 10:30 AM', eventName: 'Emily\'s 5th Birthday', eventType: 'Birthday', photographerName: 'Mary Shots', photographerImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', method: 'Mobile Money', amount: '$300.0', amountNum: 300, paidAmount: 150, status: 'partially_paid', invoiceNumber: 'INV-2024-002' },
+  { id: 3, date: 'Nov, 25 09:00 AM', eventName: 'MTN Annual Conference', eventType: 'Corporate', photographerName: 'Elite Photography', photographerImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', method: '-', amount: '$500.0', amountNum: 500, paidAmount: 0, status: 'pending', invoiceNumber: 'INV-2024-003' },
+  { id: 4, date: 'Sep, 15 16:00 PM', eventName: 'Nyege Nyege Festival', eventType: 'Festival', photographerName: 'Alex Frames', photographerImage: 'https://i.pinimg.com/1200x/09/23/45/092345eac1919407e0c49f67e285b831.jpg', method: 'Bank Transfer', amount: '$350.0', amountNum: 350, paidAmount: 350, status: 'paid', invoiceNumber: 'INV-2024-004' },
+  { id: 5, date: 'Nov, 25 14:00 PM', eventName: 'Personal Photoshoot', eventType: 'Portrait', photographerName: 'Sarah Lens', photographerImage: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg', method: 'Credit Card', amount: '$200.0', amountNum: 200, paidAmount: 0, status: 'failed', invoiceNumber: 'INV-2024-005' },
+  { id: 6, date: 'Oct, 01 11:00 AM', eventName: 'Product Launch Event', eventType: 'Corporate', photographerName: 'Elite Photography', photographerImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', method: 'Credit Card', amount: '$400.0', amountNum: 400, paidAmount: 400, status: 'refunded', invoiceNumber: 'INV-2024-006' },
+  { id: 7, date: 'Nov, 12 15:30 PM', eventName: 'Baby Shower', eventType: 'Birthday', photographerName: 'Mary Shots', photographerImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', method: 'Mobile Money', amount: '$250.0', amountNum: 250, paidAmount: 250, status: 'paid', invoiceNumber: 'INV-2024-007' },
+  { id: 8, date: 'Nov, 28 10:00 AM', eventName: 'Team Headshots', eventType: 'Corporate', photographerName: 'Elite Photography', photographerImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', method: '-', amount: '$350.0', amountNum: 350, paidAmount: 0, status: 'pending', invoiceNumber: 'INV-2024-008' },
 ];
 
 interface GalleryPageProps {
@@ -282,7 +347,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
 
   // Modal states
   const [showViewModal, setShowViewModal] = useState(false);
-  const [selectedAlbum, setSelectedAlbum] = useState<typeof clientAlbumsData[0] | null>(null);
+  const [selectedAlbum, setSelectedAlbum] = useState(clientAlbumsData[0]);
 
   // Multi-select view states
   const [showMultiSelectView, setShowMultiSelectView] = useState(false);
@@ -322,8 +387,9 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   const [showThumbnailSelector, setShowThumbnailSelector] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [welcomeUnlockModalOpen, setWelcomeUnlockModalOpen] = useState(false);
-  const [showPrompt , setShowPrompt] = useState(false);
-const [selectedArchiveAlbum, setSelectedArchiveAlbum] = useState(null);
+  const [showDonateModal, setDonateModal] = useState(false);
+  const [showPrompt, setShowPrompt] = useState(false);
+  const [selectedArchiveAlbum, setSelectedArchiveAlbum] = useState<typeof clientAlbumsData[0] | null>(null);
   const MAX_IMAGE_SELECTION = 3;
 
   // Setup wizard states (Select Album → Layout → Images)
@@ -337,38 +403,38 @@ const [selectedArchiveAlbum, setSelectedArchiveAlbum] = useState(null);
   const [showCoverPicker, setShowCoverPicker] = useState(false);
   const [setupCoverImage, setSetupCoverImage] = useState<string>('');
   const [step3ViewMode, setStep3ViewMode] = useState<'album-grid' | 'image-selection'>('album-grid');
-    const { profile } = useUserProfile();
+  const { profile } = useUserProfile();
 
-    const [showGiftsPaymentMethodModal, setShowGiftsPaymentMethodModal] = useState(false);
-    const [showGiftsDonateModal, setShowGiftsDonateModal] = useState(false);
-    const [showGiftsDonatePromptModal, setShowGiftsDonatePromptModal] = useState(false);
-    const [selectedGiftPaymentMethod, setSelectedGiftPaymentMethod] = useState<string | null>(null);
-    const [giftPaymentDetails, setGiftPaymentDetails] = useState({
-      mtnNumber: '',
-      airtelNumber: '',
-      bankName: '',
-      accountNumber: '',
-      accountName: '',
-      cardNumber: '',
-      cardExpiry: '',
-      cardCvv: '',
-      cardName: ''
-    });
-    const [validationError, setValidationError] = useState<string | null>(null);
-  
-    // Check if Rwanda requires mobile money selection
-    const isRwanda = profile.country === 'Rwanda';
-    const hasMobileMoneySelected = selectedGiftPaymentMethod === 'mtn' || selectedGiftPaymentMethod === 'airtel';
-  
-    // Validate that Rwanda users have selected a mobile money option
-    const validateGiftPaymentMethod = (): boolean => {
-      if (isRwanda && !hasMobileMoneySelected) {
-        setValidationError('For users in Rwanda, you must select either MTN or Airtel Mobile Money as a payment method.');
-        return false;
-      }
-      setValidationError(null);
-      return true;
-    };
+  const [showGiftsPaymentMethodModal, setShowGiftsPaymentMethodModal] = useState(false);
+  const [showGiftsDonateModal, setShowGiftsDonateModal] = useState(false);
+  const [showGiftsDonatePromptModal, setShowGiftsDonatePromptModal] = useState(false);
+  const [selectedGiftPaymentMethod, setSelectedGiftPaymentMethod] = useState<string | null>(null);
+  const [giftPaymentDetails, setGiftPaymentDetails] = useState({
+    mtnNumber: '',
+    airtelNumber: '',
+    bankName: '',
+    accountNumber: '',
+    accountName: '',
+    cardNumber: '',
+    cardExpiry: '',
+    cardCvv: '',
+    cardName: ''
+  });
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  // Check if Rwanda requires mobile money selection
+  const isRwanda = profile.country === 'Rwanda';
+  const hasMobileMoneySelected = selectedGiftPaymentMethod === 'mtn' || selectedGiftPaymentMethod === 'airtel';
+
+  // Validate that Rwanda users have selected a mobile money option
+  const validateGiftPaymentMethod = (): boolean => {
+    if (isRwanda && !hasMobileMoneySelected) {
+      setValidationError('For users in Rwanda, you must select either MTN or Airtel Mobile Money as a payment method.');
+      return false;
+    }
+    setValidationError(null);
+    return true;
+  };
 
   // Delete photobook modal states
   const [showDeletePhotobookModal, setShowDeletePhotobookModal] = useState(false);
@@ -384,9 +450,12 @@ const [selectedArchiveAlbum, setSelectedArchiveAlbum] = useState(null);
   const [isPhotobookSelectMode, setIsPhotobookSelectMode] = useState(false);
   const [showPhotobookImageViewer, setShowPhotobookImageViewer] = useState(false);
   const [photobookCurrentImageIndex, setPhotobookCurrentImageIndex] = useState(0);
+  const [isOpen, setIsOpen] = useState(false);
 
   const categories = ['All', 'Wedding', 'Portrait', 'Event', 'Product'];
   const photographers = ['All', ...Array.from(new Set(albums.map(a => a.photographer)))];
+  const [showPayNowModal, setShowPayNowModal] = useState(false);
+  const [payNowPayment, setPayNowPayment] = useState<Payment | null>(null);
 
   // Filter albums
   const filteredAlbums = albums.filter(album => {
@@ -464,6 +533,12 @@ const [selectedArchiveAlbum, setSelectedArchiveAlbum] = useState(null);
       setShowDeleteModal(false);
       setAlbumToDelete(null);
     }
+  };
+
+  const handlePayNow = (payment: Payment) => {
+    setPayNowPayment(payment);
+    setShowPayNowModal(true);
+    setShowPrompt(false);
   };
 
   const cancelDeleteAlbum = () => {
@@ -743,8 +818,6 @@ const [selectedArchiveAlbum, setSelectedArchiveAlbum] = useState(null);
       }
     }
   };
-
- 
 
   const handlePhotobookBulkShare = () => {
     if (photobookSelectedImages.length > 0 && selectedPhotobook) {
@@ -1159,6 +1232,7 @@ const [selectedArchiveAlbum, setSelectedArchiveAlbum] = useState(null);
               <button
                 onClick={() => setPageView(pageView === 'albums' ? 'archives' : 'albums')}
                 style={{
+                  cursor: 'pointer',
                   padding: '0.5rem 1rem',
                   borderRadius: '0.5rem',
                   border: '2px solid #F20C8F',
@@ -1170,20 +1244,13 @@ const [selectedArchiveAlbum, setSelectedArchiveAlbum] = useState(null);
                   alignItems: 'center',
                   gap: '0.375rem',
                   whiteSpace: 'nowrap',
-              
                 }}
               >
-{/* <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-  <rect x="3" y="4" width="18" height="5" rx="1"></rect>
-  <path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9"></path>
-  <line x1="10" y1="13" x2="14" y2="13"></line>
-</svg> */} 
-{/* Archive Icon */}
-    {pageView === 'albums' ? (
-       <Archive style={{width:'14px', height:'10px'}} />
-        ) : (
-          <EyeIcon />
-        )}
+                {pageView === 'albums' ? (
+                  <Archive style={{width:'14px', height:'10px'}} />
+                ) : (
+                  <EyeIcon />
+                )}
                 {pageView === 'albums' ? 'View Archives' : 'View Photobooks'}
               </button>
               {photobooks.length > 0 && (
@@ -1320,325 +1387,59 @@ const [selectedArchiveAlbum, setSelectedArchiveAlbum] = useState(null);
 
           {/* Albums Grid/List or Photobooks View */}
           {pageView === 'albums' ? (
-          <>
-          {/* Albums Grid/List */}
-          {viewMode === 'grid' ? (
-            <div className="mobile-albums-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem' }}>
-              {filteredAlbums.map((album) => (
-                <div
-                  key={album.id}
-                  style={{
-                    backgroundColor: colors.bgCard,
-                    borderRadius: '0.75rem',
-                    overflow: 'hidden',
-                    border: `1px solid ${colors.borderPrimary}`,
-                    transition: 'all 0.2s',
-                    cursor: 'pointer'
-                  }}
-                  onClick={() => {
-                    setSelectedAlbum(album);
-                    setShowViewModal(true);
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.boxShadow = 'none';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                  }}
-                >
-                  {/* Album Thumbnail */}
-                  <div style={{ position: 'relative', height: '180px', overflow: 'hidden' }}>
-                    <Image
-                      src={album.thumbnail}
-                      alt={album.title}
-                      fill
-                      style={{ objectFit: 'cover' }}
-                    />
-                    <div style={{
-                      position: 'absolute',
-                      top: '0.5rem',
-                      right: '0.5rem',
-                      backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                      color: 'white',
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '0.25rem',
-                      fontSize: '0.75rem',
-                      fontWeight: '500'
-                    }}>
-                      {album.photoCount} photos
-                    </div>
-                    <div style={{
-                      position: 'absolute',
-                      bottom: '0.5rem',
-                      left: '0.5rem',
-                      backgroundColor: '#083A85',
-                      color: 'white',
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '0.25rem',
-                      fontSize: '0.7rem',
-                      fontWeight: '500'
-                    }}>
-                      {album.category}
-                    </div>
-                  </div>
-
-                  {/* Album Info */}
-                  <div style={{ padding: '1rem' }}>
-                    <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0, marginBottom: '0.5rem' }}>
-                      {album.title}
-                    </h3>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                      <div style={{ position: 'relative', width: '24px', height: '24px', borderRadius: '50%', overflow: 'hidden' }}>
-                        <Image src={album.photographerAvatar} alt={album.photographer} fill style={{ objectFit: 'cover' }} />
-                      </div>
-                      <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>{album.photographer}</span>
-                    </div>
-                    <div style={{ fontSize: '0.8rem', color: '#9CA3AF', marginBottom: '0.75rem' }}>
-                      Received: {album.receivedDate}
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openMultiSelectView(album);
-                        }}
-                        style={{
-                          flex: 1,
-                          padding: '0.5rem',
-                          borderRadius: '0.375rem',
-                          border: '2px solid #062a63',
-                          backgroundColor: '#083A85',
-                          color: 'white',
-                          fontSize: '0.8rem',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '0.25rem'
-                        }}
-                      >
-                        <EyeIcon />
-                        Browse
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            /* List View */
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', border: `1px solid ${colors.borderPrimary}`, overflow: 'hidden' }}>
-              {/* Table Header */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '80px 1fr 150px 120px 100px 150px',
-                gap: '1rem',
-                padding: '0.75rem 1rem',
-                backgroundColor: colors.bgTertiary,
-                borderBottom: `1px solid ${colors.borderPrimary}`,
-                fontSize: '0.8rem',
-                fontWeight: '600',
-                color: colors.textSecondary
-              }}>
-                <div></div>
-                <div>Album</div>
-                <div>Photographer</div>
-                <div>Photos</div>
-                <div>Category</div>
-                <div>Actions</div>
-              </div>
-
-              {/* Table Rows */}
-              {filteredAlbums.map((album) => (
-                <div
-                  key={album.id}
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '80px 1fr 150px 120px 100px 150px',
-                    gap: '1rem',
-                    padding: '0.75rem 1rem',
-                    borderBottom: `1px solid ${colors.borderPrimary}`,
-                    alignItems: 'center',
-                    cursor: 'pointer',
-                    transition: 'background-color 0.2s'
-                  }}
-                  onClick={() => {
-                    setSelectedAlbum(album);
-                    setShowViewModal(true);
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = colors.bgTertiary;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = colors.bgCard;
-                  }}
-                >
-                  {/* Thumbnail */}
-                  <div style={{ position: 'relative', width: '80px', height: '50px', borderRadius: '0.375rem', overflow: 'hidden' }}>
-                    <Image src={album.thumbnail} alt={album.title} fill style={{ objectFit: 'cover' }} />
-                  </div>
-
-                  {/* Album Title */}
-                  <div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{album.title}</div>
-                    <div style={{ fontSize: '0.8rem', color: '#9CA3AF' }}>Received: {album.receivedDate}</div>
-                  </div>
-
-                  {/* Photographer */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <div style={{ position: 'relative', width: '24px', height: '24px', borderRadius: '50%', overflow: 'hidden' }}>
-                      <Image src={album.photographerAvatar} alt={album.photographer} fill style={{ objectFit: 'cover' }} />
-                    </div>
-                    <span style={{ fontSize: '0.85rem', color: colors.textPrimary }}>{album.photographer}</span>
-                  </div>
-
-                  {/* Photos Count */}
-                  <div style={{ fontSize: '0.9rem', color: colors.textPrimary }}>{album.photoCount} photos</div>
-
-                  {/* Category */}
-                  <span style={{
-                    display: 'inline-block',
-                    padding: '0.25rem 0.5rem',
-                    backgroundColor: '#DBEAFE',
-                    color: '#1E40AF',
-                    borderRadius: '0.25rem',
-                    fontSize: '0.75rem',
-                    fontWeight: '500'
-                  }}>
-                    {album.category}
-                  </span>
-
-                  {/* Actions */}
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openMultiSelectView(album);
-                      }}
+            <>
+              {/* Albums Grid/List */}
+              {viewMode === 'grid' ? (
+                <div className="mobile-albums-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem' }}>
+                  {filteredAlbums.map((album) => (
+                    <div
+                      key={album.id}
                       style={{
-                        padding: '0.375rem 0.75rem',
-                        borderRadius: '0.375rem',
-                        border: '2px solid #062a63',
-                        backgroundColor: '#083A85',
-                        color: 'white',
-                        fontSize: '0.8rem',
-                        fontWeight: '500',
+                        backgroundColor: colors.bgCard,
+                        borderRadius: '0.75rem',
+                        overflow: 'hidden',
+                        border: `1px solid ${colors.borderPrimary}`,
+                        transition: 'all 0.2s',
                         cursor: 'pointer'
                       }}
+                      onClick={() => {
+                        setSelectedAlbum(album);
+                        setShowViewModal(true);
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.boxShadow = 'none';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                      }}
                     >
-                      Browse
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          </>
-          ) : pageView === 'photobooks' ?(
-          /* Photobooks View */
-          <div>
-            {filteredPhotobooks.length === 0 ? (
-              <div style={{
-                textAlign: 'center',
-                padding: '3rem 1.5rem',
-                backgroundColor: colors.bgCard,
-                borderRadius: '0.75rem',
-                border: `1px solid ${colors.borderPrimary}`
-              }}>
-                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>
-                  <ImageIcon />
-                </div>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
-                  No Photobooks Yet
-                </h3>
-                <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1.25rem 0' }}>
-                  Create a photobook and select your preferred images from sent albums to add them here.
-                </p>
-                <button
-                  onClick={() => setShowCreatePhotobookModal(true)}
-                  style={{
-                    padding: '0.625rem 1.25rem',
-                    borderRadius: '0.5rem',
-                    border: '2px solid #062a63',
-                    backgroundColor: '#083A85',
-                    color: 'white',
-                    fontSize: '0.9rem',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                  </svg>
-                  Create Photobook
-                </button>
-              </div>
-            ) : (
-              <div className="mobile-photobooks-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem' }}>
-                {filteredPhotobooks.map((photobook) => (
-                  <div
-                    key={photobook.id}
-                    style={{
-                      backgroundColor: colors.bgCard,
-                      borderRadius: '0.75rem',
-                      overflow: 'hidden',
-                      border: `1px solid ${colors.borderPrimary}`,
-                      transition: 'all 0.2s'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
-                      e.currentTarget.style.transform = 'translateY(-2px)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.boxShadow = 'none';
-                      e.currentTarget.style.transform = 'translateY(0)';
-                    }}
-                  >
-                    {/* Photobook Thumbnail */}
-                    <div style={{ position: 'relative', height: '180px', overflow: 'hidden', backgroundColor: colors.bgTertiary }}>
-                      {photobook.thumbnail ? (
+                      {/* Album Thumbnail */}
+                      <div style={{ position: 'relative', height: '180px', overflow: 'hidden' }}>
                         <Image
-                          src={photobook.thumbnail}
-                          alt={photobook.name}
+                          src={album.thumbnail}
+                          alt={album.title}
                           fill
                           style={{ objectFit: 'cover' }}
                         />
-                      ) : (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: colors.textSecondary }}>
-                          <ImageIcon />
-                        </div>
-                      )}
-                      <div style={{
-                        position: 'absolute',
-                        top: '0.5rem',
-                        right: '0.5rem',
-                        backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                        color: 'white',
-                        padding: '0.25rem 0.5rem',
-                        borderRadius: '0.25rem',
-                        fontSize: '0.75rem',
-                        fontWeight: '500'
-                      }}>
-                        {photobook.images.length} photos
-                      </div>
-                      <div style={{
-                        position: 'absolute',
-                        bottom: '0.5rem',
-                        left: '0.5rem',
-                        display: 'flex',
-                        gap: '0.375rem',
-                        alignItems: 'center'
-                      }}>
                         <div style={{
+                          position: 'absolute',
+                          top: '0.5rem',
+                          right: '0.5rem',
+                          backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                          color: 'white',
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '0.25rem',
+                          fontSize: '0.75rem',
+                          fontWeight: '500'
+                        }}>
+                          {album.photoCount} photos
+                        </div>
+                        <div style={{
+                          position: 'absolute',
+                          bottom: '0.5rem',
+                          left: '0.5rem',
                           backgroundColor: '#083A85',
                           color: 'white',
                           padding: '0.25rem 0.5rem',
@@ -1646,82 +1447,32 @@ const [selectedArchiveAlbum, setSelectedArchiveAlbum] = useState(null);
                           fontSize: '0.7rem',
                           fontWeight: '500'
                         }}>
-                          Photobook
+                          {album.category}
                         </div>
-                        {photobook.layout && (
-                          <div style={{
-                            backgroundColor: photobook.layout === 'book-flip' ? '#7C3AED' : photobook.layout === 'mosaic' ? '#D97706' : '#059669',
-                            color: 'white',
-                            padding: '0.25rem 0.5rem',
-                            borderRadius: '0.25rem',
-                            fontSize: '0.65rem',
-                            fontWeight: '500',
-                            textTransform: 'capitalize'
-                          }}>
-                            {photobook.layout === 'book-flip' ? 'Book Flip' : photobook.layout === 'mosaic' ? 'Mosaic' : 'Gallery Wall'}
+                      </div>
+
+                      {/* Album Info */}
+                      <div style={{ padding: '1rem' }}>
+                        <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0, marginBottom: '0.5rem' }}>
+                          {album.title}
+                        </h3>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                          <div style={{ position: 'relative', width: '24px', height: '24px', borderRadius: '50%', overflow: 'hidden' }}>
+                            <Image src={album.photographerAvatar} alt={album.photographer} fill style={{ objectFit: 'cover' }} />
                           </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Photobook Info */}
-                    <div style={{ padding: '1rem' }}>
-                      <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0, marginBottom: '0.375rem' }}>
-                        {photobook.name}
-                      </h3>
-                      {photobook.description && (
-                        <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: '0 0 0.5rem 0', lineHeight: '1.4' }}>
-                          {photobook.description}
-                        </p>
-                      )}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                        <span style={{ fontSize: '0.8rem', color: '#9CA3AF' }}>
-                          {photobook.createdAt}
-                        </span>
-                        {photobook.layout && (
-                          <span style={{
-                            fontSize: '0.7rem',
-                            color: photobook.layout === 'book-flip' ? '#7C3AED' : photobook.layout === 'mosaic' ? '#D97706' : '#059669',
-                            fontWeight: '600',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.25rem'
-                          }}>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              {photobook.layout === 'book-flip' ? (
-                                <><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></>
-                              ) : photobook.layout === 'mosaic' ? (
-                                <><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></>
-                              ) : (
-                                <><rect x="2" y="7" width="20" height="14" rx="2"></rect><line x1="12" y1="3" x2="12" y2="7"></line></>
-                              )}
-                            </svg>
-                            {photobook.layout === 'book-flip' ? 'Book Flip' : photobook.layout === 'mosaic' ? 'Mosaic' : 'Gallery Wall'}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Empty Photobook Message */}
-                      {photobook.images.length === 0 && (
-                        <div style={{
-                          padding: '0.75rem',
-                          backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF',
-                          border: `1px solid ${actualTheme === 'dark' ? '#2563EB' : '#BFDBFE'}`,
-                          borderRadius: '0.5rem',
-                          marginBottom: '0.75rem'
-                        }}>
-                          <p style={{ fontSize: '0.75rem', color: actualTheme === 'dark' ? '#93C5FD' : '#1D4ED8', margin: 0, lineHeight: '1.4' }}>
-                            Select an album to add images and configure your photobook.
-                          </p>
+                          <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>{album.photographer}</span>
                         </div>
-                      )}
+                        <div style={{ fontSize: '0.8rem', color: '#9CA3AF', marginBottom: '0.75rem' }}>
+                          Received: {album.receivedDate}
+                        </div>
 
-                      {/* Action Buttons */}
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        {photobook.images.length === 0 ? (
-                          /* Empty photobook: Show Select Album button */
+                        {/* Action Buttons */}
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
                           <button
-                            onClick={() => openSetupWizard(photobook)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openMultiSelectView(album);
+                            }}
                             style={{
                               flex: 1,
                               padding: '0.5rem',
@@ -1738,19 +1489,306 @@ const [selectedArchiveAlbum, setSelectedArchiveAlbum] = useState(null);
                               gap: '0.25rem'
                             }}
                           >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                              <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                              <polyline points="21 15 16 10 5 21"></polyline>
-                            </svg>
-                            Select Album
+                            <EyeIcon />
+                            Browse
                           </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                /* List View */
+                <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', border: `1px solid ${colors.borderPrimary}`, overflow: 'hidden' }}>
+                  {/* Table Header */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '80px 1fr 150px 120px 100px 150px',
+                    gap: '1rem',
+                    padding: '0.75rem 1rem',
+                    backgroundColor: colors.bgTertiary,
+                    borderBottom: `1px solid ${colors.borderPrimary}`,
+                    fontSize: '0.8rem',
+                    fontWeight: '600',
+                    color: colors.textSecondary
+                  }}>
+                    <div></div>
+                    <div>Album</div>
+                    <div>Photographer</div>
+                    <div>Photos</div>
+                    <div>Category</div>
+                    <div>Actions</div>
+                  </div>
+
+                  {/* Table Rows */}
+                  {filteredAlbums.map((album) => (
+                    <div
+                      key={album.id}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '80px 1fr 150px 120px 100px 150px',
+                        gap: '1rem',
+                        padding: '0.75rem 1rem',
+                        borderBottom: `1px solid ${colors.borderPrimary}`,
+                        alignItems: 'center',
+                        cursor: 'pointer',
+                        transition: 'background-color 0.2s'
+                      }}
+                      onClick={() => {
+                        setSelectedAlbum(album);
+                        setShowViewModal(true);
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = colors.bgTertiary;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = colors.bgCard;
+                      }}
+                    >
+                      {/* Thumbnail */}
+                      <div style={{ position: 'relative', width: '80px', height: '50px', borderRadius: '0.375rem', overflow: 'hidden' }}>
+                        <Image src={album.thumbnail} alt={album.title} fill style={{ objectFit: 'cover' }} />
+                      </div>
+
+                      {/* Album Title */}
+                      <div>
+                        <div style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{album.title}</div>
+                        <div style={{ fontSize: '0.8rem', color: '#9CA3AF' }}>Received: {album.receivedDate}</div>
+                      </div>
+
+                      {/* Photographer */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{ position: 'relative', width: '24px', height: '24px', borderRadius: '50%', overflow: 'hidden' }}>
+                          <Image src={album.photographerAvatar} alt={album.photographer} fill style={{ objectFit: 'cover' }} />
+                        </div>
+                        <span style={{ fontSize: '0.85rem', color: colors.textPrimary }}>{album.photographer}</span>
+                      </div>
+
+                      {/* Photos Count */}
+                      <div style={{ fontSize: '0.9rem', color: colors.textPrimary }}>{album.photoCount} photos</div>
+
+                      {/* Category */}
+                      <span style={{
+                        display: 'inline-block',
+                        padding: '0.25rem 0.5rem',
+                        backgroundColor: '#DBEAFE',
+                        color: '#1E40AF',
+                        borderRadius: '0.25rem',
+                        fontSize: '0.75rem',
+                        fontWeight: '500'
+                      }}>
+                        {album.category}
+                      </span>
+
+                      {/* Actions */}
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openMultiSelectView(album);
+                          }}
+                          style={{
+                            padding: '0.375rem 0.75rem',
+                            borderRadius: '0.375rem',
+                            border: '2px solid #062a63',
+                            backgroundColor: '#083A85',
+                            color: 'white',
+                            fontSize: '0.8rem',
+                            fontWeight: '500',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Browse
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          ) : pageView === 'photobooks' ? (
+            /* Photobooks View */
+            <div>
+              {filteredPhotobooks.length === 0 ? (
+                <div style={{
+                  textAlign: 'center',
+                  padding: '3rem 1.5rem',
+                  backgroundColor: colors.bgCard,
+                  borderRadius: '0.75rem',
+                  border: `1px solid ${colors.borderPrimary}`
+                }}>
+                  <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>
+                    <ImageIcon />
+                  </div>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
+                    No Photobooks Yet
+                  </h3>
+                  <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1.25rem 0' }}>
+                    Create a photobook and select your preferred images from sent albums to add them here.
+                  </p>
+                  <button
+                    onClick={() => setShowCreatePhotobookModal(true)}
+                    style={{
+                      padding: '0.625rem 1.25rem',
+                      borderRadius: '0.5rem',
+                      border: '2px solid #062a63',
+                      backgroundColor: '#083A85',
+                      color: 'white',
+                      fontSize: '0.9rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                      <line x1="12" y1="5" x2="12" y2="19"></line>
+                      <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Create Photobook
+                  </button>
+                </div>
+              ) : (
+                <div className="mobile-photobooks-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem' }}>
+                  {filteredPhotobooks.map((photobook) => (
+                    <div
+                      key={photobook.id}
+                      style={{
+                        backgroundColor: colors.bgCard,
+                        borderRadius: '0.75rem',
+                        overflow: 'hidden',
+                        border: `1px solid ${colors.borderPrimary}`,
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.boxShadow = 'none';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                      }}
+                    >
+                      {/* Photobook Thumbnail */}
+                      <div style={{ position: 'relative', height: '180px', overflow: 'hidden', backgroundColor: colors.bgTertiary }}>
+                        {photobook.thumbnail ? (
+                          <Image
+                            src={photobook.thumbnail}
+                            alt={photobook.name}
+                            fill
+                            style={{ objectFit: 'cover' }}
+                          />
                         ) : (
-                          /* Configured photobook: Show View, Edit, Delete buttons */
-                          <>
-                            {/* View Button */}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: colors.textSecondary }}>
+                            <ImageIcon />
+                          </div>
+                        )}
+                        <div style={{
+                          position: 'absolute',
+                          top: '0.5rem',
+                          right: '0.5rem',
+                          backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                          color: 'white',
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '0.25rem',
+                          fontSize: '0.75rem',
+                          fontWeight: '500'
+                        }}>
+                          {photobook.images.length} photos
+                        </div>
+                        <div style={{
+                          position: 'absolute',
+                          bottom: '0.5rem',
+                          left: '0.5rem',
+                          display: 'flex',
+                          gap: '0.375rem',
+                          alignItems: 'center'
+                        }}>
+                          <div style={{
+                            backgroundColor: '#083A85',
+                            color: 'white',
+                            padding: '0.25rem 0.5rem',
+                            borderRadius: '0.25rem',
+                            fontSize: '0.7rem',
+                            fontWeight: '500'
+                          }}>
+                            Photobook
+                          </div>
+                          {photobook.layout && (
+                            <div style={{
+                              backgroundColor: photobook.layout === 'book-flip' ? '#7C3AED' : photobook.layout === 'mosaic' ? '#D97706' : '#059669',
+                              color: 'white',
+                              padding: '0.25rem 0.5rem',
+                              borderRadius: '0.25rem',
+                              fontSize: '0.65rem',
+                              fontWeight: '500',
+                              textTransform: 'capitalize'
+                            }}>
+                              {photobook.layout === 'book-flip' ? 'Book Flip' : photobook.layout === 'mosaic' ? 'Mosaic' : 'Gallery Wall'}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Photobook Info */}
+                      <div style={{ padding: '1rem' }}>
+                        <h3 style={{ fontSize: '1rem', fontWeight: '600',display:'flex',justifyContent:'space-between',alignItems:'center', color: colors.textPrimary, margin: 0, marginBottom: '0.375rem' }}>
+                        <span> {photobook.name}</span> <span style={{color:'green', backgroundColor:'#BBF7D0', padding:'0.23rem 0.39rem', borderRadius:'0.3 rem'}}>Unlocked</span>
+                        </h3>
+                        {photobook.description && (
+                          <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: '0 0 0.5rem 0', lineHeight: '1.4' }}>
+                            {photobook.description}
+                          </p>
+                        )}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                          <span style={{ fontSize: '0.8rem', color: '#9CA3AF' }}>
+                            {photobook.createdAt}
+                          </span>
+                          {photobook.layout && (
+                            <span style={{
+                              fontSize: '0.7rem',
+                              color: photobook.layout === 'book-flip' ? '#7C3AED' : photobook.layout === 'mosaic' ? '#D97706' : '#059669',
+                              fontWeight: '600',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.25rem'
+                            }}>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                {photobook.layout === 'book-flip' ? (
+                                  <><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></>
+                                ) : photobook.layout === 'mosaic' ? (
+                                  <><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></>
+                                ) : (
+                                  <><rect x="2" y="7" width="20" height="14" rx="2"></rect><line x1="12" y1="3" x2="12" y2="7"></line></>
+                                )}
+                              </svg>
+                              {photobook.layout === 'book-flip' ? 'Book Flip' : photobook.layout === 'mosaic' ? 'Mosaic' : 'Gallery Wall'}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Empty Photobook Message */}
+                        {photobook.images.length === 0 && (
+                          <div style={{
+                            padding: '0.75rem',
+                            backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF',
+                            border: `1px solid ${actualTheme === 'dark' ? '#2563EB' : '#BFDBFE'}`,
+                            borderRadius: '0.5rem',
+                            marginBottom: '0.75rem'
+                          }}>
+                            <p style={{ fontSize: '0.75rem', color: actualTheme === 'dark' ? '#93C5FD' : '#1D4ED8', margin: 0, lineHeight: '1.4' }}>
+                              Select an album to add images and configure your photobook.
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Action Buttons */}
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          {photobook.images.length === 0 ? (
+                            /* Empty photobook: Show Select Album button */
                             <button
-                              onClick={() => openPhotobookBrowse(photobook)}
+                              onClick={() => openSetupWizard(photobook)}
                               style={{
                                 flex: 1,
                                 padding: '0.5rem',
@@ -1767,68 +1805,97 @@ const [selectedArchiveAlbum, setSelectedArchiveAlbum] = useState(null);
                                 gap: '0.25rem'
                               }}
                             >
-                              <EyeIcon />
-                              View
-                            </button>
-                            {/* Edit Button */}
-                            <button
-                              onClick={() => openSetupWizard(photobook)}
-                              style={{
-                                flex: 1,
-                                padding: '0.5rem',
-                                borderRadius: '0.375rem',
-                                border: '2px solid #083A85',
-                                backgroundColor: 'transparent',
-                                color: '#083A85',
-                                fontSize: '0.8rem',
-                                fontWeight: '600',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: '0.25rem'
-                              }}
-                            >
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                <polyline points="21 15 16 10 5 21"></polyline>
                               </svg>
-                              Edit
+                              Select Album
                             </button>
-                            {/* Delete Button */}
-                            <button
-                              onClick={() => openDeletePhotobookModal(photobook)}
-                              style={{
-                                flex: 1,
-                                padding: '0.5rem',
-                                borderRadius: '0.375rem',
-                                border: '2px solid #DC2626',
-                                backgroundColor: 'transparent',
-                                color: '#DC2626',
-                                fontSize: '0.8rem',
-                                fontWeight: '600',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: '0.25rem'
-                              }}
-                            >
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="3 6 5 6 21 6"></polyline>
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                              </svg>
-                              Delete
-                            </button>
-                          </>
-                        )}
+                          ) : (
+                            /* Configured photobook: Show View, Edit, Delete buttons */
+                            <>
+                              {/* View Button */}
+                              <button
+                                onClick={() => openPhotobookBrowse(photobook)}
+                                style={{
+                                  flex: 1,
+                                  padding: '0.5rem',
+                                  borderRadius: '0.375rem',
+                                  border: '2px solid #062a63',
+                                  backgroundColor: '#083A85',
+                                  color: 'white',
+                                  fontSize: '0.8rem',
+                                  fontWeight: '600',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: '0.25rem'
+                                }}
+                              >
+                                <EyeIcon />
+                                View
+                              </button>
+                              {/* Edit Button */}
+                              <button
+                                onClick={() => openSetupWizard(photobook)}
+                                style={{
+                                  flex: 1,
+                                  padding: '0.5rem',
+                                  borderRadius: '0.375rem',
+                                  border: '2px solid #083A85',
+                                  backgroundColor: 'transparent',
+                                  color: '#083A85',
+                                  fontSize: '0.8rem',
+                                  fontWeight: '600',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: '0.25rem'
+                                }}
+                              >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                </svg>
+                                Edit
+                              </button>
+                              {/* Delete Button */}
+                              <button
+                                onClick={() => openDeletePhotobookModal(photobook)}
+                                style={{
+                                  flex: 1,
+                                  padding: '0.5rem',
+                                  borderRadius: '0.375rem',
+                                  border: '2px solid #DC2626',
+                                  backgroundColor: 'transparent',
+                                  color: '#DC2626',
+                                  fontSize: '0.8rem',
+                                  fontWeight: '600',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: '0.25rem'
+                                }}
+                              >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="3 6 5 6 21 6"></polyline>
+                                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                </svg>
+                                Delete
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  ))}
+                </div>
+              )}
+            </div>
           ) : pageView === 'archives' ? (
             <div style={{
               textAlign: 'center',
@@ -1837,739 +1904,251 @@ const [selectedArchiveAlbum, setSelectedArchiveAlbum] = useState(null);
               borderRadius: '0.75rem',
               border: `1px solid ${colors.borderPrimary}`
             }}>
-         
-         {viewMode === 'grid' ? (
-      <div className="mobile-albums-grid" style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
-        gap: '1.25rem' 
-      }}>
-   {filteredAlbums
-  .filter(album => album.isArchived)
-  .map((album) => (
-    <AlbumCard
-      key={album.id}
-      album={album}
-      viewMode="grid"
-      colors={colors}
-      onCardClick={(album:any) => {
-        setSelectedArchiveAlbum(album);
-        setWelcomeUnlockModalOpen(true); // Show payment modal
-      }}
-      onBrowseClick={(album) => {
-        alert('This album is archived');
-      }}
-    />
-  ))
-}
+              {viewMode === 'grid' ? (
+                <div className="mobile-albums-grid" style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
+                  gap: '1.25rem' 
+                }}>
+                  {filteredAlbums
+                    .filter(album => album.isArchived)
+                    .map((album) => (
+                      <AlbumCard
+                        key={album.id}
+                        album={album}
+                        viewMode="grid"
+                        colors={colors}
+                        onCardClick={(album:any) => {
+                          setSelectedArchiveAlbum(album);
+                          setWelcomeUnlockModalOpen(true);
+                        }}
+                        onBrowseClick={(album) => {
+                          alert('This album is archived');
+                        }}
+                      />
+                    ))
+                  }
 
-{welcomeUnlockModalOpen && (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000
-    }}>
-      <div style={{
-        backgroundColor: 'white',
-        padding: '2rem',
-        borderRadius: '1rem',
-        maxWidth: '400px'
-      }}>
-        <PostModal
-        onYes={() => {
-          setWelcomeUnlockModalOpen(false);
-          setShowPrompt(true);
-        }}
-        title="Would you like to unlock this Photobook?"
-        onNo={() => setWelcomeUnlockModalOpen(false)}
-        onContinueToPayment={() => {
-          setWelcomeUnlockModalOpen(false);
-          setShowPrompt(true);
-        }}
-         onCancel={() => setWelcomeUnlockModalOpen(false)}
-        />
-        <button
-          onClick={() => setShowPayment(false)}
-          style={{
-            marginTop: '1rem',
-            padding: '0.5rem 1rem',
-            backgroundColor: '#083A85',
-            color: 'white',
-            border: 'none',
-            borderRadius: '0.5rem',
-            cursor: 'pointer',
-            width: '100%'
-          }}
-        >
-          Close
-        </button>
-      </div>
-    </div>
-)}
-
-{showPrompt && (
-  <div style={{
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000
-  }}>
-    <div style={{
-      backgroundColor: 'white',
-      padding: '2rem',
-      borderRadius: '1rem',
-      maxWidth: '400px'
-    }}>
-      <UnlockPromptModal
-        isOpen={showPrompt}
-        onClose={() => setShowPayment(false)}
-        onNo={() => setShowPrompt(false)}
-        onYes ={ () => {
-          setShowPrompt(false);
-          setShowPayment(true);
-        }}
-      />
-      <button
-        onClick={() => setShowPayment(false)}
-        style={{
-          marginTop: '1rem',
-          padding: '0.5rem 1rem',
-          backgroundColor: '#083A85',
-          color: 'white',
-          border: 'none',
-          borderRadius: '0.5rem',
-          cursor: 'pointer',
-          width: '100%'
-        }}
-      >
-        Close
-      </button>
-    </div>
-  </div>
-)}
-{/* Render PaymentItem conditionally */}
-{showPayment && (
-  <div style={{
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000
-  }}>
-    <div style={{
-      backgroundColor: 'white',
-      padding: '2rem',
-      borderRadius: '1rem',
-      maxWidth: '400px'
-    }}>
-      <UnlockModal
-      title='Make payment to Unlock Album'
-        isOpen={showPayment}
-        onClose={() => setShowPayment(false)}
-      >
-
-              <div>
-                  {/* Explainer Box */}
-                  <div style={{
-                    backgroundColor: actualTheme === 'dark' ? '#14532D' : '#F0FDF4',
-                    border: `1px solid ${actualTheme === 'dark' ? '#166534' : '#BBF7D0'}`,
-                    borderRadius: '0.5rem',
-                    padding: '0.75rem 1rem',
-                    marginBottom: '1rem',
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '0.75rem'
-                  }}>
-                    <div style={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '50%',
-                      backgroundColor: actualTheme === 'dark' ? '#166534' : '#DCFCE7',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0
-                    }}>
-                      <GiftIcon />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.25rem' }}>
-                        Where should we send your gift earnings?
-                      </div>
-                      <div style={{ fontSize: '0.8rem', color: colors.textSecondary, lineHeight: '1.4' }}>
-                        When viewers send you gifts during your live streams, this is the account where you&apos;ll receive those payments.
-                      </div>
-                    </div>
-                  </div>
-        
-                  {/* Rwanda Mobile Money Requirement Notice */}
-                  {isRwanda && (
-                    <div style={{
-                      backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF',
-                      border: `1px solid ${actualTheme === 'dark' ? '#3B82F6' : '#BFDBFE'}`,
-                      borderRadius: '0.5rem',
-                      padding: '0.75rem 1rem',
-                      marginBottom: '1rem',
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '0.5rem'
-                    }}>
-                      <span style={{ fontSize: '1rem' }}>ℹ️</span>
-                      <div style={{ fontSize: '0.85rem', color: actualTheme === 'dark' ? '#93C5FD' : '#1E40AF' }}>
-                        <strong>Required for Rwanda:</strong> You must select either MTN or Airtel Mobile Money as a payment method. You can also add other methods optionally.
-                      </div>
-                    </div>
-                  )}
-        
-                  {/* Validation Error */}
-                  {validationError && (
-                    <div style={{
-                      backgroundColor: actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2',
-                      border: `1px solid ${actualTheme === 'dark' ? '#F87171' : '#FECACA'}`,
-                      borderRadius: '0.5rem',
-                      padding: '0.75rem 1rem',
-                      marginBottom: '1rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem'
-                    }}>
-                      <span style={{ fontSize: '1rem' }}>⚠️</span>
-                      <span style={{ fontSize: '0.85rem', color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626' }}>
-                        {validationError}
-                      </span>
-                    </div>
-                  )}
-        
-                  {/* Payment Method Options */}
-                  <div style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>
-                    Select your withdrawal account:
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.25rem' }}>
-                    {/* MTN Mobile Money */}
-                    <div
-                      onClick={() => {
-                        setSelectedGiftPaymentMethod('mtn');
-                        setValidationError(null);
-                      }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '1rem',
-                        padding: '1rem',
-                        border: selectedGiftPaymentMethod === 'mtn' ? '2px solid #16A34A' : (isRwanda && !hasMobileMoneySelected ? `2px solid #F59E0B` : `2px solid ${colors.borderPrimary}`),
-                        borderRadius: '0.75rem',
-                        cursor: 'pointer',
-                        backgroundColor: selectedGiftPaymentMethod === 'mtn' ? (actualTheme === 'dark' ? '#14532D' : '#F0FDF4') : colors.bgCard,
-                        transition: 'all 0.2s'
-                      }}
-                    >
-                      <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0 }}>
-                        <Image src="/mtn.png" alt="MTN Mobile Money" width={48} height={48} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>MTN Mobile Money</span>
-                          {isRwanda && (
-                            <span style={{
-                              fontSize: '0.65rem',
-                              fontWeight: '600',
-                              color: '#F59E0B',
-                              backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FEF3C7',
-                              padding: '0.15rem 0.4rem',
-                              borderRadius: '0.25rem',
-                              textTransform: 'uppercase'
-                            }}>Required</span>
-                          )}
-                        </div>
-                        <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Receive gifts via MTN MoMo</div>
-                      </div>
-                      <div style={{
-                        width: '20px',
-                        height: '20px',
-                        borderRadius: '50%',
-                        border: selectedGiftPaymentMethod === 'mtn' ? '6px solid #16A34A' : `2px solid ${colors.borderPrimary}`,
-                        backgroundColor: colors.bgCard
-                      }} />
-                    </div>
-        
-                    {/* Airtel Mobile Money */}
-                    <div
-                      onClick={() => {
-                        setSelectedGiftPaymentMethod('airtel');
-                        setValidationError(null);
-                      }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '1rem',
-                        padding: '1rem',
-                        border: selectedGiftPaymentMethod === 'airtel' ? '2px solid #16A34A' : (isRwanda && !hasMobileMoneySelected ? `2px solid #F59E0B` : `2px solid ${colors.borderPrimary}`),
-                        borderRadius: '0.75rem',
-                        cursor: 'pointer',
-                        backgroundColor: selectedGiftPaymentMethod === 'airtel' ? (actualTheme === 'dark' ? '#14532D' : '#F0FDF4') : colors.bgCard,
-                        transition: 'all 0.2s'
-                      }}
-                    >
-                      <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0 }}>
-                        <Image src="/airtel.png" alt="Airtel Mobile Money" width={48} height={48} style={{ objectFit: 'cover', width: '100%', height: '100%' }} unoptimized />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Airtel Mobile Money</span>
-                          {isRwanda && (
-                            <span style={{
-                              fontSize: '0.65rem',
-                              fontWeight: '600',
-                              color: '#F59E0B',
-                              backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FEF3C7',
-                              padding: '0.15rem 0.4rem',
-                              borderRadius: '0.25rem',
-                              textTransform: 'uppercase'
-                            }}>Required</span>
-                          )}
-                        </div>
-                        <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Receive gifts via Airtel Money</div>
-                      </div>
-                      <div style={{
-                        width: '20px',
-                        height: '20px',
-                        borderRadius: '50%',
-                        border: selectedGiftPaymentMethod === 'airtel' ? '6px solid #16A34A' : `2px solid ${colors.borderPrimary}`,
-                        backgroundColor: colors.bgCard
-                      }} />
-                    </div>
-        
-                    {/* Bank Account */}
-                    <div
-                      onClick={() => setSelectedGiftPaymentMethod('bank')}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '1rem',
-                        padding: '1rem',
-                        border: selectedGiftPaymentMethod === 'bank' ? '2px solid #16A34A' : `2px solid ${colors.borderPrimary}`,
-                        borderRadius: '0.75rem',
-                        cursor: 'pointer',
-                        backgroundColor: selectedGiftPaymentMethod === 'bank' ? (actualTheme === 'dark' ? '#14532D' : '#F0FDF4') : colors.bgCard,
-                        transition: 'all 0.2s'
-                      }}
-                    >
-                      <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0 }}>
-                        <Image src="/bank.png" alt="Bank Account" width={48} height={48} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Bank Account</div>
-                        <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Receive gifts via bank transfer</div>
-                      </div>
-                      <div style={{
-                        width: '20px',
-                        height: '20px',
-                        borderRadius: '50%',
-                        border: selectedGiftPaymentMethod === 'bank' ? '6px solid #16A34A' : `2px solid ${colors.borderPrimary}`,
-                        backgroundColor: colors.bgCard
-                      }} />
-                    </div>
-        
-                    {/* VISA/Debit/Credit Cards */}
-                    <div
-                      onClick={() => setSelectedGiftPaymentMethod('card')}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '1rem',
-                        padding: '1rem',
-                        border: selectedGiftPaymentMethod === 'card' ? '2px solid #16A34A' : `2px solid ${colors.borderPrimary}`,
-                        borderRadius: '0.75rem',
-                        cursor: 'pointer',
-                        backgroundColor: selectedGiftPaymentMethod === 'card' ? (actualTheme === 'dark' ? '#14532D' : '#F0FDF4') : colors.bgCard,
-                        transition: 'all 0.2s'
-                      }}
-                    >
-                      <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0 }}>
-                        <Image src="/cards.png" alt="VISA/Debit/Credit Cards" width={48} height={48} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Debit/Credit Cards</div>
-                        <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Receive gifts to your card</div>
-                      </div>
-                      <div style={{
-                        width: '20px',
-                        height: '20px',
-                        borderRadius: '50%',
-                        border: selectedGiftPaymentMethod === 'card' ? '6px solid #16A34A' : `2px solid ${colors.borderPrimary}`,
-                        backgroundColor: colors.bgCard
-                      }} />
-                    </div>
-                  </div>
-        
-                  {/* Payment Details Form */}
-                  {selectedGiftPaymentMethod && (
-                    <div style={{
-                      backgroundColor: colors.bgTertiary,
-                      borderRadius: '0.75rem',
-                      padding: '1rem',
-                      marginBottom: '1.25rem',
-                      border: `1px solid ${colors.borderPrimary}`
-                    }}>
-                      <h4 style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 1rem 0' }}>
-                        {selectedGiftPaymentMethod === 'mtn' && 'MTN Mobile Money Details'}
-                        {selectedGiftPaymentMethod === 'airtel' && 'Airtel Mobile Money Details'}
-                        {selectedGiftPaymentMethod === 'bank' && 'Bank Account Details'}
-                        {selectedGiftPaymentMethod === 'card' && 'Card Details'}
-                      </h4>
-        
-                      {/* MTN Fields */}
-                      {selectedGiftPaymentMethod === 'mtn' && (
-                        <div>
-                          <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                            MTN Phone Number
-                          </label>
-                          <input
-                            type="tel"
-                            placeholder="+256 78X XXX XXX"
-                            value={giftPaymentDetails.mtnNumber}
-                            onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, mtnNumber: e.target.value })}
-                            style={{
-                              width: '100%',
-                              padding: '0.75rem',
-                              border: `2px solid ${colors.borderPrimary}`,
-                              borderRadius: '0.5rem',
-                              fontSize: '0.9rem',
-                              backgroundColor: colors.bgCard,
-                              color: colors.textPrimary,
-                              boxSizing: 'border-box'
-                            }}
-                          />
-                        </div>
-                      )}
-        
-                      {/* Airtel Fields */}
-                      {selectedGiftPaymentMethod === 'airtel' && (
-                        <div>
-                          <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                            Airtel Phone Number
-                          </label>
-                          <input
-                            type="tel"
-                            placeholder="+256 70X XXX XXX"
-                            value={giftPaymentDetails.airtelNumber}
-                            onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, airtelNumber: e.target.value })}
-                            style={{
-                              width: '100%',
-                              padding: '0.75rem',
-                              border: `2px solid ${colors.borderPrimary}`,
-                              borderRadius: '0.5rem',
-                              fontSize: '0.9rem',
-                              backgroundColor: colors.bgCard,
-                              color: colors.textPrimary,
-                              boxSizing: 'border-box'
-                            }}
-                          />
-                        </div>
-                      )}
-        
-                      {/* Bank Fields */}
-                      {selectedGiftPaymentMethod === 'bank' && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                          <div>
-                            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                              Bank Name
-                            </label>
-                            <input
-                              type="text"
-                              placeholder="e.g., Stanbic Bank"
-                              value={giftPaymentDetails.bankName}
-                              onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, bankName: e.target.value })}
-                              style={{
-                                width: '100%',
-                                padding: '0.75rem',
-                                border: `2px solid ${colors.borderPrimary}`,
-                                borderRadius: '0.5rem',
-                                fontSize: '0.9rem',
-                                backgroundColor: colors.bgCard,
-                                color: colors.textPrimary,
-                                boxSizing: 'border-box'
-                              }}
-                            />
-                          </div>
-                          <div>
-                            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                              Account Number
-                            </label>
-                            <input
-                              type="text"
-                              placeholder="Enter account number"
-                              value={giftPaymentDetails.accountNumber}
-                              onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, accountNumber: e.target.value })}
-                              style={{
-                                width: '100%',
-                                padding: '0.75rem',
-                                border: `2px solid ${colors.borderPrimary}`,
-                                borderRadius: '0.5rem',
-                                fontSize: '0.9rem',
-                                backgroundColor: colors.bgCard,
-                                color: colors.textPrimary,
-                                boxSizing: 'border-box'
-                              }}
-                            />
-                          </div>
-                          <div>
-                            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                              Account Name
-                            </label>
-                            <input
-                              type="text"
-                              placeholder="Name on account"
-                              value={giftPaymentDetails.accountName}
-                              onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, accountName: e.target.value })}
-                              style={{
-                                width: '100%',
-                                padding: '0.75rem',
-                                border: `2px solid ${colors.borderPrimary}`,
-                                borderRadius: '0.5rem',
-                                fontSize: '0.9rem',
-                                backgroundColor: colors.bgCard,
-                                color: colors.textPrimary,
-                                boxSizing: 'border-box'
-                              }}
-                            />
-                          </div>
-                        </div>
-                      )}
-        
-                      {/* Card Fields */}
-                      {selectedGiftPaymentMethod === 'card' && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                          <div>
-                            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                              Card Number
-                            </label>
-                            <input
-                              type="text"
-                              placeholder="1234 5678 9012 3456"
-                              value={giftPaymentDetails.cardNumber}
-                              onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, cardNumber: e.target.value })}
-                              style={{
-                                width: '100%',
-                                padding: '0.75rem',
-                                border: `2px solid ${colors.borderPrimary}`,
-                                borderRadius: '0.5rem',
-                                fontSize: '0.9rem',
-                                backgroundColor: colors.bgCard,
-                                color: colors.textPrimary,
-                                boxSizing: 'border-box'
-                              }}
-                            />
-                          </div>
-                          <div>
-                            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                              Name on Card
-                            </label>
-                            <input
-                              type="text"
-                              placeholder="John Doe"
-                              value={giftPaymentDetails.cardName}
-                              onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, cardName: e.target.value })}
-                              style={{
-                                width: '100%',
-                                padding: '0.75rem',
-                                border: `2px solid ${colors.borderPrimary}`,
-                                borderRadius: '0.5rem',
-                                fontSize: '0.9rem',
-                                backgroundColor: colors.bgCard,
-                                color: colors.textPrimary,
-                                boxSizing: 'border-box'
-                              }}
-                            />
-                          </div>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                            <div>
-                              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                                Expiry Date
-                              </label>
-                              <input
-                                type="text"
-                                placeholder="MM/YY"
-                                value={giftPaymentDetails.cardExpiry}
-                                onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, cardExpiry: e.target.value })}
-                                style={{
-                                  width: '100%',
-                                  padding: '0.75rem',
-                                  border: `2px solid ${colors.borderPrimary}`,
-                                  borderRadius: '0.5rem',
-                                  fontSize: '0.9rem',
-                                  backgroundColor: colors.bgCard,
-                                  color: colors.textPrimary,
-                                  boxSizing: 'border-box'
-                                }}
-                              />
-                            </div>
-                            <div>
-                              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                                CVV
-                              </label>
-                              <input
-                                type="text"
-                                placeholder="123"
-                                value={giftPaymentDetails.cardCvv}
-                                onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, cardCvv: e.target.value })}
-                                style={{
-                                  width: '100%',
-                                  padding: '0.75rem',
-                                  border: `2px solid ${colors.borderPrimary}`,
-                                  borderRadius: '0.5rem',
-                                  fontSize: '0.9rem',
-                                  backgroundColor: colors.bgCard,
-                                  color: colors.textPrimary,
-                                  boxSizing: 'border-box'
-                                }}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-        
-                  {/* Action Buttons */}
-                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                    <button
-                      onClick={() => {
-                        setShowGiftsPaymentMethodModal(false);
-                        setSelectedGiftPaymentMethod(null);
-                        setValidationError(null);
-                      }}
-                      style={{
-                        flex: 1,
-                        padding: '0.75rem 1rem',
-                        border: `2px solid ${colors.borderPrimary}`,
-                        borderRadius: '0.5rem',
-                        background: colors.bgTertiary,
-                        color: colors.textPrimary,
-                        fontSize: '0.9rem',
-                        fontWeight: '600',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={() => {
-                        // Validate Rwanda mobile money requirement
-                        if (!validateGiftPaymentMethod()) {
-                          return;
-                        }
-                        // Handle save payment method
-                        setShowGiftsPaymentMethodModal(false);
-                        setSelectedGiftPaymentMethod(null);
-                        setValidationError(null);
-                      }}
-                      disabled={!selectedGiftPaymentMethod}
-                      style={{
-                        flex: 1,
-                        padding: '0.75rem 1rem',
-                        border: '2px solid #15803D',
-                        borderRadius: '0.5rem',
-                        background: selectedGiftPaymentMethod ? '#16A34A' : colors.bgTertiary,
-                        color: selectedGiftPaymentMethod ? 'white' : colors.textSecondary,
-                        fontSize: '0.9rem',
-                        fontWeight: '600',
-                        cursor: selectedGiftPaymentMethod ? 'pointer' : 'not-allowed',
-                        opacity: selectedGiftPaymentMethod ? 1 : 0.6
-                      }}
-                    >
-                      Save Withdrawal Method
-                    </button>
-                  </div>
                 </div>
-        </UnlockModal>
-      <button
-        onClick={() => setShowPayment(false)}
-        style={{
-          marginTop: '1rem',
-          padding: '0.5rem 1rem',
-          backgroundColor: '#083A85',
-          color: 'white',
-          border: 'none',
-          borderRadius: '0.5rem',
-          cursor: 'pointer',
-          width: '100%'
-        }}
-      >
-        Close
-      </button>
-    </div>
-  </div>
-)}
-      </div>
-    ): (
-            /* List View */
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', border: `1px solid ${colors.borderPrimary}`, overflow: 'hidden' }}>
-              {/* Table Header */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '80px 1fr 150px 120px 100px 150px',
-                gap: '1rem',
-                padding: '0.75rem 1rem',
-                backgroundColor: colors.bgTertiary,
-                borderBottom: `1px solid ${colors.borderPrimary}`,
-                fontSize: '0.8rem',
-                fontWeight: '600',
-                color: colors.textSecondary
-              }}>
-                <div></div>
-                <div>Album</div>
-                <div>Photographer</div>
-                <div>Photos</div>
-                <div>Category</div>
-                <div>Actions</div>
-              </div>
+              ) : (
+                /* List View */
+                <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', border: `1px solid ${colors.borderPrimary}`, overflow: 'hidden' }}>
+                  {/* Table Header */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '80px 1fr 150px 120px 100px 150px',
+                    gap: '1rem',
+                    padding: '0.75rem 1rem',
+                    backgroundColor: colors.bgTertiary,
+                    borderBottom: `1px solid ${colors.borderPrimary}`,
+                    fontSize: '0.8rem',
+                    fontWeight: '600',
+                    color: colors.textSecondary
+                  }}>
+                    <div></div>
+                    <div>Album</div>
+                    <div>Photographer</div>
+                    <div>Photos</div>
+                    <div>Category</div>
+                    <div>Actions</div>
+                  </div>
 
-              {/* Table Rows */}
-              {filteredAlbums
-          .filter(album => album.isArchived) // Only show archived albums
-          .map((album) => (
-            <AlbumCard
-              key={album.id}
-              album={album}
-              viewMode="list"
-              colors={colors}
-              onCardClick={(album) => {
-                // Archived albums show alert instead of opening
-                alert('This album is archived and cannot be viewed');
-              }}
-              onBrowseClick={(album) => {
-                // Archived albums cannot be browsed
-                alert('This album is archived');
-              }}
-            />
-          ))}
+                  {/* Table Rows */}
+                  {filteredAlbums
+                    .filter(album => album.isArchived)
+                    .map((album) => (
+                      <AlbumCard
+                        key={album.id}
+                        album={album}
+                        viewMode="list"
+                        colors={colors}
+                        onCardClick={(album) => {
+                          setSelectedArchiveAlbum(album as any);
+                          setWelcomeUnlockModalOpen(true);
+                        }}
+                        
+                        onBrowseClick={(album) => {
+                      
+                          alert('This album is archived');
+                        }}
+                      />
+                    ))}
+                </div>
+              )}
             </div>
-          )}
-    
-            </div>
-          ) : null
-          }
+          ) : null}
         </div>
       </div>
+
+      {/* PROMPT MODAL - PLACED AT ROOT LEVEL */}
+      {showPrompt && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '2rem',
+            borderRadius: '1rem',
+            maxWidth: '400px'
+          }}>
+            <DonatePromptModal
+              isOpen={showPrompt}
+              onClose={() => setShowPrompt(false)}
+              onNo={() => {
+                setShowPrompt(false);
+                if (selectedArchiveAlbum?.payment) {
+                  const paymentData: Payment = {
+                    id: selectedArchiveAlbum.id,
+                    date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+                    eventName: selectedArchiveAlbum.payment.eventName,
+                    eventType: selectedArchiveAlbum.category,
+                    photographerName: selectedArchiveAlbum.payment.photographerName,
+                    photographerImage: selectedArchiveAlbum.photographerAvatar,
+                    method: '-',
+                    amount: '$10.0',
+                    amountNum: 10,
+                    paidAmount: 0,
+                    status: 'pending',
+                    invoiceNumber: `INV-${new Date().getFullYear()}-${String(selectedArchiveAlbum.id).padStart(3, '0')}`
+                  };
+                  handlePayNow(paymentData);
+                }
+              }}
+              onYes={() => {
+                setShowPrompt(false);
+                setDonateModal(true);
+              }}
+            />
+            <button
+              onClick={() => setShowPrompt(false)}
+              style={{
+                marginTop: '1rem',
+                padding: '0.5rem 1rem',
+                backgroundColor: '#083A85',
+                color: 'white',
+                border: 'none',
+                borderRadius: '0.5rem',
+                cursor: 'pointer',
+                width: '100%'
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* DONATE MODAL - PLACED AT ROOT LEVEL */}
+      {showDonateModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '2rem',
+            borderRadius: '1rem',
+            maxWidth: '400px'
+          }}>
+            <DonateModal
+              isOpen={showDonateModal}
+              onClose={() => setDonateModal(false)}
+            />
+            <button
+              onClick={() => setDonateModal(false)}
+              style={{
+                marginTop: '1rem',
+                padding: '0.5rem 1rem',
+                backgroundColor: '#083A85',
+                color: 'white',
+                border: 'none',
+                borderRadius: '0.5rem',
+                cursor: 'pointer',
+                width: '100%'
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* UNLOCK MODAL - PLACED AT ROOT LEVEL */}
+      {welcomeUnlockModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '2rem',
+            borderRadius: '1rem',
+            maxWidth: '400px'
+          }}>
+            <PostModal
+              onYes={() => {
+                setWelcomeUnlockModalOpen(false);
+                setShowPayNowModal(true);
+              }}
+              title="Would you like to unlock this Photobook?"
+              description="Pay 10$ per Album to unlock photobooks"
+              onNo={() => setWelcomeUnlockModalOpen(false)}
+              onContinueToPayment={() => {
+                setWelcomeUnlockModalOpen(false);
+                setShowPrompt(true);
+              }}
+              onCancel={() => setWelcomeUnlockModalOpen(false)}
+            />
+            <button
+              onClick={() => setWelcomeUnlockModalOpen(false)}
+              style={{
+                marginTop: '1rem',
+                padding: '0.5rem 1rem',
+                backgroundColor: '#083A85',
+                color: 'white',
+                border: 'none',
+                borderRadius: '0.5rem',
+                cursor: 'pointer',
+                width: '100%'
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* PAY NOW MODAL - PLACED AT ROOT LEVEL */}
+      <PayNowModal
+        isOpen={showPayNowModal}
+        onClose={() => setShowPayNowModal(false)}
+        payment={payNowPayment}
+      />
 
       {/* Album View Modal */}
       {showViewModal && selectedAlbum && (
@@ -3067,122 +2646,122 @@ const [selectedArchiveAlbum, setSelectedArchiveAlbum] = useState(null);
               {multiSelectAlbum.images.map((image, index) => {
                 const isDisabled = isSelectMode && selectedImages.length >= MAX_IMAGE_SELECTION && !selectedImages.includes(image);
                 return (
-                <div
-                  key={index}
-                  style={{
-                    position: 'relative',
-                    aspectRatio: '1',
-                    borderRadius: '0.75rem',
-                    overflow: 'hidden',
-                    cursor: isSelectMode ? (isDisabled ? 'not-allowed' : 'pointer') : 'default',
-                    border: selectedImages.includes(image)
-                      ? '3px solid #16A34A'
-                      : '3px solid transparent',
-                    transition: 'all 0.2s',
-                    transform: selectedImages.includes(image) ? 'scale(0.98)' : 'scale(1)',
-                    opacity: isDisabled ? 0.4 : 1
-                  }}
-                  onClick={() => {
-                    if (isSelectMode && !isDisabled) {
-                      toggleImageSelection(image);
-                    } else if (!isSelectMode) {
-                      openImageViewer(multiSelectAlbum, index);
-                    }
-                  }}
-                >
-                  <Image
-                    src={image}
-                    alt={`${multiSelectAlbum.title} - Image ${index + 1}`}
-                    fill
-                    style={{ objectFit: 'cover' }}
-                  />
+                  <div
+                    key={index}
+                    style={{
+                      position: 'relative',
+                      aspectRatio: '1',
+                      borderRadius: '0.75rem',
+                      overflow: 'hidden',
+                      cursor: isSelectMode ? (isDisabled ? 'not-allowed' : 'pointer') : 'default',
+                      border: selectedImages.includes(image)
+                        ? '3px solid #16A34A'
+                        : '3px solid transparent',
+                      transition: 'all 0.2s',
+                      transform: selectedImages.includes(image) ? 'scale(0.98)' : 'scale(1)',
+                      opacity: isDisabled ? 0.4 : 1
+                    }}
+                    onClick={() => {
+                      if (isSelectMode && !isDisabled) {
+                        toggleImageSelection(image);
+                      } else if (!isSelectMode) {
+                        openImageViewer(multiSelectAlbum, index);
+                      }
+                    }}
+                  >
+                    <Image
+                      src={image}
+                      alt={`${multiSelectAlbum.title} - Image ${index + 1}`}
+                      fill
+                      style={{ objectFit: 'cover' }}
+                    />
 
-                  {/* Selection Overlay */}
-                  {isSelectMode && (
-                    <div style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      backgroundColor: selectedImages.includes(image)
-                        ? 'rgba(22, 163, 74, 0.3)'
-                        : isDisabled ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.2)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: isDisabled ? 'center' : 'flex-start',
-                      justifyContent: isDisabled ? 'center' : 'flex-start',
-                      padding: isDisabled ? '0' : '0.75rem',
-                      transition: 'all 0.2s'
-                    }}>
-                      {isDisabled ? (
-                        /* Lock Icon for locked images */
-                        <div style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          gap: '0.375rem'
-                        }}>
+                    {/* Selection Overlay */}
+                    {isSelectMode && (
+                      <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: selectedImages.includes(image)
+                          ? 'rgba(22, 163, 74, 0.3)'
+                          : isDisabled ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.2)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: isDisabled ? 'center' : 'flex-start',
+                        justifyContent: isDisabled ? 'center' : 'flex-start',
+                        padding: isDisabled ? '0' : '0.75rem',
+                        transition: 'all 0.2s'
+                      }}>
+                        {isDisabled ? (
+                          /* Lock Icon for locked images */
                           <div style={{
-                            width: '40px',
-                            height: '40px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: '0.375rem'
+                          }}>
+                            <div style={{
+                              width: '40px',
+                              height: '40px',
+                              borderRadius: '50%',
+                              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}>
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                              </svg>
+                            </div>
+                            <span style={{ fontSize: '0.65rem', color: 'white', fontWeight: '600', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>Locked</span>
+                          </div>
+                        ) : (
+                          /* Checkbox for selectable images */
+                          <div style={{
+                            width: '28px',
+                            height: '28px',
                             borderRadius: '50%',
-                            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                            border: selectedImages.includes(image)
+                              ? 'none'
+                              : '2px solid rgba(255, 255, 255, 0.8)',
+                            backgroundColor: selectedImages.includes(image)
+                              ? '#16A34A'
+                              : 'rgba(0, 0, 0, 0.3)',
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center'
+                            justifyContent: 'center',
+                            color: 'white'
                           }}>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                            </svg>
+                            {selectedImages.includes(image) && (
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                              </svg>
+                            )}
                           </div>
-                          <span style={{ fontSize: '0.65rem', color: 'white', fontWeight: '600', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>Locked</span>
-                        </div>
-                      ) : (
-                        /* Checkbox for selectable images */
-                        <div style={{
-                          width: '28px',
-                          height: '28px',
-                          borderRadius: '50%',
-                          border: selectedImages.includes(image)
-                            ? 'none'
-                            : '2px solid rgba(255, 255, 255, 0.8)',
-                          backgroundColor: selectedImages.includes(image)
-                            ? '#16A34A'
-                            : 'rgba(0, 0, 0, 0.3)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: 'white'
-                        }}>
-                          {selectedImages.includes(image) && (
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                              <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                        )}
+                      </div>
+                    )}
 
-                  {/* Image Number Badge (when not in select mode) */}
-                  {!isSelectMode && (
-                    <div style={{
-                      position: 'absolute',
-                      top: '0.5rem',
-                      right: '0.5rem',
-                      backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                      color: 'white',
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '0.25rem',
-                      fontSize: '0.75rem',
-                      fontWeight: '500'
-                    }}>
-                      {index + 1}
-                    </div>
-                  )}
-                </div>
+                    {/* Image Number Badge (when not in select mode) */}
+                    {!isSelectMode && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '0.5rem',
+                        right: '0.5rem',
+                        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                        color: 'white',
+                        padding: '0.25rem 0.5rem',
+                        borderRadius: '0.25rem',
+                        fontSize: '0.75rem',
+                        fontWeight: '500'
+                      }}>
+                        {index + 1}
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>
