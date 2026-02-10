@@ -8,10 +8,11 @@ import { useTheme } from '../../context/ThemeContext';
 import AlbumCard from '@/app/components/Cards';
 import UnlockModal from '@/app/components/UnlockModal';
 import PayNowModal from '@/app/components/UnlockModal';
-import { Archive, ArchiveIcon, ArchiveRestore, Eye, GiftIcon, Pointer } from 'lucide-react';
+import { Archive, ArchiveIcon, ArchiveRestore, Eye, GiftIcon, Pointer, ArrowLeft, Film } from 'lucide-react';
 import { useUserProfile } from '@/app/context/UserProfileContext';
 import PostModal from '@/app/components/WelcomeunlockModal';
 import DonateModal, { DonatePromptModal } from '@/app/components/DonateModal';
+import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 
 type PaymentStatus = 'paid' | 'pending' | 'failed' | 'refunded' | 'partially_paid';
 
@@ -28,6 +29,13 @@ interface Payment {
   paidAmount: number;
   status: PaymentStatus;
   invoiceNumber: string;
+}
+
+function getApiUrl(): string {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    return '/api/proxy';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
 }
 
 // Icons
@@ -339,6 +347,7 @@ interface GalleryPageProps {
 
 const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   const { colors, actualTheme } = useTheme();
+  const { user, token } = useDashboardAuth();
   const [albums, setAlbums] = useState(clientAlbumsData);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
@@ -370,7 +379,14 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   const [albumToDelete, setAlbumToDelete] = useState<typeof clientAlbumsData[0] | null>(null);
 
   // Photobook states
-  const [pageView, setPageView] = useState<'albums' | 'photobooks' | 'archives'>('albums');
+  const [pageView, setPageView] = useState<'albums' | 'photobooks' | 'archives' | 'event-media'>('albums');
+
+  // Event media states
+  const [userEvents, setUserEvents] = useState<Array<{ id: string; title: string; eventDate: string; coverImage: string }>>([]);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [eventMedia, setEventMedia] = useState<Array<{ id?: string; url: string; name?: string; createdAt?: string }>>([]);
+  const [isLoadingEvents, setIsLoadingEvents] = useState(false);
+  const [isLoadingMedia, setIsLoadingMedia] = useState(false);
   const [photobooks, setPhotobooks] = useState<Array<{
     id: number;
     name: string;
@@ -470,6 +486,68 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   const totalPhotos = albums.reduce((sum, a) => sum + a.photoCount, 0);
   const totalDownloaded = albums.reduce((sum, a) => sum + a.downloadedCount, 0);
   const totalFavorites = albums.reduce((sum, a) => sum + a.favoriteCount, 0);
+
+  // Event media functions
+  const fetchUserEvents = useCallback(async () => {
+    if (!user) return;
+    setIsLoadingEvents(true);
+    try {
+      const apiUrl = getApiUrl();
+      const response = await fetch(`${apiUrl}/api/remote/public/events/list?page=0&size=100&sortColumn=createdAt&sortDirection=desc`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await response.json();
+      if (data.action === 1 && data.data?.content) {
+        const allEvents = data.data.content;
+        const myEvents = allEvents.filter((evt: Record<string, unknown>) =>
+          evt.customerId === user.id || evt.customerId === user.customerId
+        );
+        setUserEvents(myEvents.map((evt: Record<string, unknown>) => ({
+          id: (evt.id as string) || '',
+          title: (evt.title as string) || 'Untitled Event',
+          eventDate: (evt.eventDate as string) || '',
+          coverImage: (evt.coverImage as string) || (evt.bannerImage as string) || '',
+        })));
+      }
+    } catch {
+      // silent
+    } finally {
+      setIsLoadingEvents(false);
+    }
+  }, [user]);
+
+  const fetchEventMedia = useCallback(async (eventId: string) => {
+    setIsLoadingMedia(true);
+    setEventMedia([]);
+    try {
+      const apiUrl = getApiUrl();
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/events/${eventId}/media`);
+      if (response.ok) {
+        const data = await response.json();
+        const mediaList = Array.isArray(data) ? data : (data.data || data.content || []);
+        setEventMedia(mediaList);
+      }
+    } catch {
+      // silent
+    } finally {
+      setIsLoadingMedia(false);
+    }
+  }, []);
+
+  // Fetch events when switching to event-media view
+  useEffect(() => {
+    if (pageView === 'event-media') {
+      fetchUserEvents();
+    }
+  }, [pageView, fetchUserEvents]);
+
+  // Fetch media when an event is selected
+  useEffect(() => {
+    if (selectedEventId) {
+      fetchEventMedia(selectedEventId);
+    }
+  }, [selectedEventId, fetchEventMedia]);
 
   // Functions
   const openMultiSelectView = (album: typeof clientAlbumsData[0]) => {
@@ -1276,6 +1354,26 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                 </button>
               )}
               <button
+                onClick={() => setPageView(pageView === 'event-media' ? 'albums' : 'event-media')}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '0.5rem',
+                  border: '2px solid #10B981',
+                  backgroundColor: pageView === 'event-media' ? '#10B981' : 'transparent',
+                  color: pageView === 'event-media' ? 'white' : '#10B981',
+                  cursor: 'pointer',
+                  fontSize: '0.8rem',
+                  fontWeight: '600',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.375rem',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <Film style={{ width: '14px', height: '14px' }} />
+                {pageView === 'event-media' ? 'View Albums' : 'Event Media'}
+              </button>
+              <button
                 onClick={() => setShowCreatePhotobookModal(true)}
                 disabled={photobooks.length > 0}
                 style={{
@@ -1976,7 +2074,218 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                 </div>
               )}
             </div>
-          ) : null}
+          ) : pageView === 'event-media' ? (
+            <div>
+              {!selectedEventId ? (
+                <>
+                  {/* Event selector heading */}
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
+                      Select an Event
+                    </h2>
+                    <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0.25rem 0 0 0' }}>
+                      Choose an event to upload media or view existing media
+                    </p>
+                  </div>
+
+                  {isLoadingEvents ? (
+                    <div style={{ textAlign: 'center', padding: '3rem' }}>
+                      <div style={{
+                        width: '40px',
+                        height: '40px',
+                        border: '3px solid transparent',
+                        borderTop: `3px solid ${colors.brandPrimary || '#083A85'}`,
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite',
+                        margin: '0 auto 1rem'
+                      }} />
+                      <p style={{ color: colors.textSecondary, fontSize: '0.9rem' }}>Loading events...</p>
+                    </div>
+                  ) : userEvents.length === 0 ? (
+                    <div style={{
+                      textAlign: 'center',
+                      padding: '3rem 1.5rem',
+                      backgroundColor: colors.bgCard,
+                      borderRadius: '0.75rem',
+                      border: `1px solid ${colors.borderPrimary}`
+                    }}>
+                      <Film style={{ width: '48px', height: '48px', color: colors.textSecondary, margin: '0 auto 1rem' }} />
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
+                        No Events Found
+                      </h3>
+                      <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: 0 }}>
+                        Create an event first to upload media.
+                      </p>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem' }}>
+                      {userEvents.map((event) => (
+                        <div
+                          key={event.id}
+                          onClick={() => setSelectedEventId(event.id)}
+                          style={{
+                            backgroundColor: colors.bgCard,
+                            borderRadius: '0.75rem',
+                            overflow: 'hidden',
+                            border: `1px solid ${colors.borderPrimary}`,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.boxShadow = 'none';
+                            e.currentTarget.style.transform = 'translateY(0)';
+                          }}
+                        >
+                          {event.coverImage ? (
+                            <div style={{ position: 'relative', height: '160px', overflow: 'hidden' }}>
+                              <img
+                                src={event.coverImage}
+                                alt={event.title}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              />
+                            </div>
+                          ) : (
+                            <div style={{
+                              height: '160px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EBF5FF'
+                            }}>
+                              <Film style={{ width: '48px', height: '48px', color: colors.textSecondary }} />
+                            </div>
+                          )}
+                          <div style={{ padding: '1rem' }}>
+                            <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.25rem 0' }}>
+                              {event.title}
+                            </h3>
+                            {event.eventDate && (
+                              <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: 0 }}>
+                                {new Date(event.eventDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  {/* Selected event media view */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+                    <button
+                      onClick={() => { setSelectedEventId(null); setEventMedia([]); }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.375rem',
+                        padding: '0.5rem 1rem',
+                        borderRadius: '0.5rem',
+                        border: `1px solid ${colors.borderPrimary}`,
+                        backgroundColor: colors.bgCard,
+                        color: colors.textPrimary,
+                        cursor: 'pointer',
+                        fontSize: '0.85rem',
+                        fontWeight: '500'
+                      }}
+                    >
+                      <ArrowLeft style={{ width: '16px', height: '16px' }} />
+                      Back to Events
+                    </button>
+                    <h2 style={{ fontSize: '1.15rem', fontWeight: '600', color: colors.textPrimary, margin: 0, flex: 1 }}>
+                      {userEvents.find(e => e.id === selectedEventId)?.title || 'Event Media'}
+                    </h2>
+                  </div>
+
+                  {/* Media grid */}
+                  {isLoadingMedia ? (
+                    <div style={{ textAlign: 'center', padding: '3rem' }}>
+                      <div style={{
+                        width: '40px',
+                        height: '40px',
+                        border: '3px solid transparent',
+                        borderTop: `3px solid ${colors.brandPrimary || '#083A85'}`,
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite',
+                        margin: '0 auto 1rem'
+                      }} />
+                      <p style={{ color: colors.textSecondary, fontSize: '0.9rem' }}>Loading media...</p>
+                    </div>
+                  ) : eventMedia.length === 0 ? (
+                    <div style={{
+                      textAlign: 'center',
+                      padding: '3rem 1.5rem',
+                      backgroundColor: colors.bgCard,
+                      borderRadius: '0.75rem',
+                      border: `2px dashed ${colors.borderPrimary}`
+                    }}>
+                      <Film style={{ width: '48px', height: '48px', color: colors.textSecondary, margin: '0 auto 1rem' }} />
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
+                        No Media Yet
+                      </h3>
+                      <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0 0 1rem 0' }}>
+                        No media uploaded yet for this event.
+                      </p>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
+                      {eventMedia.map((media, index) => {
+                        const isVideo = media.url?.match(/\.(mp4|webm|mov|avi)$/i) || media.name?.match(/\.(mp4|webm|mov|avi)$/i);
+                        return (
+                          <div
+                            key={media.id || index}
+                            style={{
+                              position: 'relative',
+                              borderRadius: '0.75rem',
+                              overflow: 'hidden',
+                              border: `1px solid ${colors.borderPrimary}`,
+                              backgroundColor: colors.bgCard,
+                              aspectRatio: '1'
+                            }}
+                          >
+                            {isVideo ? (
+                              <video
+                                src={media.url}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                controls
+                              />
+                            ) : (
+                              <img
+                                src={media.url}
+                                alt={media.name || `Media ${index + 1}`}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              />
+                            )}
+                            {isVideo && (
+                              <div style={{
+                                position: 'absolute',
+                                top: '0.5rem',
+                                right: '0.5rem',
+                                backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                                color: 'white',
+                                padding: '0.2rem 0.5rem',
+                                borderRadius: '0.25rem',
+                                fontSize: '0.7rem',
+                                fontWeight: '500'
+                              }}>
+                                VIDEO
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          ) : null
+          }
         </div>
       </div>
 
