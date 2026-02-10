@@ -130,6 +130,42 @@ const AUTH_USER_KEY = 'authUser';
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 /**
+ * Atomically save token to all storage locations
+ * Prevents partial state writes during navigation
+ */
+function saveTokenToStorage(token: string): void {
+  if (typeof window === 'undefined') return;
+
+  try {
+    // Save to localStorage first (fastest)
+    localStorage.setItem('authToken', token);
+
+    // Then save to cookie (can't fail silently)
+    const maxAge = 60 * 60 * 24 * 7; // 7 days
+    document.cookie = `authToken=${token}; path=/; max-age=${maxAge}; samesite=lax`;
+  } catch (error) {
+    console.error('[Dashboard Auth] Failed to save token to storage:', error);
+    // Don't throw - partial save is better than no save
+  }
+}
+
+/**
+ * Atomically clear auth from all storage locations
+ */
+function clearAuthFromStorage(): void {
+  if (typeof window === 'undefined') return;
+
+  try {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('authUser');
+    document.cookie = 'authToken=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+    document.cookie = 'userRole=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+  } catch (error) {
+    console.error('[Dashboard Auth] Failed to clear auth storage:', error);
+  }
+}
+
+/**
  * Get API URL
  */
 function getApiUrl(): string {
@@ -216,11 +252,8 @@ async function attemptDashboardTokenRefresh(currentToken: string): Promise<strin
       if (response.ok) {
         const data = await response.json();
         if (data.token) {
-          // Update all storage locations
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('authToken', data.token);
-            setTokenCookie(data.token);
-          }
+          // Update all storage locations atomically
+          saveTokenToStorage(data.token);
           console.log('[Dashboard Auth] Token refreshed successfully');
           return data.token;
         }
@@ -315,14 +348,13 @@ async function fetchPhotographerProfileSummary(token: string): Promise<Dashboard
           }
         }
       }
-      // Refresh failed — clear auth and redirect to login
+      // Refresh failed — redirect WITHOUT clearing storage yet
+      // The login page will handle storage clearing
       console.log('[Dashboard Auth] Token refresh failed, redirecting to login');
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('authUser');
-        document.cookie = 'authToken=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
         const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL || 'http://localhost:3000';
-        window.location.href = `${landingUrl}/user/auth/login`;
+        const loginUrl = `${landingUrl}/user/auth/login?session_expired=true`;
+        window.location.href = loginUrl;
       }
       return null;
     }
@@ -380,10 +412,9 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
           setToken(latestToken);
           setUser(userProfile);
 
-          // Save token and user to cookie and localStorage
+          // Save token and user to cookie and localStorage atomically
           if (typeof window !== 'undefined') {
-            setTokenCookie(latestToken);
-            localStorage.setItem(AUTH_TOKEN_KEY, latestToken);
+            saveTokenToStorage(latestToken);
             localStorage.setItem(AUTH_USER_KEY, JSON.stringify(userProfile));
             // Store role cookie for middleware route protection
             if (userProfile.customerType) {
@@ -408,19 +439,11 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
             console.log('[Dashboard Auth] Using cached user profile');
           } catch {
             // Invalid JSON - clear storage
-            if (typeof window !== 'undefined') {
-              localStorage.removeItem(AUTH_TOKEN_KEY);
-              localStorage.removeItem(AUTH_USER_KEY);
-              document.cookie = 'authToken=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
-            }
+            clearAuthFromStorage();
           }
         } else {
           // Invalid token - clear storage
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem(AUTH_TOKEN_KEY);
-            localStorage.removeItem(AUTH_USER_KEY);
-            document.cookie = 'authToken=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
-          }
+          clearAuthFromStorage();
         }
       }
 
@@ -526,10 +549,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
         const data = await response.json();
         if (data.token) {
           setToken(data.token);
-          if (typeof window !== 'undefined') {
-            localStorage.setItem(AUTH_TOKEN_KEY, data.token);
-            setTokenCookie(data.token);
-          }
+          saveTokenToStorage(data.token);
           return true;
         }
       }
@@ -544,14 +564,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
    * Logout - clear all auth data
    */
   const logout = useCallback(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(AUTH_TOKEN_KEY);
-      localStorage.removeItem(AUTH_USER_KEY);
-      // Clear auth cookie
-      document.cookie = 'authToken=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
-      // Clear role cookie
-      document.cookie = 'userRole=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
-    }
+    clearAuthFromStorage();
     setUser(null);
     setToken(null);
     // Redirect to home app login

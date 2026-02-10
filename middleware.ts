@@ -64,6 +64,17 @@ export function middleware(request: NextRequest) {
   // Role-based access control: prevent users from accessing other roles' pages
   const userRole = request.cookies.get('userRole')?.value?.toLowerCase();
 
+  // Defensive guard: If we have a role but no token, clear the role cookie to force re-auth
+  if (userRole && !hasToken && pathname.startsWith('/user/')) {
+    const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL || 'http://localhost:3000';
+    const loginUrl = new URL(`${landingUrl}/user/auth/login`, request.url);
+    loginUrl.searchParams.set('returnUrl', request.nextUrl.href);
+
+    const response = NextResponse.redirect(loginUrl);
+    response.cookies.delete('userRole');
+    return response;
+  }
+
   if (userRole && pathname.startsWith('/user/')) {
     // Extract the role segment from the URL: /user/{role}/...
     const pathRole = pathname.split('/')[2]; // 'client', 'photographer', 'event-coordinator'

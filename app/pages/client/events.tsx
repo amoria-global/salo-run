@@ -607,80 +607,80 @@ const MyEventsPage = () => {
   const [confirmingEventId, setConfirmingEventId] = useState<string | null>(null);
 
   // Fetch events from public API and filter for current user
-  useEffect(() => {
-    const fetchMyEvents = async () => {
-      setIsLoadingEvents(true);
-      setEventsError(null);
-      try {
-        const apiUrl = getApiUrl();
-        const response = await fetch(`${apiUrl}/api/remote/public/events/list?page=0&size=100&sortColumn=createdAt&sortDirection=desc`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
+  const fetchMyEvents = useCallback(async () => {
+    setIsLoadingEvents(true);
+    setEventsError(null);
+    try {
+      const apiUrl = getApiUrl();
+      const response = await fetch(`${apiUrl}/api/remote/public/events/list?page=0&size=100&sortColumn=createdAt&sortDirection=desc`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch events: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.action === 1 && data.data?.content) {
+        const allEvents = data.data.content;
+        const userFullName = `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
+        // Filter events belonging to the current user
+        const myEvents = allEvents.filter((evt: Record<string, unknown>) =>
+          evt.customerId === user?.id ||
+          evt.customerId === user?.customerId ||
+          (userFullName && evt.eventOrganizer === userFullName)
+        );
+
+        const mappedEvents: Event[] = myEvents.map((evt: Record<string, unknown>) => {
+          const locationStr = (evt.location as string) || '';
+          const locationParts = locationStr.split(',').map((s: string) => s.trim());
+          return {
+            id: (evt.id as string) || '',
+            title: (evt.title as string) || 'Untitled Event',
+            description: (evt.description as string) || '',
+            eventType: (evt.eventType as string) || (evt.category as string) || '',
+            category: ((evt.category as string) || (evt.eventType as string) || 'Entertainment') as EventCategory,
+            date: (evt.eventDate as string) || '',
+            time: (evt.startTime as string) || '',
+            endTime: (evt.endTime as string) || '',
+            duration: '',
+            location: {
+              address: locationParts[0] || locationStr,
+              city: locationParts[1] || '',
+              country: locationParts[2] || '',
+            },
+            coverImage: (evt.coverImage as string) || (evt.bannerImage as string) || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800',
+            bannerImage: (evt.bannerImage as string) || (evt.coverImage as string) || '',
+            price: evt.price ? `${evt.price}` : 'Free',
+            guestCount: (evt.guestCount as number) || 0,
+            maxGuests: (evt.maxGuests as number) || 0,
+            status: ((evt.status as string) || 'UPCOMING').toUpperCase() as EventStatus,
+            organizer: (evt.eventOrganizer as string) || '',
+            tags: evt.eventTags ? (evt.eventTags as string).split(',').map((t: string) => t.trim()) : [],
+            hasPhotographer: !!(evt.photographerId),
+            photographerName: (evt.photographerName as string) || '',
+            photographerImage: (evt.photographerImage as string) || '',
+            shareLink: `https://connekt.app/event/${evt.id}`,
+            createdAt: (evt.createdAt as string) || '',
+          };
         });
 
-        if (!response.ok) {
-          throw new Error(`Failed to fetch events: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        if (data.action === 1 && data.data?.content) {
-          const allEvents = data.data.content;
-          const userFullName = `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
-          // Filter events belonging to the current user
-          const myEvents = allEvents.filter((evt: Record<string, unknown>) =>
-            evt.customerId === user?.id ||
-            evt.customerId === user?.customerId ||
-            (userFullName && evt.eventOrganizer === userFullName)
-          );
-
-          const mappedEvents: Event[] = myEvents.map((evt: Record<string, unknown>) => {
-            const locationStr = (evt.location as string) || '';
-            const locationParts = locationStr.split(',').map((s: string) => s.trim());
-            return {
-              id: (evt.id as string) || '',
-              title: (evt.title as string) || 'Untitled Event',
-              description: (evt.description as string) || '',
-              eventType: (evt.eventType as string) || (evt.category as string) || '',
-              category: ((evt.category as string) || (evt.eventType as string) || 'Entertainment') as EventCategory,
-              date: (evt.eventDate as string) || '',
-              time: (evt.startTime as string) || '',
-              endTime: (evt.endTime as string) || '',
-              duration: '',
-              location: {
-                address: locationParts[0] || locationStr,
-                city: locationParts[1] || '',
-                country: locationParts[2] || '',
-              },
-              coverImage: (evt.coverImage as string) || (evt.bannerImage as string) || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800',
-              bannerImage: (evt.bannerImage as string) || (evt.coverImage as string) || '',
-              price: evt.price ? `${evt.price}` : 'Free',
-              guestCount: (evt.guestCount as number) || 0,
-              maxGuests: (evt.maxGuests as number) || 0,
-              status: ((evt.status as string) || 'UPCOMING').toUpperCase() as EventStatus,
-              organizer: (evt.eventOrganizer as string) || '',
-              tags: evt.eventTags ? (evt.eventTags as string).split(',').map((t: string) => t.trim()) : [],
-              hasPhotographer: !!(evt.photographerId),
-              photographerName: (evt.photographerName as string) || '',
-              photographerImage: (evt.photographerImage as string) || '',
-              shareLink: `https://connekt.app/event/${evt.id}`,
-              createdAt: (evt.createdAt as string) || '',
-            };
-          });
-
-          setEvents(mappedEvents);
-        }
-      } catch (err) {
-        setEventsError(err instanceof Error ? err.message : 'Failed to fetch events');
-      } finally {
-        setIsLoadingEvents(false);
+        setEvents(mappedEvents);
       }
-    };
+    } catch (err) {
+      setEventsError(err instanceof Error ? err.message : 'Failed to fetch events');
+    } finally {
+      setIsLoadingEvents(false);
+    }
+  }, [user]);
 
+  useEffect(() => {
     if (user) {
       fetchMyEvents();
     }
-  }, [user]);
+  }, [user, fetchMyEvents]);
 
   const handlePublishEvent = async (eventId: string) => {
     if (!token) return;
@@ -1370,7 +1370,7 @@ const MyEventsPage = () => {
             <div style={{ textAlign: 'center', padding: '3rem', backgroundColor: colors.bgCard, borderRadius: '0.75rem' }}>
               <p style={{ color: '#DC2626', marginBottom: '0.5rem' }}>{eventsError}</p>
               <button
-                onClick={() => window.location.reload()}
+                onClick={() => fetchMyEvents()}
                 style={{
                   padding: '0.5rem 1.5rem', borderRadius: '0.5rem',
                   backgroundColor: '#083A85', color: '#fff', border: 'none',

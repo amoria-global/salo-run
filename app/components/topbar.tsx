@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useTheme } from "../context/ThemeContext";
 import { useDashboardAuth } from "../providers/AuthProvider";
 
@@ -68,6 +70,7 @@ interface TopbarProps {
 export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmount, liveStreamFeeAmount, userRole = 'client' }: TopbarProps) {
   const { colors, actualTheme } = useTheme();
   const { user, logout } = useDashboardAuth();
+  const router = useRouter();
 
   const getUserDisplayName = () => {
     if (user?.firstName && user?.lastName) {
@@ -562,7 +565,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
                 borderTop: `1px solid ${colors.borderPrimary}`,
                 textAlign: 'center'
               }}>
-                <a
+                <Link
                   href={userRole === 'photographer'
                     ? '/user/photographer/notifications'
                     : userRole === 'event-coordinator'
@@ -576,7 +579,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
                   }}
                 >
                   View all notifications
-                </a>
+                </Link>
               </div>
             </div>
           )}
@@ -801,18 +804,21 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
                   Profile settings
                 </a>
 
-                <a
-                  href="/preferences"
+                <button
+                  onClick={() => router.push(`/user/${userRole}/preferences`)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.75rem',
                     padding: '0.75rem',
                     borderRadius: '0.5rem',
-                    textDecoration: 'none',
+                    border: 'none',
+                    background: 'none',
                     color: colors.textSecondary,
                     fontSize: '0.95rem',
                     fontWeight: '500',
+                    cursor: 'pointer',
+                    width: '100%',
                     transition: 'background-color 0.2s'
                   }}
                   onMouseEnter={(e) => {
@@ -824,7 +830,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
                 >
                   <PreferencesIcon />
                   Preferences
-                </a>
+                </button>
 
                 <button
                   onClick={logout}
