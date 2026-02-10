@@ -6,6 +6,14 @@ import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import Image from 'next/image';
 import { useTheme } from '../../context/ThemeContext';
+import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
+
+function getApiUrl(): string {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    return '/api/proxy';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+}
 
 // ============================================
 // SHARED TYPES AND INTERFACES
@@ -810,12 +818,27 @@ const SignalIcon = () => (
   </svg>
 );
 
+const UploadIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+    <polyline points="17 8 12 3 7 8"/>
+    <line x1="12" y1="3" x2="12" y2="15"/>
+  </svg>
+);
+
+const CheckIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="20 6 9 17 4 12"/>
+  </svg>
+);
+
 // ============================================
 // MAIN COMPONENT
 // ============================================
 
 const PhotographerEventsPage = () => {
   const { colors, actualTheme } = useTheme();
+  const { user } = useDashboardAuth();
 
   // View toggle state
   const [activeView, setActiveView] = useState<'gallery' | 'streams'>('streams');
@@ -903,6 +926,23 @@ const PhotographerEventsPage = () => {
   // Dev mode flag for simulation buttons
   const [devMode] = useState(process.env.NODE_ENV === 'development');
 
+  // ============================================
+  // REAL EVENT MEDIA STATE
+  // ============================================
+  const [realEvents, setRealEvents] = useState<Array<{ id: string; title: string; eventDate: string; coverImage: string; status: string }>>([]);
+  const [uploadingEventId, setUploadingEventId] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [pendingUploadEventId, setPendingUploadEventId] = useState<string | null>(null);
+  const mediaFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Gallery event media state
+  const [galleryEventMedia, setGalleryEventMedia] = useState<Array<{ id?: string; url: string; name?: string; createdAt?: string }>>([]);
+  const [isLoadingMedia, setIsLoadingMedia] = useState(false);
+  const [showMediaModal, setShowMediaModal] = useState<string | null>(null); // eventId for media viewer modal
+  const [markingCompletedId, setMarkingCompletedId] = useState<string | null>(null);
+  const [markCompleteTarget, setMarkCompleteTarget] = useState<{ eventId: string; streamTitle: string } | null>(null);
+
   // Mock RTMP config per stream - in production this would come from backend
   const getRtmpConfig = useCallback((streamId: string): RtmpConfig => ({
     serverUrl: 'rtmp://stream.amoriaconnekt.com/live',
@@ -930,6 +970,108 @@ const PhotographerEventsPage = () => {
       }
     }));
   }, [getRtmpState]);
+
+  // ============================================
+  // REAL EVENT MEDIA FUNCTIONS
+  // ============================================
+
+  // Fetch real events assigned to this photographer
+  useEffect(() => {
+    if (!user) return;
+    const fetchPhotographerEvents = async () => {
+      try {
+        const apiUrl = getApiUrl();
+        const response = await fetch(`${apiUrl}/api/remote/public/events/list?page=0&size=100&sortColumn=createdAt&sortDirection=desc`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        const data = await response.json();
+        if (data.action === 1 && data.data?.content) {
+          const myEvents = data.data.content.filter((evt: Record<string, unknown>) =>
+            evt.photographerId === user.id || evt.photographerId === user.customerId
+          );
+          setRealEvents(myEvents.map((evt: Record<string, unknown>) => ({
+            id: (evt.id as string) || '',
+            title: (evt.title as string) || 'Untitled Event',
+            eventDate: (evt.eventDate as string) || '',
+            coverImage: (evt.coverImage as string) || (evt.bannerImage as string) || '',
+            status: ((evt.status as string) || 'UPCOMING').toLowerCase(),
+          })));
+        }
+      } catch { /* silent */ }
+    };
+    fetchPhotographerEvents();
+  }, [user]);
+
+  // Upload media for a specific event
+  const handleMediaUpload = async (eventId: string, file: File) => {
+    setUploadingEventId(eventId);
+    setUploadError(null);
+    setUploadSuccess(null);
+    try {
+      const apiUrl = getApiUrl();
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await dashboardAuthFetch(
+        `${apiUrl}/api/remote/events/${eventId}/media/upload`,
+        { method: 'POST', body: formData }
+      );
+      if (!response.ok) {
+        const errText = await response.text().catch(() => '');
+        throw new Error(errText || `Upload failed: ${response.status}`);
+      }
+      setUploadSuccess('Media uploaded successfully!');
+      setTimeout(() => setUploadSuccess(null), 3000);
+      // Refresh media modal if viewing this event
+      if (showMediaModal === eventId) {
+        fetchEventMedia(eventId);
+      }
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Upload failed');
+      setTimeout(() => setUploadError(null), 5000);
+    } finally {
+      setUploadingEventId(null);
+    }
+  };
+
+  // Fetch media for a specific event (gallery tab)
+  const fetchEventMedia = useCallback(async (eventId: string) => {
+    setIsLoadingMedia(true);
+    setGalleryEventMedia([]);
+    try {
+      const apiUrl = getApiUrl();
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/events/${eventId}/media`);
+      if (response.ok) {
+        const data = await response.json();
+        const mediaList = Array.isArray(data) ? data : (data.data || data.content || []);
+        setGalleryEventMedia(mediaList);
+      }
+    } catch { /* silent */ }
+    finally { setIsLoadingMedia(false); }
+  }, []);
+
+  // Mark event as completed
+  const handleMarkCompleted = async (eventId: string) => {
+    setMarkingCompletedId(eventId);
+    try {
+      const apiUrl = getApiUrl();
+      const response = await dashboardAuthFetch(
+        `${apiUrl}/api/remote/photographer/events/${eventId}/mark-completed`,
+        { method: 'POST' }
+      );
+      if (!response.ok) {
+        const errText = await response.text().catch(() => '');
+        throw new Error(errText || `Failed: ${response.status}`);
+      }
+      setUploadSuccess('Event marked as completed!');
+      setTimeout(() => setUploadSuccess(null), 3000);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Failed to mark as completed');
+      setTimeout(() => setUploadError(null), 5000);
+    } finally {
+      setMarkingCompletedId(null);
+    }
+  };
 
   // ============================================
   // GALLERY FUNCTIONS
@@ -1408,14 +1550,71 @@ const PhotographerEventsPage = () => {
             gap: 1rem !important;
             margin-bottom: 3rem !important;
           }
+          /* Responsive stream card action buttons */
+          .stream-card-actions {
+            gap: 0.375rem !important;
+          }
+          .stream-card-actions button {
+            font-size: 0.75rem !important;
+            padding: 0.3rem 0.5rem !important;
+          }
+          /* Responsive media modal */
+          .media-modal-content {
+            max-width: 100% !important;
+            max-height: 90vh !important;
+            border-radius: 0.75rem !important;
+            padding: 1rem !important;
+          }
+          .media-grid {
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important;
+            gap: 0.5rem !important;
+          }
+          /* Responsive confirm modal */
+          .confirm-modal-content {
+            max-width: 95% !important;
+            padding: 1.25rem !important;
+          }
         }
 
         @media (max-width: 640px) {
           .mobile-streams-grid {
             margin-bottom: 4rem !important;
           }
+          /* Icon-only buttons on very small screens */
+          .stream-card-actions .btn-label {
+            display: none !important;
+          }
+          .stream-card-actions .action-btn-media,
+          .stream-card-actions .action-btn-complete {
+            padding: 0.3rem !important;
+            width: 32px !important;
+            height: 32px !important;
+          }
+          .media-modal-content {
+            padding: 0.75rem !important;
+            border-radius: 0.5rem !important;
+          }
+          .media-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
         }
       `}</style>
+
+      {/* Hidden file input for media upload */}
+      <input
+        ref={mediaFileInputRef}
+        type="file"
+        accept="image/*,video/*"
+        style={{ display: 'none' }}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file && pendingUploadEventId) {
+            handleMediaUpload(pendingUploadEventId, file);
+          }
+          setPendingUploadEventId(null);
+          e.target.value = '';
+        }}
+      />
 
       <div className="events-container">
         <Sidebar />
@@ -2118,6 +2317,18 @@ const PhotographerEventsPage = () => {
                 </div>
               </div>
 
+              {/* Upload Status Banners */}
+              {uploadSuccess && (
+                <div style={{ padding: '0.75rem 1rem', marginBottom: '1rem', borderRadius: '0.5rem', backgroundColor: '#DCFCE7', color: '#166534', fontSize: '0.85rem' }}>
+                  {uploadSuccess}
+                </div>
+              )}
+              {uploadError && (
+                <div style={{ padding: '0.75rem 1rem', marginBottom: '1rem', borderRadius: '0.5rem', backgroundColor: '#FEE2E2', color: '#991B1B', fontSize: '0.85rem' }}>
+                  {uploadError}
+                </div>
+              )}
+
               {/* Streams Grid */}
               <div className="mobile-streams-grid" style={{
                 display: 'grid',
@@ -2278,7 +2489,7 @@ const PhotographerEventsPage = () => {
                       </div>
 
                       {/* Actions */}
-                      <div style={{ display: 'flex', gap: '0.5rem', paddingTop: '0.75rem', borderTop: `1px solid ${colors.borderPrimary}` }}>
+                      <div className="stream-card-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', paddingTop: '0.75rem', borderTop: `1px solid ${colors.borderPrimary}` }}>
                         {stream.status === 'live' && (
                           <button
                             onClick={() => setShowControlPanel(stream)}
@@ -2346,6 +2557,67 @@ const PhotographerEventsPage = () => {
                           >
                             <EyeIcon />
                             View Stats
+                          </button>
+                        )}
+                        {/* Media button - shown for ended/live/replay_ready */}
+                        {(stream.status === 'ended' || stream.status === 'live' || stream.status === 'replay_ready') && (
+                          <button
+                            className="action-btn-media"
+                            onClick={() => {
+                              const realEvent = realEvents.find(e => e.id === stream.eventId);
+                              const eventId = realEvent?.id || stream.eventId;
+                              setShowMediaModal(eventId);
+                              fetchEventMedia(eventId);
+                            }}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '0.375rem',
+                              backgroundColor: '#10B981',
+                              color: 'white',
+                              border: '2px solid #059669',
+                              borderRadius: '0.375rem',
+                              padding: '0.375rem 0.625rem',
+                              fontSize: '0.8rem',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                            }}
+                            title="View & Upload Media"
+                          >
+                            <UploadIcon />
+                            <span className="btn-label">Media</span>
+                          </button>
+                        )}
+                        {/* Mark Completed button - shown for ended streams only */}
+                        {stream.status === 'ended' && (
+                          <button
+                            className="action-btn-complete"
+                            onClick={() => {
+                              const realEvent = realEvents.find(e => e.id === stream.eventId);
+                              const eventId = realEvent?.id || stream.eventId;
+                              setMarkCompleteTarget({ eventId, streamTitle: stream.title });
+                            }}
+                            disabled={markingCompletedId === stream.eventId}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '0.375rem',
+                              backgroundColor: '#8B5CF6',
+                              color: 'white',
+                              border: '2px solid #7C3AED',
+                              borderRadius: '0.375rem',
+                              padding: '0.375rem 0.625rem',
+                              fontSize: '0.8rem',
+                              fontWeight: '600',
+                              cursor: markingCompletedId === stream.eventId ? 'not-allowed' : 'pointer',
+                              opacity: markingCompletedId === stream.eventId ? 0.7 : 1,
+                            }}
+                            title="Mark event as completed for payment"
+                          >
+                            <CheckIcon />
+                            <span className="btn-label">Complete</span>
                           </button>
                         )}
                         {/* Delete button - shown for all statuses except live */}
@@ -4902,6 +5174,154 @@ const PhotographerEventsPage = () => {
                 </p>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Media Viewer Modal */}
+      {showMediaModal && (
+        <div
+          className="media-modal-overlay"
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
+          }}
+          onClick={() => { setShowMediaModal(null); setGalleryEventMedia([]); }}
+        >
+          <div
+            className="media-modal-content"
+            style={{
+              backgroundColor: colors.bgCard, borderRadius: '1rem',
+              maxWidth: '800px', width: '100%', maxHeight: '85vh',
+              overflow: 'auto', padding: '1.5rem'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: 0, flex: 1 }}>
+                Event Media
+              </h3>
+              <button
+                onClick={() => { setPendingUploadEventId(showMediaModal); mediaFileInputRef.current?.click(); }}
+                disabled={!!uploadingEventId}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '0.375rem',
+                  padding: '0.5rem 0.75rem', borderRadius: '0.375rem',
+                  border: 'none', backgroundColor: '#10B981', color: 'white',
+                  cursor: 'pointer', fontSize: '0.85rem', fontWeight: '600'
+                }}
+              >
+                <UploadIcon /> Upload
+              </button>
+              <button
+                onClick={() => { setShowMediaModal(null); setGalleryEventMedia([]); }}
+                style={{
+                  width: '32px', height: '32px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  border: 'none', backgroundColor: 'transparent',
+                  color: colors.textSecondary, cursor: 'pointer'
+                }}
+              >
+                <CloseIcon />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            {isLoadingMedia ? (
+              <p style={{ color: colors.textSecondary, textAlign: 'center', padding: '2rem' }}>Loading media...</p>
+            ) : galleryEventMedia.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2rem', border: `2px dashed ${colors.borderPrimary}`, borderRadius: '0.75rem' }}>
+                <p style={{ color: colors.textSecondary, fontSize: '0.9rem' }}>No media uploaded yet.</p>
+                <button
+                  onClick={() => { setPendingUploadEventId(showMediaModal); mediaFileInputRef.current?.click(); }}
+                  style={{
+                    marginTop: '0.75rem', padding: '0.5rem 1rem',
+                    borderRadius: '0.375rem', border: 'none',
+                    backgroundColor: '#10B981', color: 'white',
+                    cursor: 'pointer', fontSize: '0.85rem', fontWeight: '600'
+                  }}
+                >
+                  Upload First Media
+                </button>
+              </div>
+            ) : (
+              <div className="media-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '0.75rem' }}>
+                {galleryEventMedia.map((media, idx) => {
+                  const isVideo = media.url?.match(/\.(mp4|webm|mov|avi)$/i) || media.name?.match(/\.(mp4|webm|mov|avi)$/i);
+                  return (
+                    <div key={media.id || idx} style={{ position: 'relative', borderRadius: '0.5rem', overflow: 'hidden', border: `1px solid ${colors.borderPrimary}`, aspectRatio: '1' }}>
+                      {isVideo ? (
+                        <video src={media.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} controls />
+                      ) : (
+                        <img src={media.url} alt={media.name || `Media ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      )}
+                      {isVideo && (
+                        <div style={{ position: 'absolute', top: '0.375rem', right: '0.375rem', backgroundColor: 'rgba(0,0,0,0.6)', color: 'white', padding: '0.15rem 0.4rem', borderRadius: '0.2rem', fontSize: '0.65rem', fontWeight: '600' }}>VIDEO</div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Mark Completed Confirmation Modal */}
+      {markCompleteTarget && (
+        <div
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
+          }}
+          onClick={() => setMarkCompleteTarget(null)}
+        >
+          <div
+            className="confirm-modal-content"
+            style={{
+              backgroundColor: colors.bgCard, borderRadius: '1rem',
+              maxWidth: '440px', width: '100%', padding: '1.5rem'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
+              Mark Event as Completed
+            </h3>
+            <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1.25rem 0', lineHeight: '1.5' }}>
+              Are you sure you want to mark <strong style={{ color: colors.textPrimary }}>{markCompleteTarget.streamTitle}</strong> as completed? This will make the event available for payments and notify the client.
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setMarkCompleteTarget(null)}
+                style={{
+                  padding: '0.5rem 1rem', borderRadius: '0.375rem',
+                  border: `1px solid ${colors.borderPrimary}`,
+                  backgroundColor: colors.bgCard, color: colors.textPrimary,
+                  cursor: 'pointer', fontSize: '0.85rem', fontWeight: '600'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  handleMarkCompleted(markCompleteTarget.eventId);
+                  setMarkCompleteTarget(null);
+                }}
+                disabled={!!markingCompletedId}
+                style={{
+                  padding: '0.5rem 1rem', borderRadius: '0.375rem',
+                  border: 'none', backgroundColor: '#8B5CF6', color: 'white',
+                  cursor: markingCompletedId ? 'not-allowed' : 'pointer',
+                  fontSize: '0.85rem', fontWeight: '600',
+                  opacity: markingCompletedId ? 0.7 : 1,
+                }}
+              >
+                {markingCompletedId ? 'Processing...' : 'Confirm'}
+              </button>
+            </div>
           </div>
         </div>
       )}

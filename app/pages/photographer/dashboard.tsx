@@ -244,7 +244,7 @@ const PhotographerDashboard = () => {
         (!user.certifications?.length && !user.trainings?.length);
 
       if (isIncomplete) {
-        const skipped = sessionStorage.getItem('profileModalSkipped');
+        const skipped = localStorage.getItem('profileModalSkipped');
         if (skipped) {
           try {
             const { timestamp } = JSON.parse(skipped);
@@ -1695,7 +1695,7 @@ const PhotographerDashboard = () => {
           setShowProfileModal(false);
         }}
         onSkip={() => {
-          sessionStorage.setItem('profileModalSkipped', JSON.stringify({ timestamp: Date.now() }));
+          localStorage.setItem('profileModalSkipped', JSON.stringify({ timestamp: Date.now() }));
           setShowProfileModal(false);
         }}
       />
