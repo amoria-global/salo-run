@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '../context/ThemeContext';
+import { dashboardAuthFetch } from '../providers/AuthProvider';
 
 // Heart Icon for donate button (filled red)
 export const HeartIcon = () => (
@@ -101,6 +102,7 @@ const FoodIcon = () => (
 interface DonateModalProps {
   isOpen: boolean;
   onClose: () => void;
+  eventId?: string;
 }
 
 // Donate Prompt Modal - asks user if they want to make a donation (Yes/No)
@@ -214,19 +216,76 @@ export const DonatePromptModal: React.FC<DonatePromptModalProps> = ({ isOpen, on
   );
 };
 
-const DonateModal: React.FC<DonateModalProps> = ({ isOpen, onClose }) => {
+function getDonateApiUrl(): string {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    return '/api/proxy';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+}
+
+interface DonateApiCurrency {
+  id: string;
+  code: string;
+  name: string;
+}
+
+const DonateModal: React.FC<DonateModalProps> = ({ isOpen, onClose, eventId }) => {
   const { colors, actualTheme } = useTheme();
   const router = useRouter();
   const [donationAmount, setDonationAmount] = useState<string>('');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('card');
+  const [tipLoading, setTipLoading] = useState(false);
+  const [tipError, setTipError] = useState<string | null>(null);
+  const [currencies, setCurrencies] = useState<DonateApiCurrency[]>([]);
+  const [selectedCurrencyId, setSelectedCurrencyId] = useState<string>('');
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const apiUrl = getDonateApiUrl();
+    fetch(`${apiUrl}/api/remote/public/currencies`)
+      .then(res => res.json())
+      .then(data => {
+        const list = Array.isArray(data) ? data : (data?.data && Array.isArray(data.data) ? data.data : []);
+        if (list.length > 0) {
+          setCurrencies(list.map((c: Record<string, string>) => ({ id: c.id || '', code: c.code || c.currencyCode || '', name: c.name || c.currencyName || '' })));
+          if (!selectedCurrencyId) setSelectedCurrencyId(list[0].id || '');
+        }
+      })
+      .catch(() => {});
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const handleDonate = () => {
-    console.log('Donating:', donationAmount, 'via:', selectedPaymentMethod);
-    onClose();
-    setDonationAmount('');
-    setSelectedPaymentMethod('card');
+  const handleDonate = async () => {
+    if (!donationAmount || parseFloat(donationAmount) <= 0) return;
+    setTipLoading(true);
+    setTipError(null);
+    try {
+      const apiUrl = getDonateApiUrl();
+      const queryParams = new URLSearchParams();
+      if (eventId) queryParams.append('eventId', eventId);
+      queryParams.append('amount', donationAmount);
+      if (selectedCurrencyId) queryParams.append('currencyId', selectedCurrencyId);
+      queryParams.append('remarks', `Donation via ${selectedPaymentMethod}`);
+
+      const response = await dashboardAuthFetch(
+        `${apiUrl}/api/remote/payments/record-tip?${queryParams.toString()}`,
+        { method: 'POST' }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Donation failed (${response.status})`);
+      }
+
+      onClose();
+      setDonationAmount('');
+      setSelectedPaymentMethod('card');
+    } catch (err) {
+      setTipError(err instanceof Error ? err.message : 'Donation failed. Please try again.');
+    } finally {
+      setTipLoading(false);
+    }
   };
 
   const causeItems = [
@@ -635,10 +694,26 @@ const DonateModal: React.FC<DonateModalProps> = ({ isOpen, onClose }) => {
             </p>
           </div>
 
+          {/* Error message */}
+          {tipError && (
+            <div style={{
+              padding: '0.75rem',
+              marginBottom: '0.75rem',
+              backgroundColor: actualTheme === 'dark' ? 'rgba(239, 68, 68, 0.15)' : '#FEF2F2',
+              border: '1px solid #EF4444',
+              borderRadius: '0.5rem',
+              color: '#EF4444',
+              fontSize: '0.85rem',
+            }}>
+              {tipError}
+            </div>
+          )}
+
           {/* Actions */}
           <div className="donate-actions" style={{ display: 'flex', gap: '0.75rem' }}>
             <button
               onClick={onClose}
+              disabled={tipLoading}
               style={{
                 flex: 1,
                 padding: '0.875rem 1rem',
@@ -648,7 +723,8 @@ const DonateModal: React.FC<DonateModalProps> = ({ isOpen, onClose }) => {
                 color: colors.textPrimary,
                 fontSize: '0.9rem',
                 fontWeight: '600',
-                cursor: 'pointer',
+                cursor: tipLoading ? 'not-allowed' : 'pointer',
+                opacity: tipLoading ? 0.6 : 1,
                 transition: 'all 0.2s'
               }}
             >
@@ -656,7 +732,7 @@ const DonateModal: React.FC<DonateModalProps> = ({ isOpen, onClose }) => {
             </button>
             <button
               onClick={handleDonate}
-              disabled={!donationAmount}
+              disabled={!donationAmount || tipLoading}
               style={{
                 flex: 1,
                 padding: '0.875rem 1rem',
@@ -666,7 +742,8 @@ const DonateModal: React.FC<DonateModalProps> = ({ isOpen, onClose }) => {
                 color: 'white',
                 fontSize: '0.9rem',
                 fontWeight: '600',
-                cursor: !donationAmount ? 'not-allowed' : 'pointer',
+                cursor: (!donationAmount || tipLoading) ? 'not-allowed' : 'pointer',
+                opacity: tipLoading ? 0.7 : 1,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -675,7 +752,7 @@ const DonateModal: React.FC<DonateModalProps> = ({ isOpen, onClose }) => {
               }}
             >
               <HeartIcon />
-              Donate {donationAmount ? `$${donationAmount}` : ''}
+              {tipLoading ? 'Processing...' : `Donate ${donationAmount ? `$${donationAmount}` : ''}`}
             </button>
           </div>
         </div>

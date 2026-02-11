@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useTheme } from "../context/ThemeContext";
+import { dashboardAuthFetch } from "../providers/AuthProvider";
 
 // Heart Icon for donate button (filled red)
 export const HeartIcon = () => (
@@ -383,6 +384,7 @@ type PaymentStatus = 'paid' | 'pending' | 'failed' | 'refunded' | 'partially_pai
 
 interface Payment {
   id: number;
+  declarationId?: string;
   date: string;
   eventName: string;
   eventType: string;
@@ -400,6 +402,7 @@ interface PayNowModalProps {
   isOpen: boolean;
   onClose: () => void;
   payment: Payment | null;
+  onPaymentSuccess?: () => void;
 }
 
 
@@ -449,14 +452,52 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
     </div>
   );
 };
-const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) => {
+function getApiUrl(): string {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    return '/api/proxy';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+}
+
+const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onPaymentSuccess }) => {
   const { colors, actualTheme } = useTheme();
   const router = useRouter();
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('card');
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   if (!payment) return null;
 
   const amountDue = payment.amountNum - payment.paidAmount;
+
+  const handlePay = async () => {
+    setPaymentLoading(true);
+    setPaymentError(null);
+    try {
+      const apiUrl = getApiUrl();
+      const declarationId = payment.declarationId || payment.invoiceNumber;
+      const queryParams = new URLSearchParams();
+      queryParams.append('amount', amountDue.toString());
+      queryParams.append('method', selectedPaymentMethod);
+
+      const response = await dashboardAuthFetch(
+        `${apiUrl}/api/remote/payments/${declarationId}/pay?${queryParams.toString()}`,
+        { method: 'POST' }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Payment failed (${response.status})`);
+      }
+
+      onPaymentSuccess?.();
+      onClose();
+    } catch (err) {
+      setPaymentError(err instanceof Error ? err.message : 'Payment failed. Please try again.');
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={payment.status === 'failed' ? 'Retry Payment' : 'Complete Payment'} maxWidth="450px">
@@ -625,10 +666,26 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
           </p>
         </div>
 
+        {/* Error message */}
+        {paymentError && (
+          <div style={{
+            padding: '0.75rem',
+            marginBottom: '1rem',
+            backgroundColor: actualTheme === 'dark' ? 'rgba(239, 68, 68, 0.15)' : '#FEF2F2',
+            border: '1px solid #EF4444',
+            borderRadius: '0.5rem',
+            color: '#EF4444',
+            fontSize: '0.85rem',
+          }}>
+            {paymentError}
+          </div>
+        )}
+
         {/* Actions */}
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           <button
             onClick={onClose}
+            disabled={paymentLoading}
             style={{
               flex: 1,
               padding: '0.75rem 1rem',
@@ -638,12 +695,15 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
               color: colors.textPrimary,
               fontSize: '0.9rem',
               fontWeight: '600',
-              cursor: 'pointer'
+              cursor: paymentLoading ? 'not-allowed' : 'pointer',
+              opacity: paymentLoading ? 0.6 : 1,
             }}
           >
             Cancel
           </button>
           <button
+            onClick={handlePay}
+            disabled={paymentLoading}
             style={{
               flex: 1,
               padding: '0.75rem 1rem',
@@ -653,10 +713,11 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
               color: 'white',
               fontSize: '0.9rem',
               fontWeight: '600',
-              cursor: 'pointer'
+              cursor: paymentLoading ? 'not-allowed' : 'pointer',
+              opacity: paymentLoading ? 0.7 : 1,
             }}
           >
-            {payment.status === 'failed' ? 'Retry Payment' : 'Pay'} ${amountDue.toLocaleString()}
+            {paymentLoading ? 'Processing...' : `${payment.status === 'failed' ? 'Retry Payment' : 'Pay'} $${amountDue.toLocaleString()}`}
           </button>
         </div>
       </div>

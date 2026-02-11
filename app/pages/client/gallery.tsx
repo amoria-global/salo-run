@@ -384,7 +384,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   // Event media states
   const [userEvents, setUserEvents] = useState<Array<{ id: string; title: string; eventDate: string; coverImage: string }>>([]);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
-  const [eventMedia, setEventMedia] = useState<Array<{ id?: string; url: string; name?: string; createdAt?: string }>>([]);
+  const [eventMedia, setEventMedia] = useState<Array<{ id?: string; url: string; name?: string; createdAt?: string; selected?: boolean }>>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
   const [isLoadingMedia, setIsLoadingMedia] = useState(false);
   const [photobooks, setPhotobooks] = useState<Array<{
@@ -534,6 +534,23 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
       setIsLoadingMedia(false);
     }
   }, []);
+
+  const handleToggleMediaSelect = async (mediaId: string, currentSelected: boolean) => {
+    const newSelected = !currentSelected;
+    setEventMedia(prev => prev.map(m => m.id === mediaId ? { ...m, selected: newSelected } : m));
+    try {
+      const apiUrl = getApiUrl();
+      const response = await dashboardAuthFetch(
+        `${apiUrl}/api/remote/customer/events/media/${mediaId}/select?selected=${newSelected}`,
+        { method: 'PATCH' }
+      );
+      if (!response.ok) {
+        setEventMedia(prev => prev.map(m => m.id === mediaId ? { ...m, selected: currentSelected } : m));
+      }
+    } catch {
+      setEventMedia(prev => prev.map(m => m.id === mediaId ? { ...m, selected: currentSelected } : m));
+    }
+  };
 
   // Fetch events when switching to event-media view
   useEffect(() => {
@@ -2236,6 +2253,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
                       {eventMedia.map((media, index) => {
                         const isVideo = media.url?.match(/\.(mp4|webm|mov|avi)$/i) || media.name?.match(/\.(mp4|webm|mov|avi)$/i);
+                        const isSelected = !!media.selected;
                         return (
                           <div
                             key={media.id || index}
@@ -2243,9 +2261,10 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                               position: 'relative',
                               borderRadius: '0.75rem',
                               overflow: 'hidden',
-                              border: `1px solid ${colors.borderPrimary}`,
+                              border: isSelected ? '2px solid #16A34A' : `1px solid ${colors.borderPrimary}`,
                               backgroundColor: colors.bgCard,
-                              aspectRatio: '1'
+                              aspectRatio: '1',
+                              transition: 'border-color 0.2s',
                             }}
                           >
                             {isVideo ? (
@@ -2274,6 +2293,33 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                                 fontWeight: '500'
                               }}>
                                 VIDEO
+                              </div>
+                            )}
+                            {media.id && (
+                              <div
+                                onClick={() => handleToggleMediaSelect(media.id!, isSelected)}
+                                style={{
+                                  position: 'absolute',
+                                  top: '0.5rem',
+                                  left: '0.5rem',
+                                  width: '28px',
+                                  height: '28px',
+                                  borderRadius: '50%',
+                                  backgroundColor: isSelected ? '#16A34A' : 'rgba(0, 0, 0, 0.3)',
+                                  border: isSelected ? '2px solid #16A34A' : '2px solid rgba(255, 255, 255, 0.8)',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s',
+                                  zIndex: 2,
+                                }}
+                              >
+                                {isSelected && (
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="20 6 9 17 4 12" />
+                                  </svg>
+                                )}
                               </div>
                             )}
                           </div>
