@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
+import { useCurrency } from '@/app/context/CurrencyContext';
 import { useDashboardAuth } from '../../providers/AuthProvider';
 import CompleteProfileModal from '../../components/CompleteProfileModal';
 import {
@@ -161,6 +162,7 @@ interface Client {
 
 const PhotographerDashboard = () => {
   const { colors, actualTheme } = useTheme();
+  const { formatPrice } = useCurrency();
   const { user } = useDashboardAuth();
   const [activeFilter, setActiveFilter] = useState<'today' | 'week' | 'month' | 'custom'>('week');
   const [timeOfDay, setTimeOfDay] = useState(getTimeOfDay());
@@ -479,19 +481,19 @@ const PhotographerDashboard = () => {
     {
       name: 'Kalisa Aime',
       type: 'Earnings',
-      amount: '$1,950',
+      amount: formatPrice(1950),
       avatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg'
     },
     {
       name: 'Amoria',
       type: 'Archive commission',
-      amount: '$50.80',
+      amount: formatPrice(50.80),
       logo: '/logo.png'
     },
     {
       name: 'Amoria',
       type: 'Referral bonus',
-      amount: '$3.0',
+      amount: formatPrice(3),
       logo: '/logo.png'
     }
   ];
@@ -888,7 +890,7 @@ const PhotographerDashboard = () => {
                   lineHeight: '1.75rem',
                   fontWeight: '700',
                   color: colors.textPrimary
-                }}>$9.64k</span>
+                }}>{formatPrice(9640)}</span>
               </div>
               <div style={{
                 display: 'flex',
@@ -1014,7 +1016,7 @@ const PhotographerDashboard = () => {
       <div className="stat-cards-grid">
         <StatCard
           title="Total Earnings"
-          value="$2,600"
+          value={formatPrice(2600)}
           percentage="52.76%"
           timeframe="last week"
           icon={<MoneyIcon />}
@@ -1025,7 +1027,7 @@ const PhotographerDashboard = () => {
         />
         <StatCard
           title="Pending"
-          value="$700"
+          value={formatPrice(700)}
           percentage="36.8%"
           timeframe="last week"
           icon={<ClockIcon />}
@@ -1047,7 +1049,7 @@ const PhotographerDashboard = () => {
         />
         <StatCard
           title="Bonuses"
-          value="$3.05"
+          value={formatPrice(3.05)}
           percentage="47.38%"
           timeframe="last week"
           icon={<GiftIcon />}

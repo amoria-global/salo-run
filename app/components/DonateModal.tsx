@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '../context/ThemeContext';
+import { useCurrency } from '../context/CurrencyContext';
 import { dashboardAuthFetch } from '../providers/AuthProvider';
 
 // Heart Icon for donate button (filled red)
@@ -231,6 +232,7 @@ interface DonateApiCurrency {
 
 const DonateModal: React.FC<DonateModalProps> = ({ isOpen, onClose, eventId }) => {
   const { colors, actualTheme } = useTheme();
+  const { formatPrice } = useCurrency();
   const router = useRouter();
   const [donationAmount, setDonationAmount] = useState<string>('');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('card');
@@ -752,7 +754,7 @@ const DonateModal: React.FC<DonateModalProps> = ({ isOpen, onClose, eventId }) =
               }}
             >
               <HeartIcon />
-              {tipLoading ? 'Processing...' : `Donate ${donationAmount ? `$${donationAmount}` : ''}`}
+              {tipLoading ? 'Processing...' : `Donate ${donationAmount ? formatPrice(parseFloat(donationAmount)) : ''}`}
             </button>
           </div>
         </div>

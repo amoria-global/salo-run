@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
+import { useCurrency } from '@/app/context/CurrencyContext';
 
 // Icons
 const BellIcon = () => (
@@ -211,6 +212,7 @@ const photographerNotifications: Notification[] = [
 
 const Notifications = () => {
   const { colors, actualTheme } = useTheme();
+  const { formatPrice } = useCurrency();
   const [notifications, setNotifications] = useState(photographerNotifications);
   const [activeFilter, setActiveFilter] = useState<'all' | NotificationType>('all');
   const [showSettings, setShowSettings] = useState(false);
@@ -758,7 +760,7 @@ const Notifications = () => {
                               padding: '0.125rem 0.5rem',
                               borderRadius: '0.25rem'
                             }}>
-                              +${notification.amount.toFixed(2)}
+                              +{formatPrice(notification.amount)}
                             </span>
                           )}
                         </div>

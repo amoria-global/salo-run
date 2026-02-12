@@ -7,6 +7,7 @@ import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 import { useUserProfile } from '../../context/UserProfileContext';
+import { useCurrency } from '@/app/context/CurrencyContext';
 import { HeartIcon } from '../../components/UnlockModal';
 
 // Icons
@@ -163,6 +164,7 @@ interface ViewReportModalProps {
 
 const ViewReportModal: React.FC<ViewReportModalProps> = ({ isOpen, onClose }) => {
   const { colors, actualTheme } = useTheme();
+  const { formatPrice } = useCurrency();
   const reportData = {
     period: '13 - 18 July 2025',
     totalPaid: 1200.13,
@@ -185,10 +187,10 @@ Period: ${reportData.period}
 Generated: ${new Date().toLocaleDateString()}
 
 Financial Summary:
-- Total Paid: $${reportData.totalPaid.toFixed(2)}
-- Pending Amount: $${reportData.pending.toFixed(2)}
-- Failed: $${reportData.failed.toFixed(2)}
-- Total: $${(reportData.totalPaid + reportData.pending + reportData.failed).toFixed(2)}
+- Total Paid: ${formatPrice(reportData.totalPaid)}
+- Pending Amount: ${formatPrice(reportData.pending)}
+- Failed: ${formatPrice(reportData.failed)}
+- Total: ${formatPrice(reportData.totalPaid + reportData.pending + reportData.failed)}
 
 Transaction Summary:
 - Total Transactions: ${reportData.totalTransactions}
@@ -223,25 +225,25 @@ Transaction Summary:
                   <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981' }} />
                   <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Paid</span>
                 </div>
-                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>${reportData.totalPaid.toFixed(2)}</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(reportData.totalPaid)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                   <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#FBBF24' }} />
                   <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Pending</span>
                 </div>
-                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>${reportData.pending.toFixed(2)}</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(reportData.pending)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                   <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#EF4444' }} />
                   <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Failed</span>
                 </div>
-                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>${reportData.failed.toFixed(2)}</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(reportData.failed)}</span>
               </div>
               <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, marginTop: '0.35rem', paddingTop: '0.35rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.75rem', fontWeight: '500', color: colors.textSecondary }}>Total</span>
-                <span style={{ fontSize: '0.95rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>${(reportData.totalPaid + reportData.pending + reportData.failed).toFixed(2)}</span>
+                <span style={{ fontSize: '0.95rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{formatPrice(reportData.totalPaid + reportData.pending + reportData.failed)}</span>
               </div>
             </div>
           </div>
@@ -339,6 +341,7 @@ interface PaymentDetailsModalProps {
 
 const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({ isOpen, onClose, payment }) => {
   const { colors } = useTheme();
+  const { formatPrice } = useCurrency();
   if (!payment) return null;
 
   const handlePrintReceipt = () => {
@@ -359,7 +362,7 @@ Event: ${payment.eventName}
 Photographer: ${payment.photographerName}
 Payment Method: ${payment.method}
 
-Amount: ${payment.amount}
+Amount: ${formatPrice(payment.amountNum)}
 
 =====================================
     Thank you for using Connekt
@@ -417,7 +420,7 @@ Amount: ${payment.amount}
           {payment.status.replace('_', ' ')}
         </span>
         <span style={{ fontSize: '1.75rem', fontWeight: '700', color: colors.textPrimary, marginTop: '0.5rem' }}>
-          {payment.amount}
+          {formatPrice(payment.amountNum)}
         </span>
       </div>
 
@@ -522,6 +525,7 @@ const PAYMENT_METHODS: Record<string, { label: string; image: string }> = {
 
 const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) => {
   const { colors, actualTheme } = useTheme();
+  const { formatPrice } = useCurrency();
   const router = useRouter();
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('card');
   const [donationAmount, setDonationAmount] = useState<string>('');
@@ -608,7 +612,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
             <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, margin: '0.75rem 0' }} />
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
               <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>Amount Due</span>
-              <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>${amountDue.toLocaleString()}</span>
+              <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(amountDue)}</span>
             </div>
             {donationValue > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
@@ -616,14 +620,14 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
                   <HeartIcon />
                   <span style={{ fontSize: '0.9rem', fontWeight: '500', color: '#F20C8F' }}>Donation</span>
                 </div>
-                <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#F20C8F' }}>${donationValue.toLocaleString()}</span>
+                <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#F20C8F' }}>{formatPrice(donationValue)}</span>
               </div>
             )}
             <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, margin: '0.75rem 0' }} />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '1.05rem', fontWeight: '700', color: colors.textPrimary }}>Total</span>
               <span style={{ fontSize: '1.3rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
-                ${totalAmount.toLocaleString()}
+                {formatPrice(totalAmount)}
               </span>
             </div>
           </div>
@@ -639,7 +643,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
               borderRadius: '0.5rem', background: payment.status === 'failed' ? '#F20C8F' : '#083A85',
               color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s'
             }}>
-              {payment.status === 'failed' ? 'Retry' : 'Pay'} ${totalAmount.toLocaleString()}
+              {payment.status === 'failed' ? 'Retry' : 'Pay'} {formatPrice(totalAmount)}
             </button>
           </div>
         </div>
@@ -743,7 +747,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
                     padding: '0.4rem 0.75rem', border: donationAmount === amount ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`,
                     borderRadius: '0.5rem', background: donationAmount === amount ? (actualTheme === 'dark' ? 'rgba(242, 12, 143, 0.15)' : 'rgba(242, 12, 143, 0.08)') : colors.bgCard,
                     color: donationAmount === amount ? '#F20C8F' : colors.textSecondary, fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', flex: '1', minWidth: '0'
-                  }}>${amount}</button>
+                  }}>{formatPrice(Number(amount))}</button>
                 ))}
                 <button onClick={() => handleSelectDonation('custom')} style={{
                   padding: '0.4rem 0.75rem', border: donationAmount === 'custom' ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`,
@@ -837,6 +841,7 @@ interface SpendingChartProps {
 
 const SpendingChart: React.FC<SpendingChartProps> = ({ data, height = 140, chartType }) => {
   const { colors } = useTheme();
+  const { formatPrice } = useCurrency();
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const maxValue = Math.max(...data.map(d => d.value));
   const minValue = Math.min(...data.map(d => d.value));
@@ -1054,7 +1059,7 @@ const SpendingChart: React.FC<SpendingChartProps> = ({ data, height = 140, chart
               </div>
               <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Spending</span>
               <span style={{ fontSize: '0.95rem', fontWeight: '700', color: colors.textPrimary }}>
-                ${points[hoveredIndex].value.toLocaleString()}
+                {formatPrice(points[hoveredIndex].value)}
               </span>
             </div>
           </div>
@@ -1182,6 +1187,7 @@ const EventTypeBadge: React.FC<EventTypeBadgeProps> = ({ type }) => {
 
 const PaymentsPage = () => {
   const { colors, actualTheme } = useTheme();
+  const { formatPrice } = useCurrency();
   const { profile } = useUserProfile();
   const [activeTimeFilter, setActiveTimeFilter] = useState<'1W' | '1M' | '3M' | '6M' | '1Y'>('1W');
   const [currentPage, setCurrentPage] = useState(1);
@@ -1216,7 +1222,7 @@ Event: ${payment.eventName}
 Photographer: ${payment.photographerName}
 Payment Method: ${payment.method}
 
-Amount: ${payment.amount}
+Amount: ${formatPrice(payment.amountNum)}
 
 =====================================
     Thank you for using Connekt
@@ -1442,7 +1448,7 @@ Amount: ${payment.amount}
                 <div>
                   <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Spending</div>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '1rem' }}>
-                    <span style={{ fontSize: '1.75rem', fontWeight: '700', color: colors.textPrimary }}>${(totalPaid + totalPending + totalFailed).toLocaleString()}</span>
+                    <span style={{ fontSize: '1.75rem', fontWeight: '700', color: colors.textPrimary }}>{formatPrice(totalPaid + totalPending + totalFailed)}</span>
                     <span style={{ fontSize: '0.85rem', color: colors.textSecondary, fontWeight: '500' }}>This period</span>
                   </div>
                 </div>
@@ -1546,21 +1552,21 @@ Amount: ${payment.amount}
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10B981' }} />
                     <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Paid</span>
                   </div>
-                  <div style={{ fontSize: '1rem', fontWeight: '700', color: colors.textPrimary }}>${totalPaid.toLocaleString()}</div>
+                  <div style={{ fontSize: '1rem', fontWeight: '700', color: colors.textPrimary }}>{formatPrice(totalPaid)}</div>
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#FBBF24' }} />
                     <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Pending</span>
                   </div>
-                  <div style={{ fontSize: '1rem', fontWeight: '700', color: colors.textPrimary }}>${totalPending.toLocaleString()}</div>
+                  <div style={{ fontSize: '1rem', fontWeight: '700', color: colors.textPrimary }}>{formatPrice(totalPending)}</div>
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#EF4444' }} />
                     <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Failed</span>
                   </div>
-                  <div style={{ fontSize: '1rem', fontWeight: '700', color: colors.textPrimary }}>${totalFailed.toLocaleString()}</div>
+                  <div style={{ fontSize: '1rem', fontWeight: '700', color: colors.textPrimary }}>{formatPrice(totalFailed)}</div>
                 </div>
               </div>
               <PaymentGauge paid={totalPaid} pending={totalPending} failed={totalFailed} />
@@ -1638,7 +1644,7 @@ Amount: ${payment.amount}
                   textAlign: 'right'
                 }}>
                   <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Total Revenue</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>${totalStreamFees.toFixed(2)}</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>{formatPrice(totalStreamFees)}</div>
                 </div>
               </div>
             </div>
@@ -1672,7 +1678,7 @@ Amount: ${payment.amount}
                           </span>
                           <span style={{ fontSize: '0.7rem', color: colors.textSecondary }}>{event.date}</span>
                         </div>
-                        <span style={{ fontSize: '1.05rem', fontWeight: '700', color: '#16A34A' }}>${event.totalRevenue.toFixed(2)}</span>
+                        <span style={{ fontSize: '1.05rem', fontWeight: '700', color: '#16A34A' }}>{formatPrice(event.totalRevenue)}</span>
                       </div>
 
                       {/* Title row */}
@@ -1687,7 +1693,7 @@ Amount: ${payment.amount}
                           <span style={{ fontSize: '0.72rem', color: colors.textSecondary }}>{event.viewerCount} viewers</span>
                         </div>
                         <div style={{ fontSize: '0.72rem', color: colors.textSecondary }}>
-                          Ticket: ${event.ticketPrice.toFixed(2)}
+                          Ticket: {formatPrice(event.ticketPrice)}
                         </div>
                       </div>
 
@@ -1749,7 +1755,7 @@ Amount: ${payment.amount}
                       </div>
                     </td>
                     <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.85rem', color: colors.textSecondary }}>{payment.method}</td>
-                    <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{payment.amount}</td>
+                    <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(payment.amountNum)}</td>
                     <td style={{ padding: '0.875rem 1.25rem' }}><StatusBadge status={payment.status} /></td>
                     <td style={{ padding: '0.875rem 1.25rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

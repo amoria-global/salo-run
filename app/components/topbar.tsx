@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTheme } from "../context/ThemeContext";
 import { useDashboardAuth } from "../providers/AuthProvider";
+import { useCurrency } from "../context/CurrencyContext";
 
 // Icons for dropdown menu
 const ProfileIcon = () => (
@@ -71,6 +72,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
   const { colors, actualTheme } = useTheme();
   const { user, logout } = useDashboardAuth();
   const router = useRouter();
+  const { currency, setCurrency, formatPrice, currencies } = useCurrency();
 
   const getUserDisplayName = () => {
     if (user?.firstName && user?.lastName) {
@@ -100,9 +102,11 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
   };
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
   const [notifications, setNotifications] = useState(notificationsData);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
+  const currencyRef = useRef<HTMLDivElement>(null);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -135,6 +139,9 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
       }
       if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
         setIsNotificationsOpen(false);
+      }
+      if (currencyRef.current && !currencyRef.current.contains(event.target as Node)) {
+        setIsCurrencyOpen(false);
       }
     };
 
@@ -585,6 +592,96 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
           )}
         </div>
 
+        {/* Currency Selector */}
+        <div
+          ref={currencyRef}
+          style={{ position: 'relative' }}
+        >
+          <button
+            onClick={() => setIsCurrencyOpen(!isCurrencyOpen)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              padding: '0.3rem 0.6rem',
+              borderRadius: '9999px',
+              border: `2px solid ${colors.borderPrimary}`,
+              background: colors.bgTertiary,
+              color: colors.textPrimary,
+              fontSize: '0.8rem',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            {currency}
+            <i style={{
+              fontSize: '0.6rem',
+              color: colors.textSecondary,
+              transform: isCurrencyOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition: 'transform 0.2s ease'
+            }} className="bi bi-chevron-down"></i>
+          </button>
+
+          {isCurrencyOpen && (
+            <div style={{
+              position: 'absolute',
+              top: 'calc(100% + 0.5rem)',
+              right: 0,
+              backgroundColor: colors.bgSecondary,
+              borderRadius: '0.75rem',
+              boxShadow: colors.shadowLg,
+              border: `2px solid ${colors.borderPrimary}`,
+              padding: '0.5rem',
+              minWidth: '180px',
+              zIndex: 50
+            }}>
+              {currencies.map((c) => (
+                <button
+                  key={c.code}
+                  onClick={() => {
+                    setCurrency(c.code);
+                    setIsCurrencyOpen(false);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    width: '100%',
+                    padding: '0.5rem 0.75rem',
+                    borderRadius: '0.5rem',
+                    border: 'none',
+                    background: currency === c.code ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : 'transparent',
+                    color: colors.textPrimary,
+                    fontSize: '0.85rem',
+                    fontWeight: currency === c.code ? '600' : '400',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s',
+                    gap: '0.5rem'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (currency !== c.code) e.currentTarget.style.backgroundColor = colors.bgTertiary;
+                  }}
+                  onMouseLeave={(e) => {
+                    if (currency !== c.code) e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontWeight: '600' }}>{c.code}</span>
+                    <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{c.name}</span>
+                  </div>
+                  {currency === c.code && (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M20 6L9 17L4 12" stroke={actualTheme === 'dark' ? '#60A5FA' : '#083A85'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Balance - Shows for photographer only */}
         {userRole === 'photographer' && (
           <div className="topbar-balance" style={{
@@ -603,7 +700,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
               lineHeight: '1.5rem',
               fontWeight: '700',
               color: balanceAmount && balanceAmount > 0 ? colors.brandPrimary : colors.textSecondary
-            }}>${balanceAmount !== undefined ? balanceAmount.toFixed(2) : '0.00'}</span>
+            }}>{formatPrice(balanceAmount !== undefined ? balanceAmount : 0)}</span>
           </div>
         )}
 
@@ -625,7 +722,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
               lineHeight: '1.5rem',
               fontWeight: '600',
               color: tipsAmount && tipsAmount > 0 ? '#F59E0B' : colors.textSecondary
-            }}>${tipsAmount !== undefined ? tipsAmount.toFixed(2) : '0.00'}</span>
+            }}>{formatPrice(tipsAmount !== undefined ? tipsAmount : 0)}</span>
           </div>
         )}
 
@@ -650,11 +747,11 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
               : userRole === 'event-coordinator'
                 ? (liveStreamFeeAmount && liveStreamFeeAmount > 0 ? colors.statusSuccess : colors.brandPrimary)
                 : (bonusAmount && bonusAmount > 0 ? colors.statusSuccess : colors.brandPrimary)
-          }}>${userRole === 'client'
-            ? (giftAmount !== undefined ? giftAmount.toFixed(2) : '0.00')
+          }}>{formatPrice(userRole === 'client'
+            ? (giftAmount !== undefined ? giftAmount : 0)
             : userRole === 'event-coordinator'
-              ? (liveStreamFeeAmount !== undefined ? liveStreamFeeAmount.toFixed(2) : '0.00')
-              : (bonusAmount !== undefined ? bonusAmount.toFixed(2) : '0.00')}</span>
+              ? (liveStreamFeeAmount !== undefined ? liveStreamFeeAmount : 0)
+              : (bonusAmount !== undefined ? bonusAmount : 0))}</span>
         </div>
 
         {/* Profile with Dropdown */}
@@ -721,11 +818,11 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
                   lineHeight: '1.5rem',
                   fontWeight: '600',
                   color: colors.textPrimary
-                }}>${userRole === 'client'
-                  ? (giftAmount !== undefined ? giftAmount.toFixed(2) : '0.00')
+                }}>{formatPrice(userRole === 'client'
+                  ? (giftAmount !== undefined ? giftAmount : 0)
                   : userRole === 'event-coordinator'
-                    ? (liveStreamFeeAmount !== undefined ? liveStreamFeeAmount.toFixed(2) : '0.00')
-                    : (balanceAmount !== undefined ? balanceAmount.toFixed(2) : '0.00')}</span>
+                    ? (liveStreamFeeAmount !== undefined ? liveStreamFeeAmount : 0)
+                    : (balanceAmount !== undefined ? balanceAmount : 0))}</span>
                 <i style={{
                   fontSize: '0.75rem',
                   lineHeight: '1rem',
