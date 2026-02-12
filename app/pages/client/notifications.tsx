@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
+import { useCurrency } from '../../context/CurrencyContext';
 
 // Icons
 const BellIcon = () => (
@@ -340,6 +341,7 @@ interface NotificationsPageProps {
 
 const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) => {
   const { colors, actualTheme } = useTheme();
+  const { formatPrice } = useCurrency();
   const initialNotifications = userRole === 'event-coordinator' ? eventCoordinatorNotifications : clientNotifications;
   const [notifications, setNotifications] = useState(initialNotifications);
   const [activeFilter, setActiveFilter] = useState<'all' | NotificationType>('all');
@@ -837,7 +839,7 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
                               padding: '0.125rem 0.5rem',
                               borderRadius: '0.25rem'
                             }}>
-                              +${notification.amount.toFixed(2)}
+                              +{formatPrice(notification.amount)}
                             </span>
                           )}
                         </div>
