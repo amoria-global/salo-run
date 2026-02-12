@@ -93,7 +93,7 @@ export default function WelcomeunlockModal({
             >
             {title}
             </h2>
-            <p>{description}</p>
+            <p style={{ fontSize: "15px", color: "#4b5563", margin: "0" }}>{description}</p>
 
           </div>
 

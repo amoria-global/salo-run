@@ -1415,7 +1415,7 @@ const MyEventsPage = () => {
                     borderRadius: '0.75rem',
                     overflow: 'hidden',
                     boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                    border: `1px solid ${colors.borderPrimary}`
+                    border: `2px solid ${colors.borderPrimary}`
                   }}
                 >
                   {/* Cover Image */}
@@ -1525,7 +1525,7 @@ const MyEventsPage = () => {
                     </div>
 
                     {/* Actions */}
-                    <div className="mobile-event-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.75rem', borderTop: `1px solid ${colors.borderPrimary}` }}>
+                    <div className="mobile-event-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.75rem', borderTop: `2px solid ${colors.borderPrimary}` }}>
                       <div style={{ display: 'flex', gap: '0.5rem', flex: 1 }}>
                         <button
                           onClick={() => setShowEventDetails(event)}
@@ -1863,12 +1863,12 @@ const MyEventsPage = () => {
             </div>
             <p style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.75rem' }}>Select a photographer you&apos;ve worked with before or find a new one</p>
             <div style={{ border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', maxHeight: '180px', overflowY: 'auto', marginBottom: '0.75rem' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.625rem', cursor: 'pointer', borderBottom: `1px solid ${colors.borderPrimary}`, backgroundColor: createPhotographerId === '' ? (actualTheme === 'dark' ? '#1E3A5F' : '#F0F9FF') : colors.bgCard }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.625rem', cursor: 'pointer', borderBottom: `2px solid ${colors.borderPrimary}`, backgroundColor: createPhotographerId === '' ? (actualTheme === 'dark' ? '#1E3A5F' : '#F0F9FF') : colors.bgCard }}>
                 <input type="radio" name="photographer" value="" checked={createPhotographerId === ''} onChange={() => setCreatePhotographerId('')} style={{ width: '16px', height: '16px', accentColor: '#083A85' }} />
                 <div><div style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>No photographer assigned</div><div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>You can assign one later</div></div>
               </label>
               {pastPhotographers.map((photographer) => (
-                <label key={photographer.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.625rem', cursor: 'pointer', borderBottom: `1px solid ${colors.borderPrimary}`, backgroundColor: createPhotographerId === photographer.id ? (actualTheme === 'dark' ? '#1E3A5F' : '#F0F9FF') : colors.bgCard }}>
+                <label key={photographer.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.625rem', cursor: 'pointer', borderBottom: `2px solid ${colors.borderPrimary}`, backgroundColor: createPhotographerId === photographer.id ? (actualTheme === 'dark' ? '#1E3A5F' : '#F0F9FF') : colors.bgCard }}>
                   <input type="radio" name="photographer" value={photographer.id} checked={createPhotographerId === photographer.id} onChange={() => setCreatePhotographerId(photographer.id)} style={{ width: '16px', height: '16px', accentColor: '#083A85' }} />
                   <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, position: 'relative' }}><Image src={photographer.image} alt={photographer.name} fill style={{ objectFit: 'cover' }} /></div>
                   <div style={{ flex: 1 }}><div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><span style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>{photographer.name}</span><span style={{ fontSize: '0.7rem', color: '#F59E0B' }}>★ {photographer.rating}</span></div><div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>{photographer.speciality}</div></div>
@@ -1894,12 +1894,12 @@ const MyEventsPage = () => {
                 <p style={{ fontSize: '0.8rem', color: colors.textSecondary, padding: '0.5rem 0' }}>No packages available for this photographer.</p>
               ) : (
                 <div style={{ border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', maxHeight: '200px', overflowY: 'auto' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.625rem', cursor: 'pointer', borderBottom: `1px solid ${colors.borderPrimary}`, backgroundColor: createPackageId === '' ? (actualTheme === 'dark' ? '#1E3A5F' : '#F0F9FF') : colors.bgCard }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.625rem', cursor: 'pointer', borderBottom: `2px solid ${colors.borderPrimary}`, backgroundColor: createPackageId === '' ? (actualTheme === 'dark' ? '#1E3A5F' : '#F0F9FF') : colors.bgCard }}>
                     <input type="radio" name="package" value="" checked={createPackageId === ''} onChange={() => setCreatePackageId('')} style={{ width: '16px', height: '16px', accentColor: '#083A85' }} />
                     <div><div style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>No package selected</div></div>
                   </label>
                   {photographerPackages.map((pkg) => (
-                    <label key={pkg.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.625rem', cursor: 'pointer', borderBottom: `1px solid ${colors.borderPrimary}`, backgroundColor: createPackageId === pkg.id ? (actualTheme === 'dark' ? '#1E3A5F' : '#F0F9FF') : colors.bgCard }}>
+                    <label key={pkg.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.625rem', cursor: 'pointer', borderBottom: `2px solid ${colors.borderPrimary}`, backgroundColor: createPackageId === pkg.id ? (actualTheme === 'dark' ? '#1E3A5F' : '#F0F9FF') : colors.bgCard }}>
                       <input type="radio" name="package" value={pkg.id} checked={createPackageId === pkg.id} onChange={() => setCreatePackageId(pkg.id)} style={{ width: '16px', height: '16px', accentColor: '#083A85' }} />
                       <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -1925,7 +1925,7 @@ const MyEventsPage = () => {
           )}
 
           {/* Action Buttons */}
-          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', paddingTop: '1rem', borderTop: `1px solid ${colors.borderPrimary}`, marginBottom: '4rem' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', paddingTop: '1rem', borderTop: `2px solid ${colors.borderPrimary}`, marginBottom: '4rem' }}>
             <button onClick={() => { resetCreateForm(); setShowCreateModal(false); }} style={{ padding: '0.75rem 1.25rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Cancel</button>
             <button onClick={handleCreateEvent} disabled={isSubmitting || !createTitle || !createCategory || !createDate || !createTime} style={{ padding: '0.75rem 1.25rem', border: '2px solid #062a63', borderRadius: '0.5rem', background: (isSubmitting || !createTitle || !createCategory || !createDate || !createTime) ? '#9CA3AF' : '#083A85', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: (isSubmitting || !createTitle || !createCategory || !createDate || !createTime) ? 'not-allowed' : 'pointer', opacity: (isSubmitting || !createTitle || !createCategory || !createDate || !createTime) ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>{isSubmitting ? 'Creating...' : 'Create Event ✓'}</button>
           </div>
@@ -2408,7 +2408,7 @@ const MyEventsPage = () => {
                   }}
                   style={{
                     padding: '1rem',
-                    border: option.name === 'Copy Link' && copiedLink ? '1px solid #10B981' : `1px solid ${colors.borderPrimary}`,
+                    border: option.name === 'Copy Link' && copiedLink ? '1px solid #10B981' : `2px solid ${colors.borderPrimary}`,
                     borderRadius: '0.5rem',
                     background: option.name === 'Copy Link' && copiedLink ? (actualTheme === 'dark' ? '#14532D' : '#ECFDF5') : colors.bgCard,
                     cursor: 'pointer',
@@ -2439,7 +2439,7 @@ const MyEventsPage = () => {
                 </button>
               ))}
             </div>
-            <div style={{ borderTop: `1px solid ${colors.borderPrimary}`, paddingTop: '1rem' }}>
+            <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, paddingTop: '1rem' }}>
               <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
                 Join Event Stream Link
               </label>
@@ -2782,7 +2782,7 @@ const MyEventsPage = () => {
             </div>
 
             {/* Action Buttons */}
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', paddingTop: '1rem', borderTop: `1px solid ${colors.borderPrimary}`, marginBottom: '4rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', paddingTop: '1rem', borderTop: `2px solid ${colors.borderPrimary}`, marginBottom: '4rem' }}>
               <button
                 onClick={() => { setShowEditModal(false); setEditEvent(null); }}
                 style={{

@@ -43,6 +43,10 @@ export default function Home() {
   const router = useRouter();
 
   const handleRoleSelect = (role: 'photographer' | 'client' | 'event-coordinator') => {
+    // Set the userRole cookie to match the selected role
+    // This allows the middleware to permit navigation to the correct dashboard
+    document.cookie = `userRole=${role}; path=/; max-age=${60*60*24*7}; samesite=lax`;
+
     if (role === 'photographer') {
       router.push('/user/photographer/dashboard');
     } else if (role === 'event-coordinator') {

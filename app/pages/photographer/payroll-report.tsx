@@ -170,7 +170,7 @@ const PayrollReport = () => {
                   style={{
                     padding: '0.5rem 1rem',
                     backgroundColor: colors.bgCard,
-                    border: `1px solid ${colors.borderPrimary}`,
+                    border: `2px solid ${colors.borderPrimary}`,
                     borderRadius: '0.5rem',
                     fontSize: '0.875rem',
                     fontWeight: '500',
@@ -255,7 +255,7 @@ const PayrollReport = () => {
                   borderRadius: '0.75rem',
                   padding: '1.25rem',
                   boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-                  border: `1px solid ${colors.borderPrimary}`
+                  border: `2px solid ${colors.borderPrimary}`
                 }}>
                   <div style={{
                     fontSize: '0.75rem',
@@ -277,7 +277,7 @@ const PayrollReport = () => {
                   borderRadius: '0.75rem',
                   padding: '1.25rem',
                   boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-                  border: `1px solid ${colors.borderPrimary}`
+                  border: `2px solid ${colors.borderPrimary}`
                 }}>
                   <div style={{
                     fontSize: '0.75rem',
@@ -305,7 +305,7 @@ const PayrollReport = () => {
                   borderRadius: '0.75rem',
                   padding: '1.25rem',
                   boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-                  border: `1px solid ${colors.borderPrimary}`
+                  border: `2px solid ${colors.borderPrimary}`
                 }}>
                   <div style={{
                     fontSize: '0.75rem',
@@ -333,7 +333,7 @@ const PayrollReport = () => {
                   borderRadius: '0.75rem',
                   padding: '1.25rem',
                   boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-                  border: `1px solid ${colors.borderPrimary}`
+                  border: `2px solid ${colors.borderPrimary}`
                 }}>
                   <div style={{
                     fontSize: '0.75rem',
@@ -363,7 +363,7 @@ const PayrollReport = () => {
                 borderRadius: '0.75rem',
                 padding: '1.5rem',
                 boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-                border: `1px solid ${colors.borderPrimary}`
+                border: `2px solid ${colors.borderPrimary}`
               }}>
                 <h2 style={{
                   fontSize: '1.125rem',

@@ -334,7 +334,7 @@ const AllTransactions = () => {
               style={{
                 padding: '0.5rem 1rem',
                 backgroundColor: colors.bgCard,
-                border: `1px solid ${colors.borderPrimary}`,
+                border: `2px solid ${colors.borderPrimary}`,
                 borderRadius: '0.5rem',
                 fontSize: '0.875rem',
                 fontWeight: '500',
@@ -854,7 +854,7 @@ const AllTransactions = () => {
                 gap: '0.5rem',
                 padding: '0.75rem',
                 backgroundColor: colors.bgCard,
-                border: `1px solid ${colors.borderPrimary}`,
+                border: `2px solid ${colors.borderPrimary}`,
                 borderRadius: '0.5rem'
               }}>
                 <div>
@@ -926,7 +926,7 @@ const AllTransactions = () => {
                     flex: 1,
                     padding: '0.625rem 1rem',
                     backgroundColor: colors.bgCard,
-                    border: `1px solid ${colors.borderPrimary}`,
+                    border: `2px solid ${colors.borderPrimary}`,
                     borderRadius: '0.5rem',
                     fontSize: '0.8rem',
                     fontWeight: '500',
