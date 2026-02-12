@@ -6,7 +6,9 @@ import Link from 'next/link';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
+import { useCurrency } from '../../context/CurrencyContext';
 import { useDashboardAuth } from '../../providers/AuthProvider';
+import PayNowModal, { Payment } from '../../components/UnlockModal';
 import {
   StatCard,
   HeaderStat,
@@ -150,12 +152,34 @@ interface Photographer {
 
 const ClientDashboard = () => {
   const { colors, actualTheme } = useTheme();
+  const { formatPrice } = useCurrency();
   const { user } = useDashboardAuth();
   const [activeFilter, setActiveFilter] = useState<'today' | 'week' | 'month' | 'custom'>('week');
   const [timeOfDay, setTimeOfDay] = useState(getTimeOfDay());
   const [greetingIndex, setGreetingIndex] = useState(0);
   const [greetings, setGreetings] = useState(getGreetings(getTimeOfDay()));
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [showPayNowModal, setShowPayNowModal] = useState(false);
+  const [payNowPayment, setPayNowPayment] = useState<Payment | null>(null);
+
+  const handlePayNow = (pending: PendingPayment) => {
+    const payment: Payment = {
+      id: parseInt(pending.id.replace(/\D/g, '')) || 0,
+      date: pending.dueDate,
+      eventName: pending.eventName,
+      eventType: 'Photography',
+      photographerName: pending.photographerName,
+      photographerImage: pending.photographerImage,
+      method: 'card',
+      amount: `$${(pending.amount - pending.paidAmount).toFixed(2)}`,
+      amountNum: pending.amount - pending.paidAmount,
+      paidAmount: pending.paidAmount,
+      status: pending.status === 'partially_paid' ? 'pending' : pending.status,
+      invoiceNumber: pending.id,
+    };
+    setPayNowPayment(payment);
+    setShowPayNowModal(true);
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -248,7 +272,7 @@ const ClientDashboard = () => {
 
   const recentActivities = [
     { label: 'Photographer', value: 'John Studio' },
-    { label: 'Payment', value: '-$450', valueColor: '#ff0066' },
+    { label: 'Payment', value: `-${formatPrice(450)}`, valueColor: '#ff0066' },
     { label: 'Photos', value: 'wedding_gallery.zip' },
     { label: 'Package', value: 'Premium' },
     { label: 'Booking', value: 'Wedding Shoot',  valueColor: '#083A85' },
@@ -287,24 +311,25 @@ const ClientDashboard = () => {
     {
       name: 'John Studio',
       type: 'Booking Payment',
-      amount: '$1,950',
+      amount: formatPrice(1950),
       avatar: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg'
     },
     {
       name: 'Mary Shots',
       type: 'Photo Package',
-      amount: '$850',
+      amount: formatPrice(850),
       avatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg'
     },
     {
       name: 'Amoria',
       type: 'Platform Fee',
-      amount: '$25.00',
+      amount: formatPrice(25),
       logo: '/logo.png'
     }
   ];
 
   return (
+    <>
     <div style={{
       display: 'flex',
       height: '100vh',
@@ -450,7 +475,7 @@ const ClientDashboard = () => {
                   lineHeight: '1.75rem',
                   fontWeight: '700',
                   color: colors.textPrimary
-                }}>$9.64k</span>
+                }}>{formatPrice(9640)}</span>
               </div>
               <div className="mobile-header-stat" style={{
                 display: 'flex',
@@ -584,7 +609,7 @@ const ClientDashboard = () => {
       }}>
         <StatCard
           title="Total Spent"
-          value="$2,600"
+          value={formatPrice(2600)}
           percentage="52.76%"
           timeframe="last week"
           icon={<MoneyIcon />}
@@ -593,7 +618,7 @@ const ClientDashboard = () => {
         />
         <StatCard
           title="Pending"
-          value="$700"
+          value={formatPrice(700)}
           percentage="36.8%"
           timeframe="last week"
           icon={<ClockIcon />}
@@ -611,7 +636,7 @@ const ClientDashboard = () => {
         />
         <StatCard
           title="Gifts"
-          value="$225"
+          value={formatPrice(225)}
           percentage="12.5%"
           timeframe="last week"
           icon={<GiftIcon />}
@@ -669,7 +694,7 @@ const ClientDashboard = () => {
                   color: hasFailedPayments ? (actualTheme === 'dark' ? '#FCA5A5' : '#991B1B') : (actualTheme === 'dark' ? '#FCD34D' : '#92400E'),
                   margin: '0.25rem 0 0 0'
                 }}>
-                  You have {pendingPayments.length} payment{pendingPayments.length > 1 ? 's' : ''} totaling <strong>${totalPendingAmount}</strong> that need{pendingPayments.length === 1 ? 's' : ''} attention
+                  You have {pendingPayments.length} payment{pendingPayments.length > 1 ? 's' : ''} totaling <strong>{formatPrice(totalPendingAmount)}</strong> that need{pendingPayments.length === 1 ? 's' : ''} attention
                 </p>
               </div>
             </div>
@@ -765,19 +790,23 @@ const ClientDashboard = () => {
                     fontWeight: '700',
                     color: payment.status === 'failed' ? (actualTheme === 'dark' ? '#FCA5A5' : '#DC2626') : (actualTheme === 'dark' ? '#60A5FA' : '#083A85')
                   }}>
-                    ${payment.amount - payment.paidAmount}
+                    {formatPrice(payment.amount - payment.paidAmount)}
                   </div>
-                  <Link
-                    href="/user/client/payments"
+                  <button
+                    onClick={() => handlePayNow(payment)}
                     style={{
                       fontSize: '0.75rem',
                       fontWeight: '600',
-                      color: payment.status === 'failed' ? '#F20C8F' : (actualTheme === 'dark' ? '#60A5FA' : '#083A85'),
-                      textDecoration: 'none',
+                      color: 'white',
+                      backgroundColor: payment.status === 'failed' ? '#DC2626' : '#083A85',
+                      border: 'none',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'flex-end',
-                      gap: '0.25rem'
+                      justifyContent: 'center',
+                      gap: '0.25rem',
+                      borderRadius: '0.375rem',
+                      padding: '0.375rem 0.75rem',
+                      cursor: 'pointer'
                     }}
                   >
                     {payment.status === 'failed' ? (
@@ -788,10 +817,10 @@ const ClientDashboard = () => {
                     ) : (
                       <>
                         <CreditCardIcon />
-                        Pay
+                        Pay Now
                       </>
                     )}
-                  </Link>
+                  </button>
                 </div>
               </div>
             ))}
@@ -1050,6 +1079,13 @@ const ClientDashboard = () => {
         </div>
       </div>
     </div>
+
+      <PayNowModal
+        isOpen={showPayNowModal}
+        onClose={() => setShowPayNowModal(false)}
+        payment={payNowPayment}
+      />
+    </>
   );
 };
 

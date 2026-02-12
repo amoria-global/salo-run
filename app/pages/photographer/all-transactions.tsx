@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
+import { useCurrency } from '@/app/context/CurrencyContext';
 
 // Extended transaction data
 const allTransactionsData = [
@@ -121,6 +122,7 @@ const allTransactionsData = [
 
 const AllTransactions = () => {
   const { colors, actualTheme } = useTheme();
+  const { formatPrice } = useCurrency();
   const [transactions] = useState(allTransactionsData);
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   const [showModal, setShowModal] = useState(false);
@@ -251,7 +253,7 @@ const AllTransactions = () => {
     </div>
     <div class="total-row">
       <span class="total-label">Total Amount</span>
-      <span class="total-amount">$${transaction.amount}</span>
+      <span class="total-amount">${formatPrice(transaction.amount)}</span>
     </div>
   </div>
   <div class="footer">
@@ -465,7 +467,7 @@ const AllTransactions = () => {
                 Total Amount
               </div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
-                ${filteredTransactions.reduce((sum, t) => sum + t.amount, 0).toFixed(2)}
+                {formatPrice(filteredTransactions.reduce((sum, t) => sum + t.amount, 0))}
               </div>
             </div>
             <div style={{
@@ -637,7 +639,7 @@ const AllTransactions = () => {
                           fontSize: '0.75rem',
                           fontWeight: '600',
                           color: colors.textPrimary
-                        }}>${transaction.amount}</td>
+                        }}>{formatPrice(transaction.amount)}</td>
                         <td style={{ padding: '0.5rem' }}>
                           <span style={{
                             display: 'inline-block',

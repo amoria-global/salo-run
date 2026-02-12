@@ -4,6 +4,7 @@ import "./globals.css";
 import { DashboardAuthProvider } from "./providers/AuthProvider";
 import { ThemeProvider } from "./context/ThemeContext";
 import { UserProfileProvider } from "./context/UserProfileContext";
+import { CurrencyProvider } from "./context/CurrencyContext";
 
 const pragatiNarrow = Pragati_Narrow({
   weight: ["400", "700"],
@@ -32,9 +33,11 @@ export default function RootLayout({
       <body className={`${pragatiNarrow.variable} font-sans antialiased`}>
         <DashboardAuthProvider>
           <ThemeProvider>
-            <UserProfileProvider>
-              {children}
-            </UserProfileProvider>
+            <CurrencyProvider>
+              <UserProfileProvider>
+                {children}
+              </UserProfileProvider>
+            </CurrencyProvider>
           </ThemeProvider>
         </DashboardAuthProvider>
       </body>

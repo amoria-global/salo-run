@@ -6,6 +6,7 @@ import Topbar from '../../components/topbar';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useTheme } from '../../context/ThemeContext';
+import { useCurrency } from '@/app/context/CurrencyContext';
 import { useDashboardAuth } from '../../providers/AuthProvider';
 
 // API helpers
@@ -274,6 +275,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
 
 export default function Clients() {
   const { colors, actualTheme } = useTheme();
+  const { formatPrice } = useCurrency();
   const { token } = useDashboardAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
@@ -1135,7 +1137,7 @@ export default function Clients() {
             <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}` }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Earned</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.brandPrimary }}>
-                ${clients.reduce((sum, c) => sum + c.totalSpent, 0).toLocaleString()}
+                {formatPrice(clients.reduce((sum, c) => sum + c.totalSpent, 0))}
               </div>
             </div>
             <div className="mobile-stats-card" style={{ backgroundColor: totalTips > 0 ? (actualTheme === 'dark' ? '#78350F' : '#FFFBEB') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: totalTips > 0 ? `1px solid ${actualTheme === 'dark' ? '#92400E' : '#FCD34D'}` : `2px solid ${colors.borderPrimary}` }}>
@@ -1144,7 +1146,7 @@ export default function Clients() {
                 Tips
               </div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: totalTips > 0 ? (actualTheme === 'dark' ? '#FCD34D' : '#F59E0B') : colors.textSecondary }}>
-                ${totalTips.toLocaleString()}
+                {formatPrice(totalTips)}
               </div>
               <div style={{ fontSize: '0.7rem', color: colors.textSecondary, marginTop: '0.25rem' }}>From clients</div>
             </div>
@@ -1154,7 +1156,7 @@ export default function Clients() {
                 Bonus
               </div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: platformBonus > 0 ? (actualTheme === 'dark' ? '#4ADE80' : '#16A34A') : colors.textSecondary }}>
-                ${platformBonus.toLocaleString()}
+                {formatPrice(platformBonus)}
               </div>
               <div style={{ fontSize: '0.7rem', color: colors.textSecondary, marginTop: '0.25rem' }}>{totalCompletedEvents}/10 events ({bonusEligibleSets > 0 ? '10%' : '0%'})</div>
             </div>
@@ -1170,7 +1172,7 @@ export default function Clients() {
                 Pending Payments
               </div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#FCA5A5' : '#DC2626') : colors.textSecondary }}>
-                ${totalPendingAmount.toLocaleString()}
+                {formatPrice(totalPendingAmount)}
               </div>
             </div>
           </div>
@@ -1397,7 +1399,7 @@ export default function Clients() {
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Total Spent</div>
-                      <div style={{ fontSize: '1rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>${client.totalSpent.toLocaleString()}</div>
+                      <div style={{ fontSize: '1rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{formatPrice(client.totalSpent)}</div>
                     </div>
                   </div>
 
@@ -1478,7 +1480,7 @@ export default function Clients() {
                                   </span>
                                 </div>
                                 <div style={{ fontSize: '0.9rem', fontWeight: '600', color: textColor }}>
-                                  {isPaid ? `$${booking.totalAmount}` : `$${amountDue} due`}
+                                  {isPaid ? formatPrice(booking.totalAmount) : `${formatPrice(amountDue)} due`}
                                 </div>
                               </div>
                             </div>
@@ -1564,7 +1566,7 @@ export default function Clients() {
                     >
                       <GiftIcon />
                       Tips: {client.tipsAndBonuses.filter(t => t.type === 'tip').length > 0
-                        ? `$${client.tipsAndBonuses.filter(t => t.type === 'tip').reduce((sum, t) => sum + t.amount, 0)}`
+                        ? formatPrice(client.tipsAndBonuses.filter(t => t.type === 'tip').reduce((sum, t) => sum + t.amount, 0))
                         : 'None'
                       }
                     </button>
@@ -1667,7 +1669,7 @@ export default function Clients() {
 
                   <div style={{ flex: '0 0 100px', textAlign: 'center' }}>
                     <p style={{ fontSize: '1rem', fontWeight: '700', color: colors.textPrimary, margin: 0, marginBottom: '0.125rem' }}>
-                      ${client.totalSpent.toLocaleString()}
+                      {formatPrice(client.totalSpent)}
                     </p>
                     <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: 0 }}>Total Spent</p>
                   </div>
@@ -1806,7 +1808,7 @@ export default function Clients() {
                     >
                       <GiftIcon />
                       Tips: {client.tipsAndBonuses.filter(t => t.type === 'tip').length > 0
-                        ? `$${client.tipsAndBonuses.filter(t => t.type === 'tip').reduce((sum, t) => sum + t.amount, 0)}`
+                        ? formatPrice(client.tipsAndBonuses.filter(t => t.type === 'tip').reduce((sum, t) => sum + t.amount, 0))
                         : 'None'
                       }
                     </button>
@@ -1959,7 +1961,7 @@ export default function Clients() {
                           )}
                           {getBookingAmount(booking) > 0 && (
                             <span style={{ fontWeight: '600', color: colors.textPrimary }}>
-                              ${getBookingAmount(booking).toLocaleString()}
+                              {formatPrice(getBookingAmount(booking))}
                             </span>
                           )}
                         </div>
@@ -2102,7 +2104,7 @@ export default function Clients() {
               </div>
               <div style={{ backgroundColor: colors.bgTertiary, padding: '0.75rem', borderRadius: '0.5rem', textAlign: 'center' }}>
                 <p style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85', margin: 0, marginBottom: '0.25rem' }}>
-                  ${selectedClient.totalSpent.toLocaleString()}
+                  {formatPrice(selectedClient.totalSpent)}
                 </p>
                 <p style={{ fontSize: '0.75rem', color: colors.textSecondary, margin: 0 }}>Total Spent</p>
               </div>
@@ -2221,7 +2223,7 @@ export default function Clients() {
                       </div>
                       <div style={{ textAlign: 'right' }}>
                         <p style={{ fontSize: '0.9rem', fontWeight: '600', color: textColor, margin: 0 }}>
-                          {isPaid ? `$${booking.totalAmount}` : `$${amountDue} due`}
+                          {isPaid ? formatPrice(booking.totalAmount) : `${formatPrice(amountDue)} due`}
                         </p>
                         <span style={{
                           backgroundColor: paymentColor.bg,
