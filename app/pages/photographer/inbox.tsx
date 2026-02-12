@@ -542,15 +542,15 @@ const InboxPage = () => {
             width: '340px',
             backgroundColor: colors.bgCard,
             borderRadius: '0.75rem 0 0 0.75rem',
-            border: `1px solid ${colors.borderPrimary}`,
-            borderRight: `1px solid ${colors.borderPrimary}`,
+            border: `2px solid ${colors.borderPrimary}`,
+            borderRight: `2px solid ${colors.borderPrimary}`,
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
             boxShadow: colors.shadowSm
           }}>
             {/* Header */}
-            <div className="mobile-conversations-list-header" style={{ padding: '1rem', borderBottom: `1px solid ${colors.borderPrimary}` }}>
+            <div className="mobile-conversations-list-header" style={{ padding: '1rem', borderBottom: `2px solid ${colors.borderPrimary}` }}>
               <h1 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '1rem' }}>Messages</h1>
 
               {/* Search */}
@@ -707,7 +707,7 @@ const InboxPage = () => {
             flex: 1,
             backgroundColor: colors.bgCard,
             borderRadius: '0 0.75rem 0.75rem 0',
-            border: `1px solid ${colors.borderPrimary}`,
+            border: `2px solid ${colors.borderPrimary}`,
             borderLeft: 'none',
             display: 'flex',
             flexDirection: 'column',
@@ -722,7 +722,7 @@ const InboxPage = () => {
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   padding: '1rem 1.25rem',
-                  borderBottom: `1px solid ${colors.borderPrimary}`
+                  borderBottom: `2px solid ${colors.borderPrimary}`
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <button
@@ -823,7 +823,7 @@ const InboxPage = () => {
                                 style={{
                                   padding: '0.375rem',
                                   backgroundColor: colors.bgCard,
-                                  border: `1px solid ${colors.borderPrimary}`,
+                                  border: `2px solid ${colors.borderPrimary}`,
                                   borderRadius: '0.375rem',
                                   cursor: 'pointer',
                                   display: 'flex',
@@ -841,7 +841,7 @@ const InboxPage = () => {
                                 style={{
                                   padding: '0.375rem',
                                   backgroundColor: colors.bgCard,
-                                  border: `1px solid ${colors.borderPrimary}`,
+                                  border: `2px solid ${colors.borderPrimary}`,
                                   borderRadius: '0.375rem',
                                   cursor: 'pointer',
                                   display: 'flex',
@@ -935,7 +935,7 @@ const InboxPage = () => {
                                 padding: '0.75rem 1rem',
                                 borderRadius: isOwn ? '1rem 1rem 0.25rem 1rem' : '1rem 1rem 1rem 0.25rem',
                                 boxShadow: colors.shadowSm,
-                                border: isOwn ? 'none' : `1px solid ${colors.borderPrimary}`
+                                border: isOwn ? 'none' : `2px solid ${colors.borderPrimary}`
                               }}>
                                 <p style={{ margin: 0, fontSize: '0.9rem', lineHeight: '1.5' }}>{message.content}</p>
                               </div>
@@ -960,7 +960,7 @@ const InboxPage = () => {
                 </div>
 
                 {/* Message Input */}
-                <div className="mobile-message-input-container" style={{ padding: '1rem 1.25rem', borderTop: `1px solid ${colors.borderPrimary}`, position: 'relative' }}>
+                <div className="mobile-message-input-container" style={{ padding: '1rem 1.25rem', borderTop: `2px solid ${colors.borderPrimary}`, position: 'relative' }}>
                   {/* Emoji Picker */}
                   {showEmojiPicker && (
                     <div

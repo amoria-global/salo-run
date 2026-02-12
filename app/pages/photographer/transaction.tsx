@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
-import DonateModal, { DonateButton, DonatePromptModal } from '../../components/DonateModal';
+import { HeartIcon } from '../../components/UnlockModal';
 
 // Icons
 const DownloadIcon = () => (
@@ -87,18 +87,6 @@ const MobileMoneyIcon = ({ color = '#F59E0B' }: { color?: string }) => (
     <rect x="5" y="2" width="14" height="20" rx="2" stroke={color} strokeWidth="2"/>
     <circle cx="12" cy="18" r="1" fill={color}/>
     <path d="M9 5H15" stroke={color} strokeWidth="2" strokeLinecap="round"/>
-  </svg>
-);
-
-const BankIcon = ({ color = '#3B82F6' }: { color?: string }) => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M3 21H21" stroke={color} strokeWidth="2" strokeLinecap="round"/>
-    <path d="M3 10H21" stroke={color} strokeWidth="2" strokeLinecap="round"/>
-    <path d="M12 3L21 10H3L12 3Z" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M5 10V21" stroke={color} strokeWidth="2" strokeLinecap="round"/>
-    <path d="M9 10V21" stroke={color} strokeWidth="2" strokeLinecap="round"/>
-    <path d="M15 10V21" stroke={color} strokeWidth="2" strokeLinecap="round"/>
-    <path d="M19 10V21" stroke={color} strokeWidth="2" strokeLinecap="round"/>
   </svg>
 );
 
@@ -249,7 +237,7 @@ Transaction Summary:
                 </div>
                 <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>${reportData.withdrawn.toFixed(2)}</span>
               </div>
-              <div style={{ borderTop: `1px solid ${colors.borderPrimary}`, marginTop: '0.35rem', paddingTop: '0.35rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, marginTop: '0.35rem', paddingTop: '0.35rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.75rem', fontWeight: '500', color: colors.textSecondary }}>Total</span>
                 <span style={{ fontSize: '0.95rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>${(reportData.totalEarned + reportData.pending + reportData.withdrawn).toFixed(2)}</span>
               </div>
@@ -434,7 +422,7 @@ Amount: ${transaction.amount}
 
       {/* Transaction Info */}
       <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '1rem', marginBottom: '1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: `1px solid ${colors.borderPrimary}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: `2px solid ${colors.borderPrimary}` }}>
           <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
             <Image src={transaction.clientImage} alt={transaction.clientName} width={40} height={40} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
           </div>
@@ -531,7 +519,7 @@ interface WithdrawModalProps {
 
 interface WithdrawAccount {
   id: string;
-  type: 'mobile' | 'bank' | 'card' | 'mtn' | 'airtel';
+  type: 'mobile' | 'card' | 'mtn' | 'airtel';
   label: string;
   accountNumber: string;
   accountName: string;
@@ -543,19 +531,48 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
   const router = useRouter();
   const [withdrawAmount, setWithdrawAmount] = useState<string>('');
   const [selectedAccount, setSelectedAccount] = useState<string>('');
+  const [donationAmount, setDonationAmount] = useState<string>('');
+  const [customDonation, setCustomDonation] = useState<string>('');
+  const [donationSkipped, setDonationSkipped] = useState<boolean>(false);
+  const [showCustomInput, setShowCustomInput] = useState<boolean>(false);
 
   const accounts: WithdrawAccount[] = [
     { id: 'mtn', type: 'mtn', label: 'MTN Mobile Money', accountNumber: '0789 XXX 980', accountName: 'John Doe', color: '#F59E0B' },
     { id: 'airtel', type: 'airtel', label: 'Airtel Money', accountNumber: '0738 XXX 456', accountName: 'John Doe', color: '#ED1C24' },
-    { id: 'bank', type: 'bank', label: 'Bank of Kigali', accountNumber: '0012 XXXX 4532', accountName: 'John Doe', color: '#3B82F6' },
     { id: 'visa', type: 'card', label: 'Visa Debit Card', accountNumber: '**** **** **** 4187', accountName: 'John Doe', color: '#8B5CF6' }
   ];
+
+  const donationValue = donationAmount === 'custom' ? (parseFloat(customDonation) || 0) : (parseFloat(donationAmount) || 0);
+  const donationAddressed = donationSkipped || donationValue > 0;
+
+  const handleSelectDonation = (amount: string) => {
+    setDonationSkipped(false);
+    if (amount === 'custom') {
+      setDonationAmount('custom');
+      setShowCustomInput(true);
+    } else {
+      setDonationAmount(amount);
+      setShowCustomInput(false);
+      setCustomDonation('');
+    }
+  };
+
+  const handleSkipDonation = () => {
+    setDonationSkipped(true);
+    setDonationAmount('');
+    setCustomDonation('');
+    setShowCustomInput(false);
+  };
 
   const handleWithdraw = () => {
     console.log('Withdrawing:', withdrawAmount, 'to account:', selectedAccount);
     onClose();
     setWithdrawAmount('');
     setSelectedAccount('');
+    setDonationAmount('');
+    setCustomDonation('');
+    setDonationSkipped(false);
+    setShowCustomInput(false);
   };
 
   const getAccountImage = (type: string) => {
@@ -564,8 +581,6 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
         return '/mtn.png';
       case 'airtel':
         return '/airtel.png';
-      case 'bank':
-        return '/bank.png';
       case 'card':
         return '/cards.png';
       default:
@@ -724,7 +739,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
                   onClick={() => setWithdrawAmount(amount)}
                   style={{
                     padding: '0.5rem',
-                    border: withdrawAmount === amount ? '2px solid #083A85' : `1px solid ${colors.borderPrimary}`,
+                    border: withdrawAmount === amount ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
                     borderRadius: '0.5rem',
                     background: withdrawAmount === amount ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
                     color: withdrawAmount === amount ? '#083A85' : colors.textSecondary,
@@ -775,16 +790,27 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
                     height: '48px',
                     borderRadius: '0.5rem',
                     overflow: 'hidden',
-                    flexShrink: 0
+                    flexShrink: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '2px'
                   }}>
-                    <Image
-                      src={getAccountImage(account.type)}
-                      alt={account.label}
-                      width={48}
-                      height={48}
-                      unoptimized
-                      style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                    />
+                    {account.type === 'card' ? (
+                      <>
+                        <Image src="/visa.png" alt="Visa" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
+                        <Image src="/master.png" alt="Mastercard" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
+                      </>
+                    ) : (
+                      <Image
+                        src={getAccountImage(account.type)}
+                        alt={account.label}
+                        width={48}
+                        height={48}
+                        unoptimized
+                        style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                      />
+                    )}
                   </div>
 
                   {/* Account Info */}
@@ -831,7 +857,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
 
           {/* Info text about withdrawal accounts */}
           <p className="mobile-info-text" style={{
-            fontSize: '0.8rem',
+            fontSize: '0.86rem',
             color: colors.textSecondary,
             margin: '0.75rem 0 1.25rem 0',
             textAlign: 'center'
@@ -842,6 +868,176 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
               style={{ color: colors.brandPrimary, fontWeight: '500', cursor: 'pointer', textDecoration: 'underline' }}
             >Preferences → Withdrawal Accounts</span>
           </p>
+
+          {/* Donation Section */}
+          <div style={{
+            marginBottom: '1.25rem',
+            padding: '1rem',
+            borderRadius: '0.75rem',
+            border: `2px solid ${donationSkipped ? colors.borderPrimary : (donationValue > 0 ? '#F20C8F' : 'rgba(242, 12, 143, 0.3)')}`,
+            background: actualTheme === 'dark'
+              ? 'linear-gradient(135deg, rgba(242, 12, 143, 0.08) 0%, rgba(255, 107, 157, 0.03) 100%)'
+              : 'linear-gradient(135deg, rgba(242, 12, 143, 0.05) 0%, rgba(255, 107, 157, 0.02) 100%)',
+            transition: 'all 0.2s'
+          }}>
+            {/* Header */}
+            <div style={{ marginBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <HeartIcon />
+                <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>
+                  Support a Cause
+                </span>
+                <span style={{ fontSize: '0.81rem', color: colors.textSecondary, marginLeft: 'auto' }}>Optional</span>
+              </div>
+              <p style={{ fontSize: '0.84rem', color: colors.textSecondary, margin: '0.35rem 0 0 0', lineHeight: '1.4' }}>
+                Add a small donation to help fund community projects and initiatives
+              </p>
+            </div>
+
+            {!donationSkipped && (
+              <>
+                {/* Quick Amount Buttons */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                  {['5', '10', '25', '50'].map((amount) => (
+                    <button
+                      key={amount}
+                      onClick={() => handleSelectDonation(amount)}
+                      style={{
+                        padding: '0.4rem 0.75rem',
+                        border: donationAmount === amount ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`,
+                        borderRadius: '0.5rem',
+                        background: donationAmount === amount
+                          ? (actualTheme === 'dark' ? 'rgba(242, 12, 143, 0.15)' : 'rgba(242, 12, 143, 0.08)')
+                          : colors.bgCard,
+                        color: donationAmount === amount ? '#F20C8F' : colors.textSecondary,
+                        fontSize: '0.8rem',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        flex: '1',
+                        minWidth: '0'
+                      }}
+                    >
+                      ${amount}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => handleSelectDonation('custom')}
+                    style={{
+                      padding: '0.4rem 0.75rem',
+                      border: donationAmount === 'custom' ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`,
+                      borderRadius: '0.5rem',
+                      background: donationAmount === 'custom'
+                        ? (actualTheme === 'dark' ? 'rgba(242, 12, 143, 0.15)' : 'rgba(242, 12, 143, 0.08)')
+                        : colors.bgCard,
+                      color: donationAmount === 'custom' ? '#F20C8F' : colors.textSecondary,
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      flex: '1',
+                      minWidth: '0'
+                    }}
+                  >
+                    Custom
+                  </button>
+                </div>
+
+                {/* Custom Amount Input */}
+                {showCustomInput && (
+                  <div style={{ position: 'relative', marginBottom: '0.75rem' }}>
+                    <span style={{
+                      position: 'absolute',
+                      left: '0.75rem',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      fontSize: '0.9rem',
+                      fontWeight: '600',
+                      color: colors.textSecondary
+                    }}>$</span>
+                    <input
+                      type="number"
+                      placeholder="Enter amount"
+                      value={customDonation}
+                      onChange={(e) => setCustomDonation(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.6rem 0.75rem 0.6rem 1.75rem',
+                        border: `2px solid ${customDonation ? '#F20C8F' : colors.borderPrimary}`,
+                        borderRadius: '0.5rem',
+                        fontSize: '0.85rem',
+                        color: colors.textPrimary,
+                        backgroundColor: colors.bgCard,
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                        transition: 'border-color 0.2s'
+                      }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = '#F20C8F';
+                        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(242, 12, 143, 0.1)';
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = customDonation ? '#F20C8F' : colors.borderPrimary;
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                    />
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* No Thanks Button */}
+            <button
+              onClick={handleSkipDonation}
+              style={{
+                width: '100%',
+                padding: '0.5rem 1rem',
+                borderRadius: '9999px',
+                border: donationSkipped ? '2px solid #F20C8F' : '2px solid #6B7280',
+                background: donationSkipped ? '#F20C8F' : colors.bgTertiary,
+                color: donationSkipped ? 'white' : '#374151',
+                fontSize: '0.875rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                textAlign: 'center'
+              }}
+            >
+              {donationSkipped ? '✓ Donation skipped' : 'No thanks, skip donation'}
+            </button>
+
+            {/* Donations Page Link */}
+            <div style={{ marginTop: '0.5rem' }}>
+              <a
+                href="http://localhost:3000/user/donations"
+                onClick={(e) => {
+                  e.preventDefault();
+                  router.push('/user/donations');
+                }}
+                style={{
+                  fontSize: '0.81rem',
+                  color: '#F20C8F',
+                  textDecoration: 'none',
+                  fontWeight: '500'
+                }}
+              >
+                Learn more about our donation program →
+              </a>
+            </div>
+          </div>
+
+          {/* Validation Message */}
+          {!donationAddressed && (
+            <p style={{
+              fontSize: '0.86rem',
+              color: '#F20C8F',
+              margin: '0 0 0.75rem 0',
+              textAlign: 'center',
+              fontWeight: '500'
+            }}>
+              Please select a donation amount or skip to continue
+            </p>
+          )}
 
           {/* Actions */}
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
@@ -866,17 +1062,17 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
             </button>
             <button
               onClick={handleWithdraw}
-              disabled={!withdrawAmount || !selectedAccount}
+              disabled={!withdrawAmount || !selectedAccount || !donationAddressed}
               style={{
                 flex: 1,
                 padding: '0.875rem 1rem',
-                border: !withdrawAmount || !selectedAccount ? '2px solid #9CA3AF' : '2px solid #062a63',
+                border: !withdrawAmount || !selectedAccount || !donationAddressed ? '2px solid #9CA3AF' : '2px solid #062a63',
                 borderRadius: '0.75rem',
-                background: !withdrawAmount || !selectedAccount ? '#9CA3AF' : '#083A85',
+                background: !withdrawAmount || !selectedAccount || !donationAddressed ? '#9CA3AF' : '#083A85',
                 color: 'white',
                 fontSize: '0.9rem',
                 fontWeight: '600',
-                cursor: !withdrawAmount || !selectedAccount ? 'not-allowed' : 'pointer',
+                cursor: !withdrawAmount || !selectedAccount || !donationAddressed ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -1280,11 +1476,7 @@ const TransactionsPage = () => {
   const [showReportModal, setShowReportModal] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
-  const [showWithdrawDonatePromptModal, setShowWithdrawDonatePromptModal] = useState(false);
-  const [showWithdrawDonateModal, setShowWithdrawDonateModal] = useState(false);
   const [showTipsModal, setShowTipsModal] = useState(false);
-  const [showTipsDonateModal, setShowTipsDonateModal] = useState(false);
-  const [showTipsDonatePromptModal, setShowTipsDonatePromptModal] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
   const handleViewTransaction = (transaction: Transaction) => {
@@ -1652,7 +1844,7 @@ Amount: ${transaction.amount}
               </p>
             </div>
             <button
-              onClick={() => setShowWithdrawDonatePromptModal(true)}
+              onClick={() => setShowWithdrawModal(true)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -1722,11 +1914,11 @@ Amount: ${transaction.amount}
               </div>
 
               {/* Recent Tips List */}
-              <div style={{ borderTop: `1px solid ${colors.borderPrimary}`, paddingTop: '1rem' }}>
+              <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, paddingTop: '1rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                   <span style={{ fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary }}>Recent Tips</span>
                   <button
-                    onClick={() => setShowTipsDonatePromptModal(true)}
+                    onClick={() => setShowTipsModal(true)}
                     style={{ fontSize: '0.8rem', color: '#16A34A', fontWeight: '500', background: 'none', border: 'none', cursor: 'pointer' }}
                   >
                     View All
@@ -1766,7 +1958,7 @@ Amount: ${transaction.amount}
               </div>
 
               {/* Progress to Next Bonus */}
-              <div style={{ borderTop: `1px solid ${colors.borderPrimary}`, paddingTop: '1rem' }}>
+              <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, paddingTop: '1rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                   <span style={{ fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary }}>Progress to Next Bonus</span>
                   <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#16A34A' }}>{completedEventsCount % 10}/10 events</span>
@@ -1928,7 +2120,7 @@ Amount: ${transaction.amount}
 
           {/* Transaction History Table */}
           <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', boxShadow: colors.shadowSm, overflow: 'hidden' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderBottom: `1px solid ${colors.borderPrimary}` }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderBottom: `2px solid ${colors.borderPrimary}` }}>
               <h2 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary }}>Transaction History</h2>
               <button style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: colors.bgCard, border: '2px solid #D1D5DB', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', fontSize: '0.85rem', color: colors.textSecondary, cursor: 'pointer' }}>
                 <CalendarIcon />
@@ -1951,7 +2143,7 @@ Amount: ${transaction.amount}
               </thead>
               <tbody>
                 {transactions.map((transaction) => (
-                  <tr key={transaction.id} style={{ borderBottom: `1px solid ${colors.borderPrimary}` }}>
+                  <tr key={transaction.id} style={{ borderBottom: `2px solid ${colors.borderPrimary}` }}>
                     <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.85rem', color: colors.textSecondary }}>{transaction.date}</td>
                     <td style={{ padding: '0.875rem 1.25rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -1988,7 +2180,7 @@ Amount: ${transaction.amount}
             </div>
 
             {/* Pagination */}
-            <div className="mobile-pagination" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderTop: `1px solid ${colors.borderPrimary}` }}>
+            <div className="mobile-pagination" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderTop: `2px solid ${colors.borderPrimary}` }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Showing {resultsPerPage} of {totalResults} Results</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 <button onClick={() => setCurrentPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1} style={{ background: 'none', border: '2px solid #D1D5DB', borderRadius: '0.375rem', padding: '0.5rem', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', opacity: currentPage === 1 ? 0.5 : 1 }}>
@@ -2019,22 +2211,6 @@ Amount: ${transaction.amount}
         onClose={() => setShowTransactionModal(false)}
         transaction={selectedTransaction}
       />
-      {/* Withdraw Donate Prompt Modal - Shows before withdraw modal */}
-      <DonatePromptModal
-        isOpen={showWithdrawDonatePromptModal}
-        onClose={() => setShowWithdrawDonatePromptModal(false)}
-        onNo={() => {
-          setShowWithdrawDonatePromptModal(false);
-          setShowWithdrawModal(true);
-        }}
-        onYes={() => {
-          setShowWithdrawDonatePromptModal(false);
-          setShowWithdrawDonateModal(true);
-        }}
-      />
-
-      {/* Withdraw Donate Modal */}
-      <DonateModal isOpen={showWithdrawDonateModal} onClose={() => setShowWithdrawDonateModal(false)} />
 
       <WithdrawModal
         isOpen={showWithdrawModal}
@@ -2117,22 +2293,6 @@ Amount: ${transaction.amount}
         </div>
       </Modal>
 
-      {/* Tips Donate Prompt Modal - Shows before tips modal */}
-      <DonatePromptModal
-        isOpen={showTipsDonatePromptModal}
-        onClose={() => setShowTipsDonatePromptModal(false)}
-        onNo={() => {
-          setShowTipsDonatePromptModal(false);
-          setShowTipsModal(true);
-        }}
-        onYes={() => {
-          setShowTipsDonatePromptModal(false);
-          setShowTipsDonateModal(true);
-        }}
-      />
-
-      {/* Tips Donate Modal */}
-      <DonateModal isOpen={showTipsDonateModal} onClose={() => setShowTipsDonateModal(false)} />
 
       {/* Print Styles */}
       <style>{`

@@ -541,7 +541,7 @@ const PhotographerDashboard = () => {
           padding-top: 0.75rem;
           padding-bottom: 0.75rem;
           box-shadow: ${colors.shadowSm};
-          border: 1px solid ${colors.borderPrimary};
+          border: 2px solid ${colors.borderPrimary};
           display: flex;
           gap: 2rem;
         }
@@ -649,9 +649,9 @@ const PhotographerDashboard = () => {
                   gap: '0.5rem',
                   padding: '0.5rem 1rem',
                   borderRadius: '0.5rem',
-                  border: isComparisonMode ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`,
-                  backgroundColor: isComparisonMode ? '#F20C8F' : colors.bgCard,
-                  color: isComparisonMode ? 'white' : colors.textSecondary,
+                  border: isComparisonMode ? '2px solid #F20C8F' : '2px solid #0c943e',
+                  backgroundColor: isComparisonMode ? '#F20C8F' : '#0c943e',
+                  color: isComparisonMode ? 'white' : 'white',
                   cursor: 'pointer',
                   fontSize: '0.875rem',
                   fontWeight: '500',
@@ -712,7 +712,7 @@ const PhotographerDashboard = () => {
                           backgroundColor: colors.bgCard,
                           borderRadius: '0.5rem',
                           boxShadow: colors.shadowLg,
-                          border: `1px solid ${colors.borderPrimary}`,
+                          border: `2px solid ${colors.borderPrimary}`,
                           zIndex: 100,
                           minWidth: '220px',
                           maxHeight: '300px',
@@ -867,7 +867,7 @@ const PhotographerDashboard = () => {
               paddingTop: '0.75rem',
               paddingBottom: '0.75rem',
               boxShadow: colors.shadowSm,
-              border: `1px solid ${colors.borderPrimary}`,
+              border: `2px solid ${colors.borderPrimary}`,
               display: 'flex',
               gap: '2rem'
             }}>
@@ -1221,7 +1221,7 @@ const PhotographerDashboard = () => {
                           backgroundColor: colors.bgCard,
                           borderRadius: '0.5rem',
                           boxShadow: colors.shadowMd,
-                          border: `1px solid ${colors.borderPrimary}`,
+                          border: `2px solid ${colors.borderPrimary}`,
                           zIndex: 10,
                           minWidth: '140px',
                           overflow: 'hidden'
@@ -1399,7 +1399,7 @@ const PhotographerDashboard = () => {
                   width: '100%',
                   padding: '0.75rem',
                   borderRadius: '0.5rem',
-                  border: `1px solid ${colors.borderPrimary}`,
+                  border: `2px solid ${colors.borderPrimary}`,
                   backgroundColor: colors.bgPrimary,
                   color: colors.textPrimary,
                   fontSize: '0.9rem'
@@ -1465,7 +1465,7 @@ const PhotographerDashboard = () => {
                       width: '100%',
                       padding: '0.75rem',
                       borderRadius: '0.5rem',
-                      border: `1px solid ${colors.borderPrimary}`,
+                      border: `2px solid ${colors.borderPrimary}`,
                       backgroundColor: colors.bgPrimary,
                       color: colors.textPrimary,
                       fontSize: '0.9rem'
@@ -1488,7 +1488,7 @@ const PhotographerDashboard = () => {
                       width: '100%',
                       padding: '0.75rem',
                       borderRadius: '0.5rem',
-                      border: `1px solid ${colors.borderPrimary}`,
+                      border: `2px solid ${colors.borderPrimary}`,
                       backgroundColor: colors.bgPrimary,
                       color: colors.textPrimary,
                       fontSize: '0.9rem'
@@ -1500,7 +1500,7 @@ const PhotographerDashboard = () => {
 
             {/* Target Stats Fields */}
             <div style={{
-              borderTop: `1px solid ${colors.borderPrimary}`,
+              borderTop: `2px solid ${colors.borderPrimary}`,
               paddingTop: '1rem',
               marginBottom: '1rem'
             }}>
@@ -1532,7 +1532,7 @@ const PhotographerDashboard = () => {
                       width: '100%',
                       padding: '0.75rem',
                       borderRadius: '0.5rem',
-                      border: `1px solid ${colors.borderPrimary}`,
+                      border: `2px solid ${colors.borderPrimary}`,
                       backgroundColor: colors.bgPrimary,
                       color: colors.textPrimary,
                       fontSize: '0.9rem'
@@ -1556,7 +1556,7 @@ const PhotographerDashboard = () => {
                       width: '100%',
                       padding: '0.75rem',
                       borderRadius: '0.5rem',
-                      border: `1px solid ${colors.borderPrimary}`,
+                      border: `2px solid ${colors.borderPrimary}`,
                       backgroundColor: colors.bgPrimary,
                       color: colors.textPrimary,
                       fontSize: '0.9rem'
@@ -1580,7 +1580,7 @@ const PhotographerDashboard = () => {
                       width: '100%',
                       padding: '0.75rem',
                       borderRadius: '0.5rem',
-                      border: `1px solid ${colors.borderPrimary}`,
+                      border: `2px solid ${colors.borderPrimary}`,
                       backgroundColor: colors.bgPrimary,
                       color: colors.textPrimary,
                       fontSize: '0.9rem'
@@ -1604,7 +1604,7 @@ const PhotographerDashboard = () => {
                       width: '100%',
                       padding: '0.75rem',
                       borderRadius: '0.5rem',
-                      border: `1px solid ${colors.borderPrimary}`,
+                      border: `2px solid ${colors.borderPrimary}`,
                       backgroundColor: colors.bgPrimary,
                       color: colors.textPrimary,
                       fontSize: '0.9rem'
@@ -1628,7 +1628,7 @@ const PhotographerDashboard = () => {
                       width: '100%',
                       padding: '0.75rem',
                       borderRadius: '0.5rem',
-                      border: `1px solid ${colors.borderPrimary}`,
+                      border: `2px solid ${colors.borderPrimary}`,
                       backgroundColor: colors.bgPrimary,
                       color: colors.textPrimary,
                       fontSize: '0.9rem'
@@ -1652,7 +1652,7 @@ const PhotographerDashboard = () => {
                 style={{
                   padding: '0.75rem 1.5rem',
                   borderRadius: '0.5rem',
-                  border: `1px solid ${colors.borderPrimary}`,
+                  border: `2px solid ${colors.borderPrimary}`,
                   backgroundColor: 'transparent',
                   color: colors.textSecondary,
                   cursor: 'pointer',

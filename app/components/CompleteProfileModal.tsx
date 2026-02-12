@@ -754,7 +754,7 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, onC
                   padding: '0.625rem 0.875rem',
                   backgroundColor: actualTheme === 'dark' ? 'rgba(255,255,255,0.03)' : '#f9fafb',
                   borderRadius: '0.5rem',
-                  border: `1px solid ${colors.borderPrimary}`,
+                  border: `2px solid ${colors.borderPrimary}`,
                 }}
               >
                 <div style={{ flex: 1 }}>
@@ -836,7 +836,7 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, onC
           key={entry.id}
           style={{
             padding: '1rem',
-            border: `1px solid ${colors.borderPrimary}`,
+            border: `2px solid ${colors.borderPrimary}`,
             borderRadius: '0.75rem',
             backgroundColor: actualTheme === 'dark' ? 'rgba(255,255,255,0.02)' : '#fafafa',
           }}
@@ -889,7 +889,7 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, onC
         )}
 
         {certEntries.map((entry, index) => (
-          <div key={entry.id} style={{ padding: '0.875rem', border: `1px solid ${colors.borderPrimary}`, borderRadius: '0.75rem', backgroundColor: actualTheme === 'dark' ? 'rgba(255,255,255,0.02)' : '#fafafa', marginBottom: '0.5rem' }}>
+          <div key={entry.id} style={{ padding: '0.875rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.75rem', backgroundColor: actualTheme === 'dark' ? 'rgba(255,255,255,0.02)' : '#fafafa', marginBottom: '0.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
               <span style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textSecondary }}>Certification #{index + 1}</span>
               <button onClick={() => removeCertification(entry.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#EF4444', display: 'flex', alignItems: 'center', padding: '0.25rem' }}><TrashIcon /></button>
@@ -923,7 +923,7 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, onC
         )}
 
         {trainingEntries.map((entry, index) => (
-          <div key={entry.id} style={{ padding: '0.875rem', border: `1px solid ${colors.borderPrimary}`, borderRadius: '0.75rem', backgroundColor: actualTheme === 'dark' ? 'rgba(255,255,255,0.02)' : '#fafafa', marginBottom: '0.5rem' }}>
+          <div key={entry.id} style={{ padding: '0.875rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.75rem', backgroundColor: actualTheme === 'dark' ? 'rgba(255,255,255,0.02)' : '#fafafa', marginBottom: '0.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
               <span style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textSecondary }}>Training #{index + 1}</span>
               <button onClick={() => removeTraining(entry.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#EF4444', display: 'flex', alignItems: 'center', padding: '0.25rem' }}><TrashIcon /></button>
@@ -996,7 +996,7 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, onC
           {/* Header */}
           <div style={{
             padding: isMobile ? '1rem 1rem 0.75rem' : '1.25rem 1.5rem 1rem',
-            borderBottom: `1px solid ${colors.borderPrimary}`,
+            borderBottom: `2px solid ${colors.borderPrimary}`,
             flexShrink: 0,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
@@ -1075,7 +1075,7 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, onC
           {/* Footer */}
           <div style={{
             padding: isMobile ? '0.75rem 1rem' : '1rem 1.5rem',
-            borderTop: `1px solid ${colors.borderPrimary}`,
+            borderTop: `2px solid ${colors.borderPrimary}`,
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
