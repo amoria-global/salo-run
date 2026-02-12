@@ -461,7 +461,7 @@ const ProfilePage = () => {
                 borderRadius: '0.75rem',
                 overflow: 'hidden',
                 boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                border: `1px solid ${colors.borderPrimary}`
+                border: `2px solid ${colors.borderPrimary}`
               }}>
                 {/* Hidden file inputs */}
                 <input
@@ -563,7 +563,7 @@ const ProfilePage = () => {
 
                 {/* Account Activity */}
                 <div className="mobile-profile-card-activity" style={{
-                  borderTop: `1px solid ${colors.borderPrimary}`,
+                  borderTop: `2px solid ${colors.borderPrimary}`,
                   padding: '1.25rem'
                 }}>
                   <h3 style={{
@@ -606,7 +606,7 @@ const ProfilePage = () => {
               borderRadius: '0.75rem',
               padding: '1.5rem',
               boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-              border: `1px solid ${colors.borderPrimary}`
+              border: `2px solid ${colors.borderPrimary}`
             }}>
               {/* Header with Edit Toggle */}
               <div className="mobile-section-actions" style={{

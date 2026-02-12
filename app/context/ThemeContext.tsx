@@ -39,7 +39,7 @@ const lightColors = {
   bgSecondary: '#FFFFFF',
   bgTertiary: '#F3F4F6',
   bgSidebar: '#f5f5f5',
-  bgCard: '#FFFFFF',
+  bgCard: '#F7F8FA',
   bgHover: '#E5E7EB',
   bgActive: '#083A85',
   bgInput: '#FFFFFF',
@@ -78,6 +78,7 @@ const lightColors = {
   shadowMd: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
   shadowLg: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
   shadowXl: '0 20px 25px -5px rgba(0, 0, 0, 0.15)',
+  shadowCard: '0 1px 3px rgba(0, 0, 0, 0.06)',
 };
 
 const darkColors = {
@@ -125,6 +126,7 @@ const darkColors = {
   shadowMd: '0 4px 6px -1px rgba(0, 0, 0, 0.4)',
   shadowLg: '0 10px 15px -3px rgba(0, 0, 0, 0.5)',
   shadowXl: '0 20px 25px -5px rgba(0, 0, 0, 0.6)',
+  shadowCard: '0 1px 3px rgba(0, 0, 0, 0.15)',
 };
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);

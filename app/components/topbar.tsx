@@ -331,7 +331,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
       marginRight: '1.5rem',
       marginTop: '0.75rem',
       marginBottom: '0.75rem',
-      border: `1px solid ${colors.borderPrimary}`,
+      border: `2px solid ${colors.borderPrimary}`,
       boxShadow: colors.shadowSm
     }}>
       {/* Left side - Dashboard title */}
@@ -398,7 +398,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
               backgroundColor: colors.bgSecondary,
               borderRadius: '0.75rem',
               boxShadow: colors.shadowLg,
-              border: `1px solid ${colors.borderPrimary}`,
+              border: `2px solid ${colors.borderPrimary}`,
               width: '360px',
               maxHeight: '480px',
               zIndex: 50,
@@ -410,7 +410,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 padding: '1rem',
-                borderBottom: `1px solid ${colors.borderPrimary}`
+                borderBottom: `2px solid ${colors.borderPrimary}`
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Notifications</h3>
@@ -562,7 +562,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
               {/* Footer */}
               <div style={{
                 padding: '0.75rem',
-                borderTop: `1px solid ${colors.borderPrimary}`,
+                borderTop: `2px solid ${colors.borderPrimary}`,
                 textAlign: 'center'
               }}>
                 <Link
@@ -746,7 +746,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
               backgroundColor: colors.bgSecondary,
               borderRadius: '0.75rem',
               boxShadow: colors.shadowLg,
-              border: `1px solid ${colors.borderPrimary}`,
+              border: `2px solid ${colors.borderPrimary}`,
               padding: '1.25rem',
               minWidth: '220px',
               zIndex: 50
@@ -755,7 +755,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
               <div style={{
                 marginBottom: '1rem',
                 paddingBottom: '1rem',
-                borderBottom: `1px solid ${colors.borderPrimary}`
+                borderBottom: `2px solid ${colors.borderPrimary}`
               }}>
                 <div style={{
                   fontSize: '1.1rem',

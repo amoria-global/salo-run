@@ -1761,7 +1761,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     borderRadius: '0.75rem',
     padding: '1.5rem',
     boxShadow: colors.shadowSm,
-    border: `1px solid ${colors.borderPrimary}`,
+    border: `2px solid ${colors.borderPrimary}`,
     marginBottom: '1.25rem'
   };
 
@@ -2253,7 +2253,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                 borderRadius: '0.75rem',
                 overflow: 'hidden',
                 boxShadow: colors.shadowSm,
-                border: `1px solid ${colors.borderPrimary}`
+                border: `2px solid ${colors.borderPrimary}`
               }}>
                 {/* Hidden file inputs */}
                 <input
@@ -2377,8 +2377,8 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                   display: 'flex',
                   justifyContent: 'space-around',
                   padding: '1rem',
-                  borderTop: `1px solid ${colors.borderPrimary}`,
-                  borderBottom: `1px solid ${colors.borderPrimary}`
+                  borderTop: `2px solid ${colors.borderPrimary}`,
+                  borderBottom: `2px solid ${colors.borderPrimary}`
                 }}>
                   <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{user?.rating?.toFixed(1) || '0.0'}</div>
@@ -2462,7 +2462,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                 borderRadius: '0 0 0.75rem 0.75rem',
                 padding: '1.5rem',
                 boxShadow: colors.shadowSm,
-                border: `1px solid ${colors.borderPrimary}`,
+                border: `2px solid ${colors.borderPrimary}`,
                 borderTop: 'none'
               }}>
                 {/* Overview Tab */}
@@ -2977,7 +2977,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                             padding: '0.75rem 1rem',
                             backgroundColor: colors.bgTertiary,
                             borderRadius: '0.5rem',
-                            border: `1px solid ${colors.borderPrimary}`
+                            border: `2px solid ${colors.borderPrimary}`
                           }}
                         >
                           {editingEquipmentIndex === index ? (
@@ -3034,7 +3034,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                 style={{
                                   padding: '0.5rem',
                                   backgroundColor: 'transparent',
-                                  border: `1px solid ${colors.borderPrimary}`,
+                                  border: `2px solid ${colors.borderPrimary}`,
                                   borderRadius: '0.375rem',
                                   cursor: isEditEnabled ? 'pointer' : 'not-allowed',
                                   display: 'flex',
@@ -3076,7 +3076,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                 style={{
                                   padding: '0.5rem',
                                   backgroundColor: 'transparent',
-                                  border: `1px solid ${colors.borderPrimary}`,
+                                  border: `2px solid ${colors.borderPrimary}`,
                                   borderRadius: '0.375rem',
                                   cursor: isEditEnabled ? 'pointer' : 'not-allowed',
                                   display: 'flex',
@@ -3169,7 +3169,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           backgroundColor: colors.bgTertiary,
                           padding: '0.75rem 1rem',
                           borderRadius: '0.5rem',
-                          border: `1px solid ${colors.borderPrimary}`,
+                          border: `2px solid ${colors.borderPrimary}`,
                           ...(newlyAddedId === skill.id ? newItemAnimation : {})
                         }}>
                           {editingSkillId === skill.id ? (
@@ -3235,7 +3235,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                 style={{
                                   padding: '0.5rem',
                                   backgroundColor: 'transparent',
-                                  border: `1px solid ${colors.borderPrimary}`,
+                                  border: `2px solid ${colors.borderPrimary}`,
                                   borderRadius: '0.375rem',
                                   cursor: 'pointer',
                                   display: 'flex',
@@ -3303,7 +3303,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                 style={{
                                   padding: '0.5rem',
                                   backgroundColor: 'transparent',
-                                  border: `1px solid ${colors.borderPrimary}`,
+                                  border: `2px solid ${colors.borderPrimary}`,
                                   borderRadius: '0.375rem',
                                   cursor: 'pointer',
                                   display: 'flex',
@@ -3334,7 +3334,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                 style={{
                                   padding: '0.5rem',
                                   backgroundColor: 'transparent',
-                                  border: `1px solid ${colors.borderPrimary}`,
+                                  border: `2px solid ${colors.borderPrimary}`,
                                   borderRadius: '0.375rem',
                                   cursor: 'pointer',
                                   display: 'flex',
@@ -3561,7 +3561,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                               right: '0.75rem',
                               padding: '0.5rem',
                               backgroundColor: 'transparent',
-                              border: `1px solid ${colors.borderPrimary}`,
+                              border: `2px solid ${colors.borderPrimary}`,
                               borderRadius: '0.375rem',
                               cursor: 'pointer',
                               display: 'flex',
@@ -3703,7 +3703,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                               right: '0.75rem',
                               padding: '0.5rem',
                               backgroundColor: 'transparent',
-                              border: `1px solid ${colors.borderPrimary}`,
+                              border: `2px solid ${colors.borderPrimary}`,
                               borderRadius: '0.375rem',
                               cursor: 'pointer',
                               display: 'flex',
@@ -3844,7 +3844,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           backgroundColor: colors.bgTertiary,
                           borderRadius: '0.75rem',
                           overflow: 'hidden',
-                          border: `1px solid ${colors.borderPrimary}`
+                          border: `2px solid ${colors.borderPrimary}`
                         }}>
                           {/* Project Image */}
                           <div
@@ -3949,7 +3949,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                 marginTop: '1rem',
                                 padding: '0.5rem',
                                 backgroundColor: 'transparent',
-                                border: `1px solid ${colors.borderPrimary}`,
+                                border: `2px solid ${colors.borderPrimary}`,
                                 borderRadius: '0.375rem',
                                 cursor: 'pointer',
                                 display: 'flex',
@@ -4084,7 +4084,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           backgroundColor: colors.bgTertiary,
                           padding: '1.5rem',
                           borderRadius: '0.75rem',
-                          border: `1px solid ${colors.borderPrimary}`,
+                          border: `2px solid ${colors.borderPrimary}`,
                           position: 'relative',
                           ...(newlyAddedId === exp.id ? newItemAnimation : {})
                         }}>
@@ -4096,7 +4096,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                               right: '0.75rem',
                               padding: '0.5rem',
                               backgroundColor: 'transparent',
-                              border: `1px solid ${colors.borderPrimary}`,
+                              border: `2px solid ${colors.borderPrimary}`,
                               borderRadius: '0.375rem',
                               cursor: 'pointer',
                               display: 'flex',
@@ -4268,7 +4268,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                               backgroundColor: colors.bgTertiary,
                               borderRadius: '0.75rem',
                               padding: '1.25rem',
-                              border: `1px solid ${colors.borderPrimary}`,
+                              border: `2px solid ${colors.borderPrimary}`,
                               display: 'flex',
                               flexDirection: 'column',
                               cursor: 'pointer',
@@ -4299,7 +4299,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                               </p>
                               {pkg.features.filter(f => f.featureName).length > 0 && (
                                 <div style={{
-                                  borderTop: `1px solid ${colors.borderPrimary}`,
+                                  borderTop: `2px solid ${colors.borderPrimary}`,
                                   paddingTop: '0.75rem',
                                   display: 'flex',
                                   flexDirection: 'column',
@@ -4377,7 +4377,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           backgroundColor: colors.bgTertiary,
                           padding: '1.5rem',
                           borderRadius: '0.75rem',
-                          border: `1px solid ${colors.borderPrimary}`,
+                          border: `2px solid ${colors.borderPrimary}`,
                           position: 'relative',
                           ...(newlyAddedId === pkg.id ? newItemAnimation : {})
                         }}>
@@ -4430,14 +4430,14 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
                           {/* Expanded Form Content */}
                           {expandedPackageId === pkg.id && (
-                            <div style={{ marginTop: '1.5rem', borderTop: `1px solid ${colors.borderPrimary}`, paddingTop: '1.5rem' }}>
+                            <div style={{ marginTop: '1.5rem', borderTop: `2px solid ${colors.borderPrimary}`, paddingTop: '1.5rem' }}>
                               {/* Remove Button */}
                               <button
                                 onClick={() => removePackage(pkg.id)}
                                 style={{
                                   position: 'absolute', top: '0.75rem', right: '0.75rem',
                                   padding: '0.5rem', backgroundColor: 'transparent',
-                                  border: `1px solid ${colors.borderPrimary}`, borderRadius: '0.375rem',
+                                  border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.375rem',
                                   cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                                   color: colors.textTertiary, transition: 'all 0.2s'
                                 }}
@@ -4579,7 +4579,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                     <div key={feature.id} style={{
                                       display: 'flex', alignItems: 'center', gap: '0.75rem',
                                       backgroundColor: colors.bgCard, padding: '0.5rem 0.75rem',
-                                      borderRadius: '0.375rem', border: `1px solid ${colors.borderPrimary}`,
+                                      borderRadius: '0.375rem', border: `2px solid ${colors.borderPrimary}`,
                                     }}>
                                       {/* isIncluded toggle */}
                                       <div

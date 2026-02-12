@@ -1761,7 +1761,7 @@ const PhotographerEventsPage = () => {
                   backgroundColor: colors.bgCard,
                   borderRadius: '0.75rem',
                   padding: '1.25rem',
-                  border: `1px solid ${colors.borderPrimary}`
+                  border: `2px solid ${colors.borderPrimary}`
                 }}>
                   <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Albums</div>
                   <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{galleryStats.total}</div>
@@ -1770,7 +1770,7 @@ const PhotographerEventsPage = () => {
                   backgroundColor: colors.bgCard,
                   borderRadius: '0.75rem',
                   padding: '1.25rem',
-                  border: `1px solid ${colors.borderPrimary}`
+                  border: `2px solid ${colors.borderPrimary}`
                 }}>
                   <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Photos</div>
                   <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{galleryStats.photos}</div>
@@ -1779,7 +1779,7 @@ const PhotographerEventsPage = () => {
                   backgroundColor: colors.bgCard,
                   borderRadius: '0.75rem',
                   padding: '1.25rem',
-                  border: `1px solid ${colors.borderPrimary}`
+                  border: `2px solid ${colors.borderPrimary}`
                 }}>
                   <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Shared</div>
                   <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#10B981' }}>{galleryStats.shared}</div>
@@ -1788,7 +1788,7 @@ const PhotographerEventsPage = () => {
                   backgroundColor: colors.bgCard,
                   borderRadius: '0.75rem',
                   padding: '1.25rem',
-                  border: `1px solid ${colors.borderPrimary}`
+                  border: `2px solid ${colors.borderPrimary}`
                 }}>
                   <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Private</div>
                   <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#F59E0B' }}>{galleryStats.total - galleryStats.shared}</div>
@@ -1812,7 +1812,7 @@ const PhotographerEventsPage = () => {
                       onClick={() => setFilterCategory(cat)}
                       style={{
                         padding: '0.5rem 1rem',
-                        border: filterCategory === cat ? 'none' : `1px solid ${colors.borderPrimary}`,
+                        border: filterCategory === cat ? 'none' : `2px solid ${colors.borderPrimary}`,
                         backgroundColor: filterCategory === cat ? '#083A85' : colors.bgCard,
                         color: filterCategory === cat ? 'white' : colors.textSecondary,
                         borderRadius: '0.5rem',
@@ -2230,7 +2230,7 @@ const PhotographerEventsPage = () => {
                     borderRadius: '0.75rem',
                     padding: '1rem',
                     boxShadow: colors.shadowSm,
-                    border: `1px solid ${colors.borderPrimary}`
+                    border: `2px solid ${colors.borderPrimary}`
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                       <div style={{
@@ -2296,7 +2296,7 @@ const PhotographerEventsPage = () => {
                   backgroundColor: colors.bgTertiary,
                   borderRadius: '0.5rem',
                   padding: '0.5rem 1rem',
-                  border: `1px solid ${colors.borderPrimary}`
+                  border: `2px solid ${colors.borderPrimary}`
                 }}>
                   <SearchIcon />
                   <input
@@ -2489,7 +2489,7 @@ const PhotographerEventsPage = () => {
                       </div>
 
                       {/* Actions */}
-                      <div className="stream-card-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', paddingTop: '0.75rem', borderTop: `1px solid ${colors.borderPrimary}` }}>
+                      <div className="stream-card-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', paddingTop: '0.75rem', borderTop: `2px solid ${colors.borderPrimary}` }}>
                         {stream.status === 'live' && (
                           <button
                             onClick={() => setShowControlPanel(stream)}
@@ -2801,7 +2801,7 @@ const PhotographerEventsPage = () => {
                 borderRadius: '0.5rem',
                 padding: '1rem',
                 marginBottom: '1.25rem',
-                border: `1px solid ${colors.borderPrimary}`
+                border: `2px solid ${colors.borderPrimary}`
               }}>
                 <p style={{ fontSize: '0.9rem', color: colors.textPrimary, margin: 0, lineHeight: '1.6' }}>
                   {showControlPanel.description}
@@ -3002,7 +3002,7 @@ const PhotographerEventsPage = () => {
                 borderRadius: '0.75rem',
                 padding: '1.25rem',
                 marginBottom: '1.25rem',
-                border: `1px solid ${colors.borderPrimary}`
+                border: `2px solid ${colors.borderPrimary}`
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
                   <div style={{
@@ -3038,7 +3038,7 @@ const PhotographerEventsPage = () => {
                     backgroundColor: actualTheme === 'dark' ? '#111827' : 'white',
                     borderRadius: '0.5rem',
                     padding: '0.75rem',
-                    border: `1px solid ${colors.borderPrimary}`,
+                    border: `2px solid ${colors.borderPrimary}`,
                     textAlign: 'center'
                   }}>
                     <p style={{ fontSize: '0.7rem', color: colors.textSecondary, margin: '0 0 0.375rem 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -3052,7 +3052,7 @@ const PhotographerEventsPage = () => {
                     backgroundColor: actualTheme === 'dark' ? '#111827' : 'white',
                     borderRadius: '0.5rem',
                     padding: '0.75rem',
-                    border: `1px solid ${colors.borderPrimary}`,
+                    border: `2px solid ${colors.borderPrimary}`,
                     textAlign: 'center'
                   }}>
                     <p style={{ fontSize: '0.7rem', color: colors.textSecondary, margin: '0 0 0.375rem 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -3072,7 +3072,7 @@ const PhotographerEventsPage = () => {
                     backgroundColor: actualTheme === 'dark' ? '#111827' : 'white',
                     borderRadius: '0.5rem',
                     padding: '0.75rem',
-                    border: `1px solid ${colors.borderPrimary}`,
+                    border: `2px solid ${colors.borderPrimary}`,
                     textAlign: 'center'
                   }}>
                     <p style={{ fontSize: '0.7rem', color: colors.textSecondary, margin: '0 0 0.375rem 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -4299,7 +4299,7 @@ const PhotographerEventsPage = () => {
               gap: '0.75rem',
               marginTop: '1.5rem',
               paddingTop: '1.5rem',
-              borderTop: `1px solid ${colors.borderPrimary}`
+              borderTop: `2px solid ${colors.borderPrimary}`
             }}>
               <button
                 onClick={() => setShowEditModal(false)}
@@ -4473,7 +4473,7 @@ const PhotographerEventsPage = () => {
                   padding: '0.5rem',
                   backgroundColor: colors.bgTertiary,
                   borderRadius: '0.5rem',
-                  border: `1px solid ${colors.borderPrimary}`
+                  border: `2px solid ${colors.borderPrimary}`
                 }}>
                   {uploadedImagePreviews.map((preview, index) => (
                     <div
@@ -4580,7 +4580,7 @@ const PhotographerEventsPage = () => {
                         gap: '0.75rem',
                         padding: '0.625rem',
                         cursor: 'pointer',
-                        borderBottom: `1px solid ${colors.borderPrimary}`,
+                        borderBottom: `2px solid ${colors.borderPrimary}`,
                         backgroundColor: uploadClientId === client.id ? (actualTheme === 'dark' ? '#1E3A5F' : '#F0F9FF') : colors.bgCard
                       }}
                     >
@@ -4847,17 +4847,7 @@ const PhotographerEventsPage = () => {
       {/* Image Viewer Modal */}
       {showImageViewer && viewerAlbum && (
         <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.95)',
-            display: 'flex',
-            flexDirection: 'column',
-            zIndex: 1100
-          }}
+          style={{ position: 'fixed', inset: 0, backgroundColor: '#000', zIndex: 1100 }}
           onKeyDown={(e) => {
             if (e.key === 'ArrowLeft' && currentImageIndex > 0) setCurrentImageIndex(currentImageIndex - 1);
             if (e.key === 'ArrowRight' && currentImageIndex < viewerAlbum.images.length - 1) setCurrentImageIndex(currentImageIndex + 1);
@@ -4865,29 +4855,33 @@ const PhotographerEventsPage = () => {
           }}
           tabIndex={0}
         >
-          {/* Header */}
+          {/* Full-screen Image */}
+          <div style={{ position: 'absolute', inset: 0 }}>
+            <Image
+              src={viewerAlbum.images[currentImageIndex]}
+              alt={`Photo ${currentImageIndex + 1}`}
+              fill
+              style={{ objectFit: 'contain', padding: '0 4rem' }}
+              priority
+            />
+          </div>
+
+          {/* Top Overlay */}
           <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: '1rem 1.5rem',
-            backgroundColor: 'rgba(0, 0, 0, 0.5)'
+            position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
+            background: 'linear-gradient(to bottom, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.3) 60%, transparent 100%)',
+            padding: '1rem 1.5rem 2rem',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'
           }}>
             <div style={{ color: 'white' }}>
-              <span style={{ fontSize: '0.9rem' }}>{currentImageIndex + 1} / {viewerAlbum.images.length}</span>
+              <span style={{ fontSize: '0.9rem', fontWeight: '500' }}>{currentImageIndex + 1} / {viewerAlbum.images.length}</span>
             </div>
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
               <button style={{
-                padding: '0.5rem 1rem',
-                borderRadius: '0.375rem',
-                border: '2px solid rgba(255, 255, 255, 0.3)',
-                backgroundColor: 'transparent',
-                color: 'white',
-                fontSize: '0.85rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.375rem'
+                padding: '0.5rem 0.75rem', borderRadius: '2rem',
+                border: 'none', backgroundColor: 'rgba(255,255,255,0.12)',
+                color: 'white', fontSize: '0.8rem', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '0.375rem'
               }}>
                 <DownloadIcon />
                 Download
@@ -4895,121 +4889,76 @@ const PhotographerEventsPage = () => {
               <button
                 onClick={() => { setShowImageViewer(false); setViewerAlbum(null); }}
                 style={{
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  border: '2px solid rgba(255, 255, 255, 0.3)',
-                  cursor: 'pointer',
-                  padding: '0.5rem',
-                  borderRadius: '0.375rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white'
+                  width: '36px', height: '36px', borderRadius: '50%',
+                  backgroundColor: 'rgba(255,255,255,0.12)', border: 'none',
+                  color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'all 0.2s'
                 }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.25)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.12)'; }}
               >
                 <CloseIcon />
               </button>
             </div>
           </div>
 
-          {/* Main Image */}
-          <div style={{
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            position: 'relative',
-            padding: '2rem'
-          }}>
-            {/* Prev Button */}
-            {currentImageIndex > 0 && (
-              <button
-                onClick={() => setCurrentImageIndex(currentImageIndex - 1)}
-                style={{
-                  position: 'absolute',
-                  left: '1rem',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  width: '48px',
-                  height: '48px',
-                  borderRadius: '50%',
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  border: '2px solid rgba(255, 255, 255, 0.3)',
-                  color: 'white',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <ChevronLeftIcon />
-              </button>
-            )}
+          {/* Navigation Buttons */}
+          <button
+            onClick={() => currentImageIndex > 0 && setCurrentImageIndex(currentImageIndex - 1)}
+            style={{
+              position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', zIndex: 10,
+              width: '48px', height: '48px', borderRadius: '50%',
+              backgroundColor: 'rgba(0,0,0,0.4)', border: 'none', color: 'white',
+              cursor: currentImageIndex > 0 ? 'pointer' : 'default',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'all 0.2s', opacity: currentImageIndex > 0 ? 0.7 : 0
+            }}
+            onMouseEnter={(e) => { if (currentImageIndex > 0) e.currentTarget.style.opacity = '1'; e.currentTarget.style.backgroundColor = 'rgba(8,58,133,0.8)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = currentImageIndex > 0 ? '0.7' : '0'; e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.4)'; }}
+          >
+            <ChevronLeftIcon />
+          </button>
+          <button
+            onClick={() => currentImageIndex < viewerAlbum.images.length - 1 && setCurrentImageIndex(currentImageIndex + 1)}
+            style={{
+              position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', zIndex: 10,
+              width: '48px', height: '48px', borderRadius: '50%',
+              backgroundColor: 'rgba(0,0,0,0.4)', border: 'none', color: 'white',
+              cursor: currentImageIndex < viewerAlbum.images.length - 1 ? 'pointer' : 'default',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'all 0.2s', opacity: currentImageIndex < viewerAlbum.images.length - 1 ? 0.7 : 0
+            }}
+            onMouseEnter={(e) => { if (currentImageIndex < viewerAlbum.images.length - 1) e.currentTarget.style.opacity = '1'; e.currentTarget.style.backgroundColor = 'rgba(8,58,133,0.8)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = currentImageIndex < viewerAlbum.images.length - 1 ? '0.7' : '0'; e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.4)'; }}
+          >
+            <ChevronRightIcon />
+          </button>
 
-            {/* Image */}
-            <div style={{ position: 'relative', maxWidth: '90%', maxHeight: '80vh' }}>
-              <Image
-                src={viewerAlbum.images[currentImageIndex]}
-                alt={`Photo ${currentImageIndex + 1}`}
-                width={1200}
-                height={800}
-                style={{ maxWidth: '100%', maxHeight: '80vh', objectFit: 'contain' }}
-              />
+          {/* Bottom Thumbnail Strip */}
+          <div style={{
+            position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10,
+            background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 60%, transparent 100%)',
+            padding: '2.5rem 1.5rem 1.25rem'
+          }}>
+            <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', justifyContent: 'center', paddingBottom: '0.25rem' }}>
+              {viewerAlbum.images.map((image, index) => (
+                <div
+                  key={index}
+                  onClick={() => setCurrentImageIndex(index)}
+                  style={{
+                    width: '56px', height: '42px', borderRadius: '0.375rem',
+                    overflow: 'hidden', cursor: 'pointer', flexShrink: 0,
+                    border: currentImageIndex === index ? '2px solid white' : '2px solid transparent',
+                    opacity: currentImageIndex === index ? 1 : 0.5,
+                    transition: 'all 0.2s',
+                    transform: currentImageIndex === index ? 'scale(1.1)' : 'scale(1)',
+                    position: 'relative'
+                  }}
+                >
+                  <Image src={image} alt={`Thumbnail ${index + 1}`} fill style={{ objectFit: 'cover' }} />
+                </div>
+              ))}
             </div>
-
-            {/* Next Button */}
-            {currentImageIndex < viewerAlbum.images.length - 1 && (
-              <button
-                onClick={() => setCurrentImageIndex(currentImageIndex + 1)}
-                style={{
-                  position: 'absolute',
-                  right: '1rem',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  width: '48px',
-                  height: '48px',
-                  borderRadius: '50%',
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  border: '2px solid rgba(255, 255, 255, 0.3)',
-                  color: 'white',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <ChevronRightIcon />
-              </button>
-            )}
-          </div>
-
-          {/* Thumbnail Strip */}
-          <div style={{
-            display: 'flex',
-            gap: '0.5rem',
-            padding: '1rem',
-            overflowX: 'auto',
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            justifyContent: 'center'
-          }}>
-            {viewerAlbum.images.map((image, index) => (
-              <div
-                key={index}
-                onClick={() => setCurrentImageIndex(index)}
-                style={{
-                  width: '60px',
-                  height: '60px',
-                  borderRadius: '0.375rem',
-                  overflow: 'hidden',
-                  cursor: 'pointer',
-                  border: currentImageIndex === index ? '3px solid #083A85' : '3px solid transparent',
-                  opacity: currentImageIndex === index ? 1 : 0.6,
-                  flexShrink: 0,
-                  position: 'relative'
-                }}
-              >
-                <Image src={image} alt={`Thumbnail ${index + 1}`} fill style={{ objectFit: 'cover' }} />
-              </div>
-            ))}
           </div>
         </div>
       )}
@@ -5251,7 +5200,7 @@ const PhotographerEventsPage = () => {
                 {galleryEventMedia.map((media, idx) => {
                   const isVideo = media.url?.match(/\.(mp4|webm|mov|avi)$/i) || media.name?.match(/\.(mp4|webm|mov|avi)$/i);
                   return (
-                    <div key={media.id || idx} style={{ position: 'relative', borderRadius: '0.5rem', overflow: 'hidden', border: `1px solid ${colors.borderPrimary}`, aspectRatio: '1' }}>
+                    <div key={media.id || idx} style={{ position: 'relative', borderRadius: '0.5rem', overflow: 'hidden', border: `2px solid ${colors.borderPrimary}`, aspectRatio: '1' }}>
                       {isVideo ? (
                         <video src={media.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} controls />
                       ) : (
@@ -5298,7 +5247,7 @@ const PhotographerEventsPage = () => {
                 onClick={() => setMarkCompleteTarget(null)}
                 style={{
                   padding: '0.5rem 1rem', borderRadius: '0.375rem',
-                  border: `1px solid ${colors.borderPrimary}`,
+                  border: `2px solid ${colors.borderPrimary}`,
                   backgroundColor: colors.bgCard, color: colors.textPrimary,
                   cursor: 'pointer', fontSize: '0.85rem', fontWeight: '600'
                 }}

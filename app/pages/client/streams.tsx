@@ -362,7 +362,7 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
   const cardStyle: React.CSSProperties = {
     backgroundColor: colors.bgCard,
     borderRadius: '0.75rem',
-    border: `1px solid ${colors.borderPrimary}`,
+    border: `2px solid ${colors.borderPrimary}`,
     overflow: 'hidden',
     transition: 'all 0.2s ease',
     cursor: 'pointer',
@@ -691,7 +691,7 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
                       display: 'flex',
                       justifyContent: 'space-between',
                       padding: '0.75rem 0',
-                      borderTop: `1px solid ${colors.borderPrimary}`,
+                      borderTop: `2px solid ${colors.borderPrimary}`,
                       marginBottom: '0.75rem',
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: colors.textSecondary, fontSize: '0.8rem' }}>
@@ -767,7 +767,7 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
               padding: '4rem 2rem',
               backgroundColor: colors.bgCard,
               borderRadius: '0.75rem',
-              border: `1px solid ${colors.borderPrimary}`,
+              border: `2px solid ${colors.borderPrimary}`,
             }}>
               <BroadcastIcon />
               <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: colors.textPrimary, marginTop: '1rem' }}>

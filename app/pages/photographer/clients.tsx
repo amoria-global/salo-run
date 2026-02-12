@@ -7,7 +7,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useTheme } from '../../context/ThemeContext';
 import { useDashboardAuth } from '../../providers/AuthProvider';
-import DonateModal, { DonateButton, DonatePromptModal } from '../../components/DonateModal';
 
 // API helpers
 function getApiUrl(): string {
@@ -286,8 +285,6 @@ export default function Clients() {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; client: Client } | null>(null);
   const [showTipsModal, setShowTipsModal] = useState(false);
   const [tipsClient, setTipsClient] = useState<Client | null>(null);
-  const [showTipsDonateModal, setShowTipsDonateModal] = useState(false);
-  const [showTipsDonatePromptModal, setShowTipsDonatePromptModal] = useState(false);
 
   // Page tab state
   const [pageTab, setPageTab] = useState<PageTab>('clients');
@@ -1015,7 +1012,7 @@ export default function Clients() {
                   style={{
                     appearance: 'none',
                     backgroundColor: colors.bgCard,
-                    border: `1px solid ${colors.borderPrimary}`,
+                    border: `2px solid ${colors.borderPrimary}`,
                     borderRadius: '0.5rem',
                     padding: '0.5rem 2rem 0.5rem 0.75rem',
                     fontSize: '0.9rem',
@@ -1125,23 +1122,23 @@ export default function Clients() {
           {pageTab === 'clients' && (<>
           {/* Stats Cards */}
           <div className="mobile-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-            <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
+            <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}` }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Clients</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.brandPrimary }}>{clients.length}</div>
             </div>
-            <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
+            <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}` }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Bookings</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.brandPrimary }}>
                 {clients.reduce((sum, c) => sum + c.totalBookings, 0)}
               </div>
             </div>
-            <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
+            <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}` }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Earned</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.brandPrimary }}>
                 ${clients.reduce((sum, c) => sum + c.totalSpent, 0).toLocaleString()}
               </div>
             </div>
-            <div className="mobile-stats-card" style={{ backgroundColor: totalTips > 0 ? (actualTheme === 'dark' ? '#78350F' : '#FFFBEB') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: totalTips > 0 ? `1px solid ${actualTheme === 'dark' ? '#92400E' : '#FCD34D'}` : `1px solid ${colors.borderPrimary}` }}>
+            <div className="mobile-stats-card" style={{ backgroundColor: totalTips > 0 ? (actualTheme === 'dark' ? '#78350F' : '#FFFBEB') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: totalTips > 0 ? `1px solid ${actualTheme === 'dark' ? '#92400E' : '#FCD34D'}` : `2px solid ${colors.borderPrimary}` }}>
               <div style={{ fontSize: '0.85rem', color: totalTips > 0 ? (actualTheme === 'dark' ? '#FCD34D' : '#92400E') : colors.textSecondary, marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 <GiftIcon />
                 Tips
@@ -1151,7 +1148,7 @@ export default function Clients() {
               </div>
               <div style={{ fontSize: '0.7rem', color: colors.textSecondary, marginTop: '0.25rem' }}>From clients</div>
             </div>
-            <div className="mobile-stats-card" style={{ backgroundColor: platformBonus > 0 ? (actualTheme === 'dark' ? '#14532D' : '#F0FDF4') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: platformBonus > 0 ? `1px solid ${actualTheme === 'dark' ? '#166534' : '#BBF7D0'}` : `1px solid ${colors.borderPrimary}` }}>
+            <div className="mobile-stats-card" style={{ backgroundColor: platformBonus > 0 ? (actualTheme === 'dark' ? '#14532D' : '#F0FDF4') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: platformBonus > 0 ? `1px solid ${actualTheme === 'dark' ? '#166534' : '#BBF7D0'}` : `2px solid ${colors.borderPrimary}` }}>
               <div style={{ fontSize: '0.85rem', color: platformBonus > 0 ? (actualTheme === 'dark' ? '#4ADE80' : '#166534') : colors.textSecondary, marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 <GiftIcon />
                 Bonus
@@ -1161,13 +1158,13 @@ export default function Clients() {
               </div>
               <div style={{ fontSize: '0.7rem', color: colors.textSecondary, marginTop: '0.25rem' }}>{totalCompletedEvents}/10 events ({bonusEligibleSets > 0 ? '10%' : '0%'})</div>
             </div>
-            <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
+            <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}` }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Favorites</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#F20C8F' }}>
                 {clients.filter(c => c.isFavorite).length}
               </div>
             </div>
-            <div className="mobile-stats-card" style={{ backgroundColor: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#7F1D1D' : '#FEF2F2') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: totalPendingAmount > 0 ? `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}` : `1px solid ${colors.borderPrimary}` }}>
+            <div className="mobile-stats-card" style={{ backgroundColor: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#7F1D1D' : '#FEF2F2') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: totalPendingAmount > 0 ? `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}` : `2px solid ${colors.borderPrimary}` }}>
               <div style={{ fontSize: '0.85rem', color: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#FCA5A5' : '#B91C1C') : colors.textSecondary, marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 {totalPendingAmount > 0 && <AlertCircleIcon />}
                 Pending Payments
@@ -1236,7 +1233,7 @@ export default function Clients() {
                 style={{
                   width: '100%',
                   padding: '0.75rem 1rem 0.75rem 2.75rem',
-                  border: `1px solid ${colors.borderPrimary}`,
+                  border: `2px solid ${colors.borderPrimary}`,
                   borderRadius: '0.5rem',
                   fontSize: '0.95rem',
                   fontWeight: '500',
@@ -1255,7 +1252,7 @@ export default function Clients() {
                 gap: '0.5rem',
                 backgroundColor: showFilters ? '#083A85' : colors.bgCard,
                 color: showFilters ? 'white' : colors.textSecondary,
-                border: `1px solid ${colors.borderPrimary}`,
+                border: `2px solid ${colors.borderPrimary}`,
                 borderRadius: '0.5rem',
                 padding: '0.75rem 1rem',
                 fontSize: '0.9rem',
@@ -1276,7 +1273,7 @@ export default function Clients() {
 
           {/* Clients Grid/List */}
           {filteredClients.length === 0 ? (
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '3rem', textAlign: 'center', border: `1px solid ${colors.borderPrimary}` }}>
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '3rem', textAlign: 'center', border: `2px solid ${colors.borderPrimary}` }}>
               <UserIcon />
               <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, marginTop: '1rem' }}>No clients found</h3>
               <p style={{ fontSize: '0.9rem', color: colors.textSecondary, marginTop: '0.5rem' }}>
@@ -1516,7 +1513,7 @@ export default function Clients() {
                         Message
                       </Link>
                       <Link
-                        href="/user/photographer/gallery"
+                        href="/user/photographer/events"
                         onClick={(e) => e.stopPropagation()}
                         style={{
                           flex: 1,
@@ -1545,7 +1542,7 @@ export default function Clients() {
                       onClick={(e) => {
                         e.stopPropagation();
                         setTipsClient(client);
-                        setShowTipsDonatePromptModal(true);
+                        setShowTipsModal(true);
                       }}
                       style={{
                         width: '100%',
@@ -1763,7 +1760,7 @@ export default function Clients() {
                       <i className="bi bi-chat-dots"></i>
                     </Link>
                     <Link
-                      href="/user/photographer/gallery"
+                      href="/user/photographer/events"
                       onClick={(e) => e.stopPropagation()}
                       style={{
                         padding: '0.375rem 0.625rem',
@@ -1790,7 +1787,7 @@ export default function Clients() {
                       onClick={(e) => {
                         e.stopPropagation();
                         setTipsClient(client);
-                        setShowTipsDonatePromptModal(true);
+                        setShowTipsModal(true);
                       }}
                       style={{
                         padding: '0.25rem 0.5rem',
@@ -1836,7 +1833,7 @@ export default function Clients() {
                     onClick={() => setBookingsFilter(tab.key)}
                     style={{
                       padding: '0.5rem 1rem',
-                      border: bookingsFilter === tab.key ? '2px solid #083A85' : `1px solid ${colors.borderPrimary}`,
+                      border: bookingsFilter === tab.key ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
                       borderRadius: '2rem',
                       backgroundColor: bookingsFilter === tab.key ? '#083A85' : colors.bgCard,
                       color: bookingsFilter === tab.key ? 'white' : colors.textSecondary,
@@ -1870,7 +1867,7 @@ export default function Clients() {
                       backgroundColor: colors.bgCard,
                       borderRadius: '0.75rem',
                       padding: '1.25rem',
-                      border: `1px solid ${colors.borderPrimary}`,
+                      border: `2px solid ${colors.borderPrimary}`,
                       animation: 'pulse 1.5s ease-in-out infinite',
                     }}>
                       <div style={{ height: '1rem', width: '40%', backgroundColor: colors.bgTertiary, borderRadius: '0.25rem', marginBottom: '0.75rem' }} />
@@ -1885,7 +1882,7 @@ export default function Clients() {
                   borderRadius: '0.75rem',
                   padding: '3rem',
                   textAlign: 'center',
-                  border: `1px solid ${colors.borderPrimary}`,
+                  border: `2px solid ${colors.borderPrimary}`,
                 }}>
                   <CalendarIcon />
                   <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, marginTop: '1rem' }}>
@@ -1980,7 +1977,7 @@ export default function Clients() {
                         )}
 
                         {isPending && (
-                          <div style={{ display: 'flex', gap: '0.75rem', paddingTop: '0.75rem', borderTop: `1px solid ${colors.borderPrimary}` }}>
+                          <div style={{ display: 'flex', gap: '0.75rem', paddingTop: '0.75rem', borderTop: `2px solid ${colors.borderPrimary}` }}>
                             <button
                               onClick={() => acceptBooking(booking.id)}
                               disabled={isProcessing}
@@ -2270,7 +2267,7 @@ export default function Clients() {
                 Send Message
               </Link>
               <Link
-                href="/user/photographer/gallery"
+                href="/user/photographer/events"
                 style={{
                   flex: 1,
                   padding: '0.75rem',
@@ -2424,7 +2421,7 @@ export default function Clients() {
                   textAlign: 'center',
                   backgroundColor: colors.bgTertiary,
                   borderRadius: '0.5rem',
-                  border: `1px solid ${colors.borderPrimary}`
+                  border: `2px solid ${colors.borderPrimary}`
                 }}>
                   <div style={{ color: '#9CA3AF', marginBottom: '0.5rem' }}>
                     <GiftIcon />
@@ -2462,22 +2459,6 @@ export default function Clients() {
         )}
       </Modal>
 
-      {/* Tips Donate Prompt Modal - Shows before tips modal */}
-      <DonatePromptModal
-        isOpen={showTipsDonatePromptModal}
-        onClose={() => setShowTipsDonatePromptModal(false)}
-        onNo={() => {
-          setShowTipsDonatePromptModal(false);
-          setShowTipsModal(true);
-        }}
-        onYes={() => {
-          setShowTipsDonatePromptModal(false);
-          setShowTipsDonateModal(true);
-        }}
-      />
-
-      {/* Tips Donate Modal */}
-      <DonateModal isOpen={showTipsDonateModal} onClose={() => setShowTipsDonateModal(false)} />
     </div>
   );
 }
