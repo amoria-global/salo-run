@@ -9,6 +9,7 @@ import AlbumCard from '@/app/components/Cards';
 import UnlockModal from '@/app/components/UnlockModal';
 import PayNowModal from '@/app/components/UnlockModal';
 import { useUserProfile } from '@/app/context/UserProfileContext';
+import { useCurrency } from '@/app/context/CurrencyContext';
 
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 
@@ -369,6 +370,7 @@ interface GalleryPageProps {
 
 const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   const { colors, actualTheme } = useTheme();
+  const { formatPrice } = useCurrency();
   const { user, token } = useDashboardAuth();
   const [albums, setAlbums] = useState(clientAlbumsData);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -433,6 +435,18 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   const [showCoverPicker, setShowCoverPicker] = useState(false);
   const [setupCoverImage, setSetupCoverImage] = useState<string>('');
   const [step3ViewMode, setStep3ViewMode] = useState<'album-grid' | 'image-selection'>('album-grid');
+  const EXTRA_IMAGE_PRICE = 2;
+  const [extraUnlockedImages, setExtraUnlockedImages] = useState<string[]>([]);
+  const [showExtraImagePayment, setShowExtraImagePayment] = useState(false);
+  const [pendingUnlockImage, setPendingUnlockImage] = useState<string | null>(null);
+  const [extraPaymentMethod, setExtraPaymentMethod] = useState<'card' | 'mtn' | 'airtel' | null>(null);
+  const [extraPaymentShowReceipt, setExtraPaymentShowReceipt] = useState(false);
+  const [extraDonationAmount, setExtraDonationAmount] = useState<string>('');
+  const [extraCustomDonation, setExtraCustomDonation] = useState<string>('');
+  const [extraDonationSkipped, setExtraDonationSkipped] = useState<boolean>(false);
+  const [extraShowCustomInput, setExtraShowCustomInput] = useState<boolean>(false);
+  const [showLimitReachedMessage, setShowLimitReachedMessage] = useState(false);
+  const [hasSeenLimitMessage, setHasSeenLimitMessage] = useState(false);
   const { profile } = useUserProfile();
 
   const [showGiftsPaymentMethodModal, setShowGiftsPaymentMethodModal] = useState(false);
@@ -481,6 +495,52 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   const photographers = ['All', ...Array.from(new Set(albums.map(a => a.photographer)))];
   const [showPayNowModal, setShowPayNowModal] = useState(false);
   const [payNowPayment, setPayNowPayment] = useState<Payment | null>(null);
+  const [showPricingPlans, setShowPricingPlans] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<'one-time' | 'plus' | 'pro' | null>(null);
+
+  const STORAGE_PLANS = [
+    {
+      id: 'one-time' as const,
+      name: 'One-Time',
+      price: 40,
+      priceLabel: '$40',
+      billing: 'one-time payment',
+      features: [
+        '5 months access',
+        'Renewable after expiry',
+        'All albums unlocked',
+        'No auto-renewal'
+      ]
+    },
+    {
+      id: 'plus' as const,
+      name: 'Archive Plus',
+      price: 14.99,
+      priceLabel: '$14.99',
+      billing: '/month',
+      popular: true,
+      features: [
+        'Monthly auto-renewal',
+        'Cancel after 4 months',
+        'All albums unlocked',
+        'Continuous protection'
+      ]
+    },
+    {
+      id: 'pro' as const,
+      name: 'Archive Pro',
+      price: 139.99,
+      priceLabel: '$139.99',
+      billing: '/year',
+      bestValue: true,
+      features: [
+        'Annual auto-renewal',
+        'Cancel anytime',
+        'All albums unlocked',
+        'Best value — save 22%'
+      ]
+    }
+  ];
 
   // Filter albums
   const filteredAlbums = albums.filter(album => {
@@ -724,6 +784,17 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
     setShowCoverPicker(false);
     setSetupCoverImage('');
     setStep3ViewMode('album-grid');
+    setExtraUnlockedImages([]);
+    setShowExtraImagePayment(false);
+    setPendingUnlockImage(null);
+    setExtraPaymentMethod(null);
+    setExtraPaymentShowReceipt(false);
+    setExtraDonationAmount('');
+    setExtraCustomDonation('');
+    setExtraDonationSkipped(false);
+    setExtraShowCustomInput(false);
+    setShowLimitReachedMessage(false);
+    setHasSeenLimitMessage(false);
   };
 
   // Opens the cover picker instead of saving directly
@@ -757,12 +828,86 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   const toggleSetupImageSelection = (image: string) => {
     if (setupSelectedImages.includes(image)) {
       setSetupSelectedImages(setupSelectedImages.filter(img => img !== image));
+      // If it was an extra unlocked image, remove from extras too
+      if (extraUnlockedImages.includes(image)) {
+        setExtraUnlockedImages(extraUnlockedImages.filter(img => img !== image));
+      }
     } else {
       if (setupSelectedImages.length < MAX_IMAGE_SELECTION) {
+        const newSelection = [...setupSelectedImages, image];
+        setSetupSelectedImages(newSelection);
+        // Show limit reached message when hitting MAX
+        if (newSelection.length === MAX_IMAGE_SELECTION && !hasSeenLimitMessage) {
+          setShowLimitReachedMessage(true);
+          setHasSeenLimitMessage(true);
+        }
+      } else if (extraUnlockedImages.includes(image)) {
+        // Already unlocked extra — add it
         setSetupSelectedImages([...setupSelectedImages, image]);
+      } else if (!hasSeenLimitMessage) {
+        // Trying to select a locked image — show the limit message
+        setShowLimitReachedMessage(true);
+        setHasSeenLimitMessage(true);
       }
     }
   };
+
+  const handleUnlockExtraImage = (image: string) => {
+    setPendingUnlockImage(image);
+    setExtraPaymentMethod(null);
+    setExtraPaymentShowReceipt(false);
+    setExtraDonationAmount('');
+    setExtraCustomDonation('');
+    setExtraDonationSkipped(false);
+    setExtraShowCustomInput(false);
+    setShowExtraImagePayment(true);
+  };
+
+  const handleExtraSelectDonation = (amount: string) => {
+    setExtraDonationSkipped(false);
+    if (amount === 'custom') {
+      setExtraDonationAmount('custom');
+      setExtraShowCustomInput(true);
+    } else {
+      setExtraDonationAmount(amount);
+      setExtraShowCustomInput(false);
+      setExtraCustomDonation('');
+    }
+  };
+
+  const handleExtraSkipDonation = () => {
+    setExtraDonationSkipped(true);
+    setExtraDonationAmount('');
+    setExtraCustomDonation('');
+    setExtraShowCustomInput(false);
+  };
+
+  const extraDonationValue = extraDonationAmount === 'custom' ? (parseFloat(extraCustomDonation) || 0) : (parseFloat(extraDonationAmount) || 0);
+  const extraDonationAddressed = extraDonationSkipped || extraDonationValue > 0;
+  const extraTotalWithDonation = EXTRA_IMAGE_PRICE + extraDonationValue;
+
+  const handleExtraImagePaymentConfirm = () => {
+    if (pendingUnlockImage && extraPaymentMethod && extraDonationAddressed) {
+      setExtraPaymentShowReceipt(true);
+    }
+  };
+
+  const handleExtraImagePaymentDone = () => {
+    if (pendingUnlockImage) {
+      setExtraUnlockedImages([...extraUnlockedImages, pendingUnlockImage]);
+      setSetupSelectedImages([...setupSelectedImages, pendingUnlockImage]);
+    }
+    setShowExtraImagePayment(false);
+    setPendingUnlockImage(null);
+    setExtraPaymentMethod(null);
+    setExtraPaymentShowReceipt(false);
+    setExtraDonationAmount('');
+    setExtraCustomDonation('');
+    setExtraDonationSkipped(false);
+    setExtraShowCustomInput(false);
+  };
+
+  const extraImagesTotalCost = extraUnlockedImages.filter(img => setupSelectedImages.includes(img)).length * EXTRA_IMAGE_PRICE;
 
   const handleAddToPhotobook = () => {
     if (selectedImages.length === 0 || photobooks.length === 0) return;
@@ -1409,7 +1554,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
               </div>
               <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard }}>
                 <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Amount Due</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#F59E0B' }}>${archivedAmountDue.toFixed(2)}</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#F59E0B' }}>{formatPrice(archivedAmountDue)}</div>
               </div>
               <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard }}>
                 <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Locked</div>
@@ -2046,23 +2191,8 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                         colors={colors}
                         onCardClick={(album:any) => {
                           setSelectedArchiveAlbum(album);
-                          if (album?.payment) {
-                            const paymentData: Payment = {
-                              id: album.id,
-                              date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
-                              eventName: album.payment.eventName,
-                              eventType: album.category,
-                              photographerName: album.payment.photographerName,
-                              photographerImage: album.photographerAvatar,
-                              method: '-',
-                              amount: '$10.0',
-                              amountNum: 10,
-                              paidAmount: 0,
-                              status: 'pending',
-                              invoiceNumber: `INV-${new Date().getFullYear()}-${String(album.id).padStart(3, '0')}`
-                            };
-                            handlePayNow(paymentData);
-                          }
+                          setSelectedPlan(null);
+                          setShowPricingPlans(true);
                         }}
                         onBrowseClick={(album) => {
                           alert('This album is archived');
@@ -2106,27 +2236,10 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                         colors={colors}
                         onCardClick={(album) => {
                           setSelectedArchiveAlbum(album as any);
-                          if (album?.payment) {
-                            const paymentData: Payment = {
-                              id: Number(album.id),
-                              date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
-                              eventName: (album as any).payment.eventName,
-                              eventType: album.category,
-                              photographerName: (album as any).payment.photographerName,
-                              photographerImage: album.photographerAvatar,
-                              method: '-',
-                              amount: '$10.0',
-                              amountNum: 10,
-                              paidAmount: 0,
-                              status: 'pending',
-                              invoiceNumber: `INV-${new Date().getFullYear()}-${String(album.id).padStart(3, '0')}`
-                            };
-                            handlePayNow(paymentData);
-                          }
+                          setSelectedPlan(null);
+                          setShowPricingPlans(true);
                         }}
-                        
                         onBrowseClick={(album) => {
-                      
                           alert('This album is archived');
                         }}
                       />
@@ -2140,6 +2253,197 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
       </div>
 
 
+
+      {/* STORAGE PRICING PLANS MODAL */}
+      {showPricingPlans && selectedArchiveAlbum && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000
+        }} onClick={() => setShowPricingPlans(false)}>
+          <div style={{
+            backgroundColor: colors.bgCard,
+            borderRadius: '0.75rem',
+            padding: '1.75rem',
+            maxWidth: '720px',
+            width: '94%',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+          }} onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: colors.textPrimary, margin: '0 0 0.375rem' }}>
+                  Choose Your Storage Plan
+                </h3>
+                <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: 0, lineHeight: '1.5' }}>
+                  Keep your albums safe and accessible. Without an active plan, albums are archived after 2 years.
+                </p>
+              </div>
+              <button onClick={() => setShowPricingPlans(false)} style={{
+                background: colors.bgTertiary, border: `2px solid ${colors.borderPrimary}`, cursor: 'pointer',
+                padding: '0.5rem', borderRadius: '0.375rem', color: colors.textPrimary,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginLeft: '1rem'
+              }}>
+                <CloseIcon />
+              </button>
+            </div>
+
+            {/* Album info */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '0.625rem',
+              padding: '0.625rem 0.75rem', marginBottom: '1.25rem',
+              backgroundColor: colors.bgTertiary, borderRadius: '0.5rem',
+              border: `1px solid ${colors.borderPrimary}`
+            }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '0.375rem', overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
+                <Image src={selectedArchiveAlbum.thumbnail} alt={selectedArchiveAlbum.title} fill style={{ objectFit: 'cover', filter: 'blur(1px)' }} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {selectedArchiveAlbum.title}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>
+                  {selectedArchiveAlbum.photographer} &middot; {selectedArchiveAlbum.photoCount} photos
+                </div>
+              </div>
+              <span style={{
+                backgroundColor: '#DC2626', color: 'white', padding: '0.2rem 0.5rem',
+                borderRadius: '0.25rem', fontSize: '0.7rem', fontWeight: '700', flexShrink: 0
+              }}>Archived</span>
+            </div>
+
+            {/* Plan Cards */}
+            <div style={{
+              display: 'flex', gap: '0.75rem', flexWrap: 'wrap',
+              marginBottom: '1.25rem'
+            }}>
+              {STORAGE_PLANS.map((plan) => (
+                <div
+                  key={plan.id}
+                  style={{
+                    flex: '1 1 180px',
+                    minWidth: '180px',
+                    backgroundColor: colors.bgTertiary,
+                    borderRadius: '0.75rem',
+                    border: (plan as any).popular
+                      ? `2px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}`
+                      : `2px solid ${colors.borderPrimary}`,
+                    padding: '1.25rem 1rem',
+                    display: 'flex', flexDirection: 'column',
+                    position: 'relative',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {/* Popular / Best Value badge */}
+                  {(plan as any).popular && (
+                    <div style={{
+                      position: 'absolute', top: '-0.6rem', left: '50%', transform: 'translateX(-50%)',
+                      backgroundColor: '#083A85', color: 'white',
+                      padding: '0.15rem 0.6rem', borderRadius: '9999px',
+                      fontSize: '0.7rem', fontWeight: '700', whiteSpace: 'nowrap'
+                    }}>
+                      Popular
+                    </div>
+                  )}
+                  {(plan as any).bestValue && (
+                    <div style={{
+                      position: 'absolute', top: '-0.6rem', left: '50%', transform: 'translateX(-50%)',
+                      backgroundColor: '#059669', color: 'white',
+                      padding: '0.15rem 0.6rem', borderRadius: '9999px',
+                      fontSize: '0.7rem', fontWeight: '700', whiteSpace: 'nowrap'
+                    }}>
+                      Best Value
+                    </div>
+                  )}
+
+                  {/* Plan Name */}
+                  <div style={{ fontSize: '0.9rem', fontWeight: '700', color: colors.textPrimary, marginBottom: '0.75rem', textAlign: 'center' }}>
+                    {plan.name}
+                  </div>
+
+                  {/* Price */}
+                  <div style={{ textAlign: 'center', marginBottom: '0.75rem' }}>
+                    <span style={{
+                      fontSize: '1.75rem', fontWeight: '800',
+                      color: actualTheme === 'dark' ? '#60A5FA' : '#083A85'
+                    }}>
+                      {formatPrice(plan.price)}
+                    </span>
+                    <span style={{ fontSize: '0.8rem', color: colors.textSecondary, marginLeft: '0.125rem' }}>
+                      {plan.billing}
+                    </span>
+                  </div>
+
+                  {/* Features */}
+                  <ul style={{
+                    listStyle: 'none', padding: 0, margin: '0 0 1rem',
+                    flex: 1
+                  }}>
+                    {plan.features.map((feature, i) => (
+                      <li key={i} style={{
+                        display: 'flex', alignItems: 'flex-start', gap: '0.375rem',
+                        fontSize: '0.8rem', color: colors.textSecondary,
+                        marginBottom: '0.4rem', lineHeight: '1.4'
+                      }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: '0.1rem' }}>
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+
+                  {/* Select Button */}
+                  <button
+                    onClick={() => {
+                      setSelectedPlan(plan.id);
+                      const album = selectedArchiveAlbum as any;
+                      const paymentData: Payment = {
+                        id: album.id,
+                        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+                        eventName: `${plan.name} — ${album.payment?.eventName || album.title}`,
+                        eventType: album.category,
+                        photographerName: album.payment?.photographerName || album.photographer,
+                        photographerImage: album.photographerAvatar,
+                        method: '-',
+                        amount: formatPrice(plan.price),
+                        amountNum: plan.price,
+                        paidAmount: 0,
+                        status: 'pending',
+                        invoiceNumber: `INV-${new Date().getFullYear()}-${String(album.id).padStart(3, '0')}`
+                      };
+                      setShowPricingPlans(false);
+                      handlePayNow(paymentData);
+                    }}
+                    style={{
+                      width: '100%', padding: '0.625rem 1rem',
+                      border: (plan as any).popular ? '2px solid #062a63' : `2px solid ${colors.borderPrimary}`,
+                      borderRadius: '0.5rem',
+                      background: (plan as any).popular ? '#083A85' : colors.bgCard,
+                      color: (plan as any).popular ? 'white' : colors.textPrimary,
+                      fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    Select Plan
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Info note */}
+            <p style={{
+              fontSize: '0.8rem', color: colors.textSecondary,
+              margin: 0, textAlign: 'center', lineHeight: '1.5'
+            }}>
+              Your selected plan unlocks all archived albums and prevents future archiving.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* PAY NOW MODAL - PLACED AT ROOT LEVEL */}
       <PayNowModal
@@ -3387,7 +3691,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
               </div>
               {/* Selection counter */}
               <span style={{
-                backgroundColor: setupSelectedImages.length === MAX_IMAGE_SELECTION ? 'rgba(5, 150, 105, 0.8)' : 'rgba(255, 255, 255, 0.15)',
+                backgroundColor: setupSelectedImages.length >= MAX_IMAGE_SELECTION ? 'rgba(5, 150, 105, 0.8)' : 'rgba(255, 255, 255, 0.15)',
                 color: 'white',
                 padding: '0.375rem 0.75rem',
                 borderRadius: '9999px',
@@ -3395,7 +3699,22 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                 fontWeight: '600'
               }}>
                 {setupSelectedImages.length}/{MAX_IMAGE_SELECTION} selected
+                {extraUnlockedImages.filter(img => setupSelectedImages.includes(img)).length > 0 && (
+                  <> + {extraUnlockedImages.filter(img => setupSelectedImages.includes(img)).length} extra</>
+                )}
               </span>
+              {extraImagesTotalCost > 0 && (
+                <span style={{
+                  backgroundColor: 'rgba(124, 58, 237, 0.85)',
+                  color: 'white',
+                  padding: '0.375rem 0.75rem',
+                  borderRadius: '9999px',
+                  fontSize: '0.8rem',
+                  fontWeight: '600'
+                }}>
+                  +${extraImagesTotalCost}
+                </span>
+              )}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               {/* Back button */}
@@ -3484,24 +3803,33 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
               }}>
               {setupSelectedAlbum.images.map((image, index) => {
                 const isSelected = setupSelectedImages.includes(image);
-                const isLocked = !isSelected && setupSelectedImages.length >= MAX_IMAGE_SELECTION;
+                const isExtraUnlocked = extraUnlockedImages.includes(image);
+                const isLocked = !isSelected && setupSelectedImages.length >= MAX_IMAGE_SELECTION && !isExtraUnlocked;
                 return (
                   <div
                     key={index}
-                    onClick={() => !isLocked && toggleSetupImageSelection(image)}
-                    onDoubleClick={() => {
-                      setSetupCurrentImageIndex(index);
-                      setStep3ViewMode('image-selection');
+                    onClick={() => {
+                      if (isLocked && !hasSeenLimitMessage) {
+                        setShowLimitReachedMessage(true);
+                        setHasSeenLimitMessage(true);
+                      } else {
+                        setSetupCurrentImageIndex(index);
+                        setStep3ViewMode('image-selection');
+                      }
                     }}
                     style={{
                       position: 'relative',
                       borderRadius: '0.5rem',
                       overflow: 'hidden',
                       backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                      border: isSelected
+                      border: isSelected && isExtraUnlocked
+                        ? '2px solid #7C3AED'
+                        : isSelected
                         ? '2px solid #083A85'
+                        : isExtraUnlocked
+                        ? '2px solid rgba(124, 58, 237, 0.5)'
                         : '1px solid rgba(255, 255, 255, 0.1)',
-                      cursor: isLocked ? 'not-allowed' : 'pointer',
+                      cursor: 'pointer',
                       opacity: isLocked ? 0.5 : 1,
                       transition: 'all 0.2s'
                     }}
@@ -3528,7 +3856,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                           width: '24px',
                           height: '24px',
                           borderRadius: '50%',
-                          backgroundColor: isSelected ? '#083A85' : 'rgba(0, 0, 0, 0.7)',
+                          backgroundColor: isSelected && isExtraUnlocked ? '#7C3AED' : isSelected ? '#083A85' : 'rgba(0, 0, 0, 0.7)',
                           color: 'white',
                           display: 'flex',
                           alignItems: 'center',
@@ -3550,7 +3878,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                             width: '22px',
                             height: '22px',
                             borderRadius: '50%',
-                            backgroundColor: '#16A34A',
+                            backgroundColor: isExtraUnlocked ? '#7C3AED' : '#16A34A',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center'
@@ -3558,6 +3886,16 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                             <polyline points="20 6 9 17 4 12"></polyline>
                           </svg>
+                        </div>
+                      )}
+                      {/* Extra unlocked badge (not yet selected) */}
+                      {isExtraUnlocked && !isSelected && (
+                        <div style={{
+                          position: 'absolute', top: '0.4rem', left: '0.4rem',
+                          backgroundColor: 'rgba(124, 58, 237, 0.85)', padding: '0.15rem 0.4rem',
+                          borderRadius: '0.25rem', fontSize: '0.6rem', fontWeight: '700', color: 'white'
+                        }}>
+                          UNLOCKED
                         </div>
                       )}
                       {/* Locked overlay */}
@@ -3590,120 +3928,160 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
 
       {/* Setup Wizard Step 3 - Full-Screen Image Browser */}
       {showSetupWizard && setupStep === 3 && step3ViewMode === 'image-selection' && setupSelectedAlbum && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.95)',
-            display: 'flex',
-            flexDirection: 'column',
-            zIndex: 2000
-          }}
-        >
-          {/* Header */}
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: '#000', zIndex: 2000 }}>
+          {/* Full-screen Image */}
+          <div style={{ position: 'absolute', inset: 0 }}>
+            <Image
+              src={setupSelectedAlbum.images[setupCurrentImageIndex]}
+              alt={`${setupSelectedAlbum.title} - Image ${setupCurrentImageIndex + 1}`}
+              fill
+              style={{ objectFit: 'contain', padding: '0 4rem' }}
+              priority
+            />
+            {/* Selected badge on image */}
+            {setupSelectedImages.includes(setupSelectedAlbum.images[setupCurrentImageIndex]) && (
+              <div style={{
+                position: 'absolute', top: '5rem', right: '5rem', zIndex: 5,
+                backgroundColor: 'rgba(8,58,133,0.9)', color: 'white',
+                padding: '0.5rem 0.75rem', borderRadius: '2rem',
+                fontSize: '0.8rem', fontWeight: '600',
+                display: 'flex', alignItems: 'center', gap: '0.375rem'
+              }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                Selected
+              </div>
+            )}
+            {/* Locked badge + Unlock option on image */}
+            {!setupSelectedImages.includes(setupSelectedAlbum.images[setupCurrentImageIndex]) && setupSelectedImages.length >= MAX_IMAGE_SELECTION && !extraUnlockedImages.includes(setupSelectedAlbum.images[setupCurrentImageIndex]) && (
+              <div style={{
+                position: 'absolute', top: '5rem', right: '5rem', zIndex: 5,
+                display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem'
+              }}>
+                <div style={{
+                  backgroundColor: 'rgba(0,0,0,0.75)', color: 'white',
+                  padding: '0.5rem 0.75rem', borderRadius: '2rem',
+                  fontSize: '0.8rem', fontWeight: '600',
+                  display: 'flex', alignItems: 'center', gap: '0.375rem'
+                }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                  </svg>
+                  Locked
+                </div>
+                <button
+                  onClick={() => handleUnlockExtraImage(setupSelectedAlbum.images[setupCurrentImageIndex])}
+                  style={{
+                    backgroundColor: 'rgba(8,58,133,0.9)', color: 'white',
+                    padding: '0.5rem 1rem', borderRadius: '2rem', border: 'none',
+                    fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: '0.375rem',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(8,58,133,1)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(8,58,133,0.9)'; }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 5-5 5 5 0 0 1 5 5"></path>
+                  </svg>
+                  Unlock for {formatPrice(EXTRA_IMAGE_PRICE)}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Top Overlay */}
           <div
             className="step3-header"
             style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '1rem 1.5rem',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+              position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
+              background: 'linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 60%, transparent 100%)',
+              padding: '1rem 1.5rem 2.5rem',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'
             }}>
-            <div className="step3-header-info" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '0.5rem',
-                  overflow: 'hidden',
-                  position: 'relative'
-                }}>
-                  <Image src={setupSelectedAlbum.thumbnail} alt={setupSelectedAlbum.title} fill style={{ objectFit: 'cover' }} />
-                </div>
-                <div>
-                  <h3 style={{ fontSize: '1rem', fontWeight: '600', color: 'white', margin: 0 }}>
-                    {setupSelectedAlbum.title}
-                  </h3>
-                  <p style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.6)', margin: 0 }}>
-                    {setupSelectedAlbum.photographer} · Step 3 of 3
-                  </p>
-                </div>
+            <div className="step3-header-info" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '0.5rem', overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
+                <Image src={setupSelectedAlbum.thumbnail} alt={setupSelectedAlbum.title} fill style={{ objectFit: 'cover' }} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '0.95rem', fontWeight: '600', color: 'white', margin: 0 }}>{setupSelectedAlbum.title}</h3>
+                <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', margin: 0 }}>
+                  {setupSelectedAlbum.photographer} &middot; {setupCurrentImageIndex + 1} / {setupSelectedAlbum.images.length}
+                </p>
               </div>
               <span style={{
-                backgroundColor: 'rgba(8, 58, 133, 0.8)',
-                color: 'white',
-                padding: '0.375rem 0.75rem',
-                borderRadius: '9999px',
-                fontSize: '0.8rem',
-                fontWeight: '500'
-              }}>
-                {setupCurrentImageIndex + 1} of {setupSelectedAlbum.images.length}
-              </span>
-              {/* Selection counter */}
-              <span style={{
-                backgroundColor: setupSelectedImages.length === MAX_IMAGE_SELECTION ? 'rgba(5, 150, 105, 0.8)' : 'rgba(255, 255, 255, 0.15)',
-                color: 'white',
-                padding: '0.375rem 0.75rem',
-                borderRadius: '9999px',
-                fontSize: '0.8rem',
-                fontWeight: '600'
+                backgroundColor: setupSelectedImages.length >= MAX_IMAGE_SELECTION ? 'rgba(5,150,105,0.85)' : 'rgba(255,255,255,0.15)',
+                color: 'white', padding: '0.35rem 0.65rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: '600'
               }}>
                 {setupSelectedImages.length}/{MAX_IMAGE_SELECTION} selected
+                {extraUnlockedImages.filter(img => setupSelectedImages.includes(img)).length > 0 && (
+                  <> + {extraUnlockedImages.filter(img => setupSelectedImages.includes(img)).length} extra</>
+                )}
               </span>
+              {extraImagesTotalCost > 0 && (
+                <span style={{
+                  backgroundColor: 'rgba(124,58,237,0.85)',
+                  color: 'white', padding: '0.35rem 0.65rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: '600'
+                }}>
+                  +${extraImagesTotalCost}
+                </span>
+              )}
             </div>
 
-            <div className="step3-header-buttons" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              {/* Select / Deselect / Locked button */}
+            <div className="step3-header-buttons" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              {/* Select / Deselect / Unlock button */}
               {(() => {
                 const currentImg = setupSelectedAlbum.images[setupCurrentImageIndex];
                 const isSel = setupSelectedImages.includes(currentImg);
-                const isLck = !isSel && setupSelectedImages.length >= MAX_IMAGE_SELECTION;
+                const isLck = !isSel && setupSelectedImages.length >= MAX_IMAGE_SELECTION && !extraUnlockedImages.includes(currentImg);
+                const isUnlocked = !isSel && extraUnlockedImages.includes(currentImg);
+                if (isLck) {
+                  return (
+                    <button
+                      onClick={() => handleUnlockExtraImage(currentImg)}
+                      style={{
+                        padding: '0.45rem 0.7rem',
+                        backgroundColor: 'rgba(8,58,133,0.85)',
+                        border: 'none', borderRadius: '2rem', color: 'white', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '0.375rem',
+                        fontSize: '0.8rem', fontWeight: '600', transition: 'all 0.2s'
+                      }}
+                      title={`Unlock this image for ${formatPrice(EXTRA_IMAGE_PRICE)}`}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 5-5 5 5 0 0 1 5 5"></path>
+                      </svg>
+                      <span className="step3-btn-text">Unlock {formatPrice(EXTRA_IMAGE_PRICE)}</span>
+                    </button>
+                  );
+                }
                 return (
                   <button
-                    onClick={() => !isLck && toggleSetupImageSelection(currentImg)}
-                    disabled={isLck}
+                    onClick={() => toggleSetupImageSelection(currentImg)}
                     style={{
-                      padding: '0.5rem 0.75rem',
-                      backgroundColor: isSel ? 'rgba(220, 38, 38, 0.8)' : isLck ? 'rgba(255, 255, 255, 0.05)' : 'rgba(8, 58, 133, 0.8)',
-                      border: '1px solid rgba(255, 255, 255, 0.2)',
-                      borderRadius: '0.5rem',
-                      color: 'white',
-                      cursor: isLck ? 'not-allowed' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.375rem',
-                      fontSize: '0.8rem',
-                      fontWeight: '600',
-                      opacity: isLck ? 0.5 : 1,
-                      transition: 'all 0.2s'
+                      padding: '0.45rem 0.7rem',
+                      backgroundColor: isSel ? 'rgba(220,38,38,0.85)' : 'rgba(8,58,133,0.85)',
+                      border: 'none', borderRadius: '2rem', color: 'white', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: '0.375rem',
+                      fontSize: '0.8rem', fontWeight: '600', transition: 'all 0.2s'
                     }}
-                    title={isLck ? `Maximum ${MAX_IMAGE_SELECTION} images selected` : isSel ? 'Remove from selection' : 'Add to selection'}
+                    title={isSel ? 'Remove from selection' : isUnlocked ? 'Add unlocked image' : 'Add to selection'}
                   >
                     {isSel ? (
                       <>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <line x1="18" y1="6" x2="6" y2="18"></line>
-                          <line x1="6" y1="6" x2="18" y2="18"></line>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
                         </svg>
                         <span className="step3-btn-text">Remove</span>
                       </>
-                    ) : isLck ? (
-                      <>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                        </svg>
-                        <span className="step3-btn-text">Locked</span>
-                      </>
                     ) : (
                       <>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <line x1="12" y1="5" x2="12" y2="19"></line>
-                          <line x1="5" y1="12" x2="19" y2="12"></line>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
                         </svg>
                         <span className="step3-btn-text">Select</span>
                       </>
@@ -3711,75 +4089,18 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                   </button>
                 );
               })()}
-              {/* Add to Photobook button */}
-              {(() => {
-                const currentImg = setupSelectedAlbum.images[setupCurrentImageIndex];
-                const isAlreadyAdded = setupSelectedImages.includes(currentImg);
-                const isMaxReached = setupSelectedImages.length >= MAX_IMAGE_SELECTION;
-                return (
-                  <button
-                    onClick={() => {
-                      if (!isAlreadyAdded && !isMaxReached) {
-                        toggleSetupImageSelection(currentImg);
-                      }
-                    }}
-                    disabled={isAlreadyAdded || isMaxReached}
-                    style={{
-                      padding: '0.5rem 0.75rem',
-                      backgroundColor: isAlreadyAdded ? 'rgba(5, 150, 105, 0.8)' : isMaxReached ? 'rgba(255, 255, 255, 0.05)' : 'rgba(124, 58, 237, 0.8)',
-                      border: '1px solid rgba(255, 255, 255, 0.2)',
-                      borderRadius: '0.5rem',
-                      color: 'white',
-                      cursor: isAlreadyAdded || isMaxReached ? 'not-allowed' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.375rem',
-                      fontSize: '0.8rem',
-                      fontWeight: '600',
-                      opacity: isMaxReached && !isAlreadyAdded ? 0.5 : 1,
-                      transition: 'all 0.2s'
-                    }}
-                    title={isAlreadyAdded ? 'Already in photobook' : isMaxReached ? `Maximum ${MAX_IMAGE_SELECTION} images` : 'Add to photobook'}
-                  >
-                    {isAlreadyAdded ? (
-                      <>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                        <span className="step3-btn-text">Added</span>
-                      </>
-                    ) : (
-                      <>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
-                        </svg>
-                        <span className="step3-btn-text">Add to Photobook</span>
-                      </>
-                    )}
-                  </button>
-                );
-              })()}
-              {/* Back button - go back to album grid */}
+              {/* Back button */}
               <button
                 onClick={() => setStep3ViewMode('album-grid')}
                 style={{
-                  padding: '0.5rem 0.75rem',
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  borderRadius: '0.5rem',
-                  color: 'white',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.375rem',
-                  fontSize: '0.8rem',
-                  fontWeight: '600',
-                  transition: 'all 0.2s'
+                  padding: '0.45rem 0.7rem', backgroundColor: 'rgba(255,255,255,0.12)',
+                  border: 'none', borderRadius: '2rem', color: 'white', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.8rem', fontWeight: '600', transition: 'all 0.2s'
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'; }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.22)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.12)'; }}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="15 18 9 12 15 6"></polyline>
                 </svg>
                 <span className="step3-btn-text">Back</span>
@@ -3789,255 +4110,105 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                 onClick={saveSetupWizard}
                 disabled={setupSelectedImages.length === 0}
                 style={{
-                  padding: '0.5rem 0.75rem',
-                  backgroundColor: setupSelectedImages.length === 0 ? 'rgba(255, 255, 255, 0.05)' : 'rgba(5, 150, 105, 0.9)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  borderRadius: '0.5rem',
-                  color: 'white',
+                  padding: '0.45rem 0.7rem',
+                  backgroundColor: setupSelectedImages.length === 0 ? 'rgba(255,255,255,0.08)' : 'rgba(5,150,105,0.9)',
+                  border: 'none', borderRadius: '2rem', color: 'white',
                   cursor: setupSelectedImages.length === 0 ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.375rem',
-                  fontSize: '0.8rem',
-                  fontWeight: '600',
-                  opacity: setupSelectedImages.length === 0 ? 0.5 : 1,
-                  transition: 'all 0.2s'
+                  display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.8rem', fontWeight: '600',
+                  opacity: setupSelectedImages.length === 0 ? 0.5 : 1, transition: 'all 0.2s'
                 }}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
                 <span className="step3-btn-text">Save</span>
               </button>
               {/* Close button */}
               <button
-                onClick={resetSetupWizard}
+                onClick={() => setStep3ViewMode('album-grid')}
                 style={{
-                  padding: '0.625rem',
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  borderRadius: '0.5rem',
-                  color: 'white',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  width: '36px', height: '36px', borderRadius: '50%',
+                  backgroundColor: 'rgba(255,255,255,0.12)', border: 'none',
+                  color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   transition: 'all 0.2s'
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'; }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.25)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.12)'; }}
               >
                 <CloseIcon />
               </button>
             </div>
           </div>
 
-          {/* Main Image Area */}
-          <div style={{
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            position: 'relative',
-            padding: '1rem 5rem',
-            minHeight: 0,
-            overflow: 'hidden'
-          }}>
-            {/* Previous Button */}
-            <button
-              className="step3-nav-button"
-              onClick={() => setupCurrentImageIndex > 0 && setSetupCurrentImageIndex(setupCurrentImageIndex - 1)}
-              style={{
-                position: 'absolute',
-                left: '1.5rem',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                width: '56px',
-                height: '56px',
-                borderRadius: '50%',
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                border: '2px solid rgba(255, 255, 255, 0.3)',
-                color: 'white',
-                cursor: setupCurrentImageIndex > 0 ? 'pointer' : 'not-allowed',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.2s',
-                zIndex: 10,
-                opacity: setupCurrentImageIndex > 0 ? 1 : 0.3
-              }}
-              onMouseEnter={(e) => {
-                if (setupCurrentImageIndex > 0) {
-                  e.currentTarget.style.backgroundColor = 'rgba(8, 58, 133, 0.8)';
-                  e.currentTarget.style.borderColor = '#083A85';
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-              }}
-            >
-              <ChevronLeftIcon />
-            </button>
+          {/* Navigation Buttons */}
+          <button
+            className="step3-nav-button"
+            onClick={() => setupCurrentImageIndex > 0 && setSetupCurrentImageIndex(setupCurrentImageIndex - 1)}
+            style={{
+              position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', zIndex: 10,
+              width: '48px', height: '48px', borderRadius: '50%',
+              backgroundColor: 'rgba(0,0,0,0.4)', border: 'none', color: 'white',
+              cursor: setupCurrentImageIndex > 0 ? 'pointer' : 'default',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'all 0.2s', opacity: setupCurrentImageIndex > 0 ? 0.7 : 0
+            }}
+            onMouseEnter={(e) => { if (setupCurrentImageIndex > 0) e.currentTarget.style.opacity = '1'; e.currentTarget.style.backgroundColor = 'rgba(8,58,133,0.8)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = setupCurrentImageIndex > 0 ? '0.7' : '0'; e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.4)'; }}
+          >
+            <ChevronLeftIcon />
+          </button>
+          <button
+            className="step3-nav-button step3-nav-button-right"
+            onClick={() => setupCurrentImageIndex < setupSelectedAlbum.images.length - 1 && setSetupCurrentImageIndex(setupCurrentImageIndex + 1)}
+            style={{
+              position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', zIndex: 10,
+              width: '48px', height: '48px', borderRadius: '50%',
+              backgroundColor: 'rgba(0,0,0,0.4)', border: 'none', color: 'white',
+              cursor: setupCurrentImageIndex < setupSelectedAlbum.images.length - 1 ? 'pointer' : 'default',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'all 0.2s', opacity: setupCurrentImageIndex < setupSelectedAlbum.images.length - 1 ? 0.7 : 0
+            }}
+            onMouseEnter={(e) => { if (setupCurrentImageIndex < setupSelectedAlbum.images.length - 1) e.currentTarget.style.opacity = '1'; e.currentTarget.style.backgroundColor = 'rgba(8,58,133,0.8)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = setupCurrentImageIndex < setupSelectedAlbum.images.length - 1 ? '0.7' : '0'; e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.4)'; }}
+          >
+            <ChevronRightIcon />
+          </button>
 
-            {/* Image Display */}
-            <div
-              className="step3-fullscreen-image"
-              style={{
-                position: 'relative',
-                width: '100%',
-                height: '100%',
-                borderRadius: '0.5rem',
-                overflow: 'hidden',
-                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
-              }}>
-                <Image
-                  src={setupSelectedAlbum.images[setupCurrentImageIndex]}
-                  alt={`${setupSelectedAlbum.title} - Image ${setupCurrentImageIndex + 1}`}
-                  fill
-                  style={{ objectFit: 'contain' }}
-                />
-                {/* Selected badge on image */}
-                {setupSelectedImages.includes(setupSelectedAlbum.images[setupCurrentImageIndex]) && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '1rem',
-                    right: '1rem',
-                    backgroundColor: '#083A85',
-                    color: 'white',
-                    padding: '0.5rem 0.75rem',
-                    borderRadius: '0.5rem',
-                    fontSize: '0.8rem',
-                    fontWeight: '600',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.375rem'
-                  }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                    Selected
-                  </div>
-                )}
-                {/* Locked badge on image */}
-                {!setupSelectedImages.includes(setupSelectedAlbum.images[setupCurrentImageIndex]) && setupSelectedImages.length >= MAX_IMAGE_SELECTION && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '1rem',
-                    right: '1rem',
-                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                    color: 'white',
-                    padding: '0.5rem 0.75rem',
-                    borderRadius: '0.5rem',
-                    fontSize: '0.8rem',
-                    fontWeight: '600',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.375rem'
-                  }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                    </svg>
-                    Locked
-                  </div>
-                )}
-            </div>
-
-            {/* Next Button */}
-            <button
-              className="step3-nav-button step3-nav-button-right"
-              onClick={() => setupCurrentImageIndex < setupSelectedAlbum.images.length - 1 && setSetupCurrentImageIndex(setupCurrentImageIndex + 1)}
-              style={{
-                position: 'absolute',
-                right: '1.5rem',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                width: '56px',
-                height: '56px',
-                borderRadius: '50%',
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                border: '2px solid rgba(255, 255, 255, 0.3)',
-                color: 'white',
-                cursor: setupCurrentImageIndex < setupSelectedAlbum.images.length - 1 ? 'pointer' : 'not-allowed',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.2s',
-                zIndex: 10,
-                opacity: setupCurrentImageIndex < setupSelectedAlbum.images.length - 1 ? 1 : 0.3
-              }}
-              onMouseEnter={(e) => {
-                if (setupCurrentImageIndex < setupSelectedAlbum.images.length - 1) {
-                  e.currentTarget.style.backgroundColor = 'rgba(8, 58, 133, 0.8)';
-                  e.currentTarget.style.borderColor = '#083A85';
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-              }}
-            >
-              <ChevronRightIcon />
-            </button>
-          </div>
-
-          {/* Thumbnail Strip */}
+          {/* Bottom Thumbnail Strip */}
           <div
             className="step3-thumbnail-strip"
             style={{
-              padding: '1.25rem 1rem 1.75rem',
-              borderTop: '1px solid rgba(255, 255, 255, 0.15)',
-              backgroundColor: 'rgba(0, 0, 0, 0.4)',
-              flexShrink: 0
+              position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10,
+              background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 60%, transparent 100%)',
+              padding: '2.5rem 1.5rem 1.25rem'
             }}>
-            <div style={{
-              display: 'flex',
-              gap: '0.35rem',
-              overflowX: 'auto',
-              paddingBottom: '0.25rem',
-              justifyContent: 'center'
-            }}>
+            <div style={{ display: 'flex', gap: '0.4rem', overflowX: 'auto', justifyContent: 'center', paddingBottom: '0.25rem' }}>
               {setupSelectedAlbum.images.map((image, index) => {
                 const isThumbSelected = setupSelectedImages.includes(image);
-                const isThumbLocked = !isThumbSelected && setupSelectedImages.length >= MAX_IMAGE_SELECTION;
+                const isThumbExtraUnlocked = extraUnlockedImages.includes(image);
+                const isThumbLocked = !isThumbSelected && setupSelectedImages.length >= MAX_IMAGE_SELECTION && !isThumbExtraUnlocked;
                 return (
                   <button
                     className="step3-thumbnail"
                     key={index}
                     onClick={() => setSetupCurrentImageIndex(index)}
                     style={{
-                      position: 'relative',
-                      width: '48px',
-                      height: '36px',
-                      borderRadius: '0.25rem',
+                      position: 'relative', width: '50px', height: '38px', borderRadius: '0.3rem',
                       overflow: 'hidden',
-                      border: isThumbSelected
-                        ? '2px solid #083A85'
-                        : setupCurrentImageIndex === index
-                          ? '2px solid rgba(255, 255, 255, 0.8)'
-                          : '2px solid transparent',
-                      cursor: 'pointer',
-                      flexShrink: 0,
-                      transition: 'all 0.2s',
-                      opacity: isThumbLocked ? 0.4 : setupCurrentImageIndex === index ? 1 : 0.6,
-                      transform: setupCurrentImageIndex === index ? 'scale(1.05)' : 'scale(1)'
+                      border: isThumbSelected && isThumbExtraUnlocked ? '2px solid #7C3AED' : isThumbSelected ? '2px solid #4A90D9' : setupCurrentImageIndex === index ? '2px solid white' : '2px solid transparent',
+                      cursor: 'pointer', flexShrink: 0, transition: 'all 0.2s',
+                      opacity: isThumbLocked ? 0.3 : setupCurrentImageIndex === index ? 1 : 0.55,
+                      transform: setupCurrentImageIndex === index ? 'scale(1.1)' : 'scale(1)',
+                      background: 'none', padding: 0
                     }}
                   >
                     <Image src={image} alt={`Thumbnail ${index + 1}`} fill style={{ objectFit: 'cover' }} />
                     {/* Selected checkmark on thumbnail */}
                     {isThumbSelected && (
                       <div style={{
-                        position: 'absolute',
-                        top: '1px',
-                        right: '1px',
-                        width: '12px',
-                        height: '12px',
-                        borderRadius: '50%',
-                        backgroundColor: '#083A85',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
+                        position: 'absolute', top: '1px', right: '1px',
+                        width: '12px', height: '12px', borderRadius: '50%',
+                        backgroundColor: isThumbExtraUnlocked ? '#7C3AED' : '#083A85', display: 'flex', alignItems: 'center', justifyContent: 'center'
                       }}>
                         <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="20 6 9 17 4 12"></polyline>
@@ -4047,15 +4218,9 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                     {/* Lock overlay on thumbnail */}
                     {isThumbLocked && (
                       <div style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
+                        position: 'absolute', inset: 0,
+                        backgroundColor: 'rgba(0,0,0,0.5)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center'
                       }}>
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
@@ -4063,21 +4228,467 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                         </svg>
                       </div>
                     )}
-                    {/* Active indicator bar */}
-                    {setupCurrentImageIndex === index && (
-                      <div style={{
-                        position: 'absolute',
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        height: '2px',
-                        backgroundColor: isThumbSelected ? '#083A85' : 'white'
-                      }} />
-                    )}
                   </button>
                 );
               })}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Limit Reached Pop-up Message */}
+      {showLimitReachedMessage && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.6)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 3000
+        }} onClick={() => setShowLimitReachedMessage(false)}>
+          <div style={{
+            backgroundColor: colors.bgCard,
+            borderRadius: '0.75rem',
+            padding: '1.75rem',
+            maxWidth: '420px',
+            width: '90%',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            textAlign: 'center'
+          }} onClick={(e) => e.stopPropagation()}>
+            {/* Info Icon */}
+            <div style={{
+              width: '56px', height: '56px', borderRadius: '50%',
+              backgroundColor: actualTheme === 'dark' ? 'rgba(96, 165, 250, 0.15)' : 'rgba(8, 58, 133, 0.1)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 1rem'
+            }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={actualTheme === 'dark' ? '#60A5FA' : '#083A85'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+            </div>
+
+            <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: colors.textPrimary, margin: '0 0 0.5rem' }}>
+              Selection Limit Reached
+            </h3>
+            <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 0.75rem', lineHeight: '1.5' }}>
+              You&apos;ve selected the maximum of <strong style={{ color: colors.textPrimary }}>{MAX_IMAGE_SELECTION} images</strong> included in your photobook agreement.
+            </p>
+            <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0 0 1.25rem', lineHeight: '1.5' }}>
+              No worries! You can still unlock additional images for <strong style={{ color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{formatPrice(EXTRA_IMAGE_PRICE)} each</strong>. Simply tap the <strong style={{ color: colors.textPrimary }}>Unlock</strong> button on any locked image to add it to your selection.
+            </p>
+
+            <button
+              onClick={() => setShowLimitReachedMessage(false)}
+              style={{
+                width: '100%', padding: '0.75rem 1rem',
+                border: '2px solid #062a63', borderRadius: '0.5rem',
+                background: '#083A85', color: 'white',
+                fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Extra Image Payment Modal */}
+      {showExtraImagePayment && pendingUnlockImage && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.6)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 3000
+        }} onClick={() => { setShowExtraImagePayment(false); setPendingUnlockImage(null); setExtraPaymentMethod(null); setExtraPaymentShowReceipt(false); }}>
+          <div style={{
+            backgroundColor: colors.bgCard,
+            borderRadius: '0.75rem',
+            padding: '1.5rem',
+            maxWidth: '450px',
+            width: '90%',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+          }} onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
+                {extraPaymentShowReceipt ? 'Payment Summary' : 'Unlock Extra Image'}
+              </h3>
+              <button onClick={() => { setShowExtraImagePayment(false); setPendingUnlockImage(null); setExtraPaymentMethod(null); setExtraPaymentShowReceipt(false); }} style={{
+                background: colors.bgTertiary, border: `2px solid ${colors.borderPrimary}`, cursor: 'pointer',
+                padding: '0.5rem', borderRadius: '0.375rem', color: colors.textPrimary,
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>
+                <CloseIcon />
+              </button>
+            </div>
+
+            {extraPaymentShowReceipt ? (
+              /* Receipt View (Phase 2) */
+              <div>
+                <div style={{
+                  backgroundColor: colors.bgTertiary, borderRadius: '0.75rem',
+                  padding: '1.25rem', marginBottom: '1.25rem',
+                  border: `2px solid ${colors.borderPrimary}`
+                }}>
+                  {/* Image Preview */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                    <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
+                      <Image src={pendingUnlockImage} alt="Extra image" fill style={{ objectFit: 'cover' }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>Extra Image</div>
+                      <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Additional photobook image</div>
+                    </div>
+                  </div>
+
+                  {/* Payment Method */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Payment Method</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div style={{ width: '24px', height: '24px', borderRadius: '0.25rem', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1px' }}>
+                        {extraPaymentMethod === 'card' ? (
+                          <>
+                            <Image src="/visa.png" alt="Visa" width={14} height={20} unoptimized style={{ objectFit: 'contain' }} />
+                            <Image src="/master.png" alt="Mastercard" width={14} height={20} unoptimized style={{ objectFit: 'contain' }} />
+                          </>
+                        ) : (
+                          <Image src={extraPaymentMethod === 'mtn' ? '/mtn.png' : '/airtel.png'} alt={extraPaymentMethod === 'mtn' ? 'MTN' : 'Airtel'} width={24} height={24} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                        )}
+                      </div>
+                      <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>
+                        {extraPaymentMethod === 'card' ? 'Credit/Debit Card' : extraPaymentMethod === 'mtn' ? 'MTN Mobile Money' : 'Airtel Mobile Money'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Already unlocked extras info */}
+                  {extraUnlockedImages.length > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Previously Unlocked</span>
+                      <span style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>
+                        {extraUnlockedImages.length} image{extraUnlockedImages.length > 1 ? 's' : ''}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Divider */}
+                  <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, margin: '0.75rem 0' }} />
+
+                  {/* Amount Due */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>Image Unlock</span>
+                    <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(EXTRA_IMAGE_PRICE)}</span>
+                  </div>
+
+                  {/* Donation (if any) */}
+                  {extraDonationValue > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                        <HeartIcon filled />
+                        <span style={{ fontSize: '0.9rem', fontWeight: '500', color: '#F20C8F' }}>Donation</span>
+                      </div>
+                      <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#F20C8F' }}>{formatPrice(extraDonationValue)}</span>
+                    </div>
+                  )}
+
+                  {/* Divider */}
+                  <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, margin: '0.75rem 0' }} />
+
+                  {/* Total */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '1.05rem', fontWeight: '700', color: colors.textPrimary }}>Total</span>
+                    <span style={{ fontSize: '1.3rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
+                      {formatPrice(extraTotalWithDonation)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Receipt Actions */}
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                  <button
+                    onClick={() => setExtraPaymentShowReceipt(false)}
+                    style={{
+                      flex: 1, padding: '0.75rem 1rem',
+                      border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem',
+                      background: colors.bgTertiary, color: colors.textPrimary,
+                      fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer'
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleExtraImagePaymentDone}
+                    style={{
+                      flex: 1, padding: '0.75rem 1rem',
+                      border: '2px solid #062a63', borderRadius: '0.5rem',
+                      background: '#083A85', color: 'white',
+                      fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    Pay {formatPrice(extraTotalWithDonation)}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* Selection View (Phase 1) */
+              <div>
+                {/* Image Preview */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '0.75rem',
+                  marginBottom: '1.25rem', padding: '0.75rem',
+                  backgroundColor: colors.bgTertiary, borderRadius: '0.75rem',
+                  border: `2px solid ${colors.borderPrimary}`
+                }}>
+                  <div style={{ width: '60px', height: '60px', borderRadius: '0.5rem', overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
+                    <Image src={pendingUnlockImage} alt="Extra image" fill style={{ objectFit: 'cover' }} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>Unlock This Image</div>
+                    <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginTop: '0.125rem' }}>
+                      Add as extra image for {formatPrice(EXTRA_IMAGE_PRICE)}
+                    </div>
+                    {extraUnlockedImages.length > 0 && (
+                      <div style={{ fontSize: '0.75rem', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85', marginTop: '0.25rem', fontWeight: '500' }}>
+                        {extraUnlockedImages.length} extra already unlocked &middot; Running total: {formatPrice(extraImagesTotalCost + EXTRA_IMAGE_PRICE)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Payment Method Selection */}
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>
+                    Select Payment Method
+                  </label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {/* Credit/Debit Card */}
+                    <div
+                      onClick={() => setExtraPaymentMethod('card')}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem',
+                        border: extraPaymentMethod === 'card' ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                        borderRadius: '0.75rem', cursor: 'pointer',
+                        backgroundColor: extraPaymentMethod === 'card' ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
+                        <Image src="/visa.png" alt="Visa" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
+                        <Image src="/master.png" alt="Mastercard" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Credit/Debit Card</div>
+                        <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Pay with Visa, Mastercard, etc.</div>
+                      </div>
+                      <div style={{
+                        width: '20px', height: '20px', borderRadius: '50%',
+                        border: extraPaymentMethod === 'card' ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                        backgroundColor: colors.bgCard
+                      }} />
+                    </div>
+
+                    {/* MTN Mobile Money */}
+                    <div
+                      onClick={() => setExtraPaymentMethod('mtn')}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem',
+                        border: extraPaymentMethod === 'mtn' ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                        borderRadius: '0.75rem', cursor: 'pointer',
+                        backgroundColor: extraPaymentMethod === 'mtn' ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0 }}>
+                        <Image src="/mtn.png" alt="MTN Mobile Money" width={48} height={48} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>MTN Mobile Money</div>
+                        <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Pay via MTN MoMo</div>
+                      </div>
+                      <div style={{
+                        width: '20px', height: '20px', borderRadius: '50%',
+                        border: extraPaymentMethod === 'mtn' ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                        backgroundColor: colors.bgCard
+                      }} />
+                    </div>
+
+                    {/* Airtel Mobile Money */}
+                    <div
+                      onClick={() => setExtraPaymentMethod('airtel')}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem',
+                        border: extraPaymentMethod === 'airtel' ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                        borderRadius: '0.75rem', cursor: 'pointer',
+                        backgroundColor: extraPaymentMethod === 'airtel' ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0 }}>
+                        <Image src="/airtel.png" alt="Airtel Mobile Money" width={48} height={48} unoptimized style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Airtel Mobile Money</div>
+                        <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Pay via Airtel Money</div>
+                      </div>
+                      <div style={{
+                        width: '20px', height: '20px', borderRadius: '50%',
+                        border: extraPaymentMethod === 'airtel' ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                        backgroundColor: colors.bgCard
+                      }} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Donation Section */}
+                <div style={{
+                  marginBottom: '1.25rem',
+                  padding: '1rem',
+                  borderRadius: '0.75rem',
+                  border: `2px solid ${extraDonationSkipped ? colors.borderPrimary : (extraDonationValue > 0 ? '#F20C8F' : 'rgba(242, 12, 143, 0.3)')}`,
+                  background: actualTheme === 'dark'
+                    ? 'linear-gradient(135deg, rgba(242, 12, 143, 0.08) 0%, rgba(255, 107, 157, 0.03) 100%)'
+                    : 'linear-gradient(135deg, rgba(242, 12, 143, 0.05) 0%, rgba(255, 107, 157, 0.02) 100%)',
+                  transition: 'all 0.2s'
+                }}>
+                  {/* Header */}
+                  <div style={{ marginBottom: '0.75rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <HeartIcon filled />
+                      <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>Support a Cause</span>
+                      <span style={{ fontSize: '0.81rem', color: colors.textSecondary, marginLeft: 'auto' }}>Optional</span>
+                    </div>
+                    <p style={{ fontSize: '0.84rem', color: colors.textSecondary, margin: '0.35rem 0 0 0', lineHeight: '1.4' }}>
+                      Add a small donation to help fund community projects and initiatives
+                    </p>
+                  </div>
+
+                  {!extraDonationSkipped && (
+                    <>
+                      {/* Quick Amount Buttons */}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                        {['5', '10', '25', '50'].map((amount) => (
+                          <button
+                            key={amount}
+                            onClick={() => handleExtraSelectDonation(amount)}
+                            style={{
+                              padding: '0.4rem 0.75rem',
+                              border: extraDonationAmount === amount ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`,
+                              borderRadius: '0.5rem',
+                              background: extraDonationAmount === amount
+                                ? (actualTheme === 'dark' ? 'rgba(242, 12, 143, 0.15)' : 'rgba(242, 12, 143, 0.08)')
+                                : colors.bgCard,
+                              color: extraDonationAmount === amount ? '#F20C8F' : colors.textSecondary,
+                              fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer',
+                              transition: 'all 0.2s', flex: '1', minWidth: '0'
+                            }}
+                          >
+                            {formatPrice(parseFloat(amount))}
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => handleExtraSelectDonation('custom')}
+                          style={{
+                            padding: '0.4rem 0.75rem',
+                            border: extraDonationAmount === 'custom' ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`,
+                            borderRadius: '0.5rem',
+                            background: extraDonationAmount === 'custom'
+                              ? (actualTheme === 'dark' ? 'rgba(242, 12, 143, 0.15)' : 'rgba(242, 12, 143, 0.08)')
+                              : colors.bgCard,
+                            color: extraDonationAmount === 'custom' ? '#F20C8F' : colors.textSecondary,
+                            fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer',
+                            transition: 'all 0.2s', flex: '1', minWidth: '0'
+                          }}
+                        >
+                          Custom
+                        </button>
+                      </div>
+
+                      {/* Custom Amount Input */}
+                      {extraShowCustomInput && (
+                        <div style={{ position: 'relative', marginBottom: '0.75rem' }}>
+                          <span style={{
+                            position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)',
+                            fontSize: '0.9rem', fontWeight: '600', color: colors.textSecondary
+                          }}>$</span>
+                          <input
+                            type="number"
+                            placeholder="Enter amount"
+                            value={extraCustomDonation}
+                            onChange={(e) => setExtraCustomDonation(e.target.value)}
+                            style={{
+                              width: '100%', padding: '0.6rem 0.75rem 0.6rem 1.75rem',
+                              border: `2px solid ${extraCustomDonation ? '#F20C8F' : colors.borderPrimary}`,
+                              borderRadius: '0.5rem', fontSize: '0.85rem',
+                              color: colors.textPrimary, backgroundColor: colors.bgCard,
+                              outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s'
+                            }}
+                            onFocus={(e) => { e.currentTarget.style.borderColor = '#F20C8F'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(242, 12, 143, 0.1)'; }}
+                            onBlur={(e) => { e.currentTarget.style.borderColor = extraCustomDonation ? '#F20C8F' : colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }}
+                          />
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* No Thanks Button */}
+                  <button
+                    onClick={handleExtraSkipDonation}
+                    style={{
+                      width: '100%', padding: '0.5rem 1rem', borderRadius: '9999px',
+                      border: extraDonationSkipped ? '2px solid #F20C8F' : '2px solid #6B7280',
+                      background: extraDonationSkipped ? '#F20C8F' : colors.bgTertiary,
+                      color: extraDonationSkipped ? 'white' : '#374151',
+                      fontSize: '0.875rem', fontWeight: '600', cursor: 'pointer',
+                      transition: 'all 0.2s', textAlign: 'center'
+                    }}
+                  >
+                    {extraDonationSkipped ? '\u2713 Donation skipped' : 'No thanks, skip donation'}
+                  </button>
+                </div>
+
+                {/* Validation Message */}
+                {!extraDonationAddressed && (
+                  <p style={{ fontSize: '0.86rem', color: '#EF4444', margin: '0 0 0.75rem 0', textAlign: 'center' }}>
+                    Please select a donation amount or skip to continue
+                  </p>
+                )}
+
+                {/* Actions */}
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                  <button
+                    onClick={() => { setShowExtraImagePayment(false); setPendingUnlockImage(null); setExtraPaymentMethod(null); setExtraPaymentShowReceipt(false); }}
+                    style={{
+                      flex: 1, padding: '0.75rem 1rem',
+                      border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem',
+                      background: colors.bgTertiary, color: colors.textPrimary,
+                      fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer'
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    disabled={!extraPaymentMethod || !extraDonationAddressed}
+                    onClick={handleExtraImagePaymentConfirm}
+                    style={{
+                      flex: 1, padding: '0.75rem 1rem',
+                      border: (!extraPaymentMethod || !extraDonationAddressed) ? '2px solid #9CA3AF' : '2px solid #062a63',
+                      borderRadius: '0.5rem',
+                      background: (!extraPaymentMethod || !extraDonationAddressed) ? '#9CA3AF' : '#083A85',
+                      color: 'white', fontSize: '0.9rem', fontWeight: '600',
+                      cursor: (!extraPaymentMethod || !extraDonationAddressed) ? 'not-allowed' : 'pointer',
+                      opacity: (!extraPaymentMethod || !extraDonationAddressed) ? 0.7 : 1,
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    Proceed to Payment
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

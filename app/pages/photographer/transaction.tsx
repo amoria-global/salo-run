@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
+import { useCurrency } from '@/app/context/CurrencyContext';
 import { HeartIcon } from '../../components/UnlockModal';
 
 // Icons
@@ -161,6 +162,7 @@ interface ViewReportModalProps {
 
 const ViewReportModal: React.FC<ViewReportModalProps> = ({ isOpen, onClose }) => {
   const { colors, actualTheme } = useTheme();
+  const { formatPrice } = useCurrency();
   const reportData = {
     period: '13 - 18 July 2025',
     totalEarned: 1200.13,
@@ -183,10 +185,10 @@ Period: ${reportData.period}
 Generated: ${new Date().toLocaleDateString()}
 
 Financial Summary:
-- Total Earned: $${reportData.totalEarned.toFixed(2)}
-- Pending Amount: $${reportData.pending.toFixed(2)}
-- Withdrawn: $${reportData.withdrawn.toFixed(2)}
-- Total: $${(reportData.totalEarned + reportData.pending + reportData.withdrawn).toFixed(2)}
+- Total Earned: ${formatPrice(reportData.totalEarned)}
+- Pending Amount: ${formatPrice(reportData.pending)}
+- Withdrawn: ${formatPrice(reportData.withdrawn)}
+- Total: ${formatPrice(reportData.totalEarned + reportData.pending + reportData.withdrawn)}
 
 Transaction Summary:
 - Total Transactions: ${reportData.totalTransactions}
@@ -221,25 +223,25 @@ Transaction Summary:
                   <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981' }} />
                   <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Earned</span>
                 </div>
-                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>${reportData.totalEarned.toFixed(2)}</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(reportData.totalEarned)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                   <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#FBBF24' }} />
                   <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Pending</span>
                 </div>
-                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>${reportData.pending.toFixed(2)}</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(reportData.pending)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                   <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#3B82F6' }} />
                   <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Withdrawn</span>
                 </div>
-                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>${reportData.withdrawn.toFixed(2)}</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(reportData.withdrawn)}</span>
               </div>
               <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, marginTop: '0.35rem', paddingTop: '0.35rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.75rem', fontWeight: '500', color: colors.textSecondary }}>Total</span>
-                <span style={{ fontSize: '0.95rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>${(reportData.totalEarned + reportData.pending + reportData.withdrawn).toFixed(2)}</span>
+                <span style={{ fontSize: '0.95rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{formatPrice(reportData.totalEarned + reportData.pending + reportData.withdrawn)}</span>
               </div>
             </div>
           </div>
@@ -337,6 +339,7 @@ interface TransactionDetailsModalProps {
 
 const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({ isOpen, onClose, transaction }) => {
   const { colors } = useTheme();
+  const { formatPrice } = useCurrency();
   if (!transaction) return null;
 
   const handlePrintReceipt = () => {
@@ -358,7 +361,7 @@ Client: ${transaction.clientName}
 Service: ${transaction.service}
 Payment Method: ${transaction.method}
 
-Amount: ${transaction.amount}
+Amount: ${formatPrice(transaction.amountNum)}
 
 =====================================
     Thank you for using Connekt
@@ -416,7 +419,7 @@ Amount: ${transaction.amount}
           {transaction.status.replace('_', ' ')}
         </span>
         <span style={{ fontSize: '1.75rem', fontWeight: '700', color: colors.textPrimary, marginTop: '0.5rem' }}>
-          {transaction.amount}
+          {formatPrice(transaction.amountNum)}
         </span>
       </div>
 
@@ -528,6 +531,7 @@ interface WithdrawAccount {
 
 const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availableBalance }) => {
   const { colors, actualTheme } = useTheme();
+  const { formatPrice } = useCurrency();
   const router = useRouter();
   const [withdrawAmount, setWithdrawAmount] = useState<string>('');
   const [selectedAccount, setSelectedAccount] = useState<string>('');
@@ -678,7 +682,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
                 Available Balance
               </div>
               <div className="mobile-balance-display-amount" style={{ fontSize: '2rem', fontWeight: '700', color: 'white', letterSpacing: '-0.02em' }}>
-                ${availableBalance.toLocaleString()}.00
+                {formatPrice(availableBalance)}
               </div>
             </div>
           </div>
@@ -1126,6 +1130,7 @@ interface EarningsChartProps {
 
 const EarningsChart: React.FC<EarningsChartProps> = ({ data, height = 140, chartType }) => {
   const { colors } = useTheme();
+  const { formatPrice } = useCurrency();
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const maxValue = Math.max(...data.map(d => d.value));
   const minValue = Math.min(...data.map(d => d.value));
@@ -1343,7 +1348,7 @@ const EarningsChart: React.FC<EarningsChartProps> = ({ data, height = 140, chart
               </div>
               <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Earnings</span>
               <span style={{ fontSize: '0.95rem', fontWeight: '700', color: colors.textPrimary }}>
-                ${points[hoveredIndex].value.toLocaleString()}
+                {formatPrice(points[hoveredIndex].value)}
               </span>
             </div>
           </div>
@@ -1470,6 +1475,7 @@ const ServiceTypeBadge: React.FC<ServiceTypeBadgeProps> = ({ type }) => {
 
 const TransactionsPage = () => {
   const { colors, actualTheme } = useTheme();
+  const { formatPrice } = useCurrency();
   const [activeTimeFilter, setActiveTimeFilter] = useState<'1W' | '1M' | '3M' | '6M' | '1Y'>('1W');
   const [currentPage, setCurrentPage] = useState(1);
   const [chartType, setChartType] = useState<ChartType>('line');
@@ -1499,7 +1505,7 @@ Client: ${transaction.clientName}
 Service: ${transaction.service}
 Payment Method: ${transaction.method}
 
-Amount: ${transaction.amount}
+Amount: ${formatPrice(transaction.amountNum)}
 
 =====================================
     Thank you for using Connekt
@@ -1873,17 +1879,17 @@ Amount: ${transaction.amount}
                 </div>
                 <div>
                   <div className="balance-label" style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Available to Withdraw</div>
-                  <div className="mobile-balance-amount" style={{ fontSize: '1.75rem', fontWeight: '700', color: colors.textPrimary }}>${availableBalance.toLocaleString()}</div>
+                  <div className="mobile-balance-amount" style={{ fontSize: '1.75rem', fontWeight: '700', color: colors.textPrimary }}>{formatPrice(availableBalance)}</div>
                 </div>
               </div>
               <div className="mobile-balance-stats" style={{ display: 'flex', gap: '2rem' }}>
                 <div>
                   <div className="stat-label" style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Previous Deposit</div>
-                  <div className="stat-value" style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>$450.00</div>
+                  <div className="stat-value" style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(450)}</div>
                 </div>
                 <div>
                   <div className="stat-label" style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Last Withdrawal</div>
-                  <div className="stat-value" style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>$1,345.00</div>
+                  <div className="stat-value" style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(1345)}</div>
                 </div>
                 <div>
                   <div className="stat-label" style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Active Account</div>
@@ -1908,7 +1914,7 @@ Amount: ${transaction.amount}
                   <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: 0 }}>Appreciation from your clients</p>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>${totalTips.toLocaleString()}</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>{formatPrice(totalTips)}</div>
                   <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>{tipsData.length} tips received</div>
                 </div>
               </div>
@@ -1952,7 +1958,7 @@ Amount: ${transaction.amount}
                   <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: 0 }}>Earn 10% for every 10 events completed</p>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>${platformBonus.toLocaleString()}</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>{formatPrice(platformBonus)}</div>
                   <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>{bonusEligibleSets} bonus{bonusEligibleSets !== 1 ? 'es' : ''} earned</div>
                 </div>
               </div>
@@ -1993,7 +1999,7 @@ Amount: ${transaction.amount}
                 <div>
                   <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Earnings</div>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '1rem' }}>
-                    <span style={{ fontSize: '1.75rem', fontWeight: '700', color: colors.textPrimary }}>${(totalCompleted + totalPending + totalWithdrawn).toLocaleString()}</span>
+                    <span style={{ fontSize: '1.75rem', fontWeight: '700', color: colors.textPrimary }}>{formatPrice(totalCompleted + totalPending + totalWithdrawn)}</span>
                     <span style={{ fontSize: '0.85rem', color: '#10B981', fontWeight: '500' }}>+23% vs last week</span>
                   </div>
                 </div>
@@ -2097,21 +2103,21 @@ Amount: ${transaction.amount}
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10B981' }} />
                     <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Completed</span>
                   </div>
-                  <div style={{ fontSize: '1rem', fontWeight: '700', color: colors.textPrimary }}>${totalCompleted.toLocaleString()}</div>
+                  <div style={{ fontSize: '1rem', fontWeight: '700', color: colors.textPrimary }}>{formatPrice(totalCompleted)}</div>
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#FBBF24' }} />
                     <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Pending</span>
                   </div>
-                  <div style={{ fontSize: '1rem', fontWeight: '700', color: colors.textPrimary }}>${totalPending.toLocaleString()}</div>
+                  <div style={{ fontSize: '1rem', fontWeight: '700', color: colors.textPrimary }}>{formatPrice(totalPending)}</div>
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#3B82F6' }} />
                     <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Withdrawn</span>
                   </div>
-                  <div style={{ fontSize: '1rem', fontWeight: '700', color: colors.textPrimary }}>${totalWithdrawn.toLocaleString()}</div>
+                  <div style={{ fontSize: '1rem', fontWeight: '700', color: colors.textPrimary }}>{formatPrice(totalWithdrawn)}</div>
                 </div>
               </div>
               <EarningsGauge completed={totalCompleted} pending={totalPending} withdrawn={totalWithdrawn} />
@@ -2157,7 +2163,7 @@ Amount: ${transaction.amount}
                       </div>
                     </td>
                     <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.85rem', color: colors.textSecondary }}>{transaction.method}</td>
-                    <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{transaction.amount}</td>
+                    <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(transaction.amountNum)}</td>
                     <td style={{ padding: '0.875rem 1.25rem' }}><StatusBadge status={transaction.status} /></td>
                     <td style={{ padding: '0.875rem 1.25rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -2230,7 +2236,7 @@ Amount: ${transaction.amount}
             border: '1px solid #BBF7D0',
             marginBottom: '1.25rem'
           }}>
-            <div style={{ fontSize: '1.75rem', fontWeight: '700', color: '#16A34A' }}>${totalTips.toLocaleString()}</div>
+            <div style={{ fontSize: '1.75rem', fontWeight: '700', color: '#16A34A' }}>{formatPrice(totalTips)}</div>
             <div style={{ fontSize: '0.85rem', color: '#166534' }}>Total Tips Received</div>
             <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginTop: '0.25rem' }}>{tipsData.length} tips from clients</div>
           </div>

@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useTheme } from "../context/ThemeContext";
 import { dashboardAuthFetch } from "../providers/AuthProvider";
+import { useCurrency } from "../context/CurrencyContext";
 
 // Heart Icon for donate section
 export const HeartIcon = () => (
@@ -126,6 +127,7 @@ const PAYMENT_METHODS: Record<string, { label: string; image: string }> = {
 const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) => {
   const { colors, actualTheme } = useTheme();
   const router = useRouter();
+  const { formatPrice } = useCurrency();
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('card');
   const [donationAmount, setDonationAmount] = useState<string>('');
   const [customDonation, setCustomDonation] = useState<string>('');
@@ -225,7 +227,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
             {/* Amount Due */}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
               <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>Amount Due</span>
-              <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>${amountDue.toLocaleString()}</span>
+              <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(amountDue)}</span>
             </div>
             {/* Donation (if any) */}
             {donationValue > 0 && (
@@ -234,7 +236,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
                   <HeartIcon />
                   <span style={{ fontSize: '0.9rem', fontWeight: '500', color: '#F20C8F' }}>Donation</span>
                 </div>
-                <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#F20C8F' }}>${donationValue.toLocaleString()}</span>
+                <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#F20C8F' }}>{formatPrice(donationValue)}</span>
               </div>
             )}
 
@@ -245,7 +247,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '1.05rem', fontWeight: '700', color: colors.textPrimary }}>Total</span>
               <span style={{ fontSize: '1.3rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
-                ${totalAmount.toLocaleString()}
+                {formatPrice(totalAmount)}
               </span>
             </div>
           </div>
@@ -282,7 +284,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
                 transition: 'all 0.2s'
               }}
             >
-              {payment.status === 'failed' ? 'Retry' : 'Pay'} ${totalAmount.toLocaleString()}
+              {payment.status === 'failed' ? 'Retry' : 'Pay'} {formatPrice(totalAmount)}
             </button>
           </div>
         </div>
@@ -459,7 +461,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
                       minWidth: '0'
                     }}
                   >
-                    ${amount}
+                    {formatPrice(parseFloat(amount))}
                   </button>
                 ))}
                 <button

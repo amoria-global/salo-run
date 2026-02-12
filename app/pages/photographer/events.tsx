@@ -6,6 +6,7 @@ import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import Image from 'next/image';
 import { useTheme } from '../../context/ThemeContext';
+import { useCurrency } from '@/app/context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 
 function getApiUrl(): string {
@@ -838,6 +839,7 @@ const CheckIcon = () => (
 
 const PhotographerEventsPage = () => {
   const { colors, actualTheme } = useTheme();
+  const { formatPrice } = useCurrency();
   const { user } = useDashboardAuth();
 
   // View toggle state
@@ -2223,7 +2225,7 @@ const PhotographerEventsPage = () => {
                   { label: 'Live Now', value: streamsStats.live, icon: <PlayIcon />, color: '#059669', bg: '#D1FAE5' },
                   { label: 'Upcoming', value: streamsStats.upcoming, icon: <CalendarIcon />, color: '#D97706', bg: '#FEF3C7' },
                   { label: 'Total Viewers', value: streams.reduce((sum, s) => sum + s.peakViewers, 0).toLocaleString(), icon: <EyeIcon />, color: '#7C3AED', bg: '#EDE9FE' },
-                  { label: 'Total Earnings', value: `$${streamsStats.totalEarnings}`, icon: <DollarIcon />, color: '#059669', bg: '#D1FAE5' }
+                  { label: 'Total Earnings', value: formatPrice(streamsStats.totalEarnings), icon: <DollarIcon />, color: '#059669', bg: '#D1FAE5' }
                 ].map((stat, index) => (
                   <div key={index} style={{
                     backgroundColor: colors.bgCard,

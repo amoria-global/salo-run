@@ -6,6 +6,8 @@ import Link from 'next/link';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
+import { useCurrency } from '../../context/CurrencyContext';
+import PayNowModal, { Payment } from '../../components/UnlockModal';
 import {
   StatCard,
   ActivityItem,
@@ -156,11 +158,33 @@ interface Photographer {
 
 const EventCoordinatorDashboard = () => {
   const { colors, actualTheme } = useTheme();
+  const { formatPrice } = useCurrency();
   const [activeFilter, setActiveFilter] = useState<'today' | 'week' | 'month' | 'custom'>('week');
   const [timeOfDay, setTimeOfDay] = useState(getTimeOfDay());
   const [greetingIndex, setGreetingIndex] = useState(0);
   const [greetings, setGreetings] = useState(getGreetings(getTimeOfDay()));
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [showPayNowModal, setShowPayNowModal] = useState(false);
+  const [payNowPayment, setPayNowPayment] = useState<Payment | null>(null);
+
+  const handlePayNow = (pending: PendingPayment) => {
+    const payment: Payment = {
+      id: parseInt(pending.id.replace(/\D/g, '')) || 0,
+      date: pending.dueDate,
+      eventName: pending.eventName,
+      eventType: 'Event',
+      photographerName: pending.photographerName,
+      photographerImage: pending.photographerImage,
+      method: 'card',
+      amount: `$${(pending.amount - pending.paidAmount).toFixed(2)}`,
+      amountNum: pending.amount - pending.paidAmount,
+      paidAmount: pending.paidAmount,
+      status: pending.status === 'partially_paid' ? 'pending' : pending.status,
+      invoiceNumber: pending.id,
+    };
+    setPayNowPayment(payment);
+    setShowPayNowModal(true);
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -256,7 +280,7 @@ const EventCoordinatorDashboard = () => {
     { label: 'Stream Revenue', value: '+$1,250', valueColor: '#10B981' },
     { label: 'Viewers', value: '2,450' },
     { label: 'Photographer', value: 'John Studio' },
-    { label: 'Payment', value: '-$850', valueColor: '#ff0066' },
+    { label: 'Payment', value: `-${formatPrice(850)}`, valueColor: '#ff0066' },
     { label: 'Last Activity', value: 'Today, 14. July 2025' }
   ];
 
@@ -292,24 +316,25 @@ const EventCoordinatorDashboard = () => {
     {
       name: 'Stream Viewers',
       type: 'Live Stream Fee Revenue',
-      amount: '$3,250',
+      amount: formatPrice(3250),
       logo: '/logo.png'
     },
     {
       name: 'John Studio',
       type: 'Photographer Payment',
-      amount: '$1,950',
+      amount: formatPrice(1950),
       avatar: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg'
     },
     {
       name: 'Amoria',
       type: 'Platform Fee',
-      amount: '$125.00',
+      amount: formatPrice(125),
       logo: '/logo.png'
     }
   ];
 
   return (
+    <>
     <div style={{
       display: 'flex',
       height: '100vh',
@@ -455,7 +480,7 @@ const EventCoordinatorDashboard = () => {
                   lineHeight: '1.75rem',
                   fontWeight: '700',
                   color: colors.textPrimary
-                }}>$12.5k</span>
+                }}>{formatPrice(12500)}</span>
               </div>
               <div className="mobile-header-stat" style={{
                 display: 'flex',
@@ -589,7 +614,7 @@ const EventCoordinatorDashboard = () => {
       }}>
         <StatCard
           title="Total Revenue"
-          value="$12,500"
+          value={formatPrice(12500)}
           percentage="62.3%"
           timeframe="last week"
           icon={<MoneyIcon />}
@@ -598,7 +623,7 @@ const EventCoordinatorDashboard = () => {
         />
         <StatCard
           title="Pending"
-          value="$2,100"
+          value={formatPrice(2100)}
           percentage="28.5%"
           timeframe="last week"
           icon={<ClockIcon />}
@@ -616,7 +641,7 @@ const EventCoordinatorDashboard = () => {
         />
         <StatCard
           title="Stream Fees"
-          value="$3,250"
+          value={formatPrice(3250)}
           percentage="45.8%"
           timeframe="last week"
           icon={<LiveStreamFeeIcon />}
@@ -674,7 +699,7 @@ const EventCoordinatorDashboard = () => {
                   color: hasFailedPayments ? (actualTheme === 'dark' ? '#FCA5A5' : '#991B1B') : (actualTheme === 'dark' ? '#FCD34D' : '#92400E'),
                   margin: '0.25rem 0 0 0'
                 }}>
-                  You have {pendingPayments.length} payment{pendingPayments.length > 1 ? 's' : ''} totaling <strong>${totalPendingAmount}</strong> that need{pendingPayments.length === 1 ? 's' : ''} attention
+                  You have {pendingPayments.length} payment{pendingPayments.length > 1 ? 's' : ''} totaling <strong>{formatPrice(totalPendingAmount)}</strong> that need{pendingPayments.length === 1 ? 's' : ''} attention
                 </p>
               </div>
             </div>
@@ -770,19 +795,23 @@ const EventCoordinatorDashboard = () => {
                     fontWeight: '700',
                     color: payment.status === 'failed' ? (actualTheme === 'dark' ? '#FCA5A5' : '#DC2626') : (actualTheme === 'dark' ? '#60A5FA' : '#C0096D')
                   }}>
-                    ${payment.amount - payment.paidAmount}
+                    {formatPrice(payment.amount - payment.paidAmount)}
                   </div>
-                  <Link
-                    href="/user/event-coordinator/payments"
+                  <button
+                    onClick={() => handlePayNow(payment)}
                     style={{
                       fontSize: '0.75rem',
                       fontWeight: '600',
-                      color: payment.status === 'failed' ? '#F20C8F' : (actualTheme === 'dark' ? '#60A5FA' : '#C0096D'),
-                      textDecoration: 'none',
+                      color: 'white',
+                      backgroundColor: payment.status === 'failed' ? '#DC2626' : '#083A85',
+                      border: 'none',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'flex-end',
-                      gap: '0.25rem'
+                      justifyContent: 'center',
+                      gap: '0.25rem',
+                      borderRadius: '0.375rem',
+                      padding: '0.375rem 0.75rem',
+                      cursor: 'pointer'
                     }}
                   >
                     {payment.status === 'failed' ? (
@@ -793,10 +822,10 @@ const EventCoordinatorDashboard = () => {
                     ) : (
                       <>
                         <CreditCardIcon />
-                        Pay
+                        Pay Now
                       </>
                     )}
-                  </Link>
+                  </button>
                 </div>
               </div>
             ))}
@@ -1055,6 +1084,13 @@ const EventCoordinatorDashboard = () => {
         </div>
       </div>
     </div>
+
+      <PayNowModal
+        isOpen={showPayNowModal}
+        onClose={() => setShowPayNowModal(false)}
+        payment={payNowPayment}
+      />
+    </>
   );
 };
 

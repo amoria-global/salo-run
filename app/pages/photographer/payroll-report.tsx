@@ -4,9 +4,11 @@ import React, { useRef } from 'react';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
+import { useCurrency } from '@/app/context/CurrencyContext';
 
 const PayrollReport = () => {
   const { colors, actualTheme } = useTheme();
+  const { formatPrice } = useCurrency();
   const reportRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = () => {
@@ -269,7 +271,7 @@ const PayrollReport = () => {
                     fontSize: '1.5rem',
                     fontWeight: '700',
                     color: colors.textPrimary
-                  }}>${payrollData.total.toFixed(2)}</div>
+                  }}>{formatPrice(payrollData.total)}</div>
                 </div>
 
                 <div style={{
@@ -291,7 +293,7 @@ const PayrollReport = () => {
                     fontSize: '1.5rem',
                     fontWeight: '700',
                     color: '#065F46'
-                  }}>${payrollData.paid.toFixed(2)}</div>
+                  }}>{formatPrice(payrollData.paid)}</div>
                   <div style={{
                     marginTop: '0.5rem',
                     height: '4px',
@@ -319,7 +321,7 @@ const PayrollReport = () => {
                     fontSize: '1.5rem',
                     fontWeight: '700',
                     color: '#92400E'
-                  }}>${payrollData.pending.toFixed(2)}</div>
+                  }}>{formatPrice(payrollData.pending)}</div>
                   <div style={{
                     marginTop: '0.5rem',
                     height: '4px',
@@ -347,7 +349,7 @@ const PayrollReport = () => {
                     fontSize: '1.5rem',
                     fontWeight: '700',
                     color: '#1E40AF'
-                  }}>${payrollData.initial.toFixed(2)}</div>
+                  }}>{formatPrice(payrollData.initial)}</div>
                   <div style={{
                     marginTop: '0.5rem',
                     height: '4px',
@@ -458,7 +460,7 @@ const PayrollReport = () => {
                             fontWeight: '600',
                             color: colors.textPrimary,
                             textAlign: 'right'
-                          }}>${transaction.amount.toFixed(2)}</td>
+                          }}>{formatPrice(transaction.amount)}</td>
                           <td style={{
                             padding: '1rem 0.75rem',
                             textAlign: 'center'
@@ -494,7 +496,7 @@ const PayrollReport = () => {
                         fontWeight: '700',
                         color: colors.textPrimary,
                         textAlign: 'right'
-                      }}>${payrollData.total.toFixed(2)}</td>
+                      }}>{formatPrice(payrollData.total)}</td>
                       <td></td>
                     </tr>
                   </tfoot>

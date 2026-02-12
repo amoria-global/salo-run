@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
+import { useCurrency } from '@/app/context/CurrencyContext';
 import { useDashboardAuth } from '../../providers/AuthProvider';
 import { HeartIcon as DonateHeartIcon } from '../../components/UnlockModal';
 
@@ -289,6 +290,7 @@ interface PhotographersPageProps {
 
 const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps) => {
   const { colors, actualTheme } = useTheme();
+  const { formatPrice } = useCurrency();
   const { token, user } = useDashboardAuth();
   const router = useRouter();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -1020,7 +1022,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
             <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}` }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Spent</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
-                ${photographers.reduce((sum, p) => sum + p.totalSpent, 0).toLocaleString()}
+                {formatPrice(photographers.reduce((sum, p) => sum + p.totalSpent, 0))}
               </div>
             </div>
             <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}` }}>
@@ -1035,7 +1037,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                 Pending Payments
               </div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#FCA5A5' : '#DC2626') : colors.textSecondary }}>
-                ${totalPendingAmount.toLocaleString()}
+                {formatPrice(totalPendingAmount)}
               </div>
             </div>
           </div>
@@ -1383,7 +1385,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                                   gap: '0.25rem'
                                 }}
                               >
-                                {booking.paymentStatus === 'failed' ? <><RefreshIcon /> Retry</> : <><CreditCardIcon /> Pay ${amountDue}</>}
+                                {booking.paymentStatus === 'failed' ? <><RefreshIcon /> Retry</> : <><CreditCardIcon /> Pay {formatPrice(amountDue)}</>}
                               </button>
                             </div>
                           );
@@ -1395,7 +1397,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', paddingTop: '1rem', borderTop: `2px solid ${colors.borderPrimary}` }}>
                       <div>
                         <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Total Spent</span>
-                        <div style={{ fontSize: '1.1rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>${photographer.totalSpent}</div>
+                        <div style={{ fontSize: '1.1rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{formatPrice(photographer.totalSpent)}</div>
                       </div>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                         {hasCompletedEvent(photographer) && (
@@ -1560,7 +1562,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'space-between', gap: '0.5rem' }}>
                     <div style={{ textAlign: 'right' }}>
                       <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Total Spent</span>
-                      <div style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>${photographer.totalSpent}</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{formatPrice(photographer.totalSpent)}</div>
                     </div>
                     {/* Payment Status in List View */}
                     {photographer.bookings.some(b => b.paymentStatus !== 'paid') && (
@@ -1586,7 +1588,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                                 gap: '0.25rem'
                               }}
                             >
-                              {booking.paymentStatus === 'failed' ? <><RefreshIcon /> Retry Payment</> : <><CreditCardIcon /> Pay ${amountDue}</>}
+                              {booking.paymentStatus === 'failed' ? <><RefreshIcon /> Retry Payment</> : <><CreditCardIcon /> Pay {formatPrice(amountDue)}</>}
                             </button>
                           );
                         })}
@@ -1830,7 +1832,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                   <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Bookings</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: '700', color: colors.textPrimary }}>${selectedPhotographer.totalSpent}</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: '700', color: colors.textPrimary }}>{formatPrice(selectedPhotographer.totalSpent)}</div>
                   <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Total Spent</div>
                 </div>
                 <div>
@@ -1977,7 +1979,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                 }}
               >
                 <RefreshIcon />
-                Rebook - ${selectedPhotographer.startingPrice}
+                Rebook - {formatPrice(selectedPhotographer.startingPrice)}
               </button>
             </div>
           </div>
@@ -2508,24 +2510,24 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                   <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, margin: '0.75rem 0' }} />
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                     <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>Amount Due</span>
-                    <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>${payAmountDue}</span>
+                    <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(payAmountDue)}</span>
                   </div>
                   {payDonationValue > 0 && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><DonateHeartIcon /><span style={{ fontSize: '0.9rem', fontWeight: '500', color: '#F20C8F' }}>Donation</span></div>
-                      <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#F20C8F' }}>${payDonationValue}</span>
+                      <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#F20C8F' }}>{formatPrice(payDonationValue)}</span>
                     </div>
                   )}
                   <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, margin: '0.75rem 0' }} />
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: '1.05rem', fontWeight: '700', color: colors.textPrimary }}>Total</span>
-                    <span style={{ fontSize: '1.3rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>${payTotalAmount}</span>
+                    <span style={{ fontSize: '1.3rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{formatPrice(payTotalAmount)}</span>
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                   <button onClick={() => setPayShowReceipt(false)} style={{ flex: 1, padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Cancel</button>
                   <button style={{ flex: 1, padding: '0.75rem 1rem', border: paymentBooking.booking.paymentStatus === 'failed' ? '2px solid #c00a72' : '2px solid #062a63', borderRadius: '0.5rem', background: paymentBooking.booking.paymentStatus === 'failed' ? '#F20C8F' : '#083A85', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s' }}>
-                    {paymentBooking.booking.paymentStatus === 'failed' ? 'Retry' : 'Pay'} ${payTotalAmount}
+                    {paymentBooking.booking.paymentStatus === 'failed' ? 'Retry' : 'Pay'} {formatPrice(payTotalAmount)}
                   </button>
                 </div>
               </div>
@@ -2607,7 +2609,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                           padding: '0.4rem 0.75rem', border: payDonationAmount === amount ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`,
                           borderRadius: '0.5rem', background: payDonationAmount === amount ? (actualTheme === 'dark' ? 'rgba(242, 12, 143, 0.15)' : 'rgba(242, 12, 143, 0.08)') : colors.bgCard,
                           color: payDonationAmount === amount ? '#F20C8F' : colors.textSecondary, fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', flex: '1', minWidth: '0'
-                        }}>${amount}</button>
+                        }}>{formatPrice(parseFloat(amount))}</button>
                       ))}
                       <button onClick={() => handlePaySelectDonation('custom')} style={{
                         padding: '0.4rem 0.75rem', border: payDonationAmount === 'custom' ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`,
@@ -2766,7 +2768,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                     transition: 'all 0.2s'
                   }}
                 >
-                  ${amount}
+                  {formatPrice(amount)}
                 </button>
               ))}
               <button
@@ -2923,24 +2925,24 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                   <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, margin: '0.75rem 0' }} />
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                     <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>Tip Amount</span>
-                    <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>${tipAmountNum}</span>
+                    <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(tipAmountNum)}</span>
                   </div>
                   {tipDonationValue > 0 && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><DonateHeartIcon /><span style={{ fontSize: '0.9rem', fontWeight: '500', color: '#F20C8F' }}>Donation</span></div>
-                      <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#F20C8F' }}>${tipDonationValue}</span>
+                      <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#F20C8F' }}>{formatPrice(tipDonationValue)}</span>
                     </div>
                   )}
                   <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, margin: '0.75rem 0' }} />
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: '1.05rem', fontWeight: '700', color: colors.textPrimary }}>Total</span>
-                    <span style={{ fontSize: '1.3rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>${tipTotalAmount}</span>
+                    <span style={{ fontSize: '1.3rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{formatPrice(tipTotalAmount)}</span>
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                   <button onClick={() => setTipShowReceipt(false)} style={{ flex: 1, padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Cancel</button>
                   <button onClick={handleTipPaymentComplete} style={{ flex: 1, padding: '0.75rem 1rem', border: '2px solid #062a63', borderRadius: '0.5rem', background: '#083A85', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s' }}>
-                    Pay ${tipTotalAmount}
+                    Pay {formatPrice(tipTotalAmount)}
                   </button>
                 </div>
               </div>
@@ -3015,7 +3017,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                           padding: '0.4rem 0.75rem', border: tipDonationAmount === amount ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`,
                           borderRadius: '0.5rem', background: tipDonationAmount === amount ? (actualTheme === 'dark' ? 'rgba(242, 12, 143, 0.15)' : 'rgba(242, 12, 143, 0.08)') : colors.bgCard,
                           color: tipDonationAmount === amount ? '#F20C8F' : colors.textSecondary, fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', flex: '1', minWidth: '0'
-                        }}>${amount}</button>
+                        }}>{formatPrice(parseFloat(amount))}</button>
                       ))}
                       <button onClick={() => handleTipSelectDonation('custom')} style={{
                         padding: '0.4rem 0.75rem', border: tipDonationAmount === 'custom' ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`,
