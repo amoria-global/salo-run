@@ -45,7 +45,7 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
           gap: '0.5rem',
           marginBottom: '1rem',
           paddingBottom: '0.75rem',
-          borderBottom: `1px solid ${colors.borderPrimary}`
+          borderBottom: `2px solid ${colors.borderPrimary}`
         }}>
           <div style={{
             display: 'flex',
@@ -126,7 +126,7 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
           }}>
             {yAxisLabels.map((_, index) => (
               <div key={index} style={{
-                borderBottom: `1px solid ${colors.borderPrimary}`,
+                borderBottom: `2px solid ${colors.borderPrimary}`,
                 width: '100%',
                 height: 0
               }}></div>

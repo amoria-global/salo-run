@@ -165,7 +165,7 @@ export default function Sidebar() {
             left: 0.5rem !important;
             z-index: 1001 !important;
             background-color: ${colors.bgSecondary} !important;
-            border: 1px solid ${colors.borderPrimary} !important;
+            border: 2px solid ${colors.borderPrimary} !important;
             border-radius: 0.5rem !important;
             padding: 0.4rem !important;
             cursor: pointer !important;
@@ -417,7 +417,7 @@ export default function Sidebar() {
         paddingRight: '0.75rem',
         paddingTop: '0.75rem',
         paddingBottom: '0.75rem',
-        borderTop: `1px solid ${colors.borderPrimary}`,
+        borderTop: `2px solid ${colors.borderPrimary}`,
         display: 'flex',
         flexDirection: 'column',
         gap: '0.125rem'

@@ -7,7 +7,7 @@ import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 import { useDashboardAuth } from '../../providers/AuthProvider';
-import DonateModal, { DonateButton, DonatePromptModal } from '../../components/DonateModal';
+import { HeartIcon as DonateHeartIcon } from '../../components/UnlockModal';
 
 function getApiUrl(): string {
   if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
@@ -316,20 +316,28 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
   const [tipAmount, setTipAmount] = useState<number | 'custom' | ''>('');
   const [customTipAmount, setCustomTipAmount] = useState('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [showPaymentDonateModal, setShowPaymentDonateModal] = useState(false);
-  const [showPaymentDonatePromptModal, setShowPaymentDonatePromptModal] = useState(false);
   // New states for tip flow
   const [showTipPromptModal, setShowTipPromptModal] = useState(false);
   const [showTipSelectionModal, setShowTipSelectionModal] = useState(false);
   const [showTipPaymentModal, setShowTipPaymentModal] = useState(false);
-  const [showTipDonateModal, setShowTipDonateModal] = useState(false);
-  const [showTipDonatePromptModal, setShowTipDonatePromptModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [pendingReviewPhotographer, setPendingReviewPhotographer] = useState<BookedPhotographer | null>(null);
   const [selectedTipPaymentMethod, setSelectedTipPaymentMethod] = useState<string>('card');
   const [paymentBooking, setPaymentBooking] = useState<{ photographer: BookedPhotographer; booking: Booking } | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('card');
+  // Donation states for payment modal
+  const [payDonationAmount, setPayDonationAmount] = useState<string>('');
+  const [payCustomDonation, setPayCustomDonation] = useState<string>('');
+  const [payDonationSkipped, setPayDonationSkipped] = useState<boolean>(false);
+  const [payShowCustomInput, setPayShowCustomInput] = useState<boolean>(false);
+  const [payShowReceipt, setPayShowReceipt] = useState<boolean>(false);
+  // Donation states for tip payment modal
+  const [tipDonationAmount, setTipDonationAmount] = useState<string>('');
+  const [tipCustomDonation, setTipCustomDonation] = useState<string>('');
+  const [tipDonationSkipped, setTipDonationSkipped] = useState<boolean>(false);
+  const [tipShowCustomInput, setTipShowCustomInput] = useState<boolean>(false);
+  const [tipShowReceipt, setTipShowReceipt] = useState<boolean>(false);
 
   const [photographers, setPhotographers] = useState<BookedPhotographer[]>([
     {
@@ -793,7 +801,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
 
   const handleSendTip = () => {
     setShowTipSelectionModal(false);
-    setShowTipDonatePromptModal(true);
+    setShowTipPaymentModal(true);
   };
 
   const handleTipPaymentComplete = () => {
@@ -939,7 +947,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                   style={{
                     appearance: 'none',
                     backgroundColor: colors.bgCard,
-                    border: `1px solid ${colors.borderPrimary}`,
+                    border: `2px solid ${colors.borderPrimary}`,
                     borderRadius: '0.5rem',
                     padding: '0.5rem 2rem 0.5rem 0.75rem',
                     fontSize: '0.9rem',
@@ -999,29 +1007,29 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
 
           {/* Stats Cards */}
           <div className="mobile-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}` }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Photographers</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{photographers.length}</div>
             </div>
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}` }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Bookings</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
                 {photographers.reduce((sum, p) => sum + p.totalBookingsWithClient, 0)}
               </div>
             </div>
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}` }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Spent</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
                 ${photographers.reduce((sum, p) => sum + p.totalSpent, 0).toLocaleString()}
               </div>
             </div>
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}` }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Favorites</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#F20C8F' }}>
                 {photographers.filter(p => p.isFavorite).length}
               </div>
             </div>
-            <div style={{ backgroundColor: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#450A0A' : '#FEF2F2') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: totalPendingAmount > 0 ? `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}` : `1px solid ${colors.borderPrimary}` }}>
+            <div style={{ backgroundColor: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#450A0A' : '#FEF2F2') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: totalPendingAmount > 0 ? `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}` : `2px solid ${colors.borderPrimary}` }}>
               <div style={{ fontSize: '0.85rem', color: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#FCA5A5' : '#B91C1C') : colors.textSecondary, marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 {totalPendingAmount > 0 && <AlertCircleIcon />}
                 Pending Payments
@@ -1089,7 +1097,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                 style={{
                   width: '100%',
                   padding: '0.75rem 1rem 0.75rem 2.75rem',
-                  border: `1px solid ${colors.borderPrimary}`,
+                  border: `2px solid ${colors.borderPrimary}`,
                   borderRadius: '0.5rem',
                   fontSize: '0.95rem',
                   fontWeight: '500',
@@ -1108,7 +1116,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                 gap: '0.5rem',
                 backgroundColor: showFilters ? '#083A85' : colors.bgCard,
                 color: showFilters ? 'white' : '#6B7280',
-                border: `1px solid ${colors.borderPrimary}`,
+                border: `2px solid ${colors.borderPrimary}`,
                 borderRadius: '0.5rem',
                 padding: '0.75rem 1rem',
                 fontSize: '0.9rem',
@@ -1122,7 +1130,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
 
           {/* Filter Tags */}
           {showFilters && (
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap', backgroundColor: colors.bgCard, padding: '1rem', borderRadius: '0.5rem', border: `1px solid ${colors.borderPrimary}` }}>
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap', backgroundColor: colors.bgCard, padding: '1rem', borderRadius: '0.5rem', border: `2px solid ${colors.borderPrimary}` }}>
               <div style={{ flex: 1 }}>
                 <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.5rem', display: 'block' }}>Event Type</span>
                 <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap' }}>
@@ -1132,7 +1140,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                       onClick={() => setSelectedSpecialization(selectedSpecialization === spec ? null : spec)}
                       style={{
                         padding: '0.375rem 0.75rem',
-                        border: selectedSpecialization === spec ? '1px solid #083A85' : `1px solid ${colors.borderPrimary}`,
+                        border: selectedSpecialization === spec ? '1px solid #083A85' : `2px solid ${colors.borderPrimary}`,
                         borderRadius: '9999px',
                         fontSize: '0.8rem',
                         cursor: 'pointer',
@@ -1174,7 +1182,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
 
           {/* Photographers Grid/List */}
           {filteredPhotographers.length === 0 ? (
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '3rem', textAlign: 'center', border: `1px solid ${colors.borderPrimary}` }}>
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '3rem', textAlign: 'center', border: `2px solid ${colors.borderPrimary}` }}>
               <CameraIcon />
               <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, marginTop: '1rem' }}>No photographers found</h3>
               <p style={{ fontSize: '0.9rem', color: colors.textSecondary, marginTop: '0.5rem' }}>
@@ -1360,7 +1368,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                                 </span>
                               </div>
                               <button
-                                onClick={(e) => { e.stopPropagation(); setPaymentBooking({ photographer, booking }); setShowPaymentDonatePromptModal(true); }}
+                                onClick={(e) => { e.stopPropagation(); setPaymentBooking({ photographer, booking }); setShowPaymentModal(true); }}
                                 style={{
                                   backgroundColor: booking.paymentStatus === 'failed' ? '#F20C8F' : '#083A85',
                                   color: 'white',
@@ -1384,7 +1392,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                     )}
 
                     {/* Price and Actions */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', paddingTop: '1rem', borderTop: `1px solid ${colors.borderPrimary}` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', paddingTop: '1rem', borderTop: `2px solid ${colors.borderPrimary}` }}>
                       <div>
                         <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Total Spent</span>
                         <div style={{ fontSize: '1.1rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>${photographer.totalSpent}</div>
@@ -1454,7 +1462,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                     display: 'flex',
                     gap: '1.25rem',
                     padding: '1.25rem',
-                    borderBottom: index < filteredPhotographers.length - 1 ? `1px solid ${colors.borderPrimary}` : 'none',
+                    borderBottom: index < filteredPhotographers.length - 1 ? `2px solid ${colors.borderPrimary}` : 'none',
                     cursor: 'pointer',
                     transition: 'background-color 0.2s ease'
                   }}
@@ -1563,7 +1571,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                           return (
                             <button
                               key={booking.id}
-                              onClick={(e) => { e.stopPropagation(); setPaymentBooking({ photographer, booking }); setShowPaymentDonatePromptModal(true); }}
+                              onClick={(e) => { e.stopPropagation(); setPaymentBooking({ photographer, booking }); setShowPaymentModal(true); }}
                               style={{
                                 backgroundColor: booking.paymentStatus === 'failed' ? '#F20C8F' : '#083A85',
                                 color: 'white',
@@ -1593,7 +1601,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                           gap: '0.375rem',
                           backgroundColor: colors.bgCard,
                           color: colors.textSecondary,
-                          border: `1px solid ${colors.borderPrimary}`,
+                          border: `2px solid ${colors.borderPrimary}`,
                           borderRadius: '0.375rem',
                           padding: '0.5rem 0.75rem',
                           fontSize: '0.85rem',
@@ -1671,7 +1679,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
             backgroundColor: colors.bgCard,
             borderRadius: '0.5rem',
             boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)',
-            border: `1px solid ${colors.borderPrimary}`,
+            border: `2px solid ${colors.borderPrimary}`,
             padding: '0.5rem 0',
             zIndex: 1000,
             minWidth: '180px'
@@ -2438,225 +2446,216 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
       </Modal>
 
       {/* Payment Modal */}
-      <Modal
-        isOpen={showPaymentModal}
-        onClose={() => setShowPaymentModal(false)}
-        title={paymentBooking?.booking.paymentStatus === 'failed' ? 'Retry Payment' : 'Complete Payment'}
-        maxWidth="450px"
-      >
-        {paymentBooking && (
-          <div>
-            {/* Failed Payment Warning */}
-            {paymentBooking.booking.paymentStatus === 'failed' && (
-              <div style={{ backgroundColor: actualTheme === 'dark' ? '#450A0A' : '#FEE2E2', borderRadius: '0.5rem', padding: '0.75rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <AlertCircleIcon />
-                <span style={{ fontSize: '0.85rem', color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626' }}>Previous payment attempt failed. Please try again with a different payment method.</span>
-              </div>
-            )}
+      {paymentBooking && (() => {
+        const payAmountDue = paymentBooking.booking.totalAmount - paymentBooking.booking.paidAmount;
+        const payDonationValue = payDonationAmount === 'custom' ? (parseFloat(payCustomDonation) || 0) : (parseFloat(payDonationAmount) || 0);
+        const payTotalAmount = payAmountDue + payDonationValue;
+        const payDonationAddressed = payDonationSkipped || payDonationValue > 0;
+        const payIsEnabled = payDonationAddressed;
+        const payMethodMap: Record<string, { label: string; image: string }> = {
+          card: { label: 'Credit/Debit Card', image: '/cards.png' },
+          mtn: { label: 'MTN Mobile Money', image: '/mtn.png' },
+          airtel: { label: 'Airtel Mobile Money', image: '/airtel.png' },
+        };
+        const handlePaySelectDonation = (amount: string) => {
+          setPayDonationSkipped(false);
+          if (amount === 'custom') { setPayDonationAmount('custom'); setPayShowCustomInput(true); }
+          else { setPayDonationAmount(amount); setPayShowCustomInput(false); setPayCustomDonation(''); }
+        };
+        const handlePaySkipDonation = () => {
+          setPayDonationSkipped(true); setPayDonationAmount(''); setPayCustomDonation(''); setPayShowCustomInput(false);
+        };
+        const handlePayClose = () => { setPayShowReceipt(false); setShowPaymentModal(false); };
 
-            {/* Photographer Info */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', padding: '0.75rem', backgroundColor: colors.bgTertiary, borderRadius: '0.5rem' }}>
-              <div style={{ position: 'relative', width: '48px', height: '48px', flexShrink: 0 }}>
-                <img
-                  src={paymentBooking.photographer.profileImage}
-                  alt={paymentBooking.photographer.firstName}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    borderRadius: '50%',
-                    border: '2px solid white',
-                    objectFit: 'cover',
-                    objectPosition: 'center'
-                  }}
-                />
-                {paymentBooking.photographer.verified && (
-                  <div style={{
-                    position: 'absolute',
-                    bottom: '0px',
-                    right: '0px',
-                    background: 'white',
-                    borderRadius: '50%',
-                    width: '18px',
-                    height: '18px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15)'
-                  }}>
-                    <i className="bi bi-patch-check-fill" style={{ color: '#3b82f6', fontSize: '0.75rem' }} />
-                  </div>
-                )}
-              </div>
+        if (payShowReceipt) {
+          const mi = payMethodMap[selectedPaymentMethod] || payMethodMap.card;
+          return (
+            <Modal isOpen={showPaymentModal} onClose={handlePayClose} title="Payment Summary" maxWidth="450px">
               <div>
-                <div style={{ fontWeight: '600', color: colors.textPrimary }}>{paymentBooking.photographer.firstName} {paymentBooking.photographer.lastName}</div>
-                <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>{paymentBooking.booking.eventName}</div>
+                <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.75rem', padding: '1.25rem', marginBottom: '1.25rem', border: `2px solid ${colors.borderPrimary}` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Photographer</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{paymentBooking.photographer.firstName} {paymentBooking.photographer.lastName}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Event</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, textAlign: 'right', maxWidth: '60%' }}>{paymentBooking.booking.eventName}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Date</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>{formatDate(paymentBooking.booking.eventDate)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Package</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>{paymentBooking.booking.packageName}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Payment Method</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div style={{ width: '24px', height: '24px', borderRadius: '0.25rem', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1px' }}>
+                        {selectedPaymentMethod === 'card' ? (
+                          <>
+                            <Image src="/visa.png" alt="Visa" width={14} height={20} unoptimized style={{ objectFit: 'contain' }} />
+                            <Image src="/master.png" alt="Mastercard" width={14} height={20} unoptimized style={{ objectFit: 'contain' }} />
+                          </>
+                        ) : (
+                          <Image src={mi.image} alt={mi.label} width={24} height={24} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                        )}
+                      </div>
+                      <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{mi.label}</span>
+                    </div>
+                  </div>
+                  <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, margin: '0.75rem 0' }} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>Amount Due</span>
+                    <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>${payAmountDue}</span>
+                  </div>
+                  {payDonationValue > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><DonateHeartIcon /><span style={{ fontSize: '0.9rem', fontWeight: '500', color: '#F20C8F' }}>Donation</span></div>
+                      <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#F20C8F' }}>${payDonationValue}</span>
+                    </div>
+                  )}
+                  <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, margin: '0.75rem 0' }} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '1.05rem', fontWeight: '700', color: colors.textPrimary }}>Total</span>
+                    <span style={{ fontSize: '1.3rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>${payTotalAmount}</span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                  <button onClick={() => setPayShowReceipt(false)} style={{ flex: 1, padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Cancel</button>
+                  <button style={{ flex: 1, padding: '0.75rem 1rem', border: paymentBooking.booking.paymentStatus === 'failed' ? '2px solid #c00a72' : '2px solid #062a63', borderRadius: '0.5rem', background: paymentBooking.booking.paymentStatus === 'failed' ? '#F20C8F' : '#083A85', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s' }}>
+                    {paymentBooking.booking.paymentStatus === 'failed' ? 'Retry' : 'Pay'} ${payTotalAmount}
+                  </button>
+                </div>
               </div>
-            </div>
+            </Modal>
+          );
+        }
 
-            {/* Amount Summary */}
-            <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '1rem', marginBottom: '1.25rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Event</span>
-                <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>{paymentBooking.booking.eventType}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Date</span>
-                <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>{formatDate(paymentBooking.booking.eventDate)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Package</span>
-                <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>{paymentBooking.booking.packageName}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Total Amount</span>
-                <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>${paymentBooking.booking.totalAmount}</span>
-              </div>
-              {paymentBooking.booking.paidAmount > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                  <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Already Paid</span>
-                  <span style={{ fontSize: '0.9rem', fontWeight: '500', color: '#059669' }}>-${paymentBooking.booking.paidAmount}</span>
+        return (
+          <Modal isOpen={showPaymentModal} onClose={handlePayClose} title={paymentBooking.booking.paymentStatus === 'failed' ? 'Retry Payment' : 'Complete Payment'} maxWidth="450px">
+            <div>
+              {paymentBooking.booking.paymentStatus === 'failed' && (
+                <div style={{ backgroundColor: actualTheme === 'dark' ? '#450A0A' : '#FEE2E2', borderRadius: '0.5rem', padding: '0.75rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <AlertCircleIcon />
+                  <span style={{ fontSize: '0.85rem', color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626' }}>Previous payment attempt failed. Please try again with a different payment method.</span>
                 </div>
               )}
-              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: `1px solid ${colors.borderPrimary}` }}>
-                <span style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>Amount Due</span>
-                <span style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
-                  ${paymentBooking.booking.totalAmount - paymentBooking.booking.paidAmount}
-                </span>
-              </div>
-            </div>
 
-            {/* Payment Method Selection */}
-            <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>
-                Payment Method
-              </label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-                {[
-                  { id: 'card', label: 'Credit/Debit Card', description: 'Pay with Visa, Mastercard, etc.', image: '/cards.png' },
-                  { id: 'mtn', label: 'MTN Mobile Money', description: 'Pay with MTN Mobile Money', image: '/mtn.png' },
-                  { id: 'airtel', label: 'Airtel Money', description: 'Pay with Airtel Money', image: '/airtel.png' },
-                  { id: 'bank', label: 'Bank Transfer', description: 'Direct bank transfer', image: '/bank.png' }
-                ].map((method) => (
-                  <div
-                    key={method.id}
-                    onClick={() => setSelectedPaymentMethod(method.id)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '1rem',
-                      padding: '1rem',
+              {/* Payment Method Selection */}
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>Select Payment Method</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {[
+                    { id: 'card', label: 'Credit/Debit Card', description: 'Pay with Visa, Mastercard, etc.', image: '/cards.png' },
+                    { id: 'mtn', label: 'MTN Mobile Money', description: 'Pay via MTN MoMo', image: '/mtn.png' },
+                    { id: 'airtel', label: 'Airtel Mobile Money', description: 'Pay via Airtel Money', image: '/airtel.png' },
+                  ].map((method) => (
+                    <div key={method.id} onClick={() => setSelectedPaymentMethod(method.id)} style={{
+                      display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem',
                       border: selectedPaymentMethod === method.id ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                      borderRadius: '0.75rem',
-                      cursor: 'pointer',
-                      backgroundColor: selectedPaymentMethod === method.id ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    <div style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: '0.5rem',
-                      overflow: 'hidden',
-                      flexShrink: 0
+                      borderRadius: '0.75rem', cursor: 'pointer',
+                      backgroundColor: selectedPaymentMethod === method.id ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard, transition: 'all 0.2s'
                     }}>
-                      <Image
-                        src={method.image}
-                        alt={method.label}
-                        width={48}
-                        height={48}
-                        unoptimized
-                        style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                      />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>
-                        {method.label}
+                      <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
+                        {method.id === 'card' ? (
+                          <>
+                            <Image src="/visa.png" alt="Visa" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
+                            <Image src="/master.png" alt="Mastercard" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
+                          </>
+                        ) : (
+                          <Image src={method.image} alt={method.label} width={48} height={48} unoptimized style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                        )}
                       </div>
-                      <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>
-                        {method.description}
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>{method.label}</div>
+                        <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{method.description}</div>
                       </div>
+                      <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: selectedPaymentMethod === method.id ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`, backgroundColor: colors.bgCard, flexShrink: 0 }} />
                     </div>
-                    <div style={{
-                      width: '20px',
-                      height: '20px',
-                      borderRadius: '50%',
-                      border: selectedPaymentMethod === method.id ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                      backgroundColor: colors.bgCard,
-                      flexShrink: 0
-                    }} />
+                  ))}
+                </div>
+                <p style={{ fontSize: '0.86rem', color: colors.textSecondary, margin: '0.75rem 0 0 0', textAlign: 'center' }}>
+                  <i className="bi bi-info-circle" style={{ marginRight: '0.375rem' }}></i>
+                  Manage your payment methods in <span onClick={() => router.push('/user/client/preferences?tab=payments')} style={{ color: colors.brandPrimary, fontWeight: '500', cursor: 'pointer', textDecoration: 'underline' }}>Preferences → Payment Accounts</span>
+                </p>
+              </div>
+
+              {/* Donation Section */}
+              <div style={{
+                marginBottom: '1.25rem', padding: '1rem', borderRadius: '0.75rem',
+                border: `2px solid ${payDonationSkipped ? colors.borderPrimary : (payDonationValue > 0 ? '#F20C8F' : 'rgba(242, 12, 143, 0.3)')}`,
+                background: actualTheme === 'dark' ? 'linear-gradient(135deg, rgba(242, 12, 143, 0.08) 0%, rgba(255, 107, 157, 0.03) 100%)' : 'linear-gradient(135deg, rgba(242, 12, 143, 0.05) 0%, rgba(255, 107, 157, 0.02) 100%)',
+                transition: 'all 0.2s'
+              }}>
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <DonateHeartIcon />
+                    <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>Support a Cause</span>
+                    <span style={{ fontSize: '0.81rem', color: colors.textSecondary, marginLeft: 'auto' }}>Optional</span>
                   </div>
-                ))}
+                  <p style={{ fontSize: '0.84rem', color: colors.textSecondary, margin: '0.35rem 0 0 0', lineHeight: '1.4' }}>
+                    Add a small donation to help fund community projects and initiatives
+                  </p>
+                </div>
+                {!payDonationSkipped && (
+                  <>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                      {['5', '10', '25', '50'].map((amount) => (
+                        <button key={amount} onClick={() => handlePaySelectDonation(amount)} style={{
+                          padding: '0.4rem 0.75rem', border: payDonationAmount === amount ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`,
+                          borderRadius: '0.5rem', background: payDonationAmount === amount ? (actualTheme === 'dark' ? 'rgba(242, 12, 143, 0.15)' : 'rgba(242, 12, 143, 0.08)') : colors.bgCard,
+                          color: payDonationAmount === amount ? '#F20C8F' : colors.textSecondary, fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', flex: '1', minWidth: '0'
+                        }}>${amount}</button>
+                      ))}
+                      <button onClick={() => handlePaySelectDonation('custom')} style={{
+                        padding: '0.4rem 0.75rem', border: payDonationAmount === 'custom' ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`,
+                        borderRadius: '0.5rem', background: payDonationAmount === 'custom' ? (actualTheme === 'dark' ? 'rgba(242, 12, 143, 0.15)' : 'rgba(242, 12, 143, 0.08)') : colors.bgCard,
+                        color: payDonationAmount === 'custom' ? '#F20C8F' : colors.textSecondary, fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', flex: '1', minWidth: '0'
+                      }}>Custom</button>
+                    </div>
+                    {payShowCustomInput && (
+                      <div style={{ position: 'relative', marginBottom: '0.75rem' }}>
+                        <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontSize: '0.9rem', fontWeight: '600', color: colors.textSecondary }}>$</span>
+                        <input type="number" placeholder="Enter amount" value={payCustomDonation} onChange={(e) => setPayCustomDonation(e.target.value)} style={{
+                          width: '100%', padding: '0.6rem 0.75rem 0.6rem 1.75rem', border: `2px solid ${payCustomDonation ? '#F20C8F' : colors.borderPrimary}`,
+                          borderRadius: '0.5rem', fontSize: '0.85rem', color: colors.textPrimary, backgroundColor: colors.bgCard, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s'
+                        }} onFocus={(e) => { e.currentTarget.style.borderColor = '#F20C8F'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(242, 12, 143, 0.1)'; }}
+                        onBlur={(e) => { e.currentTarget.style.borderColor = payCustomDonation ? '#F20C8F' : colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }} />
+                      </div>
+                    )}
+                  </>
+                )}
+                <button onClick={handlePaySkipDonation} style={{
+                  width: '100%', padding: '0.5rem 1rem', borderRadius: '9999px',
+                  border: payDonationSkipped ? '2px solid #F20C8F' : '2px solid #6B7280',
+                  background: payDonationSkipped ? '#F20C8F' : colors.bgTertiary,
+                  color: payDonationSkipped ? 'white' : '#374151',
+                  fontSize: '0.875rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center'
+                }}>{payDonationSkipped ? '✓ Donation skipped' : 'No thanks, skip donation'}</button>
+                <div style={{ marginTop: '0.5rem' }}>
+                  <a href="http://localhost:3000/user/donations" onClick={(e) => { e.preventDefault(); router.push('/user/donations'); }} style={{ fontSize: '0.81rem', color: '#F20C8F', textDecoration: 'none', fontWeight: '500' }}>Learn more about our donation program →</a>
+                </div>
+              </div>
+
+              {!payDonationAddressed && (
+                <p style={{ fontSize: '0.86rem', color: '#EF4444', margin: '0 0 0.75rem 0', textAlign: 'center' }}>Please select a donation amount or skip to continue</p>
+              )}
+
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                <button onClick={handlePayClose} style={{ flex: 1, padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Cancel</button>
+                <button disabled={!payIsEnabled} onClick={() => setPayShowReceipt(true)} style={{
+                  flex: 1, padding: '0.75rem 1rem', border: !payIsEnabled ? '2px solid #9CA3AF' : '2px solid #062a63',
+                  borderRadius: '0.5rem', background: !payIsEnabled ? '#9CA3AF' : '#083A85', color: 'white', fontSize: '0.9rem', fontWeight: '600',
+                  cursor: !payIsEnabled ? 'not-allowed' : 'pointer', opacity: !payIsEnabled ? 0.7 : 1, transition: 'all 0.2s'
+                }}>Proceed to Payment</button>
               </div>
             </div>
+          </Modal>
+        );
+      })()}
 
-            {/* Info text about payment accounts */}
-            <p style={{
-              fontSize: '0.8rem',
-              color: colors.textSecondary,
-              margin: '0.75rem 0 1.25rem 0',
-              textAlign: 'center'
-            }}>
-              <i className="bi bi-info-circle" style={{ marginRight: '0.375rem' }}></i>
-              Manage your payment methods in <span
-                onClick={() => router.push('/user/client/preferences?tab=payments')}
-                style={{ color: colors.brandPrimary, fontWeight: '500', cursor: 'pointer', textDecoration: 'underline' }}
-              >Preferences → Payment Accounts</span>
-            </p>
-
-            {/* Actions */}
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-              <button
-                onClick={() => setShowPaymentModal(false)}
-                style={{
-                  flex: 1,
-                  padding: '0.75rem 1rem',
-                  border: `2px solid ${colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
-                  background: colors.bgTertiary,
-                  color: colors.textPrimary,
-                  fontSize: '0.9rem',
-                  fontWeight: '600',
-                  cursor: 'pointer'
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                style={{
-                  flex: 1,
-                  padding: '0.75rem 1rem',
-                  border: paymentBooking.booking.paymentStatus === 'failed' ? '2px solid #c00a72' : '2px solid #062a63',
-                  borderRadius: '0.5rem',
-                  background: paymentBooking.booking.paymentStatus === 'failed' ? '#F20C8F' : '#083A85',
-                  color: 'white',
-                  fontSize: '0.9rem',
-                  fontWeight: '600',
-                  cursor: 'pointer'
-                }}
-              >
-                {paymentBooking.booking.paymentStatus === 'failed' ? 'Retry Payment' : 'Pay'} ${paymentBooking.booking.totalAmount - paymentBooking.booking.paidAmount}
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
-
-      {/* Payment Donate Prompt Modal - Shows before payment modal */}
-      <DonatePromptModal
-        isOpen={showPaymentDonatePromptModal}
-        onClose={() => setShowPaymentDonatePromptModal(false)}
-        onNo={() => {
-          setShowPaymentDonatePromptModal(false);
-          setShowPaymentModal(true);
-        }}
-        onYes={() => {
-          setShowPaymentDonatePromptModal(false);
-          setShowPaymentDonateModal(true);
-        }}
-      />
-
-      {/* Payment Donate Modal */}
-      <DonateModal isOpen={showPaymentDonateModal} onClose={() => setShowPaymentDonateModal(false)} />
 
       {/* Tip Prompt Modal */}
       <Modal
@@ -2866,212 +2865,205 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
       </Modal>
 
       {/* Tip Payment Modal */}
-      <Modal
-        isOpen={showTipPaymentModal}
-        onClose={() => {
-          setShowTipPaymentModal(false);
-          setTipAmount('');
-          setCustomTipAmount('');
-          setSelectedTipPaymentMethod('card');
-          setSuccessMessage('Review submitted successfully!');
-          setShowSuccessModal(true);
-          setPendingReviewPhotographer(null);
-        }}
-        title="Complete Tip Payment"
-        maxWidth="450px"
-      >
-        {pendingReviewPhotographer && (
-          <div>
-            {/* Photographer Info */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', padding: '0.75rem', backgroundColor: colors.bgTertiary, borderRadius: '0.5rem' }}>
-              <div style={{ position: 'relative', width: '48px', height: '48px', flexShrink: 0 }}>
-                <img
-                  src={pendingReviewPhotographer.profileImage}
-                  alt={pendingReviewPhotographer.firstName}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    borderRadius: '50%',
-                    border: '2px solid white',
-                    objectFit: 'cover',
-                    objectPosition: 'center'
-                  }}
-                />
-                {pendingReviewPhotographer.verified && (
-                  <div style={{
-                    position: 'absolute',
-                    bottom: '0px',
-                    right: '0px',
-                    background: 'white',
-                    borderRadius: '50%',
-                    width: '18px',
-                    height: '18px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15)'
-                  }}>
-                    <i className="bi bi-patch-check-fill" style={{ color: '#3b82f6', fontSize: '0.75rem' }} />
-                  </div>
-                )}
-              </div>
+      {pendingReviewPhotographer && (() => {
+        const tipAmountNum = tipAmount === 'custom' ? (parseFloat(customTipAmount) || 0) : (parseFloat(String(tipAmount)) || 0);
+        const tipDonationValue = tipDonationAmount === 'custom' ? (parseFloat(tipCustomDonation) || 0) : (parseFloat(tipDonationAmount) || 0);
+        const tipTotalAmount = tipAmountNum + tipDonationValue;
+        const tipDonationAddressed = tipDonationSkipped || tipDonationValue > 0;
+        const tipIsEnabled = tipDonationAddressed;
+        const tipMethodMap: Record<string, { label: string; image: string }> = {
+          card: { label: 'Credit/Debit Card', image: '/cards.png' },
+          mtn: { label: 'MTN Mobile Money', image: '/mtn.png' },
+          airtel: { label: 'Airtel Mobile Money', image: '/airtel.png' },
+        };
+        const handleTipSelectDonation = (amount: string) => {
+          setTipDonationSkipped(false);
+          if (amount === 'custom') { setTipDonationAmount('custom'); setTipShowCustomInput(true); }
+          else { setTipDonationAmount(amount); setTipShowCustomInput(false); setTipCustomDonation(''); }
+        };
+        const handleTipSkipDonation = () => {
+          setTipDonationSkipped(true); setTipDonationAmount(''); setTipCustomDonation(''); setTipShowCustomInput(false);
+        };
+        const handleTipClose = () => {
+          setTipShowReceipt(false); setShowTipPaymentModal(false); setTipAmount(''); setCustomTipAmount('');
+          setSelectedTipPaymentMethod('card'); setSuccessMessage('Review submitted successfully!');
+          setShowSuccessModal(true); setPendingReviewPhotographer(null);
+        };
+
+        if (tipShowReceipt) {
+          const mi = tipMethodMap[selectedTipPaymentMethod] || tipMethodMap.card;
+          return (
+            <Modal isOpen={showTipPaymentModal} onClose={handleTipClose} title="Payment Summary" maxWidth="450px">
               <div>
-                <div style={{ fontWeight: '600', color: colors.textPrimary }}>{pendingReviewPhotographer.firstName} {pendingReviewPhotographer.lastName}</div>
-                <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Tip for great service</div>
-              </div>
-            </div>
-
-            {/* Tip Amount Summary */}
-            <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '1rem', marginBottom: '1.25rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>Tip Amount</span>
-                <span style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
-                  ${tipAmount === 'custom' ? (parseFloat(customTipAmount) || 0) : tipAmount}
-                </span>
-              </div>
-            </div>
-
-            {/* Payment Method Selection */}
-            <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>
-                Payment Method
-              </label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-                {[
-                  { id: 'card', label: 'Credit/Debit Card', description: 'Pay with Visa, Mastercard, etc.', image: '/cards.png' },
-                  { id: 'mtn', label: 'MTN Mobile Money', description: 'Pay with MTN Mobile Money', image: '/mtn.png' },
-                  { id: 'airtel', label: 'Airtel Money', description: 'Pay with Airtel Money', image: '/airtel.png' },
-                  { id: 'bank', label: 'Bank Transfer', description: 'Direct bank transfer', image: '/bank.png' }
-                ].map((method) => (
-                  <div
-                    key={method.id}
-                    onClick={() => setSelectedTipPaymentMethod(method.id)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '1rem',
-                      padding: '1rem',
-                      border: selectedTipPaymentMethod === method.id ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                      borderRadius: '0.75rem',
-                      cursor: 'pointer',
-                      backgroundColor: selectedTipPaymentMethod === method.id ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    <div style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: '0.5rem',
-                      overflow: 'hidden',
-                      flexShrink: 0
-                    }}>
-                      <Image
-                        src={method.image}
-                        alt={method.label}
-                        width={48}
-                        height={48}
-                        unoptimized
-                        style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                      />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>
-                        {method.label}
-                      </div>
-                      <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>
-                        {method.description}
-                      </div>
-                    </div>
-                    <div style={{
-                      width: '20px',
-                      height: '20px',
-                      borderRadius: '50%',
-                      border: selectedTipPaymentMethod === method.id ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                      backgroundColor: colors.bgCard,
-                      flexShrink: 0
-                    }} />
+                <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.75rem', padding: '1.25rem', marginBottom: '1.25rem', border: `2px solid ${colors.borderPrimary}` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Photographer</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{pendingReviewPhotographer.firstName} {pendingReviewPhotographer.lastName}</span>
                   </div>
-                ))}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Type</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>Tip for great service</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Payment Method</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div style={{ width: '24px', height: '24px', borderRadius: '0.25rem', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1px' }}>
+                        {selectedTipPaymentMethod === 'card' ? (
+                          <>
+                            <Image src="/visa.png" alt="Visa" width={14} height={20} unoptimized style={{ objectFit: 'contain' }} />
+                            <Image src="/master.png" alt="Mastercard" width={14} height={20} unoptimized style={{ objectFit: 'contain' }} />
+                          </>
+                        ) : (
+                          <Image src={mi.image} alt={mi.label} width={24} height={24} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                        )}
+                      </div>
+                      <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{mi.label}</span>
+                    </div>
+                  </div>
+                  <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, margin: '0.75rem 0' }} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>Tip Amount</span>
+                    <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>${tipAmountNum}</span>
+                  </div>
+                  {tipDonationValue > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><DonateHeartIcon /><span style={{ fontSize: '0.9rem', fontWeight: '500', color: '#F20C8F' }}>Donation</span></div>
+                      <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#F20C8F' }}>${tipDonationValue}</span>
+                    </div>
+                  )}
+                  <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, margin: '0.75rem 0' }} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '1.05rem', fontWeight: '700', color: colors.textPrimary }}>Total</span>
+                    <span style={{ fontSize: '1.3rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>${tipTotalAmount}</span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                  <button onClick={() => setTipShowReceipt(false)} style={{ flex: 1, padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Cancel</button>
+                  <button onClick={handleTipPaymentComplete} style={{ flex: 1, padding: '0.75rem 1rem', border: '2px solid #062a63', borderRadius: '0.5rem', background: '#083A85', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s' }}>
+                    Pay ${tipTotalAmount}
+                  </button>
+                </div>
+              </div>
+            </Modal>
+          );
+        }
+
+        return (
+          <Modal isOpen={showTipPaymentModal} onClose={handleTipClose} title="Complete Tip Payment" maxWidth="450px">
+            <div>
+              {/* Payment Method Selection */}
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>Select Payment Method</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {[
+                    { id: 'card', label: 'Credit/Debit Card', description: 'Pay with Visa, Mastercard, etc.', image: '/cards.png' },
+                    { id: 'mtn', label: 'MTN Mobile Money', description: 'Pay via MTN MoMo', image: '/mtn.png' },
+                    { id: 'airtel', label: 'Airtel Mobile Money', description: 'Pay via Airtel Money', image: '/airtel.png' },
+                  ].map((method) => (
+                    <div key={method.id} onClick={() => setSelectedTipPaymentMethod(method.id)} style={{
+                      display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem',
+                      border: selectedTipPaymentMethod === method.id ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                      borderRadius: '0.75rem', cursor: 'pointer',
+                      backgroundColor: selectedTipPaymentMethod === method.id ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard, transition: 'all 0.2s'
+                    }}>
+                      <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
+                        {method.id === 'card' ? (
+                          <>
+                            <Image src="/visa.png" alt="Visa" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
+                            <Image src="/master.png" alt="Mastercard" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
+                          </>
+                        ) : (
+                          <Image src={method.image} alt={method.label} width={48} height={48} unoptimized style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                        )}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>{method.label}</div>
+                        <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{method.description}</div>
+                      </div>
+                      <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: selectedTipPaymentMethod === method.id ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`, backgroundColor: colors.bgCard, flexShrink: 0 }} />
+                    </div>
+                  ))}
+                </div>
+                <p style={{ fontSize: '0.86rem', color: colors.textSecondary, margin: '0.75rem 0 0 0', textAlign: 'center' }}>
+                  <i className="bi bi-info-circle" style={{ marginRight: '0.375rem' }}></i>
+                  Manage your payment methods in <span onClick={() => router.push('/user/client/preferences?tab=payments')} style={{ color: colors.brandPrimary, fontWeight: '500', cursor: 'pointer', textDecoration: 'underline' }}>Preferences → Payment Accounts</span>
+                </p>
+              </div>
+
+              {/* Donation Section */}
+              <div style={{
+                marginBottom: '1.25rem', padding: '1rem', borderRadius: '0.75rem',
+                border: `2px solid ${tipDonationSkipped ? colors.borderPrimary : (tipDonationValue > 0 ? '#F20C8F' : 'rgba(242, 12, 143, 0.3)')}`,
+                background: actualTheme === 'dark' ? 'linear-gradient(135deg, rgba(242, 12, 143, 0.08) 0%, rgba(255, 107, 157, 0.03) 100%)' : 'linear-gradient(135deg, rgba(242, 12, 143, 0.05) 0%, rgba(255, 107, 157, 0.02) 100%)',
+                transition: 'all 0.2s'
+              }}>
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <DonateHeartIcon />
+                    <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>Support a Cause</span>
+                    <span style={{ fontSize: '0.81rem', color: colors.textSecondary, marginLeft: 'auto' }}>Optional</span>
+                  </div>
+                  <p style={{ fontSize: '0.84rem', color: colors.textSecondary, margin: '0.35rem 0 0 0', lineHeight: '1.4' }}>
+                    Add a small donation to help fund community projects and initiatives
+                  </p>
+                </div>
+                {!tipDonationSkipped && (
+                  <>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                      {['5', '10', '25', '50'].map((amount) => (
+                        <button key={amount} onClick={() => handleTipSelectDonation(amount)} style={{
+                          padding: '0.4rem 0.75rem', border: tipDonationAmount === amount ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`,
+                          borderRadius: '0.5rem', background: tipDonationAmount === amount ? (actualTheme === 'dark' ? 'rgba(242, 12, 143, 0.15)' : 'rgba(242, 12, 143, 0.08)') : colors.bgCard,
+                          color: tipDonationAmount === amount ? '#F20C8F' : colors.textSecondary, fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', flex: '1', minWidth: '0'
+                        }}>${amount}</button>
+                      ))}
+                      <button onClick={() => handleTipSelectDonation('custom')} style={{
+                        padding: '0.4rem 0.75rem', border: tipDonationAmount === 'custom' ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`,
+                        borderRadius: '0.5rem', background: tipDonationAmount === 'custom' ? (actualTheme === 'dark' ? 'rgba(242, 12, 143, 0.15)' : 'rgba(242, 12, 143, 0.08)') : colors.bgCard,
+                        color: tipDonationAmount === 'custom' ? '#F20C8F' : colors.textSecondary, fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', flex: '1', minWidth: '0'
+                      }}>Custom</button>
+                    </div>
+                    {tipShowCustomInput && (
+                      <div style={{ position: 'relative', marginBottom: '0.75rem' }}>
+                        <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontSize: '0.9rem', fontWeight: '600', color: colors.textSecondary }}>$</span>
+                        <input type="number" placeholder="Enter amount" value={tipCustomDonation} onChange={(e) => setTipCustomDonation(e.target.value)} style={{
+                          width: '100%', padding: '0.6rem 0.75rem 0.6rem 1.75rem', border: `2px solid ${tipCustomDonation ? '#F20C8F' : colors.borderPrimary}`,
+                          borderRadius: '0.5rem', fontSize: '0.85rem', color: colors.textPrimary, backgroundColor: colors.bgCard, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s'
+                        }} onFocus={(e) => { e.currentTarget.style.borderColor = '#F20C8F'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(242, 12, 143, 0.1)'; }}
+                        onBlur={(e) => { e.currentTarget.style.borderColor = tipCustomDonation ? '#F20C8F' : colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }} />
+                      </div>
+                    )}
+                  </>
+                )}
+                <button onClick={handleTipSkipDonation} style={{
+                  width: '100%', padding: '0.5rem 1rem', borderRadius: '9999px',
+                  border: tipDonationSkipped ? '2px solid #F20C8F' : '2px solid #6B7280',
+                  background: tipDonationSkipped ? '#F20C8F' : colors.bgTertiary,
+                  color: tipDonationSkipped ? 'white' : '#374151',
+                  fontSize: '0.875rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center'
+                }}>{tipDonationSkipped ? '✓ Donation skipped' : 'No thanks, skip donation'}</button>
+                <div style={{ marginTop: '0.5rem' }}>
+                  <a href="http://localhost:3000/user/donations" onClick={(e) => { e.preventDefault(); router.push('/user/donations'); }} style={{ fontSize: '0.81rem', color: '#F20C8F', textDecoration: 'none', fontWeight: '500' }}>Learn more about our donation program →</a>
+                </div>
+              </div>
+
+              {!tipDonationAddressed && (
+                <p style={{ fontSize: '0.86rem', color: '#EF4444', margin: '0 0 0.75rem 0', textAlign: 'center' }}>Please select a donation amount or skip to continue</p>
+              )}
+
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                <button onClick={handleTipClose} style={{ flex: 1, padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Cancel</button>
+                <button disabled={!tipIsEnabled} onClick={() => setTipShowReceipt(true)} style={{
+                  flex: 1, padding: '0.75rem 1rem', border: !tipIsEnabled ? '2px solid #9CA3AF' : '2px solid #062a63',
+                  borderRadius: '0.5rem', background: !tipIsEnabled ? '#9CA3AF' : '#083A85', color: 'white', fontSize: '0.9rem', fontWeight: '600',
+                  cursor: !tipIsEnabled ? 'not-allowed' : 'pointer', opacity: !tipIsEnabled ? 0.7 : 1, transition: 'all 0.2s'
+                }}>Proceed to Payment</button>
               </div>
             </div>
+          </Modal>
+        );
+      })()}
 
-            {/* Info text about payment accounts */}
-            <p style={{
-              fontSize: '0.8rem',
-              color: colors.textSecondary,
-              margin: '0.75rem 0 1.25rem 0',
-              textAlign: 'center'
-            }}>
-              <i className="bi bi-info-circle" style={{ marginRight: '0.375rem' }}></i>
-              Manage your payment methods in <span
-                onClick={() => router.push('/user/client/preferences?tab=payments')}
-                style={{ color: colors.brandPrimary, fontWeight: '500', cursor: 'pointer', textDecoration: 'underline' }}
-              >Preferences → Payment Accounts</span>
-            </p>
-
-            {/* Actions */}
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-              <button
-                onClick={() => {
-                  setShowTipPaymentModal(false);
-                  setTipAmount('');
-                  setCustomTipAmount('');
-                  setSelectedTipPaymentMethod('card');
-                  setSuccessMessage('Review submitted successfully!');
-                  setShowSuccessModal(true);
-                  setPendingReviewPhotographer(null);
-                }}
-                style={{
-                  flex: 1,
-                  padding: '0.75rem 1rem',
-                  border: `2px solid ${colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
-                  background: colors.bgTertiary,
-                  color: colors.textPrimary,
-                  fontSize: '0.9rem',
-                  fontWeight: '600',
-                  cursor: 'pointer'
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleTipPaymentComplete}
-                style={{
-                  flex: 1,
-                  padding: '0.75rem 1rem',
-                  border: '2px solid #062a63',
-                  borderRadius: '0.5rem',
-                  background: '#083A85',
-                  color: 'white',
-                  fontSize: '0.9rem',
-                  fontWeight: '600',
-                  cursor: 'pointer'
-                }}
-              >
-                Pay ${tipAmount === 'custom' ? (parseFloat(customTipAmount) || 0) : tipAmount}
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
-
-      {/* Tip Donate Prompt Modal - Shows before tip payment modal */}
-      <DonatePromptModal
-        isOpen={showTipDonatePromptModal}
-        onClose={() => setShowTipDonatePromptModal(false)}
-        onNo={() => {
-          setShowTipDonatePromptModal(false);
-          setShowTipPaymentModal(true);
-        }}
-        onYes={() => {
-          setShowTipDonatePromptModal(false);
-          setShowTipDonateModal(true);
-        }}
-      />
-
-      {/* Tip Donate Modal */}
-      <DonateModal isOpen={showTipDonateModal} onClose={() => setShowTipDonateModal(false)} />
 
       {/* Success Modal */}
       <Modal

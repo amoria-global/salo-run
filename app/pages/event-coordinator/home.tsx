@@ -341,7 +341,7 @@ const EventCoordinatorDashboard = () => {
             flex-direction: row !important;
             justify-content: space-between !important;
             padding: 0.75rem !important;
-            border-bottom: 1px solid ${colors.borderPrimary} !important;
+            border-bottom: 2px solid ${colors.borderPrimary} !important;
           }
           .mobile-header-stat:last-child {
             border-bottom: none !important;
@@ -434,7 +434,7 @@ const EventCoordinatorDashboard = () => {
               paddingTop: '0.75rem',
               paddingBottom: '0.75rem',
               boxShadow: colors.shadowSm,
-              border: `1px solid ${colors.borderPrimary}`,
+              border: `2px solid ${colors.borderPrimary}`,
               display: 'flex',
               gap: '2rem'
             }}>
@@ -710,7 +710,7 @@ const EventCoordinatorDashboard = () => {
                   borderRadius: '0.5rem',
                   padding: '0.75rem 1rem',
                   minWidth: '280px',
-                  border: payment.status === 'failed' ? `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}` : `1px solid ${colors.borderPrimary}`,
+                  border: payment.status === 'failed' ? `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}` : `2px solid ${colors.borderPrimary}`,
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.75rem'
@@ -955,7 +955,7 @@ const EventCoordinatorDashboard = () => {
                           backgroundColor: colors.bgCard,
                           borderRadius: '0.5rem',
                           boxShadow: colors.shadowMd,
-                          border: `1px solid ${colors.borderPrimary}`,
+                          border: `2px solid ${colors.borderPrimary}`,
                           zIndex: 10,
                           minWidth: '140px',
                           overflow: 'hidden'

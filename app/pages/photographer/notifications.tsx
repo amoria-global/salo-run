@@ -313,7 +313,7 @@ const Notifications = () => {
           background-color: ${colors.bgCard};
           border-radius: 0.75rem;
           padding: 1.25rem;
-          border: 1px solid ${colors.borderPrimary};
+          border: 2px solid ${colors.borderPrimary};
         }
 
         .filters-section {
@@ -346,7 +346,7 @@ const Notifications = () => {
         .settings-panel {
           background-color: ${colors.bgCard};
           border-radius: 0.75rem;
-          border: 1px solid ${colors.borderPrimary};
+          border: 2px solid ${colors.borderPrimary};
           padding: 1.5rem;
           box-shadow: ${colors.shadowLg};
           max-width: 600px;
@@ -360,7 +360,7 @@ const Notifications = () => {
           justify-content: space-between;
           align-items: center;
           padding-bottom: 1rem;
-          border-bottom: 1px solid ${colors.borderPrimary};
+          border-bottom: 2px solid ${colors.borderPrimary};
         }
 
         .settings-item:last-child {
@@ -584,7 +584,7 @@ const Notifications = () => {
                   onClick={() => setActiveFilter(option.value)}
                   style={{
                     padding: '0.5rem 1rem',
-                    border: activeFilter === option.value ? 'none' : `1px solid ${colors.borderPrimary}`,
+                    border: activeFilter === option.value ? 'none' : `2px solid ${colors.borderPrimary}`,
                     backgroundColor: activeFilter === option.value ? '#083A85' : colors.bgCard,
                     color: activeFilter === option.value ? 'white' : colors.textSecondary,
                     borderRadius: '0.5rem',
@@ -634,7 +634,7 @@ const Notifications = () => {
           <div style={{
             backgroundColor: colors.bgCard,
             borderRadius: '0.75rem',
-            border: `1px solid ${colors.borderPrimary}`,
+            border: `2px solid ${colors.borderPrimary}`,
             overflow: 'hidden'
           }}>
             {filteredNotifications.length === 0 ? (
@@ -681,7 +681,7 @@ const Notifications = () => {
                       display: 'flex',
                       gap: '1rem',
                       padding: '1rem 1.25rem',
-                      borderBottom: index < filteredNotifications.length - 1 ? `1px solid ${colors.borderPrimary}` : 'none',
+                      borderBottom: index < filteredNotifications.length - 1 ? `2px solid ${colors.borderPrimary}` : 'none',
                       backgroundColor: notification.read ? colors.bgCard : (actualTheme === 'dark' ? '#1E3A5F' : '#F0F9FF'),
                       transition: 'background-color 0.2s',
                       cursor: 'pointer'

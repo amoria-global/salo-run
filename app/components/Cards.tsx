@@ -33,6 +33,7 @@ interface AlbumCardProps {
     borderPrimary: string;
     textPrimary: string;
     textSecondary: string;
+    shadowCard?: string;
   };
   onCardClick: (album: Album) => void;
   onBrowseClick: (album: Album) => void;
@@ -68,7 +69,8 @@ const AlbumCard: React.FC<AlbumCardProps> = ({
           backgroundColor: colors.bgCard,
           borderRadius: '0.75rem',
           overflow: 'hidden',
-          border: `1px solid ${colors.borderPrimary}`,
+          border: `2px solid ${colors.borderPrimary}`,
+          boxShadow: colors.shadowCard || 'none',
           transition: 'all 0.2s',
         }}
         onMouseEnter={(e) => {
@@ -79,7 +81,7 @@ const AlbumCard: React.FC<AlbumCardProps> = ({
         }}
         onMouseLeave={(e) => {
           if (!isArchived) {
-            e.currentTarget.style.boxShadow = 'none';
+            e.currentTarget.style.boxShadow = colors.shadowCard || 'none';
             e.currentTarget.style.transform = 'translateY(0)';
           }
         }}
@@ -110,16 +112,10 @@ const AlbumCard: React.FC<AlbumCardProps> = ({
               backgroundColor: 'rgba(0, 0, 0, 0.4)',
               zIndex: 2
             }}>
-              <div style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                borderRadius: '50%',
-                padding: '1rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <LockIcon />
-              </div>
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="rgba(255,255,255,0.85)" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.5))' }}>
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" fill="none"></path>
+              </svg>
             </div>
           )}
 
@@ -137,26 +133,31 @@ const AlbumCard: React.FC<AlbumCardProps> = ({
           }}>
             {album.photoCount} photos
           </div>
-          <div style={{
-            position: 'absolute',
-            bottom: '0.5rem',
-            left: '0.5rem',
-            backgroundColor: isArchived ? '#DC2626' : '#083A85',
-            color: 'white',
-            padding: '0.25rem 0.5rem',
-            borderRadius: '0.25rem',
-            fontSize: '0.7rem',
-            fontWeight: '500',
-            zIndex: 1
-          }}>
-            {isArchived ? 'Locked' : album.category}
-          </div>
+          {!isArchived && (
+            <div style={{
+              position: 'absolute',
+              bottom: '0.5rem',
+              left: '0.5rem',
+              backgroundColor: '#083A85',
+              color: 'white',
+              padding: '0.25rem 0.5rem',
+              borderRadius: '0.25rem',
+              fontSize: '0.7rem',
+              fontWeight: '500',
+              zIndex: 1
+            }}>
+              {album.category}
+            </div>
+          )}
         </div>
 
         {/* Album Info */}
         <div style={{ padding: '1rem' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0, marginBottom: '0.5rem', textAlign:'left' }}>
-            {album.title}
+          <h3 style={{ fontSize: '1rem', fontWeight: '600', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: colors.textPrimary, margin: 0, marginBottom: '0.5rem', textAlign:'left' }}>
+            <span>{album.title}</span>
+            {isArchived && (
+              <span style={{ color: 'white', backgroundColor: '#DC2626', padding: '0.15rem 0.4rem', borderRadius: '0.25rem', fontSize: '0.75rem', fontWeight: '700' }}>Locked</span>
+            )}
           </h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
             <div style={{ position: 'relative', width: '24px', height: '24px', borderRadius: '50%', overflow: 'hidden' }}>
@@ -221,7 +222,7 @@ const AlbumCard: React.FC<AlbumCardProps> = ({
         gridTemplateColumns: '80px 1fr 150px 120px 100px 150px',
         gap: '1rem',
         padding: '0.75rem 1rem',
-        borderBottom: `1px solid ${colors.borderPrimary}`,
+        borderBottom: `2px solid ${colors.borderPrimary}`,
         alignItems: 'center',
         transition: 'background-color 0.2s',
         backgroundColor: colors.bgCard,
@@ -275,14 +276,14 @@ const AlbumCard: React.FC<AlbumCardProps> = ({
           {isArchived && (
             <span style={{
               marginLeft: '0.5rem',
-              fontSize: '0.7rem',
-              padding: '0.125rem 0.375rem',
-              backgroundColor: '#FEE2E2',
-              color: '#DC2626',
+              fontSize: '0.65rem',
+              padding: '0.15rem 0.4rem',
+              backgroundColor: '#DC2626',
+              color: 'white',
               borderRadius: '0.25rem',
-              fontWeight: '500'
+              fontWeight: '700'
             }}>
-              Archived
+              Locked
             </span>
           )}
         </div>
@@ -305,14 +306,14 @@ const AlbumCard: React.FC<AlbumCardProps> = ({
       {/* Category */}
       <span style={{
         display: 'inline-block',
-        padding: '0.25rem 0.5rem',
-        backgroundColor: isArchived ? '#FEE2E2' : '#DBEAFE',
-        color: isArchived ? '#DC2626' : '#1E40AF',
+        padding: isArchived ? '0.15rem 0.4rem' : '0.25rem 0.5rem',
+        backgroundColor: isArchived ? '#DC2626' : '#DBEAFE',
+        color: isArchived ? 'white' : '#1E40AF',
         borderRadius: '0.25rem',
-        fontSize: '0.75rem',
-        fontWeight: '500'
+        fontSize: isArchived ? '0.65rem' : '0.75rem',
+        fontWeight: isArchived ? '700' : '500'
       }}>
-        {isArchived ? 'Archived' : album.category}
+        {isArchived ? 'Locked' : album.category}
       </span>
 
       {/* Actions */}

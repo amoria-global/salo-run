@@ -6,97 +6,24 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "../context/ThemeContext";
 import { dashboardAuthFetch } from "../providers/AuthProvider";
 
-// Heart Icon for donate button (filled red)
+// Heart Icon for donate section
 export const HeartIcon = () => (
   <svg
     width="18"
     height="18"
     viewBox="0 0 24 24"
-    fill="#EF4444"
+    fill="#F20C8F"
     xmlns="http://www.w3.org/2000/svg"
   >
     <path
       d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-      fill="#EF4444"
-      stroke="#EF4444"
+      fill="#F20C8F"
+      stroke="#F20C8F"
       strokeWidth="1"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
   </svg>
-);
-
-// White Heart Icon for modal header
-const WhiteHeartIcon = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="white"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path
-      d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-      fill="white"
-      stroke="white"
-      strokeWidth="1"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
-interface ModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-  children: React.ReactNode;
-  maxWidth?: string;
-}
-
-
-
-// Donate Button Component - styled like the pill button with red border
-export const DonateButton: React.FC<{ onClick: () => void }> = ({
-  onClick,
-}) => (
-  <button
-    onClick={onClick}
-    style={{
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: "0.5rem",
-      padding: "0.625rem 1.25rem",
-      backgroundColor: "white",
-      border: "3px solid #EF4444",
-      borderRadius: "9999px",
-      cursor: "pointer",
-      transition: "all 0.2s",
-      boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-      width: "100%",
-    }}
-    title="Make a payment to charity"
-    onMouseEnter={(e) => {
-      e.currentTarget.style.backgroundColor = "#FEF2F2";
-      e.currentTarget.style.boxShadow = "0 4px 6px rgba(239, 68, 68, 0.2)";
-    }}
-    onMouseLeave={(e) => {
-      e.currentTarget.style.backgroundColor = "white";
-      e.currentTarget.style.boxShadow = "0 1px 3px rgba(0, 0, 0, 0.1)";
-    }}
-  >
-    <HeartIcon />
-    <span
-      style={{
-        fontSize: "0.875rem",
-        fontWeight: "700",
-        color: "#1F2937",
-        letterSpacing: "0.025em",
-      }}
-    >
-      DONATE
-    </span>
-  </button>
 );
 
 // Close Icon
@@ -118,271 +45,9 @@ const CloseIcon = () => (
   </svg>
 );
 
-// Charity Icons
-const FamilyIcon = () => (
-  <svg
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <circle cx="9" cy="7" r="3" stroke="#F20C8F" strokeWidth="2" />
-    <path
-      d="M3 18C3 15.2386 5.23858 13 8 13H10C12.7614 13 15 15.2386 15 18"
-      stroke="#F20C8F"
-      strokeWidth="2"
-      strokeLinecap="round"
-    />
-    <circle cx="17" cy="9" r="2.5" stroke="#F20C8F" strokeWidth="2" />
-    <path
-      d="M21 18C21 16.3431 19.6569 15 18 15H16.5"
-      stroke="#F20C8F"
-      strokeWidth="2"
-      strokeLinecap="round"
-    />
-  </svg>
-);
-
-const MedicalIcon = () => (
-  <svg
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <rect
-      x="3"
-      y="3"
-      width="18"
-      height="18"
-      rx="2"
-      stroke="#10B981"
-      strokeWidth="2"
-    />
-    <path
-      d="M12 8V16M8 12H16"
-      stroke="#10B981"
-      strokeWidth="2"
-      strokeLinecap="round"
-    />
-  </svg>
-);
-
-const SchoolIcon = () => (
-  <svg
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path
-      d="M12 3L1 9L12 15L23 9L12 3Z"
-      stroke="#3B82F6"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M5.5 11.5V17C5.5 17 8 20 12 20C16 20 18.5 17 18.5 17V11.5"
-      stroke="#3B82F6"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
-
-const FoodIcon = () => (
-  <svg
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path
-      d="M18 8H19C20.1046 8 21 8.89543 21 10V11C21 12.6569 19.6569 14 18 14H6C4.34315 14 3 12.6569 3 11V10C3 8.89543 3.89543 8 5 8H6"
-      stroke="#F59E0B"
-      strokeWidth="2"
-      strokeLinecap="round"
-    />
-    <path
-      d="M6 14V19C6 20.1046 6.89543 21 8 21H16C17.1046 21 18 20.1046 18 19V14"
-      stroke="#F59E0B"
-      strokeWidth="2"
-      strokeLinecap="round"
-    />
-    <path
-      d="M12 3V8M8 5L12 8L16 5"
-      stroke="#F59E0B"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
-
-interface DonateModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-// Donate Prompt Modal - asks user if they want to make a payment (Yes/No)
-interface DonatePromptModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onYes: () => void;
-  onNo: () => void;
-}
-
-export const UnlockPromptModal: React.FC<DonatePromptModalProps> = ({
-  isOpen,
-  onClose,
-  onYes,
-  onNo,
-}) => {
-  const { colors, actualTheme } = useTheme();
-
-  if (!isOpen) return null;
-
-  return (
-    <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: "rgba(0, 0, 0, 0.6)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 1150,
-      }}
-      onClick={onClose}
-    >
-      <div
-        style={{
-          backgroundColor: colors.bgCard,
-          borderRadius: "1rem",
-          width: "400px",
-          maxWidth: "95%",
-          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-          padding: "1.5rem",
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div style={{ textAlign: "center" }}>
-          <div
-            style={{
-              width: "64px",
-              height: "64px",
-              borderRadius: "50%",
-              background:
-                actualTheme === "dark"
-                  ? "linear-gradient(135deg, rgba(242, 12, 143, 0.2) 0%, rgba(255, 107, 157, 0.1) 100%)"
-                  : "linear-gradient(135deg, rgba(242, 12, 143, 0.15) 0%, rgba(255, 107, 157, 0.08) 100%)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 1.25rem",
-              border: `2px solid ${
-                actualTheme === "dark"
-                  ? "rgba(242, 12, 143, 0.3)"
-                  : "rgba(242, 12, 143, 0.2)"
-              }`,
-            }}
-          >
-            <svg
-              width="32"
-              height="32"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-                fill="#F20C8F"
-                stroke="#F20C8F"
-                strokeWidth="1"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </div>
-          <h3
-            style={{
-              fontSize: "1.25rem",
-              fontWeight: "600",
-              color: colors.textPrimary,
-              marginBottom: "0.75rem",
-            }}
-          >
-            Would you like to make a payment?
-          </h3>
-          <p
-            style={{
-              fontSize: "0.9rem",
-              color: colors.textSecondary,
-              marginBottom: "1.5rem",
-              lineHeight: "1.5",
-            }}
-          >
-            Pay{" "}
-            <strong
-              style={{ color: "black", fontWeight: "bold", fontSize: "18px" }}
-            >
-              10$
-            </strong>{" "}
-            per Album to unlock photobooks
-          </p>
-          <div style={{ display: "flex", gap: "0.75rem" }}>
-            <button
-              onClick={onNo}
-              style={{
-                flex: 1,
-                padding: "0.75rem 1rem",
-                border: `2px solid ${colors.borderPrimary}`,
-                borderRadius: "0.5rem",
-                background: colors.bgTertiary,
-                color: colors.textPrimary,
-                fontSize: "0.9rem",
-                fontWeight: "600",
-                cursor: "pointer",
-                transition: "all 0.2s",
-              }}
-            >
-              No, thanks
-            </button>
-            <button
-              onClick={onYes}
-              style={{
-                flex: 1,
-                padding: "0.75rem 1rem",
-                border: "2px solid #c00a72",
-                borderRadius: "0.5rem",
-                background: "linear-gradient(135deg, #F20C8F 0%, #FF6B9D 100%)",
-                color: "white",
-                fontSize: "0.9rem",
-                fontWeight: "600",
-                cursor: "pointer",
-                transition: "all 0.2s",
-              }}
-            >
-              Yes, continue
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
 type PaymentStatus = 'paid' | 'pending' | 'failed' | 'refunded' | 'partially_paid';
 
-interface Payment {
+export interface Payment {
   id: number;
   declarationId?: string;
   date: string;
@@ -404,7 +69,6 @@ interface PayNowModalProps {
   payment: Payment | null;
   onPaymentSuccess?: () => void;
 }
-
 
 interface ModalProps {
   isOpen: boolean;
@@ -452,74 +116,184 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
     </div>
   );
 };
-function getApiUrl(): string {
-  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
-    return '/api/proxy';
-  }
-  return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
-}
 
-const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onPaymentSuccess }) => {
+const PAYMENT_METHODS: Record<string, { label: string; image: string }> = {
+  card: { label: 'Credit/Debit Card', image: '/cards.png' },
+  mtn: { label: 'MTN Mobile Money', image: '/mtn.png' },
+  airtel: { label: 'Airtel Mobile Money', image: '/airtel.png' },
+};
+
+const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) => {
   const { colors, actualTheme } = useTheme();
   const router = useRouter();
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('card');
-  const [paymentLoading, setPaymentLoading] = useState(false);
-  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [donationAmount, setDonationAmount] = useState<string>('');
+  const [customDonation, setCustomDonation] = useState<string>('');
+  const [donationSkipped, setDonationSkipped] = useState<boolean>(false);
+  const [showCustomInput, setShowCustomInput] = useState<boolean>(false);
+  const [showReceipt, setShowReceipt] = useState<boolean>(false);
+  const [paymentLoading, setPaymentLoading] = useState<boolean>(false);
 
   if (!payment) return null;
 
   const amountDue = payment.amountNum - payment.paidAmount;
+  const donationValue = donationAmount === 'custom' ? (parseFloat(customDonation) || 0) : (parseFloat(donationAmount) || 0);
+  const totalAmount = amountDue + donationValue;
+  const donationAddressed = donationSkipped || donationValue > 0;
+  const isPayEnabled = donationAddressed;
 
-  const handlePay = async () => {
-    setPaymentLoading(true);
-    setPaymentError(null);
-    try {
-      const apiUrl = getApiUrl();
-      const declarationId = payment.declarationId || payment.invoiceNumber;
-      const queryParams = new URLSearchParams();
-      queryParams.append('amount', amountDue.toString());
-      queryParams.append('method', selectedPaymentMethod);
-
-      const response = await dashboardAuthFetch(
-        `${apiUrl}/api/remote/payments/${declarationId}/pay?${queryParams.toString()}`,
-        { method: 'POST' }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Payment failed (${response.status})`);
-      }
-
-      onPaymentSuccess?.();
-      onClose();
-    } catch (err) {
-      setPaymentError(err instanceof Error ? err.message : 'Payment failed. Please try again.');
-    } finally {
-      setPaymentLoading(false);
+  const handleSelectDonation = (amount: string) => {
+    setDonationSkipped(false);
+    if (amount === 'custom') {
+      setDonationAmount('custom');
+      setShowCustomInput(true);
+    } else {
+      setDonationAmount(amount);
+      setShowCustomInput(false);
+      setCustomDonation('');
     }
   };
 
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} title={payment.status === 'failed' ? 'Retry Payment' : 'Complete Payment'} maxWidth="450px">
-      <div>
-        {/* Amount Summary */}
-        <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '1rem', marginBottom: '1.25rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-            <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Event</span>
-            <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>{payment.eventName}</span>
+  const handleSkipDonation = () => {
+    setDonationSkipped(true);
+    setDonationAmount('');
+    setCustomDonation('');
+    setShowCustomInput(false);
+  };
+
+  const handleClose = () => {
+    setShowReceipt(false);
+    onClose();
+  };
+
+  // Receipt View (Phase 2)
+  if (showReceipt) {
+    const methodInfo = PAYMENT_METHODS[selectedPaymentMethod] || PAYMENT_METHODS.card;
+
+    return (
+      <Modal isOpen={isOpen} onClose={handleClose} title="Payment Summary" maxWidth="450px">
+        <div>
+          {/* Receipt Card */}
+          <div style={{
+            backgroundColor: colors.bgTertiary,
+            borderRadius: '0.75rem',
+            padding: '1.25rem',
+            marginBottom: '1.25rem',
+            border: `2px solid ${colors.borderPrimary}`
+          }}>
+            {/* Event */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+              <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Event</span>
+              <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, textAlign: 'right', maxWidth: '60%' }}>{payment.eventName}</span>
+            </div>
+            {/* Photographer */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+              <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Photographer</span>
+              <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{payment.photographerName}</span>
+            </div>
+            {/* Date */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+              <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Date</span>
+              <span style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>{payment.date}</span>
+            </div>
+            {/* Invoice */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+              <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Invoice</span>
+              <span style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>{payment.invoiceNumber}</span>
+            </div>
+            {/* Payment Method */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+              <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Payment Method</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ width: '24px', height: '24px', borderRadius: '0.25rem', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1px' }}>
+                  {selectedPaymentMethod === 'card' ? (
+                    <>
+                      <Image src="/visa.png" alt="Visa" width={14} height={20} unoptimized style={{ objectFit: 'contain' }} />
+                      <Image src="/master.png" alt="Mastercard" width={14} height={20} unoptimized style={{ objectFit: 'contain' }} />
+                    </>
+                  ) : (
+                    <Image src={methodInfo.image} alt={methodInfo.label} width={24} height={24} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                  )}
+                </div>
+                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{methodInfo.label}</span>
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, margin: '0.75rem 0' }} />
+
+            {/* Amount Due */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+              <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>Amount Due</span>
+              <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>${amountDue.toLocaleString()}</span>
+            </div>
+            {/* Donation (if any) */}
+            {donationValue > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                  <HeartIcon />
+                  <span style={{ fontSize: '0.9rem', fontWeight: '500', color: '#F20C8F' }}>Donation</span>
+                </div>
+                <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#F20C8F' }}>${donationValue.toLocaleString()}</span>
+              </div>
+            )}
+
+            {/* Divider */}
+            <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, margin: '0.75rem 0' }} />
+
+            {/* Total */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '1.05rem', fontWeight: '700', color: colors.textPrimary }}>Total</span>
+              <span style={{ fontSize: '1.3rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
+                ${totalAmount.toLocaleString()}
+              </span>
+            </div>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-            <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Photographer</span>
-            <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>{payment.photographerName}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: `1px solid ${colors.borderPrimary}` }}>
-            <span style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>Amount Due</span>
-            <span style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
-              ${amountDue.toLocaleString()}
-            </span>
+
+          {/* Actions */}
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <button
+              onClick={() => setShowReceipt(false)}
+              style={{
+                flex: 1,
+                padding: '0.75rem 1rem',
+                border: `2px solid ${colors.borderPrimary}`,
+                borderRadius: '0.5rem',
+                background: colors.bgTertiary,
+                color: colors.textPrimary,
+                fontSize: '0.9rem',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              style={{
+                flex: 1,
+                padding: '0.75rem 1rem',
+                border: payment.status === 'failed' ? '2px solid #c00a72' : '2px solid #062a63',
+                borderRadius: '0.5rem',
+                background: payment.status === 'failed' ? '#F20C8F' : '#083A85',
+                color: 'white',
+                fontSize: '0.9rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              {payment.status === 'failed' ? 'Retry' : 'Pay'} ${totalAmount.toLocaleString()}
+            </button>
           </div>
         </div>
+      </Modal>
+    );
+  }
 
+  // Selection View (Phase 1)
+  return (
+    <Modal isOpen={isOpen} onClose={handleClose} title={payment.status === 'failed' ? 'Retry Payment' : 'Complete Payment'} maxWidth="450px">
+      <div>
         {/* Payment Method Selection */}
         <div style={{ marginBottom: '1.25rem' }}>
           <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>
@@ -541,8 +315,9 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
                 transition: 'all 0.2s'
               }}
             >
-              <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0 }}>
-                <Image src="/cards.png" alt="Credit/Debit Card" width={48} height={48} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+              <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
+                <Image src="/visa.png" alt="Visa" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
+                <Image src="/master.png" alt="Mastercard" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Credit/Debit Card</div>
@@ -618,44 +393,13 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
                 backgroundColor: colors.bgCard
               }} />
             </div>
-
-            {/* Bank Transfer */}
-            <div
-              onClick={() => setSelectedPaymentMethod('bank')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem',
-                padding: '1rem',
-                border: selectedPaymentMethod === 'bank' ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                borderRadius: '0.75rem',
-                cursor: 'pointer',
-                backgroundColor: selectedPaymentMethod === 'bank' ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
-                transition: 'all 0.2s'
-              }}
-            >
-              <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0 }}>
-                <Image src="/bank.png" alt="Bank Transfer" width={48} height={48} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Bank Transfer</div>
-                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Pay via bank account</div>
-              </div>
-              <div style={{
-                width: '20px',
-                height: '20px',
-                borderRadius: '50%',
-                border: selectedPaymentMethod === 'bank' ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                backgroundColor: colors.bgCard
-              }} />
-            </div>
           </div>
 
           {/* Info text about payment accounts */}
           <p style={{
-            fontSize: '0.8rem',
+            fontSize: '0.86rem',
             color: colors.textSecondary,
-            margin: '0.75rem 0 1.25rem 0',
+            margin: '0.75rem 0 0 0',
             textAlign: 'center'
           }}>
             <i className="bi bi-info-circle" style={{ marginRight: '0.375rem' }}></i>
@@ -666,26 +410,179 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
           </p>
         </div>
 
-        {/* Error message */}
-        {paymentError && (
-          <div style={{
-            padding: '0.75rem',
-            marginBottom: '1rem',
-            backgroundColor: actualTheme === 'dark' ? 'rgba(239, 68, 68, 0.15)' : '#FEF2F2',
-            border: '1px solid #EF4444',
-            borderRadius: '0.5rem',
-            color: '#EF4444',
-            fontSize: '0.85rem',
-          }}>
-            {paymentError}
+        {/* Donation Section */}
+        <div style={{
+          marginBottom: '1.25rem',
+          padding: '1rem',
+          borderRadius: '0.75rem',
+          border: `2px solid ${donationSkipped ? colors.borderPrimary : (donationValue > 0 ? '#F20C8F' : 'rgba(242, 12, 143, 0.3)')}`,
+          background: actualTheme === 'dark'
+            ? 'linear-gradient(135deg, rgba(242, 12, 143, 0.08) 0%, rgba(255, 107, 157, 0.03) 100%)'
+            : 'linear-gradient(135deg, rgba(242, 12, 143, 0.05) 0%, rgba(255, 107, 157, 0.02) 100%)',
+          transition: 'all 0.2s'
+        }}>
+          {/* Header */}
+          <div style={{ marginBottom: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <HeartIcon />
+              <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>
+                Support a Cause
+              </span>
+              <span style={{ fontSize: '0.81rem', color: colors.textSecondary, marginLeft: 'auto' }}>Optional</span>
+            </div>
+            <p style={{ fontSize: '0.84rem', color: colors.textSecondary, margin: '0.35rem 0 0 0', lineHeight: '1.4' }}>
+              Add a small donation to help fund community projects and initiatives
+            </p>
           </div>
+
+          {!donationSkipped && (
+            <>
+              {/* Quick Amount Buttons */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                {['5', '10', '25', '50'].map((amount) => (
+                  <button
+                    key={amount}
+                    onClick={() => handleSelectDonation(amount)}
+                    style={{
+                      padding: '0.4rem 0.75rem',
+                      border: donationAmount === amount ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`,
+                      borderRadius: '0.5rem',
+                      background: donationAmount === amount
+                        ? (actualTheme === 'dark' ? 'rgba(242, 12, 143, 0.15)' : 'rgba(242, 12, 143, 0.08)')
+                        : colors.bgCard,
+                      color: donationAmount === amount ? '#F20C8F' : colors.textSecondary,
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      flex: '1',
+                      minWidth: '0'
+                    }}
+                  >
+                    ${amount}
+                  </button>
+                ))}
+                <button
+                  onClick={() => handleSelectDonation('custom')}
+                  style={{
+                    padding: '0.4rem 0.75rem',
+                    border: donationAmount === 'custom' ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`,
+                    borderRadius: '0.5rem',
+                    background: donationAmount === 'custom'
+                      ? (actualTheme === 'dark' ? 'rgba(242, 12, 143, 0.15)' : 'rgba(242, 12, 143, 0.08)')
+                      : colors.bgCard,
+                    color: donationAmount === 'custom' ? '#F20C8F' : colors.textSecondary,
+                    fontSize: '0.8rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    flex: '1',
+                    minWidth: '0'
+                  }}
+                >
+                  Custom
+                </button>
+              </div>
+
+              {/* Custom Amount Input */}
+              {showCustomInput && (
+                <div style={{ position: 'relative', marginBottom: '0.75rem' }}>
+                  <span style={{
+                    position: 'absolute',
+                    left: '0.75rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    fontSize: '0.9rem',
+                    fontWeight: '600',
+                    color: colors.textSecondary
+                  }}>$</span>
+                  <input
+                    type="number"
+                    placeholder="Enter amount"
+                    value={customDonation}
+                    onChange={(e) => setCustomDonation(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.6rem 0.75rem 0.6rem 1.75rem',
+                      border: `2px solid ${customDonation ? '#F20C8F' : colors.borderPrimary}`,
+                      borderRadius: '0.5rem',
+                      fontSize: '0.85rem',
+                      color: colors.textPrimary,
+                      backgroundColor: colors.bgCard,
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                      transition: 'border-color 0.2s'
+                    }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = '#F20C8F';
+                      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(242, 12, 143, 0.1)';
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = customDonation ? '#F20C8F' : colors.borderPrimary;
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  />
+                </div>
+              )}
+            </>
+          )}
+
+          {/* No Thanks Button */}
+          <button
+            onClick={handleSkipDonation}
+            style={{
+              width: '100%',
+              padding: '0.5rem 1rem',
+              borderRadius: '9999px',
+              border: donationSkipped ? '2px solid #F20C8F' : '2px solid #6B7280',
+              background: donationSkipped ? '#F20C8F' : colors.bgTertiary,
+              color: donationSkipped ? 'white' : '#374151',
+              fontSize: '0.875rem',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              textAlign: 'center'
+            }}
+          >
+            {donationSkipped ? '✓ Donation skipped' : 'No thanks, skip donation'}
+          </button>
+
+          {/* Donations Page Link */}
+          <div style={{ marginTop: '0.5rem' }}>
+            <a
+              href="http://localhost:3000/user/donations"
+              onClick={(e) => {
+                e.preventDefault();
+                router.push('/user/donations');
+              }}
+              style={{
+                fontSize: '0.81rem',
+                color: '#F20C8F',
+                textDecoration: 'none',
+                fontWeight: '500'
+              }}
+            >
+              Learn more about our donation program →
+            </a>
+          </div>
+        </div>
+
+        {/* Validation Message */}
+        {!donationAddressed && (
+          <p style={{
+            fontSize: '0.86rem',
+            color: '#EF4444',
+            margin: '0 0 0.75rem 0',
+            textAlign: 'center'
+          }}>
+            Please select a donation amount or skip to continue
+          </p>
         )}
 
         {/* Actions */}
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           <button
-            onClick={onClose}
-            disabled={paymentLoading}
+            onClick={handleClose}
             style={{
               flex: 1,
               padding: '0.75rem 1rem',
@@ -702,22 +599,23 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
             Cancel
           </button>
           <button
-            onClick={handlePay}
-            disabled={paymentLoading}
+            disabled={!isPayEnabled}
+            onClick={() => setShowReceipt(true)}
             style={{
               flex: 1,
               padding: '0.75rem 1rem',
-              border: payment.status === 'failed' ? '2px solid #c00a72' : '2px solid #062a63',
+              border: !isPayEnabled ? '2px solid #9CA3AF' : '2px solid #062a63',
               borderRadius: '0.5rem',
-              background: payment.status === 'failed' ? '#F20C8F' : '#083A85',
+              background: !isPayEnabled ? '#9CA3AF' : '#083A85',
               color: 'white',
               fontSize: '0.9rem',
               fontWeight: '600',
-              cursor: paymentLoading ? 'not-allowed' : 'pointer',
-              opacity: paymentLoading ? 0.7 : 1,
+              cursor: !isPayEnabled ? 'not-allowed' : 'pointer',
+              opacity: !isPayEnabled ? 0.7 : 1,
+              transition: 'all 0.2s'
             }}
           >
-            {paymentLoading ? 'Processing...' : `${payment.status === 'failed' ? 'Retry Payment' : 'Pay'} $${amountDue.toLocaleString()}`}
+            Proceed to Payment
           </button>
         </div>
       </div>

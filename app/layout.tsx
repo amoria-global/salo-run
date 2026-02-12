@@ -12,8 +12,8 @@ const pragatiNarrow = Pragati_Narrow({
 });
 
 export const metadata: Metadata = {
-  title: "Connekt Dashboard",
-  description: "Dashboard application for Connekt",
+  title: "Connekyt Dashboard",
+  description: "Dashboard application for Connekyt",
 };
 
 export default function RootLayout({

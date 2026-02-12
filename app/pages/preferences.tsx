@@ -6,11 +6,10 @@ import { useSearchParams } from 'next/navigation';
 import Sidebar from '../components/sidebar';
 import Topbar from '../components/topbar';
 import { useTheme, ThemeMode } from '../context/ThemeContext';
-import DonateModal, { DonateButton, DonatePromptModal } from '../components/DonateModal';
 
 interface PaymentMethod {
   id: string;
-  type: 'card' | 'bank' | 'mobile';
+  type: 'card' | 'mobile';
   name: string;
   details: string;
   isDefault: boolean;
@@ -48,12 +47,6 @@ const CreditCardIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <rect x="1" y="4" width="22" height="16" rx="2" stroke="currentColor" strokeWidth="2"/>
     <path d="M1 10H23" stroke="currentColor" strokeWidth="2"/>
-  </svg>
-);
-
-const BankIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M3 21H21M3 10H21M5 6L12 3L19 6M4 10V21M20 10V21M8 14V17M12 14V17M16 14V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
@@ -116,19 +109,15 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
   const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
   const [showEditPaymentModal, setShowEditPaymentModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showDonateModal, setShowDonateModal] = useState(false);
-  const [showDonatePromptModal, setShowDonatePromptModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod | null>(null);
-  const [paymentType, setPaymentType] = useState<'card' | 'bank' | 'mtn' | 'airtel'>('card');
+  const [paymentType, setPaymentType] = useState<'card' | 'mtn' | 'airtel'>('card');
 
   // Form states
   const [cardNumber, setCardNumber] = useState('');
   const [cardName, setCardName] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
   const [cvv, setCvv] = useState('');
-  const [bankName, setBankName] = useState('');
-  const [accountNumber, setAccountNumber] = useState('');
-  const [routingNumber, setRoutingNumber] = useState('');
+
   const [mobileProvider, setMobileProvider] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
 
@@ -136,21 +125,12 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
     {
       id: '1',
       type: 'card',
-      name: 'Visa',
-      details: 'Visa ending in 4242',
+      name: 'Debit/Credit Cards',
+      details: 'Card ending in 4242',
       lastFour: '4242',
       expiryDate: '12/26',
       isDefault: true,
       icon: 'bi-credit-card-2-front'
-    },
-    {
-      id: '2',
-      type: 'bank',
-      name: 'Bank of Kigali',
-      details: 'Account ending in 7890',
-      lastFour: '7890',
-      isDefault: false,
-      icon: 'bi-bank'
     },
     {
       id: '3',
@@ -188,9 +168,6 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
     setCardName('');
     setExpiryDate('');
     setCvv('');
-    setBankName('');
-    setAccountNumber('');
-    setRoutingNumber('');
     setMobileProvider('');
     setMobileNumber('');
     setPaymentType('card');
@@ -210,17 +187,6 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
         expiryDate,
         isDefault: paymentMethods.length === 0,
         icon: 'bi-credit-card-2-front'
-      };
-    } else if (paymentType === 'bank') {
-      const lastFour = accountNumber.slice(-4);
-      newPayment = {
-        id: Date.now().toString(),
-        type: 'bank',
-        name: bankName,
-        details: `Account ending in ${lastFour}`,
-        lastFour,
-        isDefault: paymentMethods.length === 0,
-        icon: 'bi-bank'
       };
     } else if (paymentType === 'mtn') {
       const lastFour = mobileNumber.slice(-3);
@@ -266,21 +232,19 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
     return cleaned;
   };
 
-  const getPaymentIcon = (type: 'card' | 'bank' | 'mobile') => {
+  const getPaymentIcon = (type: 'card' | 'mobile') => {
     switch (type) {
       case 'card': return <CreditCardIcon />;
-      case 'bank': return <BankIcon />;
       case 'mobile': return <MobileIcon />;
     }
   };
 
-  const getPaymentImage = (type: 'card' | 'bank' | 'mobile', provider?: string) => {
+  const getPaymentImage = (type: 'card' | 'mobile', provider?: string) => {
     if (type === 'mobile') {
       if (provider?.toLowerCase().includes('mtn')) return '/mtn.png';
       if (provider?.toLowerCase().includes('airtel')) return '/airtel.png';
       return '/mtn.png'; // default
     }
-    if (type === 'bank') return '/bank.png';
     return '/cards.png';
   };
 
@@ -351,7 +315,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
               borderRadius: '1rem',
               padding: '1.5rem',
               boxShadow: colors.shadowMd,
-              border: `1px solid ${colors.borderPrimary}`
+              border: `2px solid ${colors.borderPrimary}`
             }}>
               <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
                 Theme Mode
@@ -518,7 +482,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
               {/* Add Payment Button */}
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
                 <button
-                  onClick={() => setShowDonatePromptModal(true)}
+                  onClick={() => setShowAddPaymentModal(true)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -544,12 +508,12 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                 backgroundColor: colors.bgSecondary,
                 borderRadius: '1rem',
                 boxShadow: colors.shadowMd,
-                border: `1px solid ${colors.borderPrimary}`,
+                border: `2px solid ${colors.borderPrimary}`,
                 overflow: 'hidden'
               }}>
                 <div style={{
                   padding: '1.25rem',
-                  borderBottom: `1px solid ${colors.borderPrimary}`
+                  borderBottom: `2px solid ${colors.borderPrimary}`
                 }}>
                   <h2 style={{ fontSize: '1.125rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
                     {userType === 'client' ? 'Saved Payment Methods' : 'Saved Withdrawal Accounts'}
@@ -578,7 +542,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                       {userType === 'client' ? 'No payment methods saved' : 'No withdrawal accounts saved'}
                     </p>
                     <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: 0 }}>
-                      {userType === 'client' ? 'Add a card, bank account, or mobile money to get started' : 'Add a bank account or mobile money to receive your earnings'}
+                      {userType === 'client' ? 'Add a card or mobile money to get started' : 'Add a mobile money account to receive your earnings'}
                     </p>
                   </div>
                 ) : (
@@ -591,7 +555,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           padding: '1rem 1.25rem',
-                          borderBottom: index < paymentMethods.length - 1 ? `1px solid ${colors.borderPrimary}` : 'none',
+                          borderBottom: index < paymentMethods.length - 1 ? `2px solid ${colors.borderPrimary}` : 'none',
                           transition: 'background-color 0.2s'
                         }}
                       >
@@ -601,16 +565,27 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                             height: '48px',
                             borderRadius: '0.5rem',
                             overflow: 'hidden',
-                            flexShrink: 0
+                            flexShrink: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '2px'
                           }}>
-                            <Image
-                              src={getPaymentImage(method.type, method.name)}
-                              alt={method.name}
-                              width={48}
-                              height={48}
-                              unoptimized
-                              style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                            />
+                            {method.type === 'card' ? (
+                              <>
+                                <Image src="/visa.png" alt="Visa" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
+                                <Image src="/master.png" alt="Mastercard" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
+                              </>
+                            ) : (
+                              <Image
+                                src={getPaymentImage(method.type, method.name)}
+                                alt={method.name}
+                                width={48}
+                                height={48}
+                                unoptimized
+                                style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                              />
+                            )}
                           </div>
                           <div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -669,7 +644,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                               justifyContent: 'center',
                               backgroundColor: colors.bgTertiary,
                               color: colors.textSecondary,
-                              border: `1px solid ${colors.borderPrimary}`,
+                              border: `2px solid ${colors.borderPrimary}`,
                               borderRadius: '0.375rem',
                               cursor: 'pointer',
                               transition: 'all 0.2s'
@@ -769,14 +744,12 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
               marginBottom: '1.5rem'
             }}>
               {(userType === 'client' ? [
-                { type: 'card' as const, label: 'Credit/Debit Card', description: 'Pay with Visa, Mastercard, etc.', image: '/cards.png' },
+                { type: 'card' as const, label: 'Credit/Debit Card', description: 'Pay with Visa, Mastercard, etc.', image: '' },
                 { type: 'mtn' as const, label: 'MTN Mobile Money', description: 'Pay with MTN Mobile Money', image: '/mtn.png' },
-                { type: 'airtel' as const, label: 'Airtel Money', description: 'Pay with Airtel Money', image: '/airtel.png' },
-                { type: 'bank' as const, label: 'Bank Account', description: 'Direct bank transfer', image: '/bank.png' }
+                { type: 'airtel' as const, label: 'Airtel Money', description: 'Pay with Airtel Money', image: '/airtel.png' }
               ] : [
                 { type: 'mtn' as const, label: 'MTN Mobile Money', description: 'Receive via MTN Mobile Money', image: '/mtn.png' },
-                { type: 'airtel' as const, label: 'Airtel Money', description: 'Receive via Airtel Money', image: '/airtel.png' },
-                { type: 'bank' as const, label: 'Bank Account', description: 'Receive via bank transfer', image: '/bank.png' }
+                { type: 'airtel' as const, label: 'Airtel Money', description: 'Receive via Airtel Money', image: '/airtel.png' }
               ]).map((option) => (
                 <div
                   key={option.type}
@@ -798,16 +771,27 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                     height: '48px',
                     borderRadius: '0.5rem',
                     overflow: 'hidden',
-                    flexShrink: 0
+                    flexShrink: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '2px'
                   }}>
-                    <Image
-                      src={option.image}
-                      alt={option.label}
-                      width={48}
-                      height={48}
-                      unoptimized
-                      style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                    />
+                    {option.type === 'card' ? (
+                      <>
+                        <Image src="/visa.png" alt="Visa" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
+                        <Image src="/master.png" alt="Mastercard" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
+                      </>
+                    ) : (
+                      <Image
+                        src={option.image}
+                        alt={option.label}
+                        width={48}
+                        height={48}
+                        unoptimized
+                        style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                      />
+                    )}
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>
@@ -928,85 +912,6 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
               </div>
             )}
 
-            {/* Bank Form */}
-            {paymentType === 'bank' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>
-                    Bank Name
-                  </label>
-                  <select
-                    value={bankName}
-                    onChange={(e) => setBankName(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      border: `2px solid ${colors.borderSecondary}`,
-                      borderRadius: '0.5rem',
-                      fontSize: '0.9rem',
-                      backgroundColor: colors.bgInput,
-                      color: colors.textPrimary,
-                      outline: 'none',
-                      cursor: 'pointer',
-                      boxSizing: 'border-box'
-                    }}
-                  >
-                    <option value="">Select a bank</option>
-                    <option value="Bank of Kigali">Bank of Kigali</option>
-                    <option value="Equity Bank">Equity Bank</option>
-                    <option value="I&M Bank">I&M Bank</option>
-                    <option value="Access Bank">Access Bank</option>
-                    <option value="Ecobank">Ecobank</option>
-                    <option value="KCB Bank">KCB Bank</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>
-                    Account Number
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Enter account number"
-                    value={accountNumber}
-                    onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, ''))}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      border: `2px solid ${colors.borderSecondary}`,
-                      borderRadius: '0.5rem',
-                      fontSize: '0.9rem',
-                      backgroundColor: colors.bgInput,
-                      color: colors.textPrimary,
-                      outline: 'none',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>
-                    Routing Number (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Enter routing number"
-                    value={routingNumber}
-                    onChange={(e) => setRoutingNumber(e.target.value.replace(/\D/g, ''))}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      border: `2px solid ${colors.borderSecondary}`,
-                      borderRadius: '0.5rem',
-                      fontSize: '0.9rem',
-                      backgroundColor: colors.bgInput,
-                      color: colors.textPrimary,
-                      outline: 'none',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-
             {/* MTN Mobile Money Form */}
             {paymentType === 'mtn' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -1102,22 +1007,6 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
         </div>
       )}
 
-      {/* Add Payment Donate Prompt Modal - Shows before add payment modal */}
-      <DonatePromptModal
-        isOpen={showDonatePromptModal}
-        onClose={() => setShowDonatePromptModal(false)}
-        onNo={() => {
-          setShowDonatePromptModal(false);
-          setShowAddPaymentModal(true);
-        }}
-        onYes={() => {
-          setShowDonatePromptModal(false);
-          setShowDonateModal(true);
-        }}
-      />
-
-      {/* Donate Modal */}
-      <DonateModal isOpen={showDonateModal} onClose={() => setShowDonateModal(false)} />
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && selectedPayment && (
@@ -1303,16 +1192,27 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                   height: '48px',
                   borderRadius: '0.5rem',
                   overflow: 'hidden',
-                  flexShrink: 0
+                  flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '2px'
                 }}>
-                  <Image
-                    src={getPaymentImage(selectedPayment.type, selectedPayment.name)}
-                    alt={selectedPayment.name}
-                    width={48}
-                    height={48}
-                    unoptimized
-                    style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                  />
+                  {selectedPayment.type === 'card' ? (
+                    <>
+                      <Image src="/visa.png" alt="Visa" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
+                      <Image src="/master.png" alt="Mastercard" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
+                    </>
+                  ) : (
+                    <Image
+                      src={getPaymentImage(selectedPayment.type, selectedPayment.name)}
+                      alt={selectedPayment.name}
+                      width={48}
+                      height={48}
+                      unoptimized
+                      style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                    />
+                  )}
                 </div>
                 <div>
                   <p style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>

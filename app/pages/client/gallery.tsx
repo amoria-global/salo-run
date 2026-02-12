@@ -8,10 +8,8 @@ import { useTheme } from '../../context/ThemeContext';
 import AlbumCard from '@/app/components/Cards';
 import UnlockModal from '@/app/components/UnlockModal';
 import PayNowModal from '@/app/components/UnlockModal';
-import { Archive, ArchiveIcon, ArchiveRestore, Eye, GiftIcon, Pointer, ArrowLeft, Film } from 'lucide-react';
 import { useUserProfile } from '@/app/context/UserProfileContext';
-import PostModal from '@/app/components/WelcomeunlockModal';
-import DonateModal, { DonatePromptModal } from '@/app/components/DonateModal';
+
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 
 type PaymentStatus = 'paid' | 'pending' | 'failed' | 'refunded' | 'partially_paid';
@@ -102,6 +100,30 @@ const ImageIcon = () => (
     <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
     <circle cx="8.5" cy="8.5" r="1.5"></circle>
     <polyline points="21 15 16 10 5 21"></polyline>
+  </svg>
+);
+
+const AlbumsViewIcon = ({ active }: { active: boolean }) => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="3" y="3" width="7" height="7" rx="1" stroke={active ? 'white' : 'currentColor'} strokeWidth="2"/>
+    <rect x="14" y="3" width="7" height="7" rx="1" stroke={active ? 'white' : 'currentColor'} strokeWidth="2"/>
+    <rect x="3" y="14" width="7" height="7" rx="1" stroke={active ? 'white' : 'currentColor'} strokeWidth="2"/>
+    <rect x="14" y="14" width="7" height="7" rx="1" stroke={active ? 'white' : 'currentColor'} strokeWidth="2"/>
+  </svg>
+);
+
+const ArchivesViewIcon = ({ active }: { active: boolean }) => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="2" y="3" width="20" height="5" rx="1" stroke={active ? 'white' : 'currentColor'} strokeWidth="2"/>
+    <path d="M4 8v10a2 2 0 002 2h12a2 2 0 002-2V8" stroke={active ? 'white' : 'currentColor'} strokeWidth="2"/>
+    <path d="M10 12h4" stroke={active ? 'white' : 'currentColor'} strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
+
+const PhotobooksViewIcon = ({ active }: { active: boolean }) => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M4 19.5A2.5 2.5 0 016.5 17H20" stroke={active ? 'white' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" stroke={active ? 'white' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
@@ -379,14 +401,8 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   const [albumToDelete, setAlbumToDelete] = useState<typeof clientAlbumsData[0] | null>(null);
 
   // Photobook states
-  const [pageView, setPageView] = useState<'albums' | 'photobooks' | 'archives' | 'event-media'>('albums');
+  const [pageView, setPageView] = useState<'albums' | 'photobooks' | 'archives'>('albums');
 
-  // Event media states
-  const [userEvents, setUserEvents] = useState<Array<{ id: string; title: string; eventDate: string; coverImage: string }>>([]);
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
-  const [eventMedia, setEventMedia] = useState<Array<{ id?: string; url: string; name?: string; createdAt?: string; selected?: boolean }>>([]);
-  const [isLoadingEvents, setIsLoadingEvents] = useState(false);
-  const [isLoadingMedia, setIsLoadingMedia] = useState(false);
   const [photobooks, setPhotobooks] = useState<Array<{
     id: number;
     name: string;
@@ -402,9 +418,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   const [photobookDescription, setPhotobookDescription] = useState('');
   const [showThumbnailSelector, setShowThumbnailSelector] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
-  const [welcomeUnlockModalOpen, setWelcomeUnlockModalOpen] = useState(false);
-  const [showDonateModal, setDonateModal] = useState(false);
-  const [showPrompt, setShowPrompt] = useState(false);
+
   const [selectedArchiveAlbum, setSelectedArchiveAlbum] = useState<typeof clientAlbumsData[0] | null>(null);
   const MAX_IMAGE_SELECTION = 3;
 
@@ -422,15 +436,10 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   const { profile } = useUserProfile();
 
   const [showGiftsPaymentMethodModal, setShowGiftsPaymentMethodModal] = useState(false);
-  const [showGiftsDonateModal, setShowGiftsDonateModal] = useState(false);
-  const [showGiftsDonatePromptModal, setShowGiftsDonatePromptModal] = useState(false);
   const [selectedGiftPaymentMethod, setSelectedGiftPaymentMethod] = useState<string | null>(null);
   const [giftPaymentDetails, setGiftPaymentDetails] = useState({
     mtnNumber: '',
     airtelNumber: '',
-    bankName: '',
-    accountNumber: '',
-    accountName: '',
     cardNumber: '',
     cardExpiry: '',
     cardCvv: '',
@@ -482,89 +491,19 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
     return matchesSearch && matchesCategory && matchesPhotographer;
   });
 
-  // Stats
-  const totalPhotos = albums.reduce((sum, a) => sum + a.photoCount, 0);
-  const totalDownloaded = albums.reduce((sum, a) => sum + a.downloadedCount, 0);
-  const totalFavorites = albums.reduce((sum, a) => sum + a.favoriteCount, 0);
+  // Stats - Albums
+  const activeAlbums = albums.filter(a => !a.isArchived);
+  const totalPhotos = activeAlbums.reduce((sum, a) => sum + a.photoCount, 0);
+  const totalDownloaded = activeAlbums.reduce((sum, a) => sum + a.downloadedCount, 0);
+  const totalFavorites = activeAlbums.reduce((sum, a) => sum + a.favoriteCount, 0);
 
-  // Event media functions
-  const fetchUserEvents = useCallback(async () => {
-    if (!user) return;
-    setIsLoadingEvents(true);
-    try {
-      const apiUrl = getApiUrl();
-      const response = await fetch(`${apiUrl}/api/remote/public/events/list?page=0&size=100&sortColumn=createdAt&sortDirection=desc`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      const data = await response.json();
-      if (data.action === 1 && data.data?.content) {
-        const allEvents = data.data.content;
-        const myEvents = allEvents.filter((evt: Record<string, unknown>) =>
-          evt.customerId === user.id || evt.customerId === user.customerId
-        );
-        setUserEvents(myEvents.map((evt: Record<string, unknown>) => ({
-          id: (evt.id as string) || '',
-          title: (evt.title as string) || 'Untitled Event',
-          eventDate: (evt.eventDate as string) || '',
-          coverImage: (evt.coverImage as string) || (evt.bannerImage as string) || '',
-        })));
-      }
-    } catch {
-      // silent
-    } finally {
-      setIsLoadingEvents(false);
-    }
-  }, [user]);
+  // Stats - Archives
+  const archivedAlbums = albums.filter(a => a.isArchived);
+  const archivedPhotos = archivedAlbums.reduce((sum, a) => sum + a.photoCount, 0);
+  const archivedAmountDue = archivedAlbums.reduce((sum, a) => sum + (a.payment?.amountDue || 0), 0);
 
-  const fetchEventMedia = useCallback(async (eventId: string) => {
-    setIsLoadingMedia(true);
-    setEventMedia([]);
-    try {
-      const apiUrl = getApiUrl();
-      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/events/${eventId}/media`);
-      if (response.ok) {
-        const data = await response.json();
-        const mediaList = Array.isArray(data) ? data : (data.data || data.content || []);
-        setEventMedia(mediaList);
-      }
-    } catch {
-      // silent
-    } finally {
-      setIsLoadingMedia(false);
-    }
-  }, []);
-
-  const handleToggleMediaSelect = async (mediaId: string, currentSelected: boolean) => {
-    const newSelected = !currentSelected;
-    setEventMedia(prev => prev.map(m => m.id === mediaId ? { ...m, selected: newSelected } : m));
-    try {
-      const apiUrl = getApiUrl();
-      const response = await dashboardAuthFetch(
-        `${apiUrl}/api/remote/customer/events/media/${mediaId}/select?selected=${newSelected}`,
-        { method: 'PATCH' }
-      );
-      if (!response.ok) {
-        setEventMedia(prev => prev.map(m => m.id === mediaId ? { ...m, selected: currentSelected } : m));
-      }
-    } catch {
-      setEventMedia(prev => prev.map(m => m.id === mediaId ? { ...m, selected: currentSelected } : m));
-    }
-  };
-
-  // Fetch events when switching to event-media view
-  useEffect(() => {
-    if (pageView === 'event-media') {
-      fetchUserEvents();
-    }
-  }, [pageView, fetchUserEvents]);
-
-  // Fetch media when an event is selected
-  useEffect(() => {
-    if (selectedEventId) {
-      fetchEventMedia(selectedEventId);
-    }
-  }, [selectedEventId, fetchEventMedia]);
+  // Stats - Photobooks
+  const totalPhotobookImages = photobooks.reduce((sum, pb) => sum + pb.images.length, 0);
 
   // Functions
   const openMultiSelectView = (album: typeof clientAlbumsData[0]) => {
@@ -633,7 +572,6 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   const handlePayNow = (payment: Payment) => {
     setPayNowPayment(payment);
     setShowPayNowModal(true);
-    setShowPrompt(false);
   };
 
   const cancelDeleteAlbum = () => {
@@ -983,6 +921,13 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
             flex-wrap: wrap !important;
             gap: 0.375rem !important;
           }
+          .view-toggle-container {
+            align-self: stretch !important;
+          }
+          .view-toggle-container button {
+            font-size: 0.8rem !important;
+            padding: 0.5rem 0.875rem !important;
+          }
           .mobile-title {
             font-size: 1.5rem !important;
           }
@@ -1266,186 +1211,246 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
 
         {/* Main Content */}
         <div className="mobile-main-content" style={{ flex: 1, overflowY: 'auto', padding: '1.25rem' }}>
-          {/* Header */}
+          {/* Header with View Toggle */}
           <header className="mobile-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <h1 className="mobile-title" style={{ fontSize: '1.8rem', lineHeight: '2rem', color: colors.textPrimary, fontWeight: '600', margin: 0 }}>My Gallery</h1>
-                <span style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.375rem',
-                  padding: '0.25rem 0.625rem',
-                  backgroundColor: '#F0FDF4',
-                  border: '1px solid #BBF7D0',
-                  borderRadius: '9999px',
-                  fontSize: '0.75rem',
-                  fontWeight: '600',
-                  color: '#16A34A'
-                }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                  Completed Events
-                </span>
-              </div>
-              <p style={{ fontSize: '0.95rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
-                Albums and photos from your completed events, shared by your photographers
+              <h1 className="mobile-title" style={{ fontSize: '1.8rem', lineHeight: '2rem', color: colors.textPrimary, fontWeight: '600', margin: 0 }}>My Gallery</h1>
+              <p className="mobile-subtitle" style={{ fontSize: '0.95rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
+                {pageView === 'archives'
+                  ? 'Browse and restore your archived albums'
+                  : pageView === 'photobooks'
+                  ? 'View your created photobooks and collections'
+                  : 'Albums and photos from your completed events, shared by your photographers'}
               </p>
             </div>
-            <div className="mobile-header-buttons" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+
+            {/* View Toggle Buttons */}
+            <div className="view-toggle-container" style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.25rem',
+              backgroundColor: actualTheme === 'dark' ? '#1E293B' : '#E2E8F0',
+              padding: '0.375rem',
+              borderRadius: '0.75rem',
+              boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.1)'
+            }}>
               <button
-                onClick={() => setViewMode('grid')}
+                onClick={() => setPageView('albums')}
                 style={{
-                  padding: '0.5rem',
-                  borderRadius: '0.5rem',
-                  border: viewMode === 'grid' ? `2px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}` : `2px solid ${colors.borderPrimary}`,
-                  backgroundColor: viewMode === 'grid' ? (actualTheme === 'dark' ? '#1E3A5F' : '#EBF5FF') : colors.bgCard,
-                  cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <GridIcon active={viewMode === 'grid'} activeColor={actualTheme === 'dark' ? '#60A5FA' : '#083A85'} />
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                style={{
-                  padding: '0.5rem',
+                  gap: '0.5rem',
+                  padding: '0.625rem 1.25rem',
+                  backgroundColor: pageView === 'albums'
+                    ? '#F20C8F'
+                    : (actualTheme === 'dark' ? 'transparent' : 'transparent'),
+                  color: pageView === 'albums'
+                    ? 'white'
+                    : (actualTheme === 'dark' ? '#94A3B8' : '#64748B'),
+                  border: 'none',
                   borderRadius: '0.5rem',
-                  border: viewMode === 'list' ? `2px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}` : `2px solid ${colors.borderPrimary}`,
-                  backgroundColor: viewMode === 'list' ? (actualTheme === 'dark' ? '#1E3A5F' : '#EBF5FF') : colors.bgCard,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <ListIcon active={viewMode === 'list'} activeColor={actualTheme === 'dark' ? '#60A5FA' : '#083A85'} />
-              </button>
-              <button
-                onClick={() => setPageView(pageView === 'albums' ? 'archives' : 'albums')}
-                style={{
-                  cursor: 'pointer',
-                  padding: '0.5rem 1rem',
-                  borderRadius: '0.5rem',
-                  border: '2px solid #F20C8F',
-                  backgroundColor: '#F20C8F',
-                  color: 'white',
-                  fontSize: '0.8rem',
+                  fontSize: '0.875rem',
                   fontWeight: '600',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.375rem',
-                  whiteSpace: 'nowrap',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  boxShadow: pageView === 'albums'
+                    ? '0 2px 8px rgba(242, 12, 143, 0.4)'
+                    : 'none'
                 }}
               >
-                {pageView === 'albums' ? (
-                  <Archive style={{width:'14px', height:'10px'}} />
-                ) : (
-                  <EyeIcon />
-                )}
-                {pageView === 'albums' ? 'View Archives' : 'View Photobooks'}
+                <AlbumsViewIcon active={pageView === 'albums'} />
+                Albums
+              </button>
+              <button
+                onClick={() => setPageView('archives')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.625rem 1.25rem',
+                  backgroundColor: pageView === 'archives'
+                    ? '#F20C8F'
+                    : (actualTheme === 'dark' ? 'transparent' : 'transparent'),
+                  color: pageView === 'archives'
+                    ? 'white'
+                    : (actualTheme === 'dark' ? '#94A3B8' : '#64748B'),
+                  border: 'none',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.875rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  boxShadow: pageView === 'archives'
+                    ? '0 2px 8px rgba(242, 12, 143, 0.4)'
+                    : 'none'
+                }}
+              >
+                <ArchivesViewIcon active={pageView === 'archives'} />
+                Archived
               </button>
               {photobooks.length > 0 && (
                 <button
-                  onClick={() => setPageView(pageView === 'albums' ? 'photobooks' : 'albums')}
+                  onClick={() => setPageView('photobooks')}
                   style={{
-                    padding: '0.5rem 1rem',
-                    borderRadius: '0.5rem',
-                    border: '2px solid #062a63',
-                    backgroundColor: '#083A85',
-                    color: 'white',
-                    cursor: 'pointer',
-                    fontSize: '0.8rem',
-                    fontWeight: '600',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.375rem',
-                    whiteSpace: 'nowrap'
+                    gap: '0.5rem',
+                    padding: '0.625rem 1.25rem',
+                    backgroundColor: pageView === 'photobooks'
+                      ? '#F20C8F'
+                      : (actualTheme === 'dark' ? 'transparent' : 'transparent'),
+                    color: pageView === 'photobooks'
+                      ? 'white'
+                      : (actualTheme === 'dark' ? '#94A3B8' : '#64748B'),
+                    border: 'none',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.875rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    boxShadow: pageView === 'photobooks'
+                      ? '0 2px 8px rgba(242, 12, 143, 0.4)'
+                      : 'none'
                   }}
                 >
-                  <ImageIcon />
-                  {pageView === 'albums' ? 'View Photobooks' : 'View Sent Albums'}
+                  <PhotobooksViewIcon active={pageView === 'photobooks'} />
+                  Photobooks
                 </button>
               )}
-              <button
-                onClick={() => setPageView(pageView === 'event-media' ? 'albums' : 'event-media')}
-                style={{
-                  padding: '0.5rem 1rem',
-                  borderRadius: '0.5rem',
-                  border: '2px solid #10B981',
-                  backgroundColor: pageView === 'event-media' ? '#10B981' : 'transparent',
-                  color: pageView === 'event-media' ? 'white' : '#10B981',
-                  cursor: 'pointer',
-                  fontSize: '0.8rem',
-                  fontWeight: '600',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.375rem',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                <Film style={{ width: '14px', height: '14px' }} />
-                {pageView === 'event-media' ? 'View Albums' : 'Event Media'}
-              </button>
-              <button
-                onClick={() => setShowCreatePhotobookModal(true)}
-                disabled={photobooks.length > 0}
-                style={{
-                  padding: '0.5rem 1rem',
-                  borderRadius: '0.5rem',
-                  border: '2px solid #062a63',
-                  backgroundColor: photobooks.length > 0 ? '#9CA3AF' : '#083A85',
-                  color: 'white',
-                  cursor: photobooks.length > 0 ? 'not-allowed' : 'pointer',
-                  fontSize: '0.8rem',
-                  fontWeight: '600',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.375rem',
-                  whiteSpace: 'nowrap',
-                  opacity: photobooks.length > 0 ? 0.7 : 1
-                }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                  <line x1="12" y1="5" x2="12" y2="19"></line>
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-                {photobooks.length > 0 ? 'Photobook Created' : 'Create Photobook'}
-              </button>
             </div>
           </header>
 
-          {/* Stats Cards */}
-          <div className="mobile-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
-              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Albums</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{albums.length}</div>
-            </div>
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
-              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Photos</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{totalPhotos}</div>
-            </div>
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
-              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Downloaded</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>{totalDownloaded}</div>
-            </div>
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
-              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Favorites</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#DC2626' }}>{totalFavorites}</div>
-            </div>
+          {/* Action Buttons */}
+          <div className="mobile-header-buttons" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
+            <button
+              onClick={() => setViewMode('grid')}
+              style={{
+                padding: '0.5rem',
+                borderRadius: '0.5rem',
+                border: viewMode === 'grid' ? `2px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}` : `2px solid ${colors.borderPrimary}`,
+                backgroundColor: viewMode === 'grid' ? (actualTheme === 'dark' ? '#1E3A5F' : '#EBF5FF') : colors.bgCard,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <GridIcon active={viewMode === 'grid'} activeColor={actualTheme === 'dark' ? '#60A5FA' : '#083A85'} />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              style={{
+                padding: '0.5rem',
+                borderRadius: '0.5rem',
+                border: viewMode === 'list' ? `2px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}` : `2px solid ${colors.borderPrimary}`,
+                backgroundColor: viewMode === 'list' ? (actualTheme === 'dark' ? '#1E3A5F' : '#EBF5FF') : colors.bgCard,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <ListIcon active={viewMode === 'list'} activeColor={actualTheme === 'dark' ? '#60A5FA' : '#083A85'} />
+            </button>
+            <button
+              onClick={() => setShowCreatePhotobookModal(true)}
+              style={{
+                padding: '0.5rem 1rem',
+                borderRadius: '0.5rem',
+                border: '2px solid #062a63',
+                backgroundColor: '#083A85',
+                color: 'white',
+                cursor: 'pointer',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Create Photobook
+            </button>
           </div>
 
-          {/* Filters */}
-          <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', marginBottom: '1.5rem', border: `1px solid ${colors.borderPrimary}` }}>
+          {/* Stats Cards - Adapt to current view */}
+          {pageView === 'albums' ? (
+            <div className="mobile-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard }}>
+                <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Albums</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{activeAlbums.length}</div>
+              </div>
+              <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard }}>
+                <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Photos</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{totalPhotos}</div>
+              </div>
+              <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard }}>
+                <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Downloaded</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>{totalDownloaded}</div>
+              </div>
+              <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard }}>
+                <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Favorites</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#DC2626' }}>{totalFavorites}</div>
+              </div>
+            </div>
+          ) : pageView === 'archives' ? (
+            <div className="mobile-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard }}>
+                <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Archived Albums</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#DC2626' }}>{archivedAlbums.length}</div>
+              </div>
+              <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard }}>
+                <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Archived Photos</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{archivedPhotos}</div>
+              </div>
+              <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard }}>
+                <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Amount Due</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#F59E0B' }}>${archivedAmountDue.toFixed(2)}</div>
+              </div>
+              <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard }}>
+                <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Locked</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#DC2626' }}>{archivedAlbums.length}</div>
+              </div>
+            </div>
+          ) : pageView === 'photobooks' ? (
+            <div className="mobile-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard }}>
+                <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Photobooks</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{photobooks.length}</div>
+              </div>
+              <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard }}>
+                <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Images</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{totalPhotobookImages}</div>
+              </div>
+              <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard }}>
+                <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Available Albums</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>{activeAlbums.length}</div>
+              </div>
+              <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard }}>
+                <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Unlocked</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>{photobooks.length}</div>
+              </div>
+            </div>
+          ) : null}
+
+          {/* Filters - Adapt to current view */}
+          <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', marginBottom: '1.5rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard }}>
             <div className="mobile-tabs" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
               {/* Search */}
               <div style={{ flex: 1, minWidth: '200px' }}>
                 <input
                   type="text"
-                  placeholder="Search albums or photographers..."
+                  placeholder={
+                    pageView === 'archives'
+                      ? 'Search archived albums...'
+                      : pageView === 'photobooks'
+                      ? 'Search photobooks...'
+                      : 'Search albums or photographers...'
+                  }
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   style={{
@@ -1460,43 +1465,47 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                 />
               </div>
 
-              {/* Category Filter */}
-              <select
-                value={filterCategory}
-                onChange={(e) => setFilterCategory(e.target.value)}
-                style={{
-                  padding: '0.625rem 1rem',
-                  border: `2px solid ${colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.9rem',
-                  color: colors.textPrimary,
-                  backgroundColor: colors.bgCard,
-                  cursor: 'pointer'
-                }}
-              >
-                {categories.map(cat => (
-                  <option key={cat} value={cat}>{cat === 'All' ? 'All Categories' : cat}</option>
-                ))}
-              </select>
+              {/* Category Filter - Albums & Archives views */}
+              {(pageView === 'albums' || pageView === 'archives') && (
+                <select
+                  value={filterCategory}
+                  onChange={(e) => setFilterCategory(e.target.value)}
+                  style={{
+                    padding: '0.625rem 1rem',
+                    border: `2px solid ${colors.borderPrimary}`,
+                    borderRadius: '0.5rem',
+                    fontSize: '0.9rem',
+                    color: colors.textPrimary,
+                    backgroundColor: colors.bgCard,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {categories.map(cat => (
+                    <option key={cat} value={cat}>{cat === 'All' ? 'All Categories' : cat}</option>
+                  ))}
+                </select>
+              )}
 
-              {/* Photographer Filter */}
-              <select
-                value={filterPhotographer}
-                onChange={(e) => setFilterPhotographer(e.target.value)}
-                style={{
-                  padding: '0.625rem 1rem',
-                  border: `2px solid ${colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.9rem',
-                  color: colors.textPrimary,
-                  backgroundColor: colors.bgCard,
-                  cursor: 'pointer'
-                }}
-              >
-                {photographers.map(p => (
-                  <option key={p} value={p}>{p === 'All' ? 'All Photographers' : p}</option>
-                ))}
-              </select>
+              {/* Photographer Filter - Albums & Archives views */}
+              {(pageView === 'albums' || pageView === 'archives') && (
+                <select
+                  value={filterPhotographer}
+                  onChange={(e) => setFilterPhotographer(e.target.value)}
+                  style={{
+                    padding: '0.625rem 1rem',
+                    border: `2px solid ${colors.borderPrimary}`,
+                    borderRadius: '0.5rem',
+                    fontSize: '0.9rem',
+                    color: colors.textPrimary,
+                    backgroundColor: colors.bgCard,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {photographers.map(p => (
+                    <option key={p} value={p}>{p === 'All' ? 'All Photographers' : p}</option>
+                  ))}
+                </select>
+              )}
             </div>
           </div>
 
@@ -1513,7 +1522,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                         backgroundColor: colors.bgCard,
                         borderRadius: '0.75rem',
                         overflow: 'hidden',
-                        border: `1px solid ${colors.borderPrimary}`,
+                        border: `2px solid ${colors.borderPrimary}`,
                         transition: 'all 0.2s',
                         cursor: 'pointer'
                       }}
@@ -1614,7 +1623,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                 </div>
               ) : (
                 /* List View */
-                <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', border: `1px solid ${colors.borderPrimary}`, overflow: 'hidden' }}>
+                <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard, overflow: 'hidden' }}>
                   {/* Table Header */}
                   <div style={{
                     display: 'grid',
@@ -1622,7 +1631,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                     gap: '1rem',
                     padding: '0.75rem 1rem',
                     backgroundColor: colors.bgTertiary,
-                    borderBottom: `1px solid ${colors.borderPrimary}`,
+                    borderBottom: `2px solid ${colors.borderPrimary}`,
                     fontSize: '0.8rem',
                     fontWeight: '600',
                     color: colors.textSecondary
@@ -1644,7 +1653,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                         gridTemplateColumns: '80px 1fr 150px 120px 100px 150px',
                         gap: '1rem',
                         padding: '0.75rem 1rem',
-                        borderBottom: `1px solid ${colors.borderPrimary}`,
+                        borderBottom: `2px solid ${colors.borderPrimary}`,
                         alignItems: 'center',
                         cursor: 'pointer',
                         transition: 'background-color 0.2s'
@@ -1730,7 +1739,8 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                   padding: '3rem 1.5rem',
                   backgroundColor: colors.bgCard,
                   borderRadius: '0.75rem',
-                  border: `1px solid ${colors.borderPrimary}`
+                  border: `2px solid ${colors.borderPrimary}`,
+                  boxShadow: colors.shadowCard
                 }}>
                   <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>
                     <ImageIcon />
@@ -1773,7 +1783,8 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                         backgroundColor: colors.bgCard,
                         borderRadius: '0.75rem',
                         overflow: 'hidden',
-                        border: `1px solid ${colors.borderPrimary}`,
+                        border: `2px solid ${colors.borderPrimary}`,
+                        boxShadow: colors.shadowCard,
                         transition: 'all 0.2s'
                       }}
                       onMouseEnter={(e) => {
@@ -1781,7 +1792,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                         e.currentTarget.style.transform = 'translateY(-2px)';
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.boxShadow = 'none';
+                        e.currentTarget.style.boxShadow = colors.shadowCard || 'none';
                         e.currentTarget.style.transform = 'translateY(0)';
                       }}
                     >
@@ -1849,7 +1860,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                       {/* Photobook Info */}
                       <div style={{ padding: '1rem' }}>
                         <h3 style={{ fontSize: '1rem', fontWeight: '600',display:'flex',justifyContent:'space-between',alignItems:'center', color: colors.textPrimary, margin: 0, marginBottom: '0.375rem' }}>
-                        <span> {photobook.name}</span> <span style={{color:'green', backgroundColor:'#BBF7D0', padding:'0.23rem 0.39rem', borderRadius:'0.3 rem'}}>Unlocked</span>
+                        <span> {photobook.name}</span> <span style={{color:'white', backgroundColor:'#16A34A', padding:'0.15rem 0.4rem', borderRadius:'0.25rem', fontSize:'0.75rem', fontWeight:'700'}}>Unlocked</span>
                         </h3>
                         {photobook.description && (
                           <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: '0 0 0.5rem 0', lineHeight: '1.4' }}>
@@ -2017,7 +2028,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
               padding: '3rem 1.5rem',
               backgroundColor: colors.bgCard,
               borderRadius: '0.75rem',
-              border: `1px solid ${colors.borderPrimary}`
+              border: `2px solid ${colors.borderPrimary}`
             }}>
               {viewMode === 'grid' ? (
                 <div className="mobile-albums-grid" style={{ 
@@ -2035,7 +2046,23 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                         colors={colors}
                         onCardClick={(album:any) => {
                           setSelectedArchiveAlbum(album);
-                          setWelcomeUnlockModalOpen(true);
+                          if (album?.payment) {
+                            const paymentData: Payment = {
+                              id: album.id,
+                              date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+                              eventName: album.payment.eventName,
+                              eventType: album.category,
+                              photographerName: album.payment.photographerName,
+                              photographerImage: album.photographerAvatar,
+                              method: '-',
+                              amount: '$10.0',
+                              amountNum: 10,
+                              paidAmount: 0,
+                              status: 'pending',
+                              invoiceNumber: `INV-${new Date().getFullYear()}-${String(album.id).padStart(3, '0')}`
+                            };
+                            handlePayNow(paymentData);
+                          }
                         }}
                         onBrowseClick={(album) => {
                           alert('This album is archived');
@@ -2047,7 +2074,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                 </div>
               ) : (
                 /* List View */
-                <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', border: `1px solid ${colors.borderPrimary}`, overflow: 'hidden' }}>
+                <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard, overflow: 'hidden' }}>
                   {/* Table Header */}
                   <div style={{
                     display: 'grid',
@@ -2055,7 +2082,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                     gap: '1rem',
                     padding: '0.75rem 1rem',
                     backgroundColor: colors.bgTertiary,
-                    borderBottom: `1px solid ${colors.borderPrimary}`,
+                    borderBottom: `2px solid ${colors.borderPrimary}`,
                     fontSize: '0.8rem',
                     fontWeight: '600',
                     color: colors.textSecondary
@@ -2079,7 +2106,23 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                         colors={colors}
                         onCardClick={(album) => {
                           setSelectedArchiveAlbum(album as any);
-                          setWelcomeUnlockModalOpen(true);
+                          if (album?.payment) {
+                            const paymentData: Payment = {
+                              id: Number(album.id),
+                              date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+                              eventName: (album as any).payment.eventName,
+                              eventType: album.category,
+                              photographerName: (album as any).payment.photographerName,
+                              photographerImage: album.photographerAvatar,
+                              method: '-',
+                              amount: '$10.0',
+                              amountNum: 10,
+                              paidAmount: 0,
+                              status: 'pending',
+                              invoiceNumber: `INV-${new Date().getFullYear()}-${String(album.id).padStart(3, '0')}`
+                            };
+                            handlePayNow(paymentData);
+                          }
                         }}
                         
                         onBrowseClick={(album) => {
@@ -2091,412 +2134,12 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                 </div>
               )}
             </div>
-          ) : pageView === 'event-media' ? (
-            <div>
-              {!selectedEventId ? (
-                <>
-                  {/* Event selector heading */}
-                  <div style={{ marginBottom: '1.5rem' }}>
-                    <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
-                      Select an Event
-                    </h2>
-                    <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0.25rem 0 0 0' }}>
-                      Choose an event to upload media or view existing media
-                    </p>
-                  </div>
-
-                  {isLoadingEvents ? (
-                    <div style={{ textAlign: 'center', padding: '3rem' }}>
-                      <div style={{
-                        width: '40px',
-                        height: '40px',
-                        border: '3px solid transparent',
-                        borderTop: `3px solid ${colors.brandPrimary || '#083A85'}`,
-                        borderRadius: '50%',
-                        animation: 'spin 1s linear infinite',
-                        margin: '0 auto 1rem'
-                      }} />
-                      <p style={{ color: colors.textSecondary, fontSize: '0.9rem' }}>Loading events...</p>
-                    </div>
-                  ) : userEvents.length === 0 ? (
-                    <div style={{
-                      textAlign: 'center',
-                      padding: '3rem 1.5rem',
-                      backgroundColor: colors.bgCard,
-                      borderRadius: '0.75rem',
-                      border: `1px solid ${colors.borderPrimary}`
-                    }}>
-                      <Film style={{ width: '48px', height: '48px', color: colors.textSecondary, margin: '0 auto 1rem' }} />
-                      <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
-                        No Events Found
-                      </h3>
-                      <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: 0 }}>
-                        Create an event first to upload media.
-                      </p>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem' }}>
-                      {userEvents.map((event) => (
-                        <div
-                          key={event.id}
-                          onClick={() => setSelectedEventId(event.id)}
-                          style={{
-                            backgroundColor: colors.bgCard,
-                            borderRadius: '0.75rem',
-                            overflow: 'hidden',
-                            border: `1px solid ${colors.borderPrimary}`,
-                            cursor: 'pointer',
-                            transition: 'all 0.2s'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
-                            e.currentTarget.style.transform = 'translateY(-2px)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.boxShadow = 'none';
-                            e.currentTarget.style.transform = 'translateY(0)';
-                          }}
-                        >
-                          {event.coverImage ? (
-                            <div style={{ position: 'relative', height: '160px', overflow: 'hidden' }}>
-                              <img
-                                src={event.coverImage}
-                                alt={event.title}
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                              />
-                            </div>
-                          ) : (
-                            <div style={{
-                              height: '160px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EBF5FF'
-                            }}>
-                              <Film style={{ width: '48px', height: '48px', color: colors.textSecondary }} />
-                            </div>
-                          )}
-                          <div style={{ padding: '1rem' }}>
-                            <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.25rem 0' }}>
-                              {event.title}
-                            </h3>
-                            {event.eventDate && (
-                              <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: 0 }}>
-                                {new Date(event.eventDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <>
-                  {/* Selected event media view */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-                    <button
-                      onClick={() => { setSelectedEventId(null); setEventMedia([]); }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.375rem',
-                        padding: '0.5rem 1rem',
-                        borderRadius: '0.5rem',
-                        border: `1px solid ${colors.borderPrimary}`,
-                        backgroundColor: colors.bgCard,
-                        color: colors.textPrimary,
-                        cursor: 'pointer',
-                        fontSize: '0.85rem',
-                        fontWeight: '500'
-                      }}
-                    >
-                      <ArrowLeft style={{ width: '16px', height: '16px' }} />
-                      Back to Events
-                    </button>
-                    <h2 style={{ fontSize: '1.15rem', fontWeight: '600', color: colors.textPrimary, margin: 0, flex: 1 }}>
-                      {userEvents.find(e => e.id === selectedEventId)?.title || 'Event Media'}
-                    </h2>
-                  </div>
-
-                  {/* Media grid */}
-                  {isLoadingMedia ? (
-                    <div style={{ textAlign: 'center', padding: '3rem' }}>
-                      <div style={{
-                        width: '40px',
-                        height: '40px',
-                        border: '3px solid transparent',
-                        borderTop: `3px solid ${colors.brandPrimary || '#083A85'}`,
-                        borderRadius: '50%',
-                        animation: 'spin 1s linear infinite',
-                        margin: '0 auto 1rem'
-                      }} />
-                      <p style={{ color: colors.textSecondary, fontSize: '0.9rem' }}>Loading media...</p>
-                    </div>
-                  ) : eventMedia.length === 0 ? (
-                    <div style={{
-                      textAlign: 'center',
-                      padding: '3rem 1.5rem',
-                      backgroundColor: colors.bgCard,
-                      borderRadius: '0.75rem',
-                      border: `2px dashed ${colors.borderPrimary}`
-                    }}>
-                      <Film style={{ width: '48px', height: '48px', color: colors.textSecondary, margin: '0 auto 1rem' }} />
-                      <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
-                        No Media Yet
-                      </h3>
-                      <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0 0 1rem 0' }}>
-                        No media uploaded yet for this event.
-                      </p>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
-                      {eventMedia.map((media, index) => {
-                        const isVideo = media.url?.match(/\.(mp4|webm|mov|avi)$/i) || media.name?.match(/\.(mp4|webm|mov|avi)$/i);
-                        const isSelected = !!media.selected;
-                        return (
-                          <div
-                            key={media.id || index}
-                            style={{
-                              position: 'relative',
-                              borderRadius: '0.75rem',
-                              overflow: 'hidden',
-                              border: isSelected ? '2px solid #16A34A' : `1px solid ${colors.borderPrimary}`,
-                              backgroundColor: colors.bgCard,
-                              aspectRatio: '1',
-                              transition: 'border-color 0.2s',
-                            }}
-                          >
-                            {isVideo ? (
-                              <video
-                                src={media.url}
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                controls
-                              />
-                            ) : (
-                              <img
-                                src={media.url}
-                                alt={media.name || `Media ${index + 1}`}
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                              />
-                            )}
-                            {isVideo && (
-                              <div style={{
-                                position: 'absolute',
-                                top: '0.5rem',
-                                right: '0.5rem',
-                                backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                                color: 'white',
-                                padding: '0.2rem 0.5rem',
-                                borderRadius: '0.25rem',
-                                fontSize: '0.7rem',
-                                fontWeight: '500'
-                              }}>
-                                VIDEO
-                              </div>
-                            )}
-                            {media.id && (
-                              <div
-                                onClick={() => handleToggleMediaSelect(media.id!, isSelected)}
-                                style={{
-                                  position: 'absolute',
-                                  top: '0.5rem',
-                                  left: '0.5rem',
-                                  width: '28px',
-                                  height: '28px',
-                                  borderRadius: '50%',
-                                  backgroundColor: isSelected ? '#16A34A' : 'rgba(0, 0, 0, 0.3)',
-                                  border: isSelected ? '2px solid #16A34A' : '2px solid rgba(255, 255, 255, 0.8)',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  cursor: 'pointer',
-                                  transition: 'all 0.2s',
-                                  zIndex: 2,
-                                }}
-                              >
-                                {isSelected && (
-                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                    <polyline points="20 6 9 17 4 12" />
-                                  </svg>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
           ) : null
           }
         </div>
       </div>
 
-      {/* PROMPT MODAL - PLACED AT ROOT LEVEL */}
-      {showPrompt && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '2rem',
-            borderRadius: '1rem',
-            maxWidth: '400px'
-          }}>
-            <DonatePromptModal
-              isOpen={showPrompt}
-              onClose={() => setShowPrompt(false)}
-              onNo={() => {
-                setShowPrompt(false);
-                if (selectedArchiveAlbum?.payment) {
-                  const paymentData: Payment = {
-                    id: selectedArchiveAlbum.id,
-                    date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
-                    eventName: selectedArchiveAlbum.payment.eventName,
-                    eventType: selectedArchiveAlbum.category,
-                    photographerName: selectedArchiveAlbum.payment.photographerName,
-                    photographerImage: selectedArchiveAlbum.photographerAvatar,
-                    method: '-',
-                    amount: '$10.0',
-                    amountNum: 10,
-                    paidAmount: 0,
-                    status: 'pending',
-                    invoiceNumber: `INV-${new Date().getFullYear()}-${String(selectedArchiveAlbum.id).padStart(3, '0')}`
-                  };
-                  handlePayNow(paymentData);
-                }
-              }}
-              onYes={() => {
-                setShowPrompt(false);
-                setDonateModal(true);
-              }}
-            />
-            <button
-              onClick={() => setShowPrompt(false)}
-              style={{
-                marginTop: '1rem',
-                padding: '0.5rem 1rem',
-                backgroundColor: '#083A85',
-                color: 'white',
-                border: 'none',
-                borderRadius: '0.5rem',
-                cursor: 'pointer',
-                width: '100%'
-              }}
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
 
-      {/* DONATE MODAL - PLACED AT ROOT LEVEL */}
-      {showDonateModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '2rem',
-            borderRadius: '1rem',
-            maxWidth: '400px'
-          }}>
-            <DonateModal
-              isOpen={showDonateModal}
-              onClose={() => setDonateModal(false)}
-            />
-            <button
-              onClick={() => setDonateModal(false)}
-              style={{
-                marginTop: '1rem',
-                padding: '0.5rem 1rem',
-                backgroundColor: '#083A85',
-                color: 'white',
-                border: 'none',
-                borderRadius: '0.5rem',
-                cursor: 'pointer',
-                width: '100%'
-              }}
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* UNLOCK MODAL - PLACED AT ROOT LEVEL */}
-      {welcomeUnlockModalOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '2rem',
-            borderRadius: '1rem',
-            maxWidth: '400px'
-          }}>
-            <PostModal
-              onYes={() => {
-                setWelcomeUnlockModalOpen(false);
-                setShowPayNowModal(true);
-              }}
-              title="Would you like to unlock this Photobook?"
-              description="Pay 10$ per Album to unlock photobooks"
-              onNo={() => setWelcomeUnlockModalOpen(false)}
-              onContinueToPayment={() => {
-                setWelcomeUnlockModalOpen(false);
-                setShowPrompt(true);
-              }}
-              onCancel={() => setWelcomeUnlockModalOpen(false)}
-            />
-            <button
-              onClick={() => setWelcomeUnlockModalOpen(false)}
-              style={{
-                marginTop: '1rem',
-                padding: '0.5rem 1rem',
-                backgroundColor: '#083A85',
-                color: 'white',
-                border: 'none',
-                borderRadius: '0.5rem',
-                cursor: 'pointer',
-                width: '100%'
-              }}
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* PAY NOW MODAL - PLACED AT ROOT LEVEL */}
       <PayNowModal
@@ -2721,7 +2364,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                   }}
                   style={{
                     padding: '1rem',
-                    border: option.name === 'Copy Link' && copiedLink ? '1px solid #10B981' : `1px solid ${colors.borderPrimary}`,
+                    border: option.name === 'Copy Link' && copiedLink ? '1px solid #10B981' : `2px solid ${colors.borderPrimary}`,
                     borderRadius: '0.5rem',
                     background: option.name === 'Copy Link' && copiedLink ? (actualTheme === 'dark' ? '#14532D' : '#ECFDF5') : colors.bgCard,
                     cursor: 'pointer',
@@ -2754,7 +2397,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
             </div>
 
             {/* Album Link Input */}
-            <div style={{ borderTop: `1px solid ${colors.borderPrimary}`, paddingTop: '1rem' }}>
+            <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, paddingTop: '1rem' }}>
               <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
                 Album Link
               </label>
@@ -3071,7 +2714,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                                 <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                               </svg>
                             </div>
-                            <span style={{ fontSize: '0.65rem', color: 'white', fontWeight: '600', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>Locked</span>
+                            <span style={{ fontSize: '0.75rem', color: 'white', fontWeight: '600', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>Locked</span>
                           </div>
                         ) : (
                           /* Checkbox for selectable images */
@@ -3127,66 +2770,38 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
       {/* Image Viewer Modal */}
       {showImageViewer && viewerAlbum && (
         <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.95)',
-            display: 'flex',
-            flexDirection: 'column',
-            zIndex: 2000
-          }}
+          style={{ position: 'fixed', inset: 0, backgroundColor: '#000', zIndex: 2000 }}
           onKeyDown={(e) => handleKeyDown(e as unknown as KeyboardEvent)}
           tabIndex={0}
         >
-          {/* Header */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: '1rem 1.5rem',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '0.5rem',
-                  overflow: 'hidden',
-                  position: 'relative'
-                }}>
-                  <Image src={viewerAlbum.thumbnail} alt={viewerAlbum.title} fill style={{ objectFit: 'cover' }} />
-                </div>
-                <div>
-                  <h3 style={{
-                    fontSize: '1rem',
-                    fontWeight: '600',
-                    color: 'white',
-                    margin: 0
-                  }}>{viewerAlbum.title}</h3>
-                  <p style={{
-                    fontSize: '0.8rem',
-                    color: 'rgba(255, 255, 255, 0.6)',
-                    margin: 0
-                  }}>{viewerAlbum.photographer}</p>
-                </div>
-              </div>
-              <span style={{
-                backgroundColor: 'rgba(8, 58, 133, 0.8)',
-                color: 'white',
-                padding: '0.375rem 0.75rem',
-                borderRadius: '9999px',
-                fontSize: '0.8rem',
-                fontWeight: '500'
-              }}>
-                {currentImageIndex + 1} of {viewerAlbum.images.length}
-              </span>
-            </div>
+          {/* Full-screen Image */}
+          <div style={{ position: 'absolute', inset: 0 }}>
+            <Image
+              src={viewerAlbum.images[currentImageIndex]}
+              alt={`${viewerAlbum.title} - Image ${currentImageIndex + 1}`}
+              fill
+              style={{ objectFit: 'contain', padding: '0 4rem' }}
+              priority
+            />
+          </div>
 
+          {/* Top Overlay */}
+          <div style={{
+            position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
+            background: 'linear-gradient(to bottom, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.3) 60%, transparent 100%)',
+            padding: '1rem 1.5rem 2rem',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'
+          }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '0.5rem', overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
+                <Image src={viewerAlbum.thumbnail} alt={viewerAlbum.title} fill style={{ objectFit: 'cover' }} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '0.95rem', fontWeight: '600', color: 'white', margin: 0 }}>{viewerAlbum.title}</h3>
+                <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', margin: 0 }}>{viewerAlbum.photographer} &middot; {currentImageIndex + 1} / {viewerAlbum.images.length}</p>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <button
                 onClick={handleAddCurrentImageToPhotobook}
                 disabled={
@@ -3196,238 +2811,91 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                 }
                 style={{
                   padding: '0.5rem 0.75rem',
-                  backgroundColor: (
-                    photobooks.length === 0 ||
-                    (viewerAlbum && photobooks[0]?.images.includes(viewerAlbum.images[currentImageIndex])) ||
-                    selectedImages.length >= MAX_IMAGE_SELECTION
-                  ) ? 'rgba(255, 255, 255, 0.05)' : 'rgba(8, 58, 133, 0.8)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  borderRadius: '0.5rem',
-                  color: 'white',
-                  cursor: (
-                    photobooks.length === 0 ||
-                    (viewerAlbum && photobooks[0]?.images.includes(viewerAlbum.images[currentImageIndex])) ||
-                    selectedImages.length >= MAX_IMAGE_SELECTION
-                  ) ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.375rem',
-                  fontSize: '0.8rem',
-                  fontWeight: '600',
-                  opacity: (
-                    photobooks.length === 0 ||
-                    (viewerAlbum && photobooks[0]?.images.includes(viewerAlbum.images[currentImageIndex])) ||
-                    selectedImages.length >= MAX_IMAGE_SELECTION
-                  ) ? 0.5 : 1,
+                  backgroundColor: (photobooks.length === 0 || (viewerAlbum && photobooks[0]?.images.includes(viewerAlbum.images[currentImageIndex])) || selectedImages.length >= MAX_IMAGE_SELECTION) ? 'rgba(255,255,255,0.08)' : 'rgba(8,58,133,0.85)',
+                  border: 'none', borderRadius: '0.5rem', color: 'white', cursor: (photobooks.length === 0 || (viewerAlbum && photobooks[0]?.images.includes(viewerAlbum.images[currentImageIndex])) || selectedImages.length >= MAX_IMAGE_SELECTION) ? 'not-allowed' : 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.8rem', fontWeight: '600',
+                  opacity: (photobooks.length === 0 || (viewerAlbum && photobooks[0]?.images.includes(viewerAlbum.images[currentImageIndex])) || selectedImages.length >= MAX_IMAGE_SELECTION) ? 0.5 : 1,
                   transition: 'all 0.2s'
                 }}
-                title={
-                  photobooks.length === 0 ? 'Create a photobook first'
-                  : (viewerAlbum && photobooks[0]?.images.includes(viewerAlbum.images[currentImageIndex])) ? 'Already added'
-                  : selectedImages.length >= MAX_IMAGE_SELECTION ? `Maximum ${MAX_IMAGE_SELECTION} images reached`
-                  : 'Add to Photobook'
-                }
+                title={photobooks.length === 0 ? 'Create a photobook first' : (viewerAlbum && photobooks[0]?.images.includes(viewerAlbum.images[currentImageIndex])) ? 'Already added' : selectedImages.length >= MAX_IMAGE_SELECTION ? `Maximum ${MAX_IMAGE_SELECTION} images reached` : 'Add to Photobook'}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
-                {(viewerAlbum && photobooks[0]?.images.includes(viewerAlbum.images[currentImageIndex])) ? 'Added' : 'Add to Photobook'}
+                {(viewerAlbum && photobooks[0]?.images.includes(viewerAlbum.images[currentImageIndex])) ? 'Added' : 'Photobook'}
               </button>
               <button
                 onClick={closeImageViewer}
                 style={{
-                  padding: '0.625rem',
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  borderRadius: '0.5rem',
-                  color: 'white',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  width: '36px', height: '36px', borderRadius: '50%',
+                  backgroundColor: 'rgba(255,255,255,0.12)', border: 'none',
+                  color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   transition: 'all 0.2s'
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-                }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.25)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.12)'; }}
               >
                 <CloseIcon />
               </button>
             </div>
           </div>
 
-          {/* Main Image Area */}
+          {/* Navigation Buttons */}
+          <button
+            onClick={() => currentImageIndex > 0 && setCurrentImageIndex(currentImageIndex - 1)}
+            style={{
+              position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', zIndex: 10,
+              width: '48px', height: '48px', borderRadius: '50%',
+              backgroundColor: 'rgba(0,0,0,0.4)', border: 'none', color: 'white',
+              cursor: currentImageIndex > 0 ? 'pointer' : 'default',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'all 0.2s', opacity: currentImageIndex > 0 ? 0.7 : 0
+            }}
+            onMouseEnter={(e) => { if (currentImageIndex > 0) e.currentTarget.style.opacity = '1'; e.currentTarget.style.backgroundColor = 'rgba(8,58,133,0.8)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = currentImageIndex > 0 ? '0.7' : '0'; e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.4)'; }}
+          >
+            <ChevronLeftIcon />
+          </button>
+          <button
+            onClick={() => currentImageIndex < viewerAlbum.images.length - 1 && setCurrentImageIndex(currentImageIndex + 1)}
+            style={{
+              position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', zIndex: 10,
+              width: '48px', height: '48px', borderRadius: '50%',
+              backgroundColor: 'rgba(0,0,0,0.4)', border: 'none', color: 'white',
+              cursor: currentImageIndex < viewerAlbum.images.length - 1 ? 'pointer' : 'default',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'all 0.2s', opacity: currentImageIndex < viewerAlbum.images.length - 1 ? 0.7 : 0
+            }}
+            onMouseEnter={(e) => { if (currentImageIndex < viewerAlbum.images.length - 1) e.currentTarget.style.opacity = '1'; e.currentTarget.style.backgroundColor = 'rgba(8,58,133,0.8)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = currentImageIndex < viewerAlbum.images.length - 1 ? '0.7' : '0'; e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.4)'; }}
+          >
+            <ChevronRightIcon />
+          </button>
+
+          {/* Bottom Thumbnail Strip */}
           <div style={{
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            position: 'relative',
-            padding: '2rem',
-            minHeight: 0
+            position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10,
+            background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 60%, transparent 100%)',
+            padding: '2.5rem 1.5rem 1.25rem'
           }}>
-            {/* Previous Button */}
-            <button
-              onClick={() => currentImageIndex > 0 && setCurrentImageIndex(currentImageIndex - 1)}
-              style={{
-                position: 'absolute',
-                left: '1.5rem',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                width: '56px',
-                height: '56px',
-                borderRadius: '50%',
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                border: '2px solid rgba(255, 255, 255, 0.3)',
-                color: 'white',
-                cursor: currentImageIndex > 0 ? 'pointer' : 'not-allowed',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.2s',
-                zIndex: 10,
-                opacity: currentImageIndex > 0 ? 1 : 0.3
-              }}
-              onMouseEnter={(e) => {
-                if (currentImageIndex > 0) {
-                  e.currentTarget.style.backgroundColor = 'rgba(8, 58, 133, 0.8)';
-                  e.currentTarget.style.borderColor = '#083A85';
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-              }}
-            >
-              <ChevronLeftIcon />
-            </button>
-
-            {/* Image Display */}
-            <div style={{
-              position: 'relative',
-              width: '100%',
-              height: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '0 100px'
-            }}>
-              <div style={{
-                width: 'min(calc(100vh - 160px), calc(100vw - 250px))',
-                height: 'min(calc(100vh - 160px), calc(100vw - 250px))',
-                position: 'relative',
-                borderRadius: '0.5rem',
-                overflow: 'hidden',
-                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
-              }}>
-                <Image
-                  src={viewerAlbum.images[currentImageIndex]}
-                  alt={`${viewerAlbum.title} - Image ${currentImageIndex + 1}`}
-                  fill
-                  style={{
-                    objectFit: 'cover',
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Next Button */}
-            <button
-              onClick={() => currentImageIndex < viewerAlbum.images.length - 1 && setCurrentImageIndex(currentImageIndex + 1)}
-              style={{
-                position: 'absolute',
-                right: '1.5rem',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                width: '56px',
-                height: '56px',
-                borderRadius: '50%',
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                border: '2px solid rgba(255, 255, 255, 0.3)',
-                color: 'white',
-                cursor: currentImageIndex < viewerAlbum.images.length - 1 ? 'pointer' : 'not-allowed',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.2s',
-                zIndex: 10,
-                opacity: currentImageIndex < viewerAlbum.images.length - 1 ? 1 : 0.3
-              }}
-              onMouseEnter={(e) => {
-                if (currentImageIndex < viewerAlbum.images.length - 1) {
-                  e.currentTarget.style.backgroundColor = 'rgba(8, 58, 133, 0.8)';
-                  e.currentTarget.style.borderColor = '#083A85';
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-              }}
-            >
-              <ChevronRightIcon />
-            </button>
-          </div>
-
-          {/* Thumbnail Strip */}
-          <div style={{
-            padding: '1rem 1.5rem 1.5rem',
-            borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-            backgroundColor: 'rgba(0, 0, 0, 0.3)'
-          }}>
-            <div style={{
-              display: 'flex',
-              gap: '0.75rem',
-              overflowX: 'auto',
-              paddingBottom: '0.5rem',
-              justifyContent: 'center'
-            }}>
+            <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', justifyContent: 'center', paddingBottom: '0.25rem' }}>
               {viewerAlbum.images.map((image, index) => (
                 <button
                   key={index}
                   onClick={() => setCurrentImageIndex(index)}
                   style={{
-                    position: 'relative',
-                    width: '80px',
-                    height: '60px',
-                    borderRadius: '0.5rem',
-                    overflow: 'hidden',
-                    border: currentImageIndex === index
-                      ? '3px solid #083A85'
-                      : '3px solid transparent',
-                    cursor: 'pointer',
-                    flexShrink: 0,
-                    transition: 'all 0.2s',
-                    opacity: currentImageIndex === index ? 1 : 0.6,
-                    transform: currentImageIndex === index ? 'scale(1.05)' : 'scale(1)'
+                    position: 'relative', width: '56px', height: '42px', borderRadius: '0.375rem',
+                    overflow: 'hidden', border: currentImageIndex === index ? '2px solid white' : '2px solid transparent',
+                    cursor: 'pointer', flexShrink: 0, transition: 'all 0.2s',
+                    opacity: currentImageIndex === index ? 1 : 0.5,
+                    transform: currentImageIndex === index ? 'scale(1.1)' : 'scale(1)',
+                    background: 'none', padding: 0
                   }}
-                  onMouseEnter={(e) => {
-                    if (currentImageIndex !== index) {
-                      e.currentTarget.style.opacity = '0.9';
-                      e.currentTarget.style.borderColor = 'rgba(8, 58, 133, 0.5)';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (currentImageIndex !== index) {
-                      e.currentTarget.style.opacity = '0.6';
-                      e.currentTarget.style.borderColor = 'transparent';
-                    }
-                  }}
+                  onMouseEnter={(e) => { if (currentImageIndex !== index) e.currentTarget.style.opacity = '0.8'; }}
+                  onMouseLeave={(e) => { if (currentImageIndex !== index) e.currentTarget.style.opacity = '0.5'; }}
                 >
                   <Image src={image} alt={`Thumbnail ${index + 1}`} fill style={{ objectFit: 'cover' }} />
-                  {currentImageIndex === index && (
-                    <div style={{
-                      position: 'absolute',
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      height: '3px',
-                      backgroundColor: '#083A85'
-                    }} />
-                  )}
                 </button>
               ))}
             </div>
@@ -3537,7 +3005,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
             </div>
 
             {/* Buttons */}
-            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', paddingTop: '1rem', borderTop: `1px solid ${colors.borderPrimary}` }}>
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', paddingTop: '1rem', borderTop: `2px solid ${colors.borderPrimary}` }}>
               <button
                 onClick={resetWizard}
                 style={{
@@ -3614,7 +3082,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
             {/* Wizard Header */}
             <div style={{
               padding: '1.25rem 1.5rem',
-              borderBottom: `1px solid ${colors.borderPrimary}`,
+              borderBottom: `2px solid ${colors.borderPrimary}`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between'
@@ -3832,7 +3300,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
             {/* Wizard Footer */}
             <div style={{
               padding: '1rem 1.5rem',
-              borderTop: `1px solid ${colors.borderPrimary}`,
+              borderTop: `2px solid ${colors.borderPrimary}`,
               display: 'flex',
               justifyContent: 'space-between',
               gap: '0.75rem'
@@ -3842,7 +3310,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                 style={{
                   padding: '0.625rem 1.25rem',
                   borderRadius: '0.375rem',
-                  border: `1px solid ${colors.borderPrimary}`,
+                  border: `2px solid ${colors.borderPrimary}`,
                   backgroundColor: 'transparent',
                   color: colors.textSecondary,
                   fontSize: '0.85rem',
@@ -4371,8 +3839,9 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
             alignItems: 'center',
             justifyContent: 'center',
             position: 'relative',
-            padding: '2rem',
-            minHeight: 0
+            padding: '1rem 5rem',
+            minHeight: 0,
+            overflow: 'hidden'
           }}>
             {/* Previous Button */}
             <button
@@ -4418,16 +3887,6 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                 position: 'relative',
                 width: '100%',
                 height: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '0 70px'
-              }}>
-              <div style={{
-                width: 'calc(100vw - 160px)',
-                maxWidth: '1800px',
-                height: 'calc(100vh - 180px)',
-                position: 'relative',
                 borderRadius: '0.5rem',
                 overflow: 'hidden',
                 boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
@@ -4483,7 +3942,6 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                     Locked
                   </div>
                 )}
-              </div>
             </div>
 
             {/* Next Button */}
@@ -4528,9 +3986,10 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
           <div
             className="step3-thumbnail-strip"
             style={{
-              padding: '0.5rem 1rem',
-              borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-              backgroundColor: 'rgba(0, 0, 0, 0.3)'
+              padding: '1.25rem 1rem 1.75rem',
+              borderTop: '1px solid rgba(255, 255, 255, 0.15)',
+              backgroundColor: 'rgba(0, 0, 0, 0.4)',
+              flexShrink: 0
             }}>
             <div style={{
               display: 'flex',
@@ -4654,7 +4113,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
             {/* Header */}
             <div style={{
               padding: '1.25rem 1.5rem',
-              borderBottom: `1px solid ${colors.borderPrimary}`,
+              borderBottom: `2px solid ${colors.borderPrimary}`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between'
@@ -4751,7 +4210,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
             {/* Footer */}
             <div style={{
               padding: '1rem 1.5rem',
-              borderTop: `1px solid ${colors.borderPrimary}`,
+              borderTop: `2px solid ${colors.borderPrimary}`,
               display: 'flex',
               justifyContent: 'space-between',
               gap: '0.75rem'
@@ -4761,7 +4220,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                 style={{
                   padding: '0.625rem 1.25rem',
                   borderRadius: '0.375rem',
-                  border: `1px solid ${colors.borderPrimary}`,
+                  border: `2px solid ${colors.borderPrimary}`,
                   backgroundColor: 'transparent',
                   color: colors.textSecondary,
                   fontSize: '0.85rem',
@@ -5789,58 +5248,37 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
 
       {/* Photobook Image Viewer */}
       {showPhotobookImageViewer && selectedPhotobook && selectedPhotobook.images.length > 0 && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.95)',
-            display: 'flex',
-            flexDirection: 'column',
-            zIndex: 2000
-          }}
-        >
-          {/* Header */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: '1rem 1.5rem',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                {selectedPhotobook.thumbnail && (
-                  <div style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '0.5rem',
-                    overflow: 'hidden',
-                    position: 'relative'
-                  }}>
-                    <Image src={selectedPhotobook.thumbnail} alt={selectedPhotobook.name} fill style={{ objectFit: 'cover' }} />
-                  </div>
-                )}
-                <div>
-                  <h3 style={{ fontSize: '1rem', fontWeight: '600', color: 'white', margin: 0 }}>{selectedPhotobook.name}</h3>
-                  <p style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.6)', margin: 0 }}>Photobook</p>
-                </div>
-              </div>
-              <span style={{
-                backgroundColor: 'rgba(8, 58, 133, 0.8)',
-                color: 'white',
-                padding: '0.375rem 0.75rem',
-                borderRadius: '9999px',
-                fontSize: '0.8rem',
-                fontWeight: '500'
-              }}>
-                {photobookCurrentImageIndex + 1} of {selectedPhotobook.images.length}
-              </span>
-            </div>
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: '#000', zIndex: 2000 }}>
+          {/* Full-screen Image */}
+          <div style={{ position: 'absolute', inset: 0 }}>
+            <Image
+              src={selectedPhotobook.images[photobookCurrentImageIndex]}
+              alt={`${selectedPhotobook.name} - Image ${photobookCurrentImageIndex + 1}`}
+              fill
+              style={{ objectFit: 'contain', padding: '0 4rem' }}
+              priority
+            />
+          </div>
 
+          {/* Top Overlay */}
+          <div style={{
+            position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
+            background: 'linear-gradient(to bottom, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.3) 60%, transparent 100%)',
+            padding: '1rem 1.5rem 2rem',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'
+          }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              {selectedPhotobook.thumbnail && (
+                <div style={{ width: '36px', height: '36px', borderRadius: '0.5rem', overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
+                  <Image src={selectedPhotobook.thumbnail} alt={selectedPhotobook.name} fill style={{ objectFit: 'cover' }} />
+                </div>
+              )}
+              <div>
+                <h3 style={{ fontSize: '0.95rem', fontWeight: '600', color: 'white', margin: 0 }}>{selectedPhotobook.name}</h3>
+                <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', margin: 0 }}>Photobook &middot; {photobookCurrentImageIndex + 1} / {selectedPhotobook.images.length}</p>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <button
                 onClick={() => {
                   if (selectedPhotobook) {
@@ -5850,15 +5288,9 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                   }
                 }}
                 style={{
-                  padding: '0.625rem',
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  borderRadius: '0.5rem',
-                  color: 'white',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
+                  width: '36px', height: '36px', borderRadius: '50%',
+                  backgroundColor: 'rgba(255,255,255,0.12)', border: 'none',
+                  color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
                 }}
                 title="Download image"
               >
@@ -5867,141 +5299,72 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
               <button
                 onClick={closePhotobookImageViewer}
                 style={{
-                  padding: '0.625rem',
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  borderRadius: '0.5rem',
-                  color: 'white',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
+                  width: '36px', height: '36px', borderRadius: '50%',
+                  backgroundColor: 'rgba(255,255,255,0.12)', border: 'none',
+                  color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'all 0.2s'
                 }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.25)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.12)'; }}
               >
                 <CloseIcon />
               </button>
             </div>
           </div>
 
-          {/* Main Image Area */}
+          {/* Navigation Buttons */}
+          <button
+            onClick={() => photobookCurrentImageIndex > 0 && setPhotobookCurrentImageIndex(photobookCurrentImageIndex - 1)}
+            style={{
+              position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', zIndex: 10,
+              width: '48px', height: '48px', borderRadius: '50%',
+              backgroundColor: 'rgba(0,0,0,0.4)', border: 'none', color: 'white',
+              cursor: photobookCurrentImageIndex > 0 ? 'pointer' : 'default',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'all 0.2s', opacity: photobookCurrentImageIndex > 0 ? 0.7 : 0
+            }}
+            onMouseEnter={(e) => { if (photobookCurrentImageIndex > 0) e.currentTarget.style.opacity = '1'; e.currentTarget.style.backgroundColor = 'rgba(8,58,133,0.8)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = photobookCurrentImageIndex > 0 ? '0.7' : '0'; e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.4)'; }}
+          >
+            <ChevronLeftIcon />
+          </button>
+          <button
+            onClick={() => photobookCurrentImageIndex < selectedPhotobook.images.length - 1 && setPhotobookCurrentImageIndex(photobookCurrentImageIndex + 1)}
+            style={{
+              position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', zIndex: 10,
+              width: '48px', height: '48px', borderRadius: '50%',
+              backgroundColor: 'rgba(0,0,0,0.4)', border: 'none', color: 'white',
+              cursor: photobookCurrentImageIndex < selectedPhotobook.images.length - 1 ? 'pointer' : 'default',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'all 0.2s', opacity: photobookCurrentImageIndex < selectedPhotobook.images.length - 1 ? 0.7 : 0
+            }}
+            onMouseEnter={(e) => { if (photobookCurrentImageIndex < selectedPhotobook.images.length - 1) e.currentTarget.style.opacity = '1'; e.currentTarget.style.backgroundColor = 'rgba(8,58,133,0.8)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = photobookCurrentImageIndex < selectedPhotobook.images.length - 1 ? '0.7' : '0'; e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.4)'; }}
+          >
+            <ChevronRightIcon />
+          </button>
+
+          {/* Bottom Thumbnail Strip */}
           <div style={{
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            position: 'relative',
-            padding: '2rem',
-            minHeight: 0
+            position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10,
+            background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 60%, transparent 100%)',
+            padding: '2.5rem 1.5rem 1.25rem'
           }}>
-            {/* Previous Button */}
-            <button
-              onClick={() => photobookCurrentImageIndex > 0 && setPhotobookCurrentImageIndex(photobookCurrentImageIndex - 1)}
-              style={{
-                position: 'absolute',
-                left: '1.5rem',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                width: '56px',
-                height: '56px',
-                borderRadius: '50%',
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                border: '2px solid rgba(255, 255, 255, 0.3)',
-                color: 'white',
-                cursor: photobookCurrentImageIndex > 0 ? 'pointer' : 'not-allowed',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 10,
-                opacity: photobookCurrentImageIndex > 0 ? 1 : 0.3
-              }}
-            >
-              <ChevronLeftIcon />
-            </button>
-
-            {/* Image Display */}
-            <div style={{
-              position: 'relative',
-              width: '100%',
-              height: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '0 100px'
-            }}>
-              <div style={{
-                width: 'min(calc(100vh - 160px), calc(100vw - 250px))',
-                height: 'min(calc(100vh - 160px), calc(100vw - 250px))',
-                position: 'relative',
-                borderRadius: '0.5rem',
-                overflow: 'hidden',
-                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
-              }}>
-                <Image
-                  src={selectedPhotobook.images[photobookCurrentImageIndex]}
-                  alt={`${selectedPhotobook.name} - Image ${photobookCurrentImageIndex + 1}`}
-                  fill
-                  style={{ objectFit: 'cover' }}
-                />
-              </div>
-            </div>
-
-            {/* Next Button */}
-            <button
-              onClick={() => photobookCurrentImageIndex < selectedPhotobook.images.length - 1 && setPhotobookCurrentImageIndex(photobookCurrentImageIndex + 1)}
-              style={{
-                position: 'absolute',
-                right: '1.5rem',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                width: '56px',
-                height: '56px',
-                borderRadius: '50%',
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                border: '2px solid rgba(255, 255, 255, 0.3)',
-                color: 'white',
-                cursor: photobookCurrentImageIndex < selectedPhotobook.images.length - 1 ? 'pointer' : 'not-allowed',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 10,
-                opacity: photobookCurrentImageIndex < selectedPhotobook.images.length - 1 ? 1 : 0.3
-              }}
-            >
-              <ChevronRightIcon />
-            </button>
-          </div>
-
-          {/* Thumbnail Strip */}
-          <div style={{
-            padding: '1rem 1.5rem 1.5rem',
-            borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-            backgroundColor: 'rgba(0, 0, 0, 0.3)'
-          }}>
-            <div style={{
-              display: 'flex',
-              gap: '0.75rem',
-              overflowX: 'auto',
-              paddingBottom: '0.5rem',
-              justifyContent: 'center'
-            }}>
+            <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', justifyContent: 'center', paddingBottom: '0.25rem' }}>
               {selectedPhotobook.images.map((image, index) => (
                 <button
                   key={index}
                   onClick={() => setPhotobookCurrentImageIndex(index)}
                   style={{
-                    position: 'relative',
-                    width: '80px',
-                    height: '60px',
-                    borderRadius: '0.5rem',
-                    overflow: 'hidden',
-                    border: photobookCurrentImageIndex === index
-                      ? '3px solid #083A85'
-                      : '3px solid transparent',
-                    cursor: 'pointer',
-                    flexShrink: 0,
-                    opacity: photobookCurrentImageIndex === index ? 1 : 0.6,
-                    transform: photobookCurrentImageIndex === index ? 'scale(1.05)' : 'scale(1)'
+                    position: 'relative', width: '56px', height: '42px', borderRadius: '0.375rem',
+                    overflow: 'hidden', border: photobookCurrentImageIndex === index ? '2px solid white' : '2px solid transparent',
+                    cursor: 'pointer', flexShrink: 0, transition: 'all 0.2s',
+                    opacity: photobookCurrentImageIndex === index ? 1 : 0.5,
+                    transform: photobookCurrentImageIndex === index ? 'scale(1.1)' : 'scale(1)',
+                    background: 'none', padding: 0
                   }}
+                  onMouseEnter={(e) => { if (photobookCurrentImageIndex !== index) e.currentTarget.style.opacity = '0.8'; }}
+                  onMouseLeave={(e) => { if (photobookCurrentImageIndex !== index) e.currentTarget.style.opacity = '0.5'; }}
                 >
                   <Image src={image} alt={`Thumbnail ${index + 1}`} fill style={{ objectFit: 'cover' }} />
                 </button>
