@@ -7,6 +7,7 @@ import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '../../context/CurrencyContext';
+import { useDashboardAuth } from '../../providers/AuthProvider';
 import PayNowModal, { Payment } from '../../components/UnlockModal';
 import {
   StatCard,
@@ -159,6 +160,7 @@ interface Photographer {
 const EventCoordinatorDashboard = () => {
   const { colors, actualTheme } = useTheme();
   const { formatPrice } = useCurrency();
+  const { user } = useDashboardAuth();
   const [activeFilter, setActiveFilter] = useState<'today' | 'week' | 'month' | 'custom'>('week');
   const [timeOfDay, setTimeOfDay] = useState(getTimeOfDay());
   const [greetingIndex, setGreetingIndex] = useState(0);
@@ -441,7 +443,7 @@ const EventCoordinatorDashboard = () => {
                 fontWeight: '600',
                 transition: 'opacity 0.3s ease'
               }}>
-                {currentGreeting}, <span style={{ fontWeight: '600', color: colors.brandPrimary }}>Diane</span>
+                {currentGreeting}, <span style={{ fontWeight: '600', color: colors.brandPrimary }}>{user?.firstName || 'there'}</span>
               </h1>
               <p style={{
                 fontSize: '0.875rem',

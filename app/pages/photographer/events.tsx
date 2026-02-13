@@ -412,6 +412,7 @@ const galleryData = [
     views: 1250,
     downloads: 89,
     likes: 234,
+    faceRecognitionCode: null as string | null,
     coverImage: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=400&h=300&fit=crop',
     images: [
       'https://images.unsplash.com/photo-1519741497674-611481863552?w=800',
@@ -435,6 +436,7 @@ const galleryData = [
     views: 560,
     downloads: 45,
     likes: 78,
+    faceRecognitionCode: null as string | null,
     coverImage: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=300&fit=crop',
     images: [
       'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800',
@@ -456,6 +458,7 @@ const galleryData = [
     views: 890,
     downloads: 56,
     likes: 145,
+    faceRecognitionCode: null as string | null,
     coverImage: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=400&h=300&fit=crop',
     images: [
       'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=800',
@@ -476,6 +479,7 @@ const galleryData = [
     views: 2100,
     downloads: 167,
     likes: 312,
+    faceRecognitionCode: null as string | null,
     coverImage: 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=400&h=300&fit=crop',
     images: [
       'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=800'
@@ -495,6 +499,7 @@ const galleryData = [
     views: 340,
     downloads: 28,
     likes: 67,
+    faceRecognitionCode: null as string | null,
     coverImage: 'https://images.unsplash.com/photo-1511578314322-379afb476865?w=400&h=300&fit=crop',
     images: [
       'https://images.unsplash.com/photo-1511578314322-379afb476865?w=800'
@@ -514,6 +519,7 @@ const galleryData = [
     views: 1560,
     downloads: 234,
     likes: 189,
+    faceRecognitionCode: null as string | null,
     coverImage: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=400&h=300&fit=crop',
     images: [
       'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800'
@@ -839,7 +845,7 @@ const CheckIcon = () => (
 
 const PhotographerEventsPage = () => {
   const { colors, actualTheme } = useTheme();
-  const { formatPrice } = useCurrency();
+  const { formatPrice, currencies, currency } = useCurrency();
   const { user } = useDashboardAuth();
 
   // View toggle state
@@ -860,6 +866,11 @@ const PhotographerEventsPage = () => {
   const [sharePhoto, setSharePhoto] = useState<typeof galleryData[0] | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
 
+  // Face Recognition State
+  const [showFaceRecognitionModal, setShowFaceRecognitionModal] = useState(false);
+  const [faceRecognitionAlbum, setFaceRecognitionAlbum] = useState<typeof galleryData[0] | null>(null);
+  const [copiedInviteCode, setCopiedInviteCode] = useState(false);
+
   // Image Viewer State
   const [showImageViewer, setShowImageViewer] = useState(false);
   const [viewerAlbum, setViewerAlbum] = useState<typeof galleryData[0] | null>(null);
@@ -876,7 +887,9 @@ const PhotographerEventsPage = () => {
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [shareToClientSuccess, setShareToClientSuccess] = useState(false);
   const [shareType, setShareType] = useState<'album' | 'images'>('album');
-  const [maxImagesInput, setMaxImagesInput] = useState<string>('');
+  const [extraImagePrice, setExtraImagePrice] = useState<string>('');
+  const [priceCurrency, setPriceCurrency] = useState(currency);
+  const [isPriceCurrencyOpen, setIsPriceCurrencyOpen] = useState(false);
 
   // Upload form state
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
@@ -1216,6 +1229,38 @@ const PhotographerEventsPage = () => {
     return `https://connekt.app/gallery/${photo.id}/${photo.title.toLowerCase().replace(/\s+/g, '-')}`;
   };
 
+  const generateInviteCode = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = 'CNKT-';
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+  };
+
+  const handleFaceRecognition = (album: typeof galleryData[0]) => {
+    if (!album.faceRecognitionCode) {
+      const newCode = generateInviteCode();
+      const updatedAlbum = { ...album, faceRecognitionCode: newCode };
+      setPhotos(photos.map(p => p.id === album.id ? updatedAlbum : p));
+      setFaceRecognitionAlbum(updatedAlbum);
+    } else {
+      setFaceRecognitionAlbum(album);
+    }
+    setShowFaceRecognitionModal(true);
+  };
+
+  const handleCopyInviteCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedInviteCode(true);
+    setTimeout(() => setCopiedInviteCode(false), 2000);
+  };
+
+  const getFaceRecognitionUrl = (code: string) => {
+    const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekt.rw';
+    return `${landingUrl}/face-recognition?code=${code}`;
+  };
+
   const handleUpload = () => {
     if (!uploadTitle || uploadedImagePreviews.length === 0) return;
 
@@ -1228,6 +1273,7 @@ const PhotographerEventsPage = () => {
       featured: uploadFeatured,
       shared: uploadShared,
       sharedWithClient: false,
+      faceRecognitionCode: null,
       clientId: uploadClientId,
       clientName: mockClients.find(c => c.id === uploadClientId)?.name || 'Unknown Client',
       views: 0,
@@ -2065,135 +2111,193 @@ const PhotographerEventsPage = () => {
                         borderTop: '1px solid #F3F4F6'
                       }}>
                         <span style={{ fontSize: '0.85rem', color: '#9CA3AF' }}>{photo.date}</span>
-                        <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.375rem',
-                          backgroundColor: photo.sharedWithClient
-                            ? (actualTheme === 'dark' ? '#064E3B' : '#D1FAE5')
-                            : (actualTheme === 'dark' ? '#78350F' : '#FEF3C7'),
-                          padding: '0.25rem 0.625rem',
-                          borderRadius: '9999px',
-                          fontSize: '0.8rem',
-                          fontWeight: '500',
-                          color: photo.sharedWithClient
-                            ? (actualTheme === 'dark' ? '#6EE7B7' : '#065F46')
-                            : (actualTheme === 'dark' ? '#FCD34D' : '#92400E')
-                        }}>
-                          <i className={`bi ${photo.sharedWithClient ? 'bi-check-circle-fill' : 'bi-lock-fill'}`} style={{ fontSize: '0.7rem' }}></i>
-                          {photo.sharedWithClient ? 'Shared' : 'Private'}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.375rem',
+                            backgroundColor: photo.sharedWithClient
+                              ? (actualTheme === 'dark' ? '#064E3B' : '#D1FAE5')
+                              : (actualTheme === 'dark' ? '#78350F' : '#FEF3C7'),
+                            padding: '0.25rem 0.625rem',
+                            borderRadius: '9999px',
+                            fontSize: '0.8rem',
+                            fontWeight: '500',
+                            color: photo.sharedWithClient
+                              ? (actualTheme === 'dark' ? '#6EE7B7' : '#065F46')
+                              : (actualTheme === 'dark' ? '#FCD34D' : '#92400E')
+                          }}>
+                            <i className={`bi ${photo.sharedWithClient ? 'bi-check-circle-fill' : 'bi-lock-fill'}`} style={{ fontSize: '0.7rem' }}></i>
+                            {photo.sharedWithClient ? 'Shared' : 'Private'}
+                          </div>
+                          {photo.faceRecognitionCode && (
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.25rem',
+                              backgroundColor: actualTheme === 'dark' ? '#581C87' : '#EDE9FE',
+                              padding: '0.25rem 0.5rem',
+                              borderRadius: '9999px',
+                              fontSize: '0.7rem',
+                              fontWeight: '600',
+                              color: actualTheme === 'dark' ? '#C4B5FD' : '#6B21A8',
+                              fontFamily: 'monospace'
+                            }}>
+                              <i className="bi bi-qr-code" style={{ fontSize: '0.6rem' }}></i>
+                              {photo.faceRecognitionCode}
+                            </div>
+                          )}
                         </div>
                       </div>
 
                       {/* Quick Actions */}
                       <div style={{
                         display: 'flex',
-                        gap: '0.5rem',
+                        flexDirection: 'column',
+                        gap: '0.375rem',
                         marginTop: '0.75rem'
                       }}>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedPhoto(photo);
-                            setShowViewModal(true);
-                          }}
-                          style={{
-                            flex: 1,
-                            padding: '0.5rem',
-                            borderRadius: '0.375rem',
-                            border: '2px solid #062a63',
-                            backgroundColor: '#083A85',
-                            color: 'white',
-                            fontSize: '0.8rem',
-                            fontWeight: '500',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '0.25rem',
-                            transition: 'all 0.2s'
-                          }}
-                        >
-                          <EyeIcon />
-                          Browse
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSharePhoto(photo);
-                            setShowShareModal(true);
-                          }}
-                          style={{
-                            flex: 1,
-                            padding: '0.5rem',
-                            borderRadius: '0.375rem',
-                            border: '2px solid #15803D',
-                            backgroundColor: '#16A34A',
-                            color: 'white',
-                            fontSize: '0.8rem',
-                            fontWeight: '600',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '0.25rem',
-                            transition: 'all 0.2s'
-                          }}
-                        >
-                          <SendIcon />
-                          Send
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedPhoto(photo);
-                            setShowEditModal(true);
-                          }}
-                          style={{
-                            width: '36px',
-                            height: '36px',
-                            padding: '0.5rem',
-                            borderRadius: '0.375rem',
-                            border: `2px solid ${colors.borderSecondary}`,
-                            backgroundColor: colors.bgTertiary,
-                            color: colors.textPrimary,
-                            fontSize: '0.85rem',
-                            fontWeight: '600',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            transition: 'all 0.2s'
-                          }}
-                          title="Edit Album"
-                        >
-                          <i className="bi bi-pencil" style={{ fontSize: '0.9rem' }}></i>
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openGalleryDeleteModal(photo);
-                          }}
-                          style={{
-                            width: '36px',
-                            height: '36px',
-                            padding: '0.5rem',
-                            borderRadius: '0.375rem',
-                            border: '2px solid #FCA5A5',
-                            backgroundColor: '#FEE2E2',
-                            color: '#DC2626',
-                            fontSize: '0.85rem',
-                            fontWeight: '600',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            transition: 'all 0.2s'
-                          }}
-                          title="Delete Album"
-                        >
-                          <i className="bi bi-trash" style={{ fontSize: '0.9rem' }}></i>
-                        </button>
+                        {/* Primary Actions Row */}
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedPhoto(photo);
+                              setShowViewModal(true);
+                            }}
+                            style={{
+                              flex: 1,
+                              padding: '0.5rem',
+                              borderRadius: '0.375rem',
+                              border: '2px solid #062a63',
+                              backgroundColor: '#083A85',
+                              color: 'white',
+                              fontSize: '0.8rem',
+                              fontWeight: '500',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '0.25rem',
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            <EyeIcon />
+                            Browse
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSharePhoto(photo);
+                              setShowShareModal(true);
+                            }}
+                            style={{
+                              flex: 1,
+                              padding: '0.5rem',
+                              borderRadius: '0.375rem',
+                              border: '2px solid #15803D',
+                              backgroundColor: '#16A34A',
+                              color: 'white',
+                              fontSize: '0.8rem',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '0.25rem',
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            <SendIcon />
+                            Send
+                          </button>
+                        </div>
+                        {/* Secondary Actions Row */}
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleFaceRecognition(photo);
+                            }}
+                            style={{
+                              flex: 1,
+                              padding: '0.5rem',
+                              borderRadius: '0.375rem',
+                              border: '2px solid #7C3AED',
+                              backgroundColor: '#8B5CF6',
+                              color: 'white',
+                              fontSize: '0.8rem',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '0.25rem',
+                              transition: 'all 0.2s'
+                            }}
+                            title="Send to Face Recognition"
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <rect x="2" y="2" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="2"/>
+                              <rect x="16" y="2" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="2"/>
+                              <rect x="2" y="16" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="2"/>
+                              <circle cx="19" cy="19" r="3" stroke="currentColor" strokeWidth="2"/>
+                              <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
+                            </svg>
+                            Face AI
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedPhoto(photo);
+                              setShowEditModal(true);
+                            }}
+                            style={{
+                              width: '36px',
+                              height: '36px',
+                              padding: '0.5rem',
+                              borderRadius: '0.375rem',
+                              border: `2px solid ${colors.borderSecondary}`,
+                              backgroundColor: colors.bgTertiary,
+                              color: colors.textPrimary,
+                              fontSize: '0.85rem',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'all 0.2s'
+                            }}
+                            title="Edit Album"
+                          >
+                            <i className="bi bi-pencil" style={{ fontSize: '0.9rem' }}></i>
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openGalleryDeleteModal(photo);
+                            }}
+                            style={{
+                              width: '36px',
+                              height: '36px',
+                              padding: '0.5rem',
+                              borderRadius: '0.375rem',
+                              border: '2px solid #FCA5A5',
+                              backgroundColor: '#FEE2E2',
+                              color: '#DC2626',
+                              fontSize: '0.85rem',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'all 0.2s'
+                            }}
+                            title="Delete Album"
+                          >
+                            <i className="bi bi-trash" style={{ fontSize: '0.9rem' }}></i>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -2491,7 +2595,9 @@ const PhotographerEventsPage = () => {
                       </div>
 
                       {/* Actions */}
-                      <div className="stream-card-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', paddingTop: '0.75rem', borderTop: `2px solid ${colors.borderPrimary}` }}>
+                      <div className="stream-card-actions" style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', paddingTop: '0.75rem', borderTop: `2px solid ${colors.borderPrimary}` }}>
+                        {/* Primary Action Row */}
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
                         {stream.status === 'live' && (
                           <button
                             onClick={() => setShowControlPanel(stream)}
@@ -2561,6 +2667,9 @@ const PhotographerEventsPage = () => {
                             View Stats
                           </button>
                         )}
+                        </div>
+                        {/* Secondary Action Row */}
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
                         {/* Media button - shown for ended/live/replay_ready */}
                         {(stream.status === 'ended' || stream.status === 'live' || stream.status === 'replay_ready') && (
                           <button
@@ -2572,6 +2681,7 @@ const PhotographerEventsPage = () => {
                               fetchEventMedia(eventId);
                             }}
                             style={{
+                              flex: 1,
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
@@ -2602,6 +2712,7 @@ const PhotographerEventsPage = () => {
                             }}
                             disabled={markingCompletedId === stream.eventId}
                             style={{
+                              flex: 1,
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
@@ -2647,6 +2758,7 @@ const PhotographerEventsPage = () => {
                             <TrashIcon />
                           </button>
                         )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -3938,7 +4050,7 @@ const PhotographerEventsPage = () => {
             justifyContent: 'center',
             zIndex: 1000
           }}
-          onClick={() => { setShowShareModal(false); setSharePhoto(null); setMaxImagesInput(''); }}
+          onClick={() => { setShowShareModal(false); setSharePhoto(null); setExtraImagePrice(''); }}
         >
           <div
             className="mobile-modal"
@@ -3957,7 +4069,7 @@ const PhotographerEventsPage = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Send Album to Client</h3>
               <button
-                onClick={() => { setShowShareModal(false); setSharePhoto(null); setMaxImagesInput(''); }}
+                onClick={() => { setShowShareModal(false); setSharePhoto(null); setExtraImagePrice(''); }}
                 style={{
                   background: colors.bgTertiary,
                   border: `2px solid ${colors.borderSecondary}`,
@@ -3985,37 +4097,131 @@ const PhotographerEventsPage = () => {
               </div>
             </div>
 
-            {/* Maximum Images Input */}
+            {/* Extra Images Price per Image */}
             <div style={{ marginBottom: '1.25rem' }}>
               <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.375rem' }}>
-                Maximum Images
+                Extra Images Price (per image) <span style={{ color: '#DC2626' }}>*</span>
               </label>
-              <input
-                type="number"
-                min="1"
-                placeholder="Enter number of maximum images to be selected"
-                value={maxImagesInput}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (val === '' || (/^\d+$/.test(val) && parseInt(val) > 0)) {
-                    setMaxImagesInput(val);
-                  }
-                }}
-                style={{
-                  width: '100%',
-                  padding: '0.625rem 1rem',
-                  border: `2px solid ${maxImagesInput && parseInt(maxImagesInput) > 0 ? '#16A34A' : colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.9rem',
-                  color: colors.textPrimary,
-                  backgroundColor: colors.bgCard,
-                  outline: 'none',
-                  boxSizing: 'border-box'
-                }}
-              />
-              {!maxImagesInput && (
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'stretch' }}>
+                {/* Currency Selector */}
+                <div style={{ position: 'relative' }}>
+                  <button
+                    type="button"
+                    onClick={() => setIsPriceCurrencyOpen(!isPriceCurrencyOpen)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      padding: '0.625rem 0.75rem',
+                      border: `2px solid ${colors.borderPrimary}`,
+                      borderRadius: '0.5rem',
+                      backgroundColor: colors.bgTertiary,
+                      color: colors.textPrimary,
+                      fontSize: '0.85rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      height: '100%'
+                    }}
+                  >
+                    {currencies.find(c => c.code === priceCurrency)?.symbol || priceCurrency}
+                    <i style={{
+                      fontSize: '0.55rem',
+                      color: colors.textSecondary,
+                      transform: isPriceCurrencyOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                      transition: 'transform 0.2s ease'
+                    }} className="bi bi-chevron-down"></i>
+                  </button>
+                  {isPriceCurrencyOpen && (
+                    <div style={{
+                      position: 'absolute',
+                      top: 'calc(100% + 0.25rem)',
+                      left: 0,
+                      backgroundColor: colors.bgSecondary,
+                      borderRadius: '0.5rem',
+                      boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
+                      border: `2px solid ${colors.borderPrimary}`,
+                      padding: '0.25rem',
+                      minWidth: '160px',
+                      zIndex: 60
+                    }}>
+                      {currencies.map((c) => (
+                        <button
+                          key={c.code}
+                          type="button"
+                          onClick={() => {
+                            setPriceCurrency(c.code);
+                            setIsPriceCurrencyOpen(false);
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            width: '100%',
+                            padding: '0.4rem 0.6rem',
+                            borderRadius: '0.375rem',
+                            border: 'none',
+                            background: priceCurrency === c.code ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : 'transparent',
+                            color: colors.textPrimary,
+                            fontSize: '0.8rem',
+                            fontWeight: priceCurrency === c.code ? '600' : '400',
+                            cursor: 'pointer',
+                            gap: '0.5rem'
+                          }}
+                          onMouseEnter={(e) => {
+                            if (priceCurrency !== c.code) e.currentTarget.style.backgroundColor = colors.bgTertiary;
+                          }}
+                          onMouseLeave={(e) => {
+                            if (priceCurrency !== c.code) e.currentTarget.style.backgroundColor = 'transparent';
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <span style={{ fontWeight: '600' }}>{c.symbol}</span>
+                            <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>{c.code}</span>
+                          </div>
+                          {priceCurrency === c.code && (
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M20 6L9 17L4 12" stroke={actualTheme === 'dark' ? '#60A5FA' : '#083A85'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {/* Price Input */}
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="Enter price per extra image"
+                  value={(() => {
+                    if (!extraImagePrice) return '';
+                    const parts = extraImagePrice.split('.');
+                    const intPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+                    return parts.length > 1 ? `${intPart}.${parts[1]}` : (extraImagePrice.endsWith('.') ? `${intPart}.` : intPart);
+                  })()}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/,/g, '');
+                    if (raw === '' || /^\d+\.?\d{0,2}$/.test(raw)) {
+                      setExtraImagePrice(raw);
+                    }
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '0.625rem 1rem',
+                    border: `2px solid ${extraImagePrice && parseFloat(extraImagePrice) > 0 ? '#16A34A' : colors.borderPrimary}`,
+                    borderRadius: '0.5rem',
+                    fontSize: '0.9rem',
+                    color: colors.textPrimary,
+                    backgroundColor: colors.bgCard,
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+              {!extraImagePrice && (
                 <p style={{ fontSize: '0.75rem', color: '#F59E0B', margin: '0.375rem 0 0 0' }}>
-                  Please enter the maximum number of images the client can select
+                  Please enter the price per extra image the client may add during photobook creation
                 </p>
               )}
             </div>
@@ -4023,7 +4229,7 @@ const PhotographerEventsPage = () => {
             {/* Send to Client Section */}
             {(() => {
               const dedicatedClient = mockClients.find(c => c.id === sharePhoto.clientId);
-              const isSendEnabled = maxImagesInput && parseInt(maxImagesInput) > 0;
+              const isSendEnabled = extraImagePrice && parseFloat(extraImagePrice) > 0;
               return dedicatedClient ? (
                 <div style={{
                   backgroundColor: actualTheme === 'dark' ? '#064E3B' : '#F0FDF4',
@@ -4059,7 +4265,7 @@ const PhotographerEventsPage = () => {
                       setSelectedClientId(dedicatedClient.id);
                       setShareType('album');
                       setShowShareModal(false);
-                      setMaxImagesInput('');
+                      setExtraImagePrice('');
                       // Simulate success
                       setPhotos(photos.map(p =>
                         p.id === sharePhoto.id ? { ...p, sharedWithClient: true } : p
@@ -4106,6 +4312,225 @@ const PhotographerEventsPage = () => {
                 </div>
               );
             })()}
+          </div>
+        </div>
+      )}
+
+      {/* Face Recognition Invite Code Modal */}
+      {showFaceRecognitionModal && faceRecognitionAlbum && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}
+          onClick={() => { setShowFaceRecognitionModal(false); setFaceRecognitionAlbum(null); }}
+        >
+          <div
+            className="mobile-modal"
+            style={{
+              backgroundColor: colors.bgCard,
+              borderRadius: '0.75rem',
+              padding: '1.5rem',
+              width: '550px',
+              maxWidth: '95%',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Face Recognition Invite Code</h3>
+              <button
+                onClick={() => { setShowFaceRecognitionModal(false); setFaceRecognitionAlbum(null); }}
+                style={{
+                  background: colors.bgTertiary,
+                  border: `2px solid ${colors.borderSecondary}`,
+                  cursor: 'pointer',
+                  padding: '0.5rem',
+                  borderRadius: '0.375rem',
+                  color: colors.textPrimary,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <CloseIcon />
+              </button>
+            </div>
+
+            {/* Album Preview */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              marginBottom: '1.5rem',
+              padding: '0.75rem',
+              backgroundColor: colors.bgTertiary,
+              borderRadius: '0.5rem'
+            }}>
+              <div style={{ position: 'relative', width: '80px', height: '60px', borderRadius: '0.375rem', overflow: 'hidden', flexShrink: 0 }}>
+                <Image src={faceRecognitionAlbum.coverImage} alt={faceRecognitionAlbum.title} fill style={{ objectFit: 'cover' }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: '600', color: colors.textPrimary, fontSize: '0.95rem', marginBottom: '0.25rem' }}>
+                  {faceRecognitionAlbum.title}
+                </div>
+                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>
+                  {faceRecognitionAlbum.photos} photos &bull; {faceRecognitionAlbum.clientName}
+                </div>
+              </div>
+            </div>
+
+            {/* Invite Code Display */}
+            <div style={{
+              backgroundColor: actualTheme === 'dark' ? '#1E1B4B' : '#EEF2FF',
+              border: `2px solid ${actualTheme === 'dark' ? '#4C1D95' : '#C7D2FE'}`,
+              borderRadius: '0.75rem',
+              padding: '1.5rem',
+              marginBottom: '1.25rem',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.75rem', fontWeight: '500' }}>
+                Invite Code
+              </div>
+              <div style={{
+                fontSize: '2rem',
+                fontWeight: '700',
+                color: actualTheme === 'dark' ? '#A78BFA' : '#7C3AED',
+                letterSpacing: '0.1em',
+                fontFamily: 'monospace',
+                marginBottom: '1rem'
+              }}>
+                {faceRecognitionAlbum.faceRecognitionCode}
+              </div>
+              <button
+                onClick={() => handleCopyInviteCode(faceRecognitionAlbum.faceRecognitionCode!)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.625rem 1.25rem',
+                  border: `2px solid ${actualTheme === 'dark' ? '#7C3AED' : '#8B5CF6'}`,
+                  borderRadius: '0.5rem',
+                  backgroundColor: copiedInviteCode
+                    ? (actualTheme === 'dark' ? '#065F46' : '#D1FAE5')
+                    : (actualTheme === 'dark' ? '#581C87' : '#F3E8FF'),
+                  color: copiedInviteCode
+                    ? (actualTheme === 'dark' ? '#6EE7B7' : '#047857')
+                    : (actualTheme === 'dark' ? '#E9D5FF' : '#7C3AED'),
+                  fontSize: '0.9rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+              >
+                {copiedInviteCode ? (
+                  <>
+                    <i className="bi bi-check-circle-fill"></i>
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <CopyIcon />
+                    Copy Code
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Face Recognition URL */}
+            <div style={{
+              backgroundColor: colors.bgTertiary,
+              borderRadius: '0.5rem',
+              padding: '1rem',
+              marginBottom: '1.25rem'
+            }}>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.5rem', fontWeight: '500' }}>
+                Face Recognition Page URL
+              </div>
+              <div style={{
+                fontSize: '0.8rem',
+                color: actualTheme === 'dark' ? '#60A5FA' : '#2563EB',
+                wordBreak: 'break-all',
+                fontFamily: 'monospace',
+                marginBottom: '0.75rem',
+                lineHeight: '1.5'
+              }}>
+                {getFaceRecognitionUrl(faceRecognitionAlbum.faceRecognitionCode!)}
+              </div>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(getFaceRecognitionUrl(faceRecognitionAlbum.faceRecognitionCode!));
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.375rem',
+                  padding: '0.5rem 0.75rem',
+                  border: `1px solid ${colors.borderPrimary}`,
+                  borderRadius: '0.375rem',
+                  backgroundColor: colors.bgCard,
+                  color: colors.textPrimary,
+                  fontSize: '0.8rem',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+              >
+                <CopyIcon />
+                Copy URL
+              </button>
+            </div>
+
+            {/* Info Message */}
+            <div style={{
+              backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF',
+              border: `1px solid ${actualTheme === 'dark' ? '#1E40AF' : '#BFDBFE'}`,
+              borderRadius: '0.5rem',
+              padding: '0.875rem',
+              marginBottom: '1.25rem'
+            }}>
+              <div style={{ display: 'flex', gap: '0.625rem', alignItems: 'flex-start' }}>
+                <i className="bi bi-info-circle-fill" style={{
+                  color: actualTheme === 'dark' ? '#60A5FA' : '#2563EB',
+                  fontSize: '1rem',
+                  marginTop: '0.125rem'
+                }}></i>
+                <div style={{ flex: 1, fontSize: '0.85rem', color: colors.textPrimary, lineHeight: '1.5' }}>
+                  Share this invite code with event attendees so they can access the Face Recognition page and find their photos automatically.
+                </div>
+              </div>
+            </div>
+
+            {/* Done Button */}
+            <button
+              onClick={() => { setShowFaceRecognitionModal(false); setFaceRecognitionAlbum(null); }}
+              style={{
+                width: '100%',
+                padding: '0.875rem 1rem',
+                border: 'none',
+                borderRadius: '0.5rem',
+                backgroundColor: '#8B5CF6',
+                color: 'white',
+                fontSize: '0.95rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#7C3AED'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#8B5CF6'; }}
+            >
+              Done
+            </button>
           </div>
         </div>
       )}
