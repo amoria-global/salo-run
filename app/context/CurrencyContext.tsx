@@ -8,6 +8,7 @@ interface CurrencyInfo {
   code: CurrencyCode;
   name: string;
   symbol: string;
+  flag: string;
   rate: number;
   decimals: number;
 }
@@ -20,12 +21,12 @@ interface CurrencyContextType {
 }
 
 const CURRENCIES: CurrencyInfo[] = [
-  { code: "USD", name: "US Dollar", symbol: "$", rate: 1, decimals: 2 },
-  { code: "RWF", name: "Rwandan Franc", symbol: "RWF", rate: 1460, decimals: 0 },
-  { code: "EUR", name: "Euro", symbol: "€", rate: 0.84, decimals: 2 },
-  { code: "KES", name: "Kenyan Shilling", symbol: "KES", rate: 132.73, decimals: 0 },
-  { code: "UGX", name: "Ugandan Shilling", symbol: "UGX", rate: 3561, decimals: 0 },
-  { code: "TZS", name: "Tanzanian Shilling", symbol: "TZS", rate: 2607, decimals: 0 },
+  { code: "USD", name: "US Dollar", symbol: "$", flag: "us", rate: 1, decimals: 2 },
+  { code: "RWF", name: "Rwandan Franc", symbol: "RWF", flag: "rw", rate: 1460, decimals: 0 },
+  { code: "EUR", name: "Euro", symbol: "€", flag: "eu", rate: 0.84, decimals: 2 },
+  { code: "KES", name: "Kenyan Shilling", symbol: "KES", flag: "ke", rate: 132.73, decimals: 0 },
+  { code: "UGX", name: "Ugandan Shilling", symbol: "UGX", flag: "ug", rate: 3561, decimals: 0 },
+  { code: "TZS", name: "Tanzanian Shilling", symbol: "TZS", flag: "tz", rate: 2607, decimals: 0 },
 ];
 
 const STORAGE_KEY = "connekt-currency";
