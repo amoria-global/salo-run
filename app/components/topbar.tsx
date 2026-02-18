@@ -615,6 +615,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
               whiteSpace: 'nowrap'
             }}
           >
+            <img src={`https://flagcdn.com/w40/${currencies.find(c => c.code === currency)?.flag}.png`} alt="" style={{ width: '18px', height: '14px', objectFit: 'cover', borderRadius: '2px' }} />
             {currency}
             <i style={{
               fontSize: '0.6rem',
@@ -668,6 +669,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <img src={`https://flagcdn.com/w40/${c.flag}.png`} alt={c.name} style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px' }} />
                     <span style={{ fontWeight: '600' }}>{c.code}</span>
                     <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{c.name}</span>
                   </div>
