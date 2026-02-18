@@ -250,23 +250,29 @@ export default function Sidebar() {
             display: 'flex',
             alignItems: 'center',
             cursor: 'pointer',
-            textDecoration: 'none'
+            textDecoration: 'none',
+            flexShrink: 0
           }}>
-            <span style={{
-              fontSize: '1.5rem',
-              fontWeight: '700',
-              color: colors.textPrimary,
-              lineHeight: '1'
-            }}>Amoria</span>
-            <Image
-              src={actualTheme === 'dark' ? '/fav.png' : '/logo.png'}
-              alt="Logo"
-              width={actualTheme === 'dark' ? 42 : 48}
-              height={actualTheme === 'dark' ? 47 : 59}
+            <img
+              src="/logo.png"
+              alt="Connekyt Logo"
               style={{
-                marginLeft: actualTheme === 'dark' ? '-0.48rem' : '-0.625rem'
+                width: '50px',
+                height: '50px',
+                objectFit: 'contain',
+                position: 'relative',
+                top: '-9px',
+                left: '-13px'
               }}
             />
+            <span style={{
+              fontWeight: '700',
+              color: '#083A85',
+              fontSize: '1.4rem',
+              marginLeft: '-26px',
+              marginTop: '-2px',
+              letterSpacing: '0.5px'
+            }}>onnekyt</span>
           </Link>
         )}
         <button
