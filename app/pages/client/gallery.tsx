@@ -11,6 +11,7 @@ import PayNowModal from '@/app/components/UnlockModal';
 import { useUserProfile } from '@/app/context/UserProfileContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
 
+import { Unlock } from 'lucide-react';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 
 type PaymentStatus = 'paid' | 'pending' | 'failed' | 'refunded' | 'partially_paid';
@@ -2175,11 +2176,49 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
               borderRadius: '0.75rem',
               border: `2px solid ${colors.borderPrimary}`
             }}>
+              {/* Unlock All Button */}
+              {archivedAlbums.length > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.25rem' }}>
+                  <button
+                    onClick={() => {
+                      setSelectedPlan(null);
+                      setShowPricingPlans(true);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      padding: '0.625rem 1.25rem',
+                      borderRadius: '0.5rem',
+                      border: '2px solid #062a63',
+                      backgroundColor: '#083A85',
+                      color: 'white',
+                      fontSize: '0.875rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#0a4a9e';
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(8, 58, 133, 0.3)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#083A85';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
+                    <Unlock size={16} />
+                    Unlock All Archived Albums
+                  </button>
+                </div>
+              )}
               {viewMode === 'grid' ? (
-                <div className="mobile-albums-grid" style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
-                  gap: '1.25rem' 
+                <div className="mobile-albums-grid" style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                  gap: '1.25rem'
                 }}>
                   {filteredAlbums
                     .filter(album => album.isArchived)
@@ -2189,14 +2228,9 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                         album={album}
                         viewMode="grid"
                         colors={colors}
-                        onCardClick={(album:any) => {
-                          setSelectedArchiveAlbum(album);
-                          setSelectedPlan(null);
-                          setShowPricingPlans(true);
-                        }}
-                        onBrowseClick={(album) => {
-                          alert('This album is archived');
-                        }}
+                        hideActionButton={true}
+                        onCardClick={() => {}}
+                        onBrowseClick={() => {}}
                       />
                     ))
                   }
@@ -2204,11 +2238,11 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                 </div>
               ) : (
                 /* List View */
-                <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard, overflow: 'hidden' }}>
+                <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard, overflow: 'hidden', textAlign: 'left' }}>
                   {/* Table Header */}
                   <div style={{
                     display: 'grid',
-                    gridTemplateColumns: '80px 1fr 150px 120px 100px 150px',
+                    gridTemplateColumns: '80px 1fr 150px 120px 100px',
                     gap: '1rem',
                     padding: '0.75rem 1rem',
                     backgroundColor: colors.bgTertiary,
@@ -2222,7 +2256,6 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                     <div>Photographer</div>
                     <div>Photos</div>
                     <div>Category</div>
-                    <div>Actions</div>
                   </div>
 
                   {/* Table Rows */}
@@ -2234,14 +2267,9 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                         album={album}
                         viewMode="list"
                         colors={colors}
-                        onCardClick={(album) => {
-                          setSelectedArchiveAlbum(album as any);
-                          setSelectedPlan(null);
-                          setShowPricingPlans(true);
-                        }}
-                        onBrowseClick={(album) => {
-                          alert('This album is archived');
-                        }}
+                        hideActionButton={true}
+                        onCardClick={() => {}}
+                        onBrowseClick={() => {}}
                       />
                     ))}
                 </div>
@@ -2255,7 +2283,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
 
 
       {/* STORAGE PRICING PLANS MODAL */}
-      {showPricingPlans && selectedArchiveAlbum && (
+      {showPricingPlans && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -2291,22 +2319,28 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
               </button>
             </div>
 
-            {/* Album info */}
+            {/* Archived albums summary */}
             <div style={{
               display: 'flex', alignItems: 'center', gap: '0.625rem',
               padding: '0.625rem 0.75rem', marginBottom: '1.25rem',
               backgroundColor: colors.bgTertiary, borderRadius: '0.5rem',
               border: `1px solid ${colors.borderPrimary}`
             }}>
-              <div style={{ width: '36px', height: '36px', borderRadius: '0.375rem', overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
-                <Image src={selectedArchiveAlbum.thumbnail} alt={selectedArchiveAlbum.title} fill style={{ objectFit: 'cover', filter: 'blur(1px)' }} />
+              <div style={{
+                width: '36px', height: '36px', borderRadius: '0.375rem',
+                backgroundColor: '#DC2626', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+              }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {selectedArchiveAlbum.title}
+                <div style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>
+                  {archivedAlbums.length} Archived Album{archivedAlbums.length !== 1 ? 's' : ''}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>
-                  {selectedArchiveAlbum.photographer} &middot; {selectedArchiveAlbum.photoCount} photos
+                  {archivedPhotos} photos total
                 </div>
               </div>
               <span style={{
@@ -2400,20 +2434,19 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                   <button
                     onClick={() => {
                       setSelectedPlan(plan.id);
-                      const album = selectedArchiveAlbum as any;
                       const paymentData: Payment = {
-                        id: album.id,
+                        id: 0,
                         date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
-                        eventName: `${plan.name} — ${album.payment?.eventName || album.title}`,
-                        eventType: album.category,
-                        photographerName: album.payment?.photographerName || album.photographer,
-                        photographerImage: album.photographerAvatar,
+                        eventName: `${plan.name} — Unlock All Archived Albums (${archivedAlbums.length})`,
+                        eventType: 'Archive Unlock',
+                        photographerName: 'Multiple Photographers',
+                        photographerImage: archivedAlbums[0]?.photographerAvatar || '/default-avatar.png',
                         method: '-',
                         amount: formatPrice(plan.price),
                         amountNum: plan.price,
                         paidAmount: 0,
                         status: 'pending',
-                        invoiceNumber: `INV-${new Date().getFullYear()}-${String(album.id).padStart(3, '0')}`
+                        invoiceNumber: `INV-${new Date().getFullYear()}-ARCH-${String(archivedAlbums.length).padStart(3, '0')}`
                       };
                       setShowPricingPlans(false);
                       handlePayNow(paymentData);
