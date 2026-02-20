@@ -37,6 +37,7 @@ interface AlbumCardProps {
   };
   onCardClick: (album: Album) => void;
   onBrowseClick: (album: Album) => void;
+  hideActionButton?: boolean;
 }
 
 const EyeIcon = () => (
@@ -58,7 +59,8 @@ const AlbumCard: React.FC<AlbumCardProps> = ({
   viewMode,
   colors,
   onCardClick,
-  onBrowseClick
+  onBrowseClick,
+  hideActionButton
 }) => {
   const isArchived = album.isArchived || false;
 
@@ -170,45 +172,47 @@ const AlbumCard: React.FC<AlbumCardProps> = ({
           </div>
 
           {/* Action Buttons */}
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button
-              onClick={(e) => {
-                e.stopPropagation(); // Prevent event bubbling
-                onCardClick(album);
-              }}
-              onMouseEnter={(e) => {
-                if (!isArchived) {
-                  e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isArchived) {
-                  e.currentTarget.style.boxShadow = 'none';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                }
-              }}
-              style={{
-                cursor: 'pointer',
-                flex: 1,
-                padding: '0.5rem',
-                borderRadius: '0.375rem',
-                border: '2px solid #062a63',
-                backgroundColor: '#083A85',
-                color: 'white',
-                fontSize: '0.8rem',
-                fontWeight: '600',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.25rem',
-                transition: 'all 0.2s',
-              }}
-            >
-              {isArchived ? <LockIcon /> : <EyeIcon />}
-              {isArchived ? 'Click to Unlock' : 'Browse'}
-            </button>
-          </div>
+          {!hideActionButton && (
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent event bubbling
+                  onCardClick(album);
+                }}
+                onMouseEnter={(e) => {
+                  if (!isArchived) {
+                    e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isArchived) {
+                    e.currentTarget.style.boxShadow = 'none';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }
+                }}
+                style={{
+                  cursor: 'pointer',
+                  flex: 1,
+                  padding: '0.5rem',
+                  borderRadius: '0.375rem',
+                  border: '2px solid #062a63',
+                  backgroundColor: '#083A85',
+                  color: 'white',
+                  fontSize: '0.8rem',
+                  fontWeight: '600',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.25rem',
+                  transition: 'all 0.2s',
+                }}
+              >
+                {isArchived ? <LockIcon /> : <EyeIcon />}
+                {isArchived ? 'Click to Unlock' : 'Browse'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -317,43 +321,45 @@ const AlbumCard: React.FC<AlbumCardProps> = ({
       </span>
 
       {/* Actions */}
-      <div style={{ display: 'flex', gap: '0.5rem' }}>
-        <button
-          onClick={(e) => {
-            e.stopPropagation(); // Prevent parent div click
-            onCardClick(album);
-          }}
-          onMouseEnter={(e) => {
-            if (!isArchived) {
-              e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
-              e.currentTarget.style.transform = 'translateY(-2px)';
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!isArchived) {
-              e.currentTarget.style.boxShadow = 'none';
-              e.currentTarget.style.transform = 'translateY(0)';
-            }
-          }}
-          style={{
-            padding: '0.375rem 0.75rem',
-            cursor: 'pointer',
-            borderRadius: '0.375rem',
-            border: `2px solid '#083A85'`,
-            backgroundColor: '#083A85',
-            color: 'white',
-            fontSize: '0.8rem',
-            fontWeight: '500',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.25rem',
-            transition: 'all 0.2s',
-          }}
-        >
-          <LockIcon /> <span>{isArchived ? 'Unlock' : 'Browse'}</span>
-        </button>
-      </div>
+      {!hideActionButton && (
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent parent div click
+              onCardClick(album);
+            }}
+            onMouseEnter={(e) => {
+              if (!isArchived) {
+                e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isArchived) {
+                e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }
+            }}
+            style={{
+              padding: '0.375rem 0.75rem',
+              cursor: 'pointer',
+              borderRadius: '0.375rem',
+              border: `2px solid '#083A85'`,
+              backgroundColor: '#083A85',
+              color: 'white',
+              fontSize: '0.8rem',
+              fontWeight: '500',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.25rem',
+              transition: 'all 0.2s',
+            }}
+          >
+            <LockIcon /> <span>{isArchived ? 'Unlock' : 'Browse'}</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };
