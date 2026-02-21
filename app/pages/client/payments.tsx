@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
@@ -8,7 +8,15 @@ import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useUserProfile } from '../../context/UserProfileContext';
+import { useDashboardAuth } from '../../providers/AuthProvider';
 import { HeartIcon } from '../../components/UnlockModal';
+
+function getApiUrl(): string {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    return '/api/proxy';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+}
 
 // Icons
 const DownloadIcon = () => (
@@ -162,21 +170,21 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
 interface ViewReportModalProps {
   isOpen: boolean;
   onClose: () => void;
+  reportData: {
+    period: string;
+    totalPaid: number;
+    pending: number;
+    failed: number;
+    totalTransactions: number;
+    completedTransactions: number;
+    pendingTransactions: number;
+    failedTransactions: number;
+  };
 }
 
-const ViewReportModal: React.FC<ViewReportModalProps> = ({ isOpen, onClose }) => {
+const ViewReportModal: React.FC<ViewReportModalProps> = ({ isOpen, onClose, reportData }) => {
   const { colors, actualTheme } = useTheme();
   const { formatPrice } = useCurrency();
-  const reportData = {
-    period: '13 - 18 July 2025',
-    totalPaid: 1200.13,
-    pending: 350.13,
-    failed: 200.00,
-    totalTransactions: 45,
-    completedTransactions: 32,
-    pendingTransactions: 8,
-    failedTransactions: 5,
-  };
 
   const handlePrint = () => {
     window.print();
@@ -1191,6 +1199,7 @@ const PaymentsPage = () => {
   const { colors, actualTheme } = useTheme();
   const { formatPrice } = useCurrency();
   const { profile } = useUserProfile();
+  const { token } = useDashboardAuth();
   const [activeTimeFilter, setActiveTimeFilter] = useState<'1W' | '1M' | '3M' | '6M' | '1Y'>('1W');
   const [currentPage, setCurrentPage] = useState(1);
   const [chartType, setChartType] = useState<ChartType>('line');
@@ -1239,7 +1248,7 @@ Amount: ${formatPrice(payment.amountNum)}
     URL.revokeObjectURL(url);
   };
 
-  const spendingData = [
+  const [spendingData, setSpendingData] = useState<{ date: string; value: number }[]>([
     { date: 'Nov 13', value: 450 },
     { date: 'Nov 14', value: 300 },
     { date: 'Nov 15', value: 500 },
@@ -1247,71 +1256,255 @@ Amount: ${formatPrice(payment.amountNum)}
     { date: 'Nov 17', value: 200 },
     { date: 'Nov 18', value: 400 },
     { date: 'Nov 19', value: 150 }
-  ];
+  ]);
 
-  const payments: Payment[] = [
-    { id: 1, date: 'Nov, 20 14:05 PM', eventName: 'Sarah & James Wedding', eventType: 'Wedding', photographerName: 'John Studio', photographerImage: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg', method: 'Credit Card', amount: '$450.0', amountNum: 450, paidAmount: 450, status: 'paid', invoiceNumber: 'INV-2024-001' },
-    { id: 2, date: 'Nov, 18 10:30 AM', eventName: 'Emily\'s 5th Birthday', eventType: 'Birthday', photographerName: 'Mary Shots', photographerImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', method: 'Mobile Money', amount: '$300.0', amountNum: 300, paidAmount: 150, status: 'partially_paid', invoiceNumber: 'INV-2024-002' },
-    { id: 3, date: 'Nov, 25 09:00 AM', eventName: 'MTN Annual Conference', eventType: 'Corporate', photographerName: 'Elite Photography', photographerImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', method: '-', amount: '$500.0', amountNum: 500, paidAmount: 0, status: 'pending', invoiceNumber: 'INV-2024-003' },
-    { id: 4, date: 'Sep, 15 16:00 PM', eventName: 'Nyege Nyege Festival', eventType: 'Festival', photographerName: 'Alex Frames', photographerImage: 'https://i.pinimg.com/1200x/09/23/45/092345eac1919407e0c49f67e285b831.jpg', method: 'Bank Transfer', amount: '$350.0', amountNum: 350, paidAmount: 350, status: 'paid', invoiceNumber: 'INV-2024-004' },
-    { id: 5, date: 'Nov, 25 14:00 PM', eventName: 'Personal Photoshoot', eventType: 'Portrait', photographerName: 'Sarah Lens', photographerImage: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg', method: 'Credit Card', amount: '$200.0', amountNum: 200, paidAmount: 0, status: 'failed', invoiceNumber: 'INV-2024-005' },
-    { id: 6, date: 'Oct, 01 11:00 AM', eventName: 'Product Launch Event', eventType: 'Corporate', photographerName: 'Elite Photography', photographerImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', method: 'Credit Card', amount: '$400.0', amountNum: 400, paidAmount: 400, status: 'refunded', invoiceNumber: 'INV-2024-006' },
-    { id: 7, date: 'Nov, 12 15:30 PM', eventName: 'Baby Shower', eventType: 'Birthday', photographerName: 'Mary Shots', photographerImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', method: 'Mobile Money', amount: '$250.0', amountNum: 250, paidAmount: 250, status: 'paid', invoiceNumber: 'INV-2024-007' },
-    { id: 8, date: 'Nov, 28 10:00 AM', eventName: 'Team Headshots', eventType: 'Corporate', photographerName: 'Elite Photography', photographerImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', method: '-', amount: '$350.0', amountNum: 350, paidAmount: 0, status: 'pending', invoiceNumber: 'INV-2024-008' },
-  ];
+  const fetchSpendingTrend = useCallback(async (period: string) => {
+    if (!token) return;
+    try {
+      const apiUrl = getApiUrl();
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+      const response = await fetch(
+        `${apiUrl}/api/remote/customer/payments/spending-trend?period=${period}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'api-token': apiKey,
+          },
+        }
+      );
+      if (!response.ok) return;
+      const result = await response.json();
+      const data = result.data;
+      if (Array.isArray(data) && data.length > 0) {
+        setSpendingData(data.map((item: any) => ({
+          date: item.date,
+          value: Number(item.value) || 0
+        })));
+      }
+    } catch (err) {
+      console.error('Failed to fetch spending trend:', err);
+    }
+  }, [token]);
 
-  // Calculate totals
-  const totalPaid = payments.filter(p => p.status === 'paid').reduce((sum, p) => sum + p.amountNum, 0);
-  const totalPending = payments.filter(p => p.status === 'pending' || p.status === 'partially_paid').reduce((sum, p) => sum + (p.amountNum - p.paidAmount), 0);
-  const totalFailed = payments.filter(p => p.status === 'failed').reduce((sum, p) => sum + p.amountNum, 0);
+  useEffect(() => {
+    fetchSpendingTrend(activeTimeFilter);
+  }, [activeTimeFilter, fetchSpendingTrend]);
+
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [totalPages, setTotalPages] = useState(5);
+  const [totalResults, setTotalResults] = useState(0);
+  const resultsPerPage = 8;
+
+  // Map API status to frontend PaymentStatus
+  const mapStatus = (apiStatus: string): PaymentStatus => {
+    switch (apiStatus?.toUpperCase()) {
+      case 'COMPLETED': return 'paid';
+      case 'PENDING': return 'pending';
+      case 'PARTIAL': return 'partially_paid';
+      case 'FAILED': return 'failed';
+      case 'REFUNDED': return 'refunded';
+      default: return 'pending';
+    }
+  };
+
+  // Format date from API LocalDateTime
+  const formatDate = (dateStr: string): string => {
+    if (!dateStr) return '-';
+    const date = new Date(dateStr);
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const month = months[date.getMonth()];
+    const day = date.getDate().toString().padStart(2, '0');
+    const hours = date.getHours();
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const displayHour = hours % 12 || 12;
+    return `${month}, ${day} ${displayHour}:${minutes} ${ampm}`;
+  };
+
+  // Fetch payment history from API
+  const fetchPayments = useCallback(async (page: number) => {
+    if (!token) return;
+    try {
+      const apiUrl = getApiUrl();
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+      const response = await fetch(
+        `${apiUrl}/api/remote/customer/payments?page=${page - 1}&size=${resultsPerPage}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'api-token': apiKey,
+          },
+        }
+      );
+      if (!response.ok) return;
+      const result = await response.json();
+      const pageData = result.data;
+      const content = pageData?.content || [];
+
+      const mapped: Payment[] = content.map((item: any, index: number) => ({
+        id: index + 1 + (page - 1) * resultsPerPage,
+        date: formatDate(item.createdAt),
+        eventName: item.eventTitle || 'Untitled Event',
+        eventType: item.paymentType || 'Booking',
+        photographerName: item.photographerName || 'Unknown',
+        photographerImage: item.photographerImage || '/default-avatar.png',
+        method: '-',
+        amount: `${item.currencyAbbreviation || '$'}${item.amount}`,
+        amountNum: Number(item.amount) || 0,
+        paidAmount: Number(item.paidAmount) || 0,
+        status: mapStatus(item.status),
+        invoiceNumber: `INV-${String(item.id).substring(0, 8).toUpperCase()}`,
+      }));
+
+      setPayments(mapped);
+      setTotalPages(pageData?.totalPages || 1);
+      setTotalResults(pageData?.totalElements || 0);
+    } catch (err) {
+      console.error('Failed to fetch payments:', err);
+    }
+  }, [token, resultsPerPage]);
+
+  useEffect(() => {
+    fetchPayments(currentPage);
+  }, [currentPage, fetchPayments]);
+
+  // Balance totals from API
+  const [totalPaid, setTotalPaid] = useState(0);
+  const [totalPending, setTotalPending] = useState(0);
+  const [totalFailed, setTotalFailed] = useState(0);
+
+  const fetchBalance = useCallback(async () => {
+    if (!token) return;
+    try {
+      const apiUrl = getApiUrl();
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+      const response = await fetch(
+        `${apiUrl}/api/remote/customer/payments/balance`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'api-token': apiKey,
+          },
+        }
+      );
+      if (!response.ok) return;
+      const result = await response.json();
+      const data = result.data;
+      if (data) {
+        setTotalPaid(Number(data.totalPaid) || 0);
+        setTotalPending(Number(data.totalPending) || 0);
+      }
+    } catch (err) {
+      console.error('Failed to fetch balance:', err);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    fetchBalance();
+  }, [fetchBalance]);
+
+  // Report/stats data
+  const [reportData, setReportData] = useState({
+    period: '13 - 18 July 2025',
+    totalPaid: 1200.13,
+    pending: 350.13,
+    failed: 200.00,
+    totalTransactions: 45,
+    completedTransactions: 32,
+    pendingTransactions: 8,
+    failedTransactions: 5,
+  });
+
+  const fetchStats = useCallback(async () => {
+    if (!token) return;
+    try {
+      const apiUrl = getApiUrl();
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+      const response = await fetch(
+        `${apiUrl}/api/remote/customer/payments/stats`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'api-token': apiKey,
+          },
+        }
+      );
+      if (!response.ok) return;
+      const result = await response.json();
+      const data = result.data;
+      if (data) {
+        setReportData({
+          period: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+          totalPaid: Number(data.totalPaid) || 0,
+          pending: Number(data.pending) || 0,
+          failed: Number(data.failed) || 0,
+          totalTransactions: Number(data.totalTransactions) || 0,
+          completedTransactions: Number(data.completedTransactions) || 0,
+          pendingTransactions: Number(data.pendingTransactions) || 0,
+          failedTransactions: Number(data.failedTransactions) || 0,
+        });
+      }
+    } catch (err) {
+      console.error('Failed to fetch stats:', err);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
 
   // Gifts data - organized by stream/event with gifters list
-  const giftStreams = [
-    {
-      id: 1,
-      streamTitle: 'Behind the Lens: Wedding Shoot',
-      date: 'Dec 08, 2024',
-      platform: 'ConnektLive',
-      gifters: [
-        { name: 'Michael K.', amount: 25.00, message: 'Amazing work! Love your style!' },
-        { name: 'Anonymous', amount: 10.00, message: '' },
-        { name: 'David W.', amount: 15.00, message: 'Great content, keep it up!' },
-        { name: 'Lisa P.', amount: 5.00, message: 'Thanks for the tips!' },
-      ]
-    },
-    {
-      id: 2,
-      streamTitle: 'Live Q&A: Photography Tips',
-      date: 'Dec 07, 2024',
-      platform: 'ConnektLive',
-      gifters: [
-        { name: 'Sarah M.', amount: 15.00, message: 'Very informative session!' },
-        { name: 'Emily R.', amount: 30.00, message: 'You answered my question perfectly. Thank you so much!' },
-        { name: 'John D.', amount: 20.00, message: '' },
-      ]
-    },
-    {
-      id: 3,
-      streamTitle: 'Editing Session: Portrait Retouch',
-      date: 'Dec 05, 2024',
-      platform: 'ConnektLive',
-      gifters: [
-        { name: 'James L.', amount: 50.00, message: 'Mind-blowing editing skills! I learned so much today.' },
-        { name: 'Maria G.', amount: 25.00, message: 'Best tutorial ever!' },
-      ]
-    },
-    {
-      id: 4,
-      streamTitle: 'Studio Tour & Equipment Review',
-      date: 'Dec 01, 2024',
-      platform: 'ConnektLive',
-      gifters: [
-        { name: 'Alex T.', amount: 10.00, message: 'Love your setup!' },
-        { name: 'Chris B.', amount: 8.00, message: '' },
-        { name: 'Anonymous', amount: 12.00, message: 'Great review, very helpful!' },
-      ]
-    },
-  ];
+  const [giftStreams, setGiftStreams] = useState<{
+    id: number;
+    streamTitle: string;
+    date: string;
+    platform: string;
+    gifters: { name: string; amount: number; message: string }[];
+  }[]>([]);
+
+  const fetchGiftStreams = useCallback(async () => {
+    if (!token) return;
+    try {
+      const apiUrl = getApiUrl();
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+      const response = await fetch(
+        `${apiUrl}/api/remote/customer/payments/gift-streams`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'api-token': apiKey,
+          },
+        }
+      );
+      if (!response.ok) return;
+      const result = await response.json();
+      const data = result.data;
+      if (Array.isArray(data)) {
+        setGiftStreams(data.map((item: any, index: number) => ({
+          id: index + 1,
+          streamTitle: item.streamTitle || 'Untitled Stream',
+          date: item.date || '',
+          platform: item.platform || 'ConnektLive',
+          gifters: (item.gifters || []).map((g: any) => ({
+            name: g.name || 'Anonymous',
+            amount: Number(g.amount) || 0,
+            message: g.message || ''
+          }))
+        })));
+      }
+    } catch (err) {
+      console.error('Failed to fetch gift streams:', err);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    fetchGiftStreams();
+  }, [fetchGiftStreams]);
 
   const totalGifts = giftStreams.reduce((sum, stream) => sum + stream.gifters.reduce((s, g) => s + g.amount, 0), 0);
 
@@ -1348,14 +1541,94 @@ Amount: ${formatPrice(payment.amountNum)}
     return true;
   };
 
+  const [savingWithdrawal, setSavingWithdrawal] = useState(false);
+
+  const saveWithdrawalMethod = async () => {
+    if (!validateGiftPaymentMethod()) return;
+    if (!selectedGiftPaymentMethod || !token) return;
+
+    let methodType = '';
+    let accountName = '';
+    let accountNumber = '';
+    let bankName = '';
+
+    if (selectedGiftPaymentMethod === 'mtn') {
+      if (!giftPaymentDetails.mtnNumber.trim()) {
+        setValidationError('Please enter your MTN phone number.');
+        return;
+      }
+      methodType = 'MOBILE_MONEY';
+      accountName = 'MTN Mobile Money';
+      accountNumber = giftPaymentDetails.mtnNumber.trim();
+      bankName = 'MTN';
+    } else if (selectedGiftPaymentMethod === 'airtel') {
+      if (!giftPaymentDetails.airtelNumber.trim()) {
+        setValidationError('Please enter your Airtel phone number.');
+        return;
+      }
+      methodType = 'MOBILE_MONEY';
+      accountName = 'Airtel Money';
+      accountNumber = giftPaymentDetails.airtelNumber.trim();
+      bankName = 'Airtel';
+    } else if (selectedGiftPaymentMethod === 'card') {
+      if (!giftPaymentDetails.cardNumber.trim() || !giftPaymentDetails.cardName.trim()) {
+        setValidationError('Please fill in all card details.');
+        return;
+      }
+      methodType = 'BANK_TRANSFER';
+      accountName = giftPaymentDetails.cardName.trim();
+      accountNumber = giftPaymentDetails.cardNumber.trim();
+    }
+
+    setSavingWithdrawal(true);
+    setValidationError(null);
+
+    try {
+      const apiUrl = getApiUrl();
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+      const params = new URLSearchParams({
+        methodType,
+        accountName,
+        accountNumber,
+        isDefault: 'true',
+      });
+      if (bankName) params.append('bankName', bankName);
+
+      const response = await fetch(
+        `${apiUrl}/api/remote/customer/withdrawal-methods?${params.toString()}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'api-token': apiKey,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errResult = await response.json().catch(() => null);
+        setValidationError(errResult?.message || 'Failed to save withdrawal method. Please try again.');
+        return;
+      }
+
+      // Success - close modal and reset
+      setShowGiftsPaymentMethodModal(false);
+      setSelectedGiftPaymentMethod(null);
+      setGiftPaymentDetails({ mtnNumber: '', airtelNumber: '', cardNumber: '', cardExpiry: '', cardCvv: '', cardName: '' });
+      setValidationError(null);
+    } catch (err) {
+      console.error('Failed to save withdrawal method:', err);
+      setValidationError('Network error. Please check your connection and try again.');
+    } finally {
+      setSavingWithdrawal(false);
+    }
+  };
+
   const handleViewGiftSenders = (stream: typeof giftStreams[0]) => {
     setSelectedGiftStream(stream);
     setShowGiftSendersModal(true);
   };
-
-  const totalPages = 5;
-  const resultsPerPage = 8;
-  const totalResults = payments.length;
 
   return (
     <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
@@ -1897,7 +2170,7 @@ Amount: ${formatPrice(payment.amountNum)}
       </div>
 
       {/* Modals */}
-      <ViewReportModal isOpen={showReportModal} onClose={() => setShowReportModal(false)} />
+      <ViewReportModal isOpen={showReportModal} onClose={() => setShowReportModal(false)} reportData={reportData} />
       <PaymentDetailsModal
         isOpen={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
@@ -2447,31 +2720,22 @@ Amount: ${formatPrice(payment.amountNum)}
               Cancel
             </button>
             <button
-              onClick={() => {
-                // Validate Rwanda mobile money requirement
-                if (!validateGiftPaymentMethod()) {
-                  return;
-                }
-                // Handle save payment method
-                setShowGiftsPaymentMethodModal(false);
-                setSelectedGiftPaymentMethod(null);
-                setValidationError(null);
-              }}
-              disabled={!selectedGiftPaymentMethod}
+              onClick={saveWithdrawalMethod}
+              disabled={!selectedGiftPaymentMethod || savingWithdrawal}
               style={{
                 flex: 1,
                 padding: '0.75rem 1rem',
                 border: '2px solid #15803D',
                 borderRadius: '0.5rem',
-                background: selectedGiftPaymentMethod ? '#16A34A' : colors.bgTertiary,
-                color: selectedGiftPaymentMethod ? 'white' : colors.textSecondary,
+                background: selectedGiftPaymentMethod && !savingWithdrawal ? '#16A34A' : colors.bgTertiary,
+                color: selectedGiftPaymentMethod && !savingWithdrawal ? 'white' : colors.textSecondary,
                 fontSize: '0.9rem',
                 fontWeight: '600',
-                cursor: selectedGiftPaymentMethod ? 'pointer' : 'not-allowed',
-                opacity: selectedGiftPaymentMethod ? 1 : 0.6
+                cursor: selectedGiftPaymentMethod && !savingWithdrawal ? 'pointer' : 'not-allowed',
+                opacity: selectedGiftPaymentMethod && !savingWithdrawal ? 1 : 0.6
               }}
             >
-              Save Withdrawal Method
+              {savingWithdrawal ? 'Saving...' : 'Save Withdrawal Method'}
             </button>
           </div>
         </div>

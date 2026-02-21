@@ -1,12 +1,47 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '../../context/CurrencyContext';
+import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
+
+function getApiUrl(): string {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    return '/api/proxy';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+}
+
+function formatRelativeTime(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays} days ago`;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function mapBackendType(backendType: string): NotificationType {
+  switch (backendType?.toUpperCase()) {
+    case 'MEDIA': return 'album';
+    case 'PAYMENT': return 'gift';
+    case 'BOOKING': return 'booking';
+    case 'EVENT': return 'photographer';
+    case 'SYSTEM': return 'security';
+    default: return 'album';
+  }
+}
 
 // Icons
 const BellIcon = () => (
@@ -101,239 +136,7 @@ interface Notification {
   actionUrl?: string;
 }
 
-// Sample notifications data for client dashboard
-const clientNotifications: Notification[] = [
-  {
-    id: '1',
-    type: 'album',
-    title: 'New Album Received',
-    message: 'John Studio shared "Wedding Ceremony" album with you - 156 photos',
-    timestamp: '5 minutes ago',
-    read: false,
-    avatar: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg',
-    albumPreview: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=400',
-    actionUrl: '/user/client/gallery'
-  },
-  {
-    id: '2',
-    type: 'gift',
-    title: 'Gift Received',
-    message: 'You received a $50.00 gift credit from Amoria for being a loyal customer!',
-    timestamp: '30 minutes ago',
-    read: false,
-    amount: 50.00
-  },
-  {
-    id: '3',
-    type: 'security',
-    title: 'New Login Detected',
-    message: 'Your account was accessed from Firefox on Windows 10. Location: Kigali, Rwanda',
-    timestamp: '1 hour ago',
-    read: false,
-    actionUrl: '/user/client/profile'
-  },
-  {
-    id: '4',
-    type: 'album',
-    title: 'New Album Received',
-    message: 'Mary Shots shared "Birthday Party" album with you - 89 photos',
-    timestamp: '2 hours ago',
-    read: false,
-    avatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg',
-    albumPreview: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=400',
-    actionUrl: '/user/client/gallery'
-  },
-  {
-    id: '5',
-    type: 'booking',
-    title: 'Booking Confirmed',
-    message: 'Your photography session with Elite Photography has been confirmed for Dec 20, 2025',
-    timestamp: '3 hours ago',
-    read: true,
-    avatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
-    actionUrl: '/user/client/events'
-  },
-  {
-    id: '6',
-    type: 'gift',
-    title: 'Welcome Gift',
-    message: 'Welcome to Amoria! Here\'s a $25.00 gift credit to use on your first booking.',
-    timestamp: '5 hours ago',
-    read: true,
-    amount: 25.00
-  },
-  {
-    id: '7',
-    type: 'photographer',
-    title: 'Photographer Accepted Request',
-    message: 'Sarah Lens accepted your photography request for the Fashion Shoot event',
-    timestamp: '6 hours ago',
-    read: true,
-    avatar: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg',
-    actionUrl: '/user/client/events'
-  },
-  {
-    id: '8',
-    type: 'security',
-    title: 'Password Changed Successfully',
-    message: 'Your password was successfully updated. If this wasn\'t you, contact support immediately.',
-    timestamp: 'Yesterday',
-    read: true
-  },
-  {
-    id: '9',
-    type: 'album',
-    title: 'Album Updated',
-    message: 'Alex Frames added 25 new photos to "Corporate Event" album',
-    timestamp: 'Yesterday',
-    read: true,
-    avatar: 'https://i.pinimg.com/1200x/09/23/45/092345eac1919407e0c49f67e285b831.jpg',
-    albumPreview: 'https://images.unsplash.com/photo-1560439514-4e9645039924?w=400',
-    actionUrl: '/user/client/gallery'
-  },
-  {
-    id: '10',
-    type: 'gift',
-    title: 'Referral Reward',
-    message: 'You earned $15.00 gift credit for referring a friend to Amoria!',
-    timestamp: '2 days ago',
-    read: true,
-    amount: 15.00
-  },
-  {
-    id: '11',
-    type: 'booking',
-    title: 'Session Reminder',
-    message: 'Reminder: Your family portrait session is tomorrow at 2:00 PM',
-    timestamp: '2 days ago',
-    read: true,
-    actionUrl: '/user/client/events'
-  },
-  {
-    id: '12',
-    type: 'security',
-    title: 'Two-Factor Authentication Enabled',
-    message: 'Two-factor authentication has been enabled for your account security.',
-    timestamp: '3 days ago',
-    read: true
-  }
-];
-
-// Sample notifications data for event coordinator dashboard
-const eventCoordinatorNotifications: Notification[] = [
-  {
-    id: '1',
-    type: 'album',
-    title: 'New Album Received',
-    message: 'John Studio shared "Tech Summit 2025" album with you - 245 photos',
-    timestamp: '5 minutes ago',
-    read: false,
-    avatar: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg',
-    albumPreview: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400',
-    actionUrl: '/user/event-coordinator/gallery'
-  },
-  {
-    id: '2',
-    type: 'streamfee',
-    title: 'Stream Fee Payment Received',
-    message: 'You received $3,675.00 from 245 viewers for "Tech Summit 2025" live stream',
-    timestamp: '30 minutes ago',
-    read: false,
-    amount: 3675.00
-  },
-  {
-    id: '3',
-    type: 'security',
-    title: 'New Login Detected',
-    message: 'Your account was accessed from Firefox on Windows 10. Location: Kigali, Rwanda',
-    timestamp: '1 hour ago',
-    read: false,
-    actionUrl: '/user/event-coordinator/profile'
-  },
-  {
-    id: '4',
-    type: 'streamfee',
-    title: 'Stream Fee Payment Received',
-    message: 'You received $2,100.00 from 140 viewers for "Music Festival Night" live stream',
-    timestamp: '2 hours ago',
-    read: false,
-    amount: 2100.00
-  },
-  {
-    id: '5',
-    type: 'booking',
-    title: 'Booking Confirmed',
-    message: 'Your photography session with Elite Photography has been confirmed for Dec 20, 2025',
-    timestamp: '3 hours ago',
-    read: true,
-    avatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
-    actionUrl: '/user/event-coordinator/events'
-  },
-  {
-    id: '6',
-    type: 'streamfee',
-    title: 'Withdrawal Completed',
-    message: 'Your withdrawal of $5,000.00 to MTN Mobile Money has been processed successfully',
-    timestamp: '5 hours ago',
-    read: true,
-    amount: 5000.00
-  },
-  {
-    id: '7',
-    type: 'photographer',
-    title: 'Photographer Accepted Request',
-    message: 'Sarah Lens accepted your photography request for the Corporate Gala event',
-    timestamp: '6 hours ago',
-    read: true,
-    avatar: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg',
-    actionUrl: '/user/event-coordinator/events'
-  },
-  {
-    id: '8',
-    type: 'security',
-    title: 'Password Changed Successfully',
-    message: 'Your password was successfully updated. If this wasn\'t you, contact support immediately.',
-    timestamp: 'Yesterday',
-    read: true
-  },
-  {
-    id: '9',
-    type: 'album',
-    title: 'Album Updated',
-    message: 'Alex Frames added 50 new photos to "Annual Conference" album',
-    timestamp: 'Yesterday',
-    read: true,
-    avatar: 'https://i.pinimg.com/1200x/09/23/45/092345eac1919407e0c49f67e285b831.jpg',
-    albumPreview: 'https://images.unsplash.com/photo-1560439514-4e9645039924?w=400',
-    actionUrl: '/user/event-coordinator/gallery'
-  },
-  {
-    id: '10',
-    type: 'streamfee',
-    title: 'New Viewers Joined',
-    message: '89 new paid viewers joined your "Product Launch" live stream',
-    timestamp: '2 days ago',
-    read: true,
-    amount: 1335.00
-  },
-  {
-    id: '11',
-    type: 'booking',
-    title: 'Event Reminder',
-    message: 'Reminder: Your corporate event photography session is tomorrow at 2:00 PM',
-    timestamp: '2 days ago',
-    read: true,
-    actionUrl: '/user/event-coordinator/events'
-  },
-  {
-    id: '12',
-    type: 'security',
-    title: 'Two-Factor Authentication Enabled',
-    message: 'Two-factor authentication has been enabled for your account security.',
-    timestamp: '3 days ago',
-    read: true
-  }
-];
+// Mock data removed - notifications are now fetched from the backend API
 
 interface NotificationsPageProps {
   userRole?: 'client' | 'event-coordinator';
@@ -342,10 +145,42 @@ interface NotificationsPageProps {
 const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) => {
   const { colors, actualTheme } = useTheme();
   const { formatPrice } = useCurrency();
-  const initialNotifications = userRole === 'event-coordinator' ? eventCoordinatorNotifications : clientNotifications;
-  const [notifications, setNotifications] = useState(initialNotifications);
+  const { token, user } = useDashboardAuth();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [activeFilter, setActiveFilter] = useState<'all' | NotificationType>('all');
   const [showSettings, setShowSettings] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const fetchNotifications = async () => {
+    if (!token || !user?.id) return;
+    try {
+      const apiUrl = getApiUrl();
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/notifications?page=0&size=50`, { headers: { 'Content-Type': 'application/json' } });
+      if (!response.ok) throw new Error('Failed to fetch notifications');
+      const result = await response.json();
+      const data = result?.data?.content || result?.data || [];
+      const mapped: Notification[] = data.map((n: { id: string; title: string; message: string; type: string; isRead: boolean; link?: string; createdAt: string }) => ({
+        id: n.id,
+        type: mapBackendType(n.type),
+        title: n.title,
+        message: n.message,
+        timestamp: formatRelativeTime(n.createdAt),
+        read: n.isRead,
+        actionUrl: n.link || undefined,
+      }));
+      setNotifications(mapped);
+    } catch (err) {
+      console.error('Failed to fetch notifications:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (token && user?.id) {
+      fetchNotifications();
+    }
+  }, [token, user?.id]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -368,14 +203,26 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
     }
   };
 
-  const markAsRead = (id: string) => {
+  const markAsRead = async (id: string) => {
     setNotifications(prev =>
       prev.map(n => n.id === id ? { ...n, read: true } : n)
     );
+    try {
+      const apiUrl = getApiUrl();
+      await dashboardAuthFetch(`${apiUrl}/api/remote/customer/notifications/${id}/read`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' } });
+    } catch (err) {
+      console.error('Failed to mark notification as read:', err);
+    }
   };
 
-  const markAllAsRead = () => {
+  const markAllAsRead = async () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    try {
+      const apiUrl = getApiUrl();
+      await dashboardAuthFetch(`${apiUrl}/api/remote/customer/notifications/read-all`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' } });
+    } catch (err) {
+      console.error('Failed to mark all as read:', err);
+    }
   };
 
   const deleteNotification = (id: string) => {
@@ -552,7 +399,7 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
         <Sidebar />
 
         <div className="notifications-content">
-          <Topbar userRole={userRole} giftAmount={userRole === 'client' ? 225.00 : undefined} liveStreamFeeAmount={userRole === 'event-coordinator' ? 3250.00 : undefined} />
+          <Topbar userRole={userRole} />
 
           <div className="notifications-main">
             {/* Header */}

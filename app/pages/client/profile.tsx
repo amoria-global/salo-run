@@ -424,7 +424,7 @@ const ProfilePage = () => {
         flexDirection: 'column',
         overflow: 'hidden'
       }}>
-        <Topbar userRole="client" giftAmount={225.00} />
+        <Topbar userRole="client" />
 
         <div className="mobile-main-content" style={{
           flex: 1,

@@ -1256,7 +1256,7 @@ const MyEventsPage = () => {
       `}</style>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar userRole="client" giftAmount={225.00} />
+        <Topbar userRole="client" />
         <div className="mobile-main-content" style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
 
           {/* Header */}
