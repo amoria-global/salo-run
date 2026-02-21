@@ -1,17 +1,15 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '../../context/CurrencyContext';
-import { useDashboardAuth } from '../../providers/AuthProvider';
+import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import PayNowModal, { Payment } from '../../components/UnlockModal';
 import {
   StatCard,
-  HeaderStat,
   ActivityItem,
   PaymentItem,
   PerformanceChart,
@@ -131,6 +129,13 @@ const getTimeOfDay = () => {
   return 'night';
 };
 
+function getApiUrl(): string {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    return '/api/proxy';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+}
+
 interface PendingPayment {
   id: string;
   eventName: string;
@@ -150,6 +155,46 @@ interface Photographer {
   avatar: string;
 }
 
+interface AnalyticsData {
+  totalEvents: number;
+  upcomingEvents: number;
+  completedEvents: number;
+  cancelledEvents: number;
+  totalBookings: number;
+  bookingsByStatus: Record<string, number>;
+  totalSpent: number;
+  pendingAmount: number;
+  gifts: number;
+  totalPhotos: number;
+  totalVideos: number;
+  bookmarkedPhotographers: number;
+  unreadNotifications: number;
+}
+
+interface ApiPayment {
+  id: string;
+  eventId: string;
+  eventTitle: string;
+  photographerName: string | null;
+  photographerImage: string | null;
+  amount: number;
+  currencyAbbreviation: string;
+  paymentType: string;
+  status: string;
+  paidAmount: number;
+  dueDate: string;
+  createdAt: string;
+}
+
+interface ApiActivity {
+  id: string;
+  title: string;
+  message: string;
+  type: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
 const ClientDashboard = () => {
   const { colors, actualTheme } = useTheme();
   const { formatPrice } = useCurrency();
@@ -161,6 +206,149 @@ const ClientDashboard = () => {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [showPayNowModal, setShowPayNowModal] = useState(false);
   const [payNowPayment, setPayNowPayment] = useState<Payment | null>(null);
+
+  // API data state
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([]);
+  const [photographers, setPhotographers] = useState<Photographer[]>([]);
+  const [recentActivities, setRecentActivities] = useState<{ label: string; value: string; valueColor?: string }[]>([]);
+  const [recentPayments, setRecentPayments] = useState<{ name: string; type: string; amount: string; avatar?: string }[]>([]);
+  const [performanceData, setPerformanceData] = useState([
+    { day: 'Sun', value1: 0, value2: 0 },
+    { day: 'Mon', value1: 0, value2: 0 },
+    { day: 'Tue', value1: 0, value2: 0 },
+    { day: 'Wed', value1: 0, value2: 0 },
+    { day: 'Thu', value1: 0, value2: 0 },
+    { day: 'Fri', value1: 0, value2: 0 },
+    { day: 'Sat', value1: 0, value2: 0 }
+  ]);
+  const [statTrends, setStatTrends] = useState<Record<string, { percentage: string; trend: 'up' | 'down' }>>({
+    totalSpent: { percentage: '0%', trend: 'up' },
+    pending: { percentage: '0%', trend: 'up' },
+    bookings: { percentage: '0%', trend: 'up' },
+    gifts: { percentage: '0%', trend: 'up' },
+    favorites: { percentage: '0%', trend: 'up' },
+  });
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch all dashboard data
+  const fetchDashboardData = useCallback(async () => {
+    const apiUrl = getApiUrl();
+    const periodParam = activeFilter === 'today' ? 'today' : activeFilter === 'month' ? 'month' : 'week';
+    try {
+      const [analyticsRes, pendingRes, photographersRes, activitiesRes, paymentsRes, performanceRes, trendsRes] = await Promise.allSettled([
+        dashboardAuthFetch(`${apiUrl}/api/remote/customer/analytics`),
+        dashboardAuthFetch(`${apiUrl}/api/remote/customer/payments/pending`),
+        dashboardAuthFetch(`${apiUrl}/api/remote/customer/analytics/photographers?size=5`),
+        dashboardAuthFetch(`${apiUrl}/api/remote/customer/analytics/recent-activities?size=6`),
+        dashboardAuthFetch(`${apiUrl}/api/remote/customer/analytics/recent-payments?size=5`),
+        dashboardAuthFetch(`${apiUrl}/api/remote/customer/analytics/performance?period=${periodParam}`),
+        dashboardAuthFetch(`${apiUrl}/api/remote/customer/analytics/trends?period=${periodParam}`),
+      ]);
+
+      // Analytics
+      if (analyticsRes.status === 'fulfilled' && analyticsRes.value.ok) {
+        const data = await analyticsRes.value.json();
+        if (data.action === 1 && data.data) {
+          setAnalytics(data.data);
+        }
+      }
+
+      // Pending Payments
+      if (pendingRes.status === 'fulfilled' && pendingRes.value.ok) {
+        const data = await pendingRes.value.json();
+        if (data.action === 1 && data.data) {
+          const mapped: PendingPayment[] = (data.data as ApiPayment[]).map((p) => ({
+            id: p.id,
+            eventName: p.eventTitle || 'Event',
+            photographerName: p.photographerName || 'Photographer',
+            photographerImage: p.photographerImage || '/default-avatar.png',
+            amount: p.amount,
+            paidAmount: p.paidAmount || 0,
+            dueDate: p.dueDate ? p.dueDate.split('T')[0] : '',
+            status: p.status === 'PARTIAL' ? 'partially_paid' : 'pending' as PendingPayment['status'],
+          }));
+          setPendingPayments(mapped);
+        }
+      }
+
+      // Photographers
+      if (photographersRes.status === 'fulfilled' && photographersRes.value.ok) {
+        const data = await photographersRes.value.json();
+        if (data.action === 1 && data.data) {
+          const mapped: Photographer[] = (data.data as Array<{ id: string; name: string; event: string; status: string; avatar: string | null }>).map((p) => ({
+            id: p.id,
+            name: p.name,
+            event: p.event || 'Event',
+            status: (p.status as Photographer['status']) || 'Pending',
+            avatar: p.avatar || '/default-avatar.png',
+          }));
+          setPhotographers(mapped);
+        }
+      }
+
+      // Recent Activities
+      if (activitiesRes.status === 'fulfilled' && activitiesRes.value.ok) {
+        const data = await activitiesRes.value.json();
+        if (data.action === 1 && data.data) {
+          const mapped = (data.data as ApiActivity[]).map((a) => ({
+            label: a.type ? a.type.charAt(0) + a.type.slice(1).toLowerCase() : 'Activity',
+            value: a.title || a.message,
+          }));
+          setRecentActivities(mapped);
+        }
+      }
+
+      // Recent Payments
+      if (paymentsRes.status === 'fulfilled' && paymentsRes.value.ok) {
+        const data = await paymentsRes.value.json();
+        if (data.action === 1 && data.data) {
+          const mapped = (data.data as ApiPayment[]).map((p) => ({
+            name: p.photographerName || 'Payment',
+            type: p.paymentType ? p.paymentType.charAt(0) + p.paymentType.slice(1).toLowerCase() : 'Payment',
+            amount: formatPrice(p.paidAmount || p.amount),
+            avatar: p.photographerImage || undefined,
+          }));
+          setRecentPayments(mapped);
+        }
+      }
+
+      // Performance Chart
+      if (performanceRes.status === 'fulfilled' && performanceRes.value.ok) {
+        const data = await performanceRes.value.json();
+        if (data.action === 1 && Array.isArray(data.data)) {
+          setPerformanceData(data.data.map((d: any) => ({
+            day: d.day || '',
+            value1: Number(d.value1) || 0,
+            value2: Number(d.value2) || 0,
+          })));
+        }
+      }
+
+      // Stat Trends
+      if (trendsRes.status === 'fulfilled' && trendsRes.value.ok) {
+        const data = await trendsRes.value.json();
+        if (data.action === 1 && data.data) {
+          const t = data.data;
+          setStatTrends({
+            totalSpent: { percentage: t.totalSpent?.percentage || '0%', trend: t.totalSpent?.trend || 'up' },
+            pending: { percentage: t.pending?.percentage || '0%', trend: t.pending?.trend || 'up' },
+            bookings: { percentage: t.bookings?.percentage || '0%', trend: t.bookings?.trend || 'up' },
+            gifts: { percentage: t.gifts?.percentage || '0%', trend: t.gifts?.trend || 'up' },
+            favorites: { percentage: t.favorites?.percentage || '0%', trend: t.favorites?.trend || 'up' },
+          });
+        }
+      }
+    } catch (error) {
+      console.error('[Client Dashboard] Error fetching dashboard data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [formatPrice, activeFilter]);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
   const handlePayNow = (pending: PendingPayment) => {
     const payment: Payment = {
@@ -223,110 +411,14 @@ const ClientDashboard = () => {
   const currentGreeting = greetings[greetingIndex];
   const staticMessage = getStaticMessage(timeOfDay);
 
-  // Pending Payments Data
-  const pendingPayments: PendingPayment[] = [
-    {
-      id: 'PAY-001',
-      eventName: 'Corporate Headshots',
-      photographerName: 'Elite Photography',
-      photographerImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
-      amount: 500,
-      paidAmount: 0,
-      dueDate: '2025-07-25',
-      status: 'pending'
-    },
-    {
-      id: 'PAY-002',
-      eventName: 'Family Portrait',
-      photographerName: 'Mary Shots',
-      photographerImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg',
-      amount: 250,
-      paidAmount: 125,
-      dueDate: '2025-07-30',
-      status: 'partially_paid'
-    },
-    {
-      id: 'PAY-003',
-      eventName: 'Fashion Shoot',
-      photographerName: 'Sarah Lens',
-      photographerImage: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg',
-      amount: 400,
-      paidAmount: 0,
-      dueDate: '2025-08-05',
-      status: 'failed'
-    }
-  ];
-
   const totalPendingAmount = pendingPayments.reduce((sum, p) => sum + (p.amount - p.paidAmount), 0);
   const hasFailedPayments = pendingPayments.some(p => p.status === 'failed');
 
-  const performanceData = [
-    { day: 'Sun', value1: 130, value2: 150 },
-    { day: 'Mon', value1: 90, value2: 100 },
-    { day: 'Tue', value1: 100, value2: 130 },
-    { day: 'Wed', value1: 60, value2: 70 },
-    { day: 'Thu', value1: 70, value2: 80 },
-    { day: 'Fri', value1: 130, value2: 150 },
-    { day: 'Sat', value1: 90, value2: 70 }
-  ];
-
-  const recentActivities = [
-    { label: 'Photographer', value: 'John Studio' },
-    { label: 'Payment', value: `-${formatPrice(450)}`, valueColor: '#ff0066' },
-    { label: 'Photos', value: 'wedding_gallery.zip' },
-    { label: 'Package', value: 'Premium' },
-    { label: 'Booking', value: 'Wedding Shoot',  valueColor: '#083A85' },
-    { label: 'Last Activity', value: 'Today, 14. July 2025' }
-  ];
-
-  const photographers: Photographer[] = [
-    {
-      id: 'PHT-001',
-      name: 'John Studio',
-      event: 'Wedding',
-      status: 'In Progress' as const,
-      avatar: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg'
-    },
-    {
-      id: 'PHT-002',
-      name: 'Mary Shots',
-      event: 'Birthday',
-      status: 'Completed' as const,
-      avatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg'
-    },
-    {
-      id: 'PHT-003',
-      name: 'Alex Frames',
-      event: 'Festival',
-      status: 'Pending' as const,
-      avatar: 'https://i.pinimg.com/1200x/09/23/45/092345eac1919407e0c49f67e285b831.jpg'
-    }
-  ];
+  const periodLabel = activeFilter === 'today' ? 'yesterday' : activeFilter === 'month' ? 'last month' : 'last week';
 
   const toggleDropdown = (id: string) => {
     setActiveDropdown(activeDropdown === id ? null : id);
   };
-
-  const recentPayments = [
-    {
-      name: 'John Studio',
-      type: 'Booking Payment',
-      amount: formatPrice(1950),
-      avatar: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg'
-    },
-    {
-      name: 'Mary Shots',
-      type: 'Photo Package',
-      amount: formatPrice(850),
-      avatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg'
-    },
-    {
-      name: 'Amoria',
-      type: 'Platform Fee',
-      amount: formatPrice(25),
-      logo: '/logo.png'
-    }
-  ];
 
   return (
     <>
@@ -411,7 +503,7 @@ const ClientDashboard = () => {
         flexDirection: 'column',
         overflow: 'hidden'
       }}>
-        <Topbar userRole="client" giftAmount={225.00} />
+        <Topbar userRole="client" giftAmount={analytics?.gifts || 0} />
 
         <div className="mobile-main-content" style={{
           flex: 1,
@@ -475,7 +567,7 @@ const ClientDashboard = () => {
                   lineHeight: '1.75rem',
                   fontWeight: '700',
                   color: colors.textPrimary
-                }}>{formatPrice(9640)}</span>
+                }}>{formatPrice(analytics?.totalSpent || 0)}</span>
               </div>
               <div className="mobile-header-stat" style={{
                 display: 'flex',
@@ -494,7 +586,7 @@ const ClientDashboard = () => {
                   lineHeight: '1.75rem',
                   fontWeight: '700',
                   color: colors.textPrimary
-                }}>12</span>
+                }}>{analytics?.totalBookings || 0}</span>
               </div>
               <div className="mobile-header-stat" style={{
                 display: 'flex',
@@ -513,7 +605,7 @@ const ClientDashboard = () => {
                   lineHeight: '1.75rem',
                   fontWeight: '700',
                   color: colors.textPrimary
-                }}>248</span>
+                }}>{analytics?.totalPhotos || 0}</span>
               </div>
             </div>
           </header>
@@ -609,47 +701,47 @@ const ClientDashboard = () => {
       }}>
         <StatCard
           title="Total Spent"
-          value={formatPrice(2600)}
-          percentage="52.76%"
-          timeframe="last week"
+          value={formatPrice(analytics?.totalSpent || 0)}
+          percentage={statTrends.totalSpent.percentage}
+          timeframe={periodLabel}
           icon={<MoneyIcon />}
-          trend="up"
+          trend={statTrends.totalSpent.trend}
           href="/user/client/transactions"
         />
         <StatCard
           title="Pending"
-          value={formatPrice(700)}
-          percentage="36.8%"
-          timeframe="last week"
+          value={formatPrice(analytics?.pendingAmount || 0)}
+          percentage={statTrends.pending.percentage}
+          timeframe={periodLabel}
           icon={<ClockIcon />}
-          trend="down"
+          trend={statTrends.pending.trend}
           href="/user/client/bookings"
         />
         <StatCard
           title="Bookings"
-          value="12"
-          percentage="5.4%"
-          timeframe="last week"
+          value={String(analytics?.totalBookings || 0)}
+          percentage={statTrends.bookings.percentage}
+          timeframe={periodLabel}
           icon={<UsersIcon />}
-          trend="up"
+          trend={statTrends.bookings.trend}
           href="/user/client/bookings"
         />
         <StatCard
           title="Gifts"
-          value={formatPrice(225)}
-          percentage="12.5%"
-          timeframe="last week"
+          value={formatPrice(analytics?.gifts || 0)}
+          percentage={statTrends.gifts.percentage}
+          timeframe={periodLabel}
           icon={<GiftIcon />}
-          trend="up"
+          trend={statTrends.gifts.trend}
           href="/user/client/payments"
         />
         <StatCard
           title="Favorites"
-          value="8"
-          percentage="8%"
-          timeframe="photographers"
+          value={String(analytics?.bookmarkedPhotographers || 0)}
+          percentage={statTrends.favorites.percentage}
+          timeframe={periodLabel}
           icon={<StarIcon />}
-          trend="up"
+          trend={statTrends.favorites.trend}
           href="/user/client/photographers"
         />
       </div>
@@ -737,11 +829,9 @@ const ClientDashboard = () => {
                 }}
               >
                 <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
-                  <Image
+                  <img
                     src={payment.photographerImage}
                     alt={payment.photographerName}
-                    width={40}
-                    height={40}
                     style={{ objectFit: 'cover', width: '100%', height: '100%' }}
                   />
                 </div>

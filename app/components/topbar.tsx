@@ -1,11 +1,18 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTheme } from "../context/ThemeContext";
-import { useDashboardAuth } from "../providers/AuthProvider";
+import { useDashboardAuth, dashboardAuthFetch } from "../providers/AuthProvider";
 import { useCurrency } from "../context/CurrencyContext";
+
+function getApiUrl(): string {
+  if (process.env.NODE_ENV === 'production') {
+    return '/api/proxy';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+}
 
 // Icons for dropdown menu
 const ProfileIcon = () => (
@@ -46,18 +53,28 @@ const CloseIcon = () => (
   </svg>
 );
 
-// Sample notifications data
-const notificationsData = [
-  { id: 1, type: 'payment', title: 'Payment Received', message: 'You received $250.00 from Kagabo Innocent', time: '2 min ago', read: false },
-  { id: 2, type: 'booking', title: 'New Booking', message: 'Wedding photography session booked for Dec 15', time: '15 min ago', read: false },
-  { id: 3, type: 'system', title: 'Profile Updated', message: 'Your profile information was successfully updated', time: '1 hour ago', read: false },
-  { id: 4, type: 'payment', title: 'Bonus Credited', message: 'Referral bonus of $3.00 has been credited', time: '2 hours ago', read: true },
-  { id: 5, type: 'booking', title: 'Booking Reminder', message: 'Upcoming session with Penny Gloria tomorrow', time: '3 hours ago', read: true },
-  { id: 6, type: 'system', title: 'New Feature', message: 'Check out the new transaction reports feature', time: '5 hours ago', read: true },
-  { id: 7, type: 'payment', title: 'Payment Pending', message: 'Payment of $500.00 is awaiting approval', time: '1 day ago', read: true },
-  { id: 8, type: 'booking', title: 'Session Completed', message: 'Corporate event photography marked complete', time: '1 day ago', read: true },
-  { id: 9, type: 'system', title: 'Security Alert', message: 'New login detected from Chrome on Windows', time: '2 days ago', read: true },
-];
+interface NotificationItem {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  time: string;
+  read: boolean;
+}
+
+function formatTimeAgo(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return 'just now';
+  if (diffMins < 60) return `${diffMins} min ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 30) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+  return `${Math.floor(diffDays / 30)} month${Math.floor(diffDays / 30) > 1 ? 's' : ''} ago`;
+}
 
 interface TopbarProps {
   bonusAmount?: number;
@@ -68,9 +85,9 @@ interface TopbarProps {
   userRole?: 'client' | 'photographer' | 'admin' | 'event-coordinator';
 }
 
-export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmount, liveStreamFeeAmount, userRole = 'client' }: TopbarProps) {
+export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmountProp, balanceAmount, liveStreamFeeAmount, userRole = 'client' }: TopbarProps) {
   const { colors, actualTheme } = useTheme();
-  const { user, logout } = useDashboardAuth();
+  const { user, logout, token } = useDashboardAuth();
   const router = useRouter();
   const { currency, setCurrency, formatPrice, currencies } = useCurrency();
 
@@ -103,19 +120,91 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
-  const [notifications, setNotifications] = useState(notificationsData);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [giftAmount, setGiftAmount] = useState(giftAmountProp ?? 0);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const currencyRef = useRef<HTMLDivElement>(null);
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const fetchNotifications = useCallback(async () => {
+    if (!token) return;
+    const apiUrl = getApiUrl();
+    try {
+      const [notifRes, countRes] = await Promise.allSettled([
+        dashboardAuthFetch(`${apiUrl}/api/remote/customer/notifications?page=0&size=20`, { method: 'GET' }),
+        dashboardAuthFetch(`${apiUrl}/api/remote/customer/notifications/unread-count`, { method: 'GET' }),
+      ]);
 
-  const markAsRead = (id: number) => {
+      if (notifRes.status === 'fulfilled' && notifRes.value.ok) {
+        const data = await notifRes.value.json();
+        if (data.action === 1 && Array.isArray(data.data)) {
+          setNotifications(data.data.map((n: any) => ({
+            id: n.id,
+            type: n.type || 'system',
+            title: n.title || '',
+            message: n.message || '',
+            time: n.createdAt ? formatTimeAgo(n.createdAt) : '',
+            read: n.isRead ?? true,
+          })));
+        }
+      }
+      if (countRes.status === 'fulfilled' && countRes.value.ok) {
+        const data = await countRes.value.json();
+        if (data.action === 1) setUnreadCount(data.data ?? 0);
+      }
+    } catch {
+      // silent fail
+    }
+  }, [token]);
+
+  const fetchFinancials = useCallback(async () => {
+    if (!token || giftAmountProp !== undefined) return;
+    const apiUrl = getApiUrl();
+    try {
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/analytics`, { method: 'GET' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.action === 1 && data.data) {
+          setGiftAmount(data.data.gifts ?? 0);
+        }
+      }
+    } catch {
+      // silent fail
+    }
+  }, [token, giftAmountProp]);
+
+  useEffect(() => {
+    if (giftAmountProp !== undefined) setGiftAmount(giftAmountProp);
+  }, [giftAmountProp]);
+
+  useEffect(() => {
+    fetchNotifications();
+    fetchFinancials();
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, [fetchNotifications, fetchFinancials]);
+
+  const markAsRead = async (id: string) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    setUnreadCount(prev => Math.max(0, prev - 1));
+    const apiUrl = getApiUrl();
+    try {
+      await dashboardAuthFetch(`${apiUrl}/api/remote/customer/notifications/${id}/read`, { method: 'PATCH' });
+    } catch {
+      // silent fail
+    }
   };
 
-  const markAllAsRead = () => {
+  const markAllAsRead = async () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    setUnreadCount(0);
+    const apiUrl = getApiUrl();
+    try {
+      await dashboardAuthFetch(`${apiUrl}/api/remote/customer/notifications/read-all`, { method: 'PATCH' });
+    } catch {
+      // silent fail
+    }
   };
 
   const getNotificationIcon = (type: string) => {

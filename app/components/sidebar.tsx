@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useTheme } from "../context/ThemeContext";
-import { useDashboardAuth } from "../providers/AuthProvider";
+import { useDashboardAuth, dashboardAuthFetch } from "../providers/AuthProvider";
 
 type UserRole = "photographer" | "client" | "event-coordinator";
 
@@ -16,16 +16,12 @@ interface NavigationItem {
   badge?: number;
 }
 
-// Badge counts for notifications and messages (in real app, these would come from API/context)
-const getNotificationCounts = (role: UserRole) => {
-  // Sample notification counts - in production, these would be fetched from backend
-  const counts = {
-    photographer: { notifications: 5, messages: 6 },
-    client: { notifications: 4, messages: 2 },
-    "event-coordinator": { notifications: 6, messages: 3 }
-  };
-  return counts[role];
-};
+function getApiUrl(): string {
+  if (process.env.NODE_ENV === 'production') {
+    return '/api/proxy';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+}
 
 // Role-based navigation configurations
 const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
@@ -98,19 +94,48 @@ export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { colors, actualTheme } = useTheme();
-  const { logout } = useDashboardAuth();
+  const { logout, token } = useDashboardAuth();
 
   // Automatically detect role from current URL path
   const currentRole = useMemo(() => detectRoleFromPath(pathname), [pathname]);
 
-  const notificationCounts = getNotificationCounts(currentRole);
+  const [notificationCount, setNotificationCount] = useState(0);
+  const [messageCount, setMessageCount] = useState(0);
+
+  const fetchBadgeCounts = useCallback(async () => {
+    if (!token) return;
+    const apiUrl = getApiUrl();
+    try {
+      const [notifRes, msgRes] = await Promise.allSettled([
+        dashboardAuthFetch(`${apiUrl}/api/remote/customer/notifications/unread-count`, { method: 'GET' }),
+        dashboardAuthFetch(`${apiUrl}/api/remote/chat/unread-count`, { method: 'GET' }),
+      ]);
+
+      if (notifRes.status === 'fulfilled' && notifRes.value.ok) {
+        const data = await notifRes.value.json();
+        if (data.action === 1) setNotificationCount(data.data ?? 0);
+      }
+      if (msgRes.status === 'fulfilled' && msgRes.value.ok) {
+        const data = await msgRes.value.json();
+        if (data.action === 1) setMessageCount(data.data ?? 0);
+      }
+    } catch {
+      // silent fail
+    }
+  }, [token]);
+
+  useEffect(() => {
+    fetchBadgeCounts();
+    const interval = setInterval(fetchBadgeCounts, 30000);
+    return () => clearInterval(interval);
+  }, [fetchBadgeCounts]);
+
   const navigationItems = roleNavigationMap[currentRole].map(item => {
-    // Add badge counts for Notifications and Inbox
     if (item.name === "Notifications") {
-      return { ...item, badge: notificationCounts.notifications };
+      return { ...item, badge: notificationCount };
     }
     if (item.name === "Inbox") {
-      return { ...item, badge: notificationCounts.messages };
+      return { ...item, badge: messageCount };
     }
     return item;
   });
