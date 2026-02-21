@@ -7,7 +7,7 @@ import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
-import { useDashboardAuth } from '../../providers/AuthProvider';
+import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { HeartIcon as DonateHeartIcon } from '../../components/UnlockModal';
 
 function getApiUrl(): string {
@@ -341,247 +341,72 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
   const [tipShowCustomInput, setTipShowCustomInput] = useState<boolean>(false);
   const [tipShowReceipt, setTipShowReceipt] = useState<boolean>(false);
 
-  const [photographers, setPhotographers] = useState<BookedPhotographer[]>([
-    {
-      id: '1',
-      firstName: 'John',
-      lastName: 'Studio',
-      profileImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
-      coverImage: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800',
-      portfolioImages: [
-        'https://images.unsplash.com/photo-1519741497674-611481863552?w=400',
-        'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=400',
-        'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=400'
-      ],
-      bio: 'Professional wedding and event photographer with over 10 years of experience capturing lifes most precious moments. Specialized in candid shots and emotional storytelling.',
-      specializations: ['Weddings', 'Events', 'Portraits'],
-      experience: 10,
-      location: { city: 'Kigali', country: 'Rwanda' },
-      rating: 4.9,
-      reviewCount: 156,
-      completedBookings: 234,
-      verified: true,
-      startingPrice: 450,
-      responseTime: '1 hour',
-      isFavorite: true,
-      isAvailable: true,
-      languages: ['English', 'Kinyarwanda', 'French'],
-      equipment: ['Canon EOS R5', 'Sony A7III', 'DJI Mavic Pro'],
-      lastBookingDate: '2024-11-15',
-      lastEventType: 'Wedding',
-      lastEventName: 'Sarah & James Wedding',
-      totalBookingsWithClient: 3,
-      totalSpent: 1350,
-      myRating: 5,
-      myReview: 'Absolutely amazing work! John captured every moment perfectly.',
-      bookings: [
-        {
-          id: 'BK-001',
-          eventName: 'Sarah & James Wedding',
-          eventType: 'Wedding',
-          eventDate: '2024-11-15',
-          eventTime: '14:00',
-          duration: '8 hours',
-          location: 'Kigali Convention Center',
-          packageName: 'Premium Wedding',
-          totalAmount: 1500,
-          paidAmount: 1500,
-          paymentStatus: 'paid',
-          status: 'completed'
-        },
-        {
-          id: 'BK-008',
-          eventName: 'Anniversary Celebration',
-          eventType: 'Event',
-          eventDate: '2025-01-20',
-          eventTime: '16:00',
-          duration: '4 hours',
-          location: 'Marriott Hotel Kigali',
-          packageName: 'Event Coverage',
-          totalAmount: 600,
-          paidAmount: 300,
-          paymentStatus: 'partially_paid',
-          status: 'upcoming'
-        }
-      ]
-    },
-    {
-      id: '2',
-      firstName: 'Mary',
-      lastName: 'Shots',
-      profileImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg',
-      coverImage: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=800',
-      portfolioImages: [
-        'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=400',
-        'https://images.unsplash.com/photo-1464349153735-7db50ed83c84?w=400',
-        'https://images.unsplash.com/photo-1496843916299-590492c751f4?w=400'
-      ],
-      bio: 'Specializing in birthday parties and family celebrations. I believe every moment deserves to be captured beautifully. Natural light specialist.',
-      specializations: ['Birthdays', 'Family', 'Kids'],
-      experience: 6,
-      location: { city: 'Nairobi', country: 'Kenya' },
-      rating: 4.7,
-      reviewCount: 89,
-      completedBookings: 142,
-      verified: true,
-      startingPrice: 300,
-      responseTime: '2 hours',
-      isFavorite: false,
-      isAvailable: true,
-      languages: ['English', 'Swahili'],
-      equipment: ['Nikon D850', 'Canon 5D Mark IV'],
-      lastBookingDate: '2024-10-28',
-      lastEventType: 'Birthday',
-      lastEventName: 'Emily\'s 5th Birthday',
-      totalBookingsWithClient: 2,
-      totalSpent: 600,
-      bookings: [
-        {
-          id: 'BK-002',
-          eventName: 'Emily\'s 5th Birthday',
-          eventType: 'Birthday',
-          eventDate: '2024-10-28',
-          eventTime: '15:00',
-          duration: '4 hours',
-          location: 'Lake Kivu Resort, Gisenyi',
-          packageName: 'Birthday Special',
-          totalAmount: 300,
-          paidAmount: 300,
-          paymentStatus: 'paid',
-          status: 'completed'
-        },
-        {
-          id: 'BK-009',
-          eventName: 'Baby Shower',
-          eventType: 'Family',
-          eventDate: '2025-02-14',
-          eventTime: '11:00',
-          duration: '3 hours',
-          location: 'Home Studio',
-          packageName: 'Family Package',
-          totalAmount: 350,
-          paidAmount: 0,
-          paymentStatus: 'pending',
-          status: 'upcoming'
-        }
-      ]
-    },
-    {
-      id: '3',
-      firstName: 'Alex',
-      lastName: 'Frames',
-      profileImage: 'https://i.pinimg.com/1200x/09/23/45/092345eac1919407e0c49f67e285b831.jpg',
-      coverImage: 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=800',
-      portfolioImages: [
-        'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=400',
-        'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=400',
-        'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=400'
-      ],
-      bio: 'Festival and concert photographer bringing energy and life to every shot. Experienced in low-light and fast-paced environments. Published in Rolling Stone Africa.',
-      specializations: ['Festivals', 'Concerts', 'Nightlife'],
-      experience: 8,
-      location: { city: 'Kampala', country: 'Uganda' },
-      rating: 4.8,
-      reviewCount: 67,
-      completedBookings: 98,
-      verified: true,
-      startingPrice: 350,
-      responseTime: '3 hours',
-      isFavorite: true,
-      isAvailable: false,
-      languages: ['English', 'Luganda'],
-      equipment: ['Sony A7S III', 'Canon EOS R6'],
-      lastBookingDate: '2024-09-20',
-      lastEventType: 'Concert',
-      lastEventName: 'Nyege Nyege Festival 2024',
-      totalBookingsWithClient: 1,
-      totalSpent: 350,
-      myRating: 5,
-      myReview: 'Alex is incredible at capturing the energy of live events!',
-      bookings: [
-        {
-          id: 'BK-003',
-          eventName: 'Nyege Nyege Festival 2024',
-          eventType: 'Concert',
-          eventDate: '2024-09-20',
-          eventTime: '16:00',
-          duration: '6 hours',
-          location: 'Amahoro Stadium, Kigali',
-          packageName: 'Festival Coverage',
-          totalAmount: 350,
-          paidAmount: 350,
-          paymentStatus: 'paid',
-          status: 'completed'
-        }
-      ]
-    },
-    {
-      id: '4',
-      firstName: 'Elite',
-      lastName: 'Photography',
-      profileImage: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg',
-      coverImage: 'https://images.unsplash.com/photo-1560439514-4e9645039924?w=800',
-      portfolioImages: [
-        'https://images.unsplash.com/photo-1560439514-4e9645039924?w=400',
-        'https://images.unsplash.com/photo-1552664730-d307ca884978?w=400',
-        'https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=400'
-      ],
-      bio: 'Corporate photography specialist. Headshots, team photos, and company events with a professional touch. Trusted by Fortune 500 companies.',
-      specializations: ['Corporate', 'Headshots', 'Commercial'],
-      experience: 12,
-      location: { city: 'Dar es Salaam', country: 'Tanzania' },
-      rating: 4.6,
-      reviewCount: 112,
-      completedBookings: 187,
-      verified: true,
-      startingPrice: 500,
-      responseTime: '30 mins',
-      isFavorite: false,
-      isAvailable: true,
-      languages: ['English', 'Swahili', 'Arabic'],
-      equipment: ['Canon EOS R5', 'Profoto B10', 'Phase One'],
-      lastBookingDate: '2024-11-01',
-      lastEventType: 'Corporate',
-      lastEventName: 'MTN Annual Conference',
-      totalBookingsWithClient: 4,
-      totalSpent: 2000,
-      myRating: 4,
-      myReview: 'Very professional. Great corporate shots.',
-      bookings: [
-        {
-          id: 'BK-004',
-          eventName: 'MTN Annual Conference',
-          eventType: 'Corporate',
-          eventDate: '2024-11-01',
-          eventTime: '09:00',
-          duration: '6 hours',
-          location: 'Tech Hub Office, Kigali',
-          packageName: 'Corporate Full Day',
-          totalAmount: 800,
-          paidAmount: 800,
-          paymentStatus: 'paid',
-          status: 'completed'
-        },
-        {
-          id: 'BK-010',
-          eventName: 'Team Headshots',
-          eventType: 'Corporate',
-          eventDate: '2025-01-15',
-          eventTime: '10:00',
-          duration: '3 hours',
-          location: 'Company HQ',
-          packageName: 'Corporate Headshots',
-          totalAmount: 500,
-          paidAmount: 0,
-          paymentStatus: 'failed',
-          status: 'upcoming'
-        }
-      ]
-    }
-    
-  ]);
+  const [photographers, setPhotographers] = useState<BookedPhotographer[]>([]);
 
   const specializations = ['Weddings', 'Events', 'Portraits', 'Birthdays', 'Corporate', 'Fashion', 'Festivals', 'Concerts'];
+
+  // Fetch booked photographers from API
+  useEffect(() => {
+    if (!token || !user?.id) return;
+
+    const fetchPhotographers = async () => {
+      try {
+        const apiUrl = getApiUrl();
+        const response = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/photographers`, { headers: { 'Content-Type': 'application/json' } });
+        if (!response.ok) throw new Error('Failed to fetch photographers');
+        const result = await response.json();
+        const data = result?.data || [];
+        const mapped: BookedPhotographer[] = data.map((p: any) => ({
+          id: p.id,
+          firstName: p.firstName || '',
+          lastName: p.lastName || '',
+          profileImage: p.profileImage || '/default-avatar.png',
+          coverImage: p.coverImage || '',
+          portfolioImages: p.portfolioImages || [],
+          bio: p.bio || '',
+          specializations: p.specializations || [],
+          experience: p.experience || 0,
+          location: p.location || { city: '', country: '' },
+          rating: p.rating || 0,
+          reviewCount: p.reviewCount || 0,
+          completedBookings: p.completedBookings || 0,
+          verified: p.isVerified || false,
+          startingPrice: p.startingPrice || 0,
+          responseTime: p.responseTime || 'N/A',
+          isFavorite: p.isFavorite || false,
+          isAvailable: p.isAvailable || false,
+          languages: p.languages || [],
+          equipment: p.equipment || [],
+          lastBookingDate: p.lastBookingDate || '',
+          lastEventType: p.lastEventType || '',
+          lastEventName: p.lastEventName || '',
+          totalBookingsWithClient: p.totalBookingsWithClient || 0,
+          totalSpent: p.totalSpent || 0,
+          myRating: p.myRating || undefined,
+          myReview: p.myReview || undefined,
+          bookings: (p.bookings || []).map((b: any) => ({
+            id: b.id,
+            eventName: b.eventName || '',
+            eventType: b.eventType || '',
+            eventDate: b.eventDate || '',
+            eventTime: b.eventTime || '',
+            duration: b.duration || '',
+            location: b.location || '',
+            packageName: b.packageName || '',
+            totalAmount: b.totalAmount || 0,
+            paidAmount: b.paidAmount || 0,
+            paymentStatus: b.paymentStatus || 'pending',
+            status: b.status || 'upcoming',
+          })),
+        }));
+        setPhotographers(mapped);
+      } catch (err) {
+        console.error('Failed to fetch photographers:', err);
+      }
+    };
+
+    fetchPhotographers();
+  }, [token, user?.id]);
 
   // Fetch completed events when review modal opens
   useEffect(() => {
@@ -925,7 +750,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
       `}</style>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar userRole={userRole} giftAmount={userRole === 'client' ? 225.00 : undefined} liveStreamFeeAmount={userRole === 'event-coordinator' ? 3250.00 : undefined} />
+        <Topbar userRole={userRole} />
         <div className="mobile-main-content" style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
 
           {/* Header */}

@@ -126,6 +126,7 @@ interface AuthContextType {
 
 const AUTH_TOKEN_KEY = 'authToken';
 const AUTH_USER_KEY = 'authUser';
+const REFRESH_TOKEN_KEY = 'refreshToken';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -149,6 +150,26 @@ function saveTokenToStorage(token: string): void {
   }
 }
 
+function saveRefreshTokenToStorage(refreshToken: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+    const maxAge = 60 * 60 * 24 * 7;
+    document.cookie = `refreshToken=${refreshToken}; path=/; max-age=${maxAge}; samesite=lax`;
+  } catch (error) {
+    console.error('[Dashboard Auth] Failed to save refresh token:', error);
+  }
+}
+
+function getRefreshToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  // Try localStorage first, then cookie
+  const stored = localStorage.getItem(REFRESH_TOKEN_KEY);
+  if (stored) return stored;
+  const match = document.cookie.match(/(?:^|;\s*)refreshToken=([^;]*)/);
+  return match ? match[1] : null;
+}
+
 /**
  * Atomically clear auth from all storage locations
  */
@@ -158,8 +179,10 @@ function clearAuthFromStorage(): void {
   try {
     localStorage.removeItem('authToken');
     localStorage.removeItem('authUser');
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
     document.cookie = 'authToken=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
     document.cookie = 'userRole=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+    document.cookie = 'refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
   } catch (error) {
     console.error('[Dashboard Auth] Failed to clear auth storage:', error);
   }
@@ -239,21 +262,31 @@ async function attemptDashboardTokenRefresh(currentToken: string): Promise<strin
 
   refreshPromise = (async () => {
     try {
+      const storedRefreshToken = getRefreshToken();
+      if (!storedRefreshToken) {
+        console.warn('[Dashboard Auth] No refresh token available');
+        return null;
+      }
+
       const response = await fetch(
-        `${getApiUrl()}/api/remote/auth/api/v1/remote/refresh-token`,
+        `${getApiUrl()}/api/remote/auth/refresh-token`,
         {
-          method: 'GET',
+          method: 'POST',
           headers: {
-            'Authorization': `Bearer ${currentToken}`,
+            'Content-Type': 'application/json',
             'api-token': getApiKey(),
           },
+          body: JSON.stringify({ refreshToken: storedRefreshToken }),
         }
       );
       if (response.ok) {
         const data = await response.json();
         if (data.token) {
-          // Update all storage locations atomically
           saveTokenToStorage(data.token);
+          // Save new refresh token if provided
+          if (data.refreshToken) {
+            saveRefreshTokenToStorage(data.refreshToken);
+          }
           console.log('[Dashboard Auth] Token refreshed successfully');
           return data.token;
         }
@@ -393,11 +426,17 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     const initAuth = async () => {
       // Check for token in URL params (primary method)
       const urlToken = searchParams.get('token');
+      const urlRefreshToken = searchParams.get('refreshToken');
       // Check for token in cookie
       const cookieToken = getCookieToken();
       // Check localStorage
       const storedToken = typeof window !== 'undefined' ? localStorage.getItem(AUTH_TOKEN_KEY) : null;
       const storedUserStr = typeof window !== 'undefined' ? localStorage.getItem(AUTH_USER_KEY) : null;
+
+      // Store refresh token if provided via URL or cookie
+      if (urlRefreshToken) {
+        saveRefreshTokenToStorage(urlRefreshToken);
+      }
 
       // Priority: URL > cookie > localStorage
       const activeToken = urlToken || cookieToken || storedToken;
@@ -531,17 +570,19 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
    * Refresh the auth token
    */
   const refreshTokenFn = useCallback(async (): Promise<boolean> => {
-    if (!token) return false;
+    const storedRefreshToken = getRefreshToken();
+    if (!storedRefreshToken) return false;
 
     try {
       const response = await fetch(
-        `${getApiUrl()}/api/remote/auth/api/v1/remote/refresh-token`,
+        `${getApiUrl()}/api/remote/auth/refresh-token`,
         {
-          method: 'GET',
+          method: 'POST',
           headers: {
-            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
             'api-token': getApiKey(),
           },
+          body: JSON.stringify({ refreshToken: storedRefreshToken }),
         }
       );
 
@@ -550,6 +591,9 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
         if (data.token) {
           setToken(data.token);
           saveTokenToStorage(data.token);
+          if (data.refreshToken) {
+            saveRefreshTokenToStorage(data.refreshToken);
+          }
           return true;
         }
       }
@@ -558,7 +602,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
       console.error('[Dashboard Auth] Token refresh failed:', error);
       return false;
     }
-  }, [token]);
+  }, []);
 
   /**
    * Logout - clear all auth data

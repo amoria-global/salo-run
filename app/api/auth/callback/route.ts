@@ -5,8 +5,9 @@ import { NextRequest, NextResponse } from 'next/server';
  * Receives token from redirect header, sets it as a cookie, and redirects to dashboard
  */
 export async function GET(request: NextRequest) {
-  // Extract token from request header
+  // Extract tokens from request headers
   const token = request.headers.get('token');
+  const refreshToken = request.headers.get('refreshToken');
 
   if (!token) {
     // No token in header - redirect to login
@@ -31,6 +32,17 @@ export async function GET(request: NextRequest) {
     maxAge: 60 * 60 * 24 * 7, // 7 days
     path: '/',
   });
+
+  // Set refresh token as cookie if provided
+  if (refreshToken) {
+    response.cookies.set('refreshToken', refreshToken, {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: '/',
+    });
+  }
 
   return response;
 }
