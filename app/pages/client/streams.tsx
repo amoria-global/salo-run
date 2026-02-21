@@ -1,10 +1,18 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
+import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
+
+function getApiUrl(): string {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    return '/api/proxy';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+}
 
 // Types
 interface ViewerMessage {
@@ -175,123 +183,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
   );
 };
 
-// Sample completed streams data with viewer messages
-const sampleCompletedStreams: CompletedStream[] = [
-  {
-    id: 'cs1',
-    eventId: 'evt1',
-    eventTitle: 'My Wedding Ceremony',
-    eventType: 'Wedding',
-    photographerName: 'John Smith Photography',
-    photographerImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
-    streamTitle: 'Sarah & James Wedding Live',
-    description: 'Live stream of our beautiful garden wedding ceremony at Kigali Convention Center.',
-    streamDate: '2025-01-10',
-    streamTime: '14:00',
-    duration: '2:35:42',
-    coverImage: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800',
-    totalViewers: 287,
-    peakViewers: 312,
-    totalMessages: 156,
-    totalVideoMessages: 12,
-    replayUrl: 'https://connekt.app/replay/cs1',
-    messages: [
-      { id: 'm1', viewerUsername: 'aunt_mary92', viewerAvatar: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg', message: 'Congratulations Sarah and James! Wishing you a lifetime of happiness!', timestamp: '2025-01-10T14:15:00', time: '14:15' },
-      { id: 'm2', viewerUsername: 'cousin_mike', viewerAvatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', message: 'The venue looks absolutely stunning! Love the flower arrangements.', timestamp: '2025-01-10T14:18:00', time: '14:18' },
-      { id: 'm3', viewerUsername: 'bestie_emma', viewerAvatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', message: 'Sarah you look so beautiful! Im crying over here!', timestamp: '2025-01-10T14:22:00', time: '14:22' },
-      { id: 'm4', viewerUsername: 'uncle_john', viewerAvatar: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg', message: 'Proud of you both! The ceremony is perfect!', timestamp: '2025-01-10T14:30:00', time: '14:30' },
-      { id: 'm5', viewerUsername: 'college_friend', viewerAvatar: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg', message: 'Best wedding stream ever! The quality is amazing!', timestamp: '2025-01-10T14:35:00', time: '14:35' },
-      { id: 'm6', viewerUsername: 'neighbor_lisa', viewerAvatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', message: 'Such a beautiful couple! Congratulations!', timestamp: '2025-01-10T14:40:00', time: '14:40' },
-    ],
-    videoMessages: [
-      { id: 'v1', viewerUsername: 'grandma_rose', viewerAvatar: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg', videoUrl: '/live-stream.mp4', thumbnailUrl: 'https://images.unsplash.com/photo-1529634806980-85c3dd6d34ac?w=400', duration: '0:58', timestamp: '2025-01-10T14:25:00', time: '14:25', viewed: true },
-      { id: 'v2', viewerUsername: 'brother_david', viewerAvatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', videoUrl: '/live-stream-2.mp4', thumbnailUrl: 'https://images.unsplash.com/photo-1511578314322-379afb476865?w=400', duration: '0:45', timestamp: '2025-01-10T14:45:00', time: '14:45', viewed: false },
-      { id: 'v3', viewerUsername: 'childhood_friend', viewerAvatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', videoUrl: '/bako.mp4', thumbnailUrl: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=400', duration: '1:00', timestamp: '2025-01-10T15:00:00', time: '15:00', viewed: false },
-    ]
-  },
-  {
-    id: 'cs2',
-    eventId: 'evt2',
-    eventTitle: 'My 30th Birthday Bash',
-    eventType: 'Birthday',
-    photographerName: 'Creative Studios',
-    photographerImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg',
-    streamTitle: '30th Birthday Celebration Live',
-    description: 'Celebrating three decades of life! Live from Lake Kivu Resort.',
-    streamDate: '2025-01-05',
-    streamTime: '18:00',
-    duration: '3:15:20',
-    coverImage: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=800',
-    totalViewers: 156,
-    peakViewers: 189,
-    totalMessages: 98,
-    totalVideoMessages: 8,
-    replayUrl: 'https://connekt.app/replay/cs2',
-    messages: [
-      { id: 'm1', viewerUsername: 'party_pete', viewerAvatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', message: 'Happy 30th! Looks like an amazing party!', timestamp: '2025-01-05T18:10:00', time: '18:10' },
-      { id: 'm2', viewerUsername: 'work_buddy', viewerAvatar: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg', message: 'Wish I could be there! Have a blast!', timestamp: '2025-01-05T18:15:00', time: '18:15' },
-      { id: 'm3', viewerUsername: 'sister_anna', viewerAvatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', message: 'The decorations are incredible! Love it!', timestamp: '2025-01-05T18:20:00', time: '18:20' },
-      { id: 'm4', viewerUsername: 'high_school_gang', viewerAvatar: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg', message: '30 looks good on you! Cheers!', timestamp: '2025-01-05T18:30:00', time: '18:30' },
-    ],
-    videoMessages: [
-      { id: 'v1', viewerUsername: 'mom_sends_love', viewerAvatar: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg', videoUrl: '/live-stream.mp4', thumbnailUrl: 'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=400', duration: '0:52', timestamp: '2025-01-05T18:25:00', time: '18:25', viewed: true },
-      { id: 'v2', viewerUsername: 'dad_celebration', viewerAvatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', videoUrl: '/bako.mp4', thumbnailUrl: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=400', duration: '0:48', timestamp: '2025-01-05T19:00:00', time: '19:00', viewed: true },
-    ]
-  },
-  {
-    id: 'cs3',
-    eventId: 'evt3',
-    eventTitle: 'Corporate Annual Gala',
-    eventType: 'Corporate',
-    photographerName: 'Pro Events Media',
-    photographerImage: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg',
-    streamTitle: 'Annual Corporate Gala 2025',
-    description: 'Streaming our company annual gala event with awards ceremony.',
-    streamDate: '2024-12-20',
-    streamTime: '19:00',
-    duration: '4:00:15',
-    coverImage: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800',
-    totalViewers: 423,
-    peakViewers: 512,
-    totalMessages: 234,
-    totalVideoMessages: 15,
-    replayUrl: 'https://connekt.app/replay/cs3',
-    messages: [
-      { id: 'm1', viewerUsername: 'remote_team1', viewerAvatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', message: 'Great to see everyone! Amazing venue!', timestamp: '2024-12-20T19:10:00', time: '19:10' },
-      { id: 'm2', viewerUsername: 'branch_manager', viewerAvatar: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg', message: 'Congrats to all award winners!', timestamp: '2024-12-20T19:30:00', time: '19:30' },
-      { id: 'm3', viewerUsername: 'new_employee', viewerAvatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', message: 'This is incredible! Proud to be part of this team!', timestamp: '2024-12-20T20:00:00', time: '20:00' },
-    ],
-    videoMessages: [
-      { id: 'v1', viewerUsername: 'ceo_message', viewerAvatar: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg', videoUrl: '/live-stream-2.mp4', thumbnailUrl: 'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=400', duration: '1:00', timestamp: '2024-12-20T19:45:00', time: '19:45', viewed: true },
-    ]
-  },
-  {
-    id: 'cs4',
-    eventId: 'evt4',
-    eventTitle: 'Baby Shower - Little Emma',
-    eventType: 'Baby Shower',
-    photographerName: 'Moments Photography',
-    photographerImage: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg',
-    streamTitle: 'Baby Emma Welcome Party',
-    description: 'A lovely afternoon celebrating the upcoming arrival of baby Emma.',
-    streamDate: '2024-12-15',
-    streamTime: '14:00',
-    duration: '2:15:30',
-    coverImage: 'https://images.unsplash.com/photo-1511578314322-379afb476865?w=800',
-    totalViewers: 89,
-    peakViewers: 112,
-    totalMessages: 67,
-    totalVideoMessages: 6,
-    replayUrl: 'https://connekt.app/replay/cs4',
-    messages: [
-      { id: 'm1', viewerUsername: 'grandpa_joe', viewerAvatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', message: 'Cannot wait to meet little Emma!', timestamp: '2024-12-15T14:10:00', time: '14:10' },
-      { id: 'm2', viewerUsername: 'auntie_sue', viewerAvatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', message: 'The pink decorations are adorable!', timestamp: '2024-12-15T14:20:00', time: '14:20' },
-    ],
-    videoMessages: [
-      { id: 'v1', viewerUsername: 'overseas_family', viewerAvatar: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg', videoUrl: '/bako.mp4', thumbnailUrl: 'https://images.unsplash.com/photo-1519689680058-324335c77eba?w=400', duration: '0:55', timestamp: '2024-12-15T14:30:00', time: '14:30', viewed: false },
-    ]
-  },
-];
+// Mock data removed - streams are now loaded from API
 
 interface StreamsPageProps {
   userRole?: 'client' | 'event-coordinator';
@@ -299,15 +191,64 @@ interface StreamsPageProps {
 
 const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
   const { colors, actualTheme } = useTheme();
+  const { user } = useDashboardAuth();
+  const apiUrl = getApiUrl();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStream, setSelectedStream] = useState<CompletedStream | null>(null);
   const [showMessagesModal, setShowMessagesModal] = useState(false);
   const [showVideosModal, setShowVideosModal] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<ViewerVideo | null>(null);
-  const [streams, setStreams] = useState<CompletedStream[]>(sampleCompletedStreams);
+  const [streams, setStreams] = useState<CompletedStream[]>([]);
   const [filterType, setFilterType] = useState<string>('all');
   const [isVideoLoading, setIsVideoLoading] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Fetch streams from API
+  const fetchStreams = useCallback(async () => {
+    try {
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/streams`);
+      if (res.ok) {
+        const data = await res.json();
+        const loaded: CompletedStream[] = (data.data || []).map((s: any) => ({
+          id: s.id,
+          eventId: s.eventId,
+          eventTitle: s.eventTitle || '',
+          eventType: s.eventType || '',
+          photographerName: s.photographerName || '',
+          photographerImage: s.photographerImage || '',
+          streamTitle: s.streamTitle || '',
+          description: s.description || '',
+          streamDate: s.streamDate || '',
+          streamTime: s.streamTime || '',
+          duration: s.duration || '0:00:00',
+          coverImage: s.coverImage || '',
+          totalViewers: s.totalViewers || 0,
+          peakViewers: s.peakViewers || 0,
+          totalMessages: s.totalMessages || 0,
+          totalVideoMessages: s.totalVideoMessages || 0,
+          replayUrl: s.replayUrl || '',
+          messages: (s.messages || []).map((m: any) => ({
+            id: m.id,
+            viewerUsername: m.viewerUsername || '',
+            viewerAvatar: m.viewerAvatar || '',
+            message: m.message || '',
+            timestamp: m.timestamp || '',
+            time: m.time || '',
+          })),
+          videoMessages: s.videoMessages || [],
+        }));
+        setStreams(loaded);
+      }
+    } catch (err) {
+      console.error('Failed to fetch streams:', err);
+    }
+  }, [apiUrl]);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchStreams();
+    }
+  }, [user?.id, fetchStreams]);
 
   // Load and play video when selectedVideo changes
   useEffect(() => {
@@ -465,7 +406,7 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
       `}</style>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar userRole={userRole} giftAmount={userRole === 'client' ? 225.00 : undefined} liveStreamFeeAmount={userRole === 'event-coordinator' ? 3250.00 : undefined} />
+        <Topbar userRole={userRole} />
         <div className="mobile-main-content" style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
           {/* Page Header */}
           <div className="mobile-header" style={{ marginBottom: '1.5rem' }}>

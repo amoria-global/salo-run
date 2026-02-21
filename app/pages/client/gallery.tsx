@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import Image from 'next/image';
@@ -193,166 +193,8 @@ const QRCodeIcon = () => (
   </svg>
 );
 
-// Sample album data from photographers
-const clientAlbumsData = [
-  {
-    id: 1,
-    title: 'Johnson Wedding - Ceremony',
-    photographer: 'Sarah Anderson',
-    payment: {
-      amountDue: 150.00,
-      status: 'pending',
-      eventName: 'Johnson Wedding',
-      photographerName: 'Sarah Anderson'
-    },
-    photographerAvatar: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg',
-    category: 'Wedding',
-    date: 'Dec 15, 2024',
-    isArchived: false,
-    receivedDate: 'Dec 18, 2024',
-    thumbnail: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=400',
-    photoCount: 45,
-    downloadedCount: 12,
-    favoriteCount: 8,
-    images: [
-      'https://images.unsplash.com/photo-1519741497674-611481863552?w=800',
-      'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800',
-      'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=800',
-      'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=800',
-      'https://images.unsplash.com/photo-1606216794074-735e91aa2c92?w=800',
-      'https://images.unsplash.com/photo-1591604466107-ec97de577aff?w=800'
-    ]
-  },
-  {
-    id: 2,
-    title: 'Johnson Wedding - Reception',
-    photographer: 'Sarah Anderson',
-    photographerAvatar: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg',
-    category: 'Wedding',
-    payment: {
-      amountDue: 150.00,
-      status: 'pending',
-      eventName: 'Johnson Wedding - Reception',
-      photographerName: 'Sarah Anderson'
-    },
-    date: 'Dec 15, 2024',
-    receivedDate: 'Dec 18, 2024',
-    thumbnail: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=400',
-    photoCount: 78,
-    downloadedCount: 35,
-    isArchived: false,
-    favoriteCount: 22,
-    images: [
-      'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800',
-      'https://images.unsplash.com/photo-1519741497674-611481863552?w=800',
-      'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=800',
-      'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=800'
-    ]
-  },
-  {
-    id: 3,
-    title: 'Family Portrait Session',
-    photographer: 'Mike Chen',
-    payment: {
-      amountDue: 150,
-      status: 'pending',
-      eventName: 'Family Portrait Session',
-      photographerName: 'Mike Chen'
-    },
-    photographerAvatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
-    category: 'Portrait',
-    date: 'Nov 28, 2024',
-    isArchived: true,
-    receivedDate: 'Dec 2, 2024',
-    thumbnail: 'https://images.unsplash.com/photo-1511895426328-dc8714191300?w=400',
-    photoCount: 32,
-    downloadedCount: 28,
-    favoriteCount: 15,
-    images: [
-      'https://images.unsplash.com/photo-1511895426328-dc8714191300?w=800',
-      'https://images.unsplash.com/photo-1609220136736-443140cffec6?w=800',
-      'https://images.unsplash.com/photo-1581579438747-1dc8d17bbce4?w=800'
-    ]
-  },
-  {
-    id: 4,
-    title: 'Company Annual Gala',
-    photographer: 'David Kim',
-    payment: {
-      amountDue: 150.00,
-      status: 'pending',
-      eventName: 'Company Annual Gala',
-      photographerName: 'David Kim'
-    },
-    photographerAvatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
-    category: 'Event',
-    date: 'Nov 15, 2024',
-    isArchived: true,
-    receivedDate: 'Nov 20, 2024',
-    thumbnail: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400',
-    photoCount: 124,
-    downloadedCount: 45,
-    favoriteCount: 30,
-    images: [
-      'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800',
-      'https://images.unsplash.com/photo-1505236858219-8359eb29e329?w=800',
-      'https://images.unsplash.com/photo-1511578314322-379afb476865?w=800',
-      'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800',
-      'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=800'
-    ]
-  },
-  {
-    id: 5,
-    title: 'Product Catalog - Spring Collection',
-    photographer: 'Emily Zhang',
-    payment: {
-      amountDue: 150.00,
-      status: 'pending',
-      eventName: 'Product Catalog - Spring Collection',
-      photographerName: 'Emily Zhang'
-    },
-    photographerAvatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg',
-    category: 'Product',
-    date: 'Oct 10, 2024',
-    isArchived: true,
-    receivedDate: 'Oct 15, 2024',
-    thumbnail: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400',
-    photoCount: 56,
-    downloadedCount: 56,
-    favoriteCount: 18,
-    images: [
-      'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800',
-      'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800',
-      'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=800'
-    ]
-  },
-  {
-    id: 6,
-    title: 'Birthday Celebration',
-    photographer: 'Alex Rivera',
-    payment: {
-      amountDue: 150.00,
-      status: 'pending',
-      eventName: 'Birthday Celebration',
-      photographerName: 'Alex Rivera'
-    },
-    photographerAvatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
-    category: 'Event',
-    date: 'Sep 22, 2024',
-    isArchived: false,
-    receivedDate: 'Sep 25, 2024',
-    thumbnail: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=400',
-    photoCount: 89,
-    downloadedCount: 67,
-    favoriteCount: 42,
-    images: [
-      'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=800',
-      'https://images.unsplash.com/photo-1464349153735-7db50ed83c84?w=800',
-      'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=800',
-      'https://images.unsplash.com/photo-1527529482837-4698179dc6ce?w=800'
-    ]
-  }
-];
+// Album data placeholder - loaded from API
+const clientAlbumsData: any[] = [];
 
 const payments: Payment[] = [
   { id: 1, date: 'Nov, 20 14:05 PM', eventName: 'Sarah & James Wedding', eventType: 'Wedding', photographerName: 'John Studio', photographerImage: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg', method: 'Credit Card', amount: '$450.0', amountNum: 450, paidAmount: 450, status: 'paid', invoiceNumber: 'INV-2024-001' },
@@ -373,35 +215,76 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   const { colors, actualTheme } = useTheme();
   const { formatPrice } = useCurrency();
   const { user, token } = useDashboardAuth();
-  const [albums, setAlbums] = useState(clientAlbumsData);
+  const apiUrl = getApiUrl();
+  const [albums, setAlbums] = useState<any[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('All');
   const [filterPhotographer, setFilterPhotographer] = useState('All');
 
+  // Fetch albums from API
+  const fetchAlbums = useCallback(async () => {
+    try {
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/albums`);
+      if (res.ok) {
+        const data = await res.json();
+        const loaded = (data.data || []).map((a: any) => ({
+          id: a.id,
+          title: a.title || '',
+          photographer: a.photographer || '',
+          photographerAvatar: a.photographerAvatar || '',
+          category: a.category || '',
+          date: a.date || '',
+          isArchived: a.isArchived || false,
+          receivedDate: a.receivedDate || '',
+          thumbnail: a.thumbnail || '',
+          photoCount: a.photoCount || 0,
+          downloadedCount: a.downloadedCount || 0,
+          favoriteCount: a.favoriteCount || 0,
+          images: a.images || [],
+          payment: a.payment ? {
+            amountDue: a.payment.amountDue || 0,
+            status: a.payment.status || 'pending',
+            eventName: a.payment.eventName || '',
+            photographerName: a.payment.photographerName || '',
+          } : undefined,
+        }));
+        setAlbums(loaded);
+      }
+    } catch (err) {
+      console.error('Failed to fetch albums:', err);
+    }
+  }, [apiUrl]);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchAlbums();
+    }
+  }, [user?.id, fetchAlbums]);
+
   // Modal states
   const [showViewModal, setShowViewModal] = useState(false);
-  const [selectedAlbum, setSelectedAlbum] = useState(clientAlbumsData[0]);
+  const [selectedAlbum, setSelectedAlbum] = useState<any>(null);
 
   // Multi-select view states
   const [showMultiSelectView, setShowMultiSelectView] = useState(false);
-  const [multiSelectAlbum, setMultiSelectAlbum] = useState<typeof clientAlbumsData[0] | null>(null);
+  const [multiSelectAlbum, setMultiSelectAlbum] = useState<any | null>(null);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [isSelectMode, setIsSelectMode] = useState(false);
 
   // Image viewer states
   const [showImageViewer, setShowImageViewer] = useState(false);
-  const [viewerAlbum, setViewerAlbum] = useState<typeof clientAlbumsData[0] | null>(null);
+  const [viewerAlbum, setViewerAlbum] = useState<any | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   // Share modal states
   const [showShareModal, setShowShareModal] = useState(false);
-  const [shareAlbum, setShareAlbum] = useState<typeof clientAlbumsData[0] | null>(null);
+  const [shareAlbum, setShareAlbum] = useState<any | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
 
   // Delete confirmation modal state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [albumToDelete, setAlbumToDelete] = useState<typeof clientAlbumsData[0] | null>(null);
+  const [albumToDelete, setAlbumToDelete] = useState<any | null>(null);
 
   // Photobook states
   const [pageView, setPageView] = useState<'albums' | 'photobooks' | 'archives'>('albums');
@@ -422,13 +305,13 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   const [showThumbnailSelector, setShowThumbnailSelector] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
 
-  const [selectedArchiveAlbum, setSelectedArchiveAlbum] = useState<typeof clientAlbumsData[0] | null>(null);
+  const [selectedArchiveAlbum, setSelectedArchiveAlbum] = useState<any | null>(null);
   const MAX_IMAGE_SELECTION = 3;
 
   // Setup wizard states (Select Album → Layout → Images)
   const [showSetupWizard, setShowSetupWizard] = useState(false);
   const [setupStep, setSetupStep] = useState(1);
-  const [setupSelectedAlbum, setSetupSelectedAlbum] = useState<typeof clientAlbumsData[0] | null>(null);
+  const [setupSelectedAlbum, setSetupSelectedAlbum] = useState<any | null>(null);
   const [setupLayout, setSetupLayout] = useState<'book-flip' | 'mosaic' | 'gallery-wall'>('book-flip');
   const [setupSelectedImages, setSetupSelectedImages] = useState<string[]>([]);
   const [setupPhotobookId, setSetupPhotobookId] = useState<number | null>(null);
@@ -567,7 +450,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   const totalPhotobookImages = photobooks.reduce((sum, pb) => sum + pb.images.length, 0);
 
   // Functions
-  const openMultiSelectView = (album: typeof clientAlbumsData[0]) => {
+  const openMultiSelectView = (album: any) => {
     setMultiSelectAlbum(album);
     setSelectedImages([]);
     setIsSelectMode(false);
@@ -581,7 +464,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
     setIsSelectMode(false);
   };
 
-  const openImageViewer = (album: typeof clientAlbumsData[0], startIndex: number = 0) => {
+  const openImageViewer = (album: any, startIndex: number = 0) => {
     setViewerAlbum(album);
     setCurrentImageIndex(startIndex);
     setShowImageViewer(true);
@@ -617,7 +500,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
     }
   };
 
-  const openDeleteModal = (album: typeof clientAlbumsData[0]) => {
+  const openDeleteModal = (album: any) => {
     setAlbumToDelete(album);
     setShowDeleteModal(true);
   };
@@ -709,7 +592,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
     }
   };
 
-  const getShareLink = (album: typeof clientAlbumsData[0]) => {
+  const getShareLink = (album: any) => {
     return `https://connekt.com/gallery/${album.id}`;
   };
 
@@ -1001,8 +884,16 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   const handlePhotobookBulkShare = () => {
     if (photobookSelectedImages.length > 0 && selectedPhotobook) {
       setShareAlbum({
-        ...clientAlbumsData[0],
+        id: selectedPhotobook.id,
         title: selectedPhotobook.name,
+        photographer: '',
+        photographerAvatar: '',
+        category: '',
+        date: '',
+        isArchived: false,
+        receivedDate: '',
+        downloadedCount: 0,
+        favoriteCount: 0,
         images: photobookSelectedImages,
         photoCount: photobookSelectedImages.length,
         thumbnail: selectedPhotobook.thumbnail || photobookSelectedImages[0]
@@ -1353,7 +1244,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
       <Sidebar />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar userRole={userRole} giftAmount={userRole === 'client' ? 225.00 : undefined} liveStreamFeeAmount={userRole === 'event-coordinator' ? 3250.00 : undefined} />
+        <Topbar userRole={userRole} />
 
         {/* Main Content */}
         <div className="mobile-main-content" style={{ flex: 1, overflowY: 'auto', padding: '1.25rem' }}>
@@ -2978,7 +2869,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
               gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
               gap: '1rem'
             }}>
-              {multiSelectAlbum.images.map((image, index) => {
+              {multiSelectAlbum.images.map((image: string, index: number) => {
                 const isDisabled = isSelectMode && selectedImages.length >= MAX_IMAGE_SELECTION && !selectedImages.includes(image);
                 return (
                   <div
@@ -3217,7 +3108,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
             padding: '2.5rem 1.5rem 1.25rem'
           }}>
             <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', justifyContent: 'center', paddingBottom: '0.25rem' }}>
-              {viewerAlbum.images.map((image, index) => (
+              {viewerAlbum.images.map((image: string, index: number) => (
                 <button
                   key={index}
                   onClick={() => setCurrentImageIndex(index)}
@@ -3834,7 +3725,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                 maxWidth: '1000px',
                 margin: '0 auto'
               }}>
-              {setupSelectedAlbum.images.map((image, index) => {
+              {setupSelectedAlbum.images.map((image: string, index: number) => {
                 const isSelected = setupSelectedImages.includes(image);
                 const isExtraUnlocked = extraUnlockedImages.includes(image);
                 const isLocked = !isSelected && setupSelectedImages.length >= MAX_IMAGE_SELECTION && !isExtraUnlocked;
@@ -4216,7 +4107,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
               padding: '2.5rem 1.5rem 1.25rem'
             }}>
             <div style={{ display: 'flex', gap: '0.4rem', overflowX: 'auto', justifyContent: 'center', paddingBottom: '0.25rem' }}>
-              {setupSelectedAlbum.images.map((image, index) => {
+              {setupSelectedAlbum.images.map((image: string, index: number) => {
                 const isThumbSelected = setupSelectedImages.includes(image);
                 const isThumbExtraUnlocked = extraUnlockedImages.includes(image);
                 const isThumbLocked = !isThumbSelected && setupSelectedImages.length >= MAX_IMAGE_SELECTION && !isThumbExtraUnlocked;
@@ -5051,7 +4942,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
               Choose an image from this photobook to use as the cover thumbnail.
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
-              {selectedPhotobook.images.map((image, index) => (
+              {selectedPhotobook.images.map((image: string, index: number) => (
                 <button
                   key={index}
                   onClick={() => handleSetPhotobookThumbnail(image)}
@@ -5659,7 +5550,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                 gridAutoRows: '180px',
                 gap: '0.5rem'
               }}>
-                {selectedPhotobook.images.map((image, index) => {
+                {selectedPhotobook.images.map((image: string, index: number) => {
                   const isHero = index % 5 === 0;
                   return (
                     <div
@@ -5782,7 +5673,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                 borderRadius: '1rem',
                 minHeight: '100%'
               }}>
-                {selectedPhotobook.images.map((image, index) => (
+                {selectedPhotobook.images.map((image: string, index: number) => (
                   <div
                     key={index}
                     style={{
@@ -5995,7 +5886,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
             padding: '2.5rem 1.5rem 1.25rem'
           }}>
             <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', justifyContent: 'center', paddingBottom: '0.25rem' }}>
-              {selectedPhotobook.images.map((image, index) => (
+              {selectedPhotobook.images.map((image: string, index: number) => (
                 <button
                   key={index}
                   onClick={() => setPhotobookCurrentImageIndex(index)}
