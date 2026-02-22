@@ -853,6 +853,15 @@ const SpendingChart: React.FC<SpendingChartProps> = ({ data, height = 140, chart
   const { colors } = useTheme();
   const { formatPrice } = useCurrency();
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+
+  if (data.length === 0) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height, color: colors.textSecondary, fontSize: '0.85rem' }}>
+        No spending data available
+      </div>
+    );
+  }
+
   const maxValue = Math.max(...data.map(d => d.value));
   const minValue = Math.min(...data.map(d => d.value));
   const range = maxValue - minValue || 1;
@@ -1248,15 +1257,7 @@ Amount: ${formatPrice(payment.amountNum)}
     URL.revokeObjectURL(url);
   };
 
-  const [spendingData, setSpendingData] = useState<{ date: string; value: number }[]>([
-    { date: 'Nov 13', value: 450 },
-    { date: 'Nov 14', value: 300 },
-    { date: 'Nov 15', value: 500 },
-    { date: 'Nov 16', value: 350 },
-    { date: 'Nov 17', value: 200 },
-    { date: 'Nov 18', value: 400 },
-    { date: 'Nov 19', value: 150 }
-  ]);
+  const [spendingData, setSpendingData] = useState<{ date: string; value: number }[]>([]);
 
   const fetchSpendingTrend = useCallback(async (period: string) => {
     if (!token) return;
