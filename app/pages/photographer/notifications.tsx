@@ -471,7 +471,7 @@ const Notifications = () => {
         <Sidebar />
 
         <div className="notifications-content">
-          <Topbar userRole="photographer" tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
+          <Topbar userRole="photographer" />
 
           <div className="notifications-main">
           {/* Header */}

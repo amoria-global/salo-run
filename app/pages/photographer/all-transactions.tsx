@@ -303,7 +303,7 @@ const AllTransactions = () => {
       <Sidebar />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar userRole="photographer" tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
+        <Topbar userRole="photographer" />
 
         {/* Main Content */}
         <div style={{
