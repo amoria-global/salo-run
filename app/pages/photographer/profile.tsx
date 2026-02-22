@@ -2037,7 +2037,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         flexDirection: 'column',
         overflow: 'hidden'
       }}>
-        <Topbar userRole="photographer" tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
+        <Topbar userRole="photographer" />
 
         <div className="mobile-main-content" style={{
           flex: 1,
@@ -2278,19 +2278,21 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                   position: 'relative'
                 }}>
                   <button
-                    onClick={() => bannerInputRef.current?.click()}
+                    onClick={() => isEditEnabled && bannerInputRef.current?.click()}
+                    disabled={!isEditEnabled}
                     style={{
                       position: 'absolute',
                       top: '0.75rem',
                       right: '0.75rem',
-                      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                      backgroundColor: isEditEnabled ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.25)',
                       border: '2px solid rgba(255, 255, 255, 0.5)',
                       borderRadius: '0.375rem',
                       padding: '0.5rem',
-                      cursor: 'pointer',
+                      cursor: isEditEnabled ? 'pointer' : 'not-allowed',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center'
+                      justifyContent: 'center',
+                      opacity: isEditEnabled ? 1 : 0.5,
                     }}>
                     <CameraIcon />
                   </button>
@@ -2328,20 +2330,22 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       )}
                     </div>
                     <button
-                      onClick={() => profileInputRef.current?.click()}
+                      onClick={() => isEditEnabled && profileInputRef.current?.click()}
+                      disabled={!isEditEnabled}
                       style={{
                         position: 'absolute',
                         bottom: '0',
                         right: '0',
-                        backgroundColor: '#083A85',
-                        border: '2px solid #062a63',
+                        backgroundColor: isEditEnabled ? '#083A85' : '#9CA3AF',
+                        border: isEditEnabled ? '2px solid #062a63' : '2px solid #6B7280',
                         borderRadius: '50%',
                         width: '32px',
                         height: '32px',
-                        cursor: 'pointer',
+                        cursor: isEditEnabled ? 'pointer' : 'not-allowed',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center'
+                        justifyContent: 'center',
+                        opacity: isEditEnabled ? 1 : 0.5,
                       }}>
                       <CameraIcon />
                     </button>

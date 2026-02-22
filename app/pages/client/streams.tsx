@@ -206,7 +206,10 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
   // Fetch streams from API
   const fetchStreams = useCallback(async () => {
     try {
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/streams`);
+      const endpoint = userRole === 'event-coordinator'
+        ? `${apiUrl}/api/remote/coordinator/streams`
+        : `${apiUrl}/api/remote/customer/streams`;
+      const res = await dashboardAuthFetch(endpoint);
       if (res.ok) {
         const data = await res.json();
         const loaded: CompletedStream[] = (data.data || []).map((s: any) => ({
@@ -242,13 +245,86 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
     } catch (err) {
       console.error('Failed to fetch streams:', err);
     }
-  }, [apiUrl]);
+  }, [apiUrl, userRole]);
+
+  // GET /api/remote/coordinator/streams/{eventId}/video — fetch stream video info
+  const fetchStreamVideo = useCallback(async (eventId: string) => {
+    if (userRole !== 'event-coordinator') return [];
+    try {
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/streams/${eventId}/video`);
+      if (res.ok) {
+        const data = await res.json();
+        return data.data || [];
+      }
+    } catch (err) {
+      console.error('Failed to fetch stream video:', err);
+    }
+    return [];
+  }, [apiUrl, userRole]);
 
   useEffect(() => {
     if (user?.id) {
       fetchStreams();
     }
   }, [user?.id, fetchStreams]);
+
+  // --- Coordinator Stream API helpers ---
+
+  // POST /api/remote/coordinator/streams/{eventId}/video/stop
+  const stopStream = useCallback(async (eventId: string) => {
+    if (userRole !== 'event-coordinator') return false;
+    try {
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/streams/${eventId}/video/stop`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (!res.ok || data.action !== 1) {
+        console.error('Failed to stop stream:', data.message);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error('Error stopping stream:', err);
+      return false;
+    }
+  }, [apiUrl, userRole]);
+
+  // GET /api/remote/coordinator/streams/{eventId}/chats
+  const fetchStreamChats = useCallback(async (eventId: string) => {
+    if (userRole !== 'event-coordinator') return [];
+    try {
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/streams/${eventId}/chats`);
+      if (res.ok) {
+        const data = await res.json();
+        return data.data || [];
+      }
+    } catch (err) {
+      console.error('Failed to fetch stream chats:', err);
+    }
+    return [];
+  }, [apiUrl, userRole]);
+
+  // POST /api/remote/coordinator/streams/{eventId}/chats?content=...
+  const sendStreamChat = useCallback(async (eventId: string, content: string) => {
+    if (userRole !== 'event-coordinator') return false;
+    try {
+      const res = await dashboardAuthFetch(
+        `${apiUrl}/api/remote/coordinator/streams/${eventId}/chats?content=${encodeURIComponent(content)}`,
+        { method: 'POST' }
+      );
+      const data = await res.json();
+      if (!res.ok || data.action !== 1) {
+        console.error('Failed to send chat:', data.message);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error('Error sending chat:', err);
+      return false;
+    }
+  }, [apiUrl, userRole]);
 
   // Load and play video when selectedVideo changes
   useEffect(() => {

@@ -1,11 +1,32 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import Sidebar from '../components/sidebar';
 import Topbar from '../components/topbar';
 import { useTheme, ThemeMode } from '../context/ThemeContext';
+import { dashboardAuthFetch } from '../providers/AuthProvider';
+
+function getApiUrl(): string {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    return '/api/proxy';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+}
+
+// API response type
+interface ApiResponse<T = unknown> {
+  action: number;
+  message?: string;
+  data?: T;
+}
+
+// Preference payload for PUT
+interface PreferencePayload {
+  value: string;
+  [key: string]: unknown;
+}
 
 interface PaymentMethod {
   id: string;
@@ -143,21 +164,104 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
     }
   ]);
 
+  const [isSavingPreference, setIsSavingPreference] = useState(false);
+
+  // Load saved preferences from API for coordinators
+  useEffect(() => {
+    if (userType !== 'event-coordinator') return;
+    const loadPreferences = async () => {
+      try {
+        const apiUrl = getApiUrl();
+        const response = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/preferences`);
+        if (!response.ok) return;
+        const result = await response.json();
+        const prefs = result?.data || {};
+
+        // Apply theme preference if saved
+        if (prefs.theme && ['light', 'dark', 'system'].includes(prefs.theme)) {
+          setTheme(prefs.theme as ThemeMode);
+        }
+
+        // Apply default payment method if saved
+        if (prefs.default_payment_method) {
+          setPaymentMethods(prev => prev.map(pm => ({
+            ...pm,
+            isDefault: pm.id === prefs.default_payment_method,
+          })));
+        }
+
+        // Load saved payment methods
+        const paymentKeys = Object.keys(prefs).filter(k => k.startsWith('payment_method_'));
+        if (paymentKeys.length > 0) {
+          const loaded: PaymentMethod[] = paymentKeys.map(k => {
+            try { return JSON.parse(prefs[k]); } catch { return null; }
+          }).filter(Boolean);
+          if (loaded.length > 0) {
+            setPaymentMethods(loaded);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load preferences:', err);
+      }
+    };
+    loadPreferences();
+  }, [userType, setTheme]);
+
+  // Save a preference to the API (PUT /api/remote/coordinator/preferences/{key})
+  const savePreference = useCallback(async (key: string, value: string) => {
+    if (userType !== 'event-coordinator') return;
+    try {
+      const apiUrl = getApiUrl();
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/preferences/${encodeURIComponent(key)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value }),
+      });
+      const result: ApiResponse = await response.json();
+      if (!response.ok || result.action !== 1) {
+        console.error(`Failed to save preference "${key}":`, result.message);
+      }
+    } catch (err) {
+      console.error(`Error saving preference "${key}":`, err);
+    }
+  }, [userType]);
+
+  // Delete a preference from the API (DELETE /api/remote/coordinator/preferences/{key})
+  const deletePreference = useCallback(async (key: string) => {
+    if (userType !== 'event-coordinator') return;
+    try {
+      const apiUrl = getApiUrl();
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/preferences/${encodeURIComponent(key)}`, {
+        method: 'DELETE',
+      });
+      const result: ApiResponse = await response.json();
+      if (!response.ok || result.action !== 1) {
+        console.error(`Failed to delete preference "${key}":`, result.message);
+      }
+    } catch (err) {
+      console.error(`Error deleting preference "${key}":`, err);
+    }
+  }, [userType]);
+
   const themeOptions: { mode: ThemeMode; label: string; icon: React.ReactNode; description: string }[] = [
     { mode: 'light', label: 'Light', icon: <SunIcon />, description: 'Classic light theme for daytime use' },
     { mode: 'dark', label: 'Dark', icon: <MoonIcon />, description: 'Easy on the eyes in low light' },
     { mode: 'system', label: 'System', icon: <SystemIcon />, description: 'Automatically match your device settings' }
   ];
 
-  const handleSetDefault = (id: string) => {
+  const handleSetDefault = async (id: string) => {
     setPaymentMethods(methods =>
       methods.map(m => ({ ...m, isDefault: m.id === id }))
     );
+    // Persist the default payment preference
+    await savePreference('default_payment_method', id);
   };
 
-  const handleDeletePayment = () => {
+  const handleDeletePayment = async () => {
     if (selectedPayment) {
       setPaymentMethods(methods => methods.filter(m => m.id !== selectedPayment.id));
+      // Delete the payment method preference from the API
+      await deletePreference(`payment_method_${selectedPayment.id}`);
       setShowDeleteModal(false);
       setSelectedPayment(null);
     }
@@ -173,7 +277,8 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
     setPaymentType('card');
   };
 
-  const handleAddPayment = () => {
+  const handleAddPayment = async () => {
+    setIsSavingPreference(true);
     let newPayment: PaymentMethod;
 
     if (paymentType === 'card') {
@@ -213,8 +318,12 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
       };
     }
 
+    // Persist the payment method via the API
+    await savePreference(`payment_method_${newPayment.id}`, JSON.stringify(newPayment));
+
     setPaymentMethods([...paymentMethods, newPayment]);
     setShowAddPaymentModal(false);
+    setIsSavingPreference(false);
     resetForm();
   };
 
@@ -328,7 +437,10 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                 {themeOptions.map((option) => (
                   <button
                     key={option.mode}
-                    onClick={() => setTheme(option.mode)}
+                    onClick={() => {
+                      setTheme(option.mode);
+                      savePreference('theme', option.mode);
+                    }}
                     style={{
                       display: 'flex',
                       flexDirection: 'column',
