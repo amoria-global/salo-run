@@ -113,23 +113,38 @@ const ProfilePage = () => {
     try {
       const apiUrl = getApiUrl();
       const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
-      const response = await fetch(`${apiUrl}/api/remote/photographer/update-important-details`, {
-        method: 'POST',
+
+      const nameParts = formData.fullName.trim().split(/\s+/);
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+      const phone = `${formData.phoneCode}${formData.phoneNumber}`;
+      const address = [formData.sector, formData.district, formData.province, formData.country].filter(Boolean).join(', ');
+
+      const params = new URLSearchParams();
+      if (firstName) params.append('firstName', firstName);
+      if (lastName) params.append('lastName', lastName);
+      if (phone) params.append('phone', phone);
+      if (address) params.append('address', address);
+      if (formData.bio) params.append('about', formData.bio);
+
+      const response = await fetch(`${apiUrl}/api/remote/customer/profile?${params.toString()}`, {
+        method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
           'api-token': apiKey,
-          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          address: [formData.sector, formData.district, formData.province, formData.country].filter(Boolean).join(', '),
-        }),
       });
 
       if (!response.ok) {
         throw new Error(`Failed to save: ${response.status}`);
       }
 
-      alert('Profile updated successfully!');
+      const result = await response.json();
+      if (result.action === 1) {
+        alert('Profile updated successfully!');
+      } else {
+        throw new Error(result.message || 'Failed to update profile');
+      }
     } catch (err) {
       console.error('Save profile error:', err);
       alert(err instanceof Error ? err.message : 'Failed to save profile');
@@ -212,7 +227,7 @@ const ProfilePage = () => {
           const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
           const uploadData = new FormData();
           uploadData.append('profilePicture', file);
-          const response = await fetch(`${apiUrl}/api/remote/photographer/update-profile-picture`, {
+          const response = await fetch(`${apiUrl}/api/remote/customer/profile/profile-picture`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
