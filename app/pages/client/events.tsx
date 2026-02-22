@@ -971,6 +971,7 @@ const MyEventsPage = () => {
 
     try {
       // Call the backend API
+      let backendEventId: string | null = null;
       if (token) {
         const apiUrl = getApiUrl();
         const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
@@ -1023,6 +1024,11 @@ const MyEventsPage = () => {
           }
           throw new Error(`Failed to create event: ${response.status} ${errorText}`);
         }
+
+        const responseData = await response.json();
+        // Extract the real event ID from backend response
+        // BookingResponseDTO has eventId, EventResponseDTO has id
+        backendEventId = responseData?.data?.eventId || responseData?.data?.id || null;
       }
 
       // Also update local state for immediate UI feedback
@@ -1054,7 +1060,7 @@ const MyEventsPage = () => {
         : formatTimeDisplay(createTime);
 
       const newEvent: Event = {
-        id: `evt_${Date.now()}`,
+        id: backendEventId || `evt_${Date.now()}`,
         title: createTitle,
         description: createDescription,
         eventType: createCategory,
