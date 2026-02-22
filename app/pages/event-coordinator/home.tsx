@@ -1,13 +1,19 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '../../context/CurrencyContext';
-import { useDashboardAuth } from '../../providers/AuthProvider';
+import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
+
+function getApiUrl(): string {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    return '/api/proxy';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+}
 import PayNowModal, { Payment } from '../../components/UnlockModal';
 import {
   StatCard,
@@ -157,6 +163,21 @@ interface Photographer {
   avatar: string;
 }
 
+interface CoordinatorAnalyticsData {
+  totalCustomers: number;
+  totalPhotographers: number;
+  totalEvents: number;
+  eventsByStatus: Record<string, number>;
+  bookingsByStatus: Record<string, number>;
+  totalRevenue: number;
+  totalPaid: number;
+  totalPending: number;
+  pendingProfileReviews: number;
+  activeStreams: number;
+  totalNotifications: number;
+  unreadContactMessages: number;
+}
+
 const EventCoordinatorDashboard = () => {
   const { colors, actualTheme } = useTheme();
   const { formatPrice } = useCurrency();
@@ -168,6 +189,122 @@ const EventCoordinatorDashboard = () => {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [showPayNowModal, setShowPayNowModal] = useState(false);
   const [payNowPayment, setPayNowPayment] = useState<Payment | null>(null);
+
+  // API data state
+  const [analytics, setAnalytics] = useState<CoordinatorAnalyticsData | null>(null);
+  const [balanceData, setBalanceData] = useState<any>(null);
+  const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([]);
+  const [photographers, setPhotographers] = useState<Photographer[]>([]);
+  const [recentActivities, setRecentActivities] = useState<{ label: string; value: string; valueColor?: string }[]>([]);
+  const [recentPayments, setRecentPayments] = useState<{ name: string; type: string; amount: string; avatar?: string; logo?: string }[]>([]);
+  const [performanceData, setPerformanceData] = useState([
+    { day: 'Sun', value1: 0, value2: 0 },
+    { day: 'Mon', value1: 0, value2: 0 },
+    { day: 'Tue', value1: 0, value2: 0 },
+    { day: 'Wed', value1: 0, value2: 0 },
+    { day: 'Thu', value1: 0, value2: 0 },
+    { day: 'Fri', value1: 0, value2: 0 },
+    { day: 'Sat', value1: 0, value2: 0 }
+  ]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch all dashboard data
+  const fetchDashboardData = useCallback(async () => {
+    const apiUrl = getApiUrl();
+    try {
+      const [analyticsRes, balanceRes, paymentsRes, photographersRes, notificationsRes] = await Promise.allSettled([
+        dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/analytics`),
+        dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/balance`),
+        dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/payments?page=0&size=10`),
+        dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/photographers?page=0&size=5`),
+        dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/notifications?page=0&size=6`),
+      ]);
+
+      // Analytics
+      if (analyticsRes.status === 'fulfilled' && analyticsRes.value.ok) {
+        const data = await analyticsRes.value.json();
+        if (data.action === 1 && data.data) {
+          setAnalytics(data.data);
+        }
+      }
+
+      // Balance
+      if (balanceRes.status === 'fulfilled' && balanceRes.value.ok) {
+        const data = await balanceRes.value.json();
+        if (data.action === 1 && data.data) {
+          setBalanceData(data.data);
+        }
+      }
+
+      // Payments → pendingPayments + recentPayments
+      if (paymentsRes.status === 'fulfilled' && paymentsRes.value.ok) {
+        const data = await paymentsRes.value.json();
+        if (data.action === 1 && data.data) {
+          const items = data.data.content || data.data || [];
+          // Pending payments
+          const pending: PendingPayment[] = items
+            .filter((p: any) => p.status === 'PENDING' || p.status === 'FAILED' || p.status === 'PARTIAL')
+            .map((p: any) => ({
+              id: p.id || '',
+              eventName: p.eventTitle || p.eventName || 'Event',
+              photographerName: p.photographerName || 'Photographer',
+              photographerImage: p.photographerImage || '/default-avatar.png',
+              amount: p.amount || 0,
+              paidAmount: p.paidAmount || 0,
+              dueDate: p.dueDate ? p.dueDate.split('T')[0] : '',
+              status: p.status === 'FAILED' ? 'failed' : p.status === 'PARTIAL' ? 'partially_paid' : 'pending' as PendingPayment['status'],
+            }));
+          setPendingPayments(pending);
+          // Recent payments
+          const recent = items.slice(0, 5).map((p: any) => ({
+            name: p.photographerName || p.eventTitle || 'Payment',
+            type: p.paymentType ? p.paymentType.charAt(0) + p.paymentType.slice(1).toLowerCase().replace(/_/g, ' ') : 'Payment',
+            amount: formatPrice(p.paidAmount || p.amount || 0),
+            avatar: p.photographerImage || undefined,
+          }));
+          setRecentPayments(recent);
+        }
+      }
+
+      // Photographers
+      if (photographersRes.status === 'fulfilled' && photographersRes.value.ok) {
+        const data = await photographersRes.value.json();
+        if (data.action === 1 && data.data) {
+          const items = data.data.content || data.data || [];
+          const mapped: Photographer[] = items.slice(0, 5).map((p: any) => ({
+            id: p.id || '',
+            name: p.firstName && p.lastName ? `${p.firstName} ${p.lastName}` : p.name || 'Photographer',
+            event: p.specialties?.[0]?.name || p.specialties?.[0] || p.specializations?.[0] || '',
+            status: p.profileReviewStatus === 'ACCEPTED' ? 'Completed' as const :
+                    p.profileReviewStatus === 'PENDING' ? 'Pending' as const : 'In Progress' as const,
+            avatar: p.profilePicture || p.profileImage || '/default-avatar.png',
+          }));
+          setPhotographers(mapped);
+        }
+      }
+
+      // Notifications → recentActivities
+      if (notificationsRes.status === 'fulfilled' && notificationsRes.value.ok) {
+        const data = await notificationsRes.value.json();
+        if (data.action === 1 && data.data) {
+          const items = data.data.content || data.data || [];
+          const mapped = items.slice(0, 6).map((n: any) => ({
+            label: n.type ? n.type.charAt(0) + n.type.slice(1).toLowerCase().replace(/_/g, ' ') : 'Activity',
+            value: n.title || n.message || '',
+          }));
+          setRecentActivities(mapped);
+        }
+      }
+    } catch (error) {
+      console.error('[Coordinator Dashboard] Error fetching dashboard data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [formatPrice]);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
   const handlePayNow = (pending: PendingPayment) => {
     const payment: Payment = {
@@ -230,110 +367,12 @@ const EventCoordinatorDashboard = () => {
   const currentGreeting = greetings[greetingIndex];
   const staticMessage = getStaticMessage(timeOfDay);
 
-  // Pending Payments Data
-  const pendingPayments: PendingPayment[] = [
-    {
-      id: 'PAY-001',
-      eventName: 'Tech Summit 2025',
-      photographerName: 'Elite Photography',
-      photographerImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
-      amount: 1500,
-      paidAmount: 0,
-      dueDate: '2025-07-25',
-      status: 'pending'
-    },
-    {
-      id: 'PAY-002',
-      eventName: 'Corporate Gala',
-      photographerName: 'Mary Shots',
-      photographerImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg',
-      amount: 800,
-      paidAmount: 400,
-      dueDate: '2025-07-30',
-      status: 'partially_paid'
-    },
-    {
-      id: 'PAY-003',
-      eventName: 'Music Festival',
-      photographerName: 'Sarah Lens',
-      photographerImage: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg',
-      amount: 2000,
-      paidAmount: 0,
-      dueDate: '2025-08-05',
-      status: 'failed'
-    }
-  ];
-
   const totalPendingAmount = pendingPayments.reduce((sum, p) => sum + (p.amount - p.paidAmount), 0);
   const hasFailedPayments = pendingPayments.some(p => p.status === 'failed');
-
-  const performanceData = [
-    { day: 'Sun', value1: 250, value2: 300 },
-    { day: 'Mon', value1: 180, value2: 200 },
-    { day: 'Tue', value1: 200, value2: 260 },
-    { day: 'Wed', value1: 120, value2: 140 },
-    { day: 'Thu', value1: 140, value2: 160 },
-    { day: 'Fri', value1: 260, value2: 300 },
-    { day: 'Sat', value1: 180, value2: 140 }
-  ];
-
-  const recentActivities = [
-    { label: 'Event', value: 'Tech Summit 2025' },
-    { label: 'Stream Revenue', value: '+$1,250', valueColor: '#10B981' },
-    { label: 'Viewers', value: '2,450' },
-    { label: 'Photographer', value: 'John Studio' },
-    { label: 'Payment', value: `-${formatPrice(850)}`, valueColor: '#ff0066' },
-    { label: 'Last Activity', value: 'Today, 14. July 2025' }
-  ];
-
-  const photographers: Photographer[] = [
-    {
-      id: 'PHT-001',
-      name: 'John Studio',
-      event: 'Tech Summit',
-      status: 'In Progress' as const,
-      avatar: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg'
-    },
-    {
-      id: 'PHT-002',
-      name: 'Mary Shots',
-      event: 'Corporate Gala',
-      status: 'Completed' as const,
-      avatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg'
-    },
-    {
-      id: 'PHT-003',
-      name: 'Alex Frames',
-      event: 'Music Festival',
-      status: 'Pending' as const,
-      avatar: 'https://i.pinimg.com/1200x/09/23/45/092345eac1919407e0c49f67e285b831.jpg'
-    }
-  ];
 
   const toggleDropdown = (id: string) => {
     setActiveDropdown(activeDropdown === id ? null : id);
   };
-
-  const recentPayments = [
-    {
-      name: 'Stream Viewers',
-      type: 'Live Stream Fee Revenue',
-      amount: formatPrice(3250),
-      logo: '/logo.png'
-    },
-    {
-      name: 'John Studio',
-      type: 'Photographer Payment',
-      amount: formatPrice(1950),
-      avatar: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg'
-    },
-    {
-      name: 'Amoria',
-      type: 'Platform Fee',
-      amount: formatPrice(125),
-      logo: '/logo.png'
-    }
-  ];
 
   return (
     <>
@@ -418,7 +457,7 @@ const EventCoordinatorDashboard = () => {
         flexDirection: 'column',
         overflow: 'hidden'
       }}>
-        <Topbar userRole="event-coordinator" liveStreamFeeAmount={3250.00} />
+        <Topbar userRole="event-coordinator" />
 
         <div className="mobile-main-content" style={{
           flex: 1,
@@ -482,7 +521,7 @@ const EventCoordinatorDashboard = () => {
                   lineHeight: '1.75rem',
                   fontWeight: '700',
                   color: colors.textPrimary
-                }}>{formatPrice(12500)}</span>
+                }}>{formatPrice(analytics?.totalRevenue ?? balanceData?.totalDeclared ?? 0)}</span>
               </div>
               <div className="mobile-header-stat" style={{
                 display: 'flex',
@@ -501,7 +540,7 @@ const EventCoordinatorDashboard = () => {
                   lineHeight: '1.75rem',
                   fontWeight: '700',
                   color: colors.textPrimary
-                }}>24</span>
+                }}>{analytics?.totalEvents ?? 0}</span>
               </div>
               <div className="mobile-header-stat" style={{
                 display: 'flex',
@@ -520,7 +559,7 @@ const EventCoordinatorDashboard = () => {
                   lineHeight: '1.75rem',
                   fontWeight: '700',
                   color: colors.textPrimary
-                }}>8,450</span>
+                }}>{(analytics?.activeStreams ?? 0).toLocaleString()}</span>
               </div>
             </div>
           </header>
@@ -616,7 +655,7 @@ const EventCoordinatorDashboard = () => {
       }}>
         <StatCard
           title="Total Revenue"
-          value={formatPrice(12500)}
+          value={formatPrice(analytics?.totalRevenue ?? balanceData?.totalDeclared ?? 0)}
           percentage="62.3%"
           timeframe="last week"
           icon={<MoneyIcon />}
@@ -625,7 +664,7 @@ const EventCoordinatorDashboard = () => {
         />
         <StatCard
           title="Pending"
-          value={formatPrice(2100)}
+          value={formatPrice(analytics?.totalPending ?? balanceData?.totalPending ?? 0)}
           percentage="28.5%"
           timeframe="last week"
           icon={<ClockIcon />}
@@ -634,7 +673,7 @@ const EventCoordinatorDashboard = () => {
         />
         <StatCard
           title="Events"
-          value="24"
+          value={String(analytics?.totalEvents ?? 0)}
           percentage="15.2%"
           timeframe="last week"
           icon={<UsersIcon />}
@@ -643,7 +682,7 @@ const EventCoordinatorDashboard = () => {
         />
         <StatCard
           title="Stream Fees"
-          value={formatPrice(3250)}
+          value={formatPrice(balanceData?.totalEarnings ?? 0)}
           percentage="45.8%"
           timeframe="last week"
           icon={<LiveStreamFeeIcon />}
@@ -651,10 +690,10 @@ const EventCoordinatorDashboard = () => {
           href="/user/event-coordinator/payments"
         />
         <StatCard
-          title="Favorites"
-          value="12"
+          title="Photographers"
+          value={String(analytics?.totalPhotographers ?? 0)}
           percentage="10%"
-          timeframe="photographers"
+          timeframe="total"
           icon={<StarIcon />}
           trend="up"
           href="/user/event-coordinator/photographers"
@@ -744,11 +783,9 @@ const EventCoordinatorDashboard = () => {
                 }}
               >
                 <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
-                  <Image
+                  <img
                     src={payment.photographerImage}
                     alt={payment.photographerName}
-                    width={40}
-                    height={40}
                     style={{ objectFit: 'cover', width: '100%', height: '100%' }}
                   />
                 </div>

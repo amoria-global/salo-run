@@ -155,7 +155,10 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
     if (!token || !user?.id) return;
     try {
       const apiUrl = getApiUrl();
-      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/notifications?page=0&size=50`, { headers: { 'Content-Type': 'application/json' } });
+      const endpoint = userRole === 'event-coordinator'
+        ? `${apiUrl}/api/remote/coordinator/notifications?page=0&size=50`
+        : `${apiUrl}/api/remote/customer/notifications?page=0&size=50`;
+      const response = await dashboardAuthFetch(endpoint, { headers: { 'Content-Type': 'application/json' } });
       if (!response.ok) throw new Error('Failed to fetch notifications');
       const result = await response.json();
       const data = result?.data?.content || result?.data || [];
@@ -209,7 +212,10 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
     );
     try {
       const apiUrl = getApiUrl();
-      await dashboardAuthFetch(`${apiUrl}/api/remote/customer/notifications/${id}/read`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' } });
+      const readEndpoint = userRole === 'event-coordinator'
+        ? `${apiUrl}/api/remote/coordinator/notifications/${id}/read`
+        : `${apiUrl}/api/remote/customer/notifications/${id}/read`;
+      await dashboardAuthFetch(readEndpoint, { method: 'PATCH', headers: { 'Content-Type': 'application/json' } });
     } catch (err) {
       console.error('Failed to mark notification as read:', err);
     }
@@ -219,7 +225,10 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     try {
       const apiUrl = getApiUrl();
-      await dashboardAuthFetch(`${apiUrl}/api/remote/customer/notifications/read-all`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' } });
+      const readAllEndpoint = userRole === 'event-coordinator'
+        ? `${apiUrl}/api/remote/coordinator/notifications/read-all`
+        : `${apiUrl}/api/remote/customer/notifications/read-all`;
+      await dashboardAuthFetch(readAllEndpoint, { method: 'PATCH', headers: { 'Content-Type': 'application/json' } });
     } catch (err) {
       console.error('Failed to mark all as read:', err);
     }

@@ -5,13 +5,32 @@ import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 import { useUserProfile } from '../../context/UserProfileContext';
-import { useDashboardAuth } from '../../providers/AuthProvider';
+import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 
 function getApiUrl(): string {
   if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
     return '/api/proxy';
   }
   return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+}
+
+// API response types for coordinator profile
+interface CoordinatorProfilePayload {
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  address?: string;
+  organizationName?: string;
+  businessType?: string;
+  taxId?: string;
+  businessAddress?: string;
+  website?: string;
+}
+
+interface ApiResponse<T = unknown> {
+  action: number;
+  message?: string;
+  data?: T;
 }
 
 // Camera icon for avatar edit
@@ -49,7 +68,7 @@ const ProfilePage = () => {
     'Western Province': ['Karongi', 'Ngororero', 'Nyabihu', 'Nyamasheke', 'Rubavu', 'Rusizi', 'Rutsiro']
   };
 
-  // Form state - uses profile data from context (will be from backend later)
+  // Form state - uses profile data from context, business fields loaded from API
   const [formData, setFormData] = useState({
     fullName: profile.fullName,
     username: profile.username,
@@ -61,12 +80,11 @@ const ProfilePage = () => {
     province: profile.province,
     district: profile.district,
     sector: profile.sector,
-    // Fields specific to event coordinators
-    organizationName: 'Events Plus Rwanda',
-    businessType: 'Event Management Company',
-    taxId: 'TIN-123456789',
-    businessAddress: 'KN 5 Rd, Nyarugenge, Kigali',
-    website: 'www.eventsplusrw.com'
+    organizationName: '',
+    businessType: '',
+    taxId: '',
+    businessAddress: '',
+    website: ''
   });
 
   // Profile image state - initialized from context/user data
@@ -105,27 +123,65 @@ const ProfilePage = () => {
     }
   }, [profile.fullName, profile.username, profile.email, profile.phoneCode, profile.phoneNumber, profile.country, profile.province, profile.district, profile.sector]);
 
+  // Load coordinator business fields from API
+  useEffect(() => {
+    if (!token) return;
+    const loadProfile = async () => {
+      try {
+        const apiUrl = getApiUrl();
+        const response = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/profile`);
+        if (response.ok) {
+          const result = await response.json();
+          const data = result?.data;
+          if (data) {
+            setFormData(prev => ({
+              ...prev,
+              organizationName: data.organizationName || prev.organizationName,
+              businessType: data.businessType || prev.businessType,
+              taxId: data.taxId || prev.taxId,
+              businessAddress: data.businessAddress || prev.businessAddress,
+              website: data.website || prev.website,
+            }));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load coordinator profile:', err);
+      }
+    };
+    loadProfile();
+  }, [token]);
+
   // Save profile to API
   const handleSaveProfile = async () => {
     if (!token) return;
     setIsSaving(true);
     try {
       const apiUrl = getApiUrl();
-      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
-      const response = await fetch(`${apiUrl}/api/remote/photographer/update-important-details`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'api-token': apiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          address: [formData.sector, formData.district, formData.province, formData.country].filter(Boolean).join(', '),
-        }),
+      const [firstName, ...lastParts] = formData.fullName.trim().split(' ');
+      const lastName = lastParts.join(' ');
+
+      const payload: CoordinatorProfilePayload = {
+        firstName: firstName || '',
+        lastName: lastName || '',
+        phone: `${formData.phoneCode}${formData.phoneNumber.replace(/\s/g, '')}`,
+        address: [formData.sector, formData.district, formData.province, formData.country].filter(Boolean).join(', '),
+        organizationName: formData.organizationName,
+        businessType: formData.businessType,
+        taxId: formData.taxId,
+        businessAddress: formData.businessAddress,
+        website: formData.website,
+      };
+
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/profile`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
 
-      if (!response.ok) {
-        throw new Error(`Failed to save: ${response.status}`);
+      const result: ApiResponse = await response.json();
+
+      if (!response.ok || result.action !== 1) {
+        throw new Error(result.message || `Failed to save: ${response.status}`);
       }
 
       alert('Profile updated successfully!');
@@ -203,20 +259,15 @@ const ProfilePage = () => {
       };
       reader.readAsDataURL(file);
 
-      // Upload to API
+      // Upload to API via dedicated profile picture endpoint
       if (token) {
         setIsUploadingImage(true);
         try {
           const apiUrl = getApiUrl();
-          const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
           const uploadData = new FormData();
           uploadData.append('profilePicture', file);
-          const response = await fetch(`${apiUrl}/api/remote/photographer/update-profile-picture`, {
+          const response = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/profile/picture`, {
             method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'api-token': apiKey,
-            },
             body: uploadData,
           });
           if (!response.ok) {
@@ -423,7 +474,7 @@ const ProfilePage = () => {
         flexDirection: 'column',
         overflow: 'hidden'
       }}>
-        <Topbar userRole="event-coordinator" liveStreamFeeAmount={3250.00} />
+        <Topbar userRole="event-coordinator" />
 
         <div className="mobile-main-content" style={{
           flex: 1,
@@ -523,20 +574,22 @@ const ProfilePage = () => {
                       )}
                     </div>
                     <button
-                      onClick={() => profileInputRef.current?.click()}
+                      onClick={() => isEditEnabled && profileInputRef.current?.click()}
+                      disabled={!isEditEnabled}
                       style={{
                         position: 'absolute',
                         bottom: '0',
                         right: '0',
-                        backgroundColor: '#083A85',
-                        border: '2px solid #062a63',
+                        backgroundColor: isEditEnabled ? '#083A85' : '#9CA3AF',
+                        border: isEditEnabled ? '2px solid #062a63' : '2px solid #6B7280',
                         borderRadius: '50%',
                         width: '32px',
                         height: '32px',
-                        cursor: 'pointer',
+                        cursor: isEditEnabled ? 'pointer' : 'not-allowed',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center'
+                        justifyContent: 'center',
+                        opacity: isEditEnabled ? 1 : 0.5,
                       }}>
                       <CameraIcon />
                     </button>
