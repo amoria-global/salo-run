@@ -1881,7 +1881,7 @@ const MyEventsPage = () => {
                 </label>
               ))}
             </div>
-            <button onClick={() => { setPhotographerSearchQuery(''); setShowFindPhotographerModal(true); }} style={{ width: '100%', padding: '0.625rem', border: `2px dashed ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}`, borderRadius: '0.5rem', backgroundColor: 'transparent', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85', fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}><PlusIcon />Find a New Photographer</button>
+            <button onClick={() => setShowFindPhotographerModal(true)} style={{ width: '100%', padding: '0.625rem', border: `2px dashed ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}`, borderRadius: '0.5rem', backgroundColor: 'transparent', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85', fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}><PlusIcon />Find a New Photographer</button>
           </div>
 
           {/* Section: Package Selection */}
@@ -1938,7 +1938,7 @@ const MyEventsPage = () => {
         </div>
       </Modal>
 
-      {/* Find New Photographer Modal (child modal, renders on top of Create Event) */}
+      {/* Find New Photographer Redirect Prompt */}
       {showFindPhotographerModal && (
         <div style={{
           position: 'fixed',
@@ -1955,120 +1955,79 @@ const MyEventsPage = () => {
           <div style={{
             backgroundColor: colors.bgCard,
             borderRadius: '0.75rem',
-            padding: '1.5rem',
-            maxWidth: '650px',
+            padding: '1.75rem',
+            maxWidth: '420px',
             width: '90%',
-            maxHeight: '80vh',
-            display: 'flex',
-            flexDirection: 'column',
             boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            textAlign: 'center',
           }} onClick={(e) => e.stopPropagation()}>
 
-            {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Find a Photographer</h3>
-              <button onClick={() => setShowFindPhotographerModal(false)} style={{ background: colors.bgTertiary, border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', cursor: 'pointer', padding: '0.5rem', color: colors.textPrimary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <CloseIcon />
-              </button>
+            {/* Icon */}
+            <div style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '50%',
+              backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 1rem',
+            }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" stroke="#083A85" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <polyline points="10,17 15,12 10,7" stroke="#083A85" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <line x1="15" y1="12" x2="3" y2="12" stroke="#083A85" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </div>
 
-            {/* Search Input */}
-            <div style={{ position: 'relative', marginBottom: '1rem' }}>
-              <div style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
-                <SearchIcon />
-              </div>
-              <input
-                type="text"
-                placeholder="Search by name or speciality..."
-                value={photographerSearchQuery}
-                onChange={(e) => setPhotographerSearchQuery(e.target.value)}
+            {/* Title */}
+            <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>
+              Find a New Photographer
+            </h3>
+
+            {/* Description */}
+            <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1.5rem', lineHeight: '1.5' }}>
+              You are about to be redirected to the photographers page where you can browse and book a new photographer for your event.
+            </p>
+
+            {/* Buttons */}
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                onClick={() => setShowFindPhotographerModal(false)}
                 style={{
-                  width: '100%',
-                  padding: '0.75rem 0.75rem 0.75rem 2.5rem',
+                  flex: 1,
+                  padding: '0.625rem',
                   border: `2px solid ${colors.borderPrimary}`,
                   borderRadius: '0.5rem',
-                  fontSize: '0.9rem',
-                  backgroundColor: colors.bgCard,
+                  backgroundColor: 'transparent',
                   color: colors.textPrimary,
-                  outline: 'none',
-                  boxSizing: 'border-box',
+                  fontSize: '0.9rem',
+                  fontWeight: '500',
+                  cursor: 'pointer',
                 }}
-              />
-            </div>
-
-            {/* Results Count */}
-            <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.75rem' }}>
-              {filteredPhotographers.length} photographer{filteredPhotographers.length !== 1 ? 's' : ''} found
-            </div>
-
-            {/* Photographer Grid */}
-            <div style={{ overflowY: 'auto', flex: 1 }}>
-              {filteredPhotographers.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '2rem 1rem', color: colors.textSecondary }}>
-                  <CameraIcon />
-                  <p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>No photographers match your search.</p>
-                  <p style={{ fontSize: '0.8rem' }}>Try a different name or speciality.</p>
-                </div>
-              ) : (
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(2, 1fr)',
-                  gap: '0.75rem',
-                }}>
-                  {filteredPhotographers.map((photographer) => (
-                    <div
-                      key={photographer.id}
-                      style={{
-                        border: `2px solid ${createPhotographerId === photographer.id ? '#083A85' : colors.borderPrimary}`,
-                        borderRadius: '0.75rem',
-                        padding: '1rem',
-                        backgroundColor: createPhotographerId === photographer.id
-                          ? (actualTheme === 'dark' ? '#1E3A5F' : '#F0F9FF')
-                          : colors.bgCard,
-                        transition: 'border-color 0.2s, background-color 0.2s',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                        <div style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, position: 'relative' }}>
-                          <Image src={photographer.image} alt={photographer.name} fill style={{ objectFit: 'cover' }} />
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {photographer.name}
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem', color: '#F59E0B' }}>
-                            {'★'.repeat(Math.round(photographer.rating))}{'☆'.repeat(5 - Math.round(photographer.rating))}
-                            <span style={{ color: colors.textSecondary, marginLeft: '0.25rem' }}>{photographer.rating.toFixed(1)}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {photographer.speciality}
-                      </div>
-                      <button
-                        onClick={() => {
-                          setCreatePhotographerId(photographer.id);
-                          setShowFindPhotographerModal(false);
-                        }}
-                        style={{
-                          width: '100%',
-                          padding: '0.5rem',
-                          border: createPhotographerId === photographer.id ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                          borderRadius: '0.375rem',
-                          backgroundColor: createPhotographerId === photographer.id ? '#083A85' : 'transparent',
-                          color: createPhotographerId === photographer.id ? 'white' : '#083A85',
-                          fontSize: '0.85rem',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
-                        }}
-                      >
-                        {createPhotographerId === photographer.id ? 'Selected' : 'Select'}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL || 'http://localhost:3000';
+                  window.open(`${landingUrl}/user/photographers`, '_blank');
+                  setShowFindPhotographerModal(false);
+                }}
+                style={{
+                  flex: 1,
+                  padding: '0.625rem',
+                  border: '2px solid #062a63',
+                  borderRadius: '0.5rem',
+                  backgroundColor: '#083A85',
+                  color: 'white',
+                  fontSize: '0.9rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                }}
+              >
+                Continue
+              </button>
             </div>
           </div>
         </div>

@@ -1668,7 +1668,7 @@ const PhotographerEventsPage = () => {
         <Sidebar />
 
         <div className="events-content">
-          <Topbar userRole="photographer" tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
+          <Topbar userRole="photographer" />
 
           {/* Main Content */}
           <div className="events-main">

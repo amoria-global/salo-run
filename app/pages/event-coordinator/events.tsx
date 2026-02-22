@@ -7,7 +7,7 @@ import localforage from 'localforage';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
-import { useDashboardAuth } from '../../providers/AuthProvider';
+import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 
 // Configure localforage for event form data
 const eventFormStorage = localforage.createInstance({
@@ -364,6 +364,9 @@ const MyEventsPage = () => {
   const [copiedLink, setCopiedLink] = useState(false);
   const [showInviteSection, setShowInviteSection] = useState(false);
   const [inviteLinkCopied, setInviteLinkCopied] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [isSendingInvite, setIsSendingInvite] = useState(false);
   const [apiCurrencies, setApiCurrencies] = useState<{ value: string; label: string }[]>([]);
 
   // Photographers fetched from API
@@ -661,16 +664,13 @@ const MyEventsPage = () => {
   const [publishingEventId, setPublishingEventId] = useState<string | null>(null);
   const [confirmingEventId, setConfirmingEventId] = useState<string | null>(null);
 
-  // Fetch events from public API and filter for current user
+  // Fetch events — use coordinator endpoint (returns only this user's events)
   const fetchMyEvents = useCallback(async () => {
     setIsLoadingEvents(true);
     setEventsError(null);
     try {
       const apiUrl = getApiUrl();
-      const response = await fetch(`${apiUrl}/api/remote/public/events/list?page=0&size=100&sortColumn=createdAt&sortDirection=desc`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-      });
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/events`);
 
       if (!response.ok) {
         throw new Error(`Failed to fetch events: ${response.status}`);
@@ -678,14 +678,8 @@ const MyEventsPage = () => {
 
       const data = await response.json();
 
-      if (data.action === 1 && data.data?.content) {
-        const allEvents = data.data.content;
-        const userFullName = `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
-        const myEvents = allEvents.filter((evt: Record<string, unknown>) =>
-          evt.customerId === user?.id ||
-          evt.customerId === user?.customerId ||
-          (userFullName && evt.eventOrganizer === userFullName)
-        );
+      if (data.action === 1 && (data.data?.content || Array.isArray(data.data))) {
+        const myEvents = data.data?.content || data.data || [];
 
         const mappedEvents: Event[] = myEvents.map((evt: Record<string, unknown>) => {
           const locationStr = (evt.location as string) || '';
@@ -933,6 +927,11 @@ const MyEventsPage = () => {
     setSubmitError(null);
     setDateError('');
     setTimeError('');
+    setShowInviteSection(false);
+    setInviteEmail('');
+    setInviteError(null);
+    setIsSendingInvite(false);
+    setInviteLinkCopied(false);
     // Clear saved draft from IndexedDB when explicitly requested
     if (clearDraft) {
       clearFormDraft();
@@ -1013,6 +1012,33 @@ const MyEventsPage = () => {
         setEditBannerImagePreview(reader.result as string);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  // Handle invite photographer by email
+  const handleInvitePhotographer = async () => {
+    if (!inviteEmail.trim()) {
+      setInviteError('Please enter a valid email address');
+      return;
+    }
+    setIsSendingInvite(true);
+    setInviteError(null);
+    try {
+      const response = await dashboardAuthFetch(
+        `${getApiUrl()}/api/remote/coordinator/photographers/invite?email=${encodeURIComponent(inviteEmail.trim())}`,
+        { method: 'POST' }
+      );
+      const result = await response.json();
+      if (!response.ok || result.action === 0) {
+        throw new Error(result.message || 'Failed to invite photographer');
+      }
+      setInviteEmail('');
+      setInviteError(null);
+    } catch (err) {
+      console.error('Invite photographer error:', err);
+      setInviteError(err instanceof Error ? err.message : 'Failed to invite photographer');
+    } finally {
+      setIsSendingInvite(false);
     }
   };
 
@@ -1280,7 +1306,7 @@ const MyEventsPage = () => {
       `}</style>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar userRole="event-coordinator" liveStreamFeeAmount={3250.00} />
+        <Topbar userRole="event-coordinator" />
         <div className="mobile-main-content" style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
 
           {/* Header */}
@@ -1942,7 +1968,7 @@ const MyEventsPage = () => {
                 </label>
               ))}
             </div>
-            <button onClick={() => { setPhotographerSearchQuery(''); setShowFindPhotographerModal(true); }} style={{ width: '100%', padding: '0.625rem', border: `2px dashed ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}`, borderRadius: '0.5rem', backgroundColor: 'transparent', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85', fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}><PlusIcon />Find a New Photographer</button>
+            <button onClick={() => setShowFindPhotographerModal(true)} style={{ width: '100%', padding: '0.625rem', border: `2px dashed ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}`, borderRadius: '0.5rem', backgroundColor: 'transparent', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85', fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}><PlusIcon />Find a New Photographer</button>
 
             {/* Invite a New Photographer */}
             <button
@@ -1968,7 +1994,7 @@ const MyEventsPage = () => {
               Invite a New Photographer
             </button>
 
-            {/* Invite Link Section */}
+            {/* Invite Section */}
             {showInviteSection && (
               <div style={{
                 marginTop: '0.75rem',
@@ -1977,58 +2003,116 @@ const MyEventsPage = () => {
                 borderRadius: '0.5rem',
                 border: `1px solid ${actualTheme === 'dark' ? '#334155' : '#FBCFE8'}`
               }}>
-                <p style={{
-                  fontSize: '0.85rem',
-                  color: colors.textSecondary,
-                  marginBottom: '0.75rem'
-                }}>
-                  Share this link with photographers who haven&apos;t registered yet to invite them to join the platform:
-                </p>
-                <div style={{
-                  display: 'flex',
-                  gap: '0.5rem',
-                  alignItems: 'stretch'
-                }}>
-                  <input
-                    type="text"
-                    readOnly
-                    value="https://connekt.rw/register/photographer?ref=invite"
-                    style={{
-                      flex: 1,
-                      padding: '0.625rem 0.75rem',
-                      border: `2px solid ${colors.borderPrimary}`,
-                      borderRadius: '0.375rem',
-                      backgroundColor: colors.bgCard,
-                      color: colors.textPrimary,
-                      fontSize: '0.9rem',
-                      minWidth: 0
-                    }}
-                  />
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText('https://connekt.rw/register/photographer?ref=invite');
-                      setInviteLinkCopied(true);
-                      setTimeout(() => setInviteLinkCopied(false), 2000);
-                    }}
-                    style={{
-                      padding: '0.625rem 1rem',
-                      backgroundColor: inviteLinkCopied ? '#10B981' : (actualTheme === 'dark' ? '#DB2777' : '#DB2777'),
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '0.375rem',
-                      fontSize: '0.85rem',
-                      fontWeight: '500',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.375rem',
-                      whiteSpace: 'nowrap',
-                      transition: 'background-color 0.2s'
-                    }}
-                  >
-                    <CopyIcon />
-                    {inviteLinkCopied ? 'Copied!' : 'Copy Link'}
-                  </button>
+                {/* Email Invite */}
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>
+                    Send invite via email
+                  </label>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'stretch' }}>
+                    <input
+                      type="email"
+                      placeholder="photographer@example.com"
+                      value={inviteEmail}
+                      onChange={(e) => { setInviteEmail(e.target.value); setInviteError(null); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleInvitePhotographer(); }}
+                      style={{
+                        flex: 1,
+                        padding: '0.625rem 0.75rem',
+                        border: `2px solid ${inviteError ? '#EF4444' : colors.borderPrimary}`,
+                        borderRadius: '0.375rem',
+                        backgroundColor: colors.bgCard,
+                        color: colors.textPrimary,
+                        fontSize: '0.9rem',
+                        minWidth: 0,
+                        outline: 'none'
+                      }}
+                    />
+                    <button
+                      onClick={handleInvitePhotographer}
+                      disabled={isSendingInvite || !inviteEmail.trim()}
+                      style={{
+                        padding: '0.625rem 1rem',
+                        backgroundColor: (!inviteEmail.trim() || isSendingInvite) ? '#9CA3AF' : (actualTheme === 'dark' ? '#DB2777' : '#DB2777'),
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '0.375rem',
+                        fontSize: '0.85rem',
+                        fontWeight: '500',
+                        cursor: (!inviteEmail.trim() || isSendingInvite) ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.375rem',
+                        whiteSpace: 'nowrap',
+                        transition: 'background-color 0.2s'
+                      }}
+                    >
+                      {isSendingInvite ? 'Sending...' : 'Send Invite'}
+                    </button>
+                  </div>
+                  {inviteError && (
+                    <div style={{ color: '#EF4444', fontSize: '0.8rem', marginTop: '0.375rem' }}>
+                      {inviteError}
+                    </div>
+                  )}
+                  {!isSendingInvite && !inviteError && inviteEmail === '' && (
+                    <div style={{ color: '#059669', fontSize: '0.8rem', marginTop: '0.375rem', display: 'none' }} className="invite-sent-hint" />
+                  )}
+                </div>
+
+                {/* Divider */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                  <div style={{ flex: 1, height: '1px', backgroundColor: actualTheme === 'dark' ? '#334155' : '#FBCFE8' }} />
+                  <span style={{ fontSize: '0.75rem', color: colors.textSecondary, fontWeight: '500' }}>or share link</span>
+                  <div style={{ flex: 1, height: '1px', backgroundColor: actualTheme === 'dark' ? '#334155' : '#FBCFE8' }} />
+                </div>
+
+                {/* Invite Link */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>
+                    Invite Link
+                  </label>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'stretch' }}>
+                    <input
+                      type="text"
+                      readOnly
+                      value="https://connekt.rw/register/photographer?ref=invite"
+                      style={{
+                        flex: 1,
+                        padding: '0.625rem 0.75rem',
+                        border: `2px solid ${colors.borderPrimary}`,
+                        borderRadius: '0.375rem',
+                        backgroundColor: colors.bgTertiary,
+                        color: colors.textPrimary,
+                        fontSize: '0.85rem',
+                        minWidth: 0
+                      }}
+                    />
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText('https://connekt.rw/register/photographer?ref=invite');
+                        setInviteLinkCopied(true);
+                        setTimeout(() => setInviteLinkCopied(false), 2000);
+                      }}
+                      style={{
+                        padding: '0.625rem 1rem',
+                        backgroundColor: inviteLinkCopied ? '#10B981' : '#083A85',
+                        color: 'white',
+                        border: inviteLinkCopied ? '2px solid #059669' : '2px solid #062a63',
+                        borderRadius: '0.375rem',
+                        fontSize: '0.85rem',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.375rem',
+                        whiteSpace: 'nowrap',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <CopyIcon />
+                      {inviteLinkCopied ? 'Copied!' : 'Copy'}
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -2088,7 +2172,7 @@ const MyEventsPage = () => {
         </div>
       </Modal>
 
-      {/* Find New Photographer Modal (child modal, renders on top of Create Event) */}
+      {/* Find New Photographer Redirect Prompt */}
       {showFindPhotographerModal && (
         <div style={{
           position: 'fixed',
@@ -2105,120 +2189,79 @@ const MyEventsPage = () => {
           <div style={{
             backgroundColor: colors.bgCard,
             borderRadius: '0.75rem',
-            padding: '1.5rem',
-            maxWidth: '650px',
+            padding: '1.75rem',
+            maxWidth: '420px',
             width: '90%',
-            maxHeight: '80vh',
-            display: 'flex',
-            flexDirection: 'column',
             boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            textAlign: 'center',
           }} onClick={(e) => e.stopPropagation()}>
 
-            {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Find a Photographer</h3>
-              <button onClick={() => setShowFindPhotographerModal(false)} style={{ background: colors.bgTertiary, border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', cursor: 'pointer', padding: '0.5rem', color: colors.textPrimary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <CloseIcon />
-              </button>
+            {/* Icon */}
+            <div style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '50%',
+              backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 1rem',
+            }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" stroke="#083A85" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <polyline points="10,17 15,12 10,7" stroke="#083A85" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <line x1="15" y1="12" x2="3" y2="12" stroke="#083A85" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </div>
 
-            {/* Search Input */}
-            <div style={{ position: 'relative', marginBottom: '1rem' }}>
-              <div style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
-                <SearchIcon />
-              </div>
-              <input
-                type="text"
-                placeholder="Search by name or speciality..."
-                value={photographerSearchQuery}
-                onChange={(e) => setPhotographerSearchQuery(e.target.value)}
+            {/* Title */}
+            <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>
+              Find a New Photographer
+            </h3>
+
+            {/* Description */}
+            <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1.5rem', lineHeight: '1.5' }}>
+              You are about to be redirected to the photographers page where you can browse and book a new photographer for your event.
+            </p>
+
+            {/* Buttons */}
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                onClick={() => setShowFindPhotographerModal(false)}
                 style={{
-                  width: '100%',
-                  padding: '0.75rem 0.75rem 0.75rem 2.5rem',
+                  flex: 1,
+                  padding: '0.625rem',
                   border: `2px solid ${colors.borderPrimary}`,
                   borderRadius: '0.5rem',
-                  fontSize: '0.9rem',
-                  backgroundColor: colors.bgCard,
+                  backgroundColor: 'transparent',
                   color: colors.textPrimary,
-                  outline: 'none',
-                  boxSizing: 'border-box',
+                  fontSize: '0.9rem',
+                  fontWeight: '500',
+                  cursor: 'pointer',
                 }}
-              />
-            </div>
-
-            {/* Results Count */}
-            <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.75rem' }}>
-              {filteredPhotographers.length} photographer{filteredPhotographers.length !== 1 ? 's' : ''} found
-            </div>
-
-            {/* Photographer Grid */}
-            <div style={{ overflowY: 'auto', flex: 1 }}>
-              {filteredPhotographers.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '2rem 1rem', color: colors.textSecondary }}>
-                  <CameraIcon />
-                  <p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>No photographers match your search.</p>
-                  <p style={{ fontSize: '0.8rem' }}>Try a different name or speciality.</p>
-                </div>
-              ) : (
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(2, 1fr)',
-                  gap: '0.75rem',
-                }}>
-                  {filteredPhotographers.map((photographer) => (
-                    <div
-                      key={photographer.id}
-                      style={{
-                        border: `2px solid ${createPhotographerId === photographer.id ? '#083A85' : colors.borderPrimary}`,
-                        borderRadius: '0.75rem',
-                        padding: '1rem',
-                        backgroundColor: createPhotographerId === photographer.id
-                          ? (actualTheme === 'dark' ? '#1E3A5F' : '#F0F9FF')
-                          : colors.bgCard,
-                        transition: 'border-color 0.2s, background-color 0.2s',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                        <div style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, position: 'relative' }}>
-                          <Image src={photographer.image} alt={photographer.name} fill style={{ objectFit: 'cover' }} />
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {photographer.name}
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem', color: '#F59E0B' }}>
-                            {'★'.repeat(Math.round(photographer.rating))}{'☆'.repeat(5 - Math.round(photographer.rating))}
-                            <span style={{ color: colors.textSecondary, marginLeft: '0.25rem' }}>{photographer.rating.toFixed(1)}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {photographer.speciality}
-                      </div>
-                      <button
-                        onClick={() => {
-                          setCreatePhotographerId(photographer.id);
-                          setShowFindPhotographerModal(false);
-                        }}
-                        style={{
-                          width: '100%',
-                          padding: '0.5rem',
-                          border: createPhotographerId === photographer.id ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                          borderRadius: '0.375rem',
-                          backgroundColor: createPhotographerId === photographer.id ? '#083A85' : 'transparent',
-                          color: createPhotographerId === photographer.id ? 'white' : '#083A85',
-                          fontSize: '0.85rem',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
-                        }}
-                      >
-                        {createPhotographerId === photographer.id ? 'Selected' : 'Select'}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL || 'http://localhost:3000';
+                  window.open(`${landingUrl}/user/photographers`, '_blank');
+                  setShowFindPhotographerModal(false);
+                }}
+                style={{
+                  flex: 1,
+                  padding: '0.625rem',
+                  border: '2px solid #062a63',
+                  borderRadius: '0.5rem',
+                  backgroundColor: '#083A85',
+                  color: 'white',
+                  fontSize: '0.9rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                }}
+              >
+                Continue
+              </button>
             </div>
           </div>
         </div>

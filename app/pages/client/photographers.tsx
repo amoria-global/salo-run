@@ -79,6 +79,13 @@ const CloseIcon = () => (
   </svg>
 );
 
+const CopyIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
 const MessageIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -302,6 +309,13 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
   const [reportPhotographer, setReportPhotographer] = useState<BookedPhotographer | null>(null);
   const [showRebookModal, setShowRebookModal] = useState(false);
   const [rebookPhotographer, setRebookPhotographer] = useState<BookedPhotographer | null>(null);
+  const [rebookEventType, setRebookEventType] = useState('');
+  const [rebookDate, setRebookDate] = useState('');
+  const [rebookTime, setRebookTime] = useState('');
+  const [rebookLocation, setRebookLocation] = useState('');
+  const [rebookNotes, setRebookNotes] = useState('');
+  const [isSubmittingRebook, setIsSubmittingRebook] = useState(false);
+  const [rebookError, setRebookError] = useState<string | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewPhotographer, setReviewPhotographer] = useState<BookedPhotographer | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; photographer: BookedPhotographer } | null>(null);
@@ -324,6 +338,12 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
   const [showTipPaymentModal, setShowTipPaymentModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  // Invite modal states
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [isSendingInvite, setIsSendingInvite] = useState(false);
+  const [inviteCopied, setInviteCopied] = useState(false);
   const [pendingReviewPhotographer, setPendingReviewPhotographer] = useState<BookedPhotographer | null>(null);
   const [selectedTipPaymentMethod, setSelectedTipPaymentMethod] = useState<string>('card');
   const [paymentBooking, setPaymentBooking] = useState<{ photographer: BookedPhotographer; booking: Booking } | null>(null);
@@ -352,31 +372,35 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
     const fetchPhotographers = async () => {
       try {
         const apiUrl = getApiUrl();
-        const response = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/photographers`, { headers: { 'Content-Type': 'application/json' } });
+        const endpoint = userRole === 'event-coordinator'
+          ? `${apiUrl}/api/remote/coordinator/photographers`
+          : `${apiUrl}/api/remote/customer/photographers`;
+        const response = await dashboardAuthFetch(endpoint, { headers: { 'Content-Type': 'application/json' } });
         if (!response.ok) throw new Error('Failed to fetch photographers');
         const result = await response.json();
-        const data = result?.data || [];
+        // Coordinator endpoint returns paginated {content:[...]}, customer returns flat array
+        const data = result?.data?.content || result?.data || [];
         const mapped: BookedPhotographer[] = data.map((p: any) => ({
           id: p.id,
           firstName: p.firstName || '',
           lastName: p.lastName || '',
-          profileImage: p.profileImage || '/default-avatar.png',
-          coverImage: p.coverImage || '',
-          portfolioImages: p.portfolioImages || [],
-          bio: p.bio || '',
-          specializations: p.specializations || [],
+          profileImage: p.profileImage || p.profilePicture || '/default-avatar.png',
+          coverImage: p.coverImage || p.coverPicture || '',
+          portfolioImages: p.portfolioImages || (p.projects || []).map((proj: any) => proj.imageUrl || ''),
+          bio: p.bio || p.about || '',
+          specializations: p.specializations || (p.specialties || []).map((s: any) => typeof s === 'string' ? s : s.name || ''),
           experience: p.experience || 0,
-          location: p.location || { city: '', country: '' },
+          location: p.location || (p.address ? { city: p.address, country: '' } : { city: '', country: '' }),
           rating: p.rating || 0,
-          reviewCount: p.reviewCount || 0,
+          reviewCount: p.reviewCount || (p.reviews || []).length || 0,
           completedBookings: p.completedBookings || 0,
-          verified: p.isVerified || false,
+          verified: p.isVerified || p.profileReviewStatus === 'ACCEPTED' || false,
           startingPrice: p.startingPrice || 0,
           responseTime: p.responseTime || 'N/A',
           isFavorite: p.isFavorite || false,
           isAvailable: p.isAvailable || false,
           languages: p.languages || [],
-          equipment: p.equipment || [],
+          equipment: p.equipment || (p.equipments || []).map((e: any) => typeof e === 'string' ? e : e.name || ''),
           lastBookingDate: p.lastBookingDate || '',
           lastEventType: p.lastEventType || '',
           lastEventName: p.lastEventName || '',
@@ -657,6 +681,101 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
     setSuccessMessage('');
   };
 
+  // --- Coordinator: Send rebook request ---
+  const handleSendBookingRequest = async () => {
+    if (userRole !== 'event-coordinator' || !rebookPhotographer) return;
+
+    if (!rebookEventType || !rebookDate || !rebookTime || !rebookLocation) {
+      setRebookError('Please fill in all required fields');
+      return;
+    }
+
+    setIsSubmittingRebook(true);
+    setRebookError(null);
+
+    try {
+      const apiUrl = getApiUrl();
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/rebook`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          photographerId: rebookPhotographer.id,
+          eventType: rebookEventType,
+          eventDate: rebookDate,
+          startTime: rebookTime,
+          endTime: rebookTime, // default to same; backend may adjust
+          location: rebookLocation,
+          notes: rebookNotes,
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok || result.action === 0) {
+        throw new Error(result.message || 'Failed to send booking request');
+      }
+
+      // Reset form & close modal
+      setShowRebookModal(false);
+      setRebookEventType('');
+      setRebookDate('');
+      setRebookTime('');
+      setRebookLocation('');
+      setRebookNotes('');
+      setRebookPhotographer(null);
+
+      setSuccessMessage('Booking request sent successfully!');
+      setShowSuccessModal(true);
+    } catch (err) {
+      console.error('Rebook error:', err);
+      setRebookError(err instanceof Error ? err.message : 'Failed to send booking request');
+    } finally {
+      setIsSubmittingRebook(false);
+    }
+  };
+
+  // --- Coordinator: Invite photographer by email ---
+  const inviteLink = `https://connekt.app/invite/photographer/${user?.id || ''}`;
+
+  const handleInvitePhotographer = async () => {
+    if (userRole !== 'event-coordinator' || !inviteEmail.trim()) {
+      setInviteError('Please enter a valid email address');
+      return;
+    }
+
+    setIsSendingInvite(true);
+    setInviteError(null);
+
+    try {
+      const apiUrl = getApiUrl();
+      const response = await dashboardAuthFetch(
+        `${apiUrl}/api/remote/coordinator/photographers/invite?email=${encodeURIComponent(inviteEmail.trim())}`,
+        { method: 'POST' }
+      );
+
+      const result = await response.json();
+      if (!response.ok || result.action === 0) {
+        throw new Error(result.message || 'Failed to invite photographer');
+      }
+
+      setInviteEmail('');
+      setInviteError(null);
+      setShowInviteModal(false);
+      setSuccessMessage('Invitation sent successfully!');
+      setShowSuccessModal(true);
+    } catch (err) {
+      console.error('Invite photographer error:', err);
+      setInviteError(err instanceof Error ? err.message : 'Failed to invite photographer');
+    } finally {
+      setIsSendingInvite(false);
+    }
+  };
+
+  const handleCopyInviteLink = () => {
+    navigator.clipboard.writeText(inviteLink);
+    setInviteCopied(true);
+    setTimeout(() => setInviteCopied(false), 2000);
+  };
+
   // Check if photographer has any completed events (reviews only allowed for past events)
   const hasCompletedEvent = (photographer: BookedPhotographer) => {
     return photographer.bookings.some(booking => booking.status === 'completed');
@@ -762,6 +881,29 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
               </p>
             </div>
             <div className="mobile-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              {/* Invite Photographer - coordinator only */}
+              {userRole === 'event-coordinator' && (
+                <button
+                  onClick={() => { setShowInviteModal(true); setInviteEmail(''); setInviteError(null); setInviteCopied(false); }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.5rem 1rem',
+                    backgroundColor: '#F20C8F',
+                    color: 'white',
+                    border: '2px solid #c00a72',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.9rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  <MessageIcon />
+                  Invite New
+                </button>
+              )}
               {/* Sort Dropdown */}
               <div style={{ position: 'relative' }}>
                 <select
@@ -1870,7 +2012,10 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
               <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
                 Event Type
               </label>
-              <select style={{
+              <select
+                value={rebookEventType}
+                onChange={(e) => setRebookEventType(e.target.value)}
+                style={{
                 width: '100%',
                 padding: '0.75rem',
                 border: `2px solid ${colors.borderPrimary}`,
@@ -1880,8 +2025,8 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                 color: colors.textPrimary,
                 cursor: 'pointer'
               }}>
-                <option>Select event type</option>
-                {rebookPhotographer.specializations.map(s => <option key={s}>{s}</option>)}
+                <option value="">Select event type</option>
+                {rebookPhotographer.specializations.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
 
@@ -1892,6 +2037,8 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                 </label>
                 <input
                   type="date"
+                  value={rebookDate}
+                  onChange={(e) => setRebookDate(e.target.value)}
                   style={{
                     width: '100%',
                     padding: '0.75rem',
@@ -1909,6 +2056,8 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                 </label>
                 <input
                   type="time"
+                  value={rebookTime}
+                  onChange={(e) => setRebookTime(e.target.value)}
                   style={{
                     width: '100%',
                     padding: '0.75rem',
@@ -1929,6 +2078,8 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
               <input
                 type="text"
                 placeholder="Enter event location"
+                value={rebookLocation}
+                onChange={(e) => setRebookLocation(e.target.value)}
                 style={{
                   width: '100%',
                   padding: '0.75rem',
@@ -1946,6 +2097,8 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
               </label>
               <textarea
                 placeholder="Any special requirements or details..."
+                value={rebookNotes}
+                onChange={(e) => setRebookNotes(e.target.value)}
                 style={{
                   width: '100%',
                   padding: '0.75rem',
@@ -1959,9 +2112,16 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
               />
             </div>
 
+            {rebookError && (
+              <div style={{ color: '#EF4444', fontSize: '0.85rem', marginBottom: '0.75rem', padding: '0.5rem 0.75rem', backgroundColor: '#FEF2F2', borderRadius: '0.375rem' }}>
+                {rebookError}
+              </div>
+            )}
+
             <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '4rem' }}>
               <button
-                onClick={() => setShowRebookModal(false)}
+                onClick={() => { setShowRebookModal(false); setRebookError(null); }}
+                disabled={isSubmittingRebook}
                 style={{
                   flex: 1,
                   padding: '0.75rem 1rem',
@@ -1971,12 +2131,15 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                   color: colors.textPrimary,
                   fontSize: '0.9rem',
                   fontWeight: '600',
-                  cursor: 'pointer'
+                  cursor: isSubmittingRebook ? 'not-allowed' : 'pointer',
+                  opacity: isSubmittingRebook ? 0.6 : 1
                 }}
               >
                 Cancel
               </button>
               <button
+                onClick={handleSendBookingRequest}
+                disabled={isSubmittingRebook}
                 style={{
                   flex: 1,
                   padding: '0.75rem 1rem',
@@ -1986,7 +2149,8 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                   color: 'white',
                   fontSize: '0.9rem',
                   fontWeight: '600',
-                  cursor: 'pointer',
+                  cursor: isSubmittingRebook ? 'not-allowed' : 'pointer',
+                  opacity: isSubmittingRebook ? 0.7 : 1,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1994,7 +2158,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                 }}
               >
                 <CheckIcon />
-                Send Booking Request
+                {isSubmittingRebook ? 'Sending...' : 'Send Booking Request'}
               </button>
             </div>
           </div>
@@ -2891,6 +3055,166 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
         );
       })()}
 
+
+      {/* Invite Photographer Modal */}
+      {showInviteModal && userRole === 'event-coordinator' && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1100,
+            padding: '1rem'
+          }}
+          onClick={() => setShowInviteModal(false)}
+        >
+          <div
+            style={{
+              backgroundColor: colors.bgCard,
+              borderRadius: '0.75rem',
+              padding: '1.5rem',
+              maxWidth: '480px',
+              width: '100%',
+              maxHeight: '90vh',
+              overflowY: 'auto'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <div>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Invite Photographer</h2>
+                <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: '0.25rem 0 0 0' }}>Send an invite via email or share the link</p>
+              </div>
+              <button
+                onClick={() => setShowInviteModal(false)}
+                style={{
+                  background: colors.bgTertiary,
+                  border: `2px solid ${colors.borderPrimary}`,
+                  cursor: 'pointer',
+                  padding: '0.5rem',
+                  borderRadius: '0.375rem',
+                  color: colors.textPrimary,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <CloseIcon />
+              </button>
+            </div>
+
+            {/* Email Invite */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+                Email Address
+              </label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <input
+                  type="email"
+                  placeholder="photographer@example.com"
+                  value={inviteEmail}
+                  onChange={(e) => { setInviteEmail(e.target.value); setInviteError(null); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleInvitePhotographer(); }}
+                  style={{
+                    flex: 1,
+                    padding: '0.625rem 0.875rem',
+                    border: `2px solid ${inviteError ? '#EF4444' : colors.borderPrimary}`,
+                    borderRadius: '0.5rem',
+                    fontSize: '0.9rem',
+                    color: colors.textPrimary,
+                    backgroundColor: colors.bgCard,
+                    outline: 'none'
+                  }}
+                />
+                <button
+                  onClick={handleInvitePhotographer}
+                  disabled={isSendingInvite || !inviteEmail.trim()}
+                  style={{
+                    padding: '0.625rem 1rem',
+                    border: '2px solid #c00a72',
+                    borderRadius: '0.5rem',
+                    background: (!inviteEmail.trim() || isSendingInvite) ? '#9CA3AF' : '#F20C8F',
+                    color: 'white',
+                    fontSize: '0.85rem',
+                    fontWeight: '600',
+                    cursor: (!inviteEmail.trim() || isSendingInvite) ? 'not-allowed' : 'pointer',
+                    whiteSpace: 'nowrap',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.375rem'
+                  }}
+                >
+                  <MessageIcon />
+                  {isSendingInvite ? 'Sending...' : 'Send'}
+                </button>
+              </div>
+              {inviteError && (
+                <div style={{ color: '#EF4444', fontSize: '0.8rem', marginTop: '0.375rem' }}>
+                  {inviteError}
+                </div>
+              )}
+            </div>
+
+            {/* Divider */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+              <div style={{ flex: 1, height: '1px', backgroundColor: colors.borderPrimary }} />
+              <span style={{ fontSize: '0.8rem', color: colors.textSecondary, fontWeight: '500' }}>or share invite link</span>
+              <div style={{ flex: 1, height: '1px', backgroundColor: colors.borderPrimary }} />
+            </div>
+
+            {/* Invite Link */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+                Invite Link
+              </label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <input
+                  type="text"
+                  value={inviteLink}
+                  readOnly
+                  style={{
+                    flex: 1,
+                    padding: '0.625rem 0.875rem',
+                    border: `2px solid ${colors.borderPrimary}`,
+                    borderRadius: '0.5rem',
+                    fontSize: '0.85rem',
+                    backgroundColor: colors.bgTertiary,
+                    color: colors.textPrimary
+                  }}
+                />
+                <button
+                  onClick={handleCopyInviteLink}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.375rem',
+                    padding: '0.625rem 1rem',
+                    border: inviteCopied ? '2px solid #059669' : '2px solid #062a63',
+                    borderRadius: '0.5rem',
+                    background: inviteCopied ? '#10B981' : '#083A85',
+                    color: 'white',
+                    fontSize: '0.85rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  <CopyIcon />
+                  {inviteCopied ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Success Modal */}
       <Modal

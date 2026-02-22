@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
@@ -9,6 +9,14 @@ import { useTheme } from '../../context/ThemeContext';
 import { useUserProfile } from '../../context/UserProfileContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
 import { HeartIcon } from '../../components/UnlockModal';
+import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
+
+function getApiUrl(): string {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    return '/api/proxy';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+}
 
 // Icons
 const DownloadIcon = () => (
@@ -160,20 +168,21 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
 interface ViewReportModalProps {
   isOpen: boolean;
   onClose: () => void;
+  payments?: Payment[];
 }
 
-const ViewReportModal: React.FC<ViewReportModalProps> = ({ isOpen, onClose }) => {
+const ViewReportModal: React.FC<ViewReportModalProps> = ({ isOpen, onClose, payments = [] }) => {
   const { colors, actualTheme } = useTheme();
   const { formatPrice } = useCurrency();
   const reportData = {
-    period: '13 - 18 July 2025',
-    totalPaid: 1200.13,
-    pending: 350.13,
-    failed: 200.00,
-    totalTransactions: 45,
-    completedTransactions: 32,
-    pendingTransactions: 8,
-    failedTransactions: 5,
+    period: payments.length > 0 ? `${payments[payments.length - 1]?.date?.split(' ')[0] || ''} - ${payments[0]?.date?.split(' ')[0] || ''} ${new Date().getFullYear()}` : 'No data',
+    totalPaid: payments.filter(p => p.status === 'paid').reduce((sum, p) => sum + p.amountNum, 0),
+    pending: payments.filter(p => p.status === 'pending' || p.status === 'partially_paid').reduce((sum, p) => sum + (p.amountNum - p.paidAmount), 0),
+    failed: payments.filter(p => p.status === 'failed').reduce((sum, p) => sum + p.amountNum, 0),
+    totalTransactions: payments.length,
+    completedTransactions: payments.filter(p => p.status === 'paid').length,
+    pendingTransactions: payments.filter(p => p.status === 'pending' || p.status === 'partially_paid').length,
+    failedTransactions: payments.filter(p => p.status === 'failed').length,
   };
 
   const handlePrint = () => {
@@ -843,6 +852,15 @@ const SpendingChart: React.FC<SpendingChartProps> = ({ data, height = 140, chart
   const { colors } = useTheme();
   const { formatPrice } = useCurrency();
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+
+  if (data.length === 0) {
+    return (
+      <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.textSecondary, fontSize: '0.85rem' }}>
+        No spending data available
+      </div>
+    );
+  }
+
   const maxValue = Math.max(...data.map(d => d.value));
   const minValue = Math.min(...data.map(d => d.value));
   const range = maxValue - minValue || 1;
@@ -853,12 +871,12 @@ const SpendingChart: React.FC<SpendingChartProps> = ({ data, height = 140, chart
   const chartHeight = height - paddingTop - paddingBottom;
   const chartWidth = 500;
   const barWidth = 35;
-  const barGap = (chartWidth - paddingLeft - paddingRight - (data.length * barWidth)) / (data.length - 1);
+  const barGap = data.length > 1 ? (chartWidth - paddingLeft - paddingRight - (data.length * barWidth)) / (data.length - 1) : 0;
 
   const points = data.map((item, index) => {
     const x = chartType === 'bar'
       ? paddingLeft + index * (barWidth + barGap) + barWidth / 2
-      : paddingLeft + (index / (data.length - 1)) * (chartWidth - paddingLeft - paddingRight);
+      : paddingLeft + (index / Math.max(data.length - 1, 1)) * (chartWidth - paddingLeft - paddingRight);
     const y = paddingTop + chartHeight - ((item.value - minValue) / range) * chartHeight;
     return { x, y, ...item };
   });
@@ -1189,6 +1207,7 @@ const PaymentsPage = () => {
   const { colors, actualTheme } = useTheme();
   const { formatPrice } = useCurrency();
   const { profile } = useUserProfile();
+  const { user } = useDashboardAuth();
   const [activeTimeFilter, setActiveTimeFilter] = useState<'1W' | '1M' | '3M' | '6M' | '1Y'>('1W');
   const [currentPage, setCurrentPage] = useState(1);
   const [chartType, setChartType] = useState<ChartType>('line');
@@ -1197,6 +1216,86 @@ const PaymentsPage = () => {
   const [showPayNowModal, setShowPayNowModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [payNowPayment, setPayNowPayment] = useState<Payment | null>(null);
+  const [apiPayments, setApiPayments] = useState<Payment[]>([]);
+  const [isLoadingPayments, setIsLoadingPayments] = useState(false);
+  const [streamFeeEvents, setStreamFeeEvents] = useState<Array<{
+    id: number;
+    eventTitle: string;
+    date: string;
+    platform: string;
+    ticketPrice: number;
+    viewerCount: number;
+    totalRevenue: number;
+    status: 'completed' | 'pending' | 'live';
+  }>>([]);
+
+  // Fetch payments from coordinator API
+  const fetchPayments = useCallback(async () => {
+    setIsLoadingPayments(true);
+    try {
+      const apiUrl = getApiUrl();
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/payments`);
+      if (response.ok) {
+        const result = await response.json();
+        const data = result?.data?.content || result?.data || [];
+        if (data.length > 0) {
+          const mapped: Payment[] = data.map((p: any, idx: number) => ({
+            id: p.id || idx + 1,
+            date: p.date || p.createdAt || '',
+            eventName: p.eventName || p.description || '',
+            eventType: p.eventType || '',
+            photographerName: p.photographerName || '',
+            photographerImage: p.photographerImage || '/default-avatar.png',
+            method: p.method || p.paymentMethod || '-',
+            amount: p.amount ? `$${p.amount}` : '$0',
+            amountNum: p.amount || p.amountNum || 0,
+            paidAmount: p.paidAmount || 0,
+            status: (p.status || 'pending').toLowerCase() as Payment['status'],
+            invoiceNumber: p.invoiceNumber || `INV-${p.id || idx + 1}`,
+          }));
+          setApiPayments(mapped);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch payments:', err);
+    } finally {
+      setIsLoadingPayments(false);
+    }
+  }, []);
+
+  // Fetch streams for live stream fee revenue section
+  const fetchStreams = useCallback(async () => {
+    try {
+      const apiUrl = getApiUrl();
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/streams`);
+      if (response.ok) {
+        const result = await response.json();
+        const data = result?.data || [];
+        if (Array.isArray(data) && data.length > 0) {
+          const mapped = data.map((s: any, idx: number) => ({
+            id: s.id || idx + 1,
+            eventTitle: s.eventTitle || s.title || s.name || 'Live Stream',
+            date: s.date || s.createdAt ? new Date(s.date || s.createdAt).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : '',
+            platform: s.platform || 'ConnektLive',
+            ticketPrice: s.ticketPrice || s.price || 0,
+            viewerCount: s.viewerCount || s.viewers || 0,
+            totalRevenue: s.totalRevenue || s.revenue || (s.ticketPrice || 0) * (s.viewerCount || 0),
+            status: (s.status || 'completed').toLowerCase() as 'completed' | 'pending' | 'live',
+          }));
+          setStreamFeeEvents(mapped);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch streams:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchPayments();
+      fetchStreams();
+    }
+  }, [user?.id, fetchPayments, fetchStreams]);
 
   const handleViewPayment = (payment: Payment) => {
     setSelectedPayment(payment);
@@ -1237,75 +1336,25 @@ Amount: ${formatPrice(payment.amountNum)}
     URL.revokeObjectURL(url);
   };
 
-  const spendingData = [
-    { date: 'Nov 13', value: 450 },
-    { date: 'Nov 14', value: 300 },
-    { date: 'Nov 15', value: 500 },
-    { date: 'Nov 16', value: 350 },
-    { date: 'Nov 17', value: 200 },
-    { date: 'Nov 18', value: 400 },
-    { date: 'Nov 19', value: 150 }
-  ];
+  // Derive spending chart data from actual payments
+  const spendingData = (() => {
+    if (apiPayments.length === 0) return [];
+    const grouped: Record<string, number> = {};
+    apiPayments.forEach(p => {
+      if (!p.date) return;
+      const d = new Date(p.date);
+      const label = isNaN(d.getTime()) ? p.date.substring(0, 6) : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      grouped[label] = (grouped[label] || 0) + p.amountNum;
+    });
+    return Object.entries(grouped).slice(-7).map(([date, value]) => ({ date, value }));
+  })();
 
-  const payments: Payment[] = [
-    { id: 1, date: 'Nov, 20 14:05 PM', eventName: 'Sarah & James Wedding', eventType: 'Wedding', photographerName: 'John Studio', photographerImage: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg', method: 'Credit Card', amount: '$450.0', amountNum: 450, paidAmount: 450, status: 'paid', invoiceNumber: 'INV-2024-001' },
-    { id: 2, date: 'Nov, 18 10:30 AM', eventName: 'Emily\'s 5th Birthday', eventType: 'Birthday', photographerName: 'Mary Shots', photographerImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', method: 'Mobile Money', amount: '$300.0', amountNum: 300, paidAmount: 150, status: 'partially_paid', invoiceNumber: 'INV-2024-002' },
-    { id: 3, date: 'Nov, 25 09:00 AM', eventName: 'MTN Annual Conference', eventType: 'Corporate', photographerName: 'Elite Photography', photographerImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', method: '-', amount: '$500.0', amountNum: 500, paidAmount: 0, status: 'pending', invoiceNumber: 'INV-2024-003' },
-    { id: 4, date: 'Sep, 15 16:00 PM', eventName: 'Nyege Nyege Festival', eventType: 'Festival', photographerName: 'Alex Frames', photographerImage: 'https://i.pinimg.com/1200x/09/23/45/092345eac1919407e0c49f67e285b831.jpg', method: 'Bank Transfer', amount: '$350.0', amountNum: 350, paidAmount: 350, status: 'paid', invoiceNumber: 'INV-2024-004' },
-    { id: 5, date: 'Nov, 25 14:00 PM', eventName: 'Personal Photoshoot', eventType: 'Portrait', photographerName: 'Sarah Lens', photographerImage: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg', method: 'Credit Card', amount: '$200.0', amountNum: 200, paidAmount: 0, status: 'failed', invoiceNumber: 'INV-2024-005' },
-    { id: 6, date: 'Oct, 01 11:00 AM', eventName: 'Product Launch Event', eventType: 'Corporate', photographerName: 'Elite Photography', photographerImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', method: 'Credit Card', amount: '$400.0', amountNum: 400, paidAmount: 400, status: 'refunded', invoiceNumber: 'INV-2024-006' },
-    { id: 7, date: 'Nov, 12 15:30 PM', eventName: 'Baby Shower', eventType: 'Birthday', photographerName: 'Mary Shots', photographerImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', method: 'Mobile Money', amount: '$250.0', amountNum: 250, paidAmount: 250, status: 'paid', invoiceNumber: 'INV-2024-007' },
-    { id: 8, date: 'Nov, 28 10:00 AM', eventName: 'Team Headshots', eventType: 'Corporate', photographerName: 'Elite Photography', photographerImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', method: '-', amount: '$350.0', amountNum: 350, paidAmount: 0, status: 'pending', invoiceNumber: 'INV-2024-008' },
-  ];
+  const payments: Payment[] = apiPayments;
 
   // Calculate totals
   const totalPaid = payments.filter(p => p.status === 'paid').reduce((sum, p) => sum + p.amountNum, 0);
   const totalPending = payments.filter(p => p.status === 'pending' || p.status === 'partially_paid').reduce((sum, p) => sum + (p.amountNum - p.paidAmount), 0);
   const totalFailed = payments.filter(p => p.status === 'failed').reduce((sum, p) => sum + p.amountNum, 0);
-
-  // Live Stream Fee Revenue data - organized by event (no individual payer info shown)
-  const streamFeeEvents = [
-    {
-      id: 1,
-      eventTitle: 'Tech Summit 2025',
-      date: 'Dec 08, 2024',
-      platform: 'ConnektLive',
-      ticketPrice: 15.00,
-      viewerCount: 245,
-      totalRevenue: 3675.00,
-      status: 'completed' as const
-    },
-    {
-      id: 2,
-      eventTitle: 'Corporate Gala Night',
-      date: 'Dec 07, 2024',
-      platform: 'ConnektLive',
-      ticketPrice: 25.00,
-      viewerCount: 180,
-      totalRevenue: 4500.00,
-      status: 'completed' as const
-    },
-    {
-      id: 3,
-      eventTitle: 'Music Festival Live',
-      date: 'Dec 05, 2024',
-      platform: 'ConnektLive',
-      ticketPrice: 10.00,
-      viewerCount: 520,
-      totalRevenue: 5200.00,
-      status: 'completed' as const
-    },
-    {
-      id: 4,
-      eventTitle: 'Fashion Week Showcase',
-      date: 'Dec 01, 2024',
-      platform: 'ConnektLive',
-      ticketPrice: 20.00,
-      viewerCount: 312,
-      totalRevenue: 6240.00,
-      status: 'completed' as const
-    },
-  ];
 
   const totalStreamFees = streamFeeEvents.reduce((sum, event) => sum + event.totalRevenue, 0);
 
@@ -1845,7 +1894,7 @@ Amount: ${formatPrice(payment.amountNum)}
       </div>
 
       {/* Modals */}
-      <ViewReportModal isOpen={showReportModal} onClose={() => setShowReportModal(false)} />
+      <ViewReportModal isOpen={showReportModal} onClose={() => setShowReportModal(false)} payments={payments} />
       <PaymentDetailsModal
         isOpen={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}

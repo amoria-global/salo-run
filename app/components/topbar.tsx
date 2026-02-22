@@ -53,6 +53,20 @@ const CloseIcon = () => (
   </svg>
 );
 
+const SunIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth="2"/>
+    <path d="M12 1V3M12 21V23M4.22 4.22L5.64 5.64M18.36 18.36L19.78 19.78M1 12H3M21 12H23M4.22 19.78L5.64 18.36M18.36 5.64L19.78 4.22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
+
+const MoonIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+
 interface NotificationItem {
   id: string;
   type: string;
@@ -86,7 +100,7 @@ interface TopbarProps {
 }
 
 export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmountProp, balanceAmount, liveStreamFeeAmount, userRole = 'client' }: TopbarProps) {
-  const { colors, actualTheme } = useTheme();
+  const { colors, actualTheme, theme, setTheme } = useTheme();
   const { user, logout, token } = useDashboardAuth();
   const router = useRouter();
   const { currency, setCurrency, formatPrice, currencies } = useCurrency();
@@ -123,6 +137,10 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [giftAmount, setGiftAmount] = useState(giftAmountProp ?? 0);
+  const [selfLiveStreamFee, setSelfLiveStreamFee] = useState(0);
+  const [selfBalanceAmount, setSelfBalanceAmount] = useState(0);
+  const [selfTipsAmount, setSelfTipsAmount] = useState(0);
+  const [selfBonusAmount, setSelfBonusAmount] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const currencyRef = useRef<HTMLDivElement>(null);
@@ -130,10 +148,11 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
   const fetchNotifications = useCallback(async () => {
     if (!token) return;
     const apiUrl = getApiUrl();
+    const notifBase = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
     try {
       const [notifRes, countRes] = await Promise.allSettled([
-        dashboardAuthFetch(`${apiUrl}/api/remote/customer/notifications?page=0&size=20`, { method: 'GET' }),
-        dashboardAuthFetch(`${apiUrl}/api/remote/customer/notifications/unread-count`, { method: 'GET' }),
+        dashboardAuthFetch(`${apiUrl}/api/remote/${notifBase}/notifications?page=0&size=20`, { method: 'GET' }),
+        dashboardAuthFetch(`${apiUrl}/api/remote/${notifBase}/notifications/unread-count`, { method: 'GET' }),
       ]);
 
       if (notifRes.status === 'fulfilled' && notifRes.value.ok) {
@@ -156,23 +175,49 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
     } catch {
       // silent fail
     }
-  }, [token]);
+  }, [token, userRole]);
 
   const fetchFinancials = useCallback(async () => {
-    if (!token || giftAmountProp !== undefined) return;
+    if (!token) return;
     const apiUrl = getApiUrl();
     try {
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/analytics`, { method: 'GET' });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.action === 1 && data.data) {
-          setGiftAmount(data.data.gifts ?? 0);
+      if (userRole === 'event-coordinator') {
+        if (liveStreamFeeAmount === undefined) {
+          const res = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/balance`, { method: 'GET' });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.action === 1 && data.data) {
+              setSelfLiveStreamFee(data.data.totalEarnings ?? 0);
+            }
+          }
+        }
+      } else if (userRole === 'photographer') {
+        if (balanceAmount === undefined || tipsAmount === undefined || bonusAmount === undefined) {
+          const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/balance`, { method: 'GET' });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.action === 1 && data.data) {
+              if (balanceAmount === undefined) setSelfBalanceAmount(data.data.availableBalance ?? data.data.totalPaid ?? 0);
+              if (tipsAmount === undefined) setSelfTipsAmount(data.data.totalTips ?? 0);
+              if (bonusAmount === undefined) setSelfBonusAmount(data.data.totalBonuses ?? data.data.bonus ?? 0);
+            }
+          }
+        }
+      } else {
+        if (giftAmountProp === undefined) {
+          const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/analytics`, { method: 'GET' });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.action === 1 && data.data) {
+              setGiftAmount(data.data.gifts ?? 0);
+            }
+          }
         }
       }
     } catch {
       // silent fail
     }
-  }, [token, giftAmountProp]);
+  }, [token, userRole, giftAmountProp, liveStreamFeeAmount, balanceAmount, tipsAmount, bonusAmount]);
 
   useEffect(() => {
     if (giftAmountProp !== undefined) setGiftAmount(giftAmountProp);
@@ -189,8 +234,9 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
     setUnreadCount(prev => Math.max(0, prev - 1));
     const apiUrl = getApiUrl();
+    const base = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
     try {
-      await dashboardAuthFetch(`${apiUrl}/api/remote/customer/notifications/${id}/read`, { method: 'PATCH' });
+      await dashboardAuthFetch(`${apiUrl}/api/remote/${base}/notifications/${id}/read`, { method: 'PATCH' });
     } catch {
       // silent fail
     }
@@ -200,8 +246,9 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     setUnreadCount(0);
     const apiUrl = getApiUrl();
+    const base = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
     try {
-      await dashboardAuthFetch(`${apiUrl}/api/remote/customer/notifications/read-all`, { method: 'PATCH' });
+      await dashboardAuthFetch(`${apiUrl}/api/remote/${base}/notifications/read-all`, { method: 'PATCH' });
     } catch {
       // silent fail
     }
@@ -443,6 +490,22 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
         alignItems: 'center',
         gap: '1.5rem'
       }}>
+        {/* Theme Toggle */}
+        <div
+          onClick={() => setTheme(actualTheme === 'dark' ? 'light' : 'dark')}
+          style={{
+            cursor: 'pointer',
+            color: colors.textSecondary,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'color 0.2s'
+          }}
+          title={actualTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          {actualTheme === 'dark' ? <SunIcon /> : <MoonIcon />}
+        </div>
+
         {/* Notification Bell */}
         <div
           ref={notificationsRef}
@@ -790,8 +853,8 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
               fontSize: '1.15rem',
               lineHeight: '1.5rem',
               fontWeight: '700',
-              color: balanceAmount && balanceAmount > 0 ? colors.brandPrimary : colors.textSecondary
-            }}>{formatPrice(balanceAmount !== undefined ? balanceAmount : 0)}</span>
+              color: (balanceAmount ?? selfBalanceAmount) > 0 ? colors.brandPrimary : colors.textSecondary
+            }}>{formatPrice(balanceAmount ?? selfBalanceAmount)}</span>
           </div>
         )}
 
@@ -812,8 +875,8 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
               fontSize: '1.15rem',
               lineHeight: '1.5rem',
               fontWeight: '600',
-              color: tipsAmount && tipsAmount > 0 ? '#F59E0B' : colors.textSecondary
-            }}>{formatPrice(tipsAmount !== undefined ? tipsAmount : 0)}</span>
+              color: (tipsAmount ?? selfTipsAmount) > 0 ? '#F59E0B' : colors.textSecondary
+            }}>{formatPrice(tipsAmount ?? selfTipsAmount)}</span>
           </div>
         )}
 
@@ -834,15 +897,15 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
             lineHeight: '1.5rem',
             fontWeight: '600',
             color: userRole === 'client'
-              ? (giftAmount && giftAmount > 0 ? colors.statusSuccess : colors.brandPrimary)
+              ? (giftAmount > 0 ? colors.statusSuccess : colors.brandPrimary)
               : userRole === 'event-coordinator'
-                ? (liveStreamFeeAmount && liveStreamFeeAmount > 0 ? colors.statusSuccess : colors.brandPrimary)
-                : (bonusAmount && bonusAmount > 0 ? colors.statusSuccess : colors.brandPrimary)
+                ? ((liveStreamFeeAmount ?? selfLiveStreamFee) > 0 ? colors.statusSuccess : colors.brandPrimary)
+                : ((bonusAmount ?? selfBonusAmount) > 0 ? colors.statusSuccess : colors.brandPrimary)
           }}>{formatPrice(userRole === 'client'
-            ? (giftAmount !== undefined ? giftAmount : 0)
+            ? giftAmount
             : userRole === 'event-coordinator'
-              ? (liveStreamFeeAmount !== undefined ? liveStreamFeeAmount : 0)
-              : (bonusAmount !== undefined ? bonusAmount : 0))}</span>
+              ? (liveStreamFeeAmount ?? selfLiveStreamFee)
+              : (bonusAmount ?? selfBonusAmount))}</span>
         </div>
 
         {/* Profile with Dropdown */}
@@ -910,10 +973,10 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
                   fontWeight: '600',
                   color: colors.textPrimary
                 }}>{formatPrice(userRole === 'client'
-                  ? (giftAmount !== undefined ? giftAmount : 0)
+                  ? giftAmount
                   : userRole === 'event-coordinator'
-                    ? (liveStreamFeeAmount !== undefined ? liveStreamFeeAmount : 0)
-                    : (balanceAmount !== undefined ? balanceAmount : 0))}</span>
+                    ? (liveStreamFeeAmount ?? selfLiveStreamFee)
+                    : (balanceAmount ?? selfBalanceAmount))}</span>
                 <i style={{
                   fontSize: '0.75rem',
                   lineHeight: '1rem',
