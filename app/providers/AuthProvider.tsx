@@ -340,49 +340,82 @@ function mapProfileData(data: any): DashboardUser {
 }
 
 /**
- * Fetch photographer profile summary using Bearer token
- * This is the preferred method for authenticated users
- * On 401, attempts token refresh before giving up
+ * Try fetching a single profile endpoint. Returns the parsed user on success, or null.
+ * Does NOT handle 401 — caller is responsible for token refresh logic.
  */
-async function fetchPhotographerProfileSummary(token: string): Promise<DashboardUser | null> {
+async function tryFetchProfile(
+  endpoint: string,
+  token: string,
+  roleName: string
+): Promise<{ user: DashboardUser | null; status: number }> {
   try {
-    const response = await fetch(
-      `${getApiUrl()}/api/remote/photographer/profile-summary`,
-      {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'api-token': getApiKey(),
-        },
-      }
-    );
+    const response = await fetch(`${getApiUrl()}${endpoint}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'api-token': getApiKey(),
+      },
+    });
 
-    if (response.status === 401) {
-      // Attempt token refresh before clearing session
+    if (!response.ok) {
+      return { user: null, status: response.status };
+    }
+
+    const result = await response.json();
+    if (result.action === 1 && result.data) {
+      console.log(`[Dashboard Auth] Profile fetched via ${roleName} endpoint for:`, result.data.firstName, result.data.lastName);
+      const userData = mapProfileData(result.data);
+      // Ensure customerType is set — infer from endpoint if API didn't return it
+      if (!userData.customerType) {
+        if (roleName === 'photographer') userData.customerType = 'PHOTOGRAPHER';
+        else if (roleName === 'coordinator') userData.customerType = 'EVENT_COORDINATOR';
+        else if (roleName === 'customer') userData.customerType = 'CLIENT';
+      }
+      return { user: userData, status: response.status };
+    }
+    return { user: null, status: response.status };
+  } catch {
+    return { user: null, status: 0 };
+  }
+}
+
+/**
+ * Profile endpoints to try, in order.
+ * Each role has a different profile endpoint on the backend.
+ */
+const PROFILE_ENDPOINTS = [
+  { endpoint: '/api/remote/photographer/profile-summary', role: 'photographer' },
+  { endpoint: '/api/remote/coordinator/profile', role: 'coordinator' },
+  { endpoint: '/api/remote/customer/profile', role: 'customer' },
+];
+
+/**
+ * Fetch user profile using Bearer token.
+ * Tries photographer, coordinator, and customer endpoints in order.
+ * On 401, attempts token refresh and retries all endpoints.
+ */
+async function fetchUserProfile(token: string): Promise<DashboardUser | null> {
+  try {
+    // Try each role endpoint until one succeeds
+    let got401 = false;
+    for (const { endpoint, role } of PROFILE_ENDPOINTS) {
+      const { user, status } = await tryFetchProfile(endpoint, token, role);
+      if (user) return user;
+      if (status === 401) { got401 = true; break; }
+      // 403/404/500 means wrong role — try next endpoint
+    }
+
+    // If any endpoint returned 401, attempt token refresh and retry all
+    if (got401) {
       console.log('[Dashboard Auth] Got 401, attempting token refresh...');
       const newToken = await attemptDashboardTokenRefresh(token);
       if (newToken) {
-        // Retry with new token
-        const retryResponse = await fetch(
-          `${getApiUrl()}/api/remote/photographer/profile-summary`,
-          {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${newToken}`,
-              'api-token': getApiKey(),
-            },
-          }
-        );
-        if (retryResponse.ok) {
-          const retryResult = await retryResponse.json();
-          if (retryResult.action === 1 && retryResult.data) {
-            console.log('[Dashboard Auth] Profile fetch succeeded after token refresh');
-            return mapProfileData(retryResult.data);
-          }
+        for (const { endpoint, role } of PROFILE_ENDPOINTS) {
+          const { user } = await tryFetchProfile(endpoint, newToken, role);
+          if (user) return user;
         }
       }
-      // Refresh failed — redirect WITHOUT clearing storage yet
-      // The login page will handle storage clearing
+      // Refresh failed — redirect to login
       console.log('[Dashboard Auth] Token refresh failed, redirecting to login');
       if (typeof window !== 'undefined') {
         const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL || 'http://localhost:3000';
@@ -391,22 +424,12 @@ async function fetchPhotographerProfileSummary(token: string): Promise<Dashboard
       }
       return null;
     }
-    if (!response.ok) {
-      console.error('[Dashboard Auth] Failed to fetch profile summary:', response.status);
-      return null;
-    }
 
-    const result = await response.json();
-
-    if (result.action !== 1 || !result.data) {
-      console.error('[Dashboard Auth] Invalid profile summary response:', result.message);
-      return null;
-    }
-
-    console.log('[Dashboard Auth] Fetched profile summary for:', result.data.firstName, result.data.lastName);
-    return mapProfileData(result.data);
+    // All endpoints failed with non-401 errors
+    console.error('[Dashboard Auth] All profile endpoints failed');
+    return null;
   } catch (error) {
-    console.error('[Dashboard Auth] Error fetching profile summary:', error);
+    console.error('[Dashboard Auth] Error fetching user profile:', error);
     return null;
   }
 }
@@ -420,6 +443,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<DashboardUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // Initialize from URL token, cookie, or localStorage
   useEffect(() => {
@@ -443,7 +467,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 
       if (activeToken) {
         // Fetch profile summary - this also validates the token (will fail if token is invalid)
-        const userProfile = await fetchPhotographerProfileSummary(activeToken);
+        const userProfile = await fetchUserProfile(activeToken);
 
         if (userProfile) {
           // Token may have been refreshed during profile fetch — use latest from storage
@@ -500,9 +524,9 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 
     const intervalId = setInterval(async () => {
       console.log('[Dashboard Auth] Running periodic profile refresh...');
-      // fetchPhotographerProfileSummary now handles 401 internally:
+      // fetchUserProfile now handles 401 internally:
       // on 401 it tries token refresh, retries, and redirects to login if refresh fails
-      const userProfile = await fetchPhotographerProfileSummary(token);
+      const userProfile = await fetchUserProfile(token);
 
       if (!userProfile) {
         // Profile fetch returned null — either a non-401 error (network issue)
@@ -611,10 +635,20 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     clearAuthFromStorage();
     setUser(null);
     setToken(null);
-    // Redirect to home app login
+    setIsLoggingOut(true);
+    // Notify the landing page that user logged out
+    if (window.opener && !window.opener.closed) {
+      window.opener.postMessage(
+        { type: 'connekyt-logout' },
+        process.env.NEXT_PUBLIC_LANDING_URL || 'http://localhost:3000'
+      );
+    }
+    // Show success banner briefly, then redirect to home app login
     if (typeof window !== 'undefined') {
       const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL || 'http://localhost:3000';
-      window.location.href = `${landingUrl}/user/auth/login`;
+      setTimeout(() => {
+        window.location.href = `${landingUrl}/user/auth/login?logged_out=true`;
+      }, 1500);
     }
   }, []);
 
@@ -643,7 +677,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     }
 
     console.log('[Dashboard Auth] Refreshing user profile...');
-    const userProfile = await fetchPhotographerProfileSummary(token);
+    const userProfile = await fetchUserProfile(token);
 
     if (userProfile) {
       setUser(userProfile);
@@ -671,6 +705,37 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider value={value}>
+      {isLoggingOut && (
+        <div style={{
+          position: 'fixed',
+          top: '1.5rem',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 9999,
+          backgroundColor: '#DC2626',
+          color: 'white',
+          padding: '0.75rem 1.5rem',
+          borderRadius: '0.5rem',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          fontSize: '0.95rem',
+          fontWeight: '500',
+          animation: 'fadeInDown 0.3s ease-out',
+        }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 6L9 17L4 12" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          You have been logged out successfully
+          <style>{`
+            @keyframes fadeInDown {
+              from { opacity: 0; transform: translateX(-50%) translateY(-1rem); }
+              to { opacity: 1; transform: translateX(-50%) translateY(0); }
+            }
+          `}</style>
+        </div>
+      )}
       {children}
     </AuthContext.Provider>
   );

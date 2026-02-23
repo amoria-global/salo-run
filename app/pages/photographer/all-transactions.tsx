@@ -575,7 +575,7 @@ const AllTransactions = () => {
                                 fontWeight: '600',
                                 color: transaction.id % 2 === 0 ? '#92400E' : '#1E40AF'
                               }}>
-                                {transaction.client.split(' ').map(n => n[0]).join('')}
+                                {transaction.client.split(' ').map((n: string) => n[0]).join('')}
                               </div>
                               <div>
                                 <div style={{ fontSize: '0.75rem', fontWeight: '500', color: colors.textPrimary }}>

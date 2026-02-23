@@ -539,20 +539,22 @@ const ProfilePage = () => {
                       )}
                     </div>
                     <button
-                      onClick={() => profileInputRef.current?.click()}
+                      onClick={() => isEditEnabled && profileInputRef.current?.click()}
+                      disabled={!isEditEnabled}
                       style={{
                         position: 'absolute',
                         bottom: '0',
                         right: '0',
-                        backgroundColor: '#083A85',
-                        border: '2px solid #062a63',
+                        backgroundColor: isEditEnabled ? '#083A85' : '#9CA3AF',
+                        border: isEditEnabled ? '2px solid #062a63' : '2px solid #6B7280',
                         borderRadius: '50%',
                         width: '32px',
                         height: '32px',
-                        cursor: 'pointer',
+                        cursor: isEditEnabled ? 'pointer' : 'not-allowed',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center'
+                        justifyContent: 'center',
+                        opacity: isEditEnabled ? 1 : 0.5,
                       }}>
                       <CameraIcon />
                     </button>
