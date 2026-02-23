@@ -221,11 +221,123 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('All');
   const [filterPhotographer, setFilterPhotographer] = useState('All');
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  // Fetch albums from API
+  // Create gallery modal state (coordinator only)
+  const [showCreateGalleryModal, setShowCreateGalleryModal] = useState(false);
+  const [newGalleryTitle, setNewGalleryTitle] = useState('');
+  const [newGalleryDescription, setNewGalleryDescription] = useState('');
+  const [newGalleryFiles, setNewGalleryFiles] = useState<File[]>([]);
+  const [isCreatingGallery, setIsCreatingGallery] = useState(false);
+  const [createGalleryError, setCreateGalleryError] = useState<string | null>(null);
+  const [coordinatorEvents, setCoordinatorEvents] = useState<{ id: string; title: string; description: string }[]>([]);
+  const [selectedEventId, setSelectedEventId] = useState<string>('');
+  const [isLoadingEvents, setIsLoadingEvents] = useState(false);
+
+  // Archives state (coordinator only)
+  const [coordinatorArchives, setCoordinatorArchives] = useState<any[]>([]);
+
+  // --- Gallery API helpers (role-aware endpoints) ---
+  const galleryBase = userRole === 'event-coordinator' ? 'coordinator/galleries' : 'customer/albums';
+  const archiveBase = userRole === 'event-coordinator' ? 'coordinator/archives' : 'customer/archives';
+
+  // GET gallery detail
+  const fetchGalleryDetail = useCallback(async (galleryId: string) => {
+    try {
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${galleryBase}/${galleryId}`);
+      if (res.ok) {
+        const data = await res.json();
+        return data.data || null;
+      }
+    } catch (err) {
+      console.error('Failed to fetch gallery detail:', err);
+    }
+    return null;
+  }, [apiUrl, galleryBase]);
+
+  // PUT gallery
+  const updateGallery = useCallback(async (galleryId: string, payload: Record<string, unknown>) => {
+    try {
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${galleryBase}/${galleryId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok || data.action !== 1) {
+        console.error('Failed to update gallery:', data.message);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error('Error updating gallery:', err);
+      return false;
+    }
+  }, [apiUrl, galleryBase]);
+
+  // DELETE gallery
+  const deleteGallery = useCallback(async (galleryId: string) => {
+    try {
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${galleryBase}/${galleryId}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (!res.ok || data.action !== 1) {
+        console.error('Failed to delete gallery:', data.message);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error('Error deleting gallery:', err);
+      return false;
+    }
+  }, [apiUrl, galleryBase]);
+
+  // PUT archive a gallery
+  const archiveGallery = useCallback(async (archiveId: string) => {
+    try {
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${archiveBase}/${archiveId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (!res.ok || data.action !== 1) {
+        console.error('Failed to archive gallery:', data.message);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error('Error archiving gallery:', err);
+      return false;
+    }
+  }, [apiUrl, archiveBase]);
+
+  // DELETE unarchive/remove from archives
+  const unarchiveGallery = useCallback(async (archiveId: string) => {
+    try {
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${archiveBase}/${archiveId}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (!res.ok || data.action !== 1) {
+        console.error('Failed to unarchive gallery:', data.message);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error('Error unarchiving gallery:', err);
+      return false;
+    }
+  }, [apiUrl, archiveBase]);
+
+  // Fetch albums/galleries from API
   const fetchAlbums = useCallback(async () => {
     try {
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/albums`);
+      const endpoint = userRole === 'event-coordinator'
+        ? `${apiUrl}/api/remote/coordinator/galleries`
+        : `${apiUrl}/api/remote/customer/albums`;
+      const res = await dashboardAuthFetch(endpoint);
       if (res.ok) {
         const data = await res.json();
         const loaded = (data.data || []).map((a: any) => ({
@@ -234,11 +346,11 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
           photographer: a.photographer || '',
           photographerAvatar: a.photographerAvatar || '',
           category: a.category || '',
-          date: a.date || '',
+          date: a.date || a.createdAt || '',
           isArchived: a.isArchived || false,
           receivedDate: a.receivedDate || '',
-          thumbnail: a.thumbnail || '',
-          photoCount: a.photoCount || 0,
+          thumbnail: a.thumbnail || a.coverImage || '',
+          photoCount: a.photoCount || a.imageCount || 0,
           downloadedCount: a.downloadedCount || 0,
           favoriteCount: a.favoriteCount || 0,
           images: a.images || [],
@@ -254,13 +366,110 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
     } catch (err) {
       console.error('Failed to fetch albums:', err);
     }
-  }, [apiUrl]);
+  }, [apiUrl, userRole]);
 
   useEffect(() => {
     if (user?.id) {
       fetchAlbums();
     }
   }, [user?.id, fetchAlbums]);
+
+  // Fetch events for Create Album modal
+  const fetchCoordinatorEvents = useCallback(async () => {
+    setIsLoadingEvents(true);
+    try {
+      const eventsEndpoint = userRole === 'event-coordinator'
+        ? `${apiUrl}/api/remote/coordinator/events`
+        : `${apiUrl}/api/remote/customer/events`;
+      const res = await dashboardAuthFetch(eventsEndpoint);
+      if (res.ok) {
+        const data = await res.json();
+        const events = (data.data?.content || data.data || []).map((evt: any) => ({
+          id: evt.id || '',
+          title: evt.title || 'Untitled Event',
+          description: evt.description || '',
+        }));
+        setCoordinatorEvents(events);
+      }
+    } catch (err) {
+      console.error('Failed to fetch events:', err);
+    } finally {
+      setIsLoadingEvents(false);
+    }
+  }, [apiUrl, userRole]);
+
+  // POST create a new gallery (multipart/form-data)
+  const handleCreateGallery = async () => {
+    if (!selectedEventId) {
+      setCreateGalleryError('Please select an event');
+      return;
+    }
+    if (newGalleryFiles.length === 0) {
+      setCreateGalleryError('Please add at least one image');
+      return;
+    }
+
+    setIsCreatingGallery(true);
+    setCreateGalleryError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('eventId', selectedEventId);
+      formData.append('title', newGalleryTitle.trim());
+      formData.append('description', newGalleryDescription.trim());
+      newGalleryFiles.forEach((file) => formData.append('images', file));
+
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${galleryBase}`, {
+        method: 'POST',
+        body: formData,
+        // Do NOT set Content-Type — browser sets multipart boundary automatically
+      });
+
+      const data = await res.json();
+      if (!res.ok || data.action === 0) {
+        throw new Error(data.message || 'Failed to create album');
+      }
+
+      // Reset form & close modal
+      setShowCreateGalleryModal(false);
+      setSelectedEventId('');
+      setNewGalleryTitle('');
+      setNewGalleryDescription('');
+      setNewGalleryFiles([]);
+      setCreateGalleryError(null);
+
+      // Refresh gallery list
+      fetchAlbums();
+    } catch (err) {
+      console.error('Create gallery error:', err);
+      setCreateGalleryError(err instanceof Error ? err.message : 'Failed to create album');
+    } finally {
+      setIsCreatingGallery(false);
+    }
+  };
+
+  // GET archives
+  const fetchCoordinatorArchives = useCallback(async () => {
+    try {
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${archiveBase}`);
+      if (res.ok) {
+        const data = await res.json();
+        setCoordinatorArchives((data.data || []).map((a: any) => ({
+          id: a.id,
+          title: a.title || '',
+          description: a.description || '',
+          date: a.createdAt || '',
+          thumbnail: a.coverImage || '',
+          photoCount: a.imageCount || 0,
+          images: a.images || [],
+          isArchived: true,
+        })));
+      }
+    } catch (err) {
+      console.error('Failed to fetch coordinator archives:', err);
+    }
+  }, [apiUrl, userRole]);
+
 
   // Modal states
   const [showViewModal, setShowViewModal] = useState(false);
@@ -289,6 +498,13 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   // Photobook states
   const [pageView, setPageView] = useState<'albums' | 'photobooks' | 'archives'>('albums');
 
+  // Fetch coordinator archives when archives tab is selected
+  useEffect(() => {
+    if (pageView === 'archives' && user?.id) {
+      fetchCoordinatorArchives();
+    }
+  }, [pageView, userRole, user?.id, fetchCoordinatorArchives]);
+
   const [photobooks, setPhotobooks] = useState<Array<{
     id: number;
     name: string;
@@ -298,14 +514,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
     layout: 'book-flip' | 'mosaic' | 'gallery-wall' | '';
     createdAt: string;
   }>>([]);
-  const [showCreatePhotobookModal, setShowCreatePhotobookModal] = useState(false);
-
-  const [photobookName, setPhotobookName] = useState('');
-  const [photobookDescription, setPhotobookDescription] = useState('');
   const [showThumbnailSelector, setShowThumbnailSelector] = useState(false);
-  const [showPayment, setShowPayment] = useState(false);
-
-  const [selectedArchiveAlbum, setSelectedArchiveAlbum] = useState<any | null>(null);
   const MAX_IMAGE_SELECTION = 3;
 
   // Setup wizard states (Select Album → Layout → Images)
@@ -358,6 +567,54 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
     setValidationError(null);
     return true;
   };
+
+  // Fetch photobooks from API
+  const photobookBase = userRole === 'event-coordinator' ? 'coordinator/photobook' : 'customer/photobook';
+  useEffect(() => {
+    if (!user?.id) return;
+    const loadPhotobooks = async () => {
+      try {
+        const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${photobookBase}`);
+        if (res.ok) {
+          const data = await res.json();
+          const items = data?.data?.content || data?.data || [];
+          if (items.length > 0) {
+            setPhotobooks(items.map((pb: any, idx: number) => ({
+              id: pb.id || idx,
+              name: pb.name || pb.title || '',
+              description: pb.description || '',
+              thumbnail: pb.thumbnail || pb.coverImage || '',
+              images: pb.images || [],
+              layout: pb.layout || '',
+              createdAt: pb.createdAt || '',
+            })));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch photobooks:', err);
+      }
+    };
+    loadPhotobooks();
+  }, [userRole, user?.id, apiUrl]);
+
+  // PATCH photobook/{mediaId}/select — toggle image selection
+  const selectPhotobookMedia = useCallback(async (mediaId: string, selected: boolean) => {
+    try {
+      const res = await dashboardAuthFetch(
+        `${apiUrl}/api/remote/${photobookBase}/${mediaId}/select?selected=${selected}`,
+        { method: 'PATCH' }
+      );
+      const data = await res.json();
+      if (!res.ok || data.action === 0) {
+        console.error('Failed to select photobook media:', data.message);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error('Error selecting photobook media:', err);
+      return false;
+    }
+  }, [apiUrl, userRole]);
 
   // Delete photobook modal states
   const [showDeletePhotobookModal, setShowDeletePhotobookModal] = useState(false);
@@ -442,7 +699,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   const totalFavorites = activeAlbums.reduce((sum, a) => sum + a.favoriteCount, 0);
 
   // Stats - Archives
-  const archivedAlbums = albums.filter(a => a.isArchived);
+  const archivedAlbums = coordinatorArchives;
   const archivedPhotos = archivedAlbums.reduce((sum, a) => sum + a.photoCount, 0);
   const archivedAmountDue = archivedAlbums.reduce((sum, a) => sum + (a.payment?.amountDue || 0), 0);
 
@@ -505,11 +762,19 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
     setShowDeleteModal(true);
   };
 
-  const confirmDeleteAlbum = () => {
+  const confirmDeleteAlbum = async () => {
     if (albumToDelete) {
+      setIsProcessing(true);
+      const success = await deleteGallery(albumToDelete.id);
+      if (!success) {
+        setIsProcessing(false);
+        alert('Failed to delete album. Please try again.');
+        return;
+      }
       setAlbums(albums.filter(album => album.id !== albumToDelete.id));
       setShowDeleteModal(false);
       setAlbumToDelete(null);
+      setIsProcessing(false);
     }
   };
 
@@ -521,6 +786,30 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   const cancelDeleteAlbum = () => {
     setShowDeleteModal(false);
     setAlbumToDelete(null);
+  };
+
+  // Archive an album
+  const handleArchiveAlbum = async (album: any) => {
+    setIsProcessing(true);
+    const success = await archiveGallery(album.id);
+    if (success) {
+      setAlbums(prev => prev.map(a => a.id === album.id ? { ...a, isArchived: true } : a));
+    } else {
+      alert('Failed to archive album. Please try again.');
+    }
+    setIsProcessing(false);
+  };
+
+  // Unarchive an album
+  const handleUnarchiveAlbum = async (album: any) => {
+    setIsProcessing(true);
+    const success = await unarchiveGallery(album.id);
+    if (success) {
+      setAlbums(prev => prev.map(a => a.id === album.id ? { ...a, isArchived: false } : a));
+    } else {
+      alert('Failed to unarchive album. Please try again.');
+    }
+    setIsProcessing(false);
   };
 
   // Download a single image
@@ -602,29 +891,6 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
-  // Photobook functions
-  const resetWizard = () => {
-    setPhotobookName('');
-    setPhotobookDescription('');
-    setShowCreatePhotobookModal(false);
-  };
-
-  const createPhotobook = () => {
-    if (!photobookName.trim()) return;
-    const newPhotobook = {
-      id: Date.now(),
-      name: photobookName.trim(),
-      description: photobookDescription.trim(),
-      thumbnail: '',
-      images: [] as string[],
-      layout: '' as 'book-flip' | 'mosaic' | 'gallery-wall' | '',
-      createdAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-    };
-    setPhotobooks([...photobooks, newPhotobook]);
-    resetWizard();
-    setPageView('photobooks');
-  };
-
   // Delete photobook functions
   const openDeletePhotobookModal = (photobook: typeof photobooks[0]) => {
     setPhotobookToDelete(photobook);
@@ -681,28 +947,60 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
     setHasSeenLimitMessage(false);
   };
 
+  // Open wizard for NEW photobook creation (no existing photobook)
+  const openCreateWizard = () => {
+    setSetupPhotobookId(null);
+    setSetupSelectedAlbum(null);
+    setSetupLayout('book-flip');
+    setSetupSelectedImages([]);
+    setSetupStep(1);
+    setSetupCurrentImageIndex(0);
+    setShowCoverPicker(false);
+    setSetupCoverImage('');
+    setShowSetupWizard(true);
+  };
+
   // Opens the cover picker instead of saving directly
   const saveSetupWizard = () => {
-    if (!setupPhotobookId || setupSelectedImages.length === 0) return;
+    if (setupSelectedImages.length === 0) return;
     setSetupCoverImage(setupSelectedImages[0]);
     setShowCoverPicker(true);
   };
 
   // Actually saves after the user picks a cover
   const confirmSaveWithCover = () => {
-    if (!setupPhotobookId || setupSelectedImages.length === 0) return;
-    const updatedPhotobooks = photobooks.map(pb => {
-      if (pb.id === setupPhotobookId) {
-        return {
-          ...pb,
-          images: [...setupSelectedImages],
-          thumbnail: setupCoverImage || setupSelectedImages[0],
-          layout: setupLayout as 'book-flip' | 'mosaic' | 'gallery-wall' | ''
-        };
-      }
-      return pb;
-    });
-    setPhotobooks(updatedPhotobooks);
+    if (setupSelectedImages.length === 0) return;
+
+    if (setupPhotobookId) {
+      // Editing existing photobook
+      const updatedPhotobooks = photobooks.map(pb => {
+        if (pb.id === setupPhotobookId) {
+          return {
+            ...pb,
+            images: [...setupSelectedImages],
+            thumbnail: setupCoverImage || setupSelectedImages[0],
+            layout: setupLayout as 'book-flip' | 'mosaic' | 'gallery-wall' | ''
+          };
+        }
+        return pb;
+      });
+      setPhotobooks(updatedPhotobooks);
+    } else {
+      // Creating new photobook
+      const album = setupSelectedAlbum;
+      const newPhotobook = {
+        id: Date.now(),
+        name: album?.title || 'Untitled Photobook',
+        description: album?.category ? `${album.category} — ${album.date || ''}` : album?.date || '',
+        thumbnail: setupCoverImage || setupSelectedImages[0],
+        images: [...setupSelectedImages],
+        layout: setupLayout as 'book-flip' | 'mosaic' | 'gallery-wall' | '',
+        createdAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      };
+      setPhotobooks(prev => [...prev, newPhotobook]);
+      setPageView('photobooks');
+    }
+
     if (setupSelectedAlbum) {
       setAlbums(albums.filter(album => album.id !== setupSelectedAlbum.id));
     }
@@ -1390,7 +1688,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
               <ListIcon active={viewMode === 'list'} activeColor={actualTheme === 'dark' ? '#60A5FA' : '#083A85'} />
             </button>
             <button
-              onClick={() => setShowCreatePhotobookModal(true)}
+              onClick={openCreateWizard}
               style={{
                 padding: '0.5rem 1rem',
                 borderRadius: '0.5rem',
@@ -1411,6 +1709,29 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                 <line x1="5" y1="12" x2="19" y2="12"></line>
               </svg>
               Create Photobook
+            </button>
+            <button
+              onClick={() => { setShowCreateGalleryModal(true); setCreateGalleryError(null); fetchCoordinatorEvents(); }}
+              style={{
+                padding: '0.5rem 1rem',
+                borderRadius: '0.5rem',
+                border: '2px solid #c00a72',
+                backgroundColor: '#F20C8F',
+                color: 'white',
+                cursor: 'pointer',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Create Album
             </button>
           </div>
 
@@ -1473,6 +1794,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
               </div>
             </div>
           ) : null}
+
 
           {/* Filters - Adapt to current view */}
           <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', marginBottom: '1.5rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard }}>
@@ -1578,12 +1900,22 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                     >
                       {/* Album Thumbnail */}
                       <div style={{ position: 'relative', height: '180px', overflow: 'hidden' }}>
-                        <Image
-                          src={album.thumbnail}
-                          alt={album.title}
-                          fill
-                          style={{ objectFit: 'cover' }}
-                        />
+                        {album.thumbnail ? (
+                          <Image
+                            src={album.thumbnail}
+                            alt={album.title}
+                            fill
+                            style={{ objectFit: 'cover' }}
+                          />
+                        ) : (
+                          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bgTertiary }}>
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <rect x="3" y="3" width="18" height="18" rx="2" stroke="#9CA3AF" strokeWidth="2"/>
+                              <circle cx="8.5" cy="8.5" r="1.5" stroke="#9CA3AF" strokeWidth="2"/>
+                              <path d="M21 15l-5-5L5 21" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </div>
+                        )}
                         <div style={{
                           position: 'absolute',
                           top: '0.5rem',
@@ -1619,7 +1951,14 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                         </h3>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                           <div style={{ position: 'relative', width: '24px', height: '24px', borderRadius: '50%', overflow: 'hidden' }}>
-                            <Image src={album.photographerAvatar} alt={album.photographer} fill style={{ objectFit: 'cover' }} />
+                            {album.photographerAvatar ? (
+                              <Image src={album.photographerAvatar} alt={album.photographer} fill style={{ objectFit: 'cover' }} />
+                            ) : (
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ margin: 'auto' }}>
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                              </svg>
+                            )}
                           </div>
                           <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>{album.photographer}</span>
                         </div>
@@ -1708,7 +2047,13 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                     >
                       {/* Thumbnail */}
                       <div style={{ position: 'relative', width: '80px', height: '50px', borderRadius: '0.375rem', overflow: 'hidden' }}>
-                        <Image src={album.thumbnail} alt={album.title} fill style={{ objectFit: 'cover' }} />
+                        {album.thumbnail ? (
+                          <Image src={album.thumbnail} alt={album.title} fill style={{ objectFit: 'cover' }} />
+                        ) : (
+                          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bgTertiary }}>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="#9CA3AF" strokeWidth="2"/><circle cx="8.5" cy="8.5" r="1.5" stroke="#9CA3AF" strokeWidth="2"/><path d="M21 15l-5-5L5 21" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          </div>
+                        )}
                       </div>
 
                       {/* Album Title */}
@@ -1720,7 +2065,11 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                       {/* Photographer */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <div style={{ position: 'relative', width: '24px', height: '24px', borderRadius: '50%', overflow: 'hidden' }}>
-                          <Image src={album.photographerAvatar} alt={album.photographer} fill style={{ objectFit: 'cover' }} />
+                          {album.photographerAvatar ? (
+                            <Image src={album.photographerAvatar} alt={album.photographer} fill style={{ objectFit: 'cover' }} />
+                          ) : (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ margin: 'auto' }}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/></svg>
+                          )}
                         </div>
                         <span style={{ fontSize: '0.85rem', color: colors.textPrimary }}>{album.photographer}</span>
                       </div>
@@ -1789,7 +2138,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                     Create a photobook and select your preferred images from sent albums to add them here.
                   </p>
                   <button
-                    onClick={() => setShowCreatePhotobookModal(true)}
+                    onClick={openCreateWizard}
                     style={{
                       padding: '0.625rem 1.25rem',
                       borderRadius: '0.5rem',
@@ -2429,7 +2778,13 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
 
             {/* Album Preview */}
             <div style={{ position: 'relative', height: '250px', borderRadius: '0.5rem', overflow: 'hidden', marginBottom: '1.25rem' }}>
-              <Image src={selectedAlbum.thumbnail} alt={selectedAlbum.title} fill style={{ objectFit: 'cover' }} />
+              {selectedAlbum.thumbnail ? (
+                <Image src={selectedAlbum.thumbnail} alt={selectedAlbum.title} fill style={{ objectFit: 'cover' }} />
+              ) : (
+                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bgTertiary }}>
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="#9CA3AF" strokeWidth="2"/><circle cx="8.5" cy="8.5" r="1.5" stroke="#9CA3AF" strokeWidth="2"/><path d="M21 15l-5-5L5 21" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </div>
+              )}
             </div>
 
             {/* Album Info */}
@@ -2439,7 +2794,11 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
               <div style={{ position: 'relative', width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden' }}>
-                <Image src={selectedAlbum.photographerAvatar} alt={selectedAlbum.photographer} fill style={{ objectFit: 'cover' }} />
+                {selectedAlbum.photographerAvatar ? (
+                  <Image src={selectedAlbum.photographerAvatar} alt={selectedAlbum.photographer} fill style={{ objectFit: 'cover' }} />
+                ) : (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ margin: 'auto' }}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/></svg>
+                )}
               </div>
               <div>
                 <div style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{selectedAlbum.photographer}</div>
@@ -2559,7 +2918,13 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
             {/* Album Preview */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem', padding: '0.75rem', backgroundColor: colors.bgTertiary, borderRadius: '0.5rem' }}>
               <div style={{ position: 'relative', width: '60px', height: '40px', borderRadius: '0.25rem', overflow: 'hidden' }}>
-                <Image src={shareAlbum.thumbnail} alt={shareAlbum.title} fill style={{ objectFit: 'cover' }} />
+                {shareAlbum.thumbnail ? (
+                  <Image src={shareAlbum.thumbnail} alt={shareAlbum.title} fill style={{ objectFit: 'cover' }} />
+                ) : (
+                  <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bgTertiary }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="#9CA3AF" strokeWidth="2"/><circle cx="8.5" cy="8.5" r="1.5" stroke="#9CA3AF" strokeWidth="2"/><path d="M21 15l-5-5L5 21" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </div>
+                )}
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: '600', color: colors.textPrimary, fontSize: '0.9rem' }}>{shareAlbum.title}</div>
@@ -3021,9 +3386,11 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
             display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{ width: '36px', height: '36px', borderRadius: '0.5rem', overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
-                <Image src={viewerAlbum.thumbnail} alt={viewerAlbum.title} fill style={{ objectFit: 'cover' }} />
-              </div>
+              {viewerAlbum.thumbnail && (
+                <div style={{ width: '36px', height: '36px', borderRadius: '0.5rem', overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
+                  <Image src={viewerAlbum.thumbnail} alt={viewerAlbum.title} fill style={{ objectFit: 'cover' }} />
+                </div>
+              )}
               <div>
                 <h3 style={{ fontSize: '0.95rem', fontWeight: '600', color: 'white', margin: 0 }}>{viewerAlbum.title}</h3>
                 <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', margin: 0 }}>{viewerAlbum.photographer} &middot; {currentImageIndex + 1} / {viewerAlbum.images.length}</p>
@@ -3131,8 +3498,8 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
         </div>
       )}
 
-      {/* Create Photobook Modal */}
-      {showCreatePhotobookModal && (
+      {/* Create Album Modal (coordinator only) */}
+      {showCreateGalleryModal && (
         <div
           style={{
             position: 'fixed',
@@ -3147,7 +3514,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
             zIndex: 1100,
             padding: '1rem'
           }}
-          onClick={resetWizard}
+          onClick={() => { setShowCreateGalleryModal(false); setSelectedEventId(''); setNewGalleryTitle(''); setNewGalleryDescription(''); setNewGalleryFiles([]); setCreateGalleryError(null); }}
         >
           <div
             style={{
@@ -3164,11 +3531,11 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Create Photobook</h2>
-                <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: '0.25rem 0 0 0' }}>Give your photobook a name</p>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Create Album</h2>
+                <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: '0.25rem 0 0 0' }}>Select an event to create its album</p>
               </div>
               <button
-                onClick={resetWizard}
+                onClick={() => { setShowCreateGalleryModal(false); setSelectedEventId(''); setNewGalleryTitle(''); setNewGalleryDescription(''); setNewGalleryFiles([]); setCreateGalleryError(null); }}
                 style={{
                   background: colors.bgTertiary,
                   border: `2px solid ${colors.borderPrimary}`,
@@ -3185,96 +3552,261 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
               </button>
             </div>
 
-            {/* Name & Description */}
-            <div>
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.375rem' }}>
-                  Photobook Name *
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Our Wedding Day"
-                  value={photobookName}
-                  onChange={(e) => setPhotobookName(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '0.625rem 1rem',
-                    border: `2px solid ${colors.borderPrimary}`,
-                    borderRadius: '0.5rem',
-                    fontSize: '0.9rem',
-                    color: colors.textPrimary,
-                    backgroundColor: colors.bgCard,
-                    outline: 'none'
-                  }}
-                />
-              </div>
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.375rem' }}>
-                  Description (optional)
-                </label>
-                <textarea
-                  placeholder="Add a description for your photobook"
-                  value={photobookDescription}
-                  onChange={(e) => setPhotobookDescription(e.target.value)}
-                  rows={3}
-                  style={{
-                    width: '100%',
-                    padding: '0.625rem 1rem',
-                    border: `2px solid ${colors.borderPrimary}`,
-                    borderRadius: '0.5rem',
-                    fontSize: '0.9rem',
-                    color: colors.textPrimary,
-                    backgroundColor: colors.bgCard,
-                    outline: 'none',
-                    resize: 'vertical'
-                  }}
-                />
-              </div>
+            {/* Event Selector */}
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+                Event *
+              </label>
+              <select
+                value={selectedEventId}
+                onChange={(e) => {
+                  const eventId = e.target.value;
+                  setSelectedEventId(eventId);
+                  const event = coordinatorEvents.find(ev => ev.id === eventId);
+                  if (event) {
+                    setNewGalleryTitle(event.title);
+                    setNewGalleryDescription(event.description);
+                  } else {
+                    setNewGalleryTitle('');
+                    setNewGalleryDescription('');
+                  }
+                }}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: `2px solid ${colors.borderPrimary}`,
+                  borderRadius: '0.5rem',
+                  fontSize: '0.9rem',
+                  color: selectedEventId ? colors.textPrimary : colors.textSecondary,
+                  backgroundColor: colors.bgCard,
+                  cursor: 'pointer',
+                  appearance: 'none',
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
+                  backgroundRepeat: 'no-repeat',
+                  backgroundPosition: 'right 0.75rem center',
+                  paddingRight: '2rem'
+                }}
+              >
+                <option value="">{isLoadingEvents ? 'Loading events...' : 'Select an event'}</option>
+                {coordinatorEvents.map(ev => (
+                  <option key={ev.id} value={ev.id}>{ev.title}</option>
+                ))}
+              </select>
             </div>
 
+            {/* Title (auto-filled from event) */}
+            {selectedEventId && (
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+                  Title
+                </label>
+                <div style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: `2px solid ${colors.borderPrimary}`,
+                  borderRadius: '0.5rem',
+                  fontSize: '0.9rem',
+                  color: colors.textSecondary,
+                  backgroundColor: actualTheme === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+                }}>
+                  {newGalleryTitle}
+                </div>
+              </div>
+            )}
+
+            {/* Description (auto-filled from event) */}
+            {selectedEventId && newGalleryDescription && (
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+                  Description
+                </label>
+                <div style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: `2px solid ${colors.borderPrimary}`,
+                  borderRadius: '0.5rem',
+                  fontSize: '0.9rem',
+                  color: colors.textSecondary,
+                  backgroundColor: actualTheme === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+                  minHeight: '60px',
+                }}>
+                  {newGalleryDescription}
+                </div>
+              </div>
+            )}
+
+            {/* File Upload */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+                Images *
+              </label>
+              <div
+                onClick={() => {
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.multiple = true;
+                  input.accept = 'image/*';
+                  input.onchange = (e) => {
+                    const files = (e.target as HTMLInputElement).files;
+                    if (files) setNewGalleryFiles(prev => [...prev, ...Array.from(files)]);
+                  };
+                  input.click();
+                }}
+                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+                  if (files.length > 0) setNewGalleryFiles(prev => [...prev, ...files]);
+                }}
+                style={{
+                  border: `2px dashed ${colors.borderPrimary}`,
+                  borderRadius: '0.75rem',
+                  padding: '1.5rem 1rem',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  backgroundColor: actualTheme === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+                  transition: 'border-color 0.2s',
+                }}
+              >
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={colors.textSecondary} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 0.5rem' }}>
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+                <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: 0 }}>
+                  Click to browse or drag & drop images here
+                </p>
+                <p style={{ fontSize: '0.75rem', color: colors.textSecondary, margin: '0.25rem 0 0 0', opacity: 0.7 }}>
+                  PNG, JPG, WEBP supported
+                </p>
+              </div>
+
+              {/* Uploaded file previews */}
+              {newGalleryFiles.length > 0 && (
+                <div style={{ marginTop: '0.75rem' }}>
+                  <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.5rem' }}>
+                    {newGalleryFiles.length} image{newGalleryFiles.length !== 1 ? 's' : ''} selected
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    {newGalleryFiles.map((file, idx) => (
+                      <div key={`${file.name}-${idx}`} style={{ position: 'relative', width: '72px', height: '72px', borderRadius: '0.5rem', overflow: 'hidden', border: `2px solid ${colors.borderPrimary}` }}>
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt={file.name}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          onLoad={(e) => URL.revokeObjectURL((e.target as HTMLImageElement).src)}
+                        />
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setNewGalleryFiles(prev => prev.filter((_, i) => i !== idx));
+                          }}
+                          style={{
+                            position: 'absolute',
+                            top: '2px',
+                            right: '2px',
+                            width: '20px',
+                            height: '20px',
+                            borderRadius: '50%',
+                            backgroundColor: 'rgba(0,0,0,0.65)',
+                            color: 'white',
+                            border: 'none',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '12px',
+                            lineHeight: 1,
+                            padding: 0
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Validation hints */}
+            {!selectedEventId || newGalleryFiles.length === 0 ? (
+              <div style={{ marginBottom: '0.75rem', padding: '0.5rem 0.75rem', backgroundColor: actualTheme === 'dark' ? '#1E293B' : '#FFF7ED', borderRadius: '0.375rem', border: `1px solid ${actualTheme === 'dark' ? '#334155' : '#FED7AA'}` }}>
+                {!selectedEventId && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.8rem', color: actualTheme === 'dark' ? '#FBBF24' : '#B45309', marginBottom: newGalleryFiles.length === 0 ? '0.25rem' : 0 }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="12" y1="8" x2="12" y2="12"></line>
+                      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    Please select an event
+                  </div>
+                )}
+                {newGalleryFiles.length === 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.8rem', color: actualTheme === 'dark' ? '#FBBF24' : '#B45309' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="12" y1="8" x2="12" y2="12"></line>
+                      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    Please add at least one image
+                  </div>
+                )}
+              </div>
+            ) : null}
+
+            {/* Error */}
+            {createGalleryError && (
+              <div style={{ color: '#EF4444', fontSize: '0.85rem', marginBottom: '0.75rem', padding: '0.5rem 0.75rem', backgroundColor: '#FEF2F2', borderRadius: '0.375rem' }}>
+                {createGalleryError}
+              </div>
+            )}
+
             {/* Buttons */}
-            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', paddingTop: '1rem', borderTop: `2px solid ${colors.borderPrimary}` }}>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
               <button
-                onClick={resetWizard}
+                onClick={() => { setShowCreateGalleryModal(false); setSelectedEventId(''); setNewGalleryTitle(''); setNewGalleryDescription(''); setNewGalleryFiles([]); setCreateGalleryError(null); }}
+                disabled={isCreatingGallery}
                 style={{
                   flex: 1,
                   padding: '0.75rem 1rem',
-                  borderRadius: '0.5rem',
                   border: `2px solid ${colors.borderPrimary}`,
-                  backgroundColor: colors.bgCard,
+                  borderRadius: '0.5rem',
+                  background: colors.bgTertiary,
                   color: colors.textPrimary,
                   fontSize: '0.9rem',
                   fontWeight: '600',
-                  cursor: 'pointer'
+                  cursor: isCreatingGallery ? 'not-allowed' : 'pointer',
+                  opacity: isCreatingGallery ? 0.6 : 1
                 }}
               >
                 Cancel
               </button>
               <button
-                onClick={createPhotobook}
-                disabled={!photobookName.trim()}
+                onClick={handleCreateGallery}
+                disabled={isCreatingGallery || !selectedEventId || newGalleryFiles.length === 0}
                 style={{
                   flex: 1,
                   padding: '0.75rem 1rem',
+                  border: '2px solid #c00a72',
                   borderRadius: '0.5rem',
-                  border: '2px solid #062a63',
-                  backgroundColor: !photobookName.trim() ? '#9CA3AF' : '#083A85',
+                  background: (!selectedEventId || newGalleryFiles.length === 0) ? '#9CA3AF' : '#F20C8F',
                   color: 'white',
                   fontSize: '0.9rem',
                   fontWeight: '600',
-                  cursor: !photobookName.trim() ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem'
+                  cursor: (isCreatingGallery || !selectedEventId || newGalleryFiles.length === 0) ? 'not-allowed' : 'pointer',
+                  opacity: (isCreatingGallery || !selectedEventId || newGalleryFiles.length === 0) ? 0.7 : 1
                 }}
               >
-                Create Photobook
+                {isCreatingGallery ? 'Creating...' : 'Create Album'}
               </button>
             </div>
           </div>
         </div>
       )}
+
 
       {/* Setup Wizard Modal - Steps 1 & 2 (Album & Layout selection) */}
       {showSetupWizard && setupStep !== 3 && (
@@ -3320,7 +3852,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                   {setupStep === 1 ? 'Select Album' : 'Select Layout'}
                 </h2>
                 <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.8rem', color: colors.textSecondary }}>
-                  Step {setupStep} of 3
+                  {!setupPhotobookId ? 'Create Photobook — ' : ''}Step {setupStep} of 3
                 </p>
               </div>
               <button
@@ -3364,12 +3896,14 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
               padding: '1rem 1.5rem'
             }}>
               {/* Step 1: Select Album */}
-              {setupStep === 1 && (
+              {setupStep === 1 && (() => {
+                const albumsWithImages = albums.filter(a => a.images && a.images.length > 0);
+                return (
                 <div>
                   <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0 0 1rem 0' }}>
-                    Choose an album to add images from:
+                    Choose an album to create your photobook from:
                   </p>
-                  {albums.length === 0 ? (
+                  {albumsWithImages.length === 0 ? (
                     <div style={{
                       textAlign: 'center',
                       padding: '2rem',
@@ -3380,12 +3914,12 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                         <circle cx="8.5" cy="8.5" r="1.5"></circle>
                         <polyline points="21 15 16 10 5 21"></polyline>
                       </svg>
-                      <p style={{ fontSize: '0.9rem', margin: 0 }}>No albums available</p>
-                      <p style={{ fontSize: '0.8rem', margin: '0.5rem 0 0 0', opacity: 0.7 }}>Albums from your photographer will appear here.</p>
+                      <p style={{ fontSize: '0.9rem', margin: 0 }}>No albums with images available</p>
+                      <p style={{ fontSize: '0.8rem', margin: '0.5rem 0 0 0', opacity: 0.7 }}>Albums need to have photos before you can create a photobook.</p>
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                      {albums.map(album => (
+                      {albumsWithImages.map(album => (
                         <div
                           key={album.id}
                           onClick={() => setSetupSelectedAlbum(album)}
@@ -3435,7 +3969,8 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                     </div>
                   )}
                 </div>
-              )}
+                );
+              })()}
 
               {/* Step 2: Select Layout */}
               {setupStep === 2 && (
@@ -3602,7 +4137,9 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                   overflow: 'hidden',
                   position: 'relative'
                 }}>
-                  <Image src={setupSelectedAlbum.thumbnail} alt={setupSelectedAlbum.title} fill style={{ objectFit: 'cover' }} />
+                  {setupSelectedAlbum.thumbnail && (
+                    <Image src={setupSelectedAlbum.thumbnail} alt={setupSelectedAlbum.title} fill style={{ objectFit: 'cover' }} />
+                  )}
                 </div>
                 <div>
                   <h3 style={{ fontSize: '1rem', fontWeight: '600', color: 'white', margin: 0 }}>
@@ -3927,9 +4464,11 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
               display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'
             }}>
             <div className="step3-header-info" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{ width: '36px', height: '36px', borderRadius: '0.5rem', overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
-                <Image src={setupSelectedAlbum.thumbnail} alt={setupSelectedAlbum.title} fill style={{ objectFit: 'cover' }} />
-              </div>
+              {setupSelectedAlbum.thumbnail && (
+                <div style={{ width: '36px', height: '36px', borderRadius: '0.5rem', overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
+                  <Image src={setupSelectedAlbum.thumbnail} alt={setupSelectedAlbum.title} fill style={{ objectFit: 'cover' }} />
+                </div>
+              )}
               <div>
                 <h3 style={{ fontSize: '0.95rem', fontWeight: '600', color: 'white', margin: 0 }}>{setupSelectedAlbum.title}</h3>
                 <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', margin: 0 }}>

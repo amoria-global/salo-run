@@ -10,7 +10,13 @@
       "Bash(npx next build:*)",
       "Bash(find:*)",
       "Bash(del \"c:\\\\Users\\\\JOAST\\\\Documents\\\\connekt-dashboard\\\\app\\\\components\\\\DonateModal.tsx\")",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(curl:*)",
+      "Bash(npx tsc:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtdWd3aWpheDQ1QGdtYWlsLmNvbSIsImlhdCI6MTc3MTc3MTczMCwiZXhwIjoxNzcxNzc1MzMwfQ.7Ts8f33GNnPCh0P-TRRH1d43jf0ayvEmvg1dOzVVei0\")",
+      "Bash(wc:*)",
+      "Bash(NODE_OPTIONS=\"--max-old-space-size=4096\" npx next build:*)",
+      "Bash(NODE_OPTIONS=\"--max-old-space-size=8192\" npx next build:*)"
     ],
     "deny": [],
     "ask": []
