@@ -1,133 +1,97 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
+import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 
-// Extended transaction data
-const allTransactionsData = [
-  {
-    id: 1,
-    date: 'Jan. 6, 2025 PM',
-    transactionId: '4****4492',
-    client: 'Kagabo Innocent',
-    service: 'Wedding Photography',
-    method: 'Mobile Money',
-    amount: 430.0,
-    status: 'Pending',
-    requestId: 'AM26412'
-  },
-  {
-    id: 2,
-    date: 'Jan. 6, 2025 AM',
-    transactionId: '4****4492',
-    client: 'Kagabo Innocent',
-    service: 'Mobile Money',
-    method: 'Mobile Money',
-    amount: 94,
-    status: 'In progress',
-    requestId: 'AM26412'
-  },
-  {
-    id: 3,
-    date: 'Jan. 6, 2025 PM',
-    transactionId: '4****4492',
-    client: 'Penny Gloria',
-    service: 'Photo Consultation',
-    method: 'Credit card',
-    amount: 110,
-    status: 'Initiated',
-    requestId: 'AM26412'
-  },
-  {
-    id: 4,
-    date: 'Jan. 6, 2025 PM',
-    transactionId: '4****4492',
-    client: 'Amora Smith',
-    service: 'Book Session',
-    method: 'Mobile Money',
-    amount: 300.0,
-    status: 'Initiated',
-    requestId: 'AM26412'
-  },
-  {
-    id: 5,
-    date: 'Jan. 6, 2025 PM',
-    transactionId: '4****4492',
-    client: 'Asha Ross',
-    service: 'Yes love',
-    method: 'Credit card',
-    amount: 321.0,
-    status: 'Initiated',
-    requestId: 'AM26412'
-  },
-  {
-    id: 6,
-    date: 'Jan. 5, 2025 PM',
-    transactionId: '4****4493',
-    client: 'John Doe',
-    service: 'Portrait Session',
-    method: 'Credit card',
-    amount: 250.0,
-    status: 'Pending',
-    requestId: 'AM26413'
-  },
-  {
-    id: 7,
-    date: 'Jan. 5, 2025 AM',
-    transactionId: '4****4494',
-    client: 'Sarah Johnson',
-    service: 'Event Photography',
-    method: 'Mobile Money',
-    amount: 520.0,
-    status: 'In progress',
-    requestId: 'AM26414'
-  },
-  {
-    id: 8,
-    date: 'Jan. 4, 2025 PM',
-    transactionId: '4****4495',
-    client: 'Mike Brown',
-    service: 'Family Photo Session',
-    method: 'Credit card',
-    amount: 180.0,
-    status: 'Initiated',
-    requestId: 'AM26415'
-  },
-  {
-    id: 9,
-    date: 'Jan. 4, 2025 AM',
-    transactionId: '4****4496',
-    client: 'Emily Davis',
-    service: 'Product Photography',
-    method: 'Mobile Money',
-    amount: 420.0,
-    status: 'Pending',
-    requestId: 'AM26416'
-  },
-  {
-    id: 10,
-    date: 'Jan. 3, 2025 PM',
-    transactionId: '4****4497',
-    client: 'David Wilson',
-    service: 'Corporate Headshots',
-    method: 'Credit card',
-    amount: 350.0,
-    status: 'In progress',
-    requestId: 'AM26417'
-  },
-];
+function getApiUrl(): string {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    return '/api/proxy';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+}
+
+function formatTransactionDate(dateStr: string): string {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' };
+  const formatted = date.toLocaleDateString('en-US', options);
+  const hours = date.getHours();
+  return `${formatted} ${hours >= 12 ? 'PM' : 'AM'}`;
+}
+
+function mapTransactionStatus(status: string): string {
+  if (!status) return 'Initiated';
+  const s = status.toUpperCase();
+  if (s === 'COMPLETED' || s === 'SUCCESS') return 'Completed';
+  if (s === 'PENDING') return 'Pending';
+  if (s === 'IN_PROGRESS' || s === 'PROCESSING') return 'In progress';
+  if (s === 'FAILED' || s === 'CANCELLED') return 'Failed';
+  return 'Initiated';
+}
 
 const AllTransactions = () => {
   const { colors, actualTheme } = useTheme();
   const { formatPrice } = useCurrency();
-  const [transactions] = useState(allTransactionsData);
+  const { user } = useDashboardAuth();
+  const [transactions, setTransactions] = useState<any[]>([]);
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   const [showModal, setShowModal] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [balance, setBalance] = useState<any>(null);
+
+  const fetchTransactions = useCallback(async (page: number = 0) => {
+    const apiUrl = getApiUrl();
+    try {
+      const [txRes, balRes] = await Promise.allSettled([
+        dashboardAuthFetch(`${apiUrl}/api/remote/photographer/transactions?page=${page}&size=20`),
+        balance ? Promise.resolve(null) : dashboardAuthFetch(`${apiUrl}/api/remote/photographer/balance`),
+      ]);
+
+      if (txRes.status === 'fulfilled' && txRes.value.ok) {
+        const data = await txRes.value.json();
+        if (data.action === 1 && data.data) {
+          const content = Array.isArray(data.data) ? data.data : data.data.content || [];
+          const mapped = content.map((t: any, index: number) => ({
+            id: t.id || index + 1,
+            date: formatTransactionDate(t.createdAt || t.date || ''),
+            transactionId: t.transactionId || t.reference || `${String(t.id).slice(0, 4)}****`,
+            client: t.clientName || t.customerName || t.photographerName || 'N/A',
+            service: t.service || t.paymentType || t.description || t.eventTitle || 'Payment',
+            method: t.paymentMethod || t.method || 'N/A',
+            amount: t.amount || 0,
+            status: mapTransactionStatus(t.status || ''),
+            requestId: t.requestId || t.reference || t.invoiceNumber || `AM${t.id || index}`,
+          }));
+          setTransactions(mapped);
+          if (data.data.totalPages) setTotalPages(data.data.totalPages);
+          if (data.data.number !== undefined) setCurrentPage(data.data.number);
+        }
+      }
+
+      if (balRes.status === 'fulfilled' && balRes.value && balRes.value.ok) {
+        const data = await balRes.value.json();
+        if (data.action === 1 && data.data) {
+          setBalance(data.data);
+        }
+      }
+    } catch (error) {
+      console.error('[Transactions] Error fetching:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [balance]);
+
+  useEffect(() => {
+    fetchTransactions(0);
+  }, [fetchTransactions]);
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -303,7 +267,7 @@ const AllTransactions = () => {
       <Sidebar />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar userRole="photographer" tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
+        <Topbar userRole="photographer" tipsAmount={balance?.totalTips || 0} bonusAmount={balance?.totalBonuses || 0} balanceAmount={balance?.totalBalance || balance?.balance || 0} />
 
         {/* Main Content */}
         <div style={{
@@ -733,8 +697,19 @@ const AllTransactions = () => {
               </table>
             </div>
 
+            {/* Loading state */}
+            {isLoading && (
+              <div style={{
+                textAlign: 'center',
+                padding: '3rem',
+                color: colors.textSecondary
+              }}>
+                <p style={{ fontSize: '1rem', fontWeight: '500' }}>Loading transactions...</p>
+              </div>
+            )}
+
             {/* No results message */}
-            {filteredTransactions.length === 0 && (
+            {!isLoading && filteredTransactions.length === 0 && (
               <div style={{
                 textAlign: 'center',
                 padding: '3rem',
@@ -743,6 +718,52 @@ const AllTransactions = () => {
                 <i className="bi bi-inbox" style={{ fontSize: '3rem', marginBottom: '1rem', display: 'block' }}></i>
                 <p style={{ fontSize: '1rem', fontWeight: '500', marginBottom: '0.5rem' }}>No transactions found</p>
                 <p style={{ fontSize: '0.875rem' }}>Try adjusting your filters or search query</p>
+              </div>
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '1rem',
+                borderTop: `1px solid ${colors.borderPrimary}`
+              }}>
+                <button
+                  onClick={() => fetchTransactions(currentPage - 1)}
+                  disabled={currentPage === 0}
+                  style={{
+                    padding: '0.375rem 0.75rem',
+                    borderRadius: '0.375rem',
+                    border: `1px solid ${colors.borderPrimary}`,
+                    backgroundColor: colors.bgCard,
+                    color: currentPage === 0 ? colors.textTertiary : colors.textPrimary,
+                    cursor: currentPage === 0 ? 'not-allowed' : 'pointer',
+                    fontSize: '0.8rem'
+                  }}
+                >
+                  Previous
+                </button>
+                <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
+                  Page {currentPage + 1} of {totalPages}
+                </span>
+                <button
+                  onClick={() => fetchTransactions(currentPage + 1)}
+                  disabled={currentPage >= totalPages - 1}
+                  style={{
+                    padding: '0.375rem 0.75rem',
+                    borderRadius: '0.375rem',
+                    border: `1px solid ${colors.borderPrimary}`,
+                    backgroundColor: colors.bgCard,
+                    color: currentPage >= totalPages - 1 ? colors.textTertiary : colors.textPrimary,
+                    cursor: currentPage >= totalPages - 1 ? 'not-allowed' : 'pointer',
+                    fontSize: '0.8rem'
+                  }}
+                >
+                  Next
+                </button>
               </div>
             )}
           </div>

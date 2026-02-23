@@ -7,7 +7,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
-import { useDashboardAuth } from '../../providers/AuthProvider';
+import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 
 // API helpers
 function getApiUrl(): string {
@@ -406,342 +406,70 @@ export default function Clients() {
   const acceptedCount = bookings.filter(b => ['accepted', 'confirmed'].includes(getBookingStatus(b))).length;
   const rejectedCount = bookings.filter(b => ['rejected', 'cancelled'].includes(getBookingStatus(b))).length;
 
-  // Sample clients data with real images
-  const [clients, setClients] = useState<Client[]>([
-    {
-      id: '1',
-      firstName: 'Sarah',
-      lastName: 'Johnson',
-      email: 'sarah.j@email.com',
-      phone: '+1 234 567 8900',
-      profileImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
-      coverImage: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800',
-      location: { city: 'New York', country: 'USA' },
-      totalBookings: 12,
-      totalSpent: 5400,
-      joinDate: '2024-01-15',
-      lastActive: '2 hours ago',
-      lastBookingDate: '2024-11-15',
-      lastEventType: 'Wedding',
-      lastEventName: 'Sarah & James Wedding',
-      status: 'active',
-      isFavorite: true,
-      verified: true,
-      review: {
-        rating: 5,
-        reviewText: 'Amazing photographer! Captured every special moment of our wedding perfectly. Highly recommend!',
-        reviewDate: '2024-11-20'
-      },
-      bookings: [
-        {
-          id: 'BK-001',
-          eventName: 'Sarah & James Wedding',
-          eventType: 'Wedding',
-          eventDate: '2024-11-15',
-          eventTime: '14:00',
-          duration: '8 hours',
-          location: 'Central Park, NYC',
-          packageName: 'Premium Wedding',
-          totalAmount: 1500,
-          paidAmount: 1500,
-          paymentStatus: 'paid',
-          status: 'completed'
-        },
-        {
-          id: 'BK-008',
-          eventName: 'Anniversary Photos',
-          eventType: 'Portrait',
-          eventDate: '2025-01-20',
-          eventTime: '16:00',
-          duration: '2 hours',
-          location: 'Studio, NYC',
-          packageName: 'Portrait Session',
-          totalAmount: 300,
-          paidAmount: 150,
-          paymentStatus: 'partially_paid',
-          status: 'upcoming'
+  // Clients data - fetched from API
+  const [clientsLoading, setClientsLoading] = useState(true);
+  const [balance, setBalance] = useState<any>(null);
+
+  const fetchClients = useCallback(async () => {
+    try {
+      const apiUrl = getApiUrl();
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/clients`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.action === 1 && data.data) {
+          const clientList = Array.isArray(data.data) ? data.data : data.data.content || [];
+          const mapped: Client[] = clientList.map((c: any) => ({
+            id: c.id || c.customerId || String(Math.random()),
+            firstName: c.firstName || c.name?.split(' ')[0] || '',
+            lastName: c.lastName || c.name?.split(' ').slice(1).join(' ') || '',
+            email: c.email || '',
+            phone: c.phone || c.phoneNumber || '',
+            profileImage: c.profileImage || c.profilePicture || c.avatar || '/default-avatar.png',
+            coverImage: c.coverImage || 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800',
+            location: {
+              city: c.city || c.location?.city || '',
+              country: c.country || c.location?.country || '',
+            },
+            totalBookings: c.totalBookings || 0,
+            totalSpent: c.totalSpent || 0,
+            joinDate: c.joinDate || c.createdAt || '',
+            lastActive: c.lastActive || c.lastSeen || '',
+            lastBookingDate: c.lastBookingDate || '',
+            lastEventType: c.lastEventType || '',
+            lastEventName: c.lastEventName || '',
+            status: c.status === 'inactive' ? 'inactive' : 'active' as Client['status'],
+            isFavorite: c.isFavorite || false,
+            verified: c.verified || c.isVerified || false,
+            review: c.review || undefined,
+            bookings: c.bookings || [],
+            tipsAndBonuses: c.tipsAndBonuses || [],
+          }));
+          setClients(mapped);
         }
-      ],
-      tipsAndBonuses: [
-        {
-          id: 'TB-001',
-          amount: 150,
-          type: 'tip',
-          eventName: 'Sarah & James Wedding',
-          date: '2024-11-15',
-          message: 'Thank you for the amazing photos! You made our day so special.'
-        },
-        {
-          id: 'TB-002',
-          amount: 50,
-          type: 'bonus',
-          eventName: 'Sarah & James Wedding',
-          date: '2024-11-20',
-          message: 'Extra bonus for quick delivery of photos!'
-        }
-      ]
-    },
-    {
-      id: '2',
-      firstName: 'Michael',
-      lastName: 'Chen',
-      email: 'mchen@email.com',
-      phone: '+1 234 567 8901',
-      profileImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg',
-      coverImage: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=800',
-      location: { city: 'San Francisco', country: 'USA' },
-      totalBookings: 8,
-      totalSpent: 3200,
-      joinDate: '2024-02-20',
-      lastActive: '1 day ago',
-      lastBookingDate: '2024-10-28',
-      lastEventType: 'Birthday',
-      lastEventName: 'Michael\'s 30th Birthday',
-      status: 'active',
-      isFavorite: false,
-      verified: true,
-      review: {
-        rating: 4,
-        reviewText: 'Great work on my birthday party! The photos came out fantastic.',
-        reviewDate: '2024-11-02'
-      },
-      bookings: [
-        {
-          id: 'BK-002',
-          eventName: 'Michael\'s 30th Birthday',
-          eventType: 'Birthday',
-          eventDate: '2024-10-28',
-          eventTime: '18:00',
-          duration: '4 hours',
-          location: 'Private Venue, SF',
-          packageName: 'Event Coverage',
-          totalAmount: 600,
-          paidAmount: 600,
-          paymentStatus: 'paid',
-          status: 'completed'
-        }
-      ],
-      tipsAndBonuses: [
-        {
-          id: 'TB-003',
-          amount: 75,
-          type: 'tip',
-          eventName: 'Michael\'s 30th Birthday',
-          date: '2024-10-28',
-          message: 'Great job capturing the party moments!'
-        }
-      ]
-    },
-    {
-      id: '3',
-      firstName: 'Emily',
-      lastName: 'Rodriguez',
-      email: 'emily.r@email.com',
-      phone: '+1 234 567 8902',
-      profileImage: 'https://i.pinimg.com/1200x/09/23/45/092345eac1919407e0c49f67e285b831.jpg',
-      coverImage: 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=800',
-      location: { city: 'Miami', country: 'USA' },
-      totalBookings: 15,
-      totalSpent: 7800,
-      joinDate: '2023-11-10',
-      lastActive: '2 weeks ago',
-      lastBookingDate: '2024-09-20',
-      lastEventType: 'Concert',
-      lastEventName: 'Summer Music Festival',
-      status: 'inactive',
-      isFavorite: true,
-      verified: false,
-      // No review left by this client
-      bookings: [
-        {
-          id: 'BK-003',
-          eventName: 'Summer Music Festival',
-          eventType: 'Concert',
-          eventDate: '2024-09-20',
-          eventTime: '16:00',
-          duration: '6 hours',
-          location: 'Bayfront Park, Miami',
-          packageName: 'Festival Coverage',
-          totalAmount: 800,
-          paidAmount: 800,
-          paymentStatus: 'paid',
-          status: 'completed'
-        }
-      ],
-      tipsAndBonuses: [] // No tips or bonuses from this client
-    },
-    {
-      id: '4',
-      firstName: 'David',
-      lastName: 'Park',
-      email: 'dpark@email.com',
-      phone: '+1 234 567 8903',
-      profileImage: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg',
-      coverImage: 'https://images.unsplash.com/photo-1560439514-4e9645039924?w=800',
-      location: { city: 'Seattle', country: 'USA' },
-      totalBookings: 6,
-      totalSpent: 2100,
-      joinDate: '2024-03-05',
-      lastActive: '5 hours ago',
-      lastBookingDate: '2024-11-01',
-      lastEventType: 'Corporate',
-      lastEventName: 'Tech Company Headshots',
-      status: 'active',
-      isFavorite: false,
-      verified: true,
-      // No review left by this client yet
-      bookings: [
-        {
-          id: 'BK-004',
-          eventName: 'Tech Company Headshots',
-          eventType: 'Corporate',
-          eventDate: '2024-11-01',
-          eventTime: '09:00',
-          duration: '4 hours',
-          location: 'Tech Hub, Seattle',
-          packageName: 'Corporate Package',
-          totalAmount: 500,
-          paidAmount: 500,
-          paymentStatus: 'paid',
-          status: 'completed'
-        },
-        {
-          id: 'BK-010',
-          eventName: 'Team Building Event',
-          eventType: 'Corporate',
-          eventDate: '2025-01-15',
-          eventTime: '10:00',
-          duration: '3 hours',
-          location: 'Company HQ',
-          packageName: 'Event Coverage',
-          totalAmount: 450,
-          paidAmount: 0,
-          paymentStatus: 'pending',
-          status: 'upcoming'
-        }
-      ],
-      tipsAndBonuses: [
-        {
-          id: 'TB-004',
-          amount: 100,
-          type: 'bonus',
-          eventName: 'Tech Company Headshots',
-          date: '2024-11-05',
-          message: 'Professional work as always. Bonus for exceeding expectations!'
-        }
-      ]
-    },
-    {
-      id: '5',
-      firstName: 'Lisa',
-      lastName: 'Thompson',
-      email: 'lisa.t@email.com',
-      phone: '+1 234 567 8904',
-      profileImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg',
-      coverImage: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=800',
-      location: { city: 'Austin', country: 'USA' },
-      totalBookings: 20,
-      totalSpent: 12500,
-      joinDate: '2023-09-01',
-      lastActive: '30 mins ago',
-      lastBookingDate: '2024-08-15',
-      lastEventType: 'Fashion',
-      lastEventName: 'Summer Fashion Shoot',
-      status: 'active',
-      isFavorite: true,
-      verified: true,
-      review: {
-        rating: 5,
-        reviewText: 'Absolutely professional! The fashion shots exceeded all my expectations. Will definitely book again.',
-        reviewDate: '2024-08-20'
-      },
-      bookings: [
-        {
-          id: 'BK-005',
-          eventName: 'Summer Fashion Shoot',
-          eventType: 'Fashion',
-          eventDate: '2024-08-15',
-          eventTime: '14:00',
-          duration: '5 hours',
-          location: 'Studio, Austin',
-          packageName: 'Fashion Editorial',
-          totalAmount: 1200,
-          paidAmount: 1200,
-          paymentStatus: 'paid',
-          status: 'completed'
-        }
-      ],
-      tipsAndBonuses: [
-        {
-          id: 'TB-005',
-          amount: 200,
-          type: 'tip',
-          eventName: 'Summer Fashion Shoot',
-          date: '2024-08-15',
-          message: 'Incredible work! These photos are going straight to my portfolio.'
-        },
-        {
-          id: 'TB-006',
-          amount: 100,
-          type: 'bonus',
-          eventName: 'Summer Fashion Shoot',
-          date: '2024-08-18',
-          message: 'Bonus for the extra editing work!'
-        }
-      ]
-    },
-    {
-      id: '6',
-      firstName: 'James',
-      lastName: 'Wilson',
-      email: 'jwilson@email.com',
-      phone: '+1 234 567 8905',
-      profileImage: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg',
-      coverImage: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800',
-      location: { city: 'Boston', country: 'USA' },
-      totalBookings: 4,
-      totalSpent: 1800,
-      joinDate: '2024-04-12',
-      lastActive: '1 month ago',
-      lastBookingDate: '2024-06-20',
-      lastEventType: 'Wedding',
-      lastEventName: 'James & Maria Wedding',
-      status: 'inactive',
-      isFavorite: false,
-      verified: false,
-      review: {
-        rating: 4,
-        reviewText: 'Beautiful wedding photos. Thank you for making our day special!',
-        reviewDate: '2024-06-25'
-      },
-      bookings: [
-        {
-          id: 'BK-006',
-          eventName: 'James & Maria Wedding',
-          eventType: 'Wedding',
-          eventDate: '2024-06-20',
-          eventTime: '15:00',
-          duration: '6 hours',
-          location: 'Harbor View, Boston',
-          packageName: 'Wedding Basic',
-          totalAmount: 900,
-          paidAmount: 900,
-          paymentStatus: 'paid',
-          status: 'completed'
-        }
-      ],
-      tipsAndBonuses: [
-        {
-          id: 'TB-007',
-          amount: 50,
-          type: 'tip',
-          eventName: 'James & Maria Wedding',
-          date: '2024-06-20',
-          message: 'Thank you for the beautiful photos!'
-        }
-      ]
+      }
+    } catch (err) {
+      console.error('Failed to fetch clients:', err);
+    } finally {
+      setClientsLoading(false);
     }
-  ]);
+  }, []);
+
+  useEffect(() => {
+    fetchClients();
+    const fetchBalance = async () => {
+      try {
+        const apiUrl = getApiUrl();
+        const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/balance`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.action === 1 && data.data) setBalance(data.data);
+        }
+      } catch (err) { console.error('Failed to fetch balance:', err); }
+    };
+    fetchBalance();
+  }, [fetchClients]);
+
+  const [clients, setClients] = useState<Client[]>([]);
 
   const eventTypes = ['Wedding', 'Birthday', 'Corporate', 'Portrait', 'Fashion', 'Concert'];
 
@@ -780,30 +508,12 @@ export default function Clients() {
     }, 0);
   }, 0);
 
-  // Calculate total tips from all clients (tips are from viewers/clients)
-  const totalTips = 275; // Consistent tips amount across all pages
-
-  // Calculate total completed events for bonus calculation
-  const totalCompletedEvents = clients.reduce((sum, c) => {
-    return sum + c.bookings.filter(b => b.status === 'completed').length;
-  }, 0);
-
-  // Platform bonus: consistent amount across all pages
+  // Balance values from API
+  const totalTips = balance?.totalTips || 0;
+  const totalCompletedEvents = clients.reduce((sum, c) => sum + c.bookings.filter((b: any) => b.status === 'completed').length, 0);
   const bonusEligibleSets = Math.floor(totalCompletedEvents / 10);
-  const platformBonus = 725; // Consistent bonus amount across all pages
-
-  // Calculate total paid (unwithdrawn) amount from all bookings
-  const totalPaidAmount = clients.reduce((sum, c) => {
-    return sum + c.bookings.reduce((bookingSum, b) => {
-      if (b.paymentStatus === 'paid') {
-        return bookingSum + b.paidAmount;
-      }
-      return bookingSum;
-    }, 0);
-  }, 0);
-
-  // Total balance = consistent amount across all pages
-  const totalBalance = 4975; // Consistent balance amount across all pages
+  const platformBonus = balance?.totalBonuses || 0;
+  const totalBalance = balance?.totalBalance || balance?.balance || 0;
 
   // Filter clients based on search query and active filter
   const filteredClients = clients.filter(client => {
@@ -1274,7 +984,11 @@ export default function Clients() {
           </div>
 
           {/* Clients Grid/List */}
-          {filteredClients.length === 0 ? (
+          {clientsLoading ? (
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '3rem', textAlign: 'center', border: `2px solid ${colors.borderPrimary}` }}>
+              <div style={{ fontSize: '1rem', color: colors.textSecondary }}>Loading clients...</div>
+            </div>
+          ) : filteredClients.length === 0 ? (
             <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '3rem', textAlign: 'center', border: `2px solid ${colors.borderPrimary}` }}>
               <UserIcon />
               <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, marginTop: '1rem' }}>No clients found</h3>
