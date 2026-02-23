@@ -1,13 +1,20 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
-import { useDashboardAuth } from '../../providers/AuthProvider';
+import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import CompleteProfileModal from '../../components/CompleteProfileModal';
+
+function getApiUrl(): string {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    return '/api/proxy';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+}
 import {
   StatCard,
   ActivityItem,
@@ -181,6 +188,128 @@ const PhotographerDashboard = () => {
 
   // Profile completion modal state
   const [showProfileModal, setShowProfileModal] = useState(false);
+
+  // API data state
+  const [analytics, setAnalytics] = useState<any>(null);
+  const [balance, setBalance] = useState<any>(null);
+  const [apiClients, setApiClients] = useState<Client[]>([]);
+  const [recentActivities, setRecentActivities] = useState<{ label: string; value: string; valueColor?: string }[]>([]);
+  const [recentPayments, setRecentPayments] = useState<{ name: string; type: string; amount: string; avatar?: string; logo?: string }[]>([]);
+  const [performanceData, setPerformanceData] = useState([
+    { day: 'Sun', value1: 0, value2: 0 },
+    { day: 'Mon', value1: 0, value2: 0 },
+    { day: 'Tue', value1: 0, value2: 0 },
+    { day: 'Wed', value1: 0, value2: 0 },
+    { day: 'Thu', value1: 0, value2: 0 },
+    { day: 'Fri', value1: 0, value2: 0 },
+    { day: 'Sat', value1: 0, value2: 0 }
+  ]);
+  const [statTrends, setStatTrends] = useState<Record<string, { percentage: string; trend: 'up' | 'down' }>>({
+    totalEarnings: { percentage: '0%', trend: 'up' },
+    pending: { percentage: '0%', trend: 'up' },
+    clients: { percentage: '0%', trend: 'up' },
+    bonuses: { percentage: '0%', trend: 'up' },
+    rating: { percentage: '0%', trend: 'up' },
+  });
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch static dashboard data (once on mount)
+  useEffect(() => {
+    const fetchStaticData = async () => {
+      const apiUrl = getApiUrl();
+      try {
+        const [analyticsRes, balanceRes, clientsRes, transactionsRes] = await Promise.allSettled([
+          dashboardAuthFetch(`${apiUrl}/api/remote/photographer/analytics`),
+          dashboardAuthFetch(`${apiUrl}/api/remote/photographer/balance`),
+          dashboardAuthFetch(`${apiUrl}/api/remote/photographer/clients`),
+          dashboardAuthFetch(`${apiUrl}/api/remote/photographer/transactions?page=0&size=5`),
+        ]);
+
+        if (analyticsRes.status === 'fulfilled' && analyticsRes.value.ok) {
+          const data = await analyticsRes.value.json();
+          if (data.action === 1 && data.data) setAnalytics(data.data);
+        }
+        if (balanceRes.status === 'fulfilled' && balanceRes.value.ok) {
+          const data = await balanceRes.value.json();
+          if (data.action === 1 && data.data) setBalance(data.data);
+        }
+        if (clientsRes.status === 'fulfilled' && clientsRes.value.ok) {
+          const data = await clientsRes.value.json();
+          if (data.action === 1 && data.data) {
+            const mapped: Client[] = (Array.isArray(data.data) ? data.data : data.data.content || []).slice(0, 3).map((c: any) => ({
+              id: c.id || c.customerId || String(Math.random()),
+              name: c.name || `${c.firstName || ''} ${c.lastName || ''}`.trim() || 'Client',
+              event: c.lastEventType || c.eventType || 'Photography',
+              status: (c.status === 'active' ? 'In Progress' : c.status === 'completed' ? 'Completed' : 'Pending') as Client['status'],
+              avatar: c.profileImage || c.profilePicture || c.avatar || '/default-avatar.png',
+            }));
+            setApiClients(mapped);
+          }
+        }
+        if (transactionsRes.status === 'fulfilled' && transactionsRes.value.ok) {
+          const data = await transactionsRes.value.json();
+          if (data.action === 1 && data.data) {
+            const txns = Array.isArray(data.data) ? data.data : data.data.content || [];
+            const mapped = txns.slice(0, 3).map((t: any) => ({
+              name: t.clientName || t.customerName || t.photographerName || 'Payment',
+              type: t.paymentType || t.type || t.service || 'Earnings',
+              amount: formatPrice(t.amount || 0),
+              avatar: t.clientImage || t.customerImage || t.photographerImage || undefined,
+              logo: (!t.clientImage && !t.customerImage) ? '/logo.png' : undefined,
+            }));
+            setRecentPayments(mapped);
+          }
+        }
+      } catch (error) {
+        console.error('[Photographer Dashboard] Error fetching static data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchStaticData();
+  }, []);
+
+  // Fetch performance chart & trends (re-fetches when filter changes)
+  useEffect(() => {
+    const fetchFilteredData = async () => {
+      const apiUrl = getApiUrl();
+      const periodParam = activeFilter === 'today' ? 'today' : activeFilter === 'month' ? 'month' : 'week';
+      try {
+        const [performanceRes, trendsRes] = await Promise.allSettled([
+          dashboardAuthFetch(`${apiUrl}/api/remote/photographer/performance?period=${periodParam}`),
+          dashboardAuthFetch(`${apiUrl}/api/remote/photographer/trends?period=${periodParam}`),
+        ]);
+
+        if (performanceRes.status === 'fulfilled' && performanceRes.value.ok) {
+          const data = await performanceRes.value.json();
+          if (data.action === 1 && Array.isArray(data.data)) {
+            setPerformanceData(data.data.map((d: any) => ({
+              day: d.day || '',
+              value1: Number(d.value1) || 0,
+              value2: Number(d.value2) || 0,
+            })));
+          }
+        }
+
+        if (trendsRes.status === 'fulfilled' && trendsRes.value.ok) {
+          const data = await trendsRes.value.json();
+          if (data.action === 1 && data.data) {
+            const t = data.data;
+            setStatTrends({
+              totalEarnings: { percentage: t.totalEarnings?.percentage || '0%', trend: t.totalEarnings?.trend || 'up' },
+              pending: { percentage: t.pending?.percentage || '0%', trend: t.pending?.trend || 'up' },
+              clients: { percentage: t.clients?.percentage || '0%', trend: t.clients?.trend || 'up' },
+              bonuses: { percentage: t.bonuses?.percentage || '0%', trend: t.bonuses?.trend || 'up' },
+              rating: { percentage: t.rating?.percentage || '0%', trend: t.rating?.trend || 'up' },
+            });
+          }
+        }
+      } catch (error) {
+        console.error('[Photographer Dashboard] Error fetching filtered data:', error);
+      }
+    };
+    fetchFilteredData();
+  }, [activeFilter]);
 
   // Form state for creating future plan
   const [planForm, setPlanForm] = useState({
@@ -434,72 +563,12 @@ const PhotographerDashboard = () => {
 
   const currentGreeting = greetings[greetingIndex];
   const staticMessage = getStaticMessage(timeOfDay);
-  const performanceData = [
-    { day: 'Sun', value1: 130, value2: 150 },
-    { day: 'Mon', value1: 90, value2: 100 },
-    { day: 'Tue', value1: 100, value2: 130 },
-    { day: 'Wed', value1: 60, value2: 70 },
-    { day: 'Thu', value1: 70, value2: 80 },
-    { day: 'Fri', value1: 130, value2: 150 },
-    { day: 'Sat', value1: 90, value2: 70 }
-  ];
 
-  const recentActivities = [
-    { label: 'Customer', value: 'Joseph Mugabo' },
-    { label: 'Transaction', value: '-450', valueColor: '#ff0066' },
-    { label: 'Archive', value: 'jsm_wedd.mp4' },
-    { label: 'Package', value: 'Tier 1' },
-    { label: 'Referral', value: 'Pacific Uwitonze',  valueColor: '#083A85' },
-    { label: 'Logs', value: 'Today, 14. July 2025' }
-  ];
-
-  const clients: Client[] = [
-    {
-      id: 'CLT-001',
-      name: 'Kalisa Aime',
-      event: 'Wedding',
-      status: 'In Progress' as const,
-      avatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg'
-    },
-    {
-      id: 'CLT-002',
-      name: 'Ketty Bashabe',
-      event: 'Birthday',
-      status: 'Completed' as const,
-      avatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg'
-    },
-    {
-      id: 'CLT-003',
-      name: 'Juno Kizigenza',
-      event: 'Festival',
-      status: 'Pending' as const,
-      avatar: 'https://i.pinimg.com/1200x/09/23/45/092345eac1919407e0c49f67e285b831.jpg'
-    }
-  ];
-
-  const recentPayments = [
-    {
-      name: 'Kalisa Aime',
-      type: 'Earnings',
-      amount: formatPrice(1950),
-      avatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg'
-    },
-    {
-      name: 'Amoria',
-      type: 'Archive commission',
-      amount: formatPrice(50.80),
-      logo: '/logo.png'
-    },
-    {
-      name: 'Amoria',
-      type: 'Referral bonus',
-      amount: formatPrice(3),
-      logo: '/logo.png'
-    }
-  ];
+  const clients: Client[] = apiClients;
 
   // Base path for navigation
   const basePath = '/user/photographer';
+  const periodLabel = activeFilter === 'today' ? 'yesterday' : activeFilter === 'month' ? 'last month' : 'last week';
 
   return (
     <>
@@ -620,7 +689,7 @@ const PhotographerDashboard = () => {
         <Sidebar />
 
         <div className="dashboard-content">
-          <Topbar userRole="photographer" />
+          <Topbar userRole="photographer" tipsAmount={balance?.totalTips || 0} bonusAmount={balance?.totalBonuses || analytics?.bonuses || 0} balanceAmount={balance?.totalBalance || balance?.balance || 0} />
 
           <div className="dashboard-main">
             <header className="dashboard-header">
@@ -890,7 +959,7 @@ const PhotographerDashboard = () => {
                   lineHeight: '1.75rem',
                   fontWeight: '700',
                   color: colors.textPrimary
-                }}>{formatPrice(9640)}</span>
+                }}>{formatPrice(analytics?.totalEarnings || analytics?.earnings || 0)}</span>
               </div>
               <div style={{
                 display: 'flex',
@@ -909,7 +978,7 @@ const PhotographerDashboard = () => {
                   lineHeight: '1.75rem',
                   fontWeight: '700',
                   color: colors.textPrimary
-                }}>26</span>
+                }}>{analytics?.totalClients || analytics?.clients || 0}</span>
               </div>
               <div style={{
                 display: 'flex',
@@ -928,7 +997,7 @@ const PhotographerDashboard = () => {
                   lineHeight: '1.75rem',
                   fontWeight: '700',
                   color: colors.textPrimary
-                }}>73.5%</span>
+                }}>{analytics?.accuracy ? `${analytics.accuracy}%` : '0%'}</span>
               </div>
             </div>
             </div>
@@ -1016,55 +1085,55 @@ const PhotographerDashboard = () => {
       <div className="stat-cards-grid">
         <StatCard
           title="Total Earnings"
-          value={formatPrice(2600)}
-          percentage="52.76%"
-          timeframe="last week"
+          value={formatPrice(analytics?.totalEarnings || 0)}
+          percentage={statTrends.totalEarnings.percentage}
+          timeframe={periodLabel}
           icon={<MoneyIcon />}
-          trend="up"
+          trend={statTrends.totalEarnings.trend}
           href={`${basePath}/earnings`}
           isComparisonMode={isComparisonMode && !!selectedPlan}
           targetValue={selectedPlan?.targetEarnings}
         />
         <StatCard
           title="Pending"
-          value={formatPrice(700)}
-          percentage="36.8%"
-          timeframe="last week"
+          value={formatPrice(analytics?.pendingPayments || 0)}
+          percentage={statTrends.pending.percentage}
+          timeframe={periodLabel}
           icon={<ClockIcon />}
-          trend="down"
+          trend={statTrends.pending.trend}
           href={`${basePath}/pending-payments`}
           isComparisonMode={isComparisonMode && !!selectedPlan}
           targetValue={selectedPlan?.targetPending}
         />
         <StatCard
           title="Total clients"
-          value="5.0"
-          percentage="5.4%"
-          timeframe="last week"
+          value={String(analytics?.totalClients || 0)}
+          percentage={statTrends.clients.percentage}
+          timeframe={periodLabel}
           icon={<UsersIcon />}
-          trend="up"
+          trend={statTrends.clients.trend}
           href={`${basePath}/clients`}
           isComparisonMode={isComparisonMode && !!selectedPlan}
           targetValue={selectedPlan?.targetClients}
         />
         <StatCard
           title="Bonuses"
-          value={formatPrice(3.05)}
-          percentage="47.38%"
-          timeframe="last week"
+          value={formatPrice(analytics?.bonuses || 0)}
+          percentage={statTrends.bonuses.percentage}
+          timeframe={periodLabel}
           icon={<GiftIcon />}
-          trend="down"
+          trend={statTrends.bonuses.trend}
           href={`${basePath}/bonuses`}
           isComparisonMode={isComparisonMode && !!selectedPlan}
           targetValue={selectedPlan?.targetBonuses}
         />
         <StatCard
           title="Ratings"
-          value="3.9/5"
-          percentage="8%"
-          timeframe="last 120 reviews"
+          value={analytics?.averageRating ? `${analytics.averageRating.toFixed(1)}/5` : '0/5'}
+          percentage={statTrends.rating.percentage}
+          timeframe={periodLabel}
           icon={<StarIcon />}
-          trend="up"
+          trend={statTrends.rating.trend}
           href={`${basePath}/reviews`}
           isComparisonMode={isComparisonMode && !!selectedPlan}
           targetValue={selectedPlan?.targetRatings}

@@ -1,12 +1,48 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
+import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
+
+function getApiUrl(): string {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    return '/api/proxy';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+}
+
+function formatRelativeTime(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays} days ago`;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function mapBackendType(backendType: string): NotificationType {
+  switch (backendType?.toUpperCase()) {
+    case 'PAYMENT': return 'payment';
+    case 'TIP': return 'tip';
+    case 'BONUS': return 'bonus';
+    case 'SECURITY': case 'SYSTEM': return 'security';
+    case 'MEDIA': case 'ALBUM': return 'album';
+    case 'REVIEW': return 'review';
+    default: return 'payment';
+  }
+}
 
 // Icons
 const BellIcon = () => (
@@ -91,131 +127,59 @@ interface Notification {
   actionUrl?: string;
 }
 
-// Sample notifications data for photographer
-const photographerNotifications: Notification[] = [
-  {
-    id: '1',
-    type: 'payment',
-    title: 'Payment Received',
-    message: 'You received $450.00 from Sarah Johnson for Wedding Photography package',
-    timestamp: '2 minutes ago',
-    read: false,
-    avatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg',
-    amount: 450.00,
-    actionUrl: '/user/photographer/transaction'
-  },
-  {
-    id: '2',
-    type: 'tip',
-    title: 'New Tip Received',
-    message: 'Michael Chen sent you a $25.00 tip for excellent service!',
-    timestamp: '15 minutes ago',
-    read: false,
-    avatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
-    amount: 25.00
-  },
-  {
-    id: '3',
-    type: 'security',
-    title: 'New Login Detected',
-    message: 'A new login was detected from Chrome on Windows 11. Location: Kigali, Rwanda',
-    timestamp: '1 hour ago',
-    read: false,
-    actionUrl: '/user/photographer/profile'
-  },
-  {
-    id: '4',
-    type: 'bonus',
-    title: 'Referral Bonus Earned',
-    message: 'You earned a $15.00 bonus for referring David Park to Amoria!',
-    timestamp: '2 hours ago',
-    read: false,
-    avatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
-    amount: 15.00
-  },
-  {
-    id: '5',
-    type: 'payment',
-    title: 'Payment Received',
-    message: 'You received $1,200.00 from Emily Rodriguez for Corporate Event package',
-    timestamp: '3 hours ago',
-    read: true,
-    avatar: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg',
-    amount: 1200.00,
-    actionUrl: '/user/photographer/transaction'
-  },
-  {
-    id: '6',
-    type: 'review',
-    title: 'New 5-Star Review',
-    message: 'Lisa Thompson left you a 5-star review: "Amazing photographer! Highly recommended!"',
-    timestamp: '5 hours ago',
-    read: true,
-    avatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg'
-  },
-  {
-    id: '7',
-    type: 'tip',
-    title: 'New Tip Received',
-    message: 'James Wilson sent you a $50.00 tip with message: "Great work on the family portraits!"',
-    timestamp: '6 hours ago',
-    read: true,
-    avatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
-    amount: 50.00
-  },
-  {
-    id: '8',
-    type: 'security',
-    title: 'Password Changed',
-    message: 'Your password was successfully changed. If this wasn\'t you, please contact support.',
-    timestamp: 'Yesterday',
-    read: true
-  },
-  {
-    id: '9',
-    type: 'bonus',
-    title: 'Monthly Performance Bonus',
-    message: 'Congratulations! You earned a $75.00 performance bonus for completing 10+ bookings this month.',
-    timestamp: 'Yesterday',
-    read: true,
-    amount: 75.00
-  },
-  {
-    id: '10',
-    type: 'payment',
-    title: 'Payment Received',
-    message: 'You received $350.00 from Alex Chen for Portrait Session',
-    timestamp: '2 days ago',
-    read: true,
-    avatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
-    amount: 350.00,
-    actionUrl: '/user/photographer/transaction'
-  },
-  {
-    id: '11',
-    type: 'security',
-    title: 'Two-Factor Authentication Enabled',
-    message: 'Two-factor authentication has been enabled on your account for enhanced security.',
-    timestamp: '3 days ago',
-    read: true
-  },
-  {
-    id: '12',
-    type: 'review',
-    title: 'New 4-Star Review',
-    message: 'Robert Kim left you a 4-star review: "Professional and creative. Would book again."',
-    timestamp: '4 days ago',
-    read: true,
-    avatar: 'https://i.pinimg.com/1200x/09/23/45/092345eac1919407e0c49f67e285b831.jpg'
-  }
-];
 
 const Notifications = () => {
   const { colors, actualTheme } = useTheme();
   const { formatPrice } = useCurrency();
-  const [notifications, setNotifications] = useState(photographerNotifications);
+  const { user, token } = useDashboardAuth();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [activeFilter, setActiveFilter] = useState<'all' | NotificationType>('all');
   const [showSettings, setShowSettings] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [balance, setBalance] = useState<any>(null);
+
+  // Fetch notifications from API
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const apiUrl = getApiUrl();
+      const [notifRes, balRes] = await Promise.allSettled([
+        dashboardAuthFetch(`${apiUrl}/api/remote/customer/notifications?page=0&size=50`, { headers: { 'Content-Type': 'application/json' } }),
+        balance ? Promise.resolve(null) : dashboardAuthFetch(`${apiUrl}/api/remote/photographer/balance`),
+      ]);
+
+      if (notifRes.status === 'fulfilled' && notifRes.value.ok) {
+        const result = await notifRes.value.json();
+        const data = result?.data?.content || result?.data || [];
+        const mapped: Notification[] = data.map((n: any) => ({
+          id: n.id,
+          type: mapBackendType(n.type),
+          title: n.title,
+          message: n.message,
+          timestamp: formatRelativeTime(n.createdAt),
+          read: n.isRead,
+          actionUrl: n.link || undefined,
+          amount: n.amount || undefined,
+          avatar: n.avatar || n.senderImage || undefined,
+        }));
+        setNotifications(mapped);
+      }
+
+      if (balRes.status === 'fulfilled' && balRes.value && balRes.value.ok) {
+        const data = await balRes.value.json();
+        if (data.action === 1 && data.data) {
+          setBalance(data.data);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch notifications:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [balance]);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -238,14 +202,26 @@ const Notifications = () => {
     }
   };
 
-  const markAsRead = (id: string) => {
+  const markAsRead = async (id: string) => {
     setNotifications(prev =>
       prev.map(n => n.id === id ? { ...n, read: true } : n)
     );
+    try {
+      const apiUrl = getApiUrl();
+      await dashboardAuthFetch(`${apiUrl}/api/remote/customer/notifications/${id}/read`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' } });
+    } catch (err) {
+      console.error('Failed to mark notification as read:', err);
+    }
   };
 
-  const markAllAsRead = () => {
+  const markAllAsRead = async () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    try {
+      const apiUrl = getApiUrl();
+      await dashboardAuthFetch(`${apiUrl}/api/remote/customer/notifications/read-all`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' } });
+    } catch (err) {
+      console.error('Failed to mark all as read:', err);
+    }
   };
 
   const deleteNotification = (id: string) => {
@@ -471,7 +447,7 @@ const Notifications = () => {
         <Sidebar />
 
         <div className="notifications-content">
-          <Topbar userRole="photographer" />
+          <Topbar userRole="photographer" tipsAmount={balance?.totalTips || 0} bonusAmount={balance?.totalBonuses || 0} balanceAmount={balance?.totalBalance || balance?.balance || 0} />
 
           <div className="notifications-main">
           {/* Header */}

@@ -1,10 +1,18 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
+import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
+
+function getApiUrl(): string {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    return '/api/proxy';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+}
 
 // Icons
 const SearchIcon = () => (
@@ -121,6 +129,7 @@ interface Conversation {
 
 const InboxPage = () => {
   const { colors, actualTheme } = useTheme();
+  const { user } = useDashboardAuth();
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [messageInput, setMessageInput] = useState('');
@@ -132,6 +141,8 @@ const InboxPage = () => {
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editMessageContent, setEditMessageContent] = useState('');
+  const [balance, setBalance] = useState<any>(null);
+  const apiUrl = getApiUrl();
 
   // Close emoji picker when clicking outside
   useEffect(() => {
@@ -148,153 +159,119 @@ const InboxPage = () => {
     setMessageInput(prev => prev + emoji);
   };
 
-  const currentUserId = 'current-user';
+  const currentUserId = user?.id || '';
 
-  const [conversations, setConversations] = useState<Conversation[]>([
-    {
-      id: '1',
-      participants: [
-        { id: '1', name: 'Sarah Johnson', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'client', isOnline: true },
-        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'photographer', isOnline: true }
-      ],
-      lastMessage: { content: 'Thank you for the beautiful photos!', senderId: '1', createdAt: '2025-07-19T14:30:00' },
-      unreadCount: 2,
-      isPinned: true,
-      isMuted: false,
-      bookingId: 'BK-001',
-      messages: [
-        { id: 'm1', conversationId: '1', senderId: '1', senderName: 'Sarah Johnson', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Hi! I would like to book a wedding photoshoot', type: 'text', isRead: true, createdAt: '2025-07-19T10:00:00' },
-        { id: 'm2', conversationId: '1', senderId: currentUserId, senderName: 'John Studio', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Hello Sarah! I would be happy to help. When is your wedding date?', type: 'text', isRead: true, createdAt: '2025-07-19T10:15:00' },
-        { id: 'm3', conversationId: '1', senderId: '1', senderName: 'Sarah Johnson', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'It is on June 15th, 2025. Do you have availability?', type: 'text', isRead: true, createdAt: '2025-07-19T10:30:00' },
-        { id: 'm4', conversationId: '1', senderId: currentUserId, senderName: 'John Studio', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Yes, I am available on that date! Let me send you my wedding packages.', type: 'text', isRead: true, createdAt: '2025-07-19T11:00:00' },
-        { id: 'm5', conversationId: '1', senderId: '1', senderName: 'Sarah Johnson', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'That sounds great! When can we expect the photos?', type: 'text', isRead: false, createdAt: '2025-07-19T14:00:00' },
-        { id: 'm6', conversationId: '1', senderId: '1', senderName: 'Sarah Johnson', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Thank you for the beautiful photos!', type: 'text', isRead: false, createdAt: '2025-07-19T14:30:00' }
-      ]
-    },
-    {
-      id: '2',
-      participants: [
-        { id: '2', name: 'Michael Chen', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'client', isOnline: false, lastSeen: '2 hours ago' },
-        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'photographer', isOnline: true }
-      ],
-      lastMessage: { content: 'When can we schedule the portrait session?', senderId: '2', createdAt: '2025-07-18T16:45:00' },
-      unreadCount: 0,
-      isPinned: false,
-      isMuted: false,
-      messages: [
-        { id: 'm7', conversationId: '2', senderId: '2', senderName: 'Michael Chen', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Hello, I saw your portfolio and I am interested in a corporate portrait session', type: 'text', isRead: true, createdAt: '2025-07-18T14:00:00' },
-        { id: 'm8', conversationId: '2', senderId: currentUserId, senderName: 'John Studio', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Thank you for reaching out! I would love to work with you. What type of corporate portraits are you looking for?', type: 'text', isRead: true, createdAt: '2025-07-18T15:00:00' },
-        { id: 'm9', conversationId: '2', senderId: '2', senderName: 'Michael Chen', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'When can we schedule the portrait session?', type: 'text', isRead: true, createdAt: '2025-07-18T16:45:00' }
-      ]
-    },
-    {
-      id: '3',
-      participants: [
-        { id: '3', name: 'Emily Rodriguez', image: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg', userType: 'client', isOnline: true },
-        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'photographer', isOnline: true }
-      ],
-      lastMessage: { content: 'I received the edited photos. They look amazing!', senderId: '3', createdAt: '2025-07-17T09:30:00' },
-      unreadCount: 1,
-      isPinned: false,
-      isMuted: false,
-      messages: [
-        { id: 'm10', conversationId: '3', senderId: currentUserId, senderName: 'John Studio', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Hi Emily! Your edited photos are ready. I have sent them to your email.', type: 'text', isRead: true, createdAt: '2025-07-16T18:00:00' },
-        { id: 'm11', conversationId: '3', senderId: '3', senderName: 'Emily Rodriguez', senderImage: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg', content: 'I received the edited photos. They look amazing!', type: 'text', isRead: false, createdAt: '2025-07-17T09:30:00' }
-      ]
-    },
-    {
-      id: '4',
-      participants: [
-        { id: '4', name: 'David Park', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'client', isOnline: false, lastSeen: '1 day ago' },
-        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'photographer', isOnline: true }
-      ],
-      lastMessage: { content: 'Can you also do video coverage?', senderId: '4', createdAt: '2025-07-15T11:20:00' },
-      unreadCount: 0,
-      isPinned: true,
-      isMuted: true,
-      bookingId: 'BK-002',
-      messages: [
-        { id: 'm13', conversationId: '4', senderId: '4', senderName: 'David Park', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Hi! I need photography for my product launch event in Seattle', type: 'text', isRead: true, createdAt: '2025-07-14T10:00:00' },
-        { id: 'm14', conversationId: '4', senderId: currentUserId, senderName: 'John Studio', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Hello David! I would be glad to cover your event. Can you tell me more about it?', type: 'text', isRead: true, createdAt: '2025-07-14T14:00:00' },
-        { id: 'm15', conversationId: '4', senderId: '4', senderName: 'David Park', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Can you also do video coverage?', type: 'text', isRead: true, createdAt: '2025-07-15T11:20:00' }
-      ]
-    },
-    {
-      id: '5',
-      participants: [
-        { id: '5', name: 'Jessica Williams', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'client', isOnline: true },
-        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'photographer', isOnline: true }
-      ],
-      lastMessage: { content: 'Looking forward to the engagement shoot!', senderId: '5', createdAt: '2025-07-14T09:15:00' },
-      unreadCount: 1,
-      isPinned: false,
-      isMuted: false,
-      messages: [
-        { id: 'm16', conversationId: '5', senderId: '5', senderName: 'Jessica Williams', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Hi! We\'re getting engaged and need photos.', type: 'text', isRead: true, createdAt: '2025-07-13T15:00:00' },
-        { id: 'm17', conversationId: '5', senderId: '5', senderName: 'Jessica Williams', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Looking forward to the engagement shoot!', type: 'text', isRead: false, createdAt: '2025-07-14T09:15:00' }
-      ]
-    },
-    {
-      id: '6',
-      participants: [
-        { id: '6', name: 'Robert Martinez', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'client', isOnline: false, lastSeen: '3 hours ago' },
-        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'photographer', isOnline: true }
-      ],
-      lastMessage: { content: 'Can you send me a quote for the real estate photos?', senderId: '6', createdAt: '2025-07-13T16:30:00' },
-      unreadCount: 0,
-      isPinned: false,
-      isMuted: false,
-      messages: [
-        { id: 'm18', conversationId: '6', senderId: '6', senderName: 'Robert Martinez', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'I have 5 properties that need professional photos.', type: 'text', isRead: true, createdAt: '2025-07-13T14:00:00' },
-        { id: 'm19', conversationId: '6', senderId: '6', senderName: 'Robert Martinez', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Can you send me a quote for the real estate photos?', type: 'text', isRead: true, createdAt: '2025-07-13T16:30:00' }
-      ]
-    },
-    {
-      id: '7',
-      participants: [
-        { id: '7', name: 'Amanda Lee', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'client', isOnline: true },
-        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'photographer', isOnline: true }
-      ],
-      lastMessage: { content: 'The family portraits turned out beautiful!', senderId: '7', createdAt: '2025-07-12T18:00:00' },
-      unreadCount: 0,
-      isPinned: false,
-      isMuted: false,
-      messages: [
-        { id: 'm20', conversationId: '7', senderId: '7', senderName: 'Amanda Lee', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Thank you so much for the session yesterday!', type: 'text', isRead: true, createdAt: '2025-07-12T12:00:00' },
-        { id: 'm21', conversationId: '7', senderId: '7', senderName: 'Amanda Lee', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'The family portraits turned out beautiful!', type: 'text', isRead: true, createdAt: '2025-07-12T18:00:00' }
-      ]
-    },
-    {
-      id: '8',
-      participants: [
-        { id: '8', name: 'Chris Thompson', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'client', isOnline: false, lastSeen: '5 hours ago' },
-        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'photographer', isOnline: true }
-      ],
-      lastMessage: { content: 'Do you do sports photography?', senderId: '8', createdAt: '2025-07-11T14:45:00' },
-      unreadCount: 2,
-      isPinned: false,
-      isMuted: false,
-      messages: [
-        { id: 'm22', conversationId: '8', senderId: '8', senderName: 'Chris Thompson', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Hey! I coach a youth soccer team.', type: 'text', isRead: true, createdAt: '2025-07-11T10:00:00' },
-        { id: 'm23', conversationId: '8', senderId: '8', senderName: 'Chris Thompson', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Do you do sports photography?', type: 'text', isRead: false, createdAt: '2025-07-11T14:45:00' }
-      ]
-    },
-    {
-      id: '9',
-      participants: [
-        { id: '9', name: 'Sophia Brown', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'client', isOnline: true },
-        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'photographer', isOnline: true }
-      ],
-      lastMessage: { content: 'I need maternity photos for next month.', senderId: '9', createdAt: '2025-07-10T11:30:00' },
-      unreadCount: 0,
-      isPinned: false,
-      isMuted: false,
-      messages: [
-        { id: 'm24', conversationId: '9', senderId: '9', senderName: 'Sophia Brown', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Hi! I found your work on Instagram.', type: 'text', isRead: true, createdAt: '2025-07-10T09:00:00' },
-        { id: 'm25', conversationId: '9', senderId: '9', senderName: 'Sophia Brown', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'I need maternity photos for next month.', type: 'text', isRead: true, createdAt: '2025-07-10T11:30:00' }
-      ]
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+
+  // Fetch conversations from API
+  const fetchConversations = useCallback(async () => {
+    try {
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/chat/conversations`);
+      if (res.ok) {
+        const data = await res.json();
+        const convos: Conversation[] = (data.data || []).map((c: any) => ({
+          id: c.id,
+          participants: (c.participants || []).map((p: any) => ({
+            id: p.id,
+            name: p.name || '',
+            image: p.image || '',
+            userType: p.userType || '',
+            isOnline: p.isOnline || false,
+            lastSeen: p.lastSeen,
+          })),
+          lastMessage: c.lastMessage ? {
+            content: c.lastMessage.content,
+            senderId: c.lastMessage.senderId,
+            createdAt: c.lastMessage.createdAt,
+          } : undefined,
+          unreadCount: c.unreadCount || 0,
+          isPinned: c.isPinned || false,
+          isMuted: c.isMuted || false,
+          bookingId: c.bookingId,
+          messages: [],
+        }));
+        setConversations(convos);
+      }
+    } catch (err) {
+      console.error('Failed to fetch conversations:', err);
     }
-  ]);
+  }, [apiUrl]);
+
+  // Load messages for a conversation
+  const loadMessages = useCallback(async (partnerId: string) => {
+    try {
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/chat/messages/${partnerId}`);
+      if (res.ok) {
+        const data = await res.json();
+        const msgs: Message[] = (data.data || []).map((m: any) => ({
+          id: m.id,
+          conversationId: m.conversationId,
+          senderId: m.senderId,
+          senderName: m.senderName || '',
+          senderImage: m.senderImage || '',
+          content: m.content,
+          type: m.type || 'text',
+          attachments: m.attachments,
+          isRead: m.isRead || false,
+          createdAt: m.createdAt,
+        }));
+        setConversations(prev => prev.map(conv =>
+          conv.id === partnerId ? { ...conv, messages: msgs } : conv
+        ));
+      }
+    } catch (err) {
+      console.error('Failed to load messages:', err);
+    }
+  }, [apiUrl]);
+
+  // Mark messages as read
+  const markConversationAsRead = useCallback(async (partnerId: string) => {
+    try {
+      await dashboardAuthFetch(`${apiUrl}/api/remote/chat/messages/${partnerId}/read`, {
+        method: 'PATCH',
+      });
+      setConversations(prev => prev.map(conv =>
+        conv.id === partnerId ? { ...conv, unreadCount: 0 } : conv
+      ));
+    } catch (err) {
+      console.error('Failed to mark as read:', err);
+    }
+  }, [apiUrl]);
+
+  // Fetch conversations on mount
+  useEffect(() => {
+    if (currentUserId) {
+      fetchConversations();
+    }
+  }, [currentUserId, fetchConversations]);
+
+  // Fetch balance
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/balance`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.action === 1 && data.data) {
+            setBalance(data.data);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch balance:', err);
+      }
+    })();
+  }, [apiUrl]);
+
+  // Load messages and mark as read when conversation is selected
+  useEffect(() => {
+    if (selectedConversation) {
+      loadMessages(selectedConversation);
+      const conv = conversations.find(c => c.id === selectedConversation);
+      if (conv && conv.unreadCount > 0) {
+        markConversationAsRead(selectedConversation);
+      }
+    }
+  }, [selectedConversation, loadMessages, markConversationAsRead]);
 
   // Scroll to bottom of messages
   useEffect(() => {
@@ -326,16 +303,20 @@ const InboxPage = () => {
     return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   };
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (!messageInput.trim() || !selectedConversation) return;
 
-    const newMessage: Message = {
-      id: `m${Date.now()}`,
+    const content = messageInput;
+    setMessageInput('');
+
+    // Optimistic local update
+    const tempMessage: Message = {
+      id: `temp-${Date.now()}`,
       conversationId: selectedConversation,
       senderId: currentUserId,
-      senderName: 'John Studio',
-      senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
-      content: messageInput,
+      senderName: user?.firstName ? `${user.firstName} ${user.lastName || ''}` : '',
+      senderImage: user?.profilePicture || '',
+      content,
       type: 'text',
       isRead: false,
       createdAt: new Date().toISOString()
@@ -345,14 +326,27 @@ const InboxPage = () => {
       if (conv.id === selectedConversation) {
         return {
           ...conv,
-          messages: [...conv.messages, newMessage],
-          lastMessage: { content: messageInput, senderId: currentUserId, createdAt: newMessage.createdAt }
+          messages: [...conv.messages, tempMessage],
+          lastMessage: { content, senderId: currentUserId, createdAt: tempMessage.createdAt }
         };
       }
       return conv;
     }));
 
-    setMessageInput('');
+    try {
+      const formData = new FormData();
+      formData.append('senderId', currentUserId);
+      formData.append('recipientId', selectedConversation);
+      formData.append('content', content);
+
+      await dashboardAuthFetch(`${apiUrl}/api/remote/chat/send`, {
+        method: 'POST',
+        body: formData,
+      });
+      loadMessages(selectedConversation);
+    } catch (err) {
+      console.error('Failed to send message:', err);
+    }
   };
 
   // Message action handlers
@@ -361,23 +355,35 @@ const InboxPage = () => {
     setEditMessageContent(currentContent);
   };
 
-  const saveEditedMessage = () => {
+  const saveEditedMessage = async () => {
     if (!editingMessageId || !editMessageContent.trim() || !selectedConversation) return;
 
+    const msgId = editingMessageId;
+    const newContent = editMessageContent;
+    setEditingMessageId(null);
+    setEditMessageContent('');
+
+    // Optimistic update
     setConversations(prev => prev.map(conv => {
       if (conv.id === selectedConversation) {
         return {
           ...conv,
           messages: conv.messages.map(msg =>
-            msg.id === editingMessageId ? { ...msg, content: editMessageContent } : msg
+            msg.id === msgId ? { ...msg, content: newContent } : msg
           )
         };
       }
       return conv;
     }));
 
-    setEditingMessageId(null);
-    setEditMessageContent('');
+    try {
+      await dashboardAuthFetch(
+        `${apiUrl}/api/remote/chat/messages/${msgId}?senderId=${currentUserId}&content=${encodeURIComponent(newContent)}`,
+        { method: 'PUT' }
+      );
+    } catch (err) {
+      console.error('Failed to edit message:', err);
+    }
   };
 
   const cancelEdit = () => {
@@ -385,9 +391,10 @@ const InboxPage = () => {
     setEditMessageContent('');
   };
 
-  const handleDeleteMessage = (messageId: string) => {
+  const handleDeleteMessage = async (messageId: string) => {
     if (!selectedConversation) return;
 
+    // Optimistic update
     setConversations(prev => prev.map(conv => {
       if (conv.id === selectedConversation) {
         const updatedMessages = conv.messages.filter(msg => msg.id !== messageId);
@@ -400,6 +407,15 @@ const InboxPage = () => {
       }
       return conv;
     }));
+
+    try {
+      await dashboardAuthFetch(
+        `${apiUrl}/api/remote/chat/messages/${messageId}?senderId=${currentUserId}`,
+        { method: 'DELETE' }
+      );
+    } catch (err) {
+      console.error('Failed to delete message:', err);
+    }
   };
 
   const filteredConversations = conversations.filter(conv => {
@@ -533,7 +549,7 @@ const InboxPage = () => {
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div className={`mobile-topbar ${selectedConversation ? 'mobile-chat-active' : ''}`}>
-          <Topbar userRole="photographer" />
+          <Topbar userRole="photographer" tipsAmount={balance?.totalTips || 0} bonusAmount={balance?.totalBonuses || 0} balanceAmount={balance?.totalBalance || balance?.balance || 0} />
         </div>
         <div className="mobile-inbox-container" style={{ flex: 1, display: 'flex', overflow: 'hidden', margin: '0 1.25rem 1rem 1.25rem' }}>
 
