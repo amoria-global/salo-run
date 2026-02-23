@@ -1023,7 +1023,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
             {/* Donations Page Link */}
             <div style={{ marginTop: '0.5rem' }}>
               <a
-                href="http://localhost:3000/user/donations"
+                href={`${process.env.NEXT_PUBLIC_LANDING_URL || 'https://amoria-connekt.vercel.app'}/user/donations`}
                 onClick={(e) => {
                   e.preventDefault();
                   router.push('/user/donations');
@@ -2337,7 +2337,7 @@ Amount: ${formatPrice(transaction.amountNum)}
         isOpen={showWithdrawModal}
         onClose={() => setShowWithdrawModal(false)}
         availableBalance={availableBalance}
-        userName={user?.name || `${user?.firstName || ''} ${user?.lastName || ''}`.trim()}
+        userName={`${user?.firstName || ''} ${user?.lastName || ''}`.trim()}
       />
 
       {/* Tips Modal */}
