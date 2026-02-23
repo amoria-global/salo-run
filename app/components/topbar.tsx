@@ -134,6 +134,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [giftAmount, setGiftAmount] = useState(giftAmountProp ?? 0);
@@ -1084,7 +1085,10 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
                 </button>
 
                 <button
-                  onClick={logout}
+                  onClick={() => {
+                    setIsDropdownOpen(false);
+                    setShowLogoutModal(true);
+                  }}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -1116,6 +1120,105 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
         </div>
       </div>
     </div>
+
+    {/* Logout Confirmation Modal */}
+    {showLogoutModal && (
+      <div
+        onClick={() => setShowLogoutModal(false)}
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+        }}
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            backgroundColor: colors.bgSecondary,
+            borderRadius: '0.75rem',
+            padding: '1.75rem',
+            maxWidth: '380px',
+            width: '90%',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            textAlign: 'center',
+          }}
+        >
+          {/* Icon */}
+          <div style={{
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            backgroundColor: actualTheme === 'dark' ? '#3B1A1A' : '#FEF2F2',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 1rem',
+          }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <polyline points="16,17 21,12 16,7" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <line x1="21" y1="12" x2="9" y2="12" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+
+          {/* Title */}
+          <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>
+            Are you sure you want to logout?
+          </h3>
+
+          {/* Description */}
+          <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0 0 1.5rem', lineHeight: '1.5' }}>
+            You will be signed out of your account and redirected to the login page.
+          </p>
+
+          {/* Buttons */}
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button
+              onClick={() => setShowLogoutModal(false)}
+              style={{
+                flex: 1,
+                padding: '0.625rem',
+                border: `2px solid ${colors.borderPrimary}`,
+                borderRadius: '0.5rem',
+                backgroundColor: 'transparent',
+                color: colors.textPrimary,
+                fontSize: '0.9rem',
+                fontWeight: '500',
+                cursor: 'pointer',
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                setShowLogoutModal(false);
+                logout();
+              }}
+              style={{
+                flex: 1,
+                padding: '0.625rem',
+                border: '2px solid #B91C1C',
+                borderRadius: '0.5rem',
+                backgroundColor: '#DC2626',
+                color: 'white',
+                fontSize: '0.9rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+              }}
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     </>
   );
 }
