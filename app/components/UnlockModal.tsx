@@ -552,7 +552,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
           {/* Donations Page Link */}
           <div style={{ marginTop: '0.5rem' }}>
             <a
-              href="http://localhost:3000/user/donations"
+              href={`${process.env.NEXT_PUBLIC_LANDING_URL || 'https://amoria-connekt.vercel.app'}/user/donations`}
               onClick={(e) => {
                 e.preventDefault();
                 router.push('/user/donations');
