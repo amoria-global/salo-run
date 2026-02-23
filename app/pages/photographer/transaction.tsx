@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
@@ -8,6 +8,14 @@ import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
 import { HeartIcon } from '../../components/UnlockModal';
+import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
+
+function getApiUrl(): string {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    return '/api/proxy';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+}
 
 // Icons
 const DownloadIcon = () => (
@@ -515,6 +523,7 @@ Amount: ${formatPrice(transaction.amountNum)}
 
 // Withdraw Modal
 interface WithdrawModalProps {
+  userName?: string;
   isOpen: boolean;
   onClose: () => void;
   availableBalance: number;
@@ -529,7 +538,7 @@ interface WithdrawAccount {
   color: string;
 }
 
-const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availableBalance }) => {
+const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availableBalance, userName }) => {
   const { colors, actualTheme } = useTheme();
   const { formatPrice } = useCurrency();
   const router = useRouter();
@@ -540,10 +549,11 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
   const [donationSkipped, setDonationSkipped] = useState<boolean>(false);
   const [showCustomInput, setShowCustomInput] = useState<boolean>(false);
 
+  const displayName = userName || 'Account Holder';
   const accounts: WithdrawAccount[] = [
-    { id: 'mtn', type: 'mtn', label: 'MTN Mobile Money', accountNumber: '0789 XXX 980', accountName: 'John Doe', color: '#F59E0B' },
-    { id: 'airtel', type: 'airtel', label: 'Airtel Money', accountNumber: '0738 XXX 456', accountName: 'John Doe', color: '#ED1C24' },
-    { id: 'visa', type: 'card', label: 'Visa Debit Card', accountNumber: '**** **** **** 4187', accountName: 'John Doe', color: '#8B5CF6' }
+    { id: 'mtn', type: 'mtn', label: 'MTN Mobile Money', accountNumber: '0789 XXX 980', accountName: displayName, color: '#F59E0B' },
+    { id: 'airtel', type: 'airtel', label: 'Airtel Money', accountNumber: '0738 XXX 456', accountName: displayName, color: '#ED1C24' },
+    { id: 'visa', type: 'card', label: 'Visa Debit Card', accountNumber: '**** **** **** 4187', accountName: displayName, color: '#8B5CF6' }
   ];
 
   const donationValue = donationAmount === 'custom' ? (parseFloat(customDonation) || 0) : (parseFloat(donationAmount) || 0);
@@ -1132,8 +1142,20 @@ const EarningsChart: React.FC<EarningsChartProps> = ({ data, height = 140, chart
   const { colors } = useTheme();
   const { formatPrice } = useCurrency();
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const maxValue = Math.max(...data.map(d => d.value));
-  const minValue = Math.min(...data.map(d => d.value));
+
+  // Filter out invalid entries and handle empty/insufficient data
+  const safeData = (data || []).filter(d => d && typeof d.value === 'number');
+
+  if (safeData.length === 0) {
+    return (
+      <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.textSecondary, fontSize: '0.85rem' }}>
+        No earnings data available
+      </div>
+    );
+  }
+
+  const maxValue = Math.max(...safeData.map(d => d.value));
+  const minValue = Math.min(...safeData.map(d => d.value));
   const range = maxValue - minValue || 1;
   const paddingTop = 20;
   const paddingBottom = 30;
@@ -1142,28 +1164,31 @@ const EarningsChart: React.FC<EarningsChartProps> = ({ data, height = 140, chart
   const chartHeight = height - paddingTop - paddingBottom;
   const chartWidth = 500;
   const barWidth = 35;
-  const barGap = (chartWidth - paddingLeft - paddingRight - (data.length * barWidth)) / (data.length - 1);
+  const divisor = safeData.length > 1 ? safeData.length - 1 : 1;
+  const barGap = (chartWidth - paddingLeft - paddingRight - (safeData.length * barWidth)) / divisor;
 
-  const points = data.map((item, index) => {
+  const points = safeData.map((item, index) => {
     const x = chartType === 'bar'
       ? paddingLeft + index * (barWidth + barGap) + barWidth / 2
-      : paddingLeft + (index / (data.length - 1)) * (chartWidth - paddingLeft - paddingRight);
+      : paddingLeft + (index / divisor) * (chartWidth - paddingLeft - paddingRight);
     const y = paddingTop + chartHeight - ((item.value - minValue) / range) * chartHeight;
     return { x, y, ...item };
   });
 
   // Create smooth bezier curve for line chart
-  const pathD = points.map((point, index) => {
+  const pathD = points.length > 0 ? points.map((point, index) => {
     if (index === 0) return `M ${point.x} ${point.y}`;
     const prev = points[index - 1];
     const tension = 0.3;
     const cpx1 = prev.x + (point.x - prev.x) * tension;
     const cpx2 = point.x - (point.x - prev.x) * tension;
     return `C ${cpx1} ${prev.y} ${cpx2} ${point.y} ${point.x} ${point.y}`;
-  }).join(' ');
+  }).join(' ') : '';
 
   // Area path for line chart
-  const areaPath = `${pathD} L ${points[points.length - 1].x} ${height - paddingBottom} L ${points[0].x} ${height - paddingBottom} Z`;
+  const areaPath = points.length > 0
+    ? `${pathD} L ${points[points.length - 1].x} ${height - paddingBottom} L ${points[0].x} ${height - paddingBottom} Z`
+    : '';
 
   const renderChart = () => {
     switch (chartType) {
@@ -1317,7 +1342,7 @@ const EarningsChart: React.FC<EarningsChartProps> = ({ data, height = 140, chart
         </svg>
 
         {/* Tooltip */}
-        {hoveredIndex !== null && (
+        {hoveredIndex !== null && points[hoveredIndex] && (
           <div style={{
             position: 'absolute',
             left: `${(points[hoveredIndex].x / chartWidth) * 100}%`,
@@ -1364,7 +1389,7 @@ const EarningsChart: React.FC<EarningsChartProps> = ({ data, height = 140, chart
           justifyContent: 'space-between',
           padding: '0 5px'
         }}>
-          {data.map((item, index) => (
+          {safeData.map((item, index) => (
             <span key={index} style={{
               fontSize: '0.75rem',
               color: '#9CA3AF',
@@ -1389,8 +1414,8 @@ interface EarningsGaugeProps {
 
 const EarningsGauge: React.FC<EarningsGaugeProps> = ({ completed, pending, withdrawn }) => {
   const total = completed + pending + withdrawn;
-  const completedAngle = (completed / total) * 180;
-  const pendingAngle = (pending / total) * 180;
+  const completedAngle = total > 0 ? (completed / total) * 180 : 60;
+  const pendingAngle = total > 0 ? (pending / total) * 180 : 60;
 
   const createArc = (startAngle: number, endAngle: number, color: string) => {
     const radius = 70;
@@ -1476,14 +1501,19 @@ const ServiceTypeBadge: React.FC<ServiceTypeBadgeProps> = ({ type }) => {
 const TransactionsPage = () => {
   const { colors, actualTheme } = useTheme();
   const { formatPrice } = useCurrency();
+  const { user } = useDashboardAuth();
   const [activeTimeFilter, setActiveTimeFilter] = useState<'1W' | '1M' | '3M' | '6M' | '1Y'>('1W');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
   const [chartType, setChartType] = useState<ChartType>('line');
   const [showReportModal, setShowReportModal] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [showTipsModal, setShowTipsModal] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [balance, setBalance] = useState<any>(null);
+  const [analytics, setAnalytics] = useState<any>(null);
 
   const handleViewTransaction = (transaction: Transaction) => {
     setSelectedTransaction(transaction);
@@ -1520,51 +1550,118 @@ Amount: ${formatPrice(transaction.amountNum)}
     URL.revokeObjectURL(url);
   };
 
-  const earningsData = [
-    { date: 'Nov 13', value: 650 },
-    { date: 'Nov 14', value: 480 },
-    { date: 'Nov 15', value: 720 },
-    { date: 'Nov 16', value: 550 },
-    { date: 'Nov 17', value: 380 },
-    { date: 'Nov 18', value: 620 },
-    { date: 'Nov 19', value: 450 }
-  ];
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [earningsData, setEarningsData] = useState<{ date: string; value: number }[]>([]);
+  const [tipsData, setTipsData] = useState<{ id: number; clientName: string; amount: number; date: string; eventName: string; message: string }[]>([]);
 
-  const transactions: Transaction[] = [
-    { id: 1, date: 'Nov, 20 14:05 PM', clientName: 'Sarah Johnson', clientImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', service: 'Wedding Photography', serviceType: 'Wedding', method: 'Credit Card', amount: '$450.0', amountNum: 450, status: 'completed', transactionId: '4****4492', requestId: 'AM26412' },
-    { id: 2, date: 'Nov, 18 10:30 AM', clientName: 'Michael Brown', clientImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', service: 'Birthday Party', serviceType: 'Birthday', method: 'Mobile Money', amount: '$300.0', amountNum: 300, status: 'pending', transactionId: '4****4493', requestId: 'AM26413' },
-    { id: 3, date: 'Nov, 25 09:00 AM', clientName: 'Emily Davis', clientImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', service: 'Corporate Event', serviceType: 'Corporate', method: '-', amount: '$500.0', amountNum: 500, status: 'in_progress', transactionId: '4****4494', requestId: 'AM26414' },
-    { id: 4, date: 'Sep, 15 16:00 PM', clientName: 'James Wilson', clientImage: 'https://i.pinimg.com/1200x/09/23/45/092345eac1919407e0c49f67e285b831.jpg', service: 'Portrait Session', serviceType: 'Portrait', method: 'Bank Transfer', amount: '$350.0', amountNum: 350, status: 'withdrawn', transactionId: '4****4495', requestId: 'AM26415' },
-    { id: 5, date: 'Nov, 25 14:00 PM', clientName: 'Lisa Anderson', clientImage: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg', service: 'Event Coverage', serviceType: 'Event', method: 'Credit Card', amount: '$200.0', amountNum: 200, status: 'initiated', transactionId: '4****4496', requestId: 'AM26416' },
-    { id: 6, date: 'Oct, 01 11:00 AM', clientName: 'Robert Taylor', clientImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', service: 'Corporate Headshots', serviceType: 'Corporate', method: 'Credit Card', amount: '$400.0', amountNum: 400, status: 'completed', transactionId: '4****4497', requestId: 'AM26417' },
-    { id: 7, date: 'Nov, 12 15:30 PM', clientName: 'Jennifer Martinez', clientImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', service: 'Wedding Reception', serviceType: 'Wedding', method: 'Mobile Money', amount: '$250.0', amountNum: 250, status: 'completed', transactionId: '4****4498', requestId: 'AM26418' },
-    { id: 8, date: 'Nov, 28 10:00 AM', clientName: 'David Garcia', clientImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', service: 'Birthday Party', serviceType: 'Birthday', method: '-', amount: '$350.0', amountNum: 350, status: 'pending', transactionId: '4****4499', requestId: 'AM26419' },
-  ];
+  function formatTxDate(dateStr: string): string {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const h = d.getHours();
+    return `${months[d.getMonth()]}, ${String(d.getDate()).padStart(2, '0')} ${String(h % 12 || 12).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+  }
 
-  // Calculate totals
+  function mapStatus(s: string): TransactionStatus {
+    if (!s) return 'initiated';
+    const u = s.toUpperCase();
+    if (u === 'COMPLETED' || u === 'SUCCESS') return 'completed';
+    if (u === 'PENDING') return 'pending';
+    if (u === 'IN_PROGRESS' || u === 'PROCESSING') return 'in_progress';
+    if (u === 'WITHDRAWN') return 'withdrawn';
+    return 'initiated';
+  }
+
+  const fetchData = useCallback(async (page: number = 0) => {
+    const apiUrl = getApiUrl();
+    try {
+      const [txRes, balRes, analyticsRes] = await Promise.allSettled([
+        dashboardAuthFetch(`${apiUrl}/api/remote/photographer/transactions?page=${page}&size=8`),
+        dashboardAuthFetch(`${apiUrl}/api/remote/photographer/balance`),
+        dashboardAuthFetch(`${apiUrl}/api/remote/photographer/analytics`),
+      ]);
+
+      if (txRes.status === 'fulfilled' && txRes.value.ok) {
+        const data = await txRes.value.json();
+        if (data.action === 1 && data.data) {
+          const content = Array.isArray(data.data) ? data.data : data.data.content || [];
+          const mapped: Transaction[] = content.map((t: any, i: number) => ({
+            id: t.id || i + 1,
+            date: formatTxDate(t.createdAt || t.date || ''),
+            clientName: t.clientName || t.customerName || t.photographerName || 'N/A',
+            clientImage: t.clientImage || t.customerImage || '/default-avatar.png',
+            service: t.service || t.description || t.eventTitle || t.paymentType || 'Payment',
+            serviceType: t.serviceType || t.eventType || t.paymentType || 'Service',
+            method: t.paymentMethod || t.method || '-',
+            amount: `$${t.amount || 0}`,
+            amountNum: t.amount || 0,
+            status: mapStatus(t.status || ''),
+            transactionId: t.transactionId || t.reference || `${String(t.id).slice(0, 4)}****`,
+            requestId: t.requestId || t.reference || t.invoiceNumber || `AM${t.id || i}`,
+          }));
+          setTransactions(mapped);
+          if (data.data.totalPages) setTotalPages(data.data.totalPages);
+          if (data.data.number !== undefined) setCurrentPage(data.data.number);
+        }
+      }
+
+      if (balRes.status === 'fulfilled' && balRes.value.ok) {
+        const data = await balRes.value.json();
+        if (data.action === 1 && data.data) {
+          setBalance(data.data);
+          // Map tips from balance data if available
+          if (data.data.tips && Array.isArray(data.data.tips)) {
+            setTipsData(data.data.tips.map((t: any, i: number) => ({
+              id: t.id || i + 1,
+              clientName: t.clientName || t.customerName || 'Client',
+              amount: t.amount || 0,
+              date: t.date || t.createdAt || '',
+              eventName: t.eventName || t.description || 'Service',
+              message: t.message || '',
+            })));
+          }
+        }
+      }
+
+      if (analyticsRes.status === 'fulfilled' && analyticsRes.value.ok) {
+        const data = await analyticsRes.value.json();
+        if (data.action === 1 && data.data) {
+          setAnalytics(data.data);
+          // Map earnings chart data if available
+          if (data.data.earningsChart && Array.isArray(data.data.earningsChart)) {
+            setEarningsData(data.data.earningsChart.map((e: any) => ({
+              date: e.date || e.label || '',
+              value: e.value || e.amount || 0,
+            })));
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[Transactions] Error fetching:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData(0);
+  }, [fetchData]);
+
+  // Calculate totals from fetched transactions
   const totalCompleted = transactions.filter(t => t.status === 'completed').reduce((sum, t) => sum + t.amountNum, 0);
   const totalPending = transactions.filter(t => t.status === 'pending' || t.status === 'in_progress' || t.status === 'initiated').reduce((sum, t) => sum + t.amountNum, 0);
   const totalWithdrawn = transactions.filter(t => t.status === 'withdrawn').reduce((sum, t) => sum + t.amountNum, 0);
 
-  // Tips data (from clients/viewers)
-  const tipsData = [
-    { id: 1, clientName: 'Sarah Johnson', amount: 150, date: 'Nov 20, 2024', eventName: 'Wedding Photography', message: 'Amazing photos! Thank you!' },
-    { id: 2, clientName: 'Michael Brown', amount: 75, date: 'Nov 18, 2024', eventName: 'Birthday Party', message: 'Great work!' },
-    { id: 3, clientName: 'Emily Davis', amount: 50, date: 'Nov 15, 2024', eventName: 'Corporate Event', message: '' },
-  ];
-  const totalTips = tipsData.reduce((sum, t) => sum + t.amount, 0);
-
-  // Platform bonus data (10% for every 10 events completed)
-  const completedEventsCount = 27; // Total completed events
-  const totalEventsAmount = 7250; // Total amount from all completed events
-  const bonusEligibleSets = Math.floor(completedEventsCount / 10); // How many sets of 10 events
-  const platformBonus = 725; // Consistent bonus amount across all pages
+  // Balance values from API
+  const totalTips = balance?.totalTips || tipsData.reduce((sum, t) => sum + t.amount, 0);
+  const completedEventsCount = analytics?.completedEvents || analytics?.totalCompletedEvents || 0;
+  const totalEventsAmount = analytics?.totalEarnings || totalCompleted + totalPending + totalWithdrawn;
+  const bonusEligibleSets = Math.floor(completedEventsCount / 10);
+  const platformBonus = balance?.totalBonuses || 0;
   const nextBonusAt = (bonusEligibleSets + 1) * 10;
   const eventsToNextBonus = nextBonusAt - completedEventsCount;
+  const availableBalance = balance?.totalBalance || balance?.balance || 0;
 
-  const availableBalance = 4975; // Consistent balance amount across all pages
-
-  const totalPages = 5;
   const resultsPerPage = 8;
   const totalResults = transactions.length;
 
@@ -1885,15 +1982,15 @@ Amount: ${formatPrice(transaction.amountNum)}
               <div className="mobile-balance-stats" style={{ display: 'flex', gap: '2rem' }}>
                 <div>
                   <div className="stat-label" style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Previous Deposit</div>
-                  <div className="stat-value" style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(450)}</div>
+                  <div className="stat-value" style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(balance?.lastDeposit || 0)}</div>
                 </div>
                 <div>
                   <div className="stat-label" style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Last Withdrawal</div>
-                  <div className="stat-value" style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(1345)}</div>
+                  <div className="stat-value" style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(balance?.lastWithdrawal || 0)}</div>
                 </div>
                 <div>
                   <div className="stat-label" style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Active Account</div>
-                  <div className="stat-value" style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>*****980</div>
+                  <div className="stat-value" style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>{balance?.activeAccount || '—'}</div>
                 </div>
               </div>
             </div>
@@ -2185,27 +2282,45 @@ Amount: ${formatPrice(transaction.amountNum)}
             </table>
             </div>
 
+            {/* Loading state */}
+            {isLoading && (
+              <div style={{ textAlign: 'center', padding: '3rem', color: colors.textSecondary }}>
+                <p style={{ fontSize: '1rem', fontWeight: '500' }}>Loading transactions...</p>
+              </div>
+            )}
+
+            {/* No results */}
+            {!isLoading && transactions.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '3rem', color: colors.textSecondary }}>
+                <p style={{ fontSize: '1rem', fontWeight: '500' }}>No transactions found</p>
+              </div>
+            )}
+
             {/* Pagination */}
+            {totalPages > 1 && (
             <div className="mobile-pagination" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderTop: `2px solid ${colors.borderPrimary}` }}>
-              <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Showing {resultsPerPage} of {totalResults} Results</div>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Page {currentPage + 1} of {totalPages}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <button onClick={() => setCurrentPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1} style={{ background: 'none', border: '2px solid #D1D5DB', borderRadius: '0.375rem', padding: '0.5rem', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', opacity: currentPage === 1 ? 0.5 : 1 }}>
+                <button onClick={() => fetchData(currentPage - 1)} disabled={currentPage === 0} style={{ background: 'none', border: '2px solid #D1D5DB', borderRadius: '0.375rem', padding: '0.5rem', cursor: currentPage === 0 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', opacity: currentPage === 0 ? 0.5 : 1 }}>
                   <ChevronLeftIcon />
                 </button>
-                {[1, 2, 3].map((page) => (
-                  <button key={page} onClick={() => setCurrentPage(page)} style={{ width: '32px', height: '32px', border: currentPage === page ? '2px solid #062a63' : `2px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', backgroundColor: currentPage === page ? '#083A85' : colors.bgCard, color: currentPage === page ? 'white' : colors.textSecondary, fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer' }}>
-                    {page}
+                {Array.from({ length: Math.min(totalPages, 3) }, (_, i) => i).map((page) => (
+                  <button key={page} onClick={() => fetchData(page)} style={{ width: '32px', height: '32px', border: currentPage === page ? '2px solid #062a63' : `2px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', backgroundColor: currentPage === page ? '#083A85' : colors.bgCard, color: currentPage === page ? 'white' : colors.textSecondary, fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer' }}>
+                    {page + 1}
                   </button>
                 ))}
-                <span style={{ padding: '0 0.5rem', color: colors.textSecondary }}>...</span>
-                <button onClick={() => setCurrentPage(totalPages)} style={{ width: '32px', height: '32px', border: currentPage === totalPages ? '2px solid #062a63' : `2px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', backgroundColor: currentPage === totalPages ? '#083A85' : colors.bgCard, color: currentPage === totalPages ? 'white' : colors.textSecondary, fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer' }}>
-                  {totalPages}
-                </button>
-                <button onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages} style={{ background: 'none', border: '2px solid #D1D5DB', borderRadius: '0.375rem', padding: '0.5rem', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', opacity: currentPage === totalPages ? 0.5 : 1 }}>
+                {totalPages > 3 && <>
+                  <span style={{ padding: '0 0.5rem', color: colors.textSecondary }}>...</span>
+                  <button onClick={() => fetchData(totalPages - 1)} style={{ width: '32px', height: '32px', border: currentPage === totalPages - 1 ? '2px solid #062a63' : `2px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', backgroundColor: currentPage === totalPages - 1 ? '#083A85' : colors.bgCard, color: currentPage === totalPages - 1 ? 'white' : colors.textSecondary, fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer' }}>
+                    {totalPages}
+                  </button>
+                </>}
+                <button onClick={() => fetchData(currentPage + 1)} disabled={currentPage >= totalPages - 1} style={{ background: 'none', border: '2px solid #D1D5DB', borderRadius: '0.375rem', padding: '0.5rem', cursor: currentPage >= totalPages - 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', opacity: currentPage >= totalPages - 1 ? 0.5 : 1 }}>
                   <ChevronRightIcon />
                 </button>
               </div>
             </div>
+            )}
           </div>
         </div>
       </div>
@@ -2222,6 +2337,7 @@ Amount: ${formatPrice(transaction.amountNum)}
         isOpen={showWithdrawModal}
         onClose={() => setShowWithdrawModal(false)}
         availableBalance={availableBalance}
+        userName={user?.name || `${user?.firstName || ''} ${user?.lastName || ''}`.trim()}
       />
 
       {/* Tips Modal */}
