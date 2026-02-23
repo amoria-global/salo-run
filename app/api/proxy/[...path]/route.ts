@@ -47,9 +47,7 @@ async function proxyRequest(
     });
 
     // Build headers (forward relevant ones)
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-    };
+    const headers: HeadersInit = {};
 
     // Forward authorization header if present
     const authHeader = request.headers.get('authorization');
@@ -74,6 +72,7 @@ async function proxyRequest(
       try {
         const body = await request.json();
         fetchOptions.body = JSON.stringify(body);
+        headers['Content-Type'] = 'application/json';
       } catch {
         // No body or invalid JSON - continue without body
       }
@@ -82,17 +81,33 @@ async function proxyRequest(
     // Make the request to the actual API
     const response = await fetch(url.toString(), fetchOptions);
 
-    // Get response data
+    const corsHeaders = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, api-token',
+    };
+
+    // Check if the response is an image or binary content
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.startsWith('image/') || contentType.startsWith('application/octet-stream')) {
+      const buffer = await response.arrayBuffer();
+      return new NextResponse(buffer, {
+        status: response.status,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': contentType,
+          'Cache-Control': 'public, max-age=86400',
+        },
+      });
+    }
+
+    // Get response data as JSON
     const data = await response.json().catch(() => ({}));
 
     // Return the response
     return NextResponse.json(data, {
       status: response.status,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization, api-token',
-      },
+      headers: corsHeaders,
     });
   } catch (error) {
     console.error('Proxy error:', error);
