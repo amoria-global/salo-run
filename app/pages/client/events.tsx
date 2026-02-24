@@ -746,9 +746,28 @@ const MyEventsPage = () => {
 
   const eventTypes = ['Wedding', 'Birthday', 'Corporate', 'Baby Shower', 'Graduation', 'Anniversary', 'Engagement', 'Other'];
 
-  const handleDeleteEvent = () => {
-    if (deleteEvent) {
+  const handleDeleteEvent = async () => {
+    if (!deleteEvent) return;
+    try {
+      const apiUrl = getApiUrl();
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+      const response = await fetch(`${apiUrl}/api/remote/customer/events/${deleteEvent.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'api-token': apiKey,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => '');
+        throw new Error(`Failed to delete event: ${response.status} ${errorText}`);
+      }
       setEvents(prev => prev.filter(e => e.id !== deleteEvent.id));
+    } catch (err) {
+      console.error('Delete event error:', err);
+      alert(err instanceof Error ? err.message : 'Failed to delete event');
+    } finally {
       setDeleteEvent(null);
       setShowDeleteModal(false);
     }
@@ -786,7 +805,7 @@ const MyEventsPage = () => {
     setShowEditModal(true);
   };
 
-  const handleEditEvent = () => {
+  const handleEditEvent = async () => {
     if (!editEvent || !editTitle || !editCategory || !editDate || !editTime) return;
 
     // Calculate duration from start and end time
@@ -813,6 +832,39 @@ const MyEventsPage = () => {
     const timeDisplay = editEndTime
       ? `${formatTimeDisplay(editTime)} - ${formatTimeDisplay(editEndTime)}`
       : formatTimeDisplay(editTime);
+
+    try {
+      const apiUrl = getApiUrl();
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+      const locationParts = [editVenueName, editAddress, editCity, editCountry].filter(Boolean);
+      const response = await fetch(`${apiUrl}/api/remote/customer/events/${editEvent.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'api-token': apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: editTitle,
+          description: editDescription,
+          eventDate: editDate,
+          startTime: editTime,
+          endTime: editEndTime,
+          location: locationParts.join(', '),
+          eventOrganizer: editOrganizer,
+          eventVisibility: editStatus,
+          eventTags: editTags.length > 0 ? editTags.join(',') : editCategory,
+        }),
+      });
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => '');
+        throw new Error(`Failed to update event: ${response.status} ${errorText}`);
+      }
+    } catch (err) {
+      console.error('Edit event error:', err);
+      alert(err instanceof Error ? err.message : 'Failed to update event');
+      return;
+    }
 
     setEvents(prev => prev.map(event => {
       if (event.id === editEvent.id) {

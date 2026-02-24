@@ -586,8 +586,9 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
     setShowCustomInput(false);
   };
 
-  const handleWithdraw = () => {
-    console.log('Withdrawing:', withdrawAmount, 'to account:', selectedAccount);
+  const handleWithdraw = async () => {
+    const amount = parseFloat(withdrawAmount) || 0;
+    const donation = donationAmount === 'custom' ? (parseFloat(customDonation) || 0) : (parseFloat(donationAmount) || 0);
     onClose();
     setWithdrawAmount('');
     setSelectedAccount('');
@@ -595,6 +596,16 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
     setCustomDonation('');
     setDonationSkipped(false);
     setShowCustomInput(false);
+    try {
+      const apiUrl = getApiUrl();
+      await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/withdraw`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount, accountId: selectedAccount, donationAmount: donation }),
+      });
+    } catch (err) {
+      console.error('Failed to withdraw:', err);
+    }
   };
 
   const getAccountImage = (type: string) => {

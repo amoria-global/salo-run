@@ -226,12 +226,30 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
     }
   };
 
-  const deleteNotification = (id: string) => {
+  const deleteNotification = async (id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
+    try {
+      const apiUrl = getApiUrl();
+      const endpoint = userRole === 'event-coordinator'
+        ? `${apiUrl}/api/remote/coordinator/notifications/${id}`
+        : `${apiUrl}/api/remote/customer/notifications/${id}`;
+      await dashboardAuthFetch(endpoint, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } });
+    } catch (err) {
+      console.error('Failed to delete notification:', err);
+    }
   };
 
-  const deleteAllRead = () => {
+  const deleteAllRead = async () => {
     setNotifications(prev => prev.filter(n => !n.read));
+    try {
+      const apiUrl = getApiUrl();
+      const endpoint = userRole === 'event-coordinator'
+        ? `${apiUrl}/api/remote/coordinator/notifications/delete-read`
+        : `${apiUrl}/api/remote/customer/notifications/delete-read`;
+      await dashboardAuthFetch(endpoint, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } });
+    } catch (err) {
+      console.error('Failed to delete read notifications:', err);
+    }
   };
 
   const filteredNotifications = activeFilter === 'all'
