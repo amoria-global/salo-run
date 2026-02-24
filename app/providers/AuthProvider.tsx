@@ -374,6 +374,7 @@ async function tryFetchProfile(
     });
 
     if (!response.ok) {
+      console.warn(`[Dashboard Auth] ${roleName} profile returned ${response.status}`);
       return { user: null, status: response.status };
     }
 
@@ -389,8 +390,10 @@ async function tryFetchProfile(
       }
       return { user: userData, status: response.status };
     }
+    console.warn(`[Dashboard Auth] ${roleName} profile returned unexpected body:`, result);
     return { user: null, status: response.status };
-  } catch {
+  } catch (err) {
+    console.warn(`[Dashboard Auth] ${roleName} profile network error:`, err);
     return { user: null, status: 0 };
   }
 }
@@ -442,7 +445,7 @@ async function fetchUserProfile(token: string): Promise<DashboardUser | null> {
     }
 
     // All endpoints failed with non-401 errors
-    console.error('[Dashboard Auth] All profile endpoints failed');
+    console.error(`[Dashboard Auth] All profile endpoints failed. API URL: ${getApiUrl()}. Is the backend running?`);
     return null;
   } catch (error) {
     console.error('[Dashboard Auth] Error fetching user profile:', error);
