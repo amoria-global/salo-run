@@ -165,39 +165,10 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
   const [contactSearchQuery, setContactSearchQuery] = useState('');
 
-  // Fetch conversations from API
+  // Chat endpoints disconnected — chat is for public/landing site only
   const fetchConversations = useCallback(async () => {
-    try {
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/chat/conversations`);
-      if (res.ok) {
-        const data = await res.json();
-        const convos: Conversation[] = (data.data || []).map((c: any) => ({
-          id: c.id,
-          participants: (c.participants || []).map((p: any) => ({
-            id: p.id,
-            name: p.name || '',
-            image: p.image || '',
-            userType: p.userType || '',
-            isOnline: p.isOnline || false,
-            lastSeen: p.lastSeen,
-          })),
-          lastMessage: c.lastMessage ? {
-            content: c.lastMessage.content,
-            senderId: c.lastMessage.senderId,
-            createdAt: c.lastMessage.createdAt,
-          } : undefined,
-          unreadCount: c.unreadCount || 0,
-          isPinned: c.isPinned || false,
-          isMuted: c.isMuted || false,
-          bookingId: c.bookingId,
-          messages: [],
-        }));
-        setConversations(convos);
-      }
-    } catch (err) {
-      console.error('Failed to fetch conversations:', err);
-    }
-  }, [apiUrl]);
+    // /chat/ endpoints removed from dashboard
+  }, []);
 
   useEffect(() => {
     if (currentUserId) {
@@ -278,44 +249,16 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
 
   // Load messages when a conversation is selected
   const loadMessages = useCallback(async (partnerId: string) => {
-    try {
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/chat/messages/${partnerId}`);
-      if (res.ok) {
-        const data = await res.json();
-        const msgs: Message[] = (data.data || []).map((m: any) => ({
-          id: m.id,
-          conversationId: m.conversationId,
-          senderId: m.senderId,
-          senderName: m.senderName || '',
-          senderImage: m.senderImage || '',
-          content: m.content,
-          type: m.type || 'text',
-          attachments: m.attachments,
-          isRead: m.isRead || false,
-          createdAt: m.createdAt,
-        }));
-        setConversations(prev => prev.map(conv =>
-          conv.id === partnerId ? { ...conv, messages: msgs } : conv
-        ));
-      }
-    } catch (err) {
-      console.error('Failed to load messages:', err);
-    }
-  }, [apiUrl]);
+    // /chat/ endpoints removed from dashboard
+  }, []);
 
   // Mark messages as read
   const markAsRead = useCallback(async (partnerId: string) => {
-    try {
-      await dashboardAuthFetch(`${apiUrl}/api/remote/chat/messages/${partnerId}/read`, {
-        method: 'PATCH',
-      });
-      setConversations(prev => prev.map(conv =>
-        conv.id === partnerId ? { ...conv, unreadCount: 0 } : conv
-      ));
-    } catch (err) {
-      console.error('Failed to mark as read:', err);
-    }
-  }, [apiUrl]);
+    // /chat/ endpoints removed from dashboard — local-only update
+    setConversations(prev => prev.map(conv =>
+      conv.id === partnerId ? { ...conv, unreadCount: 0 } : conv
+    ));
+  }, []);
 
   const handleSelectConversation = useCallback((convId: string) => {
     setSelectedConversation(convId);
@@ -385,21 +328,7 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
       return conv;
     }));
 
-    try {
-      const formData = new FormData();
-      formData.append('senderId', currentUserId);
-      formData.append('recipientId', selectedConversation);
-      formData.append('content', content);
-
-      await dashboardAuthFetch(`${apiUrl}/api/remote/chat/send`, {
-        method: 'POST',
-        body: formData,
-      });
-      // Reload messages to get server-confirmed data
-      loadMessages(selectedConversation);
-    } catch (err) {
-      console.error('Failed to send message:', err);
-    }
+    // /chat/ endpoints removed from dashboard — message kept locally only
   };
 
   // Message action handlers
@@ -429,14 +358,7 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
       return conv;
     }));
 
-    try {
-      await dashboardAuthFetch(
-        `${apiUrl}/api/remote/chat/messages/${msgId}?senderId=${currentUserId}&content=${encodeURIComponent(newContent)}`,
-        { method: 'PUT' }
-      );
-    } catch (err) {
-      console.error('Failed to edit message:', err);
-    }
+    // /chat/ endpoints removed from dashboard — edit kept locally only
   };
 
   const cancelEdit = () => {
@@ -461,14 +383,7 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
       return conv;
     }));
 
-    try {
-      await dashboardAuthFetch(
-        `${apiUrl}/api/remote/chat/messages/${messageId}?senderId=${currentUserId}`,
-        { method: 'DELETE' }
-      );
-    } catch (err) {
-      console.error('Failed to delete message:', err);
-    }
+    // /chat/ endpoints removed from dashboard — delete kept locally only
   };
 
   const filteredConversations = conversations.filter(conv => {
