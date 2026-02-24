@@ -968,7 +968,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   };
 
   // Actually saves after the user picks a cover
-  const confirmSaveWithCover = () => {
+  const confirmSaveWithCover = async () => {
     if (setupSelectedImages.length === 0) return;
 
     if (setupPhotobookId) {
@@ -988,10 +988,12 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
     } else {
       // Creating new photobook
       const album = setupSelectedAlbum;
+      const name = album?.title || 'Untitled Photobook';
+      const description = album?.category ? `${album.category} — ${album.date || ''}` : album?.date || '';
       const newPhotobook = {
         id: Date.now(),
-        name: album?.title || 'Untitled Photobook',
-        description: album?.category ? `${album.category} — ${album.date || ''}` : album?.date || '',
+        name,
+        description,
         thumbnail: setupCoverImage || setupSelectedImages[0],
         images: [...setupSelectedImages],
         layout: setupLayout as 'book-flip' | 'mosaic' | 'gallery-wall' | '',
@@ -999,6 +1001,27 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
       };
       setPhotobooks(prev => [...prev, newPhotobook]);
       setPageView('photobooks');
+
+      // Persist to backend
+      try {
+        const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${photobookBase}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, description }),
+        });
+        if (res.ok) {
+          const result = await res.json();
+          const created = result?.data;
+          if (created?.id) {
+            // Replace the temporary ID with the backend-generated one
+            setPhotobooks(prev => prev.map(pb =>
+              pb.id === newPhotobook.id ? { ...pb, id: created.id } : pb
+            ));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to save photobook to backend:', err);
+      }
     }
 
     if (setupSelectedAlbum) {

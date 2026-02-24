@@ -181,12 +181,24 @@ const Notifications = () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
-  const deleteNotification = (id: string) => {
+  const deleteNotification = async (id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
+    try {
+      const apiUrl = getApiUrl();
+      await dashboardAuthFetch(`${apiUrl}/api/remote/customer/notifications/${id}`, { method: 'DELETE' });
+    } catch (err) {
+      console.error('Failed to delete notification:', err);
+    }
   };
 
-  const deleteAllRead = () => {
+  const deleteAllRead = async () => {
     setNotifications(prev => prev.filter(n => !n.read));
+    try {
+      const apiUrl = getApiUrl();
+      await dashboardAuthFetch(`${apiUrl}/api/remote/customer/notifications/delete-read`, { method: 'DELETE' });
+    } catch (err) {
+      console.error('Failed to delete read notifications:', err);
+    }
   };
 
   const filteredNotifications = activeFilter === 'all'

@@ -750,14 +750,23 @@ const MyEventsPage = () => {
     if (!deleteEvent) return;
     try {
       const apiUrl = getApiUrl();
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/events/${deleteEvent.id}`, { method: 'DELETE' });
-      if (res.ok) {
-        setEvents(prev => prev.filter(e => e.id !== deleteEvent.id));
-      } else {
-        console.error('Failed to delete event:', res.status);
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+      const response = await fetch(`${apiUrl}/api/remote/customer/events/${deleteEvent.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'api-token': apiKey,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => '');
+        throw new Error(`Failed to delete event: ${response.status} ${errorText}`);
       }
+      setEvents(prev => prev.filter(e => e.id !== deleteEvent.id));
     } catch (err) {
-      console.error('Error deleting event:', err);
+      console.error('Delete event error:', err);
+      alert(err instanceof Error ? err.message : 'Failed to delete event');
     } finally {
       setDeleteEvent(null);
       setShowDeleteModal(false);
@@ -824,62 +833,67 @@ const MyEventsPage = () => {
       ? `${formatTimeDisplay(editTime)} - ${formatTimeDisplay(editEndTime)}`
       : formatTimeDisplay(editTime);
 
-    const locationAddress = editVenueName ? `${editVenueName}${editAddress ? ' - ' + editAddress : ''}` : editAddress;
+    const locationParts = [editVenueName, editAddress, editCity, editCountry].filter(Boolean);
 
     try {
       const apiUrl = getApiUrl();
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/events/${editEvent.id}`, {
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+      const response = await fetch(`${apiUrl}/api/remote/customer/events/${editEvent.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'api-token': apiKey,
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           title: editTitle,
           description: editDescription,
-          eventCategory: editCategory,
-          eventStatus: editStatus,
           eventDate: editDate,
           startTime: editTime,
           endTime: editEndTime,
-          location: `${locationAddress}, ${editCity}, ${editCountry}`,
+          location: locationParts.join(', '),
           eventOrganizer: editOrganizer,
-          eventTags: editTags.join(','),
-          isEventFree: !editPrice || editPrice === 'Free',
+          eventVisibility: editStatus,
+          eventTags: editTags.length > 0 ? editTags.join(',') : editCategory,
         }),
       });
-
-      if (res.ok) {
-        setEvents(prev => prev.map(event => {
-          if (event.id === editEvent.id) {
-            return {
-              ...event,
-              title: editTitle,
-              description: editDescription,
-              eventType: editCategory,
-              category: editCategory,
-              status: editStatus,
-              date: editDate,
-              time: timeDisplay,
-              endTime: editEndTime,
-              duration: calculatedDuration,
-              location: { address: locationAddress, city: editCity, country: editCountry },
-              coverImage: editBannerImage || event.coverImage,
-              bannerImage: editBannerImage || event.bannerImage,
-              price: editPrice || 'Free',
-              maxGuests: parseInt(editMaxGuests) || event.maxGuests,
-              organizer: editOrganizer,
-              tags: editTags
-            };
-          }
-          return event;
-        }));
-      } else {
-        console.error('Failed to update event:', res.status);
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => '');
+        throw new Error(`Failed to update event: ${response.status} ${errorText}`);
       }
     } catch (err) {
-      console.error('Error updating event:', err);
-    } finally {
-      setShowEditModal(false);
-      setEditEvent(null);
+      console.error('Edit event error:', err);
+      alert(err instanceof Error ? err.message : 'Failed to update event');
+      return;
     }
+
+    setEvents(prev => prev.map(event => {
+      if (event.id === editEvent.id) {
+        return {
+          ...event,
+          title: editTitle,
+          description: editDescription,
+          eventType: editCategory,
+          category: editCategory,
+          status: editStatus,
+          date: editDate,
+          time: timeDisplay,
+          endTime: editEndTime,
+          duration: calculatedDuration,
+          location: { address: locationParts.join(', '), city: editCity, country: editCountry },
+          coverImage: editBannerImage || event.coverImage,
+          bannerImage: editBannerImage || event.bannerImage,
+          price: editPrice || 'Free',
+          maxGuests: parseInt(editMaxGuests) || event.maxGuests,
+          organizer: editOrganizer,
+          tags: editTags
+        };
+      }
+      return event;
+    }));
+
+    setShowEditModal(false);
+    setEditEvent(null);
   };
 
   // Reset create form
