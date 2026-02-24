@@ -125,39 +125,20 @@ const Notifications = () => {
   const [balance, setBalance] = useState<any>(null);
 
   // Fetch notifications from API
+  // NOTE: /photographer/notifications endpoints return 404 — disconnected until backend adds them
   const fetchNotifications = useCallback(async () => {
     try {
       const apiUrl = getApiUrl();
-      const [notifRes, balRes] = await Promise.allSettled([
-        dashboardAuthFetch(`${apiUrl}/api/remote/customer/notifications?page=0&size=50`, { headers: { 'Content-Type': 'application/json' } }),
-        balance ? Promise.resolve(null) : dashboardAuthFetch(`${apiUrl}/api/remote/photographer/balance`),
-      ]);
+      const balRes = balance ? null : await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/balance`);
 
-      if (notifRes.status === 'fulfilled' && notifRes.value.ok) {
-        const result = await notifRes.value.json();
-        const data = result?.data?.content || result?.data || [];
-        const mapped: Notification[] = data.map((n: any) => ({
-          id: n.id,
-          type: mapBackendType(n.type),
-          title: n.title,
-          message: n.message,
-          timestamp: formatRelativeTime(n.createdAt),
-          read: n.isRead,
-          actionUrl: n.link || undefined,
-          amount: n.amount || undefined,
-          avatar: n.avatar || n.senderImage || undefined,
-        }));
-        setNotifications(mapped);
-      }
-
-      if (balRes.status === 'fulfilled' && balRes.value && balRes.value.ok) {
-        const data = await balRes.value.json();
+      if (balRes && balRes.ok) {
+        const data = await balRes.json();
         if (data.action === 1 && data.data) {
           setBalance(data.data);
         }
       }
     } catch (err) {
-      console.error('Failed to fetch notifications:', err);
+      console.error('Failed to fetch balance:', err);
     } finally {
       setLoading(false);
     }
@@ -189,25 +170,15 @@ const Notifications = () => {
   };
 
   const markAsRead = async (id: string) => {
+    // /photographer/notifications/{id}/read returns 404 — local-only update
     setNotifications(prev =>
       prev.map(n => n.id === id ? { ...n, read: true } : n)
     );
-    try {
-      const apiUrl = getApiUrl();
-      await dashboardAuthFetch(`${apiUrl}/api/remote/customer/notifications/${id}/read`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' } });
-    } catch (err) {
-      console.error('Failed to mark notification as read:', err);
-    }
   };
 
   const markAllAsRead = async () => {
+    // /photographer/notifications/read-all returns 404 — local-only update
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    try {
-      const apiUrl = getApiUrl();
-      await dashboardAuthFetch(`${apiUrl}/api/remote/customer/notifications/read-all`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' } });
-    } catch (err) {
-      console.error('Failed to mark all as read:', err);
-    }
   };
 
   const deleteNotification = async (id: string) => {

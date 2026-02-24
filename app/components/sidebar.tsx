@@ -101,29 +101,24 @@ export default function Sidebar() {
   const currentRole = useMemo(() => detectRoleFromPath(pathname), [pathname]);
 
   const [notificationCount, setNotificationCount] = useState(0);
-  const [messageCount, setMessageCount] = useState(0);
 
   const fetchBadgeCounts = useCallback(async () => {
     if (!token) return;
+    // /photographer/notifications/unread-count returns 404 — skip for photographer
+    if (currentRole === 'photographer') return;
     const apiUrl = getApiUrl();
+    const notifPrefix = currentRole === 'event-coordinator' ? 'coordinator' : 'customer';
     try {
-      const [notifRes, msgRes] = await Promise.allSettled([
-        dashboardAuthFetch(`${apiUrl}/api/remote/customer/notifications/unread-count`, { method: 'GET' }),
-        dashboardAuthFetch(`${apiUrl}/api/remote/chat/unread-count`, { method: 'GET' }),
-      ]);
+      const notifRes = await dashboardAuthFetch(`${apiUrl}/api/remote/${notifPrefix}/notifications/unread-count`, { method: 'GET' });
 
-      if (notifRes.status === 'fulfilled' && notifRes.value.ok) {
-        const data = await notifRes.value.json();
+      if (notifRes.ok) {
+        const data = await notifRes.json();
         if (data.action === 1) setNotificationCount(data.data ?? 0);
-      }
-      if (msgRes.status === 'fulfilled' && msgRes.value.ok) {
-        const data = await msgRes.value.json();
-        if (data.action === 1) setMessageCount(data.data ?? 0);
       }
     } catch {
       // silent fail
     }
-  }, [token]);
+  }, [token, currentRole]);
 
   useEffect(() => {
     fetchBadgeCounts();
@@ -134,9 +129,6 @@ export default function Sidebar() {
   const navigationItems = roleNavigationMap[currentRole].map(item => {
     if (item.name === "Notifications") {
       return { ...item, badge: notificationCount };
-    }
-    if (item.name === "Inbox") {
-      return { ...item, badge: messageCount };
     }
     return item;
   });
