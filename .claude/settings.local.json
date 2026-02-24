@@ -19,7 +19,9 @@
       "Bash(NODE_OPTIONS=\"--max-old-space-size=8192\" npx next build:*)",
       "Bash(node -e \"const fs=require\\(''fs''\\); const p=''c:/Users/JOAST/Documents/connekt-dashboard/app/pages/photographer/events.tsx''; fs.writeFileSync\\(p, fs.readFileSync\\(p,''utf8''\\).slice\\(0,0\\)\\); console.log\\(''cleared''\\);\")",
       "Bash(node -e:*)",
-      "Bash(\"c:/Users/JOAST/Documents/connekt-dashboard/_content.txt\":*)"
+      "Bash(\"c:/Users/JOAST/Documents/connekt-dashboard/_content.txt\":*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtdWd3aWpheDQ1QGdtYWlsLmNvbSIsImlhdCI6MTc3MTk0NTMzMywiZXhwIjoxNzcxOTQ4OTMzfQ.LtcWheD2u_TEs6BdRc87n6zbUOSE387No2_jdkMQqxU\")",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtdWd3aWpheDQ1QGdtYWlsLmNvbSIsImlhdCI6MTc3MTk0NzM2OCwiZXhwIjoxNzcxOTUwOTY4fQ.pHoqIFp-7Yj5Hk-ZZaW47vgbKt03qo7SdGAtK4MQrAc\")"
     ],
     "deny": [],
     "ask": []
