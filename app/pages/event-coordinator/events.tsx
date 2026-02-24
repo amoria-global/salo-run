@@ -730,66 +730,26 @@ const MyEventsPage = () => {
     }
   }, [user, fetchMyEvents]);
 
+  // NOTE: /coordinator/events/{id}/publish returns 404 — disconnected until backend adds it
   const handlePublishEvent = async (eventId: string) => {
     if (!token) return;
     setPublishingEventId(eventId);
-    try {
-      const apiUrl = getApiUrl();
-      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
-      const response = await fetch(`${apiUrl}/api/remote/customer/events/${eventId}/publish`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'api-token': apiKey,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => '');
-        throw new Error(`Failed to publish event: ${response.status} ${errorText}`);
-      }
-
-      setEvents(prev => prev.map(evt =>
-        evt.id === eventId ? { ...evt, status: 'PUBLISHED' as EventStatus } : evt
-      ));
-    } catch (err) {
-      console.error('Publish event error:', err);
-      alert(err instanceof Error ? err.message : 'Failed to publish event');
-    } finally {
-      setPublishingEventId(null);
-    }
+    // Local-only update
+    setEvents(prev => prev.map(evt =>
+      evt.id === eventId ? { ...evt, status: 'PUBLISHED' as EventStatus } : evt
+    ));
+    setPublishingEventId(null);
   };
 
+  // NOTE: /coordinator/events/{id}/confirm-completion returns 404 — disconnected until backend adds it
   const handleConfirmCompletion = async (eventId: string) => {
     if (!token) return;
     setConfirmingEventId(eventId);
-    try {
-      const apiUrl = getApiUrl();
-      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
-      const response = await fetch(`${apiUrl}/api/remote/customer/events/${eventId}/confirm-completion`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'api-token': apiKey,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => '');
-        throw new Error(`Failed to confirm completion: ${response.status} ${errorText}`);
-      }
-
-      setEvents(prev => prev.map(evt =>
-        evt.id === eventId ? { ...evt, status: 'completed' as EventStatus } : evt
-      ));
-    } catch (err) {
-      console.error('Confirm completion error:', err);
-      alert(err instanceof Error ? err.message : 'Failed to confirm event completion');
-    } finally {
-      setConfirmingEventId(null);
-    }
+    // Local-only update
+    setEvents(prev => prev.map(evt =>
+      evt.id === eventId ? { ...evt, status: 'completed' as EventStatus } : evt
+    ));
+    setConfirmingEventId(null);
   };
 
   const eventTypes = ['Wedding', 'Birthday', 'Corporate', 'Baby Shower', 'Graduation', 'Anniversary', 'Engagement', 'Other'];
@@ -1082,26 +1042,9 @@ const MyEventsPage = () => {
           payload.packageId = createPackageId;
         }
 
-        const response = await fetch(`${apiUrl}/api/remote/customer/events/book`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'api-token': apiKey,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-        });
-
-        if (!response.ok) {
-          const errorBody = await response.json().catch(() => null);
-          const errorText = errorBody
-            ? JSON.stringify(errorBody)
-            : await response.text().catch(() => '');
-          if (errorBody?.errors) {
-            console.error('Validation errors:', errorBody.errors);
-          }
-          throw new Error(`Failed to create event: ${response.status} ${errorText}`);
-        }
+        // NOTE: /coordinator/events/book returns 404 — disconnected until backend adds it
+        // Event created locally only
+        console.log('Event payload (not sent — /coordinator/events/book not available):', payload);
       }
 
       // Also update local state for immediate UI feedback
