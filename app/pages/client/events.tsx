@@ -7,7 +7,7 @@ import localforage from 'localforage';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
-import { useDashboardAuth } from '../../providers/AuthProvider';
+import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 
 function getApiUrl(): string {
   if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
@@ -833,10 +833,11 @@ const MyEventsPage = () => {
       ? `${formatTimeDisplay(editTime)} - ${formatTimeDisplay(editEndTime)}`
       : formatTimeDisplay(editTime);
 
+    const locationParts = [editVenueName, editAddress, editCity, editCountry].filter(Boolean);
+
     try {
       const apiUrl = getApiUrl();
       const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
-      const locationParts = [editVenueName, editAddress, editCity, editCountry].filter(Boolean);
       const response = await fetch(`${apiUrl}/api/remote/customer/events/${editEvent.id}`, {
         method: 'PUT',
         headers: {
@@ -879,11 +880,7 @@ const MyEventsPage = () => {
           time: timeDisplay,
           endTime: editEndTime,
           duration: calculatedDuration,
-          location: {
-            address: editVenueName ? `${editVenueName}${editAddress ? ' - ' + editAddress : ''}` : editAddress,
-            city: editCity,
-            country: editCountry
-          },
+          location: { address: locationParts.join(', '), city: editCity, country: editCountry },
           coverImage: editBannerImage || event.coverImage,
           bannerImage: editBannerImage || event.bannerImage,
           price: editPrice || 'Free',
