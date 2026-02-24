@@ -180,13 +180,18 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
   const [giftNotifications, setGiftNotifications] = useState(true);
   const [streamFeeNotifications, setStreamFeeNotifications] = useState(true);
 
-  // Load saved preferences from API for coordinators
+  // Resolve the preferences API base path based on user role
+  const preferencesBasePath = userType === 'event-coordinator'
+    ? '/api/remote/coordinator/preferences'
+    : '/api/remote/customer/preferences';
+
+  // Load saved preferences from API
   useEffect(() => {
-    if (userType !== 'event-coordinator') return;
+    if (userType !== 'event-coordinator' && userType !== 'client') return;
     const loadPreferences = async () => {
       try {
         const apiUrl = getApiUrl();
-        const response = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/preferences`);
+        const response = await dashboardAuthFetch(`${apiUrl}${preferencesBasePath}`);
         if (!response.ok) return;
         const result = await response.json();
         const prefs = result?.data || {};
@@ -219,14 +224,14 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
       }
     };
     loadPreferences();
-  }, [userType, setTheme]);
+  }, [userType, setTheme, preferencesBasePath]);
 
-  // Save a preference to the API (PUT /api/remote/coordinator/preferences/{key})
+  // Save a preference to the API (PUT /preferences/{key})
   const savePreference = useCallback(async (key: string, value: string) => {
-    if (userType !== 'event-coordinator') return;
+    if (userType !== 'event-coordinator' && userType !== 'client') return;
     try {
       const apiUrl = getApiUrl();
-      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/preferences/${encodeURIComponent(key)}`, {
+      const response = await dashboardAuthFetch(`${apiUrl}${preferencesBasePath}/${encodeURIComponent(key)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ value }),
@@ -238,14 +243,14 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
     } catch (err) {
       console.error(`Error saving preference "${key}":`, err);
     }
-  }, [userType]);
+  }, [userType, preferencesBasePath]);
 
-  // Delete a preference from the API (DELETE /api/remote/coordinator/preferences/{key})
+  // Delete a preference from the API (DELETE /preferences/{key})
   const deletePreference = useCallback(async (key: string) => {
-    if (userType !== 'event-coordinator') return;
+    if (userType !== 'event-coordinator' && userType !== 'client') return;
     try {
       const apiUrl = getApiUrl();
-      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/preferences/${encodeURIComponent(key)}`, {
+      const response = await dashboardAuthFetch(`${apiUrl}${preferencesBasePath}/${encodeURIComponent(key)}`, {
         method: 'DELETE',
       });
       const result: ApiResponse = await response.json();
@@ -255,7 +260,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
     } catch (err) {
       console.error(`Error deleting preference "${key}":`, err);
     }
-  }, [userType]);
+  }, [userType, preferencesBasePath]);
 
   const themeOptions: { mode: ThemeMode; label: string; icon: React.ReactNode; description: string }[] = [
     { mode: 'light', label: 'Light', icon: <SunIcon />, description: 'Classic light theme for daytime use' },

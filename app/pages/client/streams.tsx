@@ -350,7 +350,7 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
   const eventTypes = ['all', 'Wedding', 'Birthday', 'Corporate', 'Baby Shower'];
 
   // Mark video as viewed
-  const markVideoAsViewed = (streamId: string, videoId: string) => {
+  const markVideoAsViewed = async (streamId: string, videoId: string) => {
     setStreams(prev => prev.map(stream => {
       if (stream.id === streamId) {
         return {
@@ -362,6 +362,14 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
       }
       return stream;
     }));
+    try {
+      await dashboardAuthFetch(
+        `${apiUrl}/api/remote/customer/streams/${streamId}/videos/${videoId}/viewed`,
+        { method: 'PATCH', headers: { 'Content-Type': 'application/json' } }
+      );
+    } catch (err) {
+      console.error('Failed to mark video as viewed:', err);
+    }
   };
 
   // Get unviewed video count
