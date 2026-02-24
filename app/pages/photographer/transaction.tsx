@@ -1465,10 +1465,10 @@ const EarningsGauge: React.FC<EarningsGaugeProps> = ({ completed, pending, withd
     const centerY = 80;
     const startRad = (180 + startAngle) * (Math.PI / 180);
     const endRad = (180 + endAngle) * (Math.PI / 180);
-    const x1 = centerX + radius * Math.cos(startRad);
-    const y1 = centerY + radius * Math.sin(startRad);
-    const x2 = centerX + radius * Math.cos(endRad);
-    const y2 = centerY + radius * Math.sin(endRad);
+    const x1 = Math.round((centerX + radius * Math.cos(startRad)) * 100) / 100;
+    const y1 = Math.round((centerY + radius * Math.sin(startRad)) * 100) / 100;
+    const x2 = Math.round((centerX + radius * Math.cos(endRad)) * 100) / 100;
+    const y2 = Math.round((centerY + radius * Math.sin(endRad)) * 100) / 100;
     const largeArc = endAngle - startAngle > 180 ? 1 : 0;
 
     return (
