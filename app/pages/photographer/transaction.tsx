@@ -559,6 +559,14 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
   const donationValue = donationAmount === 'custom' ? (parseFloat(customDonation) || 0) : (parseFloat(donationAmount) || 0);
   const donationAddressed = donationSkipped || donationValue > 0;
 
+  const parsedWithdrawAmount = parseFloat(withdrawAmount) || 0;
+  const withdrawError = withdrawAmount !== '' && parsedWithdrawAmount <= 0
+    ? 'Please enter an amount greater than zero'
+    : parsedWithdrawAmount > availableBalance
+      ? `Insufficient funds. Your available balance is ${formatPrice(availableBalance)}`
+      : '';
+  const isWithdrawValid = parsedWithdrawAmount > 0 && parsedWithdrawAmount <= availableBalance;
+
   const handleSelectDonation = (amount: string) => {
     setDonationSkipped(false);
     if (amount === 'custom') {
@@ -620,7 +628,8 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
       <div className="mobile-modal" style={{
         backgroundColor: colors.bgCard,
         borderRadius: '1rem',
-        width: '420px',
+        width: '520px',
+        maxWidth: '95vw',
         maxHeight: '90vh',
         overflowY: 'auto',
         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
@@ -767,6 +776,28 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
                 </button>
               ))}
             </div>
+            {withdrawError && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                marginTop: '0.5rem',
+                padding: '0.5rem 0.75rem',
+                backgroundColor: actualTheme === 'dark' ? 'rgba(239,68,68,0.1)' : '#FEF2F2',
+                border: '1px solid',
+                borderColor: actualTheme === 'dark' ? 'rgba(239,68,68,0.3)' : '#FECACA',
+                borderRadius: '0.5rem',
+                fontSize: '0.8rem',
+                color: actualTheme === 'dark' ? '#F87171' : '#DC2626',
+                fontWeight: '500'
+              }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                  <path d="M12 8V12M12 16H12.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+                {withdrawError}
+              </div>
+            )}
           </div>
 
           {/* Account Selection */}
@@ -1076,17 +1107,17 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
             </button>
             <button
               onClick={handleWithdraw}
-              disabled={!withdrawAmount || !selectedAccount || !donationAddressed}
+              disabled={!isWithdrawValid || !selectedAccount || !donationAddressed}
               style={{
                 flex: 1,
                 padding: '0.875rem 1rem',
-                border: !withdrawAmount || !selectedAccount || !donationAddressed ? '2px solid #9CA3AF' : '2px solid #062a63',
+                border: !isWithdrawValid || !selectedAccount || !donationAddressed ? '2px solid #9CA3AF' : '2px solid #062a63',
                 borderRadius: '0.75rem',
-                background: !withdrawAmount || !selectedAccount || !donationAddressed ? '#9CA3AF' : '#083A85',
+                background: !isWithdrawValid || !selectedAccount || !donationAddressed ? '#9CA3AF' : '#083A85',
                 color: 'white',
                 fontSize: '0.9rem',
                 fontWeight: '600',
-                cursor: !withdrawAmount || !selectedAccount || !donationAddressed ? 'not-allowed' : 'pointer',
+                cursor: !isWithdrawValid || !selectedAccount || !donationAddressed ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',

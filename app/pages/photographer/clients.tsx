@@ -834,23 +834,23 @@ export default function Clients() {
           {pageTab === 'clients' && (<>
           {/* Stats Cards */}
           <div className="mobile-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-            <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}` }}>
+            <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #083A85' }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Clients</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.brandPrimary }}>{clients.length}</div>
             </div>
-            <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}` }}>
+            <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #3B82F6' }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Bookings</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.brandPrimary }}>
                 {clients.reduce((sum, c) => sum + c.totalBookings, 0)}
               </div>
             </div>
-            <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}` }}>
+            <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #10B981' }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Earned</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.brandPrimary }}>
                 {formatPrice(clients.reduce((sum, c) => sum + c.totalSpent, 0))}
               </div>
             </div>
-            <div className="mobile-stats-card" style={{ backgroundColor: totalTips > 0 ? (actualTheme === 'dark' ? '#78350F' : '#FFFBEB') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: totalTips > 0 ? `1px solid ${actualTheme === 'dark' ? '#92400E' : '#FCD34D'}` : `2px solid ${colors.borderPrimary}` }}>
+            <div className="mobile-stats-card" style={{ backgroundColor: totalTips > 0 ? (actualTheme === 'dark' ? '#78350F' : '#FFFBEB') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: totalTips > 0 ? `1px solid ${actualTheme === 'dark' ? '#92400E' : '#FCD34D'}` : `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #F59E0B' }}>
               <div style={{ fontSize: '0.85rem', color: totalTips > 0 ? (actualTheme === 'dark' ? '#FCD34D' : '#92400E') : colors.textSecondary, marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 <GiftIcon />
                 Tips
@@ -860,7 +860,7 @@ export default function Clients() {
               </div>
               <div style={{ fontSize: '0.7rem', color: colors.textSecondary, marginTop: '0.25rem' }}>From clients</div>
             </div>
-            <div className="mobile-stats-card" style={{ backgroundColor: platformBonus > 0 ? (actualTheme === 'dark' ? '#14532D' : '#F0FDF4') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: platformBonus > 0 ? `1px solid ${actualTheme === 'dark' ? '#166534' : '#BBF7D0'}` : `2px solid ${colors.borderPrimary}` }}>
+            <div className="mobile-stats-card" style={{ backgroundColor: platformBonus > 0 ? (actualTheme === 'dark' ? '#14532D' : '#F0FDF4') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: platformBonus > 0 ? `1px solid ${actualTheme === 'dark' ? '#166534' : '#BBF7D0'}` : `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #16A34A' }}>
               <div style={{ fontSize: '0.85rem', color: platformBonus > 0 ? (actualTheme === 'dark' ? '#4ADE80' : '#166534') : colors.textSecondary, marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 <GiftIcon />
                 Bonus
@@ -870,13 +870,13 @@ export default function Clients() {
               </div>
               <div style={{ fontSize: '0.7rem', color: colors.textSecondary, marginTop: '0.25rem' }}>{totalCompletedEvents}/10 events ({bonusEligibleSets > 0 ? '10%' : '0%'})</div>
             </div>
-            <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}` }}>
+            <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #F20C8F' }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Favorites</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#F20C8F' }}>
                 {clients.filter(c => c.isFavorite).length}
               </div>
             </div>
-            <div className="mobile-stats-card" style={{ backgroundColor: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#7F1D1D' : '#FEF2F2') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: totalPendingAmount > 0 ? `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}` : `2px solid ${colors.borderPrimary}` }}>
+            <div className="mobile-stats-card" style={{ backgroundColor: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#7F1D1D' : '#FEF2F2') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: totalPendingAmount > 0 ? `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}` : `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #DC2626' }}>
               <div style={{ fontSize: '0.85rem', color: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#FCA5A5' : '#B91C1C') : colors.textSecondary, marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 {totalPendingAmount > 0 && <AlertCircleIcon />}
                 Pending Payments
