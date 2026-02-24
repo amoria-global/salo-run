@@ -730,35 +730,58 @@ const MyEventsPage = () => {
     }
   }, [user, fetchMyEvents]);
 
-  // NOTE: /coordinator/events/{id}/publish returns 404 — disconnected until backend adds it
   const handlePublishEvent = async (eventId: string) => {
     if (!token) return;
     setPublishingEventId(eventId);
-    // Local-only update
+    // Optimistic local update
     setEvents(prev => prev.map(evt =>
       evt.id === eventId ? { ...evt, status: 'PUBLISHED' as EventStatus } : evt
     ));
+    try {
+      const apiUrl = getApiUrl();
+      await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/events/${eventId}/publish`, {
+        method: 'POST',
+      });
+    } catch (err) {
+      console.error('Failed to publish event:', err);
+    }
     setPublishingEventId(null);
   };
 
-  // NOTE: /coordinator/events/{id}/confirm-completion returns 404 — disconnected until backend adds it
   const handleConfirmCompletion = async (eventId: string) => {
     if (!token) return;
     setConfirmingEventId(eventId);
-    // Local-only update
+    // Optimistic local update
     setEvents(prev => prev.map(evt =>
       evt.id === eventId ? { ...evt, status: 'completed' as EventStatus } : evt
     ));
+    try {
+      const apiUrl = getApiUrl();
+      await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/events/${eventId}/confirm-completion`, {
+        method: 'POST',
+      });
+    } catch (err) {
+      console.error('Failed to confirm event completion:', err);
+    }
     setConfirmingEventId(null);
   };
 
   const eventTypes = ['Wedding', 'Birthday', 'Corporate', 'Baby Shower', 'Graduation', 'Anniversary', 'Engagement', 'Other'];
 
-  const handleDeleteEvent = () => {
+  const handleDeleteEvent = async () => {
     if (deleteEvent) {
       setEvents(prev => prev.filter(e => e.id !== deleteEvent.id));
+      const eventId = deleteEvent.id;
       setDeleteEvent(null);
       setShowDeleteModal(false);
+      try {
+        const apiUrl = getApiUrl();
+        await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/events/${eventId}`, {
+          method: 'DELETE',
+        });
+      } catch (err) {
+        console.error('Failed to delete event:', err);
+      }
     }
   };
 
@@ -794,7 +817,7 @@ const MyEventsPage = () => {
     setShowEditModal(true);
   };
 
-  const handleEditEvent = () => {
+  const handleEditEvent = async () => {
     if (!editEvent || !editTitle || !editCategory || !editDate || !editTime) return;
 
     // Calculate duration from start and end time
@@ -850,6 +873,28 @@ const MyEventsPage = () => {
       }
       return event;
     }));
+
+    // Send update to backend
+    try {
+      const apiUrl = getApiUrl();
+      await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/events/${editEvent.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: editTitle,
+          description: editDescription,
+          eventDate: editDate,
+          startTime: editTime ? parseTimeToApiString(editTime) : null,
+          endTime: editEndTime ? parseTimeToApiString(editEndTime) : null,
+          location: editVenueName ? `${editVenueName}${editAddress ? ', ' + editAddress : ''}${editCity ? ', ' + editCity : ''}${editCountry ? ', ' + editCountry : ''}` : editAddress,
+          eventOrganizer: editOrganizer,
+          eventVisibility: editEvent.status,
+          eventTags: editTags.join(','),
+        }),
+      });
+    } catch (err) {
+      console.error('Failed to update event:', err);
+    }
 
     setShowEditModal(false);
     setEditEvent(null);
@@ -1042,12 +1087,26 @@ const MyEventsPage = () => {
           payload.packageId = createPackageId;
         }
 
-        // NOTE: /coordinator/events/book returns 404 — disconnected until backend adds it
-        // Event created locally only
-        console.log('Event payload (not sent — /coordinator/events/book not available):', payload);
+        const res = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/events/book`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (res.ok) {
+          const result = await res.json();
+          if (result.action === 1) {
+            // Refresh events from the backend to get the real event data
+            await fetchMyEvents();
+            resetCreateForm();
+            setShowCreateModal(false);
+            setIsSubmitting(false);
+            return;
+          }
+        }
       }
 
-      // Also update local state for immediate UI feedback
+      // Fallback: update local state for immediate UI feedback
       const selectedPhotographer = pastPhotographers.find(p => p.id === createPhotographerId);
 
       let calculatedDuration = createDuration || '4 hours';
