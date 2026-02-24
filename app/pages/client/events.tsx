@@ -7,7 +7,7 @@ import localforage from 'localforage';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
-import { useDashboardAuth } from '../../providers/AuthProvider';
+import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 
 function getApiUrl(): string {
   if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
@@ -872,31 +872,52 @@ const MyEventsPage = () => {
           ...event,
           title: editTitle,
           description: editDescription,
-          eventType: editCategory,
-          category: editCategory,
-          status: editStatus,
-          date: editDate,
-          time: timeDisplay,
+          eventCategory: editCategory,
+          eventStatus: editStatus,
+          eventDate: editDate,
+          startTime: editTime,
           endTime: editEndTime,
-          duration: calculatedDuration,
-          location: {
-            address: editVenueName ? `${editVenueName}${editAddress ? ' - ' + editAddress : ''}` : editAddress,
-            city: editCity,
-            country: editCountry
-          },
-          coverImage: editBannerImage || event.coverImage,
-          bannerImage: editBannerImage || event.bannerImage,
-          price: editPrice || 'Free',
-          maxGuests: parseInt(editMaxGuests) || event.maxGuests,
-          organizer: editOrganizer,
-          tags: editTags
-        };
-      }
-      return event;
-    }));
+          location: `${locationAddress}, ${editCity}, ${editCountry}`,
+          eventOrganizer: editOrganizer,
+          eventTags: editTags.join(','),
+          isEventFree: !editPrice || editPrice === 'Free',
+        }),
+      });
 
-    setShowEditModal(false);
-    setEditEvent(null);
+      if (res.ok) {
+        setEvents(prev => prev.map(event => {
+          if (event.id === editEvent.id) {
+            return {
+              ...event,
+              title: editTitle,
+              description: editDescription,
+              eventType: editCategory,
+              category: editCategory,
+              status: editStatus,
+              date: editDate,
+              time: timeDisplay,
+              endTime: editEndTime,
+              duration: calculatedDuration,
+              location: { address: locationAddress, city: editCity, country: editCountry },
+              coverImage: editBannerImage || event.coverImage,
+              bannerImage: editBannerImage || event.bannerImage,
+              price: editPrice || 'Free',
+              maxGuests: parseInt(editMaxGuests) || event.maxGuests,
+              organizer: editOrganizer,
+              tags: editTags
+            };
+          }
+          return event;
+        }));
+      } else {
+        console.error('Failed to update event:', res.status);
+      }
+    } catch (err) {
+      console.error('Error updating event:', err);
+    } finally {
+      setShowEditModal(false);
+      setEditEvent(null);
+    }
   };
 
   // Reset create form
