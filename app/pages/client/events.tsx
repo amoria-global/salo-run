@@ -7,7 +7,7 @@ import localforage from 'localforage';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
-import { useDashboardAuth } from '../../providers/AuthProvider';
+import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 
 function getApiUrl(): string {
   if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
@@ -746,9 +746,19 @@ const MyEventsPage = () => {
 
   const eventTypes = ['Wedding', 'Birthday', 'Corporate', 'Baby Shower', 'Graduation', 'Anniversary', 'Engagement', 'Other'];
 
-  const handleDeleteEvent = () => {
-    if (deleteEvent) {
-      setEvents(prev => prev.filter(e => e.id !== deleteEvent.id));
+  const handleDeleteEvent = async () => {
+    if (!deleteEvent) return;
+    try {
+      const apiUrl = getApiUrl();
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/events/${deleteEvent.id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setEvents(prev => prev.filter(e => e.id !== deleteEvent.id));
+      } else {
+        console.error('Failed to delete event:', res.status);
+      }
+    } catch (err) {
+      console.error('Error deleting event:', err);
+    } finally {
       setDeleteEvent(null);
       setShowDeleteModal(false);
     }
@@ -786,7 +796,7 @@ const MyEventsPage = () => {
     setShowEditModal(true);
   };
 
-  const handleEditEvent = () => {
+  const handleEditEvent = async () => {
     if (!editEvent || !editTitle || !editCategory || !editDate || !editTime) return;
 
     // Calculate duration from start and end time
@@ -814,37 +824,62 @@ const MyEventsPage = () => {
       ? `${formatTimeDisplay(editTime)} - ${formatTimeDisplay(editEndTime)}`
       : formatTimeDisplay(editTime);
 
-    setEvents(prev => prev.map(event => {
-      if (event.id === editEvent.id) {
-        return {
-          ...event,
+    const locationAddress = editVenueName ? `${editVenueName}${editAddress ? ' - ' + editAddress : ''}` : editAddress;
+
+    try {
+      const apiUrl = getApiUrl();
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/events/${editEvent.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           title: editTitle,
           description: editDescription,
-          eventType: editCategory,
-          category: editCategory,
-          status: editStatus,
-          date: editDate,
-          time: timeDisplay,
+          eventCategory: editCategory,
+          eventStatus: editStatus,
+          eventDate: editDate,
+          startTime: editTime,
           endTime: editEndTime,
-          duration: calculatedDuration,
-          location: {
-            address: editVenueName ? `${editVenueName}${editAddress ? ' - ' + editAddress : ''}` : editAddress,
-            city: editCity,
-            country: editCountry
-          },
-          coverImage: editBannerImage || event.coverImage,
-          bannerImage: editBannerImage || event.bannerImage,
-          price: editPrice || 'Free',
-          maxGuests: parseInt(editMaxGuests) || event.maxGuests,
-          organizer: editOrganizer,
-          tags: editTags
-        };
-      }
-      return event;
-    }));
+          location: `${locationAddress}, ${editCity}, ${editCountry}`,
+          eventOrganizer: editOrganizer,
+          eventTags: editTags.join(','),
+          isEventFree: !editPrice || editPrice === 'Free',
+        }),
+      });
 
-    setShowEditModal(false);
-    setEditEvent(null);
+      if (res.ok) {
+        setEvents(prev => prev.map(event => {
+          if (event.id === editEvent.id) {
+            return {
+              ...event,
+              title: editTitle,
+              description: editDescription,
+              eventType: editCategory,
+              category: editCategory,
+              status: editStatus,
+              date: editDate,
+              time: timeDisplay,
+              endTime: editEndTime,
+              duration: calculatedDuration,
+              location: { address: locationAddress, city: editCity, country: editCountry },
+              coverImage: editBannerImage || event.coverImage,
+              bannerImage: editBannerImage || event.bannerImage,
+              price: editPrice || 'Free',
+              maxGuests: parseInt(editMaxGuests) || event.maxGuests,
+              organizer: editOrganizer,
+              tags: editTags
+            };
+          }
+          return event;
+        }));
+      } else {
+        console.error('Failed to update event:', res.status);
+      }
+    } catch (err) {
+      console.error('Error updating event:', err);
+    } finally {
+      setShowEditModal(false);
+      setEditEvent(null);
+    }
   };
 
   // Reset create form
