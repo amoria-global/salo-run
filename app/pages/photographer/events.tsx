@@ -404,18 +404,18 @@ const PhotographerEventsPage = () => {
   const apiUrl = getApiUrl();
 
   const [activeTab, setActiveTab] = useState<'events' | 'albums'>('events');
-  const [events, setEvents] = useState<AssignedEvent[]>(mockEvents);
+  const [events, setEvents] = useState<AssignedEvent[]>([]);
   const [eventFilter, setEventFilter] = useState<'all' | 'upcoming' | 'ongoing' | 'completed'>('all');
   const [eventSearch, setEventSearch] = useState('');
   const [selectedEvent, setSelectedEvent] = useState<AssignedEvent | null>(null);
   const [showEventDetailModal, setShowEventDetailModal] = useState(false);
   const [showStreamSetupModal, setShowStreamSetupModal] = useState(false);
-  const [streamConfigs, setStreamConfigs] = useState<Record<string, StreamConfig>>(defaultStreamConfigs);
+  const [streamConfigs, setStreamConfigs] = useState<Record<string, StreamConfig>>({});
   const [showStreamKey, setShowStreamKey] = useState(false);
   const [copiedField, setCopiedField] = useState('');
   const [markCompleteTarget, setMarkCompleteTarget] = useState<AssignedEvent | null>(null);
   const [markingCompletedId, setMarkingCompletedId] = useState<string | null>(null);
-  const [albums, setAlbums] = useState<Album[]>(mockAlbums);
+  const [albums, setAlbums] = useState<Album[]>([]);
   const [albumFilter, setAlbumFilter] = useState<'all' | 'shared' | 'unshared'>('all');
   const [albumSearch, setAlbumSearch] = useState('');
   const [albumViewMode, setAlbumViewMode] = useState<'grid' | 'list'>('grid');
@@ -447,6 +447,124 @@ const PhotographerEventsPage = () => {
   const [isUploadingAlbum, setIsUploadingAlbum] = useState(false);
   const [uploadProgress, setUploadProgress] = useState('');
   const [mediaIdMap, setMediaIdMap] = useState<Record<string, string>>({});
+
+  // Fetch events from API
+  useEffect(() => {
+    if (!user?.id) return;
+    const loadEvents = async () => {
+      try {
+        const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/events`);
+        if (res.ok) {
+          const result = await res.json();
+          const data = result?.data || [];
+          if (data.length > 0) {
+            const mapped: AssignedEvent[] = data.map((e: any) => ({
+              id: e.id,
+              title: e.title || '',
+              description: e.description || '',
+              eventType: e.eventType || '',
+              category: e.category || '',
+              date: e.date || '',
+              startTime: e.startTime || '',
+              endTime: e.endTime || '',
+              duration: '',
+              location: e.location || { address: '', city: '', country: '' },
+              coverImage: e.coverImage || '',
+              status: e.status || 'upcoming',
+              clientName: e.clientName || '',
+              clientImage: e.clientImage || '',
+              clientEmail: e.clientEmail || '',
+              organizerName: e.organizerName || '',
+              packageName: e.packageName || '',
+              packageId: e.packageId || '',
+              hasLiveStream: e.hasLiveStream || false,
+              guestCount: e.guestCount || 0,
+              maxGuests: e.maxGuests || 0,
+              bookingId: e.bookingId || e.id,
+              totalAmount: e.totalAmount || 0,
+              createdAt: e.createdAt || '',
+            }));
+            setEvents(mapped);
+          } else {
+            setEvents(mockEvents);
+          }
+        } else {
+          setEvents(mockEvents);
+        }
+      } catch {
+        setEvents(mockEvents);
+      }
+    };
+    loadEvents();
+  }, [user?.id, apiUrl]);
+
+  // Fetch albums from API (galleries)
+  useEffect(() => {
+    if (!user?.id) return;
+    const loadAlbums = async () => {
+      try {
+        const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/galleries`);
+        if (res.ok) {
+          const result = await res.json();
+          const data = result?.data || [];
+          if (data.length > 0) {
+            const mapped: Album[] = data.map((a: any) => ({
+              id: a.id,
+              title: a.title || '',
+              description: a.description || '',
+              category: a.category || '',
+              eventId: a.eventId || '',
+              eventTitle: a.eventTitle || '',
+              clientId: a.clientId || '',
+              clientName: a.clientName || '',
+              coverImage: a.coverImage || a.thumbnail || '',
+              images: a.images || [],
+              photoCount: a.photoCount || a.imageCount || 0,
+              views: a.views || 0,
+              likes: a.likes || 0,
+              downloads: a.downloads || 0,
+              shared: a.shared || false,
+              sharedWithClient: a.sharedWithClient || false,
+              faceRecognitionEnabled: a.faceRecognitionEnabled || false,
+              inviteCode: a.inviteCode || null,
+              createdAt: a.createdAt || '',
+            }));
+            setAlbums(mapped);
+          } else {
+            setAlbums(mockAlbums);
+          }
+        } else {
+          setAlbums(mockAlbums);
+        }
+      } catch {
+        setAlbums(mockAlbums);
+      }
+    };
+    loadAlbums();
+  }, [user?.id, apiUrl]);
+
+  // Fetch stream configs for events with live stream
+  useEffect(() => {
+    if (events.length === 0) return;
+    const loadStreamConfigs = async () => {
+      const configs: Record<string, StreamConfig> = {};
+      for (const event of events.filter(e => e.hasLiveStream)) {
+        try {
+          const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/events/${event.id}/stream/config`);
+          if (res.ok) {
+            const result = await res.json();
+            if (result?.data) configs[event.id] = result.data;
+          }
+        } catch { /* use default */ }
+      }
+      if (Object.keys(configs).length > 0) {
+        setStreamConfigs(prev => ({ ...defaultStreamConfigs, ...prev, ...configs }));
+      } else {
+        setStreamConfigs(defaultStreamConfigs);
+      }
+    };
+    loadStreamConfigs();
+  }, [events, apiUrl]);
 
   const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   const formatTime = (time: string) => { const [h, m] = time.split(':'); const hour = parseInt(h); return `${hour % 12 || 12}:${m} ${hour >= 12 ? 'PM' : 'AM'}`; };
@@ -650,10 +768,25 @@ const PhotographerEventsPage = () => {
     const newAlbum: Album = { id: `a${Date.now()}`, title: albumTitle, description: albumDescription, category: albumCategory, eventId: event.id, eventTitle: event.title, clientId: event.bookingId, clientName: event.clientName, coverImage: albumCover, images: albumImages, photoCount: albumImages.length, views: 0, likes: 0, downloads: 0, shared: false, sharedWithClient: false, faceRecognitionEnabled: false, inviteCode: null, createdAt: new Date().toISOString().split('T')[0] };
     setAlbums(prev => [newAlbum, ...prev]); setShowCreateAlbumModal(false); setActiveTab('albums');
     setIsUploadingAlbum(false); setUploadProgress('');
+
+    // Persist album to backend
+    try {
+      const formData = new FormData();
+      formData.append('title', albumTitle);
+      if (albumDescription) formData.append('description', albumDescription);
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/galleries`, { method: 'POST', body: formData });
+      if (res.ok) {
+        const result = await res.json();
+        const backendId = result?.data?.id;
+        if (backendId) {
+          setAlbums(prev => prev.map(a => a.id === newAlbum.id ? { ...a, id: backendId } : a));
+        }
+      }
+    } catch (err) { console.error('Failed to persist album:', err); }
   };
 
   const handleOpenEdit = (album: Album) => { setSelectedAlbum(album); setEditTitle(album.title); setEditDescription(album.description); setEditCategory(album.category); setEditImages([...album.images]); setEditCoverIndex(album.images.indexOf(album.coverImage) >= 0 ? album.images.indexOf(album.coverImage) : 0); setShowAlbumEditModal(true); };
-  const handleSaveEdit = () => { if (!selectedAlbum || editImages.length === 0) return; const coverIdx = Math.min(editCoverIndex, editImages.length - 1); setAlbums(prev => prev.map(a => a.id === selectedAlbum.id ? { ...a, title: editTitle, description: editDescription, category: editCategory, images: editImages, coverImage: editImages[coverIdx], photoCount: editImages.length } : a)); setShowAlbumEditModal(false); };
+  const handleSaveEdit = async () => { if (!selectedAlbum || editImages.length === 0) return; const coverIdx = Math.min(editCoverIndex, editImages.length - 1); setAlbums(prev => prev.map(a => a.id === selectedAlbum.id ? { ...a, title: editTitle, description: editDescription, category: editCategory, images: editImages, coverImage: editImages[coverIdx], photoCount: editImages.length } : a)); setShowAlbumEditModal(false); try { const formData = new FormData(); formData.append('title', editTitle); formData.append('description', editDescription); await dashboardAuthFetch(`${apiUrl}/api/remote/customer/galleries/${selectedAlbum.id}`, { method: 'PUT', body: formData }); } catch (err) { console.error('Failed to update album:', err); } };
   const handleEditFileAdd = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files; if (!files || !selectedAlbum) return;
     for (const file of Array.from(files)) {
@@ -680,9 +813,9 @@ const PhotographerEventsPage = () => {
     }
     setEditImages(prev => { const updated = prev.filter((_, i) => i !== index); if (editCoverIndex >= updated.length) setEditCoverIndex(Math.max(0, updated.length - 1)); else if (editCoverIndex === index) setEditCoverIndex(0); else if (editCoverIndex > index) setEditCoverIndex(editCoverIndex - 1); return updated; });
   };
-  const handleToggleFaceRecognition = (album: Album) => { const updated = { ...album, faceRecognitionEnabled: !album.faceRecognitionEnabled, inviteCode: !album.faceRecognitionEnabled ? (album.inviteCode || generateInviteCode()) : album.inviteCode }; setAlbums(prev => prev.map(a => a.id === album.id ? updated : a)); setSelectedAlbum(updated); };
-  const handleSendToClient = (album: Album) => { setAlbums(prev => prev.map(a => a.id === album.id ? { ...a, sharedWithClient: true, shared: true } : a)); setShowSendModal(false); };
-  const handleDeleteAlbum = () => { if (!albumToDelete) return; setAlbums(prev => prev.filter(a => a.id !== albumToDelete.id)); setShowDeleteConfirm(false); setAlbumToDelete(null); };
+  const handleToggleFaceRecognition = async (album: Album) => { let inviteCode = album.inviteCode; if (!album.faceRecognitionEnabled && !inviteCode) { try { const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${album.id}/invite-code`, { method: 'POST' }); if (res.ok) { const result = await res.json(); inviteCode = result?.data?.inviteCode || generateInviteCode(); } else { inviteCode = generateInviteCode(); } } catch { inviteCode = generateInviteCode(); } } const updated = { ...album, faceRecognitionEnabled: !album.faceRecognitionEnabled, inviteCode }; setAlbums(prev => prev.map(a => a.id === album.id ? updated : a)); setSelectedAlbum(updated); };
+  const handleSendToClient = async (album: Album) => { setAlbums(prev => prev.map(a => a.id === album.id ? { ...a, sharedWithClient: true, shared: true } : a)); setShowSendModal(false); try { await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${album.id}/send`, { method: 'POST' }); } catch (err) { console.error('Failed to send album:', err); } };
+  const handleDeleteAlbum = async () => { if (!albumToDelete) return; setAlbums(prev => prev.filter(a => a.id !== albumToDelete.id)); setShowDeleteConfirm(false); const id = albumToDelete.id; setAlbumToDelete(null); try { await dashboardAuthFetch(`${apiUrl}/api/remote/customer/galleries/${id}`, { method: 'DELETE' }); } catch (err) { console.error('Failed to delete album:', err); } };
 
   const handleBrowseKeyDown = useCallback((e: KeyboardEvent) => {
     if (!showAlbumBrowseModal || !viewerAlbum) return;

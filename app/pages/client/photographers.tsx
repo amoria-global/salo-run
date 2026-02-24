@@ -479,10 +479,25 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
     fetchEvents();
   }, [showReviewModal, reviewPhotographer, token]);
 
-  const toggleFavorite = (id: string) => {
+  const toggleFavorite = async (id: string) => {
+    const photographer = photographers.find(p => p.id === id);
+    if (!photographer) return;
+    const willFavorite = !photographer.isFavorite;
     setPhotographers(prev => prev.map(p =>
-      p.id === id ? { ...p, isFavorite: !p.isFavorite } : p
+      p.id === id ? { ...p, isFavorite: willFavorite } : p
     ));
+    try {
+      const apiUrl = getApiUrl();
+      const endpoint = willFavorite
+        ? `${apiUrl}/api/remote/customer/photographers/bookmark/${id}`
+        : `${apiUrl}/api/remote/customer/photographers/unbookmark/${id}`;
+      await dashboardAuthFetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+    } catch (err) {
+      console.error('Failed to toggle favorite:', err);
+      setPhotographers(prev => prev.map(p =>
+        p.id === id ? { ...p, isFavorite: !willFavorite } : p
+      ));
+    }
   };
 
   const handleContextMenu = (e: React.MouseEvent, photographer: BookedPhotographer) => {
@@ -655,9 +670,29 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
     setShowTipPaymentModal(true);
   };
 
-  const handleTipPaymentComplete = () => {
+  const handleTipPaymentComplete = async () => {
     if (pendingReviewPhotographer) {
       const finalTipAmount = tipAmount === 'custom' ? parseFloat(customTipAmount) || 0 : (tipAmount as number) || 0;
+
+      // Find an eventId from the photographer's bookings
+      const completedBooking = pendingReviewPhotographer.bookings?.find(b => b.status === 'completed');
+      const eventId = completedBooking?.id;
+
+      if (eventId && finalTipAmount > 0) {
+        try {
+          const apiUrl = getApiUrl();
+          const params = new URLSearchParams({
+            eventId,
+            amount: finalTipAmount.toString(),
+          });
+          await dashboardAuthFetch(
+            `${apiUrl}/api/remote/payments/record-tip?${params.toString()}`,
+            { method: 'POST', headers: { 'Content-Type': 'application/json' } }
+          );
+        } catch (err) {
+          console.error('Failed to record tip:', err);
+        }
+      }
 
       // Update photographer's total spent
       setPhotographers(prev => prev.map(p =>

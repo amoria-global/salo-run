@@ -8,7 +8,7 @@ import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useUserProfile } from '../../context/UserProfileContext';
-import { useDashboardAuth } from '../../providers/AuthProvider';
+import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { HeartIcon } from '../../components/UnlockModal';
 
 function getApiUrl(): string {
@@ -330,6 +330,7 @@ type PaymentStatus = 'paid' | 'pending' | 'failed' | 'refunded' | 'partially_pai
 
 interface Payment {
   id: number;
+  declarationId: string;
   date: string;
   eventName: string;
   eventType: string;
@@ -543,6 +544,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
   const [donationSkipped, setDonationSkipped] = useState<boolean>(false);
   const [showCustomInput, setShowCustomInput] = useState<boolean>(false);
   const [showReceipt, setShowReceipt] = useState<boolean>(false);
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
   if (!payment) return null;
 
@@ -647,13 +649,37 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
               flex: 1, padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem',
               background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer'
             }}>Cancel</button>
-            <button style={{
+            <button disabled={isProcessing} onClick={async () => {
+              if (!payment.declarationId) return;
+              setIsProcessing(true);
+              try {
+                const apiUrl = getApiUrl();
+                const params = new URLSearchParams({
+                  amount: totalAmount.toString(),
+                  method: selectedPaymentMethod,
+                });
+                const res = await dashboardAuthFetch(
+                  `${apiUrl}/api/remote/payments/${payment.declarationId}/pay?${params.toString()}`,
+                  { method: 'POST', headers: { 'Content-Type': 'application/json' } }
+                );
+                if (!res.ok) {
+                  const err = await res.text().catch(() => '');
+                  throw new Error(`Payment failed: ${res.status} ${err}`);
+                }
+                handleClose();
+              } catch (err) {
+                console.error('Payment error:', err);
+                alert(err instanceof Error ? err.message : 'Payment failed');
+              } finally {
+                setIsProcessing(false);
+              }
+            }} style={{
               flex: 1, padding: '0.75rem 1rem',
               border: payment.status === 'failed' ? '2px solid #c00a72' : '2px solid #062a63',
-              borderRadius: '0.5rem', background: payment.status === 'failed' ? '#F20C8F' : '#083A85',
-              color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s'
+              borderRadius: '0.5rem', background: isProcessing ? '#9CA3AF' : (payment.status === 'failed' ? '#F20C8F' : '#083A85'),
+              color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: isProcessing ? 'not-allowed' : 'pointer', transition: 'all 0.2s'
             }}>
-              {payment.status === 'failed' ? 'Retry' : 'Pay'} {formatPrice(totalAmount)}
+              {isProcessing ? 'Processing...' : `${payment.status === 'failed' ? 'Retry' : 'Pay'} ${formatPrice(totalAmount)}`}
             </button>
           </div>
         </div>
@@ -1346,6 +1372,7 @@ Amount: ${formatPrice(payment.amountNum)}
 
       const mapped: Payment[] = content.map((item: any, index: number) => ({
         id: index + 1 + (page - 1) * resultsPerPage,
+        declarationId: item.id,
         date: formatDate(item.createdAt),
         eventName: item.eventTitle || 'Untitled Event',
         eventType: item.paymentType || 'Booking',

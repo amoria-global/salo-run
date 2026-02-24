@@ -20,10 +20,19 @@ interface CurrencyContextType {
   currencies: CurrencyInfo[];
 }
 
-const CURRENCIES: CurrencyInfo[] = [
+const FLAG_MAP: Record<string, string> = {
+  USD: "us", RWF: "rw", EUR: "eu", KES: "ke", UGX: "ug", TZS: "tz",
+};
+
+const DECIMALS_MAP: Record<string, number> = {
+  USD: 2, EUR: 2, RWF: 0, KES: 0, UGX: 0, TZS: 0,
+};
+
+// Fallback rates used when API is unavailable
+const DEFAULT_CURRENCIES: CurrencyInfo[] = [
   { code: "USD", name: "US Dollar", symbol: "$", flag: "us", rate: 1, decimals: 2 },
   { code: "RWF", name: "Rwandan Franc", symbol: "RWF", flag: "rw", rate: 1460, decimals: 0 },
-  { code: "EUR", name: "Euro", symbol: "€", flag: "eu", rate: 0.84, decimals: 2 },
+  { code: "EUR", name: "Euro", symbol: "\u20ac", flag: "eu", rate: 0.84, decimals: 2 },
   { code: "KES", name: "Kenyan Shilling", symbol: "KES", flag: "ke", rate: 132.73, decimals: 0 },
   { code: "UGX", name: "Ugandan Shilling", symbol: "UGX", flag: "ug", rate: 3561, decimals: 0 },
   { code: "TZS", name: "Tanzanian Shilling", symbol: "TZS", flag: "tz", rate: 2607, decimals: 0 },
@@ -31,16 +40,55 @@ const CURRENCIES: CurrencyInfo[] = [
 
 const STORAGE_KEY = "connekt-currency";
 
+function getApiUrl(): string {
+  if (typeof window !== "undefined" && process.env.NODE_ENV === "production") {
+    return "/api/proxy";
+  }
+  return process.env.NEXT_PUBLIC_API_URL || "http://197.243.24.101";
+}
+
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
 
 export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   const [currency, setCurrencyState] = useState<CurrencyCode>("USD");
+  const [currencies, setCurrencies] = useState<CurrencyInfo[]>(DEFAULT_CURRENCIES);
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved && CURRENCIES.some((c) => c.code === saved)) {
+    if (saved && DEFAULT_CURRENCIES.some((c) => c.code === saved)) {
       setCurrencyState(saved as CurrencyCode);
     }
+  }, []);
+
+  // Fetch live exchange rates from backend
+  useEffect(() => {
+    const fetchRates = async () => {
+      try {
+        const apiUrl = getApiUrl();
+        const response = await fetch(`${apiUrl}/api/remote/public/currencies/rates`);
+        if (!response.ok) return;
+        const result = await response.json();
+        const ratesData = result?.data;
+        if (!ratesData || typeof ratesData !== "object") return;
+
+        const updatedCurrencies: CurrencyInfo[] = DEFAULT_CURRENCIES.map((c) => {
+          const apiRate = ratesData[c.code];
+          if (apiRate && apiRate.rateToUsd != null) {
+            return {
+              ...c,
+              rate: parseFloat(apiRate.rateToUsd),
+              symbol: apiRate.symbol || c.symbol,
+              name: apiRate.name || c.name,
+            };
+          }
+          return c;
+        });
+        setCurrencies(updatedCurrencies);
+      } catch {
+        // Silently fall back to default rates when API is unavailable
+      }
+    };
+    fetchRates();
   }, []);
 
   const setCurrency = useCallback((code: CurrencyCode) => {
@@ -50,7 +98,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
 
   const formatPrice = useCallback(
     (amountInUSD: number) => {
-      const info = CURRENCIES.find((c) => c.code === currency)!;
+      const info = currencies.find((c) => c.code === currency)!;
       const converted = amountInUSD * info.rate;
       const formatted = converted.toLocaleString("en-US", {
         minimumFractionDigits: info.decimals,
@@ -58,15 +106,15 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (info.code === "USD") return `$${formatted}`;
-      if (info.code === "EUR") return `€${formatted}`;
+      if (info.code === "EUR") return `\u20ac${formatted}`;
       return `${info.symbol} ${formatted}`;
     },
-    [currency]
+    [currency, currencies]
   );
 
   return (
     <CurrencyContext.Provider
-      value={{ currency, setCurrency, formatPrice, currencies: CURRENCIES }}
+      value={{ currency, setCurrency, formatPrice, currencies }}
     >
       {children}
     </CurrencyContext.Provider>

@@ -1,15 +1,82 @@
 "use client";
 
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
+import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
+
+function getApiUrl(): string {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    return '/api/proxy';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+}
+
+interface PayrollData {
+  period: string;
+  generatedDate: string;
+  initial: number;
+  pending: number;
+  paid: number;
+  total: number;
+  transactions: { id: string | number; date: string; description: string; type: string; amount: number; status: string }[];
+}
 
 const PayrollReport = () => {
   const { colors, actualTheme } = useTheme();
   const { formatPrice } = useCurrency();
+  const { user } = useDashboardAuth();
   const reportRef = useRef<HTMLDivElement>(null);
+
+  const [payrollData, setPayrollData] = useState<PayrollData>({
+    period: '',
+    generatedDate: '',
+    initial: 0,
+    pending: 0,
+    paid: 0,
+    total: 0,
+    transactions: [],
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const fetchPayroll = async () => {
+      try {
+        const apiUrl = getApiUrl();
+        const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/payroll-report`);
+        if (res.ok) {
+          const result = await res.json();
+          if (result.action === 1 && result.data) {
+            const d = result.data;
+            setPayrollData({
+              period: d.period || '',
+              generatedDate: d.generatedDate || '',
+              initial: parseFloat(d.initial) || 0,
+              pending: parseFloat(d.pending) || 0,
+              paid: parseFloat(d.paid) || 0,
+              total: parseFloat(d.total) || 0,
+              transactions: (d.transactions || []).map((t: any) => ({
+                id: t.id,
+                date: t.date || '',
+                description: t.description || '',
+                type: t.type || 'Service Payment',
+                amount: parseFloat(t.amount) || 0,
+                status: t.status || 'Pending',
+              })),
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch payroll report:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPayroll();
+  }, [user?.id]);
 
   const handlePrint = () => {
     if (typeof window !== 'undefined') {
@@ -19,74 +86,6 @@ const PayrollReport = () => {
 
   const handleDownloadPDF = () => {
     handlePrint();
-  };
-
-  // Sample payroll data
-  const payrollData = {
-    period: 'From 13 - 18 July 2025',
-    generatedDate: 'July 19, 2025',
-    initial: 1200.13,
-    pending: 350.13,
-    paid: 949.87,
-    total: 2500.13,
-    transactions: [
-      {
-        id: 1,
-        date: 'July 13, 2025',
-        description: 'Wedding Photography - Kagabo Innocent',
-        type: 'Service Payment',
-        amount: 430.00,
-        status: 'Paid'
-      },
-      {
-        id: 2,
-        date: 'July 14, 2025',
-        description: 'Portrait Session - Amora Smith',
-        type: 'Service Payment',
-        amount: 300.00,
-        status: 'Paid'
-      },
-      {
-        id: 3,
-        date: 'July 15, 2025',
-        description: 'Photo Consultation - Penny Gloria',
-        type: 'Service Payment',
-        amount: 110.00,
-        status: 'Pending'
-      },
-      {
-        id: 4,
-        date: 'July 16, 2025',
-        description: 'Event Photography - Sarah Johnson',
-        type: 'Service Payment',
-        amount: 520.00,
-        status: 'Initial'
-      },
-      {
-        id: 5,
-        date: 'July 17, 2025',
-        description: 'Corporate Headshots - Tech Corp',
-        type: 'Service Payment',
-        amount: 680.13,
-        status: 'Initial'
-      },
-      {
-        id: 6,
-        date: 'July 18, 2025',
-        description: 'Product Photography - Asha Ross',
-        type: 'Service Payment',
-        amount: 240.13,
-        status: 'Pending'
-      },
-      {
-        id: 7,
-        date: 'July 18, 2025',
-        description: 'Family Photo Session - Mike Brown',
-        type: 'Service Payment',
-        amount: 219.87,
-        status: 'Paid'
-      }
-    ]
   };
 
   const getStatusColor = (status: string) => {

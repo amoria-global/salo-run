@@ -413,9 +413,21 @@ export default function Clients() {
   const fetchClients = useCallback(async () => {
     try {
       const apiUrl = getApiUrl();
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/clients`);
-      if (res.ok) {
-        const data = await res.json();
+      const [clientsRes, favRes] = await Promise.allSettled([
+        dashboardAuthFetch(`${apiUrl}/api/remote/photographer/clients`),
+        dashboardAuthFetch(`${apiUrl}/api/remote/photographer/favorite-clients`),
+      ]);
+
+      let favoriteIds: string[] = [];
+      if (favRes.status === 'fulfilled' && favRes.value.ok) {
+        const favData = await favRes.value.json();
+        if (favData.action === 1 && favData.data) {
+          favoriteIds = favData.data.map((id: any) => String(id));
+        }
+      }
+
+      if (clientsRes.status === 'fulfilled' && clientsRes.value.ok) {
+        const data = await clientsRes.value.json();
         if (data.action === 1 && data.data) {
           const clientList = Array.isArray(data.data) ? data.data : data.data.content || [];
           const mapped: Client[] = clientList.map((c: any) => ({
@@ -438,7 +450,7 @@ export default function Clients() {
             lastEventType: c.lastEventType || '',
             lastEventName: c.lastEventName || '',
             status: c.status === 'inactive' ? 'inactive' : 'active' as Client['status'],
-            isFavorite: c.isFavorite || false,
+            isFavorite: favoriteIds.includes(String(c.id || c.customerId)),
             verified: c.verified || c.isVerified || false,
             review: c.review || undefined,
             bookings: c.bookings || [],
@@ -473,10 +485,24 @@ export default function Clients() {
 
   const eventTypes = ['Wedding', 'Birthday', 'Corporate', 'Portrait', 'Fashion', 'Concert'];
 
-  const toggleFavorite = (id: string) => {
+  const toggleFavorite = async (id: string) => {
     setClients(prev => prev.map(c =>
       c.id === id ? { ...c, isFavorite: !c.isFavorite } : c
     ));
+    try {
+      const apiUrl = getApiUrl();
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/favorite-clients/${id}`, { method: 'POST' });
+      if (!res.ok) {
+        // Rollback on failure
+        setClients(prev => prev.map(c =>
+          c.id === id ? { ...c, isFavorite: !c.isFavorite } : c
+        ));
+      }
+    } catch {
+      setClients(prev => prev.map(c =>
+        c.id === id ? { ...c, isFavorite: !c.isFavorite } : c
+      ));
+    }
   };
 
   const formatDate = (dateStr: string) => {

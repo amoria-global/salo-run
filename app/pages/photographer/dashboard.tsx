@@ -311,6 +311,54 @@ const PhotographerDashboard = () => {
     fetchFilteredData();
   }, [activeFilter]);
 
+  // Fetch activities and plans from API
+  useEffect(() => {
+    const fetchActivitiesAndPlans = async () => {
+      const apiUrl = getApiUrl();
+      try {
+        const [activitiesRes, plansRes] = await Promise.allSettled([
+          dashboardAuthFetch(`${apiUrl}/api/remote/photographer/activities`),
+          dashboardAuthFetch(`${apiUrl}/api/remote/photographer/plans`),
+        ]);
+
+        if (activitiesRes.status === 'fulfilled' && activitiesRes.value.ok) {
+          const data = await activitiesRes.value.json();
+          if (data.action === 1 && Array.isArray(data.data)) {
+            setRecentActivities(data.data.map((a: any) => ({
+              label: a.label || '',
+              value: a.value || '',
+              valueColor: a.type === 'payment' ? '#16A34A' : undefined,
+            })));
+          }
+        }
+
+        if (plansRes.status === 'fulfilled' && plansRes.value.ok) {
+          const data = await plansRes.value.json();
+          if (data.action === 1 && Array.isArray(data.data) && data.data.length > 0) {
+            const mapped: FuturePlan[] = data.data.map((p: any) => ({
+              id: p.id,
+              name: p.name || '',
+              timePeriod: p.timePeriod || 'week',
+              customStartDate: p.customStartDate || undefined,
+              customEndDate: p.customEndDate || undefined,
+              targetEarnings: p.targetEarnings || '0',
+              targetPending: p.targetPending || '0',
+              targetClients: p.targetClients || '0',
+              targetBonuses: p.targetBonuses || '0',
+              targetRatings: p.targetRatings || '0',
+              targetPerformance: [],
+              createdAt: p.createdAt || '',
+            }));
+            setFuturePlans(mapped);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch activities/plans:', err);
+      }
+    };
+    fetchActivitiesAndPlans();
+  }, []);
+
   // Form state for creating future plan
   const [planForm, setPlanForm] = useState({
     name: '',
@@ -440,7 +488,7 @@ const PhotographerDashboard = () => {
   };
 
   // Handle creating a new future plan
-  const handleCreatePlan = () => {
+  const handleCreatePlan = async () => {
     if (!planForm.name || !planForm.targetEarnings) {
       return; // Basic validation
     }
@@ -456,7 +504,7 @@ const PhotographerDashboard = () => {
       targetClients: planForm.targetClients,
       targetBonuses: planForm.targetBonuses,
       targetRatings: planForm.targetRatings,
-      targetPerformance: [], // Will be generated dynamically
+      targetPerformance: [],
       createdAt: new Date().toISOString()
     };
 
@@ -464,9 +512,36 @@ const PhotographerDashboard = () => {
     setSelectedPlan(newPlan);
     setShowPlanModal(false);
     setIsComparisonMode(true);
-    // Sync the dashboard filter with the plan's time period
     setActiveFilter(planTimePeriod);
     resetPlanForm();
+
+    // Persist to backend
+    try {
+      const apiUrl = getApiUrl();
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/plans`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newPlan.name,
+          timePeriod: newPlan.timePeriod,
+          customStartDate: newPlan.customStartDate || null,
+          customEndDate: newPlan.customEndDate || null,
+          targetEarnings: newPlan.targetEarnings,
+          targetPending: newPlan.targetPending,
+          targetClients: newPlan.targetClients,
+          targetBonuses: newPlan.targetBonuses,
+          targetRatings: newPlan.targetRatings,
+        }),
+      });
+      if (res.ok) {
+        const result = await res.json();
+        if (result?.data?.id) {
+          setFuturePlans(prev => prev.map(p => p.id === newPlan.id ? { ...p, id: result.data.id } : p));
+        }
+      }
+    } catch (err) {
+      console.error('Failed to save plan:', err);
+    }
   };
 
   // Handle selecting an existing plan
@@ -478,11 +553,17 @@ const PhotographerDashboard = () => {
   };
 
   // Handle deleting a plan
-  const handleDeletePlan = (planId: string) => {
+  const handleDeletePlan = async (planId: string) => {
     setFuturePlans(prev => prev.filter(p => p.id !== planId));
     if (selectedPlan?.id === planId) {
       setSelectedPlan(null);
       setIsComparisonMode(false);
+    }
+    try {
+      const apiUrl = getApiUrl();
+      await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/plans/${planId}`, { method: 'DELETE' });
+    } catch (err) {
+      console.error('Failed to delete plan:', err);
     }
   };
 
@@ -505,7 +586,7 @@ const PhotographerDashboard = () => {
   };
 
   // Handle saving plan (create or update)
-  const handleSavePlan = () => {
+  const handleSavePlan = async () => {
     if (!planForm.name || !planForm.targetEarnings) {
       return; // Basic validation
     }
@@ -527,13 +608,34 @@ const PhotographerDashboard = () => {
 
       setFuturePlans(prev => prev.map(p => p.id === editingPlan.id ? updatedPlan : p));
 
-      // Update selected plan if it's the one being edited
       if (selectedPlan?.id === editingPlan.id) {
         setSelectedPlan(updatedPlan);
       }
 
       setActiveFilter(planTimePeriod);
       setEditingPlan(null);
+
+      // Persist update to backend
+      try {
+        const apiUrl = getApiUrl();
+        await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/plans/${editingPlan.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: updatedPlan.name,
+            timePeriod: updatedPlan.timePeriod,
+            customStartDate: updatedPlan.customStartDate || null,
+            customEndDate: updatedPlan.customEndDate || null,
+            targetEarnings: updatedPlan.targetEarnings,
+            targetPending: updatedPlan.targetPending,
+            targetClients: updatedPlan.targetClients,
+            targetBonuses: updatedPlan.targetBonuses,
+            targetRatings: updatedPlan.targetRatings,
+          }),
+        });
+      } catch (err) {
+        console.error('Failed to update plan:', err);
+      }
     } else {
       // Create new plan
       handleCreatePlan();
