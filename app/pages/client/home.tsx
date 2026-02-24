@@ -707,6 +707,7 @@ const ClientDashboard = () => {
           icon={<MoneyIcon />}
           trend={statTrends.totalSpent.trend}
           href="/user/client/transactions"
+          accentColor="#083A85"
         />
         <StatCard
           title="Pending"
@@ -716,6 +717,7 @@ const ClientDashboard = () => {
           icon={<ClockIcon />}
           trend={statTrends.pending.trend}
           href="/user/client/bookings"
+          accentColor="#F59E0B"
         />
         <StatCard
           title="Bookings"
@@ -725,6 +727,7 @@ const ClientDashboard = () => {
           icon={<UsersIcon />}
           trend={statTrends.bookings.trend}
           href="/user/client/bookings"
+          accentColor="#3B82F6"
         />
         <StatCard
           title="Gifts"
@@ -734,6 +737,7 @@ const ClientDashboard = () => {
           icon={<GiftIcon />}
           trend={statTrends.gifts.trend}
           href="/user/client/payments"
+          accentColor="#10B981"
         />
         <StatCard
           title="Favorites"
@@ -743,6 +747,7 @@ const ClientDashboard = () => {
           icon={<StarIcon />}
           trend={statTrends.favorites.trend}
           href="/user/client/photographers"
+          accentColor="#8B5CF6"
         />
       </div>
 

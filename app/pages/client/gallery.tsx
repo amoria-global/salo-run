@@ -1738,57 +1738,57 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
           {/* Stats Cards - Adapt to current view */}
           {pageView === 'albums' ? (
             <div className="mobile-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-              <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard }}>
+              <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard, borderLeft: '4px solid #083A85' }}>
                 <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Albums</div>
                 <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{activeAlbums.length}</div>
               </div>
-              <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard }}>
+              <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard, borderLeft: '4px solid #3B82F6' }}>
                 <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Photos</div>
                 <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{totalPhotos}</div>
               </div>
-              <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard }}>
+              <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard, borderLeft: '4px solid #16A34A' }}>
                 <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Downloaded</div>
                 <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>{totalDownloaded}</div>
               </div>
-              <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard }}>
+              <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard, borderLeft: '4px solid #DC2626' }}>
                 <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Favorites</div>
                 <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#DC2626' }}>{totalFavorites}</div>
               </div>
             </div>
           ) : pageView === 'archives' ? (
             <div className="mobile-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-              <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard }}>
+              <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard, borderLeft: '4px solid #DC2626' }}>
                 <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Archived Albums</div>
                 <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#DC2626' }}>{archivedAlbums.length}</div>
               </div>
-              <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard }}>
+              <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard, borderLeft: '4px solid #083A85' }}>
                 <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Archived Photos</div>
                 <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{archivedPhotos}</div>
               </div>
-              <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard }}>
+              <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard, borderLeft: '4px solid #F59E0B' }}>
                 <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Amount Due</div>
                 <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#F59E0B' }}>{formatPrice(archivedAmountDue)}</div>
               </div>
-              <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard }}>
+              <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard, borderLeft: '4px solid #EF4444' }}>
                 <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Locked</div>
                 <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#DC2626' }}>{archivedAlbums.length}</div>
               </div>
             </div>
           ) : pageView === 'photobooks' ? (
             <div className="mobile-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-              <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard }}>
+              <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard, borderLeft: '4px solid #083A85' }}>
                 <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Photobooks</div>
                 <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{photobooks.length}</div>
               </div>
-              <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard }}>
+              <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard, borderLeft: '4px solid #3B82F6' }}>
                 <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Images</div>
                 <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{totalPhotobookImages}</div>
               </div>
-              <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard }}>
+              <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard, borderLeft: '4px solid #10B981' }}>
                 <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Available Albums</div>
                 <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>{activeAlbums.length}</div>
               </div>
-              <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard }}>
+              <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowCard, borderLeft: '4px solid #10B981' }}>
                 <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Unlocked</div>
                 <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>{photobooks.length}</div>
               </div>
