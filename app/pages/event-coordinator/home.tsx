@@ -661,6 +661,7 @@ const EventCoordinatorDashboard = () => {
           icon={<MoneyIcon />}
           trend="up"
           href="/user/event-coordinator/payments"
+          accentColor="#083A85"
         />
         <StatCard
           title="Pending"
@@ -670,6 +671,7 @@ const EventCoordinatorDashboard = () => {
           icon={<ClockIcon />}
           trend="down"
           href="/user/event-coordinator/events"
+          accentColor="#F59E0B"
         />
         <StatCard
           title="Events"
@@ -679,6 +681,7 @@ const EventCoordinatorDashboard = () => {
           icon={<UsersIcon />}
           trend="up"
           href="/user/event-coordinator/events"
+          accentColor="#3B82F6"
         />
         <StatCard
           title="Stream Fees"
@@ -688,6 +691,7 @@ const EventCoordinatorDashboard = () => {
           icon={<LiveStreamFeeIcon />}
           trend="up"
           href="/user/event-coordinator/payments"
+          accentColor="#10B981"
         />
         <StatCard
           title="Photographers"
@@ -697,6 +701,7 @@ const EventCoordinatorDashboard = () => {
           icon={<StarIcon />}
           trend="up"
           href="/user/event-coordinator/photographers"
+          accentColor="#8B5CF6"
         />
       </div>
 

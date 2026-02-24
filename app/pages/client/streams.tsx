@@ -512,7 +512,7 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
 
           {/* Stats Cards */}
           <div className="mobile-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-            <div style={{ ...cardStyle, padding: '1.25rem', cursor: 'default' }}>
+            <div style={{ ...cardStyle, padding: '1.25rem', cursor: 'default', borderLeft: '4px solid #3B82F6' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <div style={{ width: '40px', height: '40px', borderRadius: '0.5rem', backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#DBEAFE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: actualTheme === 'dark' ? '#60A5FA' : '#1D4ED8' }}>
                   <BroadcastIcon />
@@ -523,7 +523,7 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
                 </div>
               </div>
             </div>
-            <div style={{ ...cardStyle, padding: '1.25rem', cursor: 'default' }}>
+            <div style={{ ...cardStyle, padding: '1.25rem', cursor: 'default', borderLeft: '4px solid #10B981' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <div style={{ width: '40px', height: '40px', borderRadius: '0.5rem', backgroundColor: actualTheme === 'dark' ? '#14532D' : '#D1FAE5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: actualTheme === 'dark' ? '#4ADE80' : '#059669' }}>
                   <UsersIcon />
@@ -536,7 +536,7 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
                 </div>
               </div>
             </div>
-            <div style={{ ...cardStyle, padding: '1.25rem', cursor: 'default' }}>
+            <div style={{ ...cardStyle, padding: '1.25rem', cursor: 'default', borderLeft: '4px solid #F59E0B' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <div style={{ width: '40px', height: '40px', borderRadius: '0.5rem', backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: actualTheme === 'dark' ? '#FCD34D' : '#D97706' }}>
                   <MessageIcon />
@@ -549,7 +549,7 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
                 </div>
               </div>
             </div>
-            <div style={{ ...cardStyle, padding: '1.25rem', cursor: 'default' }}>
+            <div style={{ ...cardStyle, padding: '1.25rem', cursor: 'default', borderLeft: '4px solid #8B5CF6' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <div style={{ width: '40px', height: '40px', borderRadius: '0.5rem', backgroundColor: actualTheme === 'dark' ? '#4C1D95' : '#E0E7FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: actualTheme === 'dark' ? '#A78BFA' : '#5B21B6' }}>
                   <VideoIcon />

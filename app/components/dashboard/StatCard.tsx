@@ -11,6 +11,7 @@ interface StatCardProps {
   icon: React.ReactNode;
   trend?: 'up' | 'down';
   href?: string;
+  accentColor?: string;
   // Comparison mode props
   isComparisonMode?: boolean;
   targetValue?: string;
@@ -39,6 +40,7 @@ export const StatCard: React.FC<StatCardProps> = ({
   icon,
   trend = 'up',
   href,
+  accentColor,
   isComparisonMode = false,
   targetValue
 }) => {
@@ -54,7 +56,8 @@ export const StatCard: React.FC<StatCardProps> = ({
       padding: '0.875rem',
       boxShadow: colors.shadowSm,
       height: '100%',
-      border: isComparisonMode ? `2px solid ${isGoalMet ? colors.statusSuccess : colors.brandAccent}` : 'none',
+      border: isComparisonMode ? `2px solid ${isGoalMet ? colors.statusSuccess : colors.brandAccent}` : `2px solid ${colors.borderPrimary}`,
+      borderLeft: accentColor ? `4px solid ${accentColor}` : (isComparisonMode ? `2px solid ${isGoalMet ? colors.statusSuccess : colors.brandAccent}` : `2px solid ${colors.borderPrimary}`),
       position: 'relative',
       overflow: 'hidden'
     }}>

@@ -113,13 +113,6 @@ const TrashIcon = () => (
   </svg>
 );
 
-const SettingsIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
-    <path d="M12 1V3M12 21V23M4.22 4.22L5.64 5.64M18.36 18.36L19.78 19.78M1 12H3M21 12H23M4.22 19.78L5.64 18.36M18.36 5.64L19.78 4.22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-  </svg>
-);
-
 // Notification types specific to clients and event coordinators
 type NotificationType = 'album' | 'gift' | 'security' | 'booking' | 'photographer' | 'streamfee';
 
@@ -148,7 +141,6 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
   const { token, user } = useDashboardAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [activeFilter, setActiveFilter] = useState<'all' | NotificationType>('all');
-  const [showSettings, setShowSettings] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const fetchNotifications = async () => {
@@ -469,44 +461,26 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
                   Mark all as read
                 </button>
               )}
-              <button
-                onClick={() => setShowSettings(!showSettings)}
-                style={{
-                  padding: '0.625rem',
-                  backgroundColor: colors.bgCard,
-                  border: `2px solid ${colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
-                  color: colors.textPrimary,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'all 0.2s'
-                }}
-                title="Notification Settings"
-              >
-                <SettingsIcon />
-              </button>
             </div>
           </div>
 
           {/* Stats Cards */}
           <div className="stats-grid">
-            <div className="stat-card">
+            <div className="stat-card" style={{ borderLeft: '4px solid #083A85' }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Notifications</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{notifications.length}</div>
             </div>
-            <div className="stat-card">
+            <div className="stat-card" style={{ borderLeft: '4px solid #EF4444' }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Unread</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#EF4444' }}>{unreadCount}</div>
             </div>
-            <div className="stat-card">
+            <div className="stat-card" style={{ borderLeft: '4px solid #9333EA' }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>New Albums</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#9333EA' }}>
                 {notifications.filter(n => n.type === 'album').length}
               </div>
             </div>
-            <div className="stat-card">
+            <div className="stat-card" style={{ borderLeft: '4px solid #16A34A' }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>
                 {userRole === 'event-coordinator' ? 'Stream Fees' : 'Gifts Received'}
               </div>

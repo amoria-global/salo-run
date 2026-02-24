@@ -111,13 +111,15 @@ const CheckIcon = () => (
 );
 
 // Component to handle URL params - needs Suspense boundary
-const TabParamHandler = ({ setActiveTab }: { setActiveTab: (tab: 'appearance' | 'payments') => void }) => {
+const TabParamHandler = ({ setActiveTab }: { setActiveTab: (tab: 'appearance' | 'payments' | 'notifications') => void }) => {
   const searchParams = useSearchParams();
 
   useEffect(() => {
     const tab = searchParams.get('tab');
     if (tab === 'payments') {
       setActiveTab('payments');
+    } else if (tab === 'notifications') {
+      setActiveTab('notifications');
     }
   }, [searchParams, setActiveTab]);
 
@@ -126,7 +128,7 @@ const TabParamHandler = ({ setActiveTab }: { setActiveTab: (tab: 'appearance' | 
 
 const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) => {
   const { theme, setTheme, actualTheme, colors } = useTheme();
-  const [activeTab, setActiveTab] = useState<'appearance' | 'payments'>('appearance');
+  const [activeTab, setActiveTab] = useState<'appearance' | 'payments' | 'notifications'>('appearance');
   const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
   const [showEditPaymentModal, setShowEditPaymentModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -165,6 +167,18 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
   ]);
 
   const [isSavingPreference, setIsSavingPreference] = useState(false);
+
+  // Notification settings states
+  const [emailNotifications, setEmailNotifications] = useState(true);
+  const [pushNotifications, setPushNotifications] = useState(true);
+  const [securityAlerts, setSecurityAlerts] = useState(true);
+  // Role-specific notification toggles
+  const [paymentNotifications, setPaymentNotifications] = useState(true);
+  const [tipsAndBonuses, setTipsAndBonuses] = useState(true);
+  const [albumNotifications, setAlbumNotifications] = useState(true);
+  const [bookingNotifications, setBookingNotifications] = useState(true);
+  const [giftNotifications, setGiftNotifications] = useState(true);
+  const [streamFeeNotifications, setStreamFeeNotifications] = useState(true);
 
   // Load saved preferences from API for coordinators
   useEffect(() => {
@@ -390,7 +404,8 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
           }}>
             {[
               { key: 'appearance' as const, label: 'Appearance', icon: 'bi-palette' },
-              { key: 'payments' as const, label: userType === 'client' ? 'Payment Accounts' : 'Withdrawal Accounts', icon: 'bi-wallet2' }
+              { key: 'payments' as const, label: userType === 'client' ? 'Payment Accounts' : 'Withdrawal Accounts', icon: 'bi-wallet2' },
+              { key: 'notifications' as const, label: 'Notifications', icon: 'bi-bell' }
             ].map((tab) => (
               <button
                 key={tab.key}
@@ -792,6 +807,459 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                     ))}
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* Notifications Tab */}
+          {activeTab === 'notifications' && (
+            <div style={{
+              backgroundColor: colors.bgSecondary,
+              borderRadius: '1rem',
+              padding: '1.5rem',
+              boxShadow: colors.shadowMd,
+              border: `2px solid ${colors.borderPrimary}`
+            }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
+                Notification Settings
+              </h2>
+              <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1.5rem 0' }}>
+                Choose which notifications you want to receive and how you want to be notified
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {/* Email Notifications */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '1rem',
+                  backgroundColor: colors.bgTertiary,
+                  borderRadius: '0.75rem',
+                  border: `1px solid ${colors.borderPrimary}`
+                }}>
+                  <div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.25rem' }}>
+                      Email Notifications
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
+                      Receive email alerts for important notifications
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setEmailNotifications(!emailNotifications)}
+                    style={{
+                      width: '48px',
+                      height: '26px',
+                      borderRadius: '13px',
+                      border: 'none',
+                      backgroundColor: emailNotifications ? '#083A85' : (actualTheme === 'dark' ? '#4B5563' : '#D1D5DB'),
+                      cursor: 'pointer',
+                      position: 'relative',
+                      transition: 'background-color 0.3s',
+                      flexShrink: 0
+                    }}
+                  >
+                    <span style={{
+                      position: 'absolute',
+                      top: '3px',
+                      left: emailNotifications ? '25px' : '3px',
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '50%',
+                      backgroundColor: 'white',
+                      transition: 'left 0.3s',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                    }} />
+                  </button>
+                </div>
+
+                {/* Push Notifications */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '1rem',
+                  backgroundColor: colors.bgTertiary,
+                  borderRadius: '0.75rem',
+                  border: `1px solid ${colors.borderPrimary}`
+                }}>
+                  <div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.25rem' }}>
+                      Push Notifications
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
+                      Get instant push notifications on your device
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setPushNotifications(!pushNotifications)}
+                    style={{
+                      width: '48px',
+                      height: '26px',
+                      borderRadius: '13px',
+                      border: 'none',
+                      backgroundColor: pushNotifications ? '#083A85' : (actualTheme === 'dark' ? '#4B5563' : '#D1D5DB'),
+                      cursor: 'pointer',
+                      position: 'relative',
+                      transition: 'background-color 0.3s',
+                      flexShrink: 0
+                    }}
+                  >
+                    <span style={{
+                      position: 'absolute',
+                      top: '3px',
+                      left: pushNotifications ? '25px' : '3px',
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '50%',
+                      backgroundColor: 'white',
+                      transition: 'left 0.3s',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                    }} />
+                  </button>
+                </div>
+
+                {/* Divider */}
+                <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, margin: '0.5rem 0' }} />
+
+                <p style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.25rem 0' }}>
+                  Notification Categories
+                </p>
+
+                {/* Role-specific: Photographer - Payment Notifications */}
+                {userType === 'photographer' && (
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '1rem',
+                    backgroundColor: colors.bgTertiary,
+                    borderRadius: '0.75rem',
+                    border: `1px solid ${colors.borderPrimary}`
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.25rem' }}>
+                        Payment Notifications
+                      </div>
+                      <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
+                        Notify me when I receive payments
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setPaymentNotifications(!paymentNotifications)}
+                      style={{
+                        width: '48px',
+                        height: '26px',
+                        borderRadius: '13px',
+                        border: 'none',
+                        backgroundColor: paymentNotifications ? '#083A85' : (actualTheme === 'dark' ? '#4B5563' : '#D1D5DB'),
+                        cursor: 'pointer',
+                        position: 'relative',
+                        transition: 'background-color 0.3s',
+                        flexShrink: 0
+                      }}
+                    >
+                      <span style={{
+                        position: 'absolute',
+                        top: '3px',
+                        left: paymentNotifications ? '25px' : '3px',
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        backgroundColor: 'white',
+                        transition: 'left 0.3s',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                      }} />
+                    </button>
+                  </div>
+                )}
+
+                {/* Role-specific: Photographer - Tips & Bonuses */}
+                {userType === 'photographer' && (
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '1rem',
+                    backgroundColor: colors.bgTertiary,
+                    borderRadius: '0.75rem',
+                    border: `1px solid ${colors.borderPrimary}`
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.25rem' }}>
+                        Tips & Bonuses
+                      </div>
+                      <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
+                        Notify me when I receive tips or bonuses
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setTipsAndBonuses(!tipsAndBonuses)}
+                      style={{
+                        width: '48px',
+                        height: '26px',
+                        borderRadius: '13px',
+                        border: 'none',
+                        backgroundColor: tipsAndBonuses ? '#083A85' : (actualTheme === 'dark' ? '#4B5563' : '#D1D5DB'),
+                        cursor: 'pointer',
+                        position: 'relative',
+                        transition: 'background-color 0.3s',
+                        flexShrink: 0
+                      }}
+                    >
+                      <span style={{
+                        position: 'absolute',
+                        top: '3px',
+                        left: tipsAndBonuses ? '25px' : '3px',
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        backgroundColor: 'white',
+                        transition: 'left 0.3s',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                      }} />
+                    </button>
+                  </div>
+                )}
+
+                {/* Role-specific: Client/Coordinator - Album Notifications */}
+                {(userType === 'client' || userType === 'event-coordinator') && (
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '1rem',
+                    backgroundColor: colors.bgTertiary,
+                    borderRadius: '0.75rem',
+                    border: `1px solid ${colors.borderPrimary}`
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.25rem' }}>
+                        Album Notifications
+                      </div>
+                      <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
+                        Notify me when new albums are shared or updated
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setAlbumNotifications(!albumNotifications)}
+                      style={{
+                        width: '48px',
+                        height: '26px',
+                        borderRadius: '13px',
+                        border: 'none',
+                        backgroundColor: albumNotifications ? '#083A85' : (actualTheme === 'dark' ? '#4B5563' : '#D1D5DB'),
+                        cursor: 'pointer',
+                        position: 'relative',
+                        transition: 'background-color 0.3s',
+                        flexShrink: 0
+                      }}
+                    >
+                      <span style={{
+                        position: 'absolute',
+                        top: '3px',
+                        left: albumNotifications ? '25px' : '3px',
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        backgroundColor: 'white',
+                        transition: 'left 0.3s',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                      }} />
+                    </button>
+                  </div>
+                )}
+
+                {/* Role-specific: Client/Coordinator - Booking Notifications */}
+                {(userType === 'client' || userType === 'event-coordinator') && (
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '1rem',
+                    backgroundColor: colors.bgTertiary,
+                    borderRadius: '0.75rem',
+                    border: `1px solid ${colors.borderPrimary}`
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.25rem' }}>
+                        Booking Notifications
+                      </div>
+                      <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
+                        Notify me about booking updates and confirmations
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setBookingNotifications(!bookingNotifications)}
+                      style={{
+                        width: '48px',
+                        height: '26px',
+                        borderRadius: '13px',
+                        border: 'none',
+                        backgroundColor: bookingNotifications ? '#083A85' : (actualTheme === 'dark' ? '#4B5563' : '#D1D5DB'),
+                        cursor: 'pointer',
+                        position: 'relative',
+                        transition: 'background-color 0.3s',
+                        flexShrink: 0
+                      }}
+                    >
+                      <span style={{
+                        position: 'absolute',
+                        top: '3px',
+                        left: bookingNotifications ? '25px' : '3px',
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        backgroundColor: 'white',
+                        transition: 'left 0.3s',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                      }} />
+                    </button>
+                  </div>
+                )}
+
+                {/* Role-specific: Client - Gift Notifications */}
+                {userType === 'client' && (
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '1rem',
+                    backgroundColor: colors.bgTertiary,
+                    borderRadius: '0.75rem',
+                    border: `1px solid ${colors.borderPrimary}`
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.25rem' }}>
+                        Gift Notifications
+                      </div>
+                      <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
+                        Notify me when I receive gifts
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setGiftNotifications(!giftNotifications)}
+                      style={{
+                        width: '48px',
+                        height: '26px',
+                        borderRadius: '13px',
+                        border: 'none',
+                        backgroundColor: giftNotifications ? '#083A85' : (actualTheme === 'dark' ? '#4B5563' : '#D1D5DB'),
+                        cursor: 'pointer',
+                        position: 'relative',
+                        transition: 'background-color 0.3s',
+                        flexShrink: 0
+                      }}
+                    >
+                      <span style={{
+                        position: 'absolute',
+                        top: '3px',
+                        left: giftNotifications ? '25px' : '3px',
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        backgroundColor: 'white',
+                        transition: 'left 0.3s',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                      }} />
+                    </button>
+                  </div>
+                )}
+
+                {/* Role-specific: Coordinator - Stream Fee Notifications */}
+                {userType === 'event-coordinator' && (
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '1rem',
+                    backgroundColor: colors.bgTertiary,
+                    borderRadius: '0.75rem',
+                    border: `1px solid ${colors.borderPrimary}`
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.25rem' }}>
+                        Stream Fee Notifications
+                      </div>
+                      <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
+                        Notify me when I receive live stream access fee revenue
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setStreamFeeNotifications(!streamFeeNotifications)}
+                      style={{
+                        width: '48px',
+                        height: '26px',
+                        borderRadius: '13px',
+                        border: 'none',
+                        backgroundColor: streamFeeNotifications ? '#083A85' : (actualTheme === 'dark' ? '#4B5563' : '#D1D5DB'),
+                        cursor: 'pointer',
+                        position: 'relative',
+                        transition: 'background-color 0.3s',
+                        flexShrink: 0
+                      }}
+                    >
+                      <span style={{
+                        position: 'absolute',
+                        top: '3px',
+                        left: streamFeeNotifications ? '25px' : '3px',
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        backgroundColor: 'white',
+                        transition: 'left 0.3s',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                      }} />
+                    </button>
+                  </div>
+                )}
+
+                {/* Security Alerts - all roles */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '1rem',
+                  backgroundColor: colors.bgTertiary,
+                  borderRadius: '0.75rem',
+                  border: `1px solid ${colors.borderPrimary}`
+                }}>
+                  <div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.25rem' }}>
+                      Security Alerts
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
+                      Always notify me about security events (recommended)
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSecurityAlerts(!securityAlerts)}
+                    style={{
+                      width: '48px',
+                      height: '26px',
+                      borderRadius: '13px',
+                      border: 'none',
+                      backgroundColor: securityAlerts ? '#083A85' : (actualTheme === 'dark' ? '#4B5563' : '#D1D5DB'),
+                      cursor: 'pointer',
+                      position: 'relative',
+                      transition: 'background-color 0.3s',
+                      flexShrink: 0
+                    }}
+                  >
+                    <span style={{
+                      position: 'absolute',
+                      top: '3px',
+                      left: securityAlerts ? '25px' : '3px',
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '50%',
+                      backgroundColor: 'white',
+                      transition: 'left 0.3s',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                    }} />
+                  </button>
+                </div>
               </div>
             </div>
           )}
