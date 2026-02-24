@@ -99,19 +99,6 @@ const TrashIcon = () => (
   </svg>
 );
 
-const FilterIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
-
-const SettingsIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
-    <path d="M12 1V3M12 21V23M4.22 4.22L5.64 5.64M18.36 18.36L19.78 19.78M1 12H3M21 12H23M4.22 19.78L5.64 18.36M18.36 5.64L19.78 4.22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-  </svg>
-);
-
 // Notification types specific to photographers
 type NotificationType = 'payment' | 'tip' | 'bonus' | 'security' | 'album' | 'review';
 
@@ -134,7 +121,6 @@ const Notifications = () => {
   const { user, token } = useDashboardAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [activeFilter, setActiveFilter] = useState<'all' | NotificationType>('all');
-  const [showSettings, setShowSettings] = useState(false);
   const [loading, setLoading] = useState(true);
   const [balance, setBalance] = useState<any>(null);
 
@@ -307,44 +293,6 @@ const Notifications = () => {
           flex-wrap: wrap;
         }
 
-        .settings-modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background-color: rgba(0, 0, 0, 0.5);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
-          padding: 1rem;
-        }
-
-        .settings-panel {
-          background-color: ${colors.bgCard};
-          border-radius: 0.75rem;
-          border: 2px solid ${colors.borderPrimary};
-          padding: 1.5rem;
-          box-shadow: ${colors.shadowLg};
-          max-width: 600px;
-          width: 100%;
-          max-height: 90vh;
-          overflow-y: auto;
-        }
-
-        .settings-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding-bottom: 1rem;
-          border-bottom: 2px solid ${colors.borderPrimary};
-        }
-
-        .settings-item:last-child {
-          border-bottom: none;
-        }
-
         /* Mobile responsive styles */
         @media (max-width: 768px) {
           .notifications-main {
@@ -398,25 +346,6 @@ const Notifications = () => {
             width: 100% !important;
           }
 
-          .settings-modal-overlay {
-            padding: 0.5rem !important;
-          }
-
-          .settings-panel {
-            padding: 1rem !important;
-            max-height: 85vh !important;
-          }
-
-          .settings-item {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-            gap: 0.75rem !important;
-            padding-bottom: 0.75rem !important;
-          }
-
-          .settings-item > div:first-child {
-            width: 100% !important;
-          }
         }
 
         /* Extra small mobile (phones in portrait) */
@@ -508,44 +437,26 @@ const Notifications = () => {
                   Mark all as read
                 </button>
               )}
-              <button
-                onClick={() => setShowSettings(!showSettings)}
-                style={{
-                  padding: '0.625rem',
-                  backgroundColor: colors.bgCard,
-                  border: `2px solid ${colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
-                  color: colors.textPrimary,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'all 0.2s'
-                }}
-                title="Notification Settings"
-              >
-                <SettingsIcon />
-              </button>
             </div>
           </div>
 
           {/* Stats Cards */}
           <div className="stats-grid">
-            <div className="stat-card">
+            <div className="stat-card" style={{ borderLeft: '4px solid #083A85' }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Notifications</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.brandPrimary }}>{notifications.length}</div>
             </div>
-            <div className="stat-card">
+            <div className="stat-card" style={{ borderLeft: '4px solid #EF4444' }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Unread</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#EF4444' }}>{unreadCount}</div>
             </div>
-            <div className="stat-card">
+            <div className="stat-card" style={{ borderLeft: '4px solid #16A34A' }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Payments</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>
                 {notifications.filter(n => n.type === 'payment').length}
               </div>
             </div>
-            <div className="stat-card">
+            <div className="stat-card" style={{ borderLeft: '4px solid #F59E0B' }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Tips & Bonuses</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#F59E0B' }}>
                 {notifications.filter(n => n.type === 'tip' || n.type === 'bonus').length}
@@ -806,353 +717,6 @@ const Notifications = () => {
       </div>
       </div>
 
-      {/* Notification Settings Modal */}
-      {showSettings && (
-        <div className="settings-modal-overlay" onClick={() => setShowSettings(false)}>
-          <div className="settings-panel" onClick={(e) => e.stopPropagation()}>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '1.25rem'
-              }}>
-                <h2 style={{
-                  fontSize: '1.1rem',
-                  fontWeight: '600',
-                  color: colors.textPrimary,
-                  margin: 0
-                }}>
-                  Notification Settings
-                </h2>
-                <button
-                  onClick={() => setShowSettings(false)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: colors.textSecondary,
-                    cursor: 'pointer',
-                    fontSize: '1.5rem',
-                    lineHeight: '1',
-                    padding: 0
-                  }}
-                >
-                  ×
-                </button>
-              </div>
-
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '1rem'
-              }}>
-                {/* Email Notifications */}
-                <div className="settings-item">
-                  <div>
-                    <div style={{
-                      fontSize: '0.95rem',
-                      fontWeight: '500',
-                      color: colors.textPrimary,
-                      marginBottom: '0.25rem'
-                    }}>
-                      Email Notifications
-                    </div>
-                    <div style={{
-                      fontSize: '0.85rem',
-                      color: colors.textSecondary
-                    }}>
-                      Receive email alerts for important notifications
-                    </div>
-                  </div>
-                  <label style={{
-                    position: 'relative',
-                    display: 'inline-block',
-                    width: '48px',
-                    height: '24px',
-                    cursor: 'pointer'
-                  }}>
-                    <input
-                      type="checkbox"
-                      defaultChecked
-                      style={{
-                        opacity: 0,
-                        width: 0,
-                        height: 0
-                      }}
-                    />
-                    <span style={{
-                      position: 'absolute',
-                      cursor: 'pointer',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      backgroundColor: '#083A85',
-                      borderRadius: '24px',
-                      transition: '0.3s'
-                    }}>
-                      <span style={{
-                        position: 'absolute',
-                        content: '',
-                        height: '18px',
-                        width: '18px',
-                        left: '3px',
-                        bottom: '3px',
-                        backgroundColor: 'white',
-                        borderRadius: '50%',
-                        transition: '0.3s',
-                        transform: 'translateX(24px)'
-                      }} />
-                    </span>
-                  </label>
-                </div>
-
-                {/* Push Notifications */}
-                <div className="settings-item">
-                  <div>
-                    <div style={{
-                      fontSize: '0.95rem',
-                      fontWeight: '500',
-                      color: colors.textPrimary,
-                      marginBottom: '0.25rem'
-                    }}>
-                      Push Notifications
-                    </div>
-                    <div style={{
-                      fontSize: '0.85rem',
-                      color: colors.textSecondary
-                    }}>
-                      Get instant push notifications on your device
-                    </div>
-                  </div>
-                  <label style={{
-                    position: 'relative',
-                    display: 'inline-block',
-                    width: '48px',
-                    height: '24px',
-                    cursor: 'pointer'
-                  }}>
-                    <input
-                      type="checkbox"
-                      defaultChecked
-                      style={{
-                        opacity: 0,
-                        width: 0,
-                        height: 0
-                      }}
-                    />
-                    <span style={{
-                      position: 'absolute',
-                      cursor: 'pointer',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      backgroundColor: '#083A85',
-                      borderRadius: '24px',
-                      transition: '0.3s'
-                    }}>
-                      <span style={{
-                        position: 'absolute',
-                        content: '',
-                        height: '18px',
-                        width: '18px',
-                        left: '3px',
-                        bottom: '3px',
-                        backgroundColor: 'white',
-                        borderRadius: '50%',
-                        transition: '0.3s',
-                        transform: 'translateX(24px)'
-                      }} />
-                    </span>
-                  </label>
-                </div>
-
-                {/* Payment Notifications */}
-                <div className="settings-item">
-                  <div>
-                    <div style={{
-                      fontSize: '0.95rem',
-                      fontWeight: '500',
-                      color: colors.textPrimary,
-                      marginBottom: '0.25rem'
-                    }}>
-                      Payment Notifications
-                    </div>
-                    <div style={{
-                      fontSize: '0.85rem',
-                      color: colors.textSecondary
-                    }}>
-                      Notify me when I receive payments
-                    </div>
-                  </div>
-                  <label style={{
-                    position: 'relative',
-                    display: 'inline-block',
-                    width: '48px',
-                    height: '24px',
-                    cursor: 'pointer'
-                  }}>
-                    <input
-                      type="checkbox"
-                      defaultChecked
-                      style={{
-                        opacity: 0,
-                        width: 0,
-                        height: 0
-                      }}
-                    />
-                    <span style={{
-                      position: 'absolute',
-                      cursor: 'pointer',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      backgroundColor: '#083A85',
-                      borderRadius: '24px',
-                      transition: '0.3s'
-                    }}>
-                      <span style={{
-                        position: 'absolute',
-                        content: '',
-                        height: '18px',
-                        width: '18px',
-                        left: '3px',
-                        bottom: '3px',
-                        backgroundColor: 'white',
-                        borderRadius: '50%',
-                        transition: '0.3s',
-                        transform: 'translateX(24px)'
-                      }} />
-                    </span>
-                  </label>
-                </div>
-
-                {/* Tips & Bonuses Notifications */}
-                <div className="settings-item">
-                  <div>
-                    <div style={{
-                      fontSize: '0.95rem',
-                      fontWeight: '500',
-                      color: colors.textPrimary,
-                      marginBottom: '0.25rem'
-                    }}>
-                      Tips & Bonuses
-                    </div>
-                    <div style={{
-                      fontSize: '0.85rem',
-                      color: colors.textSecondary
-                    }}>
-                      Notify me when I receive tips or bonuses
-                    </div>
-                  </div>
-                  <label style={{
-                    position: 'relative',
-                    display: 'inline-block',
-                    width: '48px',
-                    height: '24px',
-                    cursor: 'pointer'
-                  }}>
-                    <input
-                      type="checkbox"
-                      defaultChecked
-                      style={{
-                        opacity: 0,
-                        width: 0,
-                        height: 0
-                      }}
-                    />
-                    <span style={{
-                      position: 'absolute',
-                      cursor: 'pointer',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      backgroundColor: '#083A85',
-                      borderRadius: '24px',
-                      transition: '0.3s'
-                    }}>
-                      <span style={{
-                        position: 'absolute',
-                        content: '',
-                        height: '18px',
-                        width: '18px',
-                        left: '3px',
-                        bottom: '3px',
-                        backgroundColor: 'white',
-                        borderRadius: '50%',
-                        transition: '0.3s',
-                        transform: 'translateX(24px)'
-                      }} />
-                    </span>
-                  </label>
-                </div>
-
-                {/* Security Alerts */}
-                <div className="settings-item">
-                  <div>
-                    <div style={{
-                      fontSize: '0.95rem',
-                      fontWeight: '500',
-                      color: colors.textPrimary,
-                      marginBottom: '0.25rem'
-                    }}>
-                      Security Alerts
-                    </div>
-                    <div style={{
-                      fontSize: '0.85rem',
-                      color: colors.textSecondary
-                    }}>
-                      Always notify me about security events (recommended)
-                    </div>
-                  </div>
-                  <label style={{
-                    position: 'relative',
-                    display: 'inline-block',
-                    width: '48px',
-                    height: '24px',
-                    cursor: 'pointer'
-                  }}>
-                    <input
-                      type="checkbox"
-                      defaultChecked
-                      style={{
-                        opacity: 0,
-                        width: 0,
-                        height: 0
-                      }}
-                    />
-                    <span style={{
-                      position: 'absolute',
-                      cursor: 'pointer',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      backgroundColor: '#083A85',
-                      borderRadius: '24px',
-                      transition: '0.3s'
-                    }}>
-                      <span style={{
-                        position: 'absolute',
-                        content: '',
-                        height: '18px',
-                        width: '18px',
-                        left: '3px',
-                        bottom: '3px',
-                        backgroundColor: 'white',
-                        borderRadius: '50%',
-                        transition: '0.3s',
-                        transform: 'translateX(24px)'
-                      }} />
-                    </span>
-                  </label>
-                </div>
-              </div>
-          </div>
-        </div>
-      )}
     </>
   );
 };

@@ -144,6 +144,12 @@ const InboxPage = () => {
   const [balance, setBalance] = useState<any>(null);
   const apiUrl = getApiUrl();
 
+  // New Chat states
+  const [showNewChatModal, setShowNewChatModal] = useState(false);
+  const [contacts, setContacts] = useState<{ id: string; name: string; image: string; speciality?: string }[]>([]);
+  const [isLoadingContacts, setIsLoadingContacts] = useState(false);
+  const [contactSearchQuery, setContactSearchQuery] = useState('');
+
   // Close emoji picker when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -244,6 +250,54 @@ const InboxPage = () => {
       fetchConversations();
     }
   }, [currentUserId, fetchConversations]);
+
+  // Fetch clients/contacts for New Chat
+  const fetchContacts = useCallback(async () => {
+    setIsLoadingContacts(true);
+    try {
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/clients`);
+      if (res.ok) {
+        const data = await res.json();
+        const list = (data.data?.content || data.data || []).map((p: any) => ({
+          id: p.id || '',
+          name: `${(p.firstName || '')} ${(p.lastName || '')}`.trim() || p.name || 'Client',
+          image: p.profilePicture || p.image || '',
+          speciality: p.speciality || p.category || '',
+        }));
+        setContacts(list);
+      }
+    } catch (err) {
+      console.error('Failed to fetch contacts:', err);
+    } finally {
+      setIsLoadingContacts(false);
+    }
+  }, [apiUrl]);
+
+  // Start or open conversation with a contact
+  const startConversation = (contact: { id: string; name: string; image: string }) => {
+    const existing = conversations.find(conv =>
+      conv.participants.some(p => p.id === contact.id)
+    );
+    if (existing) {
+      setSelectedConversation(existing.id);
+    } else {
+      const newConv: Conversation = {
+        id: contact.id,
+        participants: [
+          { id: currentUserId, name: user?.firstName ? `${user.firstName} ${user.lastName || ''}` : '', image: user?.profilePicture || '', userType: 'photographer', isOnline: true },
+          { id: contact.id, name: contact.name, image: contact.image, userType: 'client', isOnline: false },
+        ],
+        unreadCount: 0,
+        isPinned: false,
+        isMuted: false,
+        messages: [],
+      };
+      setConversations(prev => [newConv, ...prev]);
+      setSelectedConversation(contact.id);
+    }
+    setShowNewChatModal(false);
+    setContactSearchQuery('');
+  };
 
   // Fetch balance
   useEffect(() => {
@@ -567,7 +621,31 @@ const InboxPage = () => {
           }}>
             {/* Header */}
             <div className="mobile-conversations-list-header" style={{ padding: '1rem', borderBottom: `2px solid ${colors.borderPrimary}` }}>
-              <h1 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '1rem' }}>Messages</h1>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h1 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Messages</h1>
+                <button
+                  onClick={() => { setShowNewChatModal(true); setContactSearchQuery(''); fetchContacts(); }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.375rem',
+                    padding: '0.375rem 0.75rem',
+                    border: '2px solid #062a63',
+                    borderRadius: '0.375rem',
+                    backgroundColor: '#083A85',
+                    color: 'white',
+                    fontSize: '0.8rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  New Chat
+                </button>
+              </div>
 
               {/* Search */}
               <div style={{ position: 'relative', marginBottom: '0.75rem' }}>
@@ -1161,6 +1239,196 @@ const InboxPage = () => {
           </div>
         </div>
       </div>
+
+      {/* New Chat Modal */}
+      {showNewChatModal && (
+        <div
+          onClick={() => setShowNewChatModal(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: colors.bgCard,
+              borderRadius: '1rem',
+              width: '100%',
+              maxWidth: '420px',
+              maxHeight: '70vh',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+              border: `2px solid ${colors.borderPrimary}`,
+            }}
+          >
+            {/* Modal Header */}
+            <div style={{
+              padding: '1rem 1.25rem',
+              borderBottom: `2px solid ${colors.borderPrimary}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
+              <h2 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>New Chat</h2>
+              <button
+                onClick={() => setShowNewChatModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '0.25rem',
+                  color: colors.textSecondary,
+                  fontSize: '1.25rem',
+                  lineHeight: 1,
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Search Input */}
+            <div style={{ padding: '0.75rem 1.25rem', borderBottom: `1px solid ${colors.borderPrimary}` }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.5rem 0.75rem',
+                borderRadius: '0.5rem',
+                border: `2px solid ${colors.borderPrimary}`,
+                backgroundColor: colors.bgTertiary,
+              }}>
+                <SearchIcon />
+                <input
+                  type="text"
+                  placeholder="Search contacts..."
+                  value={contactSearchQuery}
+                  onChange={(e) => setContactSearchQuery(e.target.value)}
+                  style={{
+                    flex: 1,
+                    border: 'none',
+                    outline: 'none',
+                    backgroundColor: 'transparent',
+                    fontSize: '0.9rem',
+                    color: colors.textPrimary,
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Contact List */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '0.5rem 0' }}>
+              {isLoadingContacts ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+                  <span style={{ color: colors.textSecondary, fontSize: '0.9rem' }}>Loading contacts...</span>
+                </div>
+              ) : contacts.filter(c =>
+                c.name.toLowerCase().includes(contactSearchQuery.toLowerCase()) ||
+                (c.speciality || '').toLowerCase().includes(contactSearchQuery.toLowerCase())
+              ).length === 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', textAlign: 'center' }}>
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginBottom: '0.75rem' }}>
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <circle cx="9" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <span style={{ color: colors.textSecondary, fontSize: '0.9rem' }}>
+                    {contactSearchQuery ? 'No contacts match your search' : 'No clients found'}
+                  </span>
+                </div>
+              ) : (
+                contacts
+                  .filter(c =>
+                    c.name.toLowerCase().includes(contactSearchQuery.toLowerCase()) ||
+                    (c.speciality || '').toLowerCase().includes(contactSearchQuery.toLowerCase())
+                  )
+                  .map((contact) => {
+                    const alreadyHasConvo = conversations.some(conv => conv.participants.some(p => p.id === contact.id));
+                    return (
+                      <button
+                        key={contact.id}
+                        onClick={() => startConversation(contact)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.75rem',
+                          width: '100%',
+                          padding: '0.625rem 1.25rem',
+                          border: 'none',
+                          backgroundColor: 'transparent',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          transition: 'background-color 0.15s',
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = colors.bgTertiary)}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                      >
+                        {/* Avatar */}
+                        <div style={{
+                          width: '42px',
+                          height: '42px',
+                          borderRadius: '50%',
+                          overflow: 'hidden',
+                          flexShrink: 0,
+                          backgroundColor: colors.bgTertiary,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}>
+                          {contact.image ? (
+                            <Image src={contact.image} alt={contact.name} width={42} height={42} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                          ) : (
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                            </svg>
+                          )}
+                        </div>
+
+                        {/* Name + Speciality */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {contact.name}
+                          </div>
+                          {contact.speciality && (
+                            <div style={{ fontSize: '0.78rem', color: colors.textSecondary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {contact.speciality}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Existing conversation indicator */}
+                        {alreadyHasConvo && (
+                          <span style={{
+                            fontSize: '0.7rem',
+                            color: '#3B82F6',
+                            backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF',
+                            padding: '0.15rem 0.5rem',
+                            borderRadius: '9999px',
+                            fontWeight: '500',
+                            flexShrink: 0,
+                          }}>
+                            Active
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

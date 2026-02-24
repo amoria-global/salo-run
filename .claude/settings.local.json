@@ -16,7 +16,10 @@
       "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtdWd3aWpheDQ1QGdtYWlsLmNvbSIsImlhdCI6MTc3MTc3MTczMCwiZXhwIjoxNzcxNzc1MzMwfQ.7Ts8f33GNnPCh0P-TRRH1d43jf0ayvEmvg1dOzVVei0\")",
       "Bash(wc:*)",
       "Bash(NODE_OPTIONS=\"--max-old-space-size=4096\" npx next build:*)",
-      "Bash(NODE_OPTIONS=\"--max-old-space-size=8192\" npx next build:*)"
+      "Bash(NODE_OPTIONS=\"--max-old-space-size=8192\" npx next build:*)",
+      "Bash(node -e \"const fs=require\\(''fs''\\); const p=''c:/Users/JOAST/Documents/connekt-dashboard/app/pages/photographer/events.tsx''; fs.writeFileSync\\(p, fs.readFileSync\\(p,''utf8''\\).slice\\(0,0\\)\\); console.log\\(''cleared''\\);\")",
+      "Bash(node -e:*)",
+      "Bash(\"c:/Users/JOAST/Documents/connekt-dashboard/_content.txt\":*)"
     ],
     "deny": [],
     "ask": []

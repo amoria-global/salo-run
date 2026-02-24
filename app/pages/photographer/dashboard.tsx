@@ -1091,6 +1091,7 @@ const PhotographerDashboard = () => {
           icon={<MoneyIcon />}
           trend={statTrends.totalEarnings.trend}
           href={`${basePath}/earnings`}
+          accentColor="#083A85"
           isComparisonMode={isComparisonMode && !!selectedPlan}
           targetValue={selectedPlan?.targetEarnings}
         />
@@ -1102,6 +1103,7 @@ const PhotographerDashboard = () => {
           icon={<ClockIcon />}
           trend={statTrends.pending.trend}
           href={`${basePath}/pending-payments`}
+          accentColor="#F59E0B"
           isComparisonMode={isComparisonMode && !!selectedPlan}
           targetValue={selectedPlan?.targetPending}
         />
@@ -1113,6 +1115,7 @@ const PhotographerDashboard = () => {
           icon={<UsersIcon />}
           trend={statTrends.clients.trend}
           href={`${basePath}/clients`}
+          accentColor="#3B82F6"
           isComparisonMode={isComparisonMode && !!selectedPlan}
           targetValue={selectedPlan?.targetClients}
         />
@@ -1124,6 +1127,7 @@ const PhotographerDashboard = () => {
           icon={<GiftIcon />}
           trend={statTrends.bonuses.trend}
           href={`${basePath}/bonuses`}
+          accentColor="#10B981"
           isComparisonMode={isComparisonMode && !!selectedPlan}
           targetValue={selectedPlan?.targetBonuses}
         />
@@ -1135,6 +1139,7 @@ const PhotographerDashboard = () => {
           icon={<StarIcon />}
           trend={statTrends.rating.trend}
           href={`${basePath}/reviews`}
+          accentColor="#8B5CF6"
           isComparisonMode={isComparisonMode && !!selectedPlan}
           targetValue={selectedPlan?.targetRatings}
         />
