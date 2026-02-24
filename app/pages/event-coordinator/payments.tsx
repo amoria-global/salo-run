@@ -524,6 +524,7 @@ interface PayNowModalProps {
   isOpen: boolean;
   onClose: () => void;
   payment: Payment | null;
+  onPaymentSuccess?: () => void;
 }
 
 const PAYMENT_METHODS: Record<string, { label: string; image: string }> = {
@@ -532,7 +533,7 @@ const PAYMENT_METHODS: Record<string, { label: string; image: string }> = {
   airtel: { label: 'Airtel Mobile Money', image: '/airtel.png' },
 };
 
-const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) => {
+const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onPaymentSuccess }) => {
   const { colors, actualTheme } = useTheme();
   const { formatPrice } = useCurrency();
   const router = useRouter();
@@ -542,6 +543,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
   const [donationSkipped, setDonationSkipped] = useState<boolean>(false);
   const [showCustomInput, setShowCustomInput] = useState<boolean>(false);
   const [showReceipt, setShowReceipt] = useState<boolean>(false);
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
   if (!payment) return null;
 
@@ -642,17 +644,47 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
           </div>
 
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-            <button onClick={() => setShowReceipt(false)} style={{
+            <button onClick={() => setShowReceipt(false)} disabled={isProcessing} style={{
               flex: 1, padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem',
-              background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer'
+              background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: isProcessing ? 'not-allowed' : 'pointer'
             }}>Cancel</button>
-            <button style={{
-              flex: 1, padding: '0.75rem 1rem',
-              border: payment.status === 'failed' ? '2px solid #c00a72' : '2px solid #062a63',
-              borderRadius: '0.5rem', background: payment.status === 'failed' ? '#F20C8F' : '#083A85',
-              color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s'
-            }}>
-              {payment.status === 'failed' ? 'Retry' : 'Pay'} {formatPrice(totalAmount)}
+            <button
+              disabled={isProcessing}
+              onClick={async () => {
+                setIsProcessing(true);
+                try {
+                  const apiUrl = getApiUrl();
+                  const res = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/payments/pay`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      declarationId: String(payment.id),
+                      amount: totalAmount,
+                      method: selectedPaymentMethod,
+                      donationAmount: donationValue > 0 ? donationValue : undefined,
+                    }),
+                  });
+                  if (res.ok) {
+                    handleClose();
+                    onPaymentSuccess?.();
+                  } else {
+                    console.error('Payment failed:', res.status);
+                  }
+                } catch (err) {
+                  console.error('Payment error:', err);
+                } finally {
+                  setIsProcessing(false);
+                }
+              }}
+              style={{
+                flex: 1, padding: '0.75rem 1rem',
+                border: payment.status === 'failed' ? '2px solid #c00a72' : '2px solid #062a63',
+                borderRadius: '0.5rem', background: payment.status === 'failed' ? '#F20C8F' : '#083A85',
+                color: 'white', fontSize: '0.9rem', fontWeight: '600',
+                cursor: isProcessing ? 'not-allowed' : 'pointer', opacity: isProcessing ? 0.7 : 1, transition: 'all 0.2s'
+              }}
+            >
+              {isProcessing ? 'Processing...' : `${payment.status === 'failed' ? 'Retry' : 'Pay'} ${formatPrice(totalAmount)}`}
             </button>
           </div>
         </div>
@@ -1904,6 +1936,7 @@ Amount: ${formatPrice(payment.amountNum)}
         isOpen={showPayNowModal}
         onClose={() => setShowPayNowModal(false)}
         payment={payNowPayment}
+        onPaymentSuccess={fetchPayments}
       />
 
       {/* Stream Fee Withdrawal Modal */}
