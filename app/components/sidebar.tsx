@@ -104,10 +104,8 @@ export default function Sidebar() {
 
   const fetchBadgeCounts = useCallback(async () => {
     if (!token) return;
-    // /photographer/notifications/unread-count returns 404 — skip for photographer
-    if (currentRole === 'photographer') return;
     const apiUrl = getApiUrl();
-    const notifPrefix = currentRole === 'event-coordinator' ? 'coordinator' : 'customer';
+    const notifPrefix = currentRole === 'photographer' ? 'photographer' : currentRole === 'event-coordinator' ? 'coordinator' : 'customer';
     try {
       const notifRes = await dashboardAuthFetch(`${apiUrl}/api/remote/${notifPrefix}/notifications/unread-count`, { method: 'GET' });
 

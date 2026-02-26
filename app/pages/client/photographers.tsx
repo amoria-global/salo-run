@@ -178,6 +178,7 @@ type PaymentStatus = 'paid' | 'pending' | 'failed' | 'partially_paid';
 
 interface Booking {
   id: string;
+  declarationId?: string;
   eventName: string;
   eventType: string;
   eventDate: string;
@@ -307,6 +308,9 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
   const [selectedPhotographer, setSelectedPhotographer] = useState<BookedPhotographer | null>(null);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportPhotographer, setReportPhotographer] = useState<BookedPhotographer | null>(null);
+  const [reportReason, setReportReason] = useState('');
+  const [reportDescription, setReportDescription] = useState('');
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
   const [showRebookModal, setShowRebookModal] = useState(false);
   const [rebookPhotographer, setRebookPhotographer] = useState<BookedPhotographer | null>(null);
   const [rebookEventType, setRebookEventType] = useState('');
@@ -354,6 +358,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
   const [payDonationSkipped, setPayDonationSkipped] = useState<boolean>(false);
   const [payShowCustomInput, setPayShowCustomInput] = useState<boolean>(false);
   const [payShowReceipt, setPayShowReceipt] = useState<boolean>(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   // Donation states for tip payment modal
   const [tipDonationAmount, setTipDonationAmount] = useState<string>('');
   const [tipCustomDonation, setTipCustomDonation] = useState<string>('');
@@ -410,6 +415,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
           myReview: p.myReview || undefined,
           bookings: (p.bookings || []).map((b: any) => ({
             id: b.id,
+            declarationId: b.declarationId || b.paymentDeclarationId || b.id,
             eventName: b.eventName || '',
             eventType: b.eventType || '',
             eventDate: b.eventDate || '',
@@ -2405,7 +2411,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
       {/* Report Modal */}
       <Modal
         isOpen={showReportModal}
-        onClose={() => setShowReportModal(false)}
+        onClose={() => { setShowReportModal(false); setReportReason(''); setReportDescription(''); }}
         title="Report Photographer"
       >
         {reportPhotographer && (
@@ -2415,14 +2421,16 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.25rem' }}>
               {['Inappropriate content', 'Fake profile', 'Spam or scam', 'Unprofessional behavior', 'Other'].map((reason) => (
-                <label key={reason} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', cursor: 'pointer' }}>
-                  <input type="radio" name="report-reason" style={{ width: '16px', height: '16px' }} />
+                <label key={reason} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', border: `2px solid ${reportReason === reason ? '#083A85' : colors.borderPrimary}`, borderRadius: '0.5rem', cursor: 'pointer' }}>
+                  <input type="radio" name="report-reason" checked={reportReason === reason} onChange={() => setReportReason(reason)} style={{ width: '16px', height: '16px' }} />
                   <span style={{ fontSize: '0.9rem', color: colors.textPrimary }}>{reason}</span>
                 </label>
               ))}
             </div>
             <textarea
               placeholder="Additional details (optional)"
+              value={reportDescription}
+              onChange={(e) => setReportDescription(e.target.value)}
               style={{
                 width: '100%',
                 padding: '0.75rem',
@@ -2452,19 +2460,42 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                 Cancel
               </button>
               <button
-                onClick={() => setShowReportModal(false)}
+                onClick={async () => {
+                  if (!reportPhotographer || !reportReason) return;
+                  setIsSubmittingReport(true);
+                  try {
+                    const apiUrl = getApiUrl();
+                    const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/photographers/${reportPhotographer.id}/report`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ reason: reportReason, description: reportDescription }),
+                    });
+                    if (!res.ok) throw new Error('Failed to submit report');
+                    setShowReportModal(false);
+                    setReportReason('');
+                    setReportDescription('');
+                    setSuccessMessage('Report submitted successfully');
+                    setTimeout(() => setSuccessMessage(''), 3000);
+                  } catch (err) {
+                    console.error('Failed to submit report:', err);
+                  } finally {
+                    setIsSubmittingReport(false);
+                  }
+                }}
+                disabled={isSubmittingReport || !reportReason}
                 style={{
                   padding: '0.625rem 1.25rem',
                   border: '2px solid #b91c1c',
                   borderRadius: '0.5rem',
-                  background: '#DC2626',
+                  background: isSubmittingReport || !reportReason ? '#9CA3AF' : '#DC2626',
                   color: 'white',
                   fontSize: '0.9rem',
                   fontWeight: '600',
-                  cursor: 'pointer'
+                  cursor: isSubmittingReport || !reportReason ? 'not-allowed' : 'pointer',
+                  opacity: isSubmittingReport ? 0.7 : 1,
                 }}
               >
-                Submit Report
+                {isSubmittingReport ? 'Submitting...' : 'Submit Report'}
               </button>
             </div>
           </div>
@@ -2550,8 +2581,38 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                   <button onClick={() => setPayShowReceipt(false)} style={{ flex: 1, padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Cancel</button>
-                  <button style={{ flex: 1, padding: '0.75rem 1rem', border: paymentBooking.booking.paymentStatus === 'failed' ? '2px solid #c00a72' : '2px solid #062a63', borderRadius: '0.5rem', background: paymentBooking.booking.paymentStatus === 'failed' ? '#F20C8F' : '#083A85', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s' }}>
-                    {paymentBooking.booking.paymentStatus === 'failed' ? 'Retry' : 'Pay'} {formatPrice(payTotalAmount)}
+                  <button
+                    onClick={async () => {
+                      if (isProcessingPayment) return;
+                      setIsProcessingPayment(true);
+                      try {
+                        const apiUrl = getApiUrl();
+                        const declId = paymentBooking.booking.declarationId || paymentBooking.booking.id;
+                        const params = new URLSearchParams({
+                          amount: payTotalAmount.toString(),
+                          method: selectedPaymentMethod,
+                        });
+                        if (payDonationValue > 0) {
+                          params.append('remarks', `Includes donation of ${payDonationValue}`);
+                        }
+                        const res = await dashboardAuthFetch(`${apiUrl}/api/remote/payments/${declId}/pay?${params.toString()}`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                        });
+                        if (!res.ok) throw new Error('Payment failed');
+                        setShowPaymentModal(false);
+                        setPayShowReceipt(false);
+                        setSuccessMessage('Payment processed successfully');
+                        setTimeout(() => setSuccessMessage(''), 3000);
+                      } catch (err) {
+                        console.error('Payment failed:', err);
+                      } finally {
+                        setIsProcessingPayment(false);
+                      }
+                    }}
+                    disabled={isProcessingPayment}
+                    style={{ flex: 1, padding: '0.75rem 1rem', border: paymentBooking.booking.paymentStatus === 'failed' ? '2px solid #c00a72' : '2px solid #062a63', borderRadius: '0.5rem', background: isProcessingPayment ? '#9CA3AF' : (paymentBooking.booking.paymentStatus === 'failed' ? '#F20C8F' : '#083A85'), color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: isProcessingPayment ? 'not-allowed' : 'pointer', transition: 'all 0.2s', opacity: isProcessingPayment ? 0.7 : 1 }}>
+                    {isProcessingPayment ? 'Processing...' : `${paymentBooking.booking.paymentStatus === 'failed' ? 'Retry' : 'Pay'} ${formatPrice(payTotalAmount)}`}
                   </button>
                 </div>
               </div>
