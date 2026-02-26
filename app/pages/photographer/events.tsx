@@ -344,39 +344,8 @@ interface Album {
 }
 
 // ============================================
-// MOCK DATA
+// EMPTY DEFAULTS (API data only — no mock data)
 // ============================================
-
-const mockEvents: AssignedEvent[] = [
-  { id: 'e1', title: 'Sarah & James Wedding', description: 'Beautiful outdoor wedding ceremony and reception', eventType: 'Wedding', category: 'Wedding', date: '2026-03-15', startTime: '10:00', endTime: '16:00', duration: '6h', location: { address: 'Kigali Convention Center', city: 'Kigali', country: 'Rwanda' }, coverImage: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=400&h=300&fit=crop', status: 'upcoming', clientName: 'Sarah Mitchell', clientImage: '', clientEmail: 'sarah@email.com', organizerName: 'Sarah Mitchell', packageName: 'Premium Wedding Package', packageId: 'pkg1', hasLiveStream: false, guestCount: 150, maxGuests: 200, bookingId: 'b1', totalAmount: 2500, createdAt: '2026-02-01' },
-  { id: 'e2', title: 'Tech Summit 2026', description: 'Annual technology conference with keynote speakers', eventType: 'Conference', category: 'Corporate', date: '2026-03-20', startTime: '09:00', endTime: '17:00', duration: '8h', location: { address: 'Norrsken House', city: 'Kigali', country: 'Rwanda' }, coverImage: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=300&fit=crop', status: 'upcoming', clientName: 'Tech Solutions Ltd', clientImage: '', clientEmail: 'info@techsolutions.com', organizerName: 'John Kagame', packageName: 'Corporate Standard', packageId: 'pkg2', hasLiveStream: false, guestCount: 300, maxGuests: 500, bookingId: 'b2', totalAmount: 3500, createdAt: '2026-02-05' },
-  { id: 'e3', title: 'Graduation Ceremony', description: 'University graduation ceremony with live stream', eventType: 'Graduation', category: 'Academic', date: '2026-04-10', startTime: '08:00', endTime: '13:00', duration: '5h', location: { address: 'University of Rwanda', city: 'Huye', country: 'Rwanda' }, coverImage: 'https://images.unsplash.com/photo-1523580846011-d3a5bc25702b?w=400&h=300&fit=crop', status: 'upcoming', clientName: 'University of Rwanda', clientImage: '', clientEmail: 'events@ur.ac.rw', organizerName: 'Dr. Uwimana', packageName: 'Academic Live Package', packageId: 'pkg3', hasLiveStream: true, guestCount: 500, maxGuests: 1000, bookingId: 'b3', totalAmount: 4000, createdAt: '2026-02-08' },
-  { id: 'e4', title: 'Fashion Show Kigali', description: 'Fashion week runway show', eventType: 'Fashion', category: 'Fashion', date: '2026-03-25', startTime: '18:00', endTime: '22:00', duration: '4h', location: { address: 'Marriott Hotel', city: 'Kigali', country: 'Rwanda' }, coverImage: 'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=400&h=300&fit=crop', status: 'upcoming', clientName: 'Kigali Fashion Week', clientImage: '', clientEmail: 'fashion@kfw.com', organizerName: 'Diane Rwigara', packageName: 'Fashion Live Premium', packageId: 'pkg4', hasLiveStream: true, guestCount: 200, maxGuests: 300, bookingId: 'b4', totalAmount: 5000, createdAt: '2026-02-10' },
-  { id: 'e5', title: 'Corporate Team Building', description: 'Annual team building event at Lake Kivu', eventType: 'Corporate', category: 'Corporate', date: '2026-02-23', startTime: '09:00', endTime: '17:00', duration: '8h', location: { address: 'Lake Kivu Serena Hotel', city: 'Rubavu', country: 'Rwanda' }, coverImage: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=400&h=300&fit=crop', status: 'ongoing', clientName: 'Bank of Kigali', clientImage: '', clientEmail: 'hr@bk.rw', organizerName: 'Peter Ndayisaba', packageName: 'Corporate Standard', packageId: 'pkg2', hasLiveStream: false, guestCount: 80, maxGuests: 100, bookingId: 'b5', totalAmount: 2000, createdAt: '2026-01-15' },
-  { id: 'e6', title: 'Music Concert Live', description: 'Live music concert streaming event', eventType: 'Concert', category: 'Entertainment', date: '2026-02-23', startTime: '19:00', endTime: '23:00', duration: '4h', location: { address: 'BK Arena', city: 'Kigali', country: 'Rwanda' }, coverImage: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=400&h=300&fit=crop', status: 'ongoing', clientName: 'KGL Music Events', clientImage: '', clientEmail: 'events@kglmusic.com', organizerName: 'Eric Mucyo', packageName: 'Concert Live Stream', packageId: 'pkg5', hasLiveStream: true, guestCount: 2000, maxGuests: 5000, bookingId: 'b6', totalAmount: 8000, createdAt: '2026-01-20' },
-  { id: 'e7', title: 'Birthday Celebration', description: 'Private birthday party celebration', eventType: 'Birthday', category: 'Birthday', date: '2026-02-23', startTime: '14:00', endTime: '18:00', duration: '4h', location: { address: 'Radisson Blu', city: 'Kigali', country: 'Rwanda' }, coverImage: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=400&h=300&fit=crop', status: 'ongoing', clientName: 'Marie Claire', clientImage: '', clientEmail: 'marie@email.com', organizerName: 'Marie Claire', packageName: 'Basic Package', packageId: 'pkg6', hasLiveStream: false, guestCount: 50, maxGuests: 60, bookingId: 'b7', totalAmount: 800, createdAt: '2026-02-01' },
-  { id: 'e8', title: 'Wedding Reception Gala', description: 'Elegant wedding reception', eventType: 'Wedding', category: 'Wedding', date: '2026-02-10', startTime: '16:00', endTime: '23:00', duration: '7h', location: { address: 'Kigali Heights', city: 'Kigali', country: 'Rwanda' }, coverImage: 'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=400&h=300&fit=crop', status: 'completed', clientName: 'Grace & David', clientImage: '', clientEmail: 'grace@email.com', organizerName: 'Grace Uwase', packageName: 'Premium Wedding Package', packageId: 'pkg1', hasLiveStream: false, guestCount: 200, maxGuests: 250, bookingId: 'b8', totalAmount: 3000, createdAt: '2026-01-05' },
-  { id: 'e9', title: 'Baby Shower Party', description: 'A lovely baby shower celebration', eventType: 'Baby Shower', category: 'Baby Shower', date: '2026-02-05', startTime: '11:00', endTime: '15:00', duration: '4h', location: { address: 'Heaven Restaurant', city: 'Kigali', country: 'Rwanda' }, coverImage: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&h=300&fit=crop', status: 'completed', clientName: 'Alice Mukamana', clientImage: '', clientEmail: 'alice@email.com', organizerName: 'Alice Mukamana', packageName: 'Basic Package', packageId: 'pkg6', hasLiveStream: false, guestCount: 30, maxGuests: 40, bookingId: 'b9', totalAmount: 600, createdAt: '2026-01-10' },
-  { id: 'e10', title: 'Annual Awards Gala', description: 'Live streamed annual awards ceremony', eventType: 'Corporate', category: 'Corporate', date: '2026-01-28', startTime: '18:00', endTime: '22:00', duration: '4h', location: { address: 'Kigali Convention Center', city: 'Kigali', country: 'Rwanda' }, coverImage: 'https://images.unsplash.com/photo-1505236858219-8359eb29e329?w=400&h=300&fit=crop', status: 'completed', clientName: 'Rwanda Awards Org', clientImage: '', clientEmail: 'awards@rwa.org', organizerName: 'Jean Baptiste', packageName: 'Corporate Live Premium', packageId: 'pkg7', hasLiveStream: true, guestCount: 400, maxGuests: 500, bookingId: 'b10', totalAmount: 6000, createdAt: '2025-12-15' },
-  { id: 'e11', title: 'Religious Conference', description: 'Large religious gathering with streaming', eventType: 'Conference', category: 'Religious', date: '2026-02-15', startTime: '08:00', endTime: '17:00', duration: '9h', location: { address: 'Amahoro Stadium', city: 'Kigali', country: 'Rwanda' }, coverImage: 'https://images.unsplash.com/photo-1478147427282-58a87a120781?w=400&h=300&fit=crop', status: 'completed', clientName: 'Faith Ministry', clientImage: '', clientEmail: 'info@faith.org', organizerName: 'Pastor Emmanuel', packageName: 'Religious Live Package', packageId: 'pkg8', hasLiveStream: true, guestCount: 3000, maxGuests: 5000, bookingId: 'b11', totalAmount: 5000, createdAt: '2025-12-20' },
-  { id: 'e12', title: 'Cultural Festival', description: 'Traditional cultural celebration', eventType: 'Cultural', category: 'Cultural', date: '2026-01-20', startTime: '10:00', endTime: '18:00', duration: '8h', location: { address: 'National Museum', city: 'Huye', country: 'Rwanda' }, coverImage: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=400&h=300&fit=crop', status: 'completed', clientName: 'Rwanda Cultural Board', clientImage: '', clientEmail: 'culture@rcb.rw', organizerName: 'Ange Kagame', packageName: 'Full Day Package', packageId: 'pkg9', hasLiveStream: false, guestCount: 600, maxGuests: 1000, bookingId: 'b12', totalAmount: 3500, createdAt: '2025-12-01' },
-  { id: 'e13', title: 'Sports Championship', description: 'Regional sports championship event', eventType: 'Sports', category: 'Sports', date: '2026-02-18', startTime: '08:00', endTime: '16:00', duration: '8h', location: { address: 'Amahoro Stadium', city: 'Kigali', country: 'Rwanda' }, coverImage: 'https://images.unsplash.com/photo-1461896836934-bd45ba9ce7c0?w=400&h=300&fit=crop', status: 'completed', clientName: 'Rwanda Sports Fed', clientImage: '', clientEmail: 'sports@rsf.rw', organizerName: 'Claude Habimana', packageName: 'Sports Coverage', packageId: 'pkg10', hasLiveStream: false, guestCount: 1500, maxGuests: 3000, bookingId: 'b13', totalAmount: 4500, createdAt: '2025-12-10' },
-];
-
-const mockAlbums: Album[] = [
-  { id: 'a1', title: 'Grace & David Wedding Album', description: 'Complete wedding photo collection', category: 'Wedding', eventId: 'e8', eventTitle: 'Wedding Reception Gala', clientId: 'c8', clientName: 'Grace & David', coverImage: 'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=400&h=300&fit=crop', images: ['https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=800', 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800', 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800', 'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=800', 'https://images.unsplash.com/photo-1606216794074-735e91aa2c92?w=800'], photoCount: 156, views: 1250, likes: 234, downloads: 89, shared: true, sharedWithClient: true, faceRecognitionEnabled: true, inviteCode: 'WED-GD2026', createdAt: '2026-02-12' },
-  { id: 'a2', title: 'Annual Awards Night', description: 'Highlights from the awards ceremony', category: 'Corporate', eventId: 'e10', eventTitle: 'Annual Awards Gala', clientId: 'c10', clientName: 'Rwanda Awards Org', coverImage: 'https://images.unsplash.com/photo-1505236858219-8359eb29e329?w=400&h=300&fit=crop', images: ['https://images.unsplash.com/photo-1505236858219-8359eb29e329?w=800', 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800', 'https://images.unsplash.com/photo-1511578314322-379afb476865?w=800'], photoCount: 89, views: 560, likes: 45, downloads: 32, shared: true, sharedWithClient: true, faceRecognitionEnabled: false, inviteCode: null, createdAt: '2026-02-01' },
-  { id: 'a3', title: 'Baby Shower Memories', description: 'Sweet moments from the baby shower', category: 'Baby Shower', eventId: 'e9', eventTitle: 'Baby Shower Party', clientId: 'c9', clientName: 'Alice Mukamana', coverImage: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&h=300&fit=crop', images: ['https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=800', 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=800'], photoCount: 42, views: 120, likes: 22, downloads: 8, shared: false, sharedWithClient: false, faceRecognitionEnabled: false, inviteCode: null, createdAt: '2026-02-07' },
-  { id: 'a4', title: 'Cultural Festival Highlights', description: 'Best moments from the cultural celebration', category: 'Cultural', eventId: 'e12', eventTitle: 'Cultural Festival', clientId: 'c12', clientName: 'Rwanda Cultural Board', coverImage: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=400&h=300&fit=crop', images: ['https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=800', 'https://images.unsplash.com/photo-1478147427282-58a87a120781?w=800', 'https://images.unsplash.com/photo-1461896836934-bd45ba9ce7c0?w=800', 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=800'], photoCount: 210, views: 890, likes: 156, downloads: 67, shared: false, sharedWithClient: false, faceRecognitionEnabled: false, inviteCode: null, createdAt: '2026-01-25' },
-];
-
-const defaultStreamConfigs: Record<string, StreamConfig> = {
-  e3: { eventId: 'e3', serverUrl: 'rtmp://stream.connekt.rw/live', streamKey: 'sk_grad_2026_xK9mP', connectionStatus: 'idle', streamHealth: 'good', uploadSpeed: '0 Mbps', viewerCount: 0, peakViewers: 0 },
-  e4: { eventId: 'e4', serverUrl: 'rtmp://stream.connekt.rw/live', streamKey: 'sk_fash_2026_qL3nR', connectionStatus: 'idle', streamHealth: 'good', uploadSpeed: '0 Mbps', viewerCount: 0, peakViewers: 0 },
-  e6: { eventId: 'e6', serverUrl: 'rtmp://stream.connekt.rw/live', streamKey: 'sk_conc_2026_wT7bJ', connectionStatus: 'live', streamHealth: 'good', uploadSpeed: '4.5 Mbps', viewerCount: 1247, peakViewers: 1892 },
-  e10: { eventId: 'e10', serverUrl: 'rtmp://stream.connekt.rw/live', streamKey: 'sk_awrd_2026_pN2vF', connectionStatus: 'idle', streamHealth: 'good', uploadSpeed: '0 Mbps', viewerCount: 0, peakViewers: 3421 },
-  e11: { eventId: 'e11', serverUrl: 'rtmp://stream.connekt.rw/live', streamKey: 'sk_relg_2026_hM5cX', connectionStatus: 'idle', streamHealth: 'good', uploadSpeed: '0 Mbps', viewerCount: 0, peakViewers: 5678 },
-};
 
 // View Toggle Icons
 const EventsViewIcon = ({ active }: { active: boolean }) => (
@@ -486,13 +455,13 @@ const PhotographerEventsPage = () => {
             }));
             setEvents(mapped);
           } else {
-            setEvents(mockEvents);
+            setEvents([]);
           }
         } else {
-          setEvents(mockEvents);
+          setEvents([]);
         }
       } catch {
-        setEvents(mockEvents);
+        setEvents([]);
       }
     };
     loadEvents();
@@ -531,13 +500,13 @@ const PhotographerEventsPage = () => {
             }));
             setAlbums(mapped);
           } else {
-            setAlbums(mockAlbums);
+            setAlbums([]);
           }
         } else {
-          setAlbums(mockAlbums);
+          setAlbums([]);
         }
       } catch {
-        setAlbums(mockAlbums);
+        setAlbums([]);
       }
     };
     loadAlbums();
@@ -558,9 +527,9 @@ const PhotographerEventsPage = () => {
         } catch { /* use default */ }
       }
       if (Object.keys(configs).length > 0) {
-        setStreamConfigs(prev => ({ ...defaultStreamConfigs, ...prev, ...configs }));
+        setStreamConfigs(prev => ({ ...prev, ...configs }));
       } else {
-        setStreamConfigs(defaultStreamConfigs);
+        setStreamConfigs({});
       }
     };
     loadStreamConfigs();
