@@ -569,7 +569,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   };
 
   // Fetch photobooks from API
-  const photobookBase = userRole === 'event-coordinator' ? 'coordinator/photobook' : 'customer/photobook';
+  const photobookBase = userRole === 'event-coordinator' ? 'coordinator/photobook' : 'customer/events/photobook';
   useEffect(() => {
     if (!user?.id) return;
     const loadPhotobooks = async () => {
@@ -600,8 +600,9 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   // PATCH photobook/{mediaId}/select — toggle image selection
   const selectPhotobookMedia = useCallback(async (mediaId: string, selected: boolean) => {
     try {
+      const selectBase = userRole === 'event-coordinator' ? 'coordinator/photobook' : 'customer/events/media';
       const res = await dashboardAuthFetch(
-        `${apiUrl}/api/remote/${photobookBase}/${mediaId}/select?selected=${selected}`,
+        `${apiUrl}/api/remote/${selectBase}/${mediaId}/select?selected=${selected}`,
         { method: 'PATCH' }
       );
       const data = await res.json();
@@ -872,10 +873,20 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
     setSelectedImages([...selectedImages, currentImage]);
   };
 
-  const handleBulkDelete = () => {
-    if (selectedImages.length > 0) {
+  const handleBulkDelete = async () => {
+    if (selectedImages.length > 0 && selectedAlbum) {
       const confirmDelete = window.confirm(`Are you sure you want to delete ${selectedImages.length} image(s)?`);
       if (confirmDelete) {
+        try {
+          const deleteBase = userRole === 'event-coordinator' ? 'coordinator/galleries' : 'customer/albums';
+          await dashboardAuthFetch(`${apiUrl}/api/remote/${deleteBase}/${selectedAlbum.id}/images`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(selectedImages),
+          });
+        } catch (err) {
+          console.error('Failed to bulk delete images:', err);
+        }
         setSelectedImages([]);
       }
     }
@@ -1179,10 +1190,20 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
     }
   };
 
-  const handlePhotobookBulkDelete = () => {
+  const handlePhotobookBulkDelete = async () => {
     if (photobookSelectedImages.length > 0 && selectedPhotobook) {
       const confirmDelete = window.confirm(`Are you sure you want to delete ${photobookSelectedImages.length} image(s) from this photobook?`);
       if (confirmDelete) {
+        try {
+          const deletePhotobookBase = userRole === 'event-coordinator' ? 'coordinator/photobook' : 'customer/events/photobook';
+          await dashboardAuthFetch(`${apiUrl}/api/remote/${deletePhotobookBase}/${selectedPhotobook.id}/images`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(photobookSelectedImages),
+          });
+        } catch (err) {
+          console.error('Failed to bulk delete photobook images:', err);
+        }
         const updatedPhotobooks = photobooks.map(pb => {
           if (pb.id === selectedPhotobook.id) {
             return {
