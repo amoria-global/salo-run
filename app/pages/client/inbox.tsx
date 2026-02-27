@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
+import { useSearchParams } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
@@ -126,6 +127,8 @@ interface InboxPageProps {
 const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
   const { colors, actualTheme } = useTheme();
   const { user } = useDashboardAuth();
+  const searchParams = useSearchParams();
+  const urlPhotographerId = searchParams.get('photographerId');
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [messageInput, setMessageInput] = useState('');
@@ -137,6 +140,8 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editMessageContent, setEditMessageContent] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [chatError, setChatError] = useState<string | null>(null);
 
   // Close emoji picker when clicking outside
   useEffect(() => {
@@ -170,32 +175,26 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
       const res = await dashboardAuthFetch(`${apiUrl}/api/remote/chat/conversations`);
       if (res.ok) {
         const data = await res.json();
-        const convos = (data.data || []).map((c: any) => ({
-          id: c.id || c.partnerId || '',
-          participants: (c.participants || []).map((p: any) => ({
-            id: p.id || '',
-            name: p.name || `${p.firstName || ''} ${p.lastName || ''}`.trim() || 'User',
-            image: p.profilePicture || p.image || '',
-            userType: p.userType || p.role || '',
-            isOnline: p.isOnline || false,
-            lastSeen: p.lastSeen || '',
-          })),
-          lastMessage: c.lastMessage ? {
-            content: c.lastMessage.content || '',
-            senderId: c.lastMessage.senderId || '',
-            createdAt: c.lastMessage.createdAt || '',
-          } : undefined,
-          unreadCount: c.unreadCount || 0,
-          isPinned: c.isPinned || false,
-          isMuted: c.isMuted || false,
-          messages: [],
-        }));
-        setConversations(convos);
+        const list = data.data || data || [];
+        if (Array.isArray(list) && list.length > 0) {
+          setConversations(list.map((c: any) => ({
+            id: c.id || c.partnerId || '',
+            participants: c.participants || [
+              { id: currentUserId, name: '', image: '', userType: userRole, isOnline: true },
+              { id: c.partnerId || c.id, name: c.partnerName || c.name || '', image: c.partnerImage || c.image || '', userType: 'photographer', isOnline: false },
+            ],
+            lastMessage: c.lastMessage || (c.lastMessageContent ? { content: c.lastMessageContent, senderId: c.lastSenderId || '', createdAt: c.lastMessageAt || '' } : undefined),
+            unreadCount: c.unreadCount || 0,
+            isPinned: c.isPinned || false,
+            isMuted: c.isMuted || false,
+            messages: [],
+          })));
+        }
       }
     } catch (err) {
       console.error('Failed to fetch conversations:', err);
     }
-  }, [apiUrl]);
+  }, [apiUrl, currentUserId, userRole]);
 
   useEffect(() => {
     if (currentUserId) {
@@ -279,21 +278,28 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
       const res = await dashboardAuthFetch(`${apiUrl}/api/remote/chat/messages/${partnerId}`);
       if (res.ok) {
         const data = await res.json();
-        const messages: Message[] = (data.data || []).map((m: any) => ({
-          id: m.id || '',
-          conversationId: partnerId,
-          senderId: m.senderId || '',
-          senderName: m.senderName || '',
-          senderImage: m.senderImage || '',
-          content: m.content || '',
-          type: m.type || 'text',
-          attachments: m.attachments || [],
-          isRead: m.isRead || false,
-          createdAt: m.createdAt || '',
-        }));
-        setConversations(prev => prev.map(conv =>
-          conv.id === partnerId ? { ...conv, messages } : conv
-        ));
+        const msgs = data.data || data || [];
+        if (Array.isArray(msgs)) {
+          setConversations(prev => prev.map(conv =>
+            conv.id === partnerId
+              ? {
+                  ...conv,
+                  messages: msgs.map((m: any) => ({
+                    id: m.id || '',
+                    conversationId: partnerId,
+                    senderId: m.senderId || m.sender?.id || '',
+                    senderName: m.senderName || m.sender?.name || '',
+                    senderImage: m.senderImage || m.sender?.image || '',
+                    content: m.content || m.message || '',
+                    type: (m.type || 'text') as Message['type'],
+                    attachments: m.attachments || [],
+                    isRead: m.isRead ?? true,
+                    createdAt: m.createdAt || m.sentAt || new Date().toISOString(),
+                  })),
+                }
+              : conv
+          ));
+        }
       }
     } catch (err) {
       console.error('Failed to load messages:', err);
@@ -305,11 +311,9 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
       conv.id === partnerId ? { ...conv, unreadCount: 0 } : conv
     ));
     try {
-      await dashboardAuthFetch(`${apiUrl}/api/remote/chat/messages/${partnerId}/read`, {
-        method: 'PATCH',
-      });
+      await dashboardAuthFetch(`${apiUrl}/api/remote/chat/messages/${partnerId}/read`, { method: 'PATCH' });
     } catch (err) {
-      console.error('Failed to mark as read:', err);
+      console.error('Failed to mark conversation as read:', err);
     }
   }, [apiUrl]);
 
@@ -321,6 +325,22 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
       markAsRead(convId);
     }
   }, [loadMessages, markAsRead, conversations]);
+
+  // Auto-open conversation when redirected from public platform with ?photographerId=
+  useEffect(() => {
+    if (!urlPhotographerId || selectedConversation) return;
+    setSelectedConversation(urlPhotographerId);
+    loadMessages(urlPhotographerId);
+  }, [urlPhotographerId, selectedConversation, loadMessages]);
+
+  // Poll messages for active conversation to receive edits/new messages from other party
+  useEffect(() => {
+    if (!selectedConversation) return;
+    const interval = setInterval(() => {
+      loadMessages(selectedConversation);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [selectedConversation, loadMessages]);
 
   // Scroll to bottom of messages
   useEffect(() => {
@@ -354,8 +374,11 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
 
   const sendMessage = async () => {
     if (!messageInput.trim() || !selectedConversation) return;
+    if (isSending) return;
     const content = messageInput;
     setMessageInput('');
+    setIsSending(true);
+    setChatError(null);
 
     // Optimistic local update
     const tempMessage: Message = {
@@ -391,24 +414,36 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
         body: formData,
       });
       if (res.ok) {
-        const data = await res.json();
-        const serverMsg = data.data;
-        if (serverMsg?.id) {
-          setConversations(prev => prev.map(conv => {
-            if (conv.id === selectedConversation) {
-              return {
-                ...conv,
-                messages: conv.messages.map(msg =>
-                  msg.id === tempMessage.id ? { ...msg, id: serverMsg.id } : msg
-                ),
-              };
-            }
-            return conv;
-          }));
+        const result = await res.json();
+        const realId = result.data?.id || result.id;
+        if (realId) {
+          setConversations(prev => prev.map(conv =>
+            conv.id === selectedConversation
+              ? { ...conv, messages: conv.messages.map(msg => msg.id === tempMessage.id ? { ...msg, id: realId } : msg) }
+              : conv
+          ));
         }
+      } else {
+        // Revert optimistic update
+        setConversations(prev => prev.map(conv =>
+          conv.id === selectedConversation
+            ? { ...conv, messages: conv.messages.filter(msg => msg.id !== tempMessage.id) }
+            : conv
+        ));
+        setMessageInput(content);
+        setChatError('Failed to send message. Please try again.');
       }
     } catch (err) {
       console.error('Failed to send message:', err);
+      setConversations(prev => prev.map(conv =>
+        conv.id === selectedConversation
+          ? { ...conv, messages: conv.messages.filter(msg => msg.id !== tempMessage.id) }
+          : conv
+      ));
+      setMessageInput(content);
+      setChatError('Failed to send message. Please try again.');
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -423,29 +458,49 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
 
     const msgId = editingMessageId;
     const newContent = editMessageContent;
+    const conv = conversations.find(c => c.id === selectedConversation);
+    const originalContent = conv?.messages.find(m => m.id === msgId)?.content ?? newContent;
     setEditingMessageId(null);
     setEditMessageContent('');
+    setChatError(null);
 
     // Optimistic update
-    setConversations(prev => prev.map(conv => {
-      if (conv.id === selectedConversation) {
+    setConversations(prev => prev.map(c => {
+      if (c.id === selectedConversation) {
         return {
-          ...conv,
-          messages: conv.messages.map(msg =>
+          ...c,
+          messages: c.messages.map(msg =>
             msg.id === msgId ? { ...msg, content: newContent } : msg
           )
         };
       }
-      return conv;
+      return c;
     }));
 
     try {
-      await dashboardAuthFetch(
-        `${apiUrl}/api/remote/chat/messages/${msgId}?senderId=${currentUserId}&content=${encodeURIComponent(newContent)}`,
-        { method: 'PUT' }
+      const formData = new FormData();
+      formData.append('senderId', currentUserId);
+      formData.append('content', newContent);
+      const res = await dashboardAuthFetch(
+        `${apiUrl}/api/remote/chat/messages/${msgId}`,
+        { method: 'PUT', body: formData }
       );
+      if (!res.ok) {
+        setConversations(prev => prev.map(c =>
+          c.id === selectedConversation
+            ? { ...c, messages: c.messages.map(msg => msg.id === msgId ? { ...msg, content: originalContent } : msg) }
+            : c
+        ));
+        setChatError('Failed to edit message. Please try again.');
+      }
     } catch (err) {
       console.error('Failed to edit message:', err);
+      setConversations(prev => prev.map(c =>
+        c.id === selectedConversation
+          ? { ...c, messages: c.messages.map(msg => msg.id === msgId ? { ...msg, content: originalContent } : msg) }
+          : c
+      ));
+      setChatError('Failed to edit message. Please try again.');
     }
   };
 
@@ -457,27 +512,44 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
   const handleDeleteMessage = async (messageId: string) => {
     if (!selectedConversation) return;
 
+    const conv = conversations.find(c => c.id === selectedConversation);
+    const deletedMessage = conv?.messages.find(m => m.id === messageId);
+    setChatError(null);
+
     // Optimistic update
-    setConversations(prev => prev.map(conv => {
-      if (conv.id === selectedConversation) {
-        const updatedMessages = conv.messages.filter(msg => msg.id !== messageId);
+    setConversations(prev => prev.map(c => {
+      if (c.id === selectedConversation) {
+        const updatedMessages = c.messages.filter(msg => msg.id !== messageId);
         const lastMsg = updatedMessages[updatedMessages.length - 1];
         return {
-          ...conv,
+          ...c,
           messages: updatedMessages,
           lastMessage: lastMsg ? { content: lastMsg.content, senderId: lastMsg.senderId, createdAt: lastMsg.createdAt } : undefined
         };
       }
-      return conv;
+      return c;
     }));
 
     try {
-      await dashboardAuthFetch(
-        `${apiUrl}/api/remote/chat/messages/${messageId}?senderId=${currentUserId}`,
-        { method: 'DELETE' }
-      );
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/chat/messages/${messageId}`, { method: 'DELETE' });
+      if (!res.ok && deletedMessage) {
+        setConversations(prev => prev.map(c =>
+          c.id === selectedConversation
+            ? { ...c, messages: [...c.messages, deletedMessage].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) }
+            : c
+        ));
+        setChatError('Failed to delete message. Please try again.');
+      }
     } catch (err) {
       console.error('Failed to delete message:', err);
+      if (deletedMessage) {
+        setConversations(prev => prev.map(c =>
+          c.id === selectedConversation
+            ? { ...c, messages: [...c.messages, deletedMessage].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) }
+            : c
+        ));
+      }
+      setChatError('Failed to delete message. Please try again.');
     }
   };
 
@@ -707,6 +779,16 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
 
             {/* Conversations */}
             <div style={{ flex: 1, overflowY: 'auto' }}>
+              {filteredConversations.length === 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', textAlign: 'center', color: colors.textSecondary }}>
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" style={{ marginBottom: '0.75rem' }}>
+                    <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <p style={{ margin: 0, fontSize: '0.9rem' }}>
+                    {searchQuery || activeFilter !== 'all' ? 'No conversations match your filter' : 'No conversations yet. Start a new chat!'}
+                  </p>
+                </div>
+              )}
               {filteredConversations.map((conv) => {
                 const other = getOtherParticipant(conv);
                 if (!other) return null;
@@ -1180,6 +1262,24 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
                     </div>
                   )}
 
+                  {chatError && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.5rem 0.75rem',
+                      marginBottom: '0.5rem',
+                      backgroundColor: '#FEF2F2',
+                      border: '1px solid #FECACA',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.85rem',
+                      color: '#DC2626',
+                    }}>
+                      <span>{chatError}</span>
+                      <button onClick={() => setChatError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#DC2626', fontSize: '1rem', lineHeight: 1, padding: '0 0.25rem' }}>✕</button>
+                    </div>
+                  )}
+
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <button
                       onClick={() => setShowEmojiPicker(!showEmojiPicker)}
@@ -1218,9 +1318,9 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
                     />
                     <button
                       onClick={sendMessage}
-                      disabled={!messageInput.trim()}
+                      disabled={!messageInput.trim() || isSending}
                       style={{
-                        backgroundColor: messageInput.trim() ? '#083A85' : '#D1D5DB',
+                        backgroundColor: messageInput.trim() && !isSending ? '#083A85' : '#D1D5DB',
                         border: 'none',
                         borderRadius: '50%',
                         width: '44px',
@@ -1228,7 +1328,7 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        cursor: messageInput.trim() ? 'pointer' : 'not-allowed',
+                        cursor: messageInput.trim() && !isSending ? 'pointer' : 'not-allowed',
                         transition: 'background-color 0.2s'
                       }}
                     >

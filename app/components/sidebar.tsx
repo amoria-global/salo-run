@@ -101,17 +101,29 @@ export default function Sidebar() {
   const currentRole = useMemo(() => detectRoleFromPath(pathname), [pathname]);
 
   const [notificationCount, setNotificationCount] = useState(0);
+  const [messageCount, setMessageCount] = useState(0);
 
   const fetchBadgeCounts = useCallback(async () => {
     if (!token) return;
     const apiUrl = getApiUrl();
     const notifPrefix = currentRole === 'photographer' ? 'photographer' : currentRole === 'event-coordinator' ? 'coordinator' : 'customer';
     try {
-      const notifRes = await dashboardAuthFetch(`${apiUrl}/api/remote/${notifPrefix}/notifications/unread-count`, { method: 'GET' });
+      const [notifRes, convRes] = await Promise.all([
+        dashboardAuthFetch(`${apiUrl}/api/remote/${notifPrefix}/notifications/unread-count`, { method: 'GET' }),
+        dashboardAuthFetch(`${apiUrl}/api/remote/chat/conversations`, { method: 'GET' }),
+      ]);
 
       if (notifRes.ok) {
         const data = await notifRes.json();
         if (data.action === 1) setNotificationCount(data.data ?? 0);
+      }
+      if (convRes.ok) {
+        const data = await convRes.json();
+        const list = data.data || data || [];
+        if (Array.isArray(list)) {
+          const total = list.reduce((sum: number, c: any) => sum + (c.unreadCount || 0), 0);
+          setMessageCount(total);
+        }
       }
     } catch {
       // silent fail
@@ -127,6 +139,9 @@ export default function Sidebar() {
   const navigationItems = roleNavigationMap[currentRole].map(item => {
     if (item.name === "Notifications") {
       return { ...item, badge: notificationCount };
+    }
+    if (item.name === "Inbox") {
+      return { ...item, badge: messageCount };
     }
     return item;
   });

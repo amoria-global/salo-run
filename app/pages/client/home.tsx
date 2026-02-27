@@ -140,7 +140,7 @@ interface PendingPayment {
   id: string;
   eventName: string;
   photographerName: string;
-  photographerImage: string;
+  photographerImage?: string;
   amount: number;
   paidAmount: number;
   dueDate: string;
@@ -152,7 +152,7 @@ interface Photographer {
   name: string;
   event: string;
   status: 'In Progress' | 'Completed' | 'Pending';
-  avatar: string;
+  avatar?: string;
 }
 
 interface AnalyticsData {
@@ -262,7 +262,7 @@ const ClientDashboard = () => {
             id: p.id,
             eventName: p.eventTitle || 'Event',
             photographerName: p.photographerName || 'Photographer',
-            photographerImage: p.photographerImage || '/default-avatar.png',
+            photographerImage: p.photographerImage || undefined,
             amount: p.amount,
             paidAmount: p.paidAmount || 0,
             dueDate: p.dueDate ? p.dueDate.split('T')[0] : '',
@@ -281,7 +281,7 @@ const ClientDashboard = () => {
             name: p.name,
             event: p.event || 'Event',
             status: (p.status as Photographer['status']) || 'Pending',
-            avatar: p.avatar || '/default-avatar.png',
+            avatar: p.avatar || undefined,
           }));
           setPhotographers(mapped);
         }
@@ -357,7 +357,7 @@ const ClientDashboard = () => {
       eventName: pending.eventName,
       eventType: 'Photography',
       photographerName: pending.photographerName,
-      photographerImage: pending.photographerImage,
+      photographerImage: pending.photographerImage ?? '',
       method: 'card',
       amount: `$${(pending.amount - pending.paidAmount).toFixed(2)}`,
       amountNum: pending.amount - pending.paidAmount,

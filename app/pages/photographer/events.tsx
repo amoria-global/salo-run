@@ -281,7 +281,7 @@ const InviteCodeIcon = () => (
 // INTERFACES
 // ============================================
 
-type EventStatus = 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
+type EventStatus = 'pending' | 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
 
 interface AssignedEvent {
   id: string;
@@ -319,6 +319,7 @@ interface StreamConfig {
   uploadSpeed: string;
   viewerCount: number;
   peakViewers: number;
+  error?: string;
 }
 
 interface Album {
@@ -374,7 +375,7 @@ const PhotographerEventsPage = () => {
 
   const [activeTab, setActiveTab] = useState<'events' | 'albums'>('events');
   const [events, setEvents] = useState<AssignedEvent[]>([]);
-  const [eventFilter, setEventFilter] = useState<'all' | 'upcoming' | 'ongoing' | 'completed'>('all');
+  const [eventFilter, setEventFilter] = useState<'all' | 'pending' | 'upcoming' | 'ongoing' | 'completed'>('all');
   const [eventSearch, setEventSearch] = useState('');
   const [selectedEvent, setSelectedEvent] = useState<AssignedEvent | null>(null);
   const [showEventDetailModal, setShowEventDetailModal] = useState(false);
@@ -438,8 +439,17 @@ const PhotographerEventsPage = () => {
               endTime: e.endTime || '',
               duration: '',
               location: e.location || { address: '', city: '', country: '' },
-              coverImage: e.coverImage || '',
-              status: e.status || 'upcoming',
+              coverImage: e.coverImage || e.bannerImage || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800',
+              status: (() => {
+                switch (e.status?.toUpperCase()) {
+                  case 'PENDING': case 'PROPOSED': case 'ASSIGNED': return 'pending';
+                  case 'UPCOMING': return 'upcoming';
+                  case 'ONGOING': case 'IN_PROGRESS': return 'ongoing';
+                  case 'COMPLETED': case 'DONE': return 'completed';
+                  case 'CANCELLED': case 'CANCELED': return 'cancelled';
+                  default: return 'upcoming';
+                }
+              })() as EventStatus,
               clientName: e.clientName || '',
               clientImage: e.clientImage || '',
               clientEmail: e.clientEmail || '',
@@ -486,7 +496,7 @@ const PhotographerEventsPage = () => {
               eventTitle: a.eventTitle || '',
               clientId: a.clientId || '',
               clientName: a.clientName || '',
-              coverImage: a.coverImage || a.thumbnail || '',
+              coverImage: a.coverImage || a.thumbnail || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800',
               images: a.images || [],
               photoCount: a.photoCount || a.imageCount || 0,
               views: a.views || 0,
@@ -540,6 +550,7 @@ const PhotographerEventsPage = () => {
 
   const getStatusBadge = (status: EventStatus) => {
     const map: Record<EventStatus, { bg: string; color: string; label: string }> = {
+      pending: { bg: actualTheme === 'dark' ? '#312E81' : '#EDE9FE', color: actualTheme === 'dark' ? '#A78BFA' : '#7C3AED', label: 'Pending Approval' },
       upcoming: { bg: actualTheme === 'dark' ? '#78350F' : '#FEF3C7', color: actualTheme === 'dark' ? '#FBBF24' : '#D97706', label: 'Upcoming' },
       ongoing: { bg: actualTheme === 'dark' ? '#1E3A5F' : '#DBEAFE', color: actualTheme === 'dark' ? '#60A5FA' : '#2563EB', label: 'Ongoing' },
       completed: { bg: actualTheme === 'dark' ? '#064E3B' : '#D1FAE5', color: actualTheme === 'dark' ? '#34D399' : '#059669', label: 'Completed' },
@@ -549,49 +560,72 @@ const PhotographerEventsPage = () => {
   };
 
   const generateInviteCode = () => { const c = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'; let r = ''; for (let i = 0; i < 8; i++) r += c.charAt(Math.floor(Math.random() * c.length)); return r; };
+
+  // Opens the Face AI modal, generating the invite code from the API if one doesn't exist yet
+  const handleOpenFaceAI = async (album: Album) => {
+    let updated = album;
+    if (!album.inviteCode) {
+      try {
+        const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${album.id}/invite-code`, { method: 'POST' });
+        if (res.ok) {
+          const result = await res.json();
+          const code = result?.data?.inviteCode || generateInviteCode();
+          updated = { ...album, inviteCode: code, faceRecognitionEnabled: album.faceRecognitionEnabled };
+        } else {
+          updated = { ...album, inviteCode: generateInviteCode() };
+        }
+      } catch {
+        updated = { ...album, inviteCode: generateInviteCode() };
+      }
+      setAlbums(prev => prev.map(a => a.id === album.id ? updated : a));
+    }
+    setSelectedAlbum(updated);
+    setShowFaceRecognitionModal(true);
+  };
+
   const handleCopyField = (text: string, field: string) => { navigator.clipboard.writeText(text); setCopiedField(field); setTimeout(() => setCopiedField(''), 2000); };
   const handleCopyLink = (text: string) => { navigator.clipboard.writeText(text); setCopiedLink(true); setTimeout(() => setCopiedLink(false), 2000); };
   const handleCopyInviteCode = (code: string) => { navigator.clipboard.writeText(code); setCopiedInviteCode(true); setTimeout(() => setCopiedInviteCode(false), 2000); };
 
   const handleStartStream = async (eventId: string) => {
-    setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'waiting_for_encoder' } }));
+    setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'waiting_for_encoder', error: undefined } }));
     try {
       const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/events/${eventId}/stream/start`, { method: 'POST' });
       if (!res.ok) {
-        console.error('Failed to start stream:', res.status);
-        setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'idle' } }));
+        const data = await res.json().catch(() => ({}));
+        const msg = data.message || 'Failed to start stream. Please try again.';
+        setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'idle', error: msg } }));
       }
     } catch (err) {
-      console.error('Error starting stream:', err);
-      setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'idle' } }));
+      setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'idle', error: 'Failed to start stream. Please try again.' } }));
     }
   };
 
   const handleGoLive = async (eventId: string) => {
-    setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'live', uploadSpeed: '4.2 Mbps', streamHealth: 'good' } }));
+    setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'live', uploadSpeed: '4.2 Mbps', streamHealth: 'good', error: undefined } }));
     try {
       const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/events/${eventId}/stream/resume`, { method: 'POST' });
       if (!res.ok) {
-        console.error('Failed to go live:', res.status);
-        setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'waiting_for_encoder', uploadSpeed: '0 Mbps' } }));
+        const data = await res.json().catch(() => ({}));
+        const msg = data.message || 'Failed to go live. Please try again.';
+        setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'waiting_for_encoder', uploadSpeed: '0 Mbps', error: msg } }));
       }
     } catch (err) {
-      console.error('Error going live:', err);
-      setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'waiting_for_encoder', uploadSpeed: '0 Mbps' } }));
+      setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'waiting_for_encoder', uploadSpeed: '0 Mbps', error: 'Failed to go live. Please try again.' } }));
     }
   };
 
   const handleEndStream = async (eventId: string) => {
-    setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'idle', uploadSpeed: '0 Mbps' } }));
+    setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'idle', uploadSpeed: '0 Mbps', error: undefined } }));
     try {
       const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/events/${eventId}/stream/stop`, { method: 'POST' });
       if (!res.ok) {
-        console.error('Failed to stop stream:', res.status);
-        setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'live' } }));
+        const data = await res.json().catch(() => ({}));
+        const msg = data.message || 'Failed to end stream. Please try again.';
+        setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'live', error: msg } }));
       }
     } catch (err) {
-      console.error('Error stopping stream:', err);
-      setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'live' } }));
+      setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'live', error: 'Failed to end stream. Please try again.' } }));
     }
   };
 
@@ -602,13 +636,40 @@ const PhotographerEventsPage = () => {
       if (res.ok) {
         setEvents(prev => prev.map(e => e.id === eventId ? { ...e, status: 'completed' as EventStatus } : e));
       } else {
-        console.error('Failed to mark event completed:', res.status);
+        const data = await res.json().catch(() => ({}));
+        alert(data.message || 'Failed to mark event as completed. Please try again.');
       }
     } catch (err) {
-      console.error('Error marking event completed:', err);
+      alert('Failed to mark event as completed. Please try again.');
     } finally {
       setMarkingCompletedId(null);
       setMarkCompleteTarget(null);
+    }
+  };
+
+  const handleAcceptEvent = async (eventId: string) => {
+    try {
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/events/${eventId}/accept`, { method: 'POST' });
+      if (res.ok) {
+        setEvents(prev => prev.map(e => e.id === eventId ? { ...e, status: 'upcoming' as EventStatus } : e));
+      } else {
+        console.error('Failed to accept event:', res.status);
+      }
+    } catch (err) {
+      console.error('Error accepting event:', err);
+    }
+  };
+
+  const handleDenyEvent = async (eventId: string) => {
+    try {
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/events/${eventId}/decline`, { method: 'POST' });
+      if (res.ok) {
+        setEvents(prev => prev.filter(e => e.id !== eventId));
+      } else {
+        console.error('Failed to decline event:', res.status);
+      }
+    } catch (err) {
+      console.error('Error declining event:', err);
     }
   };
 
@@ -809,7 +870,7 @@ const PhotographerEventsPage = () => {
     return matchesFilter && matchesSearch;
   });
   const completedEvents = events.filter(e => e.status === 'completed');
-  const eventCounts = { all: events.length, upcoming: events.filter(e => e.status === 'upcoming').length, ongoing: events.filter(e => e.status === 'ongoing').length, completed: completedEvents.length };
+  const eventCounts = { all: events.length, pending: events.filter(e => e.status === 'pending').length, upcoming: events.filter(e => e.status === 'upcoming').length, ongoing: events.filter(e => e.status === 'ongoing').length, completed: completedEvents.length };
 
   const viewToggleBtnStyle = (isActive: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.625rem 1.25rem', backgroundColor: isActive ? '#F20C8F' : 'transparent', color: isActive ? 'white' : (actualTheme === 'dark' ? '#94A3B8' : '#64748B'), border: 'none', borderRadius: '0.5rem', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', boxShadow: isActive ? '0 2px 8px rgba(242, 12, 143, 0.4)' : 'none' });
   const filterBtnStyle = (isActive: boolean): React.CSSProperties => ({ padding: '0.4rem 0.875rem', borderRadius: '0.375rem', border: isActive ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`, backgroundColor: isActive ? '#F20C8F' : colors.bgCard, color: isActive ? 'white' : colors.textSecondary, fontSize: '0.8rem', fontWeight: 500, cursor: 'pointer', transition: 'all 0.2s' });
@@ -876,9 +937,10 @@ const PhotographerEventsPage = () => {
             {activeTab === 'events' && (
               <>
                 {/* Stat Cards */}
-                <div className="events-page-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                <div className="events-page-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.75rem', marginBottom: '1.25rem' }}>
                   {([
                     { label: 'Total Events', value: eventCounts.all, accent: colors.brandPrimary },
+                    { label: 'Pending', value: eventCounts.pending, accent: '#7C3AED' },
                     { label: 'Upcoming', value: eventCounts.upcoming, accent: '#F59E0B' },
                     { label: 'Ongoing', value: eventCounts.ongoing, accent: '#3B82F6' },
                     { label: 'Completed', value: eventCounts.completed, accent: '#10B981' },
@@ -892,7 +954,7 @@ const PhotographerEventsPage = () => {
 
                 {/* Filters + Search */}
                 <div className="events-page-filters" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
-                  {(['all', 'upcoming', 'ongoing', 'completed'] as const).map(f => (
+                  {(['all', 'pending', 'upcoming', 'ongoing', 'completed'] as const).map(f => (
                     <button key={f} onClick={() => setEventFilter(f)} style={filterBtnStyle(eventFilter === f)}>
                       {f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)} {f !== 'all' && <span style={{ marginLeft: '0.25rem', opacity: 0.8 }}>({eventCounts[f]})</span>}
                     </button>
@@ -939,23 +1001,36 @@ const PhotographerEventsPage = () => {
                           </div>
                           {/* Action Buttons */}
                           <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                            <button onClick={() => { setSelectedEvent(event); setShowEventDetailModal(true); }} style={{ ...smallActionBtn, backgroundColor: colors.bgTertiary, color: colors.textPrimary }}>
-                              <EyeIcon /> Details
-                            </button>
-                            {event.hasLiveStream && (event.status === 'upcoming' || event.status === 'ongoing') && (
-                              <button onClick={() => { setSelectedEvent(event); setShowStreamSetupModal(true); setShowStreamKey(false); }} style={{ ...smallActionBtn, backgroundColor: '#8B5CF6', borderColor: '#8B5CF6', color: 'white' }}>
-                                <BroadcastIcon /> Stream Setup
-                              </button>
-                            )}
-                            {event.status === 'completed' && (
-                              <button onClick={() => handleOpenCreateAlbum(event.id)} style={{ ...smallActionBtn, backgroundColor: '#10B981', borderColor: '#10B981', color: 'white' }}>
-                                <PlusIcon /> Create Album
-                              </button>
-                            )}
-                            {event.hasLiveStream && event.status === 'ongoing' && (
-                              <button onClick={() => setMarkCompleteTarget(event)} style={{ ...smallActionBtn, backgroundColor: '#059669', borderColor: '#059669', color: 'white' }}>
-                                <CheckCircleIcon /> Mark Complete
-                              </button>
+                            {event.status === 'pending' ? (
+                              <>
+                                <button onClick={() => handleAcceptEvent(event.id)} style={{ ...smallActionBtn, backgroundColor: '#059669', borderColor: '#059669', color: 'white', flex: 1 }}>
+                                  <CheckCircleIcon /> Accept
+                                </button>
+                                <button onClick={() => handleDenyEvent(event.id)} style={{ ...smallActionBtn, backgroundColor: '#DC2626', borderColor: '#DC2626', color: 'white', flex: 1 }}>
+                                  <CloseIcon /> Deny
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button onClick={() => { setSelectedEvent(event); setShowEventDetailModal(true); }} style={{ ...smallActionBtn, backgroundColor: colors.bgTertiary, color: colors.textPrimary }}>
+                                  <EyeIcon /> Details
+                                </button>
+                                {event.hasLiveStream && (event.status === 'upcoming' || event.status === 'ongoing') && (
+                                  <button onClick={() => { setSelectedEvent(event); setShowStreamSetupModal(true); setShowStreamKey(false); }} style={{ ...smallActionBtn, backgroundColor: '#8B5CF6', borderColor: '#8B5CF6', color: 'white' }}>
+                                    <BroadcastIcon /> Stream Setup
+                                  </button>
+                                )}
+                                {event.status === 'completed' && (
+                                  <button onClick={() => handleOpenCreateAlbum(event.id)} style={{ ...smallActionBtn, backgroundColor: '#10B981', borderColor: '#10B981', color: 'white' }}>
+                                    <PlusIcon /> Create Album
+                                  </button>
+                                )}
+                                {event.hasLiveStream && event.status === 'ongoing' && (
+                                  <button onClick={() => setMarkCompleteTarget(event)} style={{ ...smallActionBtn, backgroundColor: '#059669', borderColor: '#059669', color: 'white' }}>
+                                    <CheckCircleIcon /> Mark Complete
+                                  </button>
+                                )}
+                              </>
                             )}
                           </div>
                         </div>
@@ -1042,7 +1117,7 @@ const PhotographerEventsPage = () => {
                           ) : (
                             <button onClick={() => { setSelectedAlbum(album); setShowSendModal(true); }} style={{ ...smallActionBtn, backgroundColor: '#083A85', borderColor: '#083A85', color: 'white' }}><SendIcon /> Send</button>
                           )}
-                          <button onClick={() => { const updated = !album.inviteCode ? { ...album, inviteCode: generateInviteCode(), faceRecognitionEnabled: true } : { ...album, faceRecognitionEnabled: true }; setAlbums(prev => prev.map(a => a.id === album.id ? updated : a)); setSelectedAlbum(updated); setShowFaceRecognitionModal(true); }} style={{ ...smallActionBtn, backgroundColor: '#8B5CF6', borderColor: '#8B5CF6', color: 'white' }}><FaceRecognitionIcon /> Face AI</button>
+                          <button onClick={() => handleOpenFaceAI(album)} style={{ ...smallActionBtn, backgroundColor: '#8B5CF6', borderColor: '#8B5CF6', color: 'white' }}><FaceRecognitionIcon /> Face AI</button>
                           <button onClick={() => handleOpenEdit(album)} style={{ ...smallActionBtn, backgroundColor: colors.bgTertiary, color: colors.textPrimary }}><EditIcon /> Edit</button>
                           <button onClick={() => { setAlbumToDelete(album); setShowDeleteConfirm(true); }} style={{ ...smallActionBtn, backgroundColor: '#DC2626', borderColor: '#DC2626', color: 'white' }}><TrashIcon /></button>
                         </div>
@@ -1161,6 +1236,22 @@ const PhotographerEventsPage = () => {
                       <li>Click "Start Streaming" in OBS, then click "Go Live" below</li>
                     </ol>
                   </div>
+                  {/* Stream Error */}
+                  {cfg.error && (
+                    <div style={{
+                      backgroundColor: actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2',
+                      border: `1px solid ${actualTheme === 'dark' ? '#F87171' : '#FECACA'}`,
+                      borderRadius: '0.5rem',
+                      padding: '0.75rem 1rem',
+                      marginBottom: '1rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                    }}>
+                      <span style={{ fontSize: '1rem' }}>⚠️</span>
+                      <span style={{ fontSize: '0.85rem', color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626' }}>{cfg.error}</span>
+                    </div>
+                  )}
                   {/* Action Buttons */}
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     {cfg.connectionStatus === 'idle' && (
@@ -1457,12 +1548,22 @@ const PhotographerEventsPage = () => {
             <div style={{ marginBottom: '1.25rem' }}>
               <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Find-My-Photos Link</label>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <input readOnly value={`https://connekt.rw/find-my-photos?code=${selectedAlbum.inviteCode}`} style={{ ...inputStyle, flex: 1, fontSize: '0.8rem' }} />
-                <button onClick={() => handleCopyLink(`https://connekt.rw/find-my-photos?code=${selectedAlbum.inviteCode}`)} style={smallActionBtn}>{copiedLink ? 'Copied!' : <><CopyIcon /> Copy</>}</button>
+                <input readOnly value={`${process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekt.rw'}/find-my-photos?code=${selectedAlbum.inviteCode}`} style={{ ...inputStyle, flex: 1, fontSize: '0.8rem' }} />
+                <button onClick={() => handleCopyLink(`${process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekt.rw'}/find-my-photos?code=${selectedAlbum.inviteCode}`)} style={smallActionBtn}>{copiedLink ? 'Copied!' : <><CopyIcon /> Copy</>}</button>
               </div>
             </div>
             {/* Upload Button */}
-            <button onClick={() => { setAlbums(prev => prev.map(a => a.id === selectedAlbum.id ? { ...a, faceRecognitionEnabled: true } : a)); setSelectedAlbum({ ...selectedAlbum, faceRecognitionEnabled: true }); setShowFaceRecognitionModal(false); }} style={{ ...primaryBtn, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: '#8B5CF6', borderColor: '#8B5CF6' }}>
+            <button onClick={async () => {
+              const updated = { ...selectedAlbum, faceRecognitionEnabled: true };
+              setAlbums(prev => prev.map(a => a.id === selectedAlbum.id ? updated : a));
+              setSelectedAlbum(updated);
+              setShowFaceRecognitionModal(false);
+              try {
+                await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${selectedAlbum.id}/send`, { method: 'POST' });
+              } catch (err) {
+                console.error('Failed to enable face recognition on album:', err);
+              }
+            }} style={{ ...primaryBtn, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: '#8B5CF6', borderColor: '#8B5CF6' }}>
               <FaceRecognitionIcon /> Upload to Find-My-Photos
             </button>
             {selectedAlbum.faceRecognitionEnabled && (

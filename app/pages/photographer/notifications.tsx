@@ -201,6 +201,14 @@ const Notifications = () => {
     }
   };
 
+  const getNotificationDest = (notification: Notification): string | null => {
+    if (notification.actionUrl) return notification.actionUrl;
+    switch (notification.type) {
+      case 'payment': case 'tip': case 'bonus': return '/user/photographer/all-transactions';
+      default: return null;
+    }
+  };
+
   const markAllAsRead = async () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     try {
@@ -215,9 +223,15 @@ const Notifications = () => {
     setNotifications(prev => prev.filter(n => n.id !== id));
     try {
       const apiUrl = getApiUrl();
-      await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/notifications/${id}`, { method: 'DELETE' });
-    } catch (err) {
-      console.error('Failed to delete notification:', err);
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/notifications/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.message || 'Failed to delete notification. The server did not process the request.');
+      }
+    } catch {
+      alert('Failed to delete notification. The feature may not be available yet.');
+    } finally {
+      fetchNotifications();
     }
   };
 
@@ -225,9 +239,15 @@ const Notifications = () => {
     setNotifications(prev => prev.filter(n => !n.read));
     try {
       const apiUrl = getApiUrl();
-      await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/notifications/delete-read`, { method: 'DELETE' });
-    } catch (err) {
-      console.error('Failed to delete read notifications:', err);
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/notifications/delete-read`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.message || 'Failed to clear read notifications. The server did not process the request.');
+      }
+    } catch {
+      alert('Failed to clear read notifications. The feature may not be available yet.');
+    } finally {
+      fetchNotifications();
     }
   };
 
@@ -688,20 +708,27 @@ const Notifications = () => {
                         gap: '0.75rem',
                         marginTop: '0.75rem'
                       }}>
-                        {notification.actionUrl && (
-                          <Link
-                            href={notification.actionUrl}
-                            style={{
-                              fontSize: '0.85rem',
-                              fontWeight: '500',
-                              color: '#083A85',
-                              textDecoration: 'none'
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            View details
-                          </Link>
-                        )}
+                        {(() => {
+                          const dest = getNotificationDest(notification);
+                          return dest ? (
+                            <Link
+                              href={dest}
+                              style={{
+                                fontSize: '0.85rem',
+                                fontWeight: '500',
+                                color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
+                                textDecoration: 'none',
+                                backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#DBEAFE',
+                                padding: '0.3rem 0.75rem',
+                                borderRadius: '9999px',
+                                display: 'inline-block'
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              View details
+                            </Link>
+                          ) : null;
+                        })()}
                         <button
                           onClick={(e) => {
                             e.stopPropagation();

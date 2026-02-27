@@ -142,6 +142,8 @@ const InboxPage = () => {
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editMessageContent, setEditMessageContent] = useState('');
   const [balance, setBalance] = useState<any>(null);
+  const [isSending, setIsSending] = useState(false);
+  const [chatError, setChatError] = useState<string | null>(null);
   const apiUrl = getApiUrl();
 
   // New Chat states
@@ -169,23 +171,77 @@ const InboxPage = () => {
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
 
-  // Chat endpoints disconnected — chat is for public/landing site only
   const fetchConversations = useCallback(async () => {
-    // /chat/ endpoints removed from dashboard
-  }, []);
+    try {
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/chat/conversations`);
+      if (res.ok) {
+        const data = await res.json();
+        const list = data.data || data || [];
+        if (Array.isArray(list) && list.length > 0) {
+          setConversations(list.map((c: any) => ({
+            id: c.id || c.partnerId || '',
+            participants: c.participants || [
+              { id: currentUserId, name: '', image: '', userType: 'photographer', isOnline: true },
+              { id: c.partnerId || c.id, name: c.partnerName || c.name || '', image: c.partnerImage || c.image || '', userType: 'client', isOnline: false },
+            ],
+            lastMessage: c.lastMessage || (c.lastMessageContent ? { content: c.lastMessageContent, senderId: c.lastSenderId || '', createdAt: c.lastMessageAt || '' } : undefined),
+            unreadCount: c.unreadCount || 0,
+            isPinned: c.isPinned || false,
+            isMuted: c.isMuted || false,
+            messages: [],
+          })));
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch conversations:', err);
+    }
+  }, [apiUrl, currentUserId]);
 
   // Load messages for a conversation
   const loadMessages = useCallback(async (partnerId: string) => {
-    // /chat/ endpoints removed from dashboard
-  }, []);
+    try {
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/chat/messages/${partnerId}`);
+      if (res.ok) {
+        const data = await res.json();
+        const msgs = data.data || data || [];
+        if (Array.isArray(msgs)) {
+          setConversations(prev => prev.map(conv =>
+            conv.id === partnerId
+              ? {
+                  ...conv,
+                  messages: msgs.map((m: any) => ({
+                    id: m.id || '',
+                    conversationId: partnerId,
+                    senderId: m.senderId || m.sender?.id || '',
+                    senderName: m.senderName || m.sender?.name || '',
+                    senderImage: m.senderImage || m.sender?.image || '',
+                    content: m.content || m.message || '',
+                    type: (m.type || 'text') as Message['type'],
+                    attachments: m.attachments || [],
+                    isRead: m.isRead ?? true,
+                    createdAt: m.createdAt || m.sentAt || new Date().toISOString(),
+                  })),
+                }
+              : conv
+          ));
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load messages:', err);
+    }
+  }, [apiUrl]);
 
   // Mark messages as read
   const markConversationAsRead = useCallback(async (partnerId: string) => {
-    // /chat/ endpoints removed from dashboard — local-only update
     setConversations(prev => prev.map(conv =>
       conv.id === partnerId ? { ...conv, unreadCount: 0 } : conv
     ));
-  }, []);
+    try {
+      await dashboardAuthFetch(`${apiUrl}/api/remote/chat/messages/${partnerId}/read`, { method: 'PATCH' });
+    } catch (err) {
+      console.error('Failed to mark conversation as read:', err);
+    }
+  }, [apiUrl]);
 
   // Fetch conversations on mount
   useEffect(() => {
@@ -270,6 +326,15 @@ const InboxPage = () => {
     }
   }, [selectedConversation, loadMessages, markConversationAsRead]);
 
+  // Poll messages for active conversation to receive edits/new messages from other party
+  useEffect(() => {
+    if (!selectedConversation) return;
+    const interval = setInterval(() => {
+      loadMessages(selectedConversation);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [selectedConversation, loadMessages]);
+
   // Scroll to bottom of messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -303,8 +368,11 @@ const InboxPage = () => {
   const sendMessage = async () => {
     if (!messageInput.trim() || !selectedConversation) return;
 
+    if (isSending) return;
     const content = messageInput;
     setMessageInput('');
+    setIsSending(true);
+    setChatError(null);
 
     // Optimistic local update
     const tempMessage: Message = {
@@ -330,7 +398,46 @@ const InboxPage = () => {
       return conv;
     }));
 
-    // /chat/ endpoints removed from dashboard — message kept locally only
+    try {
+      const formData = new FormData();
+      formData.append('senderId', currentUserId);
+      formData.append('recipientId', selectedConversation);
+      formData.append('content', content);
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/chat/send`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (res.ok) {
+        const result = await res.json();
+        const realId = result.data?.id || result.id;
+        if (realId) {
+          setConversations(prev => prev.map(conv =>
+            conv.id === selectedConversation
+              ? { ...conv, messages: conv.messages.map(msg => msg.id === tempMessage.id ? { ...msg, id: realId } : msg) }
+              : conv
+          ));
+        }
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setChatError(data.message || 'Failed to send message. Please try again.');
+        setConversations(prev => prev.map(conv =>
+          conv.id === selectedConversation
+            ? { ...conv, messages: conv.messages.filter(msg => msg.id !== tempMessage.id) }
+            : conv
+        ));
+        setMessageInput(content);
+      }
+    } catch {
+      setChatError('Failed to send message. Please try again.');
+      setConversations(prev => prev.map(conv =>
+        conv.id === selectedConversation
+          ? { ...conv, messages: conv.messages.filter(msg => msg.id !== tempMessage.id) }
+          : conv
+      ));
+      setMessageInput(content);
+    } finally {
+      setIsSending(false);
+    }
   };
 
   // Message action handlers
@@ -347,6 +454,10 @@ const InboxPage = () => {
     setEditingMessageId(null);
     setEditMessageContent('');
 
+    // Capture original content before optimistic update for potential revert
+    const originalConv = conversations.find(c => c.id === selectedConversation);
+    const originalContent = originalConv?.messages.find(m => m.id === msgId)?.content ?? newContent;
+
     // Optimistic update
     setConversations(prev => prev.map(conv => {
       if (conv.id === selectedConversation) {
@@ -360,7 +471,31 @@ const InboxPage = () => {
       return conv;
     }));
 
-    // /chat/ endpoints removed from dashboard — edit kept locally only
+    try {
+      const formData = new FormData();
+      formData.append('senderId', currentUserId);
+      formData.append('content', newContent);
+      const res = await dashboardAuthFetch(
+        `${apiUrl}/api/remote/chat/messages/${msgId}`,
+        { method: 'PUT', body: formData }
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setChatError(data.message || 'Failed to edit message. Please try again.');
+        setConversations(prev => prev.map(conv =>
+          conv.id === selectedConversation
+            ? { ...conv, messages: conv.messages.map(msg => msg.id === msgId ? { ...msg, content: originalContent } : msg) }
+            : conv
+        ));
+      }
+    } catch {
+      setChatError('Failed to edit message. Please try again.');
+      setConversations(prev => prev.map(conv =>
+        conv.id === selectedConversation
+          ? { ...conv, messages: conv.messages.map(msg => msg.id === msgId ? { ...msg, content: originalContent } : msg) }
+          : conv
+      ));
+    }
   };
 
   const cancelEdit = () => {
@@ -385,7 +520,17 @@ const InboxPage = () => {
       return conv;
     }));
 
-    // /chat/ endpoints removed from dashboard — delete kept locally only
+    try {
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/chat/messages/${messageId}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setChatError(data.message || 'Failed to delete message. Please try again.');
+        loadMessages(selectedConversation);
+      }
+    } catch {
+      setChatError('Failed to delete message. Please try again.');
+      loadMessages(selectedConversation);
+    }
   };
 
   const filteredConversations = conversations.filter(conv => {
@@ -614,6 +759,13 @@ const InboxPage = () => {
 
             {/* Conversations */}
             <div style={{ flex: 1, overflowY: 'auto' }}>
+              {filteredConversations.length === 0 && (
+                <div style={{ padding: '3rem 1rem', textAlign: 'center', color: colors.textSecondary }}>
+                  <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>💬</div>
+                  <p style={{ fontSize: '0.9rem', fontWeight: 600, color: colors.textPrimary, margin: '0 0 0.25rem 0' }}>No conversations yet</p>
+                  <p style={{ fontSize: '0.8rem', margin: 0 }}>Your chats with clients will appear here.</p>
+                </div>
+              )}
               {filteredConversations.map((conv) => {
                 const other = getOtherParticipant(conv);
                 if (!other) return null;
@@ -1068,6 +1220,22 @@ const InboxPage = () => {
                     </div>
                   )}
 
+                  {chatError && (
+                    <div style={{
+                      backgroundColor: actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2',
+                      border: `1px solid ${actualTheme === 'dark' ? '#F87171' : '#FECACA'}`,
+                      borderRadius: '0.5rem',
+                      padding: '0.5rem 0.75rem',
+                      marginBottom: '0.5rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '0.5rem',
+                    }}>
+                      <span style={{ fontSize: '0.8rem', color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626' }}>⚠️ {chatError}</span>
+                      <button onClick={() => setChatError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626', fontSize: '1rem', lineHeight: 1 }}>×</button>
+                    </div>
+                  )}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <button
                       onClick={() => setShowEmojiPicker(!showEmojiPicker)}
@@ -1106,9 +1274,9 @@ const InboxPage = () => {
                     />
                     <button
                       onClick={sendMessage}
-                      disabled={!messageInput.trim()}
+                      disabled={!messageInput.trim() || isSending}
                       style={{
-                        backgroundColor: messageInput.trim() ? '#083A85' : '#D1D5DB',
+                        backgroundColor: messageInput.trim() && !isSending ? '#083A85' : '#D1D5DB',
                         border: 'none',
                         borderRadius: '50%',
                         width: '44px',
@@ -1116,8 +1284,9 @@ const InboxPage = () => {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        cursor: messageInput.trim() ? 'pointer' : 'not-allowed',
-                        transition: 'background-color 0.2s'
+                        cursor: messageInput.trim() && !isSending ? 'pointer' : 'not-allowed',
+                        transition: 'background-color 0.2s',
+                        opacity: isSending ? 0.6 : 1,
                       }}
                     >
                       <SendIcon />

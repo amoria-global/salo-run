@@ -1631,7 +1631,7 @@ Amount: ${formatPrice(transaction.amountNum)}
             id: t.id || i + 1,
             date: formatTxDate(t.createdAt || t.date || ''),
             clientName: t.clientName || t.customerName || t.photographerName || 'N/A',
-            clientImage: t.clientImage || t.customerImage || '/default-avatar.png',
+            clientImage: t.clientImage || t.customerImage || undefined,
             service: t.service || t.description || t.eventTitle || t.paymentType || 'Payment',
             serviceType: t.serviceType || t.eventType || t.paymentType || 'Service',
             method: t.paymentMethod || t.method || '-',

@@ -544,6 +544,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
   const [showCustomInput, setShowCustomInput] = useState<boolean>(false);
   const [showReceipt, setShowReceipt] = useState<boolean>(false);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   if (!payment) return null;
 
@@ -643,8 +644,23 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
             </div>
           </div>
 
+          {paymentError && (
+            <div style={{
+              backgroundColor: actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2',
+              border: `1px solid ${actualTheme === 'dark' ? '#F87171' : '#FECACA'}`,
+              borderRadius: '0.5rem',
+              padding: '0.75rem 1rem',
+              marginBottom: '0.75rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+            }}>
+              <span style={{ fontSize: '1rem' }}>⚠️</span>
+              <span style={{ fontSize: '0.85rem', color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626' }}>{paymentError}</span>
+            </div>
+          )}
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-            <button onClick={() => setShowReceipt(false)} disabled={isProcessing} style={{
+            <button onClick={() => { setShowReceipt(false); setPaymentError(null); }} disabled={isProcessing} style={{
               flex: 1, padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem',
               background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: isProcessing ? 'not-allowed' : 'pointer'
             }}>Cancel</button>
@@ -668,10 +684,11 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
                     handleClose();
                     onPaymentSuccess?.();
                   } else {
-                    console.error('Payment failed:', res.status);
+                    const data = await res.json().catch(() => ({}));
+                    setPaymentError(data.message || 'Payment failed. Please try again.');
                   }
                 } catch (err) {
-                  console.error('Payment error:', err);
+                  setPaymentError('Payment failed. Please try again.');
                 } finally {
                   setIsProcessing(false);
                 }
@@ -1277,7 +1294,7 @@ const PaymentsPage = () => {
             eventName: p.eventName || p.description || '',
             eventType: p.eventType || '',
             photographerName: p.photographerName || '',
-            photographerImage: p.photographerImage || '/default-avatar.png',
+            photographerImage: p.photographerImage || undefined,
             method: p.method || p.paymentMethod || '-',
             amount: p.amount ? `$${p.amount}` : '$0',
             amountNum: p.amount || p.amountNum || 0,

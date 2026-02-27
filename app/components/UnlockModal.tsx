@@ -549,14 +549,12 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
             {donationSkipped ? '✓ Donation skipped' : 'No thanks, skip donation'}
           </button>
 
-          {/* Donations Page Link */}
+          {/* Donations Page Link — opens on the public platform */}
           <div style={{ marginTop: '0.5rem' }}>
             <a
               href={`${process.env.NEXT_PUBLIC_LANDING_URL || 'https://amoria-connekt.vercel.app'}/user/donations`}
-              onClick={(e) => {
-                e.preventDefault();
-                router.push('/user/donations');
-              }}
+              target="_blank"
+              rel="noopener noreferrer"
               style={{
                 fontSize: '0.81rem',
                 color: '#F20C8F',
