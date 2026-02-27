@@ -140,7 +140,7 @@ interface PendingPayment {
   id: string;
   eventName: string;
   photographerName: string;
-  photographerImage: string;
+  photographerImage?: string;
   amount: number;
   paidAmount: number;
   dueDate: string;
@@ -152,7 +152,7 @@ interface Photographer {
   name: string;
   event: string;
   status: 'In Progress' | 'Completed' | 'Pending';
-  avatar: string;
+  avatar?: string;
 }
 
 interface AnalyticsData {
@@ -357,7 +357,7 @@ const ClientDashboard = () => {
       eventName: pending.eventName,
       eventType: 'Photography',
       photographerName: pending.photographerName,
-      photographerImage: pending.photographerImage,
+      photographerImage: pending.photographerImage ?? '',
       method: 'card',
       amount: `$${(pending.amount - pending.paidAmount).toFixed(2)}`,
       amountNum: pending.amount - pending.paidAmount,
