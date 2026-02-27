@@ -364,7 +364,7 @@ const MyEventsPage = () => {
           const mapped = data.data.content.map((p: Record<string, unknown>) => ({
             id: (p.id as string) || '',
             name: `${(p.firstName as string) || ''} ${(p.lastName as string) || ''}`.trim() || 'Photographer',
-            image: (p.profilePicture as string) || 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg',
+            image: (p.profilePicture as string) || undefined,
             speciality: Array.isArray(p.specialties) ? (p.specialties as string[]).join(', ') : (p.customerType as string) || 'Photography',
             rating: (p.rating as number) || 0,
             eventsWorked: 0,
@@ -426,12 +426,14 @@ const MyEventsPage = () => {
   const [createPackageId, setCreatePackageId] = useState<string>('');
   const [photographerPackages, setPhotographerPackages] = useState<{id: string; packageName: string; price: number; currencyId: string; description: string; durationHours: number}[]>([]);
   const [packagesLoading, setPackagesLoading] = useState(false);
+  const [packagesError, setPackagesError] = useState<string | null>(null);
 
   // Fetch packages when photographer changes
   useEffect(() => {
     if (!createPhotographerId || !isValidUUID(createPhotographerId)) {
       setPhotographerPackages([]);
       setCreatePackageId('');
+      setPackagesError(null);
       return;
     }
     setPackagesLoading(true);
@@ -443,7 +445,10 @@ const MyEventsPage = () => {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
         });
-        if (!response.ok) return;
+        if (!response.ok) {
+          setPackagesError('Could not load packages. Please try again.');
+          return;
+        }
         const data = await response.json();
         const pkgs = data.action === 1 && Array.isArray(data.data) ? data.data : [];
         setPhotographerPackages(pkgs.filter((p: Record<string, unknown>) => p.isActive !== false).map((p: Record<string, unknown>) => ({
@@ -455,7 +460,7 @@ const MyEventsPage = () => {
           durationHours: (p.durationHours as number) || 0,
         })));
       } catch {
-        // Silently fail
+        setPackagesError('Could not load packages. Please try again.');
       } finally {
         setPackagesLoading(false);
       }
@@ -748,28 +753,22 @@ const MyEventsPage = () => {
 
   const handleDeleteEvent = async () => {
     if (!deleteEvent) return;
+    const eventId = deleteEvent.id;
+    setDeleteEvent(null);
+    setShowDeleteModal(false);
     try {
       const apiUrl = getApiUrl();
-      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
-      const response = await fetch(`${apiUrl}/api/remote/customer/events/${deleteEvent.id}`, {
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/events/${eventId}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'api-token': apiKey,
-          'Content-Type': 'application/json',
-        },
       });
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => '');
-        throw new Error(`Failed to delete event: ${response.status} ${errorText}`);
+      if (!res.ok) {
+        const errorText = await res.text().catch(() => '');
+        throw new Error(`Failed to delete event: ${res.status} ${errorText}`);
       }
-      setEvents(prev => prev.filter(e => e.id !== deleteEvent.id));
+      setEvents(prev => prev.filter(e => e.id !== eventId));
     } catch (err) {
       console.error('Delete event error:', err);
       alert(err instanceof Error ? err.message : 'Failed to delete event');
-    } finally {
-      setDeleteEvent(null);
-      setShowDeleteModal(false);
     }
   };
 
@@ -1945,6 +1944,8 @@ const MyEventsPage = () => {
                   <div style={{ width: '16px', height: '16px', border: `2px solid ${colors.borderPrimary}`, borderTopColor: '#083A85', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
                   Loading packages...
                 </div>
+              ) : packagesError ? (
+                <p style={{ fontSize: '0.8rem', color: '#ef4444', padding: '0.5rem 0' }}>{packagesError}</p>
               ) : photographerPackages.length === 0 ? (
                 <p style={{ fontSize: '0.8rem', color: colors.textSecondary, padding: '0.5rem 0' }}>No packages available for this photographer.</p>
               ) : (

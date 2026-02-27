@@ -213,6 +213,18 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
     }
   };
 
+  const getNotificationDest = (notification: Notification): string | null => {
+    if (notification.actionUrl) return notification.actionUrl;
+    switch (notification.type) {
+      case 'booking': return userRole === 'event-coordinator' ? '/user/event-coordinator/events' : '/user/client/bookings';
+      case 'gift': return '/user/client/payments';
+      case 'photographer': return userRole === 'event-coordinator' ? '/user/event-coordinator/photographers' : '/user/client/photographers';
+      case 'album': return userRole === 'event-coordinator' ? '/user/event-coordinator/gallery' : '/user/client/gallery';
+      case 'streamfee': return '/user/event-coordinator/payments';
+      default: return null;
+    }
+  };
+
   const markAllAsRead = async () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     try {
@@ -233,9 +245,15 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
       const endpoint = userRole === 'event-coordinator'
         ? `${apiUrl}/api/remote/coordinator/notifications/${id}`
         : `${apiUrl}/api/remote/customer/notifications/${id}`;
-      await dashboardAuthFetch(endpoint, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } });
-    } catch (err) {
-      console.error('Failed to delete notification:', err);
+      const res = await dashboardAuthFetch(endpoint, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.message || 'Failed to delete notification. The server did not process the request.');
+      }
+    } catch {
+      alert('Failed to delete notification. The feature may not be available yet.');
+    } finally {
+      fetchNotifications();
     }
   };
 
@@ -246,9 +264,15 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
       const endpoint = userRole === 'event-coordinator'
         ? `${apiUrl}/api/remote/coordinator/notifications/delete-read`
         : `${apiUrl}/api/remote/customer/notifications/delete-read`;
-      await dashboardAuthFetch(endpoint, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } });
-    } catch (err) {
-      console.error('Failed to delete read notifications:', err);
+      const res = await dashboardAuthFetch(endpoint, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.message || 'Failed to clear read notifications. The server did not process the request.');
+      }
+    } catch {
+      alert('Failed to clear read notifications. The feature may not be available yet.');
+    } finally {
+      fetchNotifications();
     }
   };
 
@@ -734,20 +758,27 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
                         gap: '0.75rem',
                         marginTop: '0.75rem'
                       }}>
-                        {notification.actionUrl && (
-                          <Link
-                            href={notification.actionUrl}
-                            style={{
-                              fontSize: '0.85rem',
-                              fontWeight: '500',
-                              color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
-                              textDecoration: 'none'
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {notification.type === 'album' ? 'View album' : 'View details'}
-                          </Link>
-                        )}
+                        {(() => {
+                          const dest = getNotificationDest(notification);
+                          return dest ? (
+                            <Link
+                              href={dest}
+                              style={{
+                                fontSize: '0.85rem',
+                                fontWeight: '500',
+                                color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
+                                textDecoration: 'none',
+                                backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#DBEAFE',
+                                padding: '0.3rem 0.75rem',
+                                borderRadius: '9999px',
+                                display: 'inline-block'
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {notification.type === 'album' ? 'View album' : 'View details'}
+                            </Link>
+                          ) : null;
+                        })()}
                         <button
                           onClick={(e) => {
                             e.stopPropagation();

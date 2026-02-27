@@ -394,7 +394,7 @@ const MyEventsPage = () => {
           const mapped = data.data.content.map((p: Record<string, unknown>) => ({
             id: (p.id as string) || '',
             name: `${(p.firstName as string) || ''} ${(p.lastName as string) || ''}`.trim() || 'Photographer',
-            image: (p.profilePicture as string) || 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg',
+            image: (p.profilePicture as string) || undefined,
             speciality: Array.isArray(p.specialties) ? (p.specialties as string[]).join(', ') : (p.customerType as string) || 'Photography',
             rating: (p.rating as number) || 0,
             eventsWorked: 0,
@@ -458,12 +458,14 @@ const MyEventsPage = () => {
   const [createPackageId, setCreatePackageId] = useState<string>('');
   const [photographerPackages, setPhotographerPackages] = useState<{id: string; packageName: string; price: number; currencyId: string; description: string; durationHours: number}[]>([]);
   const [packagesLoading, setPackagesLoading] = useState(false);
+  const [packagesError, setPackagesError] = useState<string | null>(null);
 
   // Fetch packages when photographer changes
   useEffect(() => {
     if (!createPhotographerId || !isValidUUID(createPhotographerId)) {
       setPhotographerPackages([]);
       setCreatePackageId('');
+      setPackagesError(null);
       return;
     }
     setPackagesLoading(true);
@@ -475,7 +477,10 @@ const MyEventsPage = () => {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
         });
-        if (!response.ok) return;
+        if (!response.ok) {
+          setPackagesError('Could not load packages. Please try again.');
+          return;
+        }
         const data = await response.json();
         const pkgs = data.action === 1 && Array.isArray(data.data) ? data.data : [];
         setPhotographerPackages(pkgs.filter((p: Record<string, unknown>) => p.isActive !== false).map((p: Record<string, unknown>) => ({
@@ -487,7 +492,7 @@ const MyEventsPage = () => {
           durationHours: (p.durationHours as number) || 0,
         })));
       } catch {
-        // Silently fail
+        setPackagesError('Could not load packages. Please try again.');
       } finally {
         setPackagesLoading(false);
       }
@@ -733,17 +738,21 @@ const MyEventsPage = () => {
   const handlePublishEvent = async (eventId: string) => {
     if (!token) return;
     setPublishingEventId(eventId);
-    // Optimistic local update
-    setEvents(prev => prev.map(evt =>
-      evt.id === eventId ? { ...evt, status: 'PUBLISHED' as EventStatus } : evt
-    ));
     try {
       const apiUrl = getApiUrl();
-      await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/events/${eventId}/publish`, {
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/events/${eventId}/publish`, {
         method: 'POST',
       });
+      if (res.ok) {
+        setEvents(prev => prev.map(evt =>
+          evt.id === eventId ? { ...evt, status: 'PUBLISHED' as EventStatus } : evt
+        ));
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.message || 'Failed to publish event. Please try again.');
+      }
     } catch (err) {
-      console.error('Failed to publish event:', err);
+      alert('Failed to publish event. Please try again.');
     }
     setPublishingEventId(null);
   };
@@ -751,17 +760,21 @@ const MyEventsPage = () => {
   const handleConfirmCompletion = async (eventId: string) => {
     if (!token) return;
     setConfirmingEventId(eventId);
-    // Optimistic local update
-    setEvents(prev => prev.map(evt =>
-      evt.id === eventId ? { ...evt, status: 'completed' as EventStatus } : evt
-    ));
     try {
       const apiUrl = getApiUrl();
-      await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/events/${eventId}/confirm-completion`, {
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/events/${eventId}/confirm-completion`, {
         method: 'POST',
       });
+      if (res.ok) {
+        setEvents(prev => prev.map(evt =>
+          evt.id === eventId ? { ...evt, status: 'completed' as EventStatus } : evt
+        ));
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.message || 'Failed to confirm event completion. Please try again.');
+      }
     } catch (err) {
-      console.error('Failed to confirm event completion:', err);
+      alert('Failed to confirm event completion. Please try again.');
     }
     setConfirmingEventId(null);
   };
@@ -769,19 +782,23 @@ const MyEventsPage = () => {
   const eventTypes = ['Wedding', 'Birthday', 'Corporate', 'Baby Shower', 'Graduation', 'Anniversary', 'Engagement', 'Other'];
 
   const handleDeleteEvent = async () => {
-    if (deleteEvent) {
-      setEvents(prev => prev.filter(e => e.id !== deleteEvent.id));
-      const eventId = deleteEvent.id;
-      setDeleteEvent(null);
-      setShowDeleteModal(false);
-      try {
-        const apiUrl = getApiUrl();
-        await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/events/${eventId}`, {
-          method: 'DELETE',
-        });
-      } catch (err) {
-        console.error('Failed to delete event:', err);
+    if (!deleteEvent) return;
+    const eventId = deleteEvent.id;
+    setDeleteEvent(null);
+    setShowDeleteModal(false);
+    try {
+      const apiUrl = getApiUrl();
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/events/${eventId}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const errorText = await res.text().catch(() => '');
+        throw new Error(`Failed to delete event: ${res.status} ${errorText}`);
       }
+      setEvents(prev => prev.filter(e => e.id !== eventId));
+    } catch (err) {
+      console.error('Failed to delete event:', err);
+      alert(err instanceof Error ? err.message : 'Failed to delete event');
     }
   };
 
@@ -2132,6 +2149,8 @@ const MyEventsPage = () => {
                   <div style={{ width: '16px', height: '16px', border: `2px solid ${colors.borderPrimary}`, borderTopColor: '#083A85', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
                   Loading packages...
                 </div>
+              ) : packagesError ? (
+                <p style={{ fontSize: '0.8rem', color: '#ef4444', padding: '0.5rem 0' }}>{packagesError}</p>
               ) : photographerPackages.length === 0 ? (
                 <p style={{ fontSize: '0.8rem', color: colors.textSecondary, padding: '0.5rem 0' }}>No packages available for this photographer.</p>
               ) : (

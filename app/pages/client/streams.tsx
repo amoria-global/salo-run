@@ -291,11 +291,11 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
     }
   }, [apiUrl, userRole]);
 
-  // GET /api/remote/coordinator/streams/{eventId}/chats
+  // GET stream chat messages (read-only for both client and coordinator)
   const fetchStreamChats = useCallback(async (eventId: string) => {
-    if (userRole !== 'event-coordinator') return [];
+    const prefix = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
     try {
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/streams/${eventId}/chats`);
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${prefix}/streams/${eventId}/chats`);
       if (res.ok) {
         const data = await res.json();
         return data.data || [];
@@ -304,26 +304,6 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
       console.error('Failed to fetch stream chats:', err);
     }
     return [];
-  }, [apiUrl, userRole]);
-
-  // POST /api/remote/coordinator/streams/{eventId}/chats?content=...
-  const sendStreamChat = useCallback(async (eventId: string, content: string) => {
-    if (userRole !== 'event-coordinator') return false;
-    try {
-      const res = await dashboardAuthFetch(
-        `${apiUrl}/api/remote/coordinator/streams/${eventId}/chats?content=${encodeURIComponent(content)}`,
-        { method: 'POST' }
-      );
-      const data = await res.json();
-      if (!res.ok || data.action !== 1) {
-        console.error('Failed to send chat:', data.message);
-        return false;
-      }
-      return true;
-    } catch (err) {
-      console.error('Error sending chat:', err);
-      return false;
-    }
   }, [apiUrl, userRole]);
 
   // Load and play video when selectedVideo changes

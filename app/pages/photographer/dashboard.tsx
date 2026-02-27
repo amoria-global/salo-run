@@ -194,7 +194,7 @@ const PhotographerDashboard = () => {
   const [balance, setBalance] = useState<any>(null);
   const [apiClients, setApiClients] = useState<Client[]>([]);
   const [recentActivities, setRecentActivities] = useState<{ label: string; value: string; valueColor?: string }[]>([]);
-  const [recentPayments, setRecentPayments] = useState<{ name: string; type: string; amount: string; avatar?: string; logo?: string }[]>([]);
+  const [recentPayments, setRecentPayments] = useState<{ name: string; type: string; amount: string; avatar?: string }[]>([]);
   const [performanceData, setPerformanceData] = useState([
     { day: 'Sun', value1: 0, value2: 0 },
     { day: 'Mon', value1: 0, value2: 0 },
@@ -241,7 +241,7 @@ const PhotographerDashboard = () => {
               name: c.name || `${c.firstName || ''} ${c.lastName || ''}`.trim() || 'Client',
               event: c.lastEventType || c.eventType || 'Photography',
               status: (c.status === 'active' ? 'In Progress' : c.status === 'completed' ? 'Completed' : 'Pending') as Client['status'],
-              avatar: c.profileImage || c.profilePicture || c.avatar || '/default-avatar.png',
+              avatar: c.profileImage || c.profilePicture || c.avatar || undefined,
             }));
             setApiClients(mapped);
           }
@@ -255,7 +255,6 @@ const PhotographerDashboard = () => {
               type: t.paymentType || t.type || t.service || 'Earnings',
               amount: formatPrice(t.amount || 0),
               avatar: t.clientImage || t.customerImage || t.photographerImage || undefined,
-              logo: (!t.clientImage && !t.customerImage) ? '/logo.png' : undefined,
             }));
             setRecentPayments(mapped);
           }
@@ -816,6 +815,7 @@ const PhotographerDashboard = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <button
                 onClick={toggleComparisonMode}
+                title={isComparisonMode ? 'Exit comparison mode' : 'Set target goals and compare them against your real stats to track progress'}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -1183,6 +1183,32 @@ const PhotographerDashboard = () => {
           Custom
         </button>
       </div>
+
+      {/* Comparison mode guide banner */}
+      {isComparisonMode && selectedPlan && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.625rem',
+          padding: '0.625rem 1rem',
+          marginBottom: '0.75rem',
+          backgroundColor: actualTheme === 'dark' ? 'rgba(242, 12, 143, 0.08)' : '#FDF2F8',
+          border: `1px solid ${actualTheme === 'dark' ? 'rgba(242, 12, 143, 0.25)' : '#FBCFE8'}`,
+          borderRadius: '0.5rem',
+          fontSize: '0.8rem',
+          color: actualTheme === 'dark' ? '#F9A8D4' : '#9D174D',
+          lineHeight: '1.4',
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+            <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" stroke="currentColor" strokeWidth="2"/>
+            <path d="M12 16v-4M12 8h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+          <span>
+            Comparing with <strong>{selectedPlan.name}</strong> — stat cards show progress bars toward your targets.
+            The performance chart overlays target values alongside actual data. Switch plans or click <strong>"Exit Comparison"</strong> when done.
+          </span>
+        </div>
+      )}
 
       <div className="stat-cards-grid">
         <StatCard
@@ -1558,6 +1584,33 @@ const PhotographerDashboard = () => {
                 <CloseIcon />
               </button>
             </div>
+
+            {/* Guide Tips */}
+            {!editingPlan && (
+              <div style={{
+                backgroundColor: actualTheme === 'dark' ? 'rgba(59, 130, 246, 0.1)' : '#EFF6FF',
+                border: `1px solid ${actualTheme === 'dark' ? 'rgba(59, 130, 246, 0.3)' : '#BFDBFE'}`,
+                borderRadius: '0.5rem',
+                padding: '0.875rem 1rem',
+                marginBottom: '1.25rem',
+                fontSize: '0.8rem',
+                lineHeight: '1.6',
+                color: actualTheme === 'dark' ? '#93C5FD' : '#1E40AF',
+              }}>
+                <div style={{ fontWeight: '600', marginBottom: '0.375rem', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                    <path d="M12 16v-4M12 8h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
+                  How it works
+                </div>
+                <ol style={{ margin: 0, paddingLeft: '1.25rem' }}>
+                  <li>Set a <strong>plan name</strong> and <strong>time period</strong> that matches how you want to track progress (e.g. weekly earnings goal).</li>
+                  <li>Fill in <strong>target values</strong> for the stats you care about — leave others blank to skip them.</li>
+                  <li>After saving, click <strong>"Compare Goals"</strong> on the dashboard to overlay your targets on your real stats and see progress bars.</li>
+                </ol>
+              </div>
+            )}
 
             {/* Plan Name */}
             <div style={{ marginBottom: '1rem' }}>

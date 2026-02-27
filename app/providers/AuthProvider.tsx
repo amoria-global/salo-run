@@ -135,6 +135,8 @@ const REFRESH_TOKEN_KEY = 'refreshToken';
  */
 function normalizeImageUrl(url: string | undefined | null): string | undefined {
   if (!url) return undefined;
+  // Backend returns http://host/uploads/null when no image is set — treat as no image
+  if (url.includes('/null')) return undefined;
   if (typeof window === 'undefined') return url;
   const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
   // Only rewrite if the URL points to the backend and we're on a different origin (production)
@@ -504,10 +506,11 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
             }
           }
 
-          // Clean up URL token param
+          // Clean up URL token params (security: don't leave tokens in history)
           if (urlToken && typeof window !== 'undefined') {
             const url = new URL(window.location.href);
             url.searchParams.delete('token');
+            url.searchParams.delete('refreshToken');
             url.searchParams.delete('email'); // Clean up email too if present (legacy)
             window.history.replaceState({}, '', url.pathname + url.search);
           }
@@ -658,7 +661,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     // Notify the landing page that user logged out
     if (window.opener && !window.opener.closed) {
       window.opener.postMessage(
-        { type: 'connekyt-logout' },
+        { type: 'LOGOUT' },
         process.env.NEXT_PUBLIC_LANDING_URL || 'http://localhost:3000'
       );
     }
