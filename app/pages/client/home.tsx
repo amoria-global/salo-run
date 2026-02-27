@@ -262,7 +262,7 @@ const ClientDashboard = () => {
             id: p.id,
             eventName: p.eventTitle || 'Event',
             photographerName: p.photographerName || 'Photographer',
-            photographerImage: p.photographerImage || '/default-avatar.png',
+            photographerImage: p.photographerImage || undefined,
             amount: p.amount,
             paidAmount: p.paidAmount || 0,
             dueDate: p.dueDate ? p.dueDate.split('T')[0] : '',
@@ -281,7 +281,7 @@ const ClientDashboard = () => {
             name: p.name,
             event: p.event || 'Event',
             status: (p.status as Photographer['status']) || 'Pending',
-            avatar: p.avatar || '/default-avatar.png',
+            avatar: p.avatar || undefined,
           }));
           setPhotographers(mapped);
         }

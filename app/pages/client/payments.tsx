@@ -1377,7 +1377,7 @@ Amount: ${formatPrice(payment.amountNum)}
         eventName: item.eventTitle || 'Untitled Event',
         eventType: item.paymentType || 'Booking',
         photographerName: item.photographerName || 'Unknown',
-        photographerImage: item.photographerImage || '/default-avatar.png',
+        photographerImage: item.photographerImage || undefined,
         method: '-',
         amount: `${item.currencyAbbreviation || '$'}${item.amount}`,
         amountNum: Number(item.amount) || 0,

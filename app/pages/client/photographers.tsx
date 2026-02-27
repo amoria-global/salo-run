@@ -298,7 +298,7 @@ interface PhotographersPageProps {
 
 const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps) => {
   const { colors, actualTheme } = useTheme();
-  const { formatPrice } = useCurrency();
+  const { formatPrice, currencyId } = useCurrency();
   const { token, user } = useDashboardAuth();
   const router = useRouter();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -389,7 +389,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
           id: p.id,
           firstName: p.firstName || '',
           lastName: p.lastName || '',
-          profileImage: p.profileImage || p.profilePicture || '/default-avatar.png',
+          profileImage: p.profileImage || p.profilePicture || undefined,
           coverImage: p.coverImage || p.coverPicture || '',
           portfolioImages: p.portfolioImages || (p.projects || []).map((proj: any) => proj.imageUrl || ''),
           bio: p.bio || p.about || '',
@@ -684,34 +684,44 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
       const completedBooking = pendingReviewPhotographer.bookings?.find(b => b.status === 'completed');
       const eventId = completedBooking?.id;
 
+      let tipRecorded = false;
       if (eventId && finalTipAmount > 0) {
         try {
           const apiUrl = getApiUrl();
           const params = new URLSearchParams({
+            recipientId: pendingReviewPhotographer.id,
             eventId,
             amount: finalTipAmount.toString(),
+            ...(currencyId ? { currencyId } : {}),
           });
-          await dashboardAuthFetch(
+          const res = await dashboardAuthFetch(
             `${apiUrl}/api/remote/payments/record-tip?${params.toString()}`,
             { method: 'POST', headers: { 'Content-Type': 'application/json' } }
           );
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.message || 'Failed to record tip');
+          }
+          tipRecorded = true;
         } catch (err) {
           console.error('Failed to record tip:', err);
         }
       }
 
-      // Update photographer's total spent
-      setPhotographers(prev => prev.map(p =>
-        p.id === pendingReviewPhotographer.id
-          ? { ...p, totalSpent: p.totalSpent + finalTipAmount }
-          : p
-      ));
+      // Only update local total spent if tip was successfully recorded
+      if (tipRecorded) {
+        setPhotographers(prev => prev.map(p =>
+          p.id === pendingReviewPhotographer.id
+            ? { ...p, totalSpent: p.totalSpent + finalTipAmount }
+            : p
+        ));
+      }
 
       setShowTipPaymentModal(false);
       setTipAmount('');
       setCustomTipAmount('');
       setSelectedTipPaymentMethod('card');
-      setSuccessMessage('Review submitted successfully!');
+      setSuccessMessage(tipRecorded ? 'Review and tip submitted successfully!' : 'Review submitted successfully!');
       setShowSuccessModal(true);
       setPendingReviewPhotographer(null);
     }

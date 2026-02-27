@@ -248,7 +248,7 @@ const EventCoordinatorDashboard = () => {
               id: p.id || '',
               eventName: p.eventTitle || p.eventName || 'Event',
               photographerName: p.photographerName || 'Photographer',
-              photographerImage: p.photographerImage || '/default-avatar.png',
+              photographerImage: p.photographerImage || undefined,
               amount: p.amount || 0,
               paidAmount: p.paidAmount || 0,
               dueDate: p.dueDate ? p.dueDate.split('T')[0] : '',
@@ -277,7 +277,7 @@ const EventCoordinatorDashboard = () => {
             event: p.specialties?.[0]?.name || p.specialties?.[0] || p.specializations?.[0] || '',
             status: p.profileReviewStatus === 'ACCEPTED' ? 'Completed' as const :
                     p.profileReviewStatus === 'PENDING' ? 'Pending' as const : 'In Progress' as const,
-            avatar: p.profilePicture || p.profileImage || '/default-avatar.png',
+            avatar: p.profilePicture || p.profileImage || undefined,
           }));
           setPhotographers(mapped);
         }

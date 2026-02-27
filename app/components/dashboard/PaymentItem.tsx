@@ -38,7 +38,7 @@ export const PaymentItem: React.FC<PaymentItemProps> = ({
         alignItems: 'center',
         gap: '0.625rem'
       }}>
-        {avatar && (
+        {avatar ? (
           <img
             src={avatar}
             alt={name}
@@ -48,21 +48,24 @@ export const PaymentItem: React.FC<PaymentItemProps> = ({
               borderRadius: '9999px',
               objectFit: 'cover'
             }}
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
           />
-        )}
-        {logo && (
-          <img
-            src={logo}
-            alt={name}
-            style={{
-              width: '2.25rem',
-              height: '2.25rem',
-              borderRadius: '9999px',
-              objectFit: 'cover',
-              padding: '0.375rem',
-              backgroundColor: colors.bgTertiary
-            }}
-          />
+        ) : (
+          <div style={{
+            width: '2.25rem',
+            height: '2.25rem',
+            borderRadius: '9999px',
+            backgroundColor: colors.bgTertiary,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '0.875rem',
+            fontWeight: '600',
+            color: colors.textSecondary,
+            flexShrink: 0,
+          }}>
+            {name.charAt(0).toUpperCase()}
+          </div>
         )}
         <div style={{
           display: 'flex',
