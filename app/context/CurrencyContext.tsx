@@ -11,6 +11,7 @@ interface CurrencyInfo {
   flag: string;
   rate: number;
   decimals: number;
+  id?: string;
 }
 
 interface CurrencyContextType {
@@ -18,6 +19,7 @@ interface CurrencyContextType {
   setCurrency: (currency: CurrencyCode) => void;
   formatPrice: (amountInUSD: number) => string;
   currencies: CurrencyInfo[];
+  currencyId: string | undefined;
 }
 
 const FLAG_MAP: Record<string, string> = {
@@ -60,29 +62,47 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Fetch live exchange rates from backend
+  // Fetch live exchange rates and backend currency IDs
   useEffect(() => {
     const fetchRates = async () => {
       try {
         const apiUrl = getApiUrl();
-        const response = await fetch(`${apiUrl}/api/remote/public/currencies/rates`);
-        if (!response.ok) return;
-        const result = await response.json();
-        const ratesData = result?.data;
-        if (!ratesData || typeof ratesData !== "object") return;
+        const [ratesRes, idsRes] = await Promise.all([
+          fetch(`${apiUrl}/api/remote/public/currencies/rates`),
+          fetch(`${apiUrl}/api/remote/public/currencies`),
+        ]);
 
-        const updatedCurrencies: CurrencyInfo[] = DEFAULT_CURRENCIES.map((c) => {
-          const apiRate = ratesData[c.code];
-          if (apiRate && apiRate.rateToUsd != null) {
-            return {
-              ...c,
-              rate: parseFloat(apiRate.rateToUsd),
-              symbol: apiRate.symbol || c.symbol,
-              name: apiRate.name || c.name,
-            };
+        const idMap: Record<string, string> = {};
+        if (idsRes.ok) {
+          const idsResult = await idsRes.json();
+          const idList: { id: string; abbreviation: string }[] = idsResult?.data ?? [];
+          idList.forEach((c) => { idMap[c.abbreviation] = c.id; });
+        }
+
+        let updatedCurrencies: CurrencyInfo[] = DEFAULT_CURRENCIES.map((c) => ({
+          ...c,
+          id: idMap[c.code],
+        }));
+
+        if (ratesRes.ok) {
+          const result = await ratesRes.json();
+          const ratesData = result?.data;
+          if (ratesData && typeof ratesData === "object") {
+            updatedCurrencies = updatedCurrencies.map((c) => {
+              const apiRate = ratesData[c.code];
+              if (apiRate && apiRate.rateToUsd != null) {
+                return {
+                  ...c,
+                  rate: parseFloat(apiRate.rateToUsd),
+                  symbol: apiRate.symbol || c.symbol,
+                  name: apiRate.name || c.name,
+                };
+              }
+              return c;
+            });
           }
-          return c;
-        });
+        }
+
         setCurrencies(updatedCurrencies);
       } catch {
         // Silently fall back to default rates when API is unavailable
@@ -112,9 +132,11 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     [currency, currencies]
   );
 
+  const currencyId = currencies.find((c) => c.code === currency)?.id;
+
   return (
     <CurrencyContext.Provider
-      value={{ currency, setCurrency, formatPrice, currencies }}
+      value={{ currency, setCurrency, formatPrice, currencies, currencyId }}
     >
       {children}
     </CurrencyContext.Provider>

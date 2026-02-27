@@ -67,14 +67,26 @@ async function proxyRequest(
       headers,
     };
 
-    // Add body for non-GET requests
+    // Add body for non-GET requests, preserving the original Content-Type
     if (method !== 'GET' && method !== 'DELETE') {
-      try {
-        const body = await request.json();
-        fetchOptions.body = JSON.stringify(body);
-        headers['Content-Type'] = 'application/json';
-      } catch {
-        // No body or invalid JSON - continue without body
+      const bodyContentType = request.headers.get('content-type') || '';
+      if (bodyContentType.includes('application/json')) {
+        // JSON body — parse and re-serialize
+        try {
+          const body = await request.json();
+          fetchOptions.body = JSON.stringify(body);
+          headers['Content-Type'] = 'application/json';
+        } catch {
+          // No JSON body - continue without body
+        }
+      } else if (bodyContentType) {
+        // FormData, URLEncoded, binary — forward raw bytes with original Content-Type
+        // This handles POST /chat/send (FormData) and other multipart requests
+        const rawBody = await request.arrayBuffer();
+        if (rawBody.byteLength > 0) {
+          fetchOptions.body = rawBody;
+          headers['Content-Type'] = bodyContentType;
+        }
       }
     }
 

@@ -74,6 +74,7 @@ interface NotificationItem {
   message: string;
   time: string;
   read: boolean;
+  actionUrl?: string;
 }
 
 function formatTimeAgo(dateStr: string): string {
@@ -149,7 +150,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
   const fetchNotifications = useCallback(async () => {
     if (!token) return;
     const apiUrl = getApiUrl();
-    const notifBase = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
+    const notifBase = userRole === 'event-coordinator' ? 'coordinator' : userRole === 'photographer' ? 'photographer' : 'customer';
     try {
       const [notifRes, countRes] = await Promise.allSettled([
         dashboardAuthFetch(`${apiUrl}/api/remote/${notifBase}/notifications?page=0&size=20`, { method: 'GET' }),
@@ -166,6 +167,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
             message: n.message || '',
             time: n.createdAt ? formatTimeAgo(n.createdAt) : '',
             read: n.isRead ?? true,
+            actionUrl: n.link || undefined,
           })));
         }
       }
@@ -235,7 +237,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
     setUnreadCount(prev => Math.max(0, prev - 1));
     const apiUrl = getApiUrl();
-    const base = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
+    const base = userRole === 'event-coordinator' ? 'coordinator' : userRole === 'photographer' ? 'photographer' : 'customer';
     try {
       await dashboardAuthFetch(`${apiUrl}/api/remote/${base}/notifications/${id}/read`, { method: 'PATCH' });
     } catch {
@@ -247,12 +249,33 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     setUnreadCount(0);
     const apiUrl = getApiUrl();
-    const base = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
+    const base = userRole === 'event-coordinator' ? 'coordinator' : userRole === 'photographer' ? 'photographer' : 'customer';
     try {
       await dashboardAuthFetch(`${apiUrl}/api/remote/${base}/notifications/read-all`, { method: 'PATCH' });
     } catch {
       // silent fail
     }
+  };
+
+  const handleNotificationClick = (notification: NotificationItem) => {
+    markAsRead(notification.id);
+    setIsNotificationsOpen(false);
+    const dest = notification.actionUrl || (() => {
+      const t = notification.type?.toLowerCase();
+      if (userRole === 'photographer') {
+        if (t === 'payment' || t === 'tip' || t === 'bonus') return '/user/photographer/all-transactions';
+      } else if (userRole === 'event-coordinator') {
+        if (t === 'booking' || t === 'event') return '/user/event-coordinator/events';
+        if (t === 'payment' || t === 'streamfee') return '/user/event-coordinator/payments';
+        if (t === 'album' || t === 'media') return '/user/event-coordinator/gallery';
+      } else {
+        if (t === 'booking') return '/user/client/bookings';
+        if (t === 'payment') return '/user/client/payments';
+        if (t === 'album' || t === 'media') return '/user/client/gallery';
+      }
+      return null;
+    })();
+    if (dest) router.push(dest);
   };
 
   const getNotificationIcon = (type: string) => {
@@ -635,7 +658,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
                     return (
                       <div
                         key={notification.id}
-                        onClick={() => markAsRead(notification.id)}
+                        onClick={() => handleNotificationClick(notification)}
                         style={{
                           display: 'flex',
                           gap: '0.75rem',

@@ -436,7 +436,7 @@ export default function Clients() {
             lastName: c.lastName || c.name?.split(' ').slice(1).join(' ') || '',
             email: c.email || '',
             phone: c.phone || c.phoneNumber || '',
-            profileImage: c.profileImage || c.profilePicture || c.avatar || '/default-avatar.png',
+            profileImage: c.profileImage || c.profilePicture || c.avatar || undefined,
             coverImage: c.coverImage || 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800',
             location: {
               city: c.city || c.location?.city || '',
