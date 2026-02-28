@@ -434,8 +434,15 @@ Amount: ${formatPrice(transaction.amountNum)}
       {/* Transaction Info */}
       <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '1rem', marginBottom: '1rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: `2px solid ${colors.borderPrimary}` }}>
-          <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
-            <Image src={transaction.clientImage} alt={transaction.clientName} width={40} height={40} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+          <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {transaction.clientImage ? (
+              <Image src={transaction.clientImage} alt={transaction.clientName} width={40} height={40} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+            ) : (
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+              </svg>
+            )}
           </div>
           <div>
             <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>{transaction.clientName}</div>
@@ -548,13 +555,46 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
   const [customDonation, setCustomDonation] = useState<string>('');
   const [donationSkipped, setDonationSkipped] = useState<boolean>(false);
   const [showCustomInput, setShowCustomInput] = useState<boolean>(false);
+  const [accounts, setAccounts] = useState<WithdrawAccount[]>([]);
+  const [accountsLoading, setAccountsLoading] = useState<boolean>(false);
 
   const displayName = userName || 'Account Holder';
-  const accounts: WithdrawAccount[] = [
-    { id: 'mtn', type: 'mtn', label: 'MTN Mobile Money', accountNumber: '0789 XXX 980', accountName: displayName, color: '#F59E0B' },
-    { id: 'airtel', type: 'airtel', label: 'Airtel Money', accountNumber: '0738 XXX 456', accountName: displayName, color: '#ED1C24' },
-    { id: 'visa', type: 'card', label: 'Visa Debit Card', accountNumber: '**** **** **** 4187', accountName: displayName, color: '#8B5CF6' }
-  ];
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setAccountsLoading(true);
+    const apiUrl = getApiUrl();
+    dashboardAuthFetch(`${apiUrl}/api/remote/photographer/preferences`)
+      .then(res => res.json())
+      .then(result => {
+        const prefs = result?.data || {};
+        const paymentKeys = Object.keys(prefs).filter((k: string) => k.startsWith('payment_method_'));
+        const loaded: WithdrawAccount[] = paymentKeys.map((k: string) => {
+          try {
+            const pm = JSON.parse(prefs[k]);
+            const isAirtel = (pm.name as string)?.toLowerCase().includes('airtel');
+            const type: WithdrawAccount['type'] = pm.type === 'card' ? 'card' : isAirtel ? 'airtel' : 'mtn';
+            return {
+              id: pm.id as string,
+              type,
+              label: pm.name as string,
+              accountNumber: pm.details as string,
+              accountName: displayName,
+              color: type === 'airtel' ? '#ED1C24' : type === 'card' ? '#8B5CF6' : '#F59E0B',
+            };
+          } catch { return null; }
+        }).filter(Boolean) as WithdrawAccount[];
+        setAccounts(loaded);
+        const defaultId = prefs.default_payment_method as string | undefined;
+        if (defaultId && loaded.find(a => a.id === defaultId)) {
+          setSelectedAccount(defaultId);
+        } else if (loaded.length > 0) {
+          setSelectedAccount(loaded[0].id);
+        }
+      })
+      .catch(() => setAccounts([]))
+      .finally(() => setAccountsLoading(false));
+  }, [isOpen]);
 
   const donationValue = donationAmount === 'custom' ? (parseFloat(customDonation) || 0) : (parseFloat(donationAmount) || 0);
   const donationAddressed = donationSkipped || donationValue > 0;
@@ -820,9 +860,24 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
               color: '#374151',
               marginBottom: '0.75rem'
             }}>
-              Withdraw To
+              Payment Account
             </label>
             <div className="mobile-account-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+              {accountsLoading ? (
+                <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: 0, textAlign: 'center', padding: '1rem 0' }}>
+                  Loading accounts…
+                </p>
+              ) : accounts.length === 0 ? (
+                <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: 0, textAlign: 'center', padding: '1rem 0' }}>
+                  No withdrawal accounts saved.{' '}
+                  <span
+                    onClick={() => router.push('/user/photographer/preferences?tab=payments')}
+                    style={{ color: colors.brandPrimary, fontWeight: '500', cursor: 'pointer', textDecoration: 'underline' }}
+                  >
+                    Add one in Preferences → Payments
+                  </span>
+                </p>
+              ) : null}
               {accounts.map((account) => (
                 <div
                   key={account.id}
@@ -911,7 +966,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
             </div>
           </div>
 
-          {/* Info text about withdrawal accounts */}
+          {/* Info text about payment accounts */}
           <p className="mobile-info-text" style={{
             fontSize: '0.86rem',
             color: colors.textSecondary,
@@ -919,10 +974,10 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
             textAlign: 'center'
           }}>
             <i className="bi bi-info-circle" style={{ marginRight: '0.375rem' }}></i>
-            Manage your withdrawal accounts in <span
+            Manage your payment accounts in <span
               onClick={() => router.push('/user/photographer/preferences?tab=payments')}
               style={{ color: colors.brandPrimary, fontWeight: '500', cursor: 'pointer', textDecoration: 'underline' }}
-            >Preferences → Withdrawal Accounts</span>
+            >Preferences → Payment Accounts</span>
           </p>
 
           {/* Donation Section */}
@@ -1118,17 +1173,17 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
             </button>
             <button
               onClick={handleWithdraw}
-              disabled={!isWithdrawValid || !selectedAccount || !donationAddressed}
+              disabled={!isWithdrawValid || !selectedAccount || !donationAddressed || accounts.length === 0}
               style={{
                 flex: 1,
                 padding: '0.875rem 1rem',
-                border: !isWithdrawValid || !selectedAccount || !donationAddressed ? '2px solid #9CA3AF' : '2px solid #062a63',
+                border: !isWithdrawValid || !selectedAccount || !donationAddressed || accounts.length === 0 ? '2px solid #9CA3AF' : '2px solid #062a63',
                 borderRadius: '0.75rem',
-                background: !isWithdrawValid || !selectedAccount || !donationAddressed ? '#9CA3AF' : '#083A85',
+                background: !isWithdrawValid || !selectedAccount || !donationAddressed || accounts.length === 0 ? '#9CA3AF' : '#083A85',
                 color: 'white',
                 fontSize: '0.9rem',
                 fontWeight: '600',
-                cursor: !isWithdrawValid || !selectedAccount || !donationAddressed ? 'not-allowed' : 'pointer',
+                cursor: !isWithdrawValid || !selectedAccount || !donationAddressed || accounts.length === 0 ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -1544,6 +1599,7 @@ const TransactionsPage = () => {
   const { colors, actualTheme } = useTheme();
   const { formatPrice } = useCurrency();
   const { user } = useDashboardAuth();
+  const router = useRouter();
   const [activeTimeFilter, setActiveTimeFilter] = useState<'1W' | '1M' | '3M' | '6M' | '1Y'>('1W');
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
@@ -1551,11 +1607,24 @@ const TransactionsPage = () => {
   const [showReportModal, setShowReportModal] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [showSetupModal, setShowSetupModal] = useState(false);
+  const [hasPaymentAccount, setHasPaymentAccount] = useState<boolean | null>(null);
   const [showTipsModal, setShowTipsModal] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [balance, setBalance] = useState<any>(null);
   const [analytics, setAnalytics] = useState<any>(null);
+
+  useEffect(() => {
+    const apiUrl = getApiUrl();
+    dashboardAuthFetch(`${apiUrl}/api/remote/photographer/preferences`)
+      .then(res => res.json())
+      .then(result => {
+        const prefs = result?.data || {};
+        setHasPaymentAccount(Object.keys(prefs).some(k => k.startsWith('payment_method_')));
+      })
+      .catch(() => setHasPaymentAccount(null));
+  }, []);
 
   const handleViewTransaction = (transaction: Transaction) => {
     setSelectedTransaction(transaction);
@@ -1989,7 +2058,7 @@ Amount: ${formatPrice(transaction.amountNum)}
               </p>
             </div>
             <button
-              onClick={() => setShowWithdrawModal(true)}
+              onClick={() => hasPaymentAccount === false ? setShowSetupModal(true) : setShowWithdrawModal(true)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -2292,8 +2361,15 @@ Amount: ${formatPrice(transaction.amountNum)}
                     <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.85rem', color: colors.textSecondary }}>{transaction.date}</td>
                     <td style={{ padding: '0.875rem 1.25rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
-                          <Image src={transaction.clientImage} alt={transaction.clientName} width={32} height={32} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {transaction.clientImage ? (
+                            <Image src={transaction.clientImage} alt={transaction.clientName} width={32} height={32} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                          ) : (
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                            </svg>
+                          )}
                         </div>
                         <div>
                           <div style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>{transaction.clientName}</div>
@@ -2374,6 +2450,45 @@ Amount: ${formatPrice(transaction.amountNum)}
         onClose={() => setShowTransactionModal(false)}
         transaction={selectedTransaction}
       />
+
+      {/* Payment Account Setup Required Modal */}
+      {showSetupModal && (
+        <div
+          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
+          onClick={() => setShowSetupModal(false)}
+        >
+          <div
+            style={{ backgroundColor: colors.bgCard, borderRadius: '1rem', padding: '2rem', maxWidth: '380px', width: '90%', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem auto' }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="1" y="6" width="22" height="15" rx="2" stroke="#083A85" strokeWidth="2"/>
+                <path d="M1 10H23" stroke="#083A85" strokeWidth="2"/>
+                <circle cx="6" cy="15" r="1.5" fill="#083A85"/>
+              </svg>
+            </div>
+            <h3 style={{ fontSize: '1.125rem', fontWeight: '700', color: colors.textPrimary, margin: '0 0 0.75rem 0' }}>
+              Payment Account Required
+            </h3>
+            <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1.5rem 0', lineHeight: '1.6' }}>
+              You need to set up a payment account before you can withdraw funds. Add one in Preferences → Payment Accounts.
+            </p>
+            <button
+              onClick={() => { setShowSetupModal(false); router.push('/user/photographer/preferences?tab=payments'); }}
+              style={{ width: '100%', padding: '0.75rem', backgroundColor: '#083A85', color: 'white', border: 'none', borderRadius: '0.75rem', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer', marginBottom: '0.75rem' }}
+            >
+              Set Up Payment Account
+            </button>
+            <button
+              onClick={() => setShowSetupModal(false)}
+              style={{ width: '100%', padding: '0.75rem', backgroundColor: 'transparent', color: colors.textSecondary, border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.75rem', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}
+            >
+              Maybe Later
+            </button>
+          </div>
+        </div>
+      )}
 
       <WithdrawModal
         isOpen={showWithdrawModal}

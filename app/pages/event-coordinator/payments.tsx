@@ -436,8 +436,15 @@ Amount: ${formatPrice(payment.amountNum)}
       {/* Payment Info */}
       <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '1rem', marginBottom: '1rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: `2px solid ${colors.borderPrimary}` }}>
-          <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
-            <Image src={payment.photographerImage} alt={payment.photographerName} width={40} height={40} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+          <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {payment.photographerImage ? (
+              <Image src={payment.photographerImage} alt={payment.photographerName} width={40} height={40} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+            ) : (
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+              </svg>
+            )}
           </div>
           <div>
             <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>{payment.photographerName}</div>
@@ -545,6 +552,25 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
   const [showReceipt, setShowReceipt] = useState<boolean>(false);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const apiUrl = getApiUrl();
+    dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/preferences`)
+      .then(res => res.json())
+      .then(result => {
+        const prefs = result?.data || {};
+        const defaultId = prefs.default_payment_method as string | undefined;
+        if (!defaultId) return;
+        const raw = prefs[`payment_method_${defaultId}`];
+        if (!raw) return;
+        const pm = JSON.parse(raw);
+        const isAirtel = (pm.name as string)?.toLowerCase().includes('airtel');
+        const methodKey = pm.type === 'card' ? 'card' : isAirtel ? 'airtel' : 'mtn';
+        setSelectedPaymentMethod(methodKey);
+      })
+      .catch(() => { /* keep default 'card' */ });
+  }, [isOpen]);
 
   if (!payment) return null;
 
@@ -1257,12 +1283,15 @@ const PaymentsPage = () => {
   const { formatPrice } = useCurrency();
   const { profile } = useUserProfile();
   const { user } = useDashboardAuth();
+  const router = useRouter();
   const [activeTimeFilter, setActiveTimeFilter] = useState<'1W' | '1M' | '3M' | '6M' | '1Y'>('1W');
   const [currentPage, setCurrentPage] = useState(1);
   const [chartType, setChartType] = useState<ChartType>('line');
   const [showReportModal, setShowReportModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showPayNowModal, setShowPayNowModal] = useState(false);
+  const [showSetupModal, setShowSetupModal] = useState(false);
+  const [hasPaymentAccount, setHasPaymentAccount] = useState<boolean | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [payNowPayment, setPayNowPayment] = useState<Payment | null>(null);
   const [apiPayments, setApiPayments] = useState<Payment[]>([]);
@@ -1277,6 +1306,17 @@ const PaymentsPage = () => {
     totalRevenue: number;
     status: 'completed' | 'pending' | 'live';
   }>>([]);
+
+  useEffect(() => {
+    const apiUrl = getApiUrl();
+    dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/preferences`)
+      .then(res => res.json())
+      .then(result => {
+        const prefs = result?.data || {};
+        setHasPaymentAccount(Object.keys(prefs).some(k => k.startsWith('payment_method_')));
+      })
+      .catch(() => setHasPaymentAccount(null));
+  }, []);
 
   // Fetch payments from coordinator API
   const fetchPayments = useCallback(async () => {
@@ -1352,6 +1392,10 @@ const PaymentsPage = () => {
   };
 
   const handlePayNow = (payment: Payment) => {
+    if (hasPaymentAccount === false) {
+      setShowSetupModal(true);
+      return;
+    }
     setPayNowPayment(payment);
     setShowPayNowModal(true);
   };
@@ -1843,8 +1887,15 @@ Amount: ${formatPrice(payment.amountNum)}
                     <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.85rem', color: colors.textSecondary }}>{payment.date}</td>
                     <td style={{ padding: '0.875rem 1.25rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
-                          <Image src={payment.photographerImage} alt={payment.photographerName} width={32} height={32} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {payment.photographerImage ? (
+                            <Image src={payment.photographerImage} alt={payment.photographerName} width={32} height={32} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                          ) : (
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                            </svg>
+                          )}
                         </div>
                         <div>
                           <div style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>{payment.eventName}</div>
@@ -1949,6 +2000,45 @@ Amount: ${formatPrice(payment.amountNum)}
         onClose={() => setShowPaymentModal(false)}
         payment={selectedPayment}
       />
+      {/* Payment Account Setup Required Modal */}
+      {showSetupModal && (
+        <div
+          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
+          onClick={() => setShowSetupModal(false)}
+        >
+          <div
+            style={{ backgroundColor: colors.bgCard, borderRadius: '1rem', padding: '2rem', maxWidth: '380px', width: '90%', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem auto' }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="1" y="6" width="22" height="15" rx="2" stroke="#083A85" strokeWidth="2"/>
+                <path d="M1 10H23" stroke="#083A85" strokeWidth="2"/>
+                <circle cx="6" cy="15" r="1.5" fill="#083A85"/>
+              </svg>
+            </div>
+            <h3 style={{ fontSize: '1.125rem', fontWeight: '700', color: colors.textPrimary, margin: '0 0 0.75rem 0' }}>
+              Payment Account Required
+            </h3>
+            <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1.5rem 0', lineHeight: '1.6' }}>
+              You need to set up a payment account before making payments. Add one in Preferences → Payment Accounts.
+            </p>
+            <button
+              onClick={() => { setShowSetupModal(false); router.push('/user/event-coordinator/preferences?tab=payments'); }}
+              style={{ width: '100%', padding: '0.75rem', backgroundColor: '#083A85', color: 'white', border: 'none', borderRadius: '0.75rem', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer', marginBottom: '0.75rem' }}
+            >
+              Set Up Payment Account
+            </button>
+            <button
+              onClick={() => setShowSetupModal(false)}
+              style={{ width: '100%', padding: '0.75rem', backgroundColor: 'transparent', color: colors.textSecondary, border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.75rem', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}
+            >
+              Maybe Later
+            </button>
+          </div>
+        </div>
+      )}
+
       <PayNowModal
         isOpen={showPayNowModal}
         onClose={() => setShowPayNowModal(false)}
