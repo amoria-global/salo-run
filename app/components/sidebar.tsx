@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useTheme } from "../context/ThemeContext";
 import { useDashboardAuth, dashboardAuthFetch } from "../providers/AuthProvider";
 
@@ -94,7 +94,8 @@ export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { colors, actualTheme } = useTheme();
-  const { logout, token } = useDashboardAuth();
+  const { logout, token, user } = useDashboardAuth();
+  const currentUserId = user?.id || '';
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // Automatically detect role from current URL path
@@ -103,10 +104,18 @@ export default function Sidebar() {
   const [notificationCount, setNotificationCount] = useState(0);
   const [messageCount, setMessageCount] = useState(0);
 
+  // Tracks the timestamp of the last inbox:totalCount event so that any
+  // fetchBadgeCounts API response that started BEFORE this event is ignored.
+  // This prevents a slow/in-flight poll from overwriting a badge that was
+  // just set to 0 by a read operation.
+  const lastInboxEventTimeRef = useRef<number>(0);
+
   const fetchBadgeCounts = useCallback(async () => {
     if (!token) return;
+    const fetchStartTime = Date.now();
     const apiUrl = getApiUrl();
     const notifPrefix = currentRole === 'photographer' ? 'photographer' : currentRole === 'event-coordinator' ? 'coordinator' : 'customer';
+    const isOnInboxPage = pathname?.includes('/inbox');
     try {
       const [notifRes, convRes] = await Promise.all([
         dashboardAuthFetch(`${apiUrl}/api/remote/${notifPrefix}/notifications/unread-count`, { method: 'GET' }),
@@ -117,24 +126,44 @@ export default function Sidebar() {
         const data = await notifRes.json();
         if (data.action === 1) setNotificationCount(data.data ?? 0);
       }
-      if (convRes.ok) {
+      if (convRes.ok && !isOnInboxPage) {
         const data = await convRes.json();
         const list = data.data || data || [];
         if (Array.isArray(list)) {
-          const total = list.reduce((sum: number, c: any) => sum + (c.unreadCount || 0), 0);
-          setMessageCount(total);
+          const validList = currentUserId
+            ? list.filter((c: any) =>
+                (c.participants || []).some((p: any) => p.id && p.id !== currentUserId)
+              )
+            : list;
+          const total = validList.reduce((sum: number, c: any) => sum + (c.unreadCount || 0), 0);
+          if (lastInboxEventTimeRef.current <= fetchStartTime) {
+            setMessageCount(total);
+          }
         }
       }
     } catch {
       // silent fail
     }
-  }, [token, currentRole]);
+  }, [token, currentRole, pathname, currentUserId]);
 
   useEffect(() => {
     fetchBadgeCounts();
     const interval = setInterval(fetchBadgeCounts, 30000);
     return () => clearInterval(interval);
   }, [fetchBadgeCounts]);
+
+  // Immediately set the sidebar badge to the server's exact total when the inbox
+  // page dispatches fresh conversation data (on load or on read).
+  useEffect(() => {
+    const handleTotalCount = (e: Event) => {
+      const total = (e as CustomEvent<{ total: number }>).detail?.total ?? 0;
+      setMessageCount(total);
+      // Record when this event fired so fetchBadgeCounts can detect the race.
+      lastInboxEventTimeRef.current = Date.now();
+    };
+    window.addEventListener('inbox:totalCount', handleTotalCount);
+    return () => window.removeEventListener('inbox:totalCount', handleTotalCount);
+  }, []);
 
   const navigationItems = roleNavigationMap[currentRole].map(item => {
     if (item.name === "Notifications") {

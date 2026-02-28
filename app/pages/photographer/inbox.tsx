@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
+import { useSearchParams } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
@@ -130,6 +131,8 @@ interface Conversation {
 const InboxPage = () => {
   const { colors, actualTheme } = useTheme();
   const { user } = useDashboardAuth();
+  const searchParams = useSearchParams();
+  const urlClientId = searchParams.get('clientId');
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [messageInput, setMessageInput] = useState('');
@@ -139,6 +142,8 @@ const InboxPage = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
+  // Ref so markConversationAsRead can read current unreadCounts without a stale closure
+  const conversationsRef = useRef<Conversation[]>([]);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editMessageContent, setEditMessageContent] = useState('');
   const [balance, setBalance] = useState<any>(null);
@@ -171,6 +176,9 @@ const InboxPage = () => {
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
 
+  // Keep ref in sync so callbacks can read current unreadCounts without stale closure
+  useEffect(() => { conversationsRef.current = conversations; }, [conversations]);
+
   const fetchConversations = useCallback(async () => {
     try {
       const res = await dashboardAuthFetch(`${apiUrl}/api/remote/chat/conversations`);
@@ -178,7 +186,7 @@ const InboxPage = () => {
         const data = await res.json();
         const list = data.data || data || [];
         if (Array.isArray(list) && list.length > 0) {
-          setConversations(list.map((c: any) => ({
+          const mapped = list.map((c: any) => ({
             id: c.id || c.partnerId || '',
             participants: c.participants || [
               { id: currentUserId, name: '', image: '', userType: 'photographer', isOnline: true },
@@ -189,7 +197,13 @@ const InboxPage = () => {
             isPinned: c.isPinned || false,
             isMuted: c.isMuted || false,
             messages: [],
-          })));
+          }));
+          const validConversations = mapped.filter((c: any) =>
+            c.participants.some((p: any) => p.id && p.id !== currentUserId)
+          );
+          setConversations(validConversations);
+          const totalUnread = validConversations.reduce((sum: number, c: any) => sum + (c.unreadCount || 0), 0);
+          window.dispatchEvent(new CustomEvent('inbox:totalCount', { detail: { total: totalUnread } }));
         }
       }
     } catch (err) {
@@ -233,9 +247,16 @@ const InboxPage = () => {
 
   // Mark messages as read
   const markConversationAsRead = useCallback(async (partnerId: string) => {
+    // Compute the new unread total from the ref (always current, no stale-closure risk)
+    // by zeroing out the conversation being read, then dispatch the exact total so the
+    // sidebar badge is always accurate regardless of timing.
+    const newTotal = conversationsRef.current
+      .map(conv => conv.id === partnerId ? { ...conv, unreadCount: 0 } : conv)
+      .reduce((sum, c) => sum + (c.unreadCount || 0), 0);
     setConversations(prev => prev.map(conv =>
       conv.id === partnerId ? { ...conv, unreadCount: 0 } : conv
     ));
+    window.dispatchEvent(new CustomEvent('inbox:totalCount', { detail: { total: newTotal } }));
     try {
       await dashboardAuthFetch(`${apiUrl}/api/remote/chat/messages/${partnerId}/read`, { method: 'PATCH' });
     } catch (err) {
@@ -278,7 +299,7 @@ const InboxPage = () => {
       conv.participants.some(p => p.id === contact.id)
     );
     if (existing) {
-      setSelectedConversation(existing.id);
+      handleSelectConversation(existing.id);
     } else {
       const newConv: Conversation = {
         id: contact.id,
@@ -315,16 +336,20 @@ const InboxPage = () => {
     })();
   }, [apiUrl]);
 
-  // Load messages and mark as read when conversation is selected
+  const handleSelectConversation = useCallback((convId: string) => {
+    setSelectedConversation(convId);
+    loadMessages(convId);
+    // Always call markConversationAsRead — avoids stale-closure issues where conversations
+    // may not be loaded yet when this fires. The API is idempotent.
+    markConversationAsRead(convId);
+  }, [loadMessages, markConversationAsRead]);
+
+  // Auto-open conversation when redirected from public platform with ?clientId=
   useEffect(() => {
-    if (selectedConversation) {
-      loadMessages(selectedConversation);
-      const conv = conversations.find(c => c.id === selectedConversation);
-      if (conv && conv.unreadCount > 0) {
-        markConversationAsRead(selectedConversation);
-      }
-    }
-  }, [selectedConversation, loadMessages, markConversationAsRead]);
+    if (!urlClientId || selectedConversation) return;
+    setSelectedConversation(urlClientId);
+    loadMessages(urlClientId);
+  }, [urlClientId, selectedConversation, loadMessages]);
 
   // Poll messages for active conversation to receive edits/new messages from other party
   useEffect(() => {
@@ -774,14 +799,21 @@ const InboxPage = () => {
                   <div
                     key={conv.id}
                     className="mobile-conversation-item"
-                    onClick={() => setSelectedConversation(conv.id)}
+                    onClick={() => handleSelectConversation(conv.id)}
                     style={{
                       display: 'flex',
                       gap: '0.75rem',
                       padding: '0.875rem 1rem',
                       cursor: 'pointer',
-                      backgroundColor: selectedConversation === conv.id ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
+                      backgroundColor: selectedConversation === conv.id
+                        ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF')
+                        : conv.unreadCount > 0
+                          ? (actualTheme === 'dark' ? '#162032' : '#F5F9FF')
+                          : colors.bgCard,
                       borderBottom: `2px solid ${colors.borderPrimary}`,
+                      borderLeft: conv.unreadCount > 0 && selectedConversation !== conv.id
+                        ? '3px solid #F20C8F'
+                        : '3px solid transparent',
                       transition: 'background-color 0.2s'
                     }}
                   >

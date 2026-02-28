@@ -126,6 +126,31 @@ const TabParamHandler = ({ setActiveTab }: { setActiveTab: (tab: 'appearance' | 
   return null;
 };
 
+const COUNTRIES: { name: string; dialCode: string; flag: string }[] = [
+  { name: 'Benin', dialCode: '+229', flag: '🇧🇯' },
+  { name: 'Botswana', dialCode: '+267', flag: '🇧🇼' },
+  { name: 'Cameroon', dialCode: '+237', flag: '🇨🇲' },
+  { name: 'Chad', dialCode: '+235', flag: '🇹🇩' },
+  { name: 'Congo (Brazzaville)', dialCode: '+242', flag: '🇨🇬' },
+  { name: "Côte d'Ivoire", dialCode: '+225', flag: '🇨🇮' },
+  { name: 'Eswatini', dialCode: '+268', flag: '🇸🇿' },
+  { name: 'Gabon', dialCode: '+241', flag: '🇬🇦' },
+  { name: 'Ghana', dialCode: '+233', flag: '🇬🇭' },
+  { name: 'Kenya', dialCode: '+254', flag: '🇰🇪' },
+  { name: 'Liberia', dialCode: '+231', flag: '🇱🇷' },
+  { name: 'Madagascar', dialCode: '+261', flag: '🇲🇬' },
+  { name: 'Malawi', dialCode: '+265', flag: '🇲🇼' },
+  { name: 'Niger', dialCode: '+227', flag: '🇳🇪' },
+  { name: 'Nigeria', dialCode: '+234', flag: '🇳🇬' },
+  { name: 'Rwanda', dialCode: '+250', flag: '🇷🇼' },
+  { name: 'Seychelles', dialCode: '+248', flag: '🇸🇨' },
+  { name: 'South Africa', dialCode: '+27', flag: '🇿🇦' },
+  { name: 'South Sudan', dialCode: '+211', flag: '🇸🇸' },
+  { name: 'Sudan', dialCode: '+249', flag: '🇸🇩' },
+  { name: 'Uganda', dialCode: '+256', flag: '🇺🇬' },
+  { name: 'Zambia', dialCode: '+260', flag: '🇿🇲' },
+];
+
 const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) => {
   const { theme, setTheme, actualTheme, colors } = useTheme();
   const [activeTab, setActiveTab] = useState<'appearance' | 'payments' | 'notifications'>('appearance');
@@ -143,28 +168,12 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
 
   const [mobileProvider, setMobileProvider] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
+  const [countryCode, setCountryCode] = useState('+250');
+  const [countryFlag, setCountryFlag] = useState('🇷🇼');
+  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+  const [countrySearch, setCountrySearch] = useState('');
 
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([
-    {
-      id: '1',
-      type: 'card',
-      name: 'Debit/Credit Cards',
-      details: 'Card ending in 4242',
-      lastFour: '4242',
-      expiryDate: '12/26',
-      isDefault: true,
-      icon: 'bi-credit-card-2-front'
-    },
-    {
-      id: '3',
-      type: 'mobile',
-      name: 'MTN Mobile Money',
-      details: '+250 78X XXX X89',
-      lastFour: 'X89',
-      isDefault: false,
-      icon: 'bi-phone'
-    }
-  ]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
 
   const [isSavingPreference, setIsSavingPreference] = useState(false);
 
@@ -183,11 +192,12 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
   // Resolve the preferences API base path based on user role
   const preferencesBasePath = userType === 'event-coordinator'
     ? '/api/remote/coordinator/preferences'
-    : '/api/remote/customer/preferences';
+    : userType === 'photographer'
+      ? '/api/remote/photographer/preferences'
+      : '/api/remote/customer/preferences';
 
   // Load saved preferences from API
   useEffect(() => {
-    if (userType !== 'event-coordinator' && userType !== 'client') return;
     const loadPreferences = async () => {
       try {
         const apiUrl = getApiUrl();
@@ -228,7 +238,6 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
 
   // Save a preference to the API (PUT /preferences/{key})
   const savePreference = useCallback(async (key: string, value: string) => {
-    if (userType !== 'event-coordinator' && userType !== 'client') return;
     try {
       const apiUrl = getApiUrl();
       const response = await dashboardAuthFetch(`${apiUrl}${preferencesBasePath}/${encodeURIComponent(key)}`, {
@@ -247,7 +256,6 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
 
   // Delete a preference from the API (DELETE /preferences/{key})
   const deletePreference = useCallback(async (key: string) => {
-    if (userType !== 'event-coordinator' && userType !== 'client') return;
     try {
       const apiUrl = getApiUrl();
       const response = await dashboardAuthFetch(`${apiUrl}${preferencesBasePath}/${encodeURIComponent(key)}`, {
@@ -261,6 +269,13 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
       console.error(`Error deleting preference "${key}":`, err);
     }
   }, [userType, preferencesBasePath]);
+
+  // Ensure photographer modal defaults to 'mtn' (not 'card' which is not shown for photographers)
+  useEffect(() => {
+    if (showAddPaymentModal && userType === 'photographer' && paymentType === 'card') {
+      setPaymentType('mtn');
+    }
+  }, [showAddPaymentModal]);
 
   const themeOptions: { mode: ThemeMode; label: string; icon: React.ReactNode; description: string }[] = [
     { mode: 'light', label: 'Light', icon: <SunIcon />, description: 'Classic light theme for daytime use' },
@@ -293,6 +308,10 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
     setCvv('');
     setMobileProvider('');
     setMobileNumber('');
+    setCountryCode('+250');
+    setCountryFlag('🇷🇼');
+    setShowCountryDropdown(false);
+    setCountrySearch('');
     setPaymentType('card');
   };
 
@@ -313,24 +332,26 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
         icon: 'bi-credit-card-2-front'
       };
     } else if (paymentType === 'mtn') {
+      const fullNumber = mobileNumber ? `${countryCode} ${mobileNumber}` : '';
       const lastFour = mobileNumber.slice(-3);
       newPayment = {
         id: Date.now().toString(),
         type: 'mobile',
         name: 'MTN Mobile Money',
-        details: mobileNumber || 'MTN Mobile Money',
+        details: fullNumber || 'MTN Mobile Money',
         lastFour,
         isDefault: paymentMethods.length === 0,
         icon: 'bi-phone'
       };
     } else {
       // Airtel
+      const fullNumber = mobileNumber ? `${countryCode} ${mobileNumber}` : '';
       const lastFour = mobileNumber.slice(-3);
       newPayment = {
         id: Date.now().toString(),
         type: 'mobile',
         name: 'Airtel Money',
-        details: mobileNumber || 'Airtel Money',
+        details: fullNumber || 'Airtel Money',
         lastFour,
         isDefault: paymentMethods.length === 0,
         icon: 'bi-phone'
@@ -409,7 +430,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
           }}>
             {[
               { key: 'appearance' as const, label: 'Appearance', icon: 'bi-palette' },
-              { key: 'payments' as const, label: userType === 'client' ? 'Payment Accounts' : 'Withdrawal Accounts', icon: 'bi-wallet2' },
+              { key: 'payments' as const, label: 'Payment Accounts', icon: 'bi-wallet2' },
               { key: 'notifications' as const, label: 'Notifications', icon: 'bi-bell' }
             ].map((tab) => (
               <button
@@ -631,7 +652,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                   }}
                 >
                   <PlusIcon />
-                  {userType === 'client' ? 'Add Payment Method' : 'Add Withdrawal Account'}
+                  Add Payment Account
                 </button>
               </div>
 
@@ -648,10 +669,10 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                   borderBottom: `2px solid ${colors.borderPrimary}`
                 }}>
                   <h2 style={{ fontSize: '1.125rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
-                    {userType === 'client' ? 'Saved Payment Methods' : 'Saved Withdrawal Accounts'}
+                    Saved Payment Accounts
                   </h2>
                   <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0.25rem 0 0 0' }}>
-                    {userType === 'client' ? 'Manage your payment methods for bookings and transactions' : 'Manage your withdrawal accounts for receiving payments'}
+                    Manage your accounts for payments and withdrawals
                   </p>
                 </div>
 
@@ -671,10 +692,10 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                       <CreditCardIcon />
                     </div>
                     <p style={{ fontSize: '1rem', fontWeight: '500', color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
-                      {userType === 'client' ? 'No payment methods saved' : 'No withdrawal accounts saved'}
+                      No payment accounts saved
                     </p>
                     <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: 0 }}>
-                      {userType === 'client' ? 'Add a card or mobile money to get started' : 'Add a mobile money account to receive your earnings'}
+                      {userType === 'photographer' ? 'Add a mobile money account to get started' : 'Add a card or mobile money to get started'}
                     </p>
                   </div>
                 ) : (
@@ -1305,7 +1326,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
             {/* Modal Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
-                {userType === 'client' ? 'Add Payment Method' : 'Add Withdrawal Account'}
+                Add Payment Account
               </h2>
               <button
                 onClick={() => { setShowAddPaymentModal(false); resetForm(); }}
@@ -1328,13 +1349,13 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
               gap: '0.625rem',
               marginBottom: '1.5rem'
             }}>
-              {(userType === 'client' ? [
-                { type: 'card' as const, label: 'Credit/Debit Card', description: 'Pay with Visa, Mastercard, etc.', image: '' },
-                { type: 'mtn' as const, label: 'MTN Mobile Money', description: 'Pay with MTN Mobile Money', image: '/mtn.png' },
-                { type: 'airtel' as const, label: 'Airtel Money', description: 'Pay with Airtel Money', image: '/airtel.png' }
+              {(userType === 'photographer' ? [
+                { type: 'mtn' as const, label: 'MTN Mobile Money', description: 'Pay and receive via MTN Mobile Money', image: '/mtn.png' },
+                { type: 'airtel' as const, label: 'Airtel Money', description: 'Pay and receive via Airtel Money', image: '/airtel.png' }
               ] : [
-                { type: 'mtn' as const, label: 'MTN Mobile Money', description: 'Receive via MTN Mobile Money', image: '/mtn.png' },
-                { type: 'airtel' as const, label: 'Airtel Money', description: 'Receive via Airtel Money', image: '/airtel.png' }
+                { type: 'card' as const, label: 'Credit/Debit Card', description: 'Pay and receive with Visa, Mastercard, etc.', image: '' },
+                { type: 'mtn' as const, label: 'MTN Mobile Money', description: 'Pay and receive via MTN Mobile Money', image: '/mtn.png' },
+                { type: 'airtel' as const, label: 'Airtel Money', description: 'Pay and receive via Airtel Money', image: '/airtel.png' }
               ]).map((option) => (
                 <div
                   key={option.type}
@@ -1497,58 +1518,147 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
               </div>
             )}
 
-            {/* MTN Mobile Money Form */}
-            {paymentType === 'mtn' && (
+            {/* Mobile Money Phone Number Form (shared for MTN and Airtel) */}
+            {(paymentType === 'mtn' || paymentType === 'airtel') && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>
-                    MTN Phone Number
+                    {paymentType === 'mtn' ? 'MTN' : 'Airtel'} Phone Number
                   </label>
-                  <input
-                    type="text"
-                    placeholder="+250 78X XXX XXX"
-                    value={mobileNumber}
-                    onChange={(e) => setMobileNumber(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      border: `2px solid ${colors.borderSecondary}`,
-                      borderRadius: '0.5rem',
-                      fontSize: '0.9rem',
-                      backgroundColor: colors.bgInput,
-                      color: colors.textPrimary,
-                      outline: 'none',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-              </div>
-            )}
+                  <div style={{ display: 'flex', gap: '0.5rem', position: 'relative' }}>
+                    {/* Country code selector */}
+                    <div style={{ position: 'relative', flexShrink: 0 }}>
+                      <button
+                        type="button"
+                        onClick={() => { setShowCountryDropdown(!showCountryDropdown); setCountrySearch(''); }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.375rem',
+                          padding: '0.75rem 0.625rem',
+                          border: `2px solid ${colors.borderSecondary}`,
+                          borderRadius: '0.5rem',
+                          backgroundColor: colors.bgInput,
+                          color: colors.textPrimary,
+                          fontSize: '0.9rem',
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          minWidth: '90px',
+                        }}
+                      >
+                        <span style={{ fontSize: '1.1rem' }}>{countryFlag}</span>
+                        <span style={{ fontWeight: '500' }}>{countryCode}</span>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+                          <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </button>
 
-            {/* Airtel Money Form */}
-            {paymentType === 'airtel' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>
-                    Airtel Phone Number
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="+250 73X XXX XXX"
-                    value={mobileNumber}
-                    onChange={(e) => setMobileNumber(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      border: `2px solid ${colors.borderSecondary}`,
-                      borderRadius: '0.5rem',
-                      fontSize: '0.9rem',
-                      backgroundColor: colors.bgInput,
-                      color: colors.textPrimary,
-                      outline: 'none',
-                      boxSizing: 'border-box'
-                    }}
-                  />
+                      {showCountryDropdown && (
+                        <>
+                          {/* Click-outside overlay */}
+                          <div
+                            style={{ position: 'fixed', inset: 0, zIndex: 99 }}
+                            onClick={() => setShowCountryDropdown(false)}
+                          />
+                          {/* Dropdown */}
+                          <div style={{
+                            position: 'absolute',
+                            top: 'calc(100% + 4px)',
+                            left: 0,
+                            zIndex: 100,
+                            backgroundColor: colors.bgCard,
+                            border: `2px solid ${colors.borderPrimary}`,
+                            borderRadius: '0.5rem',
+                            boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                            width: '240px',
+                            maxHeight: '220px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            overflow: 'hidden',
+                          }}>
+                            {/* Search */}
+                            <div style={{ padding: '0.5rem', borderBottom: `1px solid ${colors.borderPrimary}`, flexShrink: 0 }}>
+                              <input
+                                type="text"
+                                placeholder="Search country…"
+                                value={countrySearch}
+                                onChange={(e) => setCountrySearch(e.target.value)}
+                                autoFocus
+                                style={{
+                                  width: '100%',
+                                  padding: '0.375rem 0.5rem',
+                                  border: `1px solid ${colors.borderSecondary}`,
+                                  borderRadius: '0.375rem',
+                                  fontSize: '0.85rem',
+                                  backgroundColor: colors.bgInput,
+                                  color: colors.textPrimary,
+                                  outline: 'none',
+                                  boxSizing: 'border-box',
+                                }}
+                              />
+                            </div>
+                            {/* List */}
+                            <div style={{ overflowY: 'auto', flex: 1 }}>
+                              {COUNTRIES
+                                .filter(c =>
+                                  c.name.toLowerCase().includes(countrySearch.toLowerCase()) ||
+                                  c.dialCode.includes(countrySearch)
+                                )
+                                .map((c) => (
+                                  <div
+                                    key={c.name}
+                                    onClick={() => {
+                                      setCountryCode(c.dialCode);
+                                      setCountryFlag(c.flag);
+                                      setShowCountryDropdown(false);
+                                      setCountrySearch('');
+                                    }}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '0.5rem',
+                                      padding: '0.5rem 0.75rem',
+                                      cursor: 'pointer',
+                                      fontSize: '0.875rem',
+                                      color: colors.textPrimary,
+                                      backgroundColor: countryCode === c.dialCode && countryFlag === c.flag
+                                        ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF')
+                                        : 'transparent',
+                                    }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = colors.bgHover; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = countryCode === c.dialCode && countryFlag === c.flag ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : 'transparent'; }}
+                                  >
+                                    <span style={{ fontSize: '1rem', flexShrink: 0 }}>{c.flag}</span>
+                                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
+                                    <span style={{ color: colors.textSecondary, flexShrink: 0 }}>{c.dialCode}</span>
+                                  </div>
+                                ))}
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Phone number input */}
+                    <input
+                      type="tel"
+                      placeholder="7XX XXX XXX"
+                      value={mobileNumber}
+                      onChange={(e) => setMobileNumber(e.target.value.replace(/[^\d\s\-]/g, ''))}
+                      style={{
+                        flex: 1,
+                        padding: '0.75rem',
+                        border: `2px solid ${colors.borderSecondary}`,
+                        borderRadius: '0.5rem',
+                        fontSize: '0.9rem',
+                        backgroundColor: colors.bgInput,
+                        color: colors.textPrimary,
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                        minWidth: 0,
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
             )}
@@ -1585,7 +1695,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                   cursor: 'pointer'
                 }}
               >
-                {userType === 'client' ? 'Add Payment Method' : 'Add Withdrawal Account'}
+                Add Payment Account
               </button>
             </div>
           </div>
@@ -1650,7 +1760,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
               margin: 0,
               marginBottom: '0.75rem',
               textAlign: 'center'
-            }}>{userType === 'client' ? 'Delete Payment Method' : 'Delete Withdrawal Account'}</h2>
+            }}>Delete Payment Account</h2>
 
             <p style={{
               fontSize: '0.95rem',
@@ -1749,7 +1859,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
-                {userType === 'client' ? 'Edit Payment Method' : 'Edit Withdrawal Account'}
+                Edit Payment Account
               </h2>
               <button
                 onClick={() => { setShowEditPaymentModal(false); setSelectedPayment(null); }}
@@ -1811,9 +1921,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
             </div>
 
             <p style={{ fontSize: '0.9rem', color: colors.textSecondary, textAlign: 'center', margin: '0 0 1.5rem 0' }}>
-              {userType === 'client'
-                ? 'For security reasons, you can only update the payment method by removing and adding a new one.'
-                : 'For security reasons, you can only update the withdrawal account by removing and adding a new one.'}
+              For security reasons, you can only update the account by removing and adding a new one.
             </p>
 
             <button

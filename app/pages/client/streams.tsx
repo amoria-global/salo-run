@@ -601,11 +601,11 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
 
           {/* Streams Grid */}
           <div className="mobile-streams-grid streams-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '1.25rem' }}>
-            {filteredStreams.map(stream => {
+            {filteredStreams.map((stream, index) => {
               const unviewedCount = getUnviewedVideoCount(stream);
               return (
                 <div
-                  key={stream.id}
+                  key={stream.id ?? index}
                   style={cardStyle}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
@@ -618,12 +618,16 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
                 >
                   {/* Cover Image */}
                   <div style={{ position: 'relative', height: '180px' }}>
+                    {stream.coverImage ? (
                     <Image
                       src={stream.coverImage}
                       alt={stream.streamTitle}
                       fill
                       style={{ objectFit: 'cover' }}
                     />
+                    ) : (
+                      <div style={{ width: '100%', height: '100%', backgroundColor: colors.bgTertiary }} />
+                    )}
                     <div style={{
                       position: 'absolute',
                       top: '0.75rem',
@@ -681,12 +685,16 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
                     {/* Photographer Info */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                       <div style={{ width: '28px', height: '28px', borderRadius: '50%', overflow: 'hidden', position: 'relative' }}>
+                        {stream.photographerImage ? (
                         <Image
                           src={stream.photographerImage}
                           alt={stream.photographerName}
                           fill
                           style={{ objectFit: 'cover' }}
                         />
+                        ) : (
+                          <div style={{ width: '100%', height: '100%', backgroundColor: colors.bgTertiary }} />
+                        )}
                       </div>
                       <span style={{ fontSize: '0.8rem', color: colors.textPrimary }}>by {stream.photographerName}</span>
                     </div>
