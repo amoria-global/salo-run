@@ -658,18 +658,24 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     setUser(null);
     setToken(null);
     setIsLoggingOut(true);
-    // Notify the landing page that user logged out
-    if (window.opener && !window.opener.closed) {
-      window.opener.postMessage(
-        { type: 'LOGOUT' },
-        process.env.NEXT_PUBLIC_LANDING_URL || 'http://localhost:3000'
-      );
-    }
-    // Show success banner briefly, then redirect to home app login
+
     if (typeof window !== 'undefined') {
       const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL || 'http://localhost:3000';
+
+      // Notify the landing page via postMessage (works when opened as a popup)
+      if (window.opener && !window.opener.closed) {
+        window.opener.postMessage(
+          { type: 'LOGOUT' },
+          landingUrl
+        );
+      }
+
+      // Redirect to the public site's logout route so it can clear its own
+      // auth state (localStorage, cookies) before forwarding to the login page.
+      // This is necessary because postMessage via window.opener only works in
+      // popup flows; in normal navigation window.opener is null.
       setTimeout(() => {
-        window.location.href = `${landingUrl}/user/auth/login?logged_out=true`;
+        window.location.href = `${landingUrl}/user/auth/logout?logged_out=true`;
       }, 1500);
     }
   }, []);
@@ -837,13 +843,29 @@ export async function dashboardAuthFetch(
     ...(options.headers as Record<string, string> || {}),
   };
 
-  let response = await fetch(url, { ...options, headers });
+  let response: Response;
+  try {
+    response = await fetch(url, { ...options, headers });
+  } catch (err) {
+    throw new Error(`Network request failed for ${url}: ${err instanceof Error ? err.message : 'Failed to fetch'}`);
+  }
 
   if (response.status === 401) {
     const newToken = await attemptDashboardTokenRefresh(currentToken);
     if (newToken) {
       headers['Authorization'] = `Bearer ${newToken}`;
-      response = await fetch(url, { ...options, headers });
+      // ReadableStream bodies are consumed after the first fetch and cannot be retried.
+      // FormData, string, ArrayBuffer etc. are safe to reuse.
+      const bodyIsStream = options.body instanceof ReadableStream;
+      if (bodyIsStream) {
+        console.warn('[Dashboard Auth] Cannot retry 401: request body is a ReadableStream (already consumed)');
+        return response;
+      }
+      try {
+        response = await fetch(url, { ...options, headers });
+      } catch (err) {
+        throw new Error(`Network request failed on token-refresh retry for ${url}: ${err instanceof Error ? err.message : 'Failed to fetch'}`);
+      }
     }
   }
 
