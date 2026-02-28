@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
@@ -182,12 +183,15 @@ const EventCoordinatorDashboard = () => {
   const { colors, actualTheme } = useTheme();
   const { formatPrice } = useCurrency();
   const { user } = useDashboardAuth();
+  const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<'today' | 'week' | 'month' | 'custom'>('week');
   const [timeOfDay, setTimeOfDay] = useState(getTimeOfDay());
   const [greetingIndex, setGreetingIndex] = useState(0);
   const [greetings, setGreetings] = useState(getGreetings(getTimeOfDay()));
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [showPayNowModal, setShowPayNowModal] = useState(false);
+  const [showSetupModal, setShowSetupModal] = useState(false);
+  const [hasPaymentAccount, setHasPaymentAccount] = useState<boolean | null>(null);
   const [payNowPayment, setPayNowPayment] = useState<Payment | null>(null);
 
   // API data state
@@ -306,7 +310,22 @@ const EventCoordinatorDashboard = () => {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
+  useEffect(() => {
+    const apiUrl = getApiUrl();
+    dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/preferences`)
+      .then(res => res.json())
+      .then(result => {
+        const prefs = result?.data || {};
+        setHasPaymentAccount(Object.keys(prefs).some(k => k.startsWith('payment_method_')));
+      })
+      .catch(() => setHasPaymentAccount(null));
+  }, []);
+
   const handlePayNow = (pending: PendingPayment) => {
+    if (hasPaymentAccount === false) {
+      setShowSetupModal(true);
+      return;
+    }
     const payment: Payment = {
       id: parseInt(pending.id.replace(/\D/g, '')) || 0,
       date: pending.dueDate,
@@ -1128,6 +1147,44 @@ const EventCoordinatorDashboard = () => {
         </div>
       </div>
     </div>
+
+      {showSetupModal && (
+        <div
+          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
+          onClick={() => setShowSetupModal(false)}
+        >
+          <div
+            style={{ backgroundColor: colors.bgCard, borderRadius: '1rem', padding: '2rem', maxWidth: '380px', width: '90%', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem auto' }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="1" y="6" width="22" height="15" rx="2" stroke="#083A85" strokeWidth="2"/>
+                <path d="M1 10H23" stroke="#083A85" strokeWidth="2"/>
+                <circle cx="6" cy="15" r="1.5" fill="#083A85"/>
+              </svg>
+            </div>
+            <h3 style={{ fontSize: '1.125rem', fontWeight: '700', color: colors.textPrimary, margin: '0 0 0.75rem 0' }}>
+              Payment Account Required
+            </h3>
+            <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1.5rem 0', lineHeight: '1.6' }}>
+              You need to set up a payment account before making payments. Add one in Preferences → Payment Accounts.
+            </p>
+            <button
+              onClick={() => { setShowSetupModal(false); router.push('/user/event-coordinator/preferences?tab=payments'); }}
+              style={{ width: '100%', padding: '0.75rem', backgroundColor: '#083A85', color: 'white', border: 'none', borderRadius: '0.75rem', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer', marginBottom: '0.75rem' }}
+            >
+              Set Up Payment Account
+            </button>
+            <button
+              onClick={() => setShowSetupModal(false)}
+              style={{ width: '100%', padding: '0.75rem', backgroundColor: 'transparent', color: colors.textSecondary, border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.75rem', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}
+            >
+              Maybe Later
+            </button>
+          </div>
+        </div>
+      )}
 
       <PayNowModal
         isOpen={showPayNowModal}

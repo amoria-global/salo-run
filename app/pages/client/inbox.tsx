@@ -142,6 +142,8 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
   const [editMessageContent, setEditMessageContent] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
+  // Ref so markAsRead can read current unreadCounts without a stale closure
+  const conversationsRef = useRef<Conversation[]>([]);
 
   // Close emoji picker when clicking outside
   useEffect(() => {
@@ -170,6 +172,9 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
   const [contactSearchQuery, setContactSearchQuery] = useState('');
 
+  // Keep ref in sync so callbacks can read current unreadCounts without stale closure
+  useEffect(() => { conversationsRef.current = conversations; }, [conversations]);
+
   const fetchConversations = useCallback(async () => {
     try {
       const res = await dashboardAuthFetch(`${apiUrl}/api/remote/chat/conversations`);
@@ -177,7 +182,7 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
         const data = await res.json();
         const list = data.data || data || [];
         if (Array.isArray(list) && list.length > 0) {
-          setConversations(list.map((c: any) => ({
+          const mapped = list.map((c: any) => ({
             id: c.id || c.partnerId || '',
             participants: c.participants || [
               { id: currentUserId, name: '', image: '', userType: userRole, isOnline: true },
@@ -188,7 +193,11 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
             isPinned: c.isPinned || false,
             isMuted: c.isMuted || false,
             messages: [],
-          })));
+          }));
+          setConversations(mapped);
+          // Immediately sync the sidebar badge with the server's actual unread total
+          const totalUnread = mapped.reduce((sum: number, c: any) => sum + (c.unreadCount || 0), 0);
+          window.dispatchEvent(new CustomEvent('inbox:totalCount', { detail: { total: totalUnread } }));
         }
       }
     } catch (err) {
@@ -307,9 +316,16 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
   }, [apiUrl]);
 
   const markAsRead = useCallback(async (partnerId: string) => {
+    // Compute the new unread total from the ref (always current, no stale-closure risk)
+    // by zeroing out the conversation being read, then dispatch the exact total so the
+    // sidebar badge is always accurate regardless of timing.
+    const newTotal = conversationsRef.current
+      .map(conv => conv.id === partnerId ? { ...conv, unreadCount: 0 } : conv)
+      .reduce((sum, c) => sum + (c.unreadCount || 0), 0);
     setConversations(prev => prev.map(conv =>
       conv.id === partnerId ? { ...conv, unreadCount: 0 } : conv
     ));
+    window.dispatchEvent(new CustomEvent('inbox:totalCount', { detail: { total: newTotal } }));
     try {
       await dashboardAuthFetch(`${apiUrl}/api/remote/chat/messages/${partnerId}/read`, { method: 'PATCH' });
     } catch (err) {
@@ -320,11 +336,10 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
   const handleSelectConversation = useCallback((convId: string) => {
     setSelectedConversation(convId);
     loadMessages(convId);
-    const conv = conversations.find(c => c.id === convId);
-    if (conv && conv.unreadCount > 0) {
-      markAsRead(convId);
-    }
-  }, [loadMessages, markAsRead, conversations]);
+    // Always call markAsRead — avoids stale-closure issues where conversations
+    // may not be loaded yet when this fires. The API is idempotent.
+    markAsRead(convId);
+  }, [loadMessages, markAsRead]);
 
   // Auto-open conversation when redirected from public platform with ?photographerId=
   useEffect(() => {
@@ -803,8 +818,15 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
                       gap: '0.75rem',
                       padding: '0.875rem 1rem',
                       cursor: 'pointer',
-                      backgroundColor: selectedConversation === conv.id ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
+                      backgroundColor: selectedConversation === conv.id
+                        ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF')
+                        : conv.unreadCount > 0
+                          ? (actualTheme === 'dark' ? '#162032' : '#F5F9FF')
+                          : colors.bgCard,
                       borderBottom: `2px solid ${colors.borderPrimary}`,
+                      borderLeft: conv.unreadCount > 0 && selectedConversation !== conv.id
+                        ? '3px solid #F20C8F'
+                        : '3px solid transparent',
                       transition: 'background-color 0.2s'
                     }}
                   >
