@@ -149,7 +149,19 @@ export default function Sidebar() {
   useEffect(() => {
     fetchBadgeCounts();
     const interval = setInterval(fetchBadgeCounts, 30000);
-    return () => clearInterval(interval);
+    const handleBadgeUpdate = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.type === 'notification') {
+        setNotificationCount(prev => Math.max(0, prev - (detail.count || 1)));
+      } else {
+        fetchBadgeCounts();
+      }
+    };
+    window.addEventListener('badge-update', handleBadgeUpdate);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('badge-update', handleBadgeUpdate);
+    };
   }, [fetchBadgeCounts]);
 
   // Immediately set the sidebar badge to the server's exact total when the inbox
@@ -376,7 +388,8 @@ export default function Sidebar() {
         minHeight: 0
       }}>
         {navigationItems.map((item) => {
-          const isActive = pathname === item.href;
+          const isActive = pathname === item.href ||
+            (item.name === 'Transactions' && pathname === `/user/${currentRole}/all-transactions`);
 
           return (
             <Link
