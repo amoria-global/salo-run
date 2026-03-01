@@ -208,6 +208,7 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
         ? `${apiUrl}/api/remote/coordinator/notifications/${id}/read`
         : `${apiUrl}/api/remote/customer/notifications/${id}/read`;
       await dashboardAuthFetch(readEndpoint, { method: 'PATCH', headers: { 'Content-Type': 'application/json' } });
+      window.dispatchEvent(new Event('badge-update'));
     } catch (err) {
       console.error('Failed to mark notification as read:', err);
     }
@@ -233,6 +234,7 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
         ? `${apiUrl}/api/remote/coordinator/notifications/read-all`
         : `${apiUrl}/api/remote/customer/notifications/read-all`;
       await dashboardAuthFetch(readAllEndpoint, { method: 'PATCH', headers: { 'Content-Type': 'application/json' } });
+      window.dispatchEvent(new Event('badge-update'));
     } catch (err) {
       console.error('Failed to mark all as read:', err);
     }
@@ -249,10 +251,10 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         alert(data.message || 'Failed to delete notification. The server did not process the request.');
+        fetchNotifications();
       }
     } catch {
       alert('Failed to delete notification. The feature may not be available yet.');
-    } finally {
       fetchNotifications();
     }
   };
@@ -268,10 +270,10 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         alert(data.message || 'Failed to clear read notifications. The server did not process the request.');
+        fetchNotifications();
       }
     } catch {
       alert('Failed to clear read notifications. The feature may not be available yet.');
-    } finally {
       fetchNotifications();
     }
   };

@@ -328,6 +328,7 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
     window.dispatchEvent(new CustomEvent('inbox:totalCount', { detail: { total: newTotal } }));
     try {
       await dashboardAuthFetch(`${apiUrl}/api/remote/chat/messages/${partnerId}/read`, { method: 'PATCH' });
+      window.dispatchEvent(new Event('badge-update'));
     } catch (err) {
       console.error('Failed to mark conversation as read:', err);
     }
