@@ -310,31 +310,15 @@ const PhotographerDashboard = () => {
     fetchFilteredData();
   }, [activeFilter]);
 
-  // Fetch activities and plans from API
-  useEffect(() => {
-    const fetchActivitiesAndPlans = async () => {
-      const apiUrl = getApiUrl();
-      try {
-        const [activitiesRes, plansRes] = await Promise.allSettled([
-          dashboardAuthFetch(`${apiUrl}/api/remote/photographer/activities`),
-          dashboardAuthFetch(`${apiUrl}/api/remote/photographer/plans`),
-        ]);
-
-        if (activitiesRes.status === 'fulfilled' && activitiesRes.value.ok) {
-          const data = await activitiesRes.value.json();
-          if (data.action === 1 && Array.isArray(data.data)) {
-            setRecentActivities(data.data.map((a: any) => ({
-              label: a.label || '',
-              value: a.value || '',
-              valueColor: a.type === 'payment' ? '#16A34A' : undefined,
-            })));
-          }
-        }
-
-        if (plansRes.status === 'fulfilled' && plansRes.value.ok) {
-          const data = await plansRes.value.json();
-          if (data.action === 1 && Array.isArray(data.data) && data.data.length > 0) {
-            const mapped: FuturePlan[] = data.data.map((p: any) => ({
+  // Reusable function to fetch plans from backend
+  const fetchPlansFromBackend = async (): Promise<FuturePlan[]> => {
+    const apiUrl = getApiUrl();
+    try {
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/plans`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.action === 1 && Array.isArray(data.data)) {
+          return data.data.map((p: any) => ({
               id: p.id,
               name: p.name || '',
               timePeriod: p.timePeriod || 'week',
@@ -348,8 +332,59 @@ const PhotographerDashboard = () => {
               targetPerformance: [],
               createdAt: p.createdAt || '',
             }));
-            setFuturePlans(mapped);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch plans:', err);
+    }
+    return [];
+  };
+
+  // Fetch activities and plans from API
+  useEffect(() => {
+    const fetchActivitiesAndPlans = async () => {
+      const apiUrl = getApiUrl();
+      try {
+        const [activitiesRes, plans] = await Promise.allSettled([
+          dashboardAuthFetch(`${apiUrl}/api/remote/photographer/activities`),
+          fetchPlansFromBackend(),
+        ]);
+
+        if (activitiesRes.status === 'fulfilled' && activitiesRes.value.ok) {
+          const data = await activitiesRes.value.json();
+          if (data.action === 1 && Array.isArray(data.data)) {
+            setRecentActivities(data.data.map((a: any) => ({
+              label: a.label || '',
+              value: a.value || '',
+              valueColor: a.type === 'payment' ? '#16A34A' : undefined,
+            })));
           }
+        }
+
+        if (plans.status === 'fulfilled' && plans.value.length > 0) {
+          // One-time cleanup: delete plans that were previously removed via localStorage workaround
+          let cleanPlans = plans.value;
+          try {
+            const pendingDeletes: string[] = JSON.parse(localStorage.getItem('deletedPlanIds') || '[]');
+            if (pendingDeletes.length > 0) {
+              // Send DELETE for each pending plan now that backend supports it
+              await Promise.allSettled(
+                pendingDeletes.map(id =>
+                  dashboardAuthFetch(`${apiUrl}/api/remote/photographer/plans/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                  })
+                )
+              );
+              // Filter them out from the fetched plans
+              cleanPlans = plans.value.filter(p => !pendingDeletes.includes(p.id));
+              // Clear localStorage - cleanup done
+              localStorage.removeItem('deletedPlanIds');
+            }
+          } catch {
+            // Cleanup failed silently, plans will show - user can delete manually
+          }
+          setFuturePlans(cleanPlans);
         }
       } catch (err) {
         console.error('Failed to fetch activities/plans:', err);
@@ -517,7 +552,7 @@ const PhotographerDashboard = () => {
     // Persist to backend
     try {
       const apiUrl = getApiUrl();
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/plans`, {
+      await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/plans`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -532,10 +567,14 @@ const PhotographerDashboard = () => {
           targetRatings: newPlan.targetRatings,
         }),
       });
-      if (res.ok) {
-        const result = await res.json();
-        if (result?.data?.id) {
-          setFuturePlans(prev => prev.map(p => p.id === newPlan.id ? { ...p, id: result.data.id } : p));
+      // Re-fetch plans from backend to get the correct backend ID
+      const backendPlans = await fetchPlansFromBackend();
+      if (backendPlans.length > 0) {
+        setFuturePlans(backendPlans);
+        // Update selectedPlan with the backend version (match by name and creation time)
+        const matchedPlan = backendPlans.find(p => p.name === newPlan.name) || backendPlans[backendPlans.length - 1];
+        if (matchedPlan) {
+          setSelectedPlan(matchedPlan);
         }
       }
     } catch (err) {
@@ -558,11 +597,18 @@ const PhotographerDashboard = () => {
       setSelectedPlan(null);
       setIsComparisonMode(false);
     }
+
     try {
       const apiUrl = getApiUrl();
-      await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/plans/${planId}`, { method: 'DELETE' });
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/plans/${planId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const resData = await res.json().catch(() => ({}));
+      // TEMP: verify backend DELETE works
+      alert(`DELETE status: ${res.status}\nResponse: ${JSON.stringify(resData)}`);
     } catch (err) {
-      console.error('Failed to delete plan:', err);
+      alert(`DELETE failed: ${err}`);
     }
   };
 
@@ -1218,7 +1264,7 @@ const PhotographerDashboard = () => {
           timeframe={periodLabel}
           icon={<MoneyIcon />}
           trend={statTrends.totalEarnings.trend}
-          href={`${basePath}/earnings`}
+          href={`${basePath}/transaction`}
           accentColor="#083A85"
           isComparisonMode={isComparisonMode && !!selectedPlan}
           targetValue={selectedPlan?.targetEarnings}
@@ -1230,7 +1276,6 @@ const PhotographerDashboard = () => {
           timeframe={periodLabel}
           icon={<ClockIcon />}
           trend={statTrends.pending.trend}
-          href={`${basePath}/pending-payments`}
           accentColor="#F59E0B"
           isComparisonMode={isComparisonMode && !!selectedPlan}
           targetValue={selectedPlan?.targetPending}
@@ -1254,7 +1299,6 @@ const PhotographerDashboard = () => {
           timeframe={periodLabel}
           icon={<GiftIcon />}
           trend={statTrends.bonuses.trend}
-          href={`${basePath}/bonuses`}
           accentColor="#10B981"
           isComparisonMode={isComparisonMode && !!selectedPlan}
           targetValue={selectedPlan?.targetBonuses}
@@ -1266,7 +1310,6 @@ const PhotographerDashboard = () => {
           timeframe={periodLabel}
           icon={<StarIcon />}
           trend={statTrends.rating.trend}
-          href={`${basePath}/reviews`}
           accentColor="#8B5CF6"
           isComparisonMode={isComparisonMode && !!selectedPlan}
           targetValue={selectedPlan?.targetRatings}
@@ -1755,20 +1798,25 @@ const PhotographerDashboard = () => {
                     marginBottom: '0.5rem'
                   }}>Target Earnings *</label>
                   <input
-                    type="text"
+                    type="number"
+                    min="1"
+                    step="0.01"
                     value={planForm.targetEarnings}
                     onChange={(e) => setPlanForm(prev => ({ ...prev, targetEarnings: e.target.value }))}
-                    placeholder="e.g., $5,000"
+                    placeholder="Min: 1"
                     style={{
                       width: '100%',
                       padding: '0.75rem',
                       borderRadius: '0.5rem',
-                      border: `2px solid ${colors.borderPrimary}`,
+                      border: `2px solid ${planForm.targetEarnings && parseFloat(planForm.targetEarnings) <= 0 ? '#DC2626' : colors.borderPrimary}`,
                       backgroundColor: colors.bgPrimary,
                       color: colors.textPrimary,
                       fontSize: '0.9rem'
                     }}
                   />
+                  {planForm.targetEarnings && parseFloat(planForm.targetEarnings) <= 0 && (
+                    <span style={{ color: '#DC2626', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>Must be greater than 0</span>
+                  )}
                 </div>
                 <div>
                   <label style={{
@@ -1779,20 +1827,25 @@ const PhotographerDashboard = () => {
                     marginBottom: '0.5rem'
                   }}>Target Pending</label>
                   <input
-                    type="text"
+                    type="number"
+                    min="1"
+                    step="0.01"
                     value={planForm.targetPending}
                     onChange={(e) => setPlanForm(prev => ({ ...prev, targetPending: e.target.value }))}
-                    placeholder="e.g., $500"
+                    placeholder="Min: 1"
                     style={{
                       width: '100%',
                       padding: '0.75rem',
                       borderRadius: '0.5rem',
-                      border: `2px solid ${colors.borderPrimary}`,
+                      border: `2px solid ${planForm.targetPending && parseFloat(planForm.targetPending) <= 0 ? '#DC2626' : colors.borderPrimary}`,
                       backgroundColor: colors.bgPrimary,
                       color: colors.textPrimary,
                       fontSize: '0.9rem'
                     }}
                   />
+                  {planForm.targetPending && parseFloat(planForm.targetPending) <= 0 && (
+                    <span style={{ color: '#DC2626', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>Must be greater than 0</span>
+                  )}
                 </div>
                 <div>
                   <label style={{
@@ -1803,20 +1856,28 @@ const PhotographerDashboard = () => {
                     marginBottom: '0.5rem'
                   }}>Target Clients</label>
                   <input
-                    type="text"
+                    type="number"
+                    min="1"
+                    step="1"
                     value={planForm.targetClients}
                     onChange={(e) => setPlanForm(prev => ({ ...prev, targetClients: e.target.value }))}
-                    placeholder="e.g., 10"
+                    placeholder="Min: 1 (whole numbers)"
                     style={{
                       width: '100%',
                       padding: '0.75rem',
                       borderRadius: '0.5rem',
-                      border: `2px solid ${colors.borderPrimary}`,
+                      border: `2px solid ${planForm.targetClients && (parseFloat(planForm.targetClients) <= 0 || !Number.isInteger(parseFloat(planForm.targetClients))) ? '#DC2626' : colors.borderPrimary}`,
                       backgroundColor: colors.bgPrimary,
                       color: colors.textPrimary,
                       fontSize: '0.9rem'
                     }}
                   />
+                  {planForm.targetClients && parseFloat(planForm.targetClients) <= 0 && (
+                    <span style={{ color: '#DC2626', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>Must be greater than 0</span>
+                  )}
+                  {planForm.targetClients && parseFloat(planForm.targetClients) > 0 && !Number.isInteger(parseFloat(planForm.targetClients)) && (
+                    <span style={{ color: '#DC2626', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>Must be a whole number</span>
+                  )}
                 </div>
                 <div>
                   <label style={{
@@ -1827,20 +1888,25 @@ const PhotographerDashboard = () => {
                     marginBottom: '0.5rem'
                   }}>Target Bonuses</label>
                   <input
-                    type="text"
+                    type="number"
+                    min="1"
+                    step="0.01"
                     value={planForm.targetBonuses}
                     onChange={(e) => setPlanForm(prev => ({ ...prev, targetBonuses: e.target.value }))}
-                    placeholder="e.g., $100"
+                    placeholder="Min: 1"
                     style={{
                       width: '100%',
                       padding: '0.75rem',
                       borderRadius: '0.5rem',
-                      border: `2px solid ${colors.borderPrimary}`,
+                      border: `2px solid ${planForm.targetBonuses && parseFloat(planForm.targetBonuses) <= 0 ? '#DC2626' : colors.borderPrimary}`,
                       backgroundColor: colors.bgPrimary,
                       color: colors.textPrimary,
                       fontSize: '0.9rem'
                     }}
                   />
+                  {planForm.targetBonuses && parseFloat(planForm.targetBonuses) <= 0 && (
+                    <span style={{ color: '#DC2626', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>Must be greater than 0</span>
+                  )}
                 </div>
                 <div>
                   <label style={{
@@ -1851,20 +1917,29 @@ const PhotographerDashboard = () => {
                     marginBottom: '0.5rem'
                   }}>Target Ratings</label>
                   <input
-                    type="text"
+                    type="number"
+                    min="1"
+                    max="5"
+                    step="0.1"
                     value={planForm.targetRatings}
                     onChange={(e) => setPlanForm(prev => ({ ...prev, targetRatings: e.target.value }))}
-                    placeholder="e.g., 4.5/5"
+                    placeholder="Between 1 and 5"
                     style={{
                       width: '100%',
                       padding: '0.75rem',
                       borderRadius: '0.5rem',
-                      border: `2px solid ${colors.borderPrimary}`,
+                      border: `2px solid ${planForm.targetRatings && (parseFloat(planForm.targetRatings) <= 0 || parseFloat(planForm.targetRatings) > 5) ? '#DC2626' : colors.borderPrimary}`,
                       backgroundColor: colors.bgPrimary,
                       color: colors.textPrimary,
                       fontSize: '0.9rem'
                     }}
                   />
+                  {planForm.targetRatings && parseFloat(planForm.targetRatings) <= 0 && (
+                    <span style={{ color: '#DC2626', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>Must be greater than 0</span>
+                  )}
+                  {planForm.targetRatings && parseFloat(planForm.targetRatings) > 5 && (
+                    <span style={{ color: '#DC2626', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>Rating cannot exceed 5</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -1893,16 +1968,25 @@ const PhotographerDashboard = () => {
               >
                 Cancel
               </button>
+              {(() => {
+                const hasValidationErrors =
+                  !planForm.name || !planForm.targetEarnings ||
+                  !!(planForm.targetEarnings && parseFloat(planForm.targetEarnings) <= 0) ||
+                  !!(planForm.targetPending && parseFloat(planForm.targetPending) <= 0) ||
+                  !!(planForm.targetClients && (parseFloat(planForm.targetClients) <= 0 || !Number.isInteger(parseFloat(planForm.targetClients)))) ||
+                  !!(planForm.targetBonuses && parseFloat(planForm.targetBonuses) <= 0) ||
+                  !!(planForm.targetRatings && (parseFloat(planForm.targetRatings) <= 0 || parseFloat(planForm.targetRatings) > 5));
+                return (
               <button
                 onClick={handleSavePlan}
-                disabled={!planForm.name || !planForm.targetEarnings}
+                disabled={hasValidationErrors}
                 style={{
                   padding: '0.75rem 1.5rem',
                   borderRadius: '0.5rem',
                   border: 'none',
-                  backgroundColor: (!planForm.name || !planForm.targetEarnings) ? colors.textTertiary : '#F20C8F',
+                  backgroundColor: hasValidationErrors ? colors.textTertiary : '#F20C8F',
                   color: 'white',
-                  cursor: (!planForm.name || !planForm.targetEarnings) ? 'not-allowed' : 'pointer',
+                  cursor: hasValidationErrors ? 'not-allowed' : 'pointer',
                   fontSize: '0.9rem',
                   fontWeight: '500',
                   display: 'flex',
@@ -1913,6 +1997,8 @@ const PhotographerDashboard = () => {
                 {editingPlan ? <EditIcon /> : <TargetIcon />}
                 {editingPlan ? 'Save Changes' : 'Create Plan'}
               </button>
+                );
+              })()}
             </div>
           </div>
         </div>

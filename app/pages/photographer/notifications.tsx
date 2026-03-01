@@ -190,9 +190,12 @@ const Notifications = () => {
   };
 
   const markAsRead = async (id: string) => {
+    const notif = notifications.find(n => n.id === id);
+    if (notif?.read) return;
     setNotifications(prev =>
       prev.map(n => n.id === id ? { ...n, read: true } : n)
     );
+    window.dispatchEvent(new CustomEvent('badge-update', { detail: { type: 'notification', count: 1 } }));
     try {
       const apiUrl = getApiUrl();
       await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/notifications/${id}/read`, { method: 'PATCH' });
@@ -205,12 +208,19 @@ const Notifications = () => {
     if (notification.actionUrl) return notification.actionUrl;
     switch (notification.type) {
       case 'payment': case 'tip': case 'bonus': return '/user/photographer/all-transactions';
+      case 'security': return '/user/photographer/profile';
+      case 'album': return '/user/photographer/events';
+      case 'review': return '/user/photographer/clients';
       default: return null;
     }
   };
 
   const markAllAsRead = async () => {
+    const unreadCount = notifications.filter(n => !n.read).length;
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    if (unreadCount > 0) {
+      window.dispatchEvent(new CustomEvent('badge-update', { detail: { type: 'notification', count: unreadCount } }));
+    }
     try {
       const apiUrl = getApiUrl();
       await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/notifications/read-all`, { method: 'PATCH' });
@@ -224,13 +234,15 @@ const Notifications = () => {
     try {
       const apiUrl = getApiUrl();
       const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/notifications/${id}`, { method: 'DELETE' });
+      const data = await res.json().catch(() => ({}));
+      console.log('DELETE notification response:', { status: res.status, ok: res.ok, data });
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
         alert(data.message || 'Failed to delete notification. The server did not process the request.');
+        fetchNotifications();
       }
-    } catch {
+    } catch (err) {
+      console.error('DELETE notification error:', err);
       alert('Failed to delete notification. The feature may not be available yet.');
-    } finally {
       fetchNotifications();
     }
   };
@@ -243,10 +255,10 @@ const Notifications = () => {
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         alert(data.message || 'Failed to clear read notifications. The server did not process the request.');
+        fetchNotifications();
       }
     } catch {
       alert('Failed to clear read notifications. The feature may not be available yet.');
-    } finally {
       fetchNotifications();
     }
   };
