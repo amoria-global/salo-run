@@ -141,9 +141,8 @@ const InboxPage = () => {
   const [activeEmojiCategory, setActiveEmojiCategory] = useState('Smileys');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
-  const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
-  // Ref so markConversationAsRead can read current unreadCounts without a stale closure
   const conversationsRef = useRef<Conversation[]>([]);
+  const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editMessageContent, setEditMessageContent] = useState('');
   const [balance, setBalance] = useState<any>(null);
@@ -175,6 +174,7 @@ const InboxPage = () => {
   const currentUserId = user?.id || '';
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  conversationsRef.current = conversations;
 
   // Keep ref in sync so callbacks can read current unreadCounts without stale closure
   useEffect(() => { conversationsRef.current = conversations; }, [conversations]);
