@@ -806,12 +806,14 @@ const EventCoordinatorDashboard = () => {
                   gap: '0.75rem'
                 }}
               >
-                <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
-                  <img
-                    src={payment.photographerImage}
-                    alt={payment.photographerName}
-                    style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                  />
+                <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                  </svg>
+                  {payment.photographerImage && (
+                    <img src={payment.photographerImage} alt={payment.photographerName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                  )}
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{
@@ -822,7 +824,7 @@ const EventCoordinatorDashboard = () => {
                     alignItems: 'center',
                     gap: '0.5rem'
                   }}>
-                    {payment.eventName}
+                    {payment.photographerName}
                     {payment.status === 'failed' && (
                       <span style={{
                         fontSize: '0.65rem',
@@ -849,7 +851,7 @@ const EventCoordinatorDashboard = () => {
                     )}
                   </div>
                   <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>
-                    {payment.photographerName}
+                    {payment.eventName}
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
@@ -979,16 +981,15 @@ const EventCoordinatorDashboard = () => {
                     onMouseEnter={(e) => e.currentTarget.style.backgroundColor = colors.bgHover}
                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                   >
-                    <img
-                      src={photographer.avatar}
-                      alt={photographer.name}
-                      style={{
-                        width: '2.25rem',
-                        height: '2.25rem',
-                        borderRadius: '9999px',
-                        objectFit: 'cover'
-                      }}
-                    />
+                    <div style={{ width: '2.25rem', height: '2.25rem', borderRadius: '9999px', overflow: 'hidden', flexShrink: 0, backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                      </svg>
+                      {photographer.avatar && (
+                        <img src={photographer.avatar} alt={photographer.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                      )}
+                    </div>
                     <div style={{
                       flex: 1,
                       display: 'flex',
