@@ -617,17 +617,8 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
                   }}
                 >
                   {/* Cover Image */}
-                  <div style={{ position: 'relative', height: '180px' }}>
-                    {stream.coverImage ? (
-                    <Image
-                      src={stream.coverImage}
-                      alt={stream.streamTitle}
-                      fill
-                      style={{ objectFit: 'cover' }}
-                    />
-                    ) : (
-                      <div style={{ width: '100%', height: '100%', backgroundColor: colors.bgTertiary }} />
-                    )}
+                  <div style={{ position: 'relative', height: '180px', backgroundColor: stream.coverImage ? 'transparent' : '#0D1B2A' }}>
+                    <img src={stream.coverImage || '/coverr.jpg'} alt={stream.streamTitle} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: stream.coverImage ? 'cover' : 'contain' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; (e.currentTarget as HTMLImageElement).style.objectFit = 'contain'; const p = e.currentTarget.parentElement; if (p) p.style.backgroundColor = '#0D1B2A'; }} />
                     <div style={{
                       position: 'absolute',
                       top: '0.75rem',
@@ -684,16 +675,13 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
 
                     {/* Photographer Info */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                      <div style={{ width: '28px', height: '28px', borderRadius: '50%', overflow: 'hidden', position: 'relative' }}>
-                        {stream.photographerImage ? (
-                        <Image
-                          src={stream.photographerImage}
-                          alt={stream.photographerName}
-                          fill
-                          style={{ objectFit: 'cover' }}
-                        />
-                        ) : (
-                          <div style={{ width: '100%', height: '100%', backgroundColor: colors.bgTertiary }} />
+                      <div style={{ width: '28px', height: '28px', borderRadius: '50%', overflow: 'hidden', position: 'relative', backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                        </svg>
+                        {stream.photographerImage && (
+                          <img src={stream.photographerImage} alt={stream.photographerName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                         )}
                       </div>
                       <span style={{ fontSize: '0.8rem', color: colors.textPrimary }}>by {stream.photographerName}</span>
@@ -843,13 +831,18 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
                     overflow: 'hidden',
                     flexShrink: 0,
                     position: 'relative',
+                    backgroundColor: '#E5E7EB',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                   }}>
-                    <Image
-                      src={msg.viewerAvatar}
-                      alt={msg.viewerUsername}
-                      fill
-                      style={{ objectFit: 'cover' }}
-                    />
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                    </svg>
+                    {msg.viewerAvatar && (
+                      <img src={msg.viewerAvatar} alt={msg.viewerUsername} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                    )}
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
@@ -973,13 +966,19 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
                       borderRadius: '50%',
                       overflow: 'hidden',
                       position: 'relative',
+                      backgroundColor: '#374151',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
                     }}>
-                      <Image
-                        src={selectedVideo.viewerAvatar}
-                        alt={selectedVideo.viewerUsername}
-                        fill
-                        style={{ objectFit: 'cover' }}
-                      />
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                      </svg>
+                      {selectedVideo.viewerAvatar && (
+                        <img src={selectedVideo.viewerAvatar} alt={selectedVideo.viewerUsername} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                      )}
                     </div>
                     <span style={{ color: 'white', fontSize: '0.85rem', fontWeight: '500' }}>
                       @{selectedVideo.viewerUsername}
@@ -1018,13 +1017,8 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
                     position: 'relative',
                   }}
                 >
-                  <div style={{ position: 'relative', height: '100px' }}>
-                    <Image
-                      src={video.thumbnailUrl}
-                      alt={`Video from ${video.viewerUsername}`}
-                      fill
-                      style={{ objectFit: 'cover' }}
-                    />
+                  <div style={{ position: 'relative', height: '100px', backgroundColor: video.thumbnailUrl ? 'transparent' : '#0D1B2A' }}>
+                    <img src={video.thumbnailUrl || '/coverr.jpg'} alt={`Video from ${video.viewerUsername}`} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: video.thumbnailUrl ? 'cover' : 'contain' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; (e.currentTarget as HTMLImageElement).style.objectFit = 'contain'; const p = e.currentTarget.parentElement; if (p) p.style.backgroundColor = '#0D1B2A'; }} />
                     {!video.viewed && (
                       <div style={{
                         position: 'absolute',

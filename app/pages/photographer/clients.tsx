@@ -1053,25 +1053,14 @@ export default function Clients() {
                 >
                   {/* Header Row - Profile Image, Name, Actions */}
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', marginBottom: '0.625rem' }}>
-                    <div style={{
-                      width: '50px',
-                      height: '50px',
-                      borderRadius: '50%',
-                      overflow: 'hidden',
-                      flexShrink: 0,
-                      position: 'relative'
-                    }}>
-                      <Image
-                        src={client.profileImage}
-                        alt={client.firstName}
-                        width={50}
-                        height={50}
-                        style={{
-                          objectFit: 'cover',
-                          width: '100%',
-                          height: '100%'
-                        }}
-                      />
+                    <div style={{ width: '50px', height: '50px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, position: 'relative', backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                      </svg>
+                      {client.profileImage && (
+                        <img src={client.profileImage} alt={client.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                      )}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
@@ -1344,21 +1333,14 @@ export default function Clients() {
                   }}
                 >
                   {/* Avatar */}
-                  <div style={{
-                    width: '56px',
-                    height: '56px',
-                    borderRadius: '50%',
-                    overflow: 'hidden',
-                    flexShrink: 0,
-                    position: 'relative'
-                  }}>
-                    <Image
-                      src={client.profileImage}
-                      alt={client.firstName}
-                      width={56}
-                      height={56}
-                      style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                    />
+                  <div style={{ width: '56px', height: '56px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, position: 'relative', backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                    </svg>
+                    {client.profileImage && (
+                      <img src={client.profileImage} alt={client.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                    )}
                   </div>
 
                   {/* Name & Location */}
@@ -1780,21 +1762,14 @@ export default function Clients() {
           <div>
             {/* Client Header */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-              <div style={{
-                width: '80px',
-                height: '80px',
-                borderRadius: '50%',
-                overflow: 'hidden',
-                flexShrink: 0,
-                position: 'relative'
-              }}>
-                <Image
-                  src={selectedClient.profileImage}
-                  alt={selectedClient.firstName}
-                  width={80}
-                  height={80}
-                  style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                />
+              <div style={{ width: '80px', height: '80px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, position: 'relative', backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                </svg>
+                {selectedClient.profileImage && (
+                  <img src={selectedClient.profileImage} alt={selectedClient.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                )}
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -2058,21 +2033,14 @@ export default function Clients() {
               backgroundColor: colors.bgTertiary,
               borderRadius: '0.5rem'
             }}>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '50%',
-                overflow: 'hidden',
-                flexShrink: 0,
-                position: 'relative'
-              }}>
-                <Image
-                  src={tipsClient.profileImage}
-                  alt={tipsClient.firstName}
-                  width={48}
-                  height={48}
-                  style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                />
+              <div style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, position: 'relative', backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                </svg>
+                {tipsClient.profileImage && (
+                  <img src={tipsClient.profileImage} alt={tipsClient.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                )}
               </div>
               <div>
                 <div style={{ fontWeight: '600', color: colors.textPrimary, fontSize: '0.95rem' }}>
