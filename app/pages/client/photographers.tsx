@@ -1238,22 +1238,11 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                   }}
                 >
                   {/* Cover Image with overlay */}
-                  <div style={{ position: 'relative', height: '160px' }}>
-                    <div style={{
-                      width: '100%',
-                      height: '160px',
-                      backgroundImage: `url(${photographer.coverImage})`,
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                      borderRadius: '1rem 1rem 0 0'
-                    }}>
-                      <div style={{
-                        position: 'absolute',
-                        inset: 0,
-                        backgroundColor: 'rgba(13, 27, 42, 0.3)',
-                        borderRadius: '1rem 1rem 0 0'
-                      }} />
-                    </div>
+                  <div style={{ position: 'relative', height: '160px', backgroundColor: photographer.coverImage ? 'transparent' : '#0D1B2A' }}>
+                    <img src={photographer.coverImage || '/coverr.jpg'} alt={photographer.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: photographer.coverImage ? 'cover' : 'contain', objectPosition: 'center', borderRadius: '1rem 1rem 0 0' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; (e.currentTarget as HTMLImageElement).style.objectFit = 'contain'; const p = e.currentTarget.parentElement; if (p) p.style.backgroundColor = '#0D1B2A'; }} />
+                    {photographer.coverImage && (
+                      <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(13, 27, 42, 0.3)', borderRadius: '1rem 1rem 0 0' }} />
+                    )}
                     {/* Bookings Badge */}
                     <div style={{
                       position: 'absolute',
@@ -1299,20 +1288,17 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                       left: '20px',
                       width: '70px',
                       height: '70px',
-                      zIndex: 10
+                      zIndex: 10,
                     }}>
-                      <img
-                        src={photographer.profileImage}
-                        alt={photographer.firstName}
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          borderRadius: '50%',
-                          border: '2px solid white',
-                          objectFit: 'cover',
-                          objectPosition: 'center'
-                        }}
-                      />
+                      <div style={{ width: '70px', height: '70px', borderRadius: '50%', border: '2px solid white', backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
+                        <svg width="38" height="38" viewBox="0 0 24 24" fill="none">
+                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                        </svg>
+                        {photographer.profileImage && (
+                          <img src={photographer.profileImage} alt={photographer.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                        )}
+                      </div>
                       {photographer.verified && (
                         <div style={{
                           position: 'absolute',
@@ -1495,19 +1481,16 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                     e.currentTarget.style.backgroundColor = 'transparent';
                   }}
                 >
-                  <div style={{ position: 'relative', width: '70px', height: '70px' }}>
-                    <img
-                      src={photographer.profileImage}
-                      alt={photographer.firstName}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        borderRadius: '50%',
-                        border: '2px solid white',
-                        objectFit: 'cover',
-                        objectPosition: 'center'
-                      }}
-                    />
+                  <div style={{ position: 'relative', width: '70px', height: '70px', flexShrink: 0 }}>
+                    <div style={{ width: '70px', height: '70px', borderRadius: '50%', border: '2px solid white', backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
+                      <svg width="38" height="38" viewBox="0 0 24 24" fill="none">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                      </svg>
+                      {photographer.profileImage && (
+                        <img src={photographer.profileImage} alt={photographer.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                      )}
+                    </div>
                     {photographer.verified && (
                       <div style={{
                         position: 'absolute',
@@ -1750,20 +1733,11 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
         {selectedPhotographer && (
           <div>
             {/* Cover with overlay */}
-            <div style={{ position: 'relative', height: '160px', margin: '-1.5rem -1.5rem 0 -1.5rem', overflow: 'visible' }}>
-              <div style={{
-                width: '100%',
-                height: '160px',
-                backgroundImage: `url(${selectedPhotographer.coverImage})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center'
-              }}>
-                <div style={{
-                  position: 'absolute',
-                  inset: 0,
-                  backgroundColor: 'rgba(13, 27, 42, 0.3)'
-                }} />
-              </div>
+            <div style={{ position: 'relative', height: '160px', margin: '-1.5rem -1.5rem 0 -1.5rem', overflow: 'visible', backgroundColor: selectedPhotographer.coverImage ? 'transparent' : '#0D1B2A' }}>
+              <img src={selectedPhotographer.coverImage || '/coverr.jpg'} alt={selectedPhotographer.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: selectedPhotographer.coverImage ? 'cover' : 'contain', objectPosition: 'center' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; (e.currentTarget as HTMLImageElement).style.objectFit = 'contain'; const p = e.currentTarget.parentElement; if (p) p.style.backgroundColor = '#0D1B2A'; }} />
+              {selectedPhotographer.coverImage && (
+                <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(13, 27, 42, 0.3)' }} />
+              )}
               <button
                 onClick={() => setSelectedPhotographer(null)}
                 style={{
@@ -1794,18 +1768,15 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                 height: '70px',
                 zIndex: 10
               }}>
-                <img
-                  src={selectedPhotographer.profileImage}
-                  alt={selectedPhotographer.firstName}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    borderRadius: '50%',
-                    border: '2px solid white',
-                    objectFit: 'cover',
-                    objectPosition: 'center'
-                  }}
-                />
+                <div style={{ width: '70px', height: '70px', borderRadius: '50%', border: '2px solid white', backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
+                  <svg width="38" height="38" viewBox="0 0 24 24" fill="none">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                  </svg>
+                  {selectedPhotographer.profileImage && (
+                    <img src={selectedPhotographer.profileImage} alt={selectedPhotographer.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                  )}
+                </div>
                 {selectedPhotographer.verified && (
                   <div style={{
                     position: 'absolute',
@@ -2015,18 +1986,15 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem', padding: '0.75rem', backgroundColor: actualTheme === 'dark' ? '#831843' : '#FDF2F8', borderRadius: '0.5rem' }}>
               <div style={{ position: 'relative', width: '48px', height: '48px', flexShrink: 0 }}>
-                <img
-                  src={rebookPhotographer.profileImage}
-                  alt={rebookPhotographer.firstName}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    borderRadius: '50%',
-                    border: '2px solid white',
-                    objectFit: 'cover',
-                    objectPosition: 'center'
-                  }}
-                />
+                <div style={{ width: '48px', height: '48px', borderRadius: '50%', border: '2px solid white', backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                  </svg>
+                  {rebookPhotographer.profileImage && (
+                    <img src={rebookPhotographer.profileImage} alt={rebookPhotographer.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                  )}
+                </div>
                 {rebookPhotographer.verified && (
                   <div style={{
                     position: 'absolute',
@@ -2231,18 +2199,15 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
               <div style={{ position: 'relative', width: '48px', height: '48px', flexShrink: 0 }}>
-                <img
-                  src={reviewPhotographer.profileImage}
-                  alt={reviewPhotographer.firstName}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    borderRadius: '50%',
-                    border: '2px solid white',
-                    objectFit: 'cover',
-                    objectPosition: 'center'
-                  }}
-                />
+                <div style={{ width: '48px', height: '48px', borderRadius: '50%', border: '2px solid white', backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                  </svg>
+                  {reviewPhotographer.profileImage && (
+                    <img src={reviewPhotographer.profileImage} alt={reviewPhotographer.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                  )}
+                </div>
                 {reviewPhotographer.verified && (
                   <div style={{
                     position: 'absolute',

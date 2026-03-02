@@ -263,6 +263,7 @@ interface Event {
   photographerName?: string;
   photographerImage?: string;
   shareLink: string;
+  inviteCode?: string;
   createdAt: string;
 }
 
@@ -436,7 +437,8 @@ const MyEventsPage = () => {
   const [createDescription, setCreateDescription] = useState('');
   const [createEventType, setCreateEventType] = useState('');
   const [createCategory, setCreateCategory] = useState<EventCategory | ''>('');
-  const [createStatus, setCreateStatus] = useState<'UPCOMING' | 'LIVE'>('UPCOMING');
+  const [createStatus, setCreateStatus] = useState<'UPCOMING' | 'LIVE'>('LIVE');
+  const [statusFieldHovered, setStatusFieldHovered] = useState(false);
   const [createDate, setCreateDate] = useState('');
   const [createTime, setCreateTime] = useState('');
   const [createEndTime, setCreateEndTime] = useState('');
@@ -715,7 +717,8 @@ const MyEventsPage = () => {
             hasPhotographer: !!(evt.photographerId),
             photographerName: (evt.photographerName as string) || '',
             photographerImage: (evt.photographerImage as string) || '',
-            shareLink: `https://connekt.app/event/${evt.id}`,
+            inviteCode: (evt.inviteCode as string) || (evt.hostId as string) || '',
+            shareLink: `${process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekt.app'}/user/event/${evt.id}`,
             createdAt: (evt.createdAt as string) || '',
           };
         });
@@ -1177,7 +1180,7 @@ const MyEventsPage = () => {
         hasPhotographer: !!selectedPhotographer,
         photographerName: selectedPhotographer?.name,
         photographerImage: selectedPhotographer?.image,
-        shareLink: `https://connekt.app/event/evt_${Math.random().toString(36).substr(2, 12)}`,
+        shareLink: `${process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekt.app'}/user/event/evt_${Date.now()}`,
         createdAt: new Date().toISOString().split('T')[0]
       };
 
@@ -1488,13 +1491,8 @@ const MyEventsPage = () => {
                   }}
                 >
                   {/* Cover Image */}
-                  <div className="mobile-event-image" style={{ position: 'relative', height: '160px' }}>
-                    <Image
-                      src={event.coverImage}
-                      alt={event.title}
-                      fill
-                      style={{ objectFit: 'cover' }}
-                    />
+                  <div className="mobile-event-image" style={{ position: 'relative', height: '160px', backgroundColor: event.coverImage ? 'transparent' : '#0D1B2A' }}>
+                    <img src={event.coverImage || '/coverr.jpg'} alt={event.title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: event.coverImage ? 'cover' : 'contain' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; (e.currentTarget as HTMLImageElement).style.objectFit = 'contain'; const p = e.currentTarget.parentElement; if (p) p.style.backgroundColor = '#0D1B2A'; }} />
                     {/* Status Badge */}
                     <div style={{
                       position: 'absolute',
@@ -1809,11 +1807,18 @@ const MyEventsPage = () => {
                 </select>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Status *</label>
-                <select value={createStatus} onChange={(e) => setCreateStatus(e.target.value as 'UPCOMING' | 'LIVE')} style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', backgroundColor: colors.bgCard, color: colors.textPrimary, cursor: 'pointer' }}>
-                  <option value="UPCOMING">UPCOMING</option>
-                  <option value="LIVE">LIVE</option>
-                </select>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Event Type Status</label>
+                <div
+                  onMouseEnter={() => setStatusFieldHovered(true)}
+                  onMouseLeave={() => setStatusFieldHovered(false)}
+                  style={{ position: 'relative', width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', backgroundColor: colors.bgSecondary, color: colors.textSecondary, cursor: 'not-allowed', boxSizing: 'border-box' }}>
+                  Live Event
+                  {statusFieldHovered && (
+                    <span style={{ position: 'absolute', right: '0.625rem', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', color: colors.textSecondary }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -2312,20 +2317,11 @@ const MyEventsPage = () => {
             boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
           }} onClick={(e) => e.stopPropagation()}>
             {/* Cover Image with overlay */}
-            <div style={{ position: 'relative', height: '160px', overflow: 'hidden' }}>
-              <div style={{
-                width: '100%',
-                height: '160px',
-                backgroundImage: `url(${showEventDetails.coverImage})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center'
-              }}>
-                <div style={{
-                  position: 'absolute',
-                  inset: 0,
-                  backgroundColor: 'rgba(13, 27, 42, 0.3)'
-                }} />
-              </div>
+            <div style={{ position: 'relative', height: '160px', overflow: 'hidden', backgroundColor: showEventDetails.coverImage ? 'transparent' : '#0D1B2A' }}>
+              <img src={showEventDetails.coverImage || '/coverr.jpg'} alt={showEventDetails.title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: showEventDetails.coverImage ? 'cover' : 'contain', objectPosition: 'center' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; (e.currentTarget as HTMLImageElement).style.objectFit = 'contain'; const p = e.currentTarget.parentElement; if (p) p.style.backgroundColor = '#0D1B2A'; }} />
+              {showEventDetails.coverImage && (
+                <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(13, 27, 42, 0.3)' }} />
+              )}
               {/* Close Button */}
               <button
                 onClick={() => setShowEventDetails(null)}
@@ -2422,14 +2418,14 @@ const MyEventsPage = () => {
                 <div style={{ fontSize: '0.85rem', color: actualTheme === 'dark' ? '#93C5FD' : '#0369A1', marginBottom: '0.5rem', fontWeight: '600' }}>Booked Photographer</div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
-                      <Image
-                        src={showEventDetails.photographerImage || ''}
-                        alt={showEventDetails.photographerName || ''}
-                        width={40}
-                        height={40}
-                        style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                      />
+                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                      </svg>
+                      {showEventDetails.photographerImage && (
+                        <img src={showEventDetails.photographerImage} alt={showEventDetails.photographerName || ''} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                      )}
                     </div>
                     <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>
                       {showEventDetails.photographerName}
@@ -2483,7 +2479,7 @@ const MyEventsPage = () => {
 
             {/* Share Link */}
             <div style={{ marginBottom: '1.5rem' }}>
-              <div style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>Join Event Stream Link</div>
+              <div style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>Event Stream Link</div>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <input
                   type="text"
@@ -2597,8 +2593,8 @@ const MyEventsPage = () => {
         {shareEvent && (
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem', padding: '0.75rem', backgroundColor: colors.bgTertiary, borderRadius: '0.5rem' }}>
-              <div style={{ position: 'relative', width: '60px', height: '40px', borderRadius: '0.25rem', overflow: 'hidden' }}>
-                <Image src={shareEvent.coverImage} alt={shareEvent.title} fill style={{ objectFit: 'cover' }} />
+              <div style={{ position: 'relative', width: '60px', height: '40px', borderRadius: '0.25rem', overflow: 'hidden', flexShrink: 0, backgroundColor: shareEvent.coverImage ? 'transparent' : '#0D1B2A' }}>
+                <img src={shareEvent.coverImage || '/coverr.jpg'} alt={shareEvent.title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: shareEvent.coverImage ? 'cover' : 'contain' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; (e.currentTarget as HTMLImageElement).style.objectFit = 'contain'; const p = e.currentTarget.parentElement; if (p) p.style.backgroundColor = '#0D1B2A'; }} />
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: '600', color: colors.textPrimary, fontSize: '0.9rem' }}>{shareEvent.title}</div>
@@ -2661,7 +2657,7 @@ const MyEventsPage = () => {
             </div>
             <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, paddingTop: '1rem' }}>
               <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                Join Event Stream Link
+                Event Stream Link
               </label>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <input

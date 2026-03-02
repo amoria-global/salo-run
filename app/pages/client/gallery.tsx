@@ -213,17 +213,6 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   const [filterPhotographer, setFilterPhotographer] = useState('All');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Create gallery modal state (coordinator only)
-  const [showCreateGalleryModal, setShowCreateGalleryModal] = useState(false);
-  const [newGalleryTitle, setNewGalleryTitle] = useState('');
-  const [newGalleryDescription, setNewGalleryDescription] = useState('');
-  const [newGalleryFiles, setNewGalleryFiles] = useState<File[]>([]);
-  const [isCreatingGallery, setIsCreatingGallery] = useState(false);
-  const [createGalleryError, setCreateGalleryError] = useState<string | null>(null);
-  const [coordinatorEvents, setCoordinatorEvents] = useState<{ id: string; title: string; description: string }[]>([]);
-  const [selectedEventId, setSelectedEventId] = useState<string>('');
-  const [isLoadingEvents, setIsLoadingEvents] = useState(false);
-
   // Archives state (coordinator only)
   const [coordinatorArchives, setCoordinatorArchives] = useState<any[]>([]);
 
@@ -363,80 +352,6 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
       fetchAlbums();
     }
   }, [user?.id, fetchAlbums]);
-
-  // Fetch events for Create Album modal
-  const fetchCoordinatorEvents = useCallback(async () => {
-    setIsLoadingEvents(true);
-    try {
-      const eventsEndpoint = userRole === 'event-coordinator'
-        ? `${apiUrl}/api/remote/coordinator/events`
-        : `${apiUrl}/api/remote/customer/events`;
-      const res = await dashboardAuthFetch(eventsEndpoint);
-      if (res.ok) {
-        const data = await res.json();
-        const events = (data.data?.content || data.data || []).map((evt: any) => ({
-          id: evt.id || '',
-          title: evt.title || 'Untitled Event',
-          description: evt.description || '',
-        }));
-        setCoordinatorEvents(events);
-      }
-    } catch (err) {
-      console.error('Failed to fetch events:', err);
-    } finally {
-      setIsLoadingEvents(false);
-    }
-  }, [apiUrl, userRole]);
-
-  // POST create a new gallery (multipart/form-data)
-  const handleCreateGallery = async () => {
-    if (!selectedEventId) {
-      setCreateGalleryError('Please select an event');
-      return;
-    }
-    if (newGalleryFiles.length === 0) {
-      setCreateGalleryError('Please add at least one image');
-      return;
-    }
-
-    setIsCreatingGallery(true);
-    setCreateGalleryError(null);
-
-    try {
-      const formData = new FormData();
-      formData.append('eventId', selectedEventId);
-      formData.append('title', newGalleryTitle.trim());
-      formData.append('description', newGalleryDescription.trim());
-      newGalleryFiles.forEach((file) => formData.append('images', file));
-
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${galleryBase}`, {
-        method: 'POST',
-        body: formData,
-        // Do NOT set Content-Type — browser sets multipart boundary automatically
-      });
-
-      const data = await res.json();
-      if (!res.ok || data.action === 0) {
-        throw new Error(data.message || 'Failed to create album');
-      }
-
-      // Reset form & close modal
-      setShowCreateGalleryModal(false);
-      setSelectedEventId('');
-      setNewGalleryTitle('');
-      setNewGalleryDescription('');
-      setNewGalleryFiles([]);
-      setCreateGalleryError(null);
-
-      // Refresh gallery list
-      fetchAlbums();
-    } catch (err) {
-      console.error('Create gallery error:', err);
-      setCreateGalleryError(err instanceof Error ? err.message : 'Failed to create album');
-    } finally {
-      setIsCreatingGallery(false);
-    }
-  };
 
   // GET archives
   const fetchCoordinatorArchives = useCallback(async () => {
@@ -1744,29 +1659,6 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
               </svg>
               Create Photobook
             </button>
-            <button
-              onClick={() => { setShowCreateGalleryModal(true); setCreateGalleryError(null); fetchCoordinatorEvents(); }}
-              style={{
-                padding: '0.5rem 1rem',
-                borderRadius: '0.5rem',
-                border: '2px solid #c00a72',
-                backgroundColor: '#F20C8F',
-                color: 'white',
-                cursor: 'pointer',
-                fontSize: '0.8rem',
-                fontWeight: '600',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.375rem',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-              Create Album
-            </button>
           </div>
 
           {/* Stats Cards - Adapt to current view */}
@@ -1906,7 +1798,26 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
           {pageView === 'albums' ? (
             <>
               {/* Albums Grid/List */}
-              {viewMode === 'grid' ? (
+              {filteredAlbums.length === 0 ? (
+                <div style={{
+                  textAlign: 'center',
+                  padding: '3rem 1.5rem',
+                  backgroundColor: colors.bgCard,
+                  borderRadius: '0.75rem',
+                  border: `2px solid ${colors.borderPrimary}`,
+                  boxShadow: colors.shadowCard
+                }}>
+                  <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>
+                    <ImageIcon />
+                  </div>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
+                    {albums.length === 0 ? 'No albums sent yet' : 'No albums match your search'}
+                  </h3>
+                  <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: 0 }}>
+                    {albums.length === 0 ? 'Albums sent by photographers will appear here.' : 'Try adjusting your filters.'}
+                  </p>
+                </div>
+              ) : viewMode === 'grid' ? (
                 <div className="mobile-albums-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem' }}>
                   {filteredAlbums.map((album) => (
                     <div
@@ -1933,23 +1844,8 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                       }}
                     >
                       {/* Album Thumbnail */}
-                      <div style={{ position: 'relative', height: '180px', overflow: 'hidden' }}>
-                        {album.thumbnail ? (
-                          <Image
-                            src={album.thumbnail}
-                            alt={album.title}
-                            fill
-                            style={{ objectFit: 'cover' }}
-                          />
-                        ) : (
-                          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bgTertiary }}>
-                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <rect x="3" y="3" width="18" height="18" rx="2" stroke="#9CA3AF" strokeWidth="2"/>
-                              <circle cx="8.5" cy="8.5" r="1.5" stroke="#9CA3AF" strokeWidth="2"/>
-                              <path d="M21 15l-5-5L5 21" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                          </div>
-                        )}
+                      <div style={{ position: 'relative', height: '180px', overflow: 'hidden', backgroundColor: album.thumbnail ? 'transparent' : '#0D1B2A' }}>
+                        <img src={album.thumbnail || '/coverr.jpg'} alt={album.title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: album.thumbnail ? 'cover' : 'contain' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; (e.currentTarget as HTMLImageElement).style.objectFit = 'contain'; const p = e.currentTarget.parentElement; if (p) p.style.backgroundColor = '#0D1B2A'; }} />
                         <div style={{
                           position: 'absolute',
                           top: '0.5rem',
@@ -2080,14 +1976,8 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                       }}
                     >
                       {/* Thumbnail */}
-                      <div style={{ position: 'relative', width: '80px', height: '50px', borderRadius: '0.375rem', overflow: 'hidden' }}>
-                        {album.thumbnail ? (
-                          <Image src={album.thumbnail} alt={album.title} fill style={{ objectFit: 'cover' }} />
-                        ) : (
-                          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bgTertiary }}>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="#9CA3AF" strokeWidth="2"/><circle cx="8.5" cy="8.5" r="1.5" stroke="#9CA3AF" strokeWidth="2"/><path d="M21 15l-5-5L5 21" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                          </div>
-                        )}
+                      <div style={{ position: 'relative', width: '80px', height: '50px', borderRadius: '0.375rem', overflow: 'hidden', backgroundColor: album.thumbnail ? 'transparent' : '#0D1B2A' }}>
+                        <img src={album.thumbnail || '/coverr.jpg'} alt={album.title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: album.thumbnail ? 'cover' : 'contain' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; (e.currentTarget as HTMLImageElement).style.objectFit = 'contain'; const p = e.currentTarget.parentElement; if (p) p.style.backgroundColor = '#0D1B2A'; }} />
                       </div>
 
                       {/* Album Title */}
@@ -2217,19 +2107,8 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                       }}
                     >
                       {/* Photobook Thumbnail */}
-                      <div style={{ position: 'relative', height: '180px', overflow: 'hidden', backgroundColor: colors.bgTertiary }}>
-                        {photobook.thumbnail ? (
-                          <Image
-                            src={photobook.thumbnail}
-                            alt={photobook.name}
-                            fill
-                            style={{ objectFit: 'cover' }}
-                          />
-                        ) : (
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: colors.textSecondary }}>
-                            <ImageIcon />
-                          </div>
-                        )}
+                      <div style={{ position: 'relative', height: '180px', overflow: 'hidden', backgroundColor: photobook.thumbnail ? 'transparent' : '#0D1B2A' }}>
+                        <img src={photobook.thumbnail || '/coverr.jpg'} alt={photobook.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: photobook.thumbnail ? 'cover' : 'contain' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; (e.currentTarget as HTMLImageElement).style.objectFit = 'contain'; const p = e.currentTarget.parentElement; if (p) p.style.backgroundColor = '#0D1B2A'; }} />
                         <div style={{
                           position: 'absolute',
                           top: '0.5rem',
@@ -3531,316 +3410,6 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
           </div>
         </div>
       )}
-
-      {/* Create Album Modal (coordinator only) */}
-      {showCreateGalleryModal && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1100,
-            padding: '1rem'
-          }}
-          onClick={() => { setShowCreateGalleryModal(false); setSelectedEventId(''); setNewGalleryTitle(''); setNewGalleryDescription(''); setNewGalleryFiles([]); setCreateGalleryError(null); }}
-        >
-          <div
-            style={{
-              backgroundColor: colors.bgCard,
-              borderRadius: '0.75rem',
-              padding: '1.5rem',
-              maxWidth: '500px',
-              width: '100%',
-              maxHeight: '90vh',
-              overflowY: 'auto'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <div>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Create Album</h2>
-                <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: '0.25rem 0 0 0' }}>Select an event to create its album</p>
-              </div>
-              <button
-                onClick={() => { setShowCreateGalleryModal(false); setSelectedEventId(''); setNewGalleryTitle(''); setNewGalleryDescription(''); setNewGalleryFiles([]); setCreateGalleryError(null); }}
-                style={{
-                  background: colors.bgTertiary,
-                  border: `2px solid ${colors.borderPrimary}`,
-                  cursor: 'pointer',
-                  padding: '0.5rem',
-                  borderRadius: '0.375rem',
-                  color: colors.textPrimary,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <CloseIcon />
-              </button>
-            </div>
-
-            {/* Event Selector */}
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                Event *
-              </label>
-              <select
-                value={selectedEventId}
-                onChange={(e) => {
-                  const eventId = e.target.value;
-                  setSelectedEventId(eventId);
-                  const event = coordinatorEvents.find(ev => ev.id === eventId);
-                  if (event) {
-                    setNewGalleryTitle(event.title);
-                    setNewGalleryDescription(event.description);
-                  } else {
-                    setNewGalleryTitle('');
-                    setNewGalleryDescription('');
-                  }
-                }}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: `2px solid ${colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.9rem',
-                  color: selectedEventId ? colors.textPrimary : colors.textSecondary,
-                  backgroundColor: colors.bgCard,
-                  cursor: 'pointer',
-                  appearance: 'none',
-                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
-                  backgroundRepeat: 'no-repeat',
-                  backgroundPosition: 'right 0.75rem center',
-                  paddingRight: '2rem'
-                }}
-              >
-                <option value="">{isLoadingEvents ? 'Loading events...' : 'Select an event'}</option>
-                {coordinatorEvents.map(ev => (
-                  <option key={ev.id} value={ev.id}>{ev.title}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Title (auto-filled from event) */}
-            {selectedEventId && (
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                  Title
-                </label>
-                <div style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: `2px solid ${colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.9rem',
-                  color: colors.textSecondary,
-                  backgroundColor: actualTheme === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
-                }}>
-                  {newGalleryTitle}
-                </div>
-              </div>
-            )}
-
-            {/* Description (auto-filled from event) */}
-            {selectedEventId && newGalleryDescription && (
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                  Description
-                </label>
-                <div style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: `2px solid ${colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.9rem',
-                  color: colors.textSecondary,
-                  backgroundColor: actualTheme === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
-                  minHeight: '60px',
-                }}>
-                  {newGalleryDescription}
-                </div>
-              </div>
-            )}
-
-            {/* File Upload */}
-            <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                Images *
-              </label>
-              <div
-                onClick={() => {
-                  const input = document.createElement('input');
-                  input.type = 'file';
-                  input.multiple = true;
-                  input.accept = 'image/*';
-                  input.onchange = (e) => {
-                    const files = (e.target as HTMLInputElement).files;
-                    if (files) setNewGalleryFiles(prev => [...prev, ...Array.from(files)]);
-                  };
-                  input.click();
-                }}
-                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
-                  if (files.length > 0) setNewGalleryFiles(prev => [...prev, ...files]);
-                }}
-                style={{
-                  border: `2px dashed ${colors.borderPrimary}`,
-                  borderRadius: '0.75rem',
-                  padding: '1.5rem 1rem',
-                  textAlign: 'center',
-                  cursor: 'pointer',
-                  backgroundColor: actualTheme === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
-                  transition: 'border-color 0.2s',
-                }}
-              >
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={colors.textSecondary} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 0.5rem' }}>
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="17 8 12 3 7 8" />
-                  <line x1="12" y1="3" x2="12" y2="15" />
-                </svg>
-                <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: 0 }}>
-                  Click to browse or drag & drop images here
-                </p>
-                <p style={{ fontSize: '0.75rem', color: colors.textSecondary, margin: '0.25rem 0 0 0', opacity: 0.7 }}>
-                  PNG, JPG, WEBP supported
-                </p>
-              </div>
-
-              {/* Uploaded file previews */}
-              {newGalleryFiles.length > 0 && (
-                <div style={{ marginTop: '0.75rem' }}>
-                  <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.5rem' }}>
-                    {newGalleryFiles.length} image{newGalleryFiles.length !== 1 ? 's' : ''} selected
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    {newGalleryFiles.map((file, idx) => (
-                      <div key={`${file.name}-${idx}`} style={{ position: 'relative', width: '72px', height: '72px', borderRadius: '0.5rem', overflow: 'hidden', border: `2px solid ${colors.borderPrimary}` }}>
-                        <img
-                          src={URL.createObjectURL(file)}
-                          alt={file.name}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                          onLoad={(e) => URL.revokeObjectURL((e.target as HTMLImageElement).src)}
-                        />
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setNewGalleryFiles(prev => prev.filter((_, i) => i !== idx));
-                          }}
-                          style={{
-                            position: 'absolute',
-                            top: '2px',
-                            right: '2px',
-                            width: '20px',
-                            height: '20px',
-                            borderRadius: '50%',
-                            backgroundColor: 'rgba(0,0,0,0.65)',
-                            color: 'white',
-                            border: 'none',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '12px',
-                            lineHeight: 1,
-                            padding: 0
-                          }}
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Validation hints */}
-            {!selectedEventId || newGalleryFiles.length === 0 ? (
-              <div style={{ marginBottom: '0.75rem', padding: '0.5rem 0.75rem', backgroundColor: actualTheme === 'dark' ? '#1E293B' : '#FFF7ED', borderRadius: '0.375rem', border: `1px solid ${actualTheme === 'dark' ? '#334155' : '#FED7AA'}` }}>
-                {!selectedEventId && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.8rem', color: actualTheme === 'dark' ? '#FBBF24' : '#B45309', marginBottom: newGalleryFiles.length === 0 ? '0.25rem' : 0 }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <line x1="12" y1="8" x2="12" y2="12"></line>
-                      <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                    </svg>
-                    Please select an event
-                  </div>
-                )}
-                {newGalleryFiles.length === 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.8rem', color: actualTheme === 'dark' ? '#FBBF24' : '#B45309' }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <line x1="12" y1="8" x2="12" y2="12"></line>
-                      <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                    </svg>
-                    Please add at least one image
-                  </div>
-                )}
-              </div>
-            ) : null}
-
-            {/* Error */}
-            {createGalleryError && (
-              <div style={{ color: '#EF4444', fontSize: '0.85rem', marginBottom: '0.75rem', padding: '0.5rem 0.75rem', backgroundColor: '#FEF2F2', borderRadius: '0.375rem' }}>
-                {createGalleryError}
-              </div>
-            )}
-
-            {/* Buttons */}
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
-              <button
-                onClick={() => { setShowCreateGalleryModal(false); setSelectedEventId(''); setNewGalleryTitle(''); setNewGalleryDescription(''); setNewGalleryFiles([]); setCreateGalleryError(null); }}
-                disabled={isCreatingGallery}
-                style={{
-                  flex: 1,
-                  padding: '0.75rem 1rem',
-                  border: `2px solid ${colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
-                  background: colors.bgTertiary,
-                  color: colors.textPrimary,
-                  fontSize: '0.9rem',
-                  fontWeight: '600',
-                  cursor: isCreatingGallery ? 'not-allowed' : 'pointer',
-                  opacity: isCreatingGallery ? 0.6 : 1
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleCreateGallery}
-                disabled={isCreatingGallery || !selectedEventId || newGalleryFiles.length === 0}
-                style={{
-                  flex: 1,
-                  padding: '0.75rem 1rem',
-                  border: '2px solid #c00a72',
-                  borderRadius: '0.5rem',
-                  background: (!selectedEventId || newGalleryFiles.length === 0) ? '#9CA3AF' : '#F20C8F',
-                  color: 'white',
-                  fontSize: '0.9rem',
-                  fontWeight: '600',
-                  cursor: (isCreatingGallery || !selectedEventId || newGalleryFiles.length === 0) ? 'not-allowed' : 'pointer',
-                  opacity: (isCreatingGallery || !selectedEventId || newGalleryFiles.length === 0) ? 0.7 : 1
-                }}
-              >
-                {isCreatingGallery ? 'Creating...' : 'Create Album'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
 
       {/* Setup Wizard Modal - Steps 1 & 2 (Album & Layout selection) */}
       {showSetupWizard && setupStep !== 3 && (
