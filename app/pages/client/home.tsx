@@ -8,6 +8,7 @@ import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
+import { getApiUrl } from '@/lib/api';
 import PayNowModal, { Payment } from '../../components/UnlockModal';
 import {
   StatCard,
@@ -129,13 +130,6 @@ const getTimeOfDay = () => {
   if (hour >= 17 && hour < 21) return 'evening';
   return 'night';
 };
-
-function getApiUrl(): string {
-  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
-    return '/api/proxy';
-  }
-  return process.env.NEXT_PUBLIC_API_URL || 'https://backend.connekyt.com';
-}
 
 interface PendingPayment {
   id: string;

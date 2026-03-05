@@ -7,13 +7,7 @@ import Sidebar from '../components/sidebar';
 import Topbar from '../components/topbar';
 import { useTheme, ThemeMode } from '../context/ThemeContext';
 import { dashboardAuthFetch } from '../providers/AuthProvider';
-
-function getApiUrl(): string {
-  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
-    return '/api/proxy';
-  }
-  return process.env.NEXT_PUBLIC_API_URL || 'https://backend.connekyt.com';
-}
+import { getApiUrl } from '@/lib/api';
 
 // API response type
 interface ApiResponse<T = unknown> {
