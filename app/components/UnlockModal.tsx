@@ -1,11 +1,39 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useTheme } from "../context/ThemeContext";
 import { dashboardAuthFetch } from "../providers/AuthProvider";
 import { useCurrency } from "../context/CurrencyContext";
+
+function getApiUrl(): string {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    return '/api/proxy';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'https://backend.connekyt.com';
+}
+
+type PaymentPercentage = 50 | 75 | 100;
+type PaymentStep = 'percentage' | 'survey' | 'method' | 'receipt';
+
+interface SurveyResponses {
+  attendedAsAgreed: 'yes' | 'no' | null;
+  serviceDelivered: 'yes' | 'partially' | 'no' | null;
+  qualitySatisfaction: 'very_satisfied' | 'satisfied' | 'not_satisfied' | null;
+  deliverablesReceived: 'yes' | 'not_yet' | null;
+  issuesDuringService: string;
+  wouldBookAgain: 'yes' | 'no' | null;
+}
+
+const EMPTY_SURVEY: SurveyResponses = {
+  attendedAsAgreed: null,
+  serviceDelivered: null,
+  qualitySatisfaction: null,
+  deliverablesReceived: null,
+  issuesDuringService: '',
+  wouldBookAgain: null,
+};
 
 // Heart Icon for donate section
 export const HeartIcon = () => (
@@ -124,7 +152,7 @@ const PAYMENT_METHODS: Record<string, { label: string; image: string }> = {
   airtel: { label: 'Airtel Mobile Money', image: '/airtel.png' },
 };
 
-const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) => {
+const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onPaymentSuccess }) => {
   const { colors, actualTheme } = useTheme();
   const router = useRouter();
   const { formatPrice } = useCurrency();
@@ -133,16 +161,81 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
   const [customDonation, setCustomDonation] = useState<string>('');
   const [donationSkipped, setDonationSkipped] = useState<boolean>(false);
   const [showCustomInput, setShowCustomInput] = useState<boolean>(false);
-  const [showReceipt, setShowReceipt] = useState<boolean>(false);
   const [paymentLoading, setPaymentLoading] = useState<boolean>(false);
+
+  const initialStep: PaymentStep = payment?.status === 'failed' ? 'method' : 'percentage';
+  const [step, setStep] = useState<PaymentStep>(initialStep);
+  const [selectedPercentage, setSelectedPercentage] = useState<PaymentPercentage | null>(
+    payment?.status === 'failed' ? 100 : null
+  );
+  const [surveyResponses, setSurveyResponses] = useState<SurveyResponses>({ ...EMPTY_SURVEY });
+  const [surveyCompleted, setSurveyCompleted] = useState(false);
+
+  useEffect(() => {
+    if (payment) {
+      const key = `survey_completed_${payment.declarationId || payment.id}`;
+      setSurveyCompleted(localStorage.getItem(key) === 'true');
+    }
+  }, [payment]);
 
   if (!payment) return null;
 
-  const amountDue = payment.amountNum - payment.paidAmount;
+  const fullAmountDue = payment.amountNum - payment.paidAmount;
+  const amountDue = selectedPercentage
+    ? fullAmountDue * (selectedPercentage / 100)
+    : fullAmountDue;
   const donationValue = donationAmount === 'custom' ? (parseFloat(customDonation) || 0) : (parseFloat(donationAmount) || 0);
   const totalAmount = amountDue + donationValue;
   const donationAddressed = donationSkipped || donationValue > 0;
   const isPayEnabled = donationAddressed;
+
+  const isSurveyComplete = (): boolean => {
+    const r = surveyResponses;
+    return r.attendedAsAgreed !== null && r.serviceDelivered !== null &&
+      r.qualitySatisfaction !== null && r.deliverablesReceived !== null &&
+      r.wouldBookAgain !== null;
+  };
+
+  const hasNegativeResponses = (): boolean => {
+    const r = surveyResponses;
+    return r.attendedAsAgreed === 'no' || r.serviceDelivered === 'no' ||
+      r.qualitySatisfaction === 'not_satisfied' || r.deliverablesReceived === 'not_yet' ||
+      r.wouldBookAgain === 'no';
+  };
+
+  const handlePercentageContinue = () => {
+    if (selectedPercentage === 100 && !surveyCompleted) {
+      setStep('survey');
+    } else {
+      setStep('method');
+    }
+  };
+
+  const handleSurveySubmit = async () => {
+    const paymentKey = String(payment.declarationId || payment.id);
+    const surveyData = {
+      paymentId: paymentKey,
+      responses: surveyResponses,
+      hasDispute: hasNegativeResponses(),
+      submittedAt: new Date().toISOString(),
+    };
+    localStorage.setItem(`survey_completed_${paymentKey}`, 'true');
+    localStorage.setItem(`survey_data_${paymentKey}`, JSON.stringify(surveyData));
+    setSurveyCompleted(true);
+
+    try {
+      const apiUrl = getApiUrl();
+      await dashboardAuthFetch(`${apiUrl}/api/remote/payments/${paymentKey}/survey`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(surveyData),
+      });
+      localStorage.removeItem(`survey_data_${paymentKey}`);
+    } catch {
+      // Stored locally for retry
+    }
+    setStep('method');
+  };
 
   const handleSelectDonation = (amount: string) => {
     setDonationSkipped(false);
@@ -164,12 +257,298 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
   };
 
   const handleClose = () => {
-    setShowReceipt(false);
+    setStep(payment?.status === 'failed' ? 'method' : 'percentage');
+    setSelectedPercentage(payment?.status === 'failed' ? 100 : null);
+    setSurveyResponses({ ...EMPTY_SURVEY });
     onClose();
   };
 
-  // Receipt View (Phase 2)
-  if (showReceipt) {
+  // ==================== STEP: PERCENTAGE ====================
+  if (step === 'percentage') {
+    const percentageOptions: { value: PaymentPercentage; label: string; isEscrow: boolean }[] = [
+      { value: 50, label: '50%', isEscrow: true },
+      { value: 75, label: '75%', isEscrow: true },
+      { value: 100, label: '100%', isEscrow: false },
+    ];
+
+    return (
+      <Modal isOpen={isOpen} onClose={handleClose} title="Select Payment Amount" maxWidth="450px">
+        <div>
+          <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>
+            How much would you like to pay?
+          </label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.25rem' }}>
+            {percentageOptions.map((opt) => {
+              const isSelected = selectedPercentage === opt.value;
+              const is100Locked = opt.value === 100 && !surveyCompleted;
+              const calcAmount = fullAmountDue * (opt.value / 100);
+
+              return (
+                <div
+                  key={opt.value}
+                  onClick={() => { if (!is100Locked) setSelectedPercentage(opt.value); }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem',
+                    padding: '1rem',
+                    border: isSelected ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                    borderRadius: '0.75rem',
+                    cursor: is100Locked ? 'not-allowed' : 'pointer',
+                    backgroundColor: is100Locked
+                      ? (actualTheme === 'dark' ? 'rgba(107, 114, 128, 0.1)' : '#F9FAFB')
+                      : isSelected
+                        ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF')
+                        : colors.bgCard,
+                    opacity: is100Locked ? 0.6 : 1,
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                      <span style={{ fontSize: '1rem', fontWeight: '700', color: is100Locked ? colors.textSecondary : colors.textPrimary }}>
+                        {opt.label}
+                      </span>
+                      <span style={{
+                        fontSize: '0.7rem',
+                        fontWeight: '600',
+                        padding: '0.15rem 0.5rem',
+                        borderRadius: '9999px',
+                        backgroundColor: opt.isEscrow ? '#FEF3C7' : '#D1FAE5',
+                        color: opt.isEscrow ? '#92400E' : '#065F46',
+                      }}>
+                        {opt.isEscrow ? 'Escrow' : 'Direct'}
+                      </span>
+                      {is100Locked && (
+                        <i className="bi bi-lock-fill" style={{ fontSize: '0.85rem', color: colors.textSecondary }} />
+                      )}
+                    </div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: '600', color: is100Locked ? colors.textSecondary : (actualTheme === 'dark' ? '#60A5FA' : '#083A85') }}>
+                      {formatPrice(calcAmount)}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginTop: '0.2rem' }}>
+                      {is100Locked
+                        ? 'Complete satisfaction survey to unlock'
+                        : opt.isEscrow
+                          ? 'Held by platform until you confirm satisfaction'
+                          : 'Released directly to photographer'}
+                    </div>
+                  </div>
+                  <div style={{
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '50%',
+                    border: isSelected ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                    backgroundColor: colors.bgCard,
+                    flexShrink: 0,
+                  }} />
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Info box */}
+          {selectedPercentage && selectedPercentage < 100 && (
+            <div style={{
+              backgroundColor: actualTheme === 'dark' ? 'rgba(59, 130, 246, 0.1)' : '#EFF6FF',
+              border: `1px solid ${actualTheme === 'dark' ? 'rgba(59, 130, 246, 0.3)' : '#BFDBFE'}`,
+              borderRadius: '0.5rem',
+              padding: '0.75rem 1rem',
+              marginBottom: '1rem',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '0.5rem',
+            }}>
+              <i className="bi bi-info-circle-fill" style={{ color: '#3B82F6', fontSize: '0.9rem', marginTop: '0.1rem' }} />
+              <span style={{ fontSize: '0.8rem', color: actualTheme === 'dark' ? '#93C5FD' : '#1E40AF', lineHeight: '1.4' }}>
+                Remaining balance of {formatPrice(fullAmountDue - fullAmountDue * (selectedPercentage / 100))} will be due after service completion. Escrowed funds are released when you confirm satisfaction.
+              </span>
+            </div>
+          )}
+
+          {selectedPercentage === 100 && (
+            <div style={{
+              backgroundColor: actualTheme === 'dark' ? 'rgba(16, 185, 129, 0.1)' : '#ECFDF5',
+              border: `1px solid ${actualTheme === 'dark' ? 'rgba(16, 185, 129, 0.3)' : '#A7F3D0'}`,
+              borderRadius: '0.5rem',
+              padding: '0.75rem 1rem',
+              marginBottom: '1rem',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '0.5rem',
+            }}>
+              <i className="bi bi-check-circle-fill" style={{ color: '#10B981', fontSize: '0.9rem', marginTop: '0.1rem' }} />
+              <span style={{ fontSize: '0.8rem', color: actualTheme === 'dark' ? '#6EE7B7' : '#065F46', lineHeight: '1.4' }}>
+                Full payment will be released directly to the photographer.
+              </span>
+            </div>
+          )}
+
+          {/* Footer buttons */}
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <button onClick={handleClose} style={{
+              flex: 1, padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem',
+              background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer'
+            }}>Cancel</button>
+            <button
+              disabled={!selectedPercentage}
+              onClick={handlePercentageContinue}
+              style={{
+                flex: 1, padding: '0.75rem 1rem',
+                border: !selectedPercentage ? '2px solid #9CA3AF' : '2px solid #062a63',
+                borderRadius: '0.5rem', background: !selectedPercentage ? '#9CA3AF' : '#083A85',
+                color: 'white', fontSize: '0.9rem', fontWeight: '600',
+                cursor: !selectedPercentage ? 'not-allowed' : 'pointer', opacity: !selectedPercentage ? 0.7 : 1,
+                transition: 'all 0.2s'
+              }}
+            >Continue</button>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
+
+  // ==================== STEP: SURVEY ====================
+  if (step === 'survey') {
+    const surveyOptionStyle = (isSelected: boolean) => ({
+      padding: '0.45rem 0.85rem',
+      border: isSelected ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+      borderRadius: '0.5rem',
+      background: isSelected ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
+      color: isSelected ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.textSecondary,
+      fontSize: '0.8rem',
+      fontWeight: '600' as const,
+      cursor: 'pointer',
+      transition: 'all 0.2s',
+    });
+
+    return (
+      <Modal isOpen={isOpen} onClose={handleClose} title="Service Confirmation" maxWidth="520px">
+        <div>
+          <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0 0 1rem 0', lineHeight: '1.4' }}>
+            Please complete this survey before making a full (100%) payment. Your feedback helps ensure service quality.
+          </p>
+
+          {/* Q1 */}
+          <div style={{ marginBottom: '1rem', padding: '0.75rem', borderRadius: '0.5rem', border: `1px solid ${surveyResponses.attendedAsAgreed ? '#083A85' : colors.borderPrimary}`, transition: 'border-color 0.2s' }}>
+            <p style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
+              1. Did the photographer attend the event as agreed?
+            </p>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button onClick={() => setSurveyResponses(p => ({ ...p, attendedAsAgreed: 'yes' }))} style={surveyOptionStyle(surveyResponses.attendedAsAgreed === 'yes')}>Yes</button>
+              <button onClick={() => setSurveyResponses(p => ({ ...p, attendedAsAgreed: 'no' }))} style={surveyOptionStyle(surveyResponses.attendedAsAgreed === 'no')}>No</button>
+            </div>
+          </div>
+
+          {/* Q2 */}
+          <div style={{ marginBottom: '1rem', padding: '0.75rem', borderRadius: '0.5rem', border: `1px solid ${surveyResponses.serviceDelivered ? '#083A85' : colors.borderPrimary}`, transition: 'border-color 0.2s' }}>
+            <p style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
+              2. Was the service delivered as expected?
+            </p>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button onClick={() => setSurveyResponses(p => ({ ...p, serviceDelivered: 'yes' }))} style={surveyOptionStyle(surveyResponses.serviceDelivered === 'yes')}>Yes</button>
+              <button onClick={() => setSurveyResponses(p => ({ ...p, serviceDelivered: 'partially' }))} style={surveyOptionStyle(surveyResponses.serviceDelivered === 'partially')}>Partially</button>
+              <button onClick={() => setSurveyResponses(p => ({ ...p, serviceDelivered: 'no' }))} style={surveyOptionStyle(surveyResponses.serviceDelivered === 'no')}>No</button>
+            </div>
+          </div>
+
+          {/* Q3 */}
+          <div style={{ marginBottom: '1rem', padding: '0.75rem', borderRadius: '0.5rem', border: `1px solid ${surveyResponses.qualitySatisfaction ? '#083A85' : colors.borderPrimary}`, transition: 'border-color 0.2s' }}>
+            <p style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
+              3. Are you satisfied with the quality of service?
+            </p>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button onClick={() => setSurveyResponses(p => ({ ...p, qualitySatisfaction: 'very_satisfied' }))} style={surveyOptionStyle(surveyResponses.qualitySatisfaction === 'very_satisfied')}>Very Satisfied</button>
+              <button onClick={() => setSurveyResponses(p => ({ ...p, qualitySatisfaction: 'satisfied' }))} style={surveyOptionStyle(surveyResponses.qualitySatisfaction === 'satisfied')}>Satisfied</button>
+              <button onClick={() => setSurveyResponses(p => ({ ...p, qualitySatisfaction: 'not_satisfied' }))} style={surveyOptionStyle(surveyResponses.qualitySatisfaction === 'not_satisfied')}>Not Satisfied</button>
+            </div>
+          </div>
+
+          {/* Q4 */}
+          <div style={{ marginBottom: '1rem', padding: '0.75rem', borderRadius: '0.5rem', border: `1px solid ${surveyResponses.deliverablesReceived ? '#083A85' : colors.borderPrimary}`, transition: 'border-color 0.2s' }}>
+            <p style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
+              4. Have you received the agreed deliverables (photos/videos)?
+            </p>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button onClick={() => setSurveyResponses(p => ({ ...p, deliverablesReceived: 'yes' }))} style={surveyOptionStyle(surveyResponses.deliverablesReceived === 'yes')}>Yes</button>
+              <button onClick={() => setSurveyResponses(p => ({ ...p, deliverablesReceived: 'not_yet' }))} style={surveyOptionStyle(surveyResponses.deliverablesReceived === 'not_yet')}>Not Yet</button>
+            </div>
+          </div>
+
+          {/* Q5 */}
+          <div style={{ marginBottom: '1rem', padding: '0.75rem', borderRadius: '0.5rem', border: `1px solid ${colors.borderPrimary}` }}>
+            <p style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
+              5. Were there any issues during the service? <span style={{ fontWeight: '400', color: colors.textSecondary }}>(Optional)</span>
+            </p>
+            <textarea
+              placeholder="Describe any issues..."
+              value={surveyResponses.issuesDuringService}
+              onChange={(e) => setSurveyResponses(p => ({ ...p, issuesDuringService: e.target.value }))}
+              style={{
+                width: '100%', minHeight: '60px', padding: '0.5rem 0.75rem',
+                border: `1px solid ${colors.borderPrimary}`, borderRadius: '0.375rem',
+                fontSize: '0.85rem', color: colors.textPrimary, backgroundColor: colors.bgCard,
+                outline: 'none', resize: 'vertical', boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          {/* Q6 */}
+          <div style={{ marginBottom: '1rem', padding: '0.75rem', borderRadius: '0.5rem', border: `1px solid ${surveyResponses.wouldBookAgain ? '#083A85' : colors.borderPrimary}`, transition: 'border-color 0.2s' }}>
+            <p style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
+              6. Would you book this photographer again?
+            </p>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button onClick={() => setSurveyResponses(p => ({ ...p, wouldBookAgain: 'yes' }))} style={surveyOptionStyle(surveyResponses.wouldBookAgain === 'yes')}>Yes</button>
+              <button onClick={() => setSurveyResponses(p => ({ ...p, wouldBookAgain: 'no' }))} style={surveyOptionStyle(surveyResponses.wouldBookAgain === 'no')}>No</button>
+            </div>
+          </div>
+
+          {/* Dispute warning */}
+          {hasNegativeResponses() && (
+            <div style={{
+              backgroundColor: actualTheme === 'dark' ? 'rgba(245, 158, 11, 0.1)' : '#FFFBEB',
+              border: `1px solid ${actualTheme === 'dark' ? 'rgba(245, 158, 11, 0.3)' : '#FDE68A'}`,
+              borderRadius: '0.5rem',
+              padding: '0.75rem 1rem',
+              marginBottom: '1rem',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '0.5rem',
+            }}>
+              <i className="bi bi-exclamation-triangle-fill" style={{ color: '#F59E0B', fontSize: '0.9rem', marginTop: '0.1rem' }} />
+              <span style={{ fontSize: '0.8rem', color: actualTheme === 'dark' ? '#FCD34D' : '#92400E', lineHeight: '1.4' }}>
+                Your responses indicate potential issues. A review flag will be created for this booking.
+              </span>
+            </div>
+          )}
+
+          {/* Footer buttons */}
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <button onClick={() => setStep('percentage')} style={{
+              flex: 1, padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem',
+              background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer'
+            }}>Back</button>
+            <button
+              disabled={!isSurveyComplete()}
+              onClick={handleSurveySubmit}
+              style={{
+                flex: 1, padding: '0.75rem 1rem',
+                border: !isSurveyComplete() ? '2px solid #9CA3AF' : '2px solid #062a63',
+                borderRadius: '0.5rem', background: !isSurveyComplete() ? '#9CA3AF' : '#083A85',
+                color: 'white', fontSize: '0.9rem', fontWeight: '600',
+                cursor: !isSurveyComplete() ? 'not-allowed' : 'pointer', opacity: !isSurveyComplete() ? 0.7 : 1,
+                transition: 'all 0.2s'
+              }}
+            >Submit & Continue</button>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
+
+  // ==================== STEP: RECEIPT ====================
+  if (step === 'receipt') {
     const methodInfo = PAYMENT_METHODS[selectedPaymentMethod] || PAYMENT_METHODS.card;
 
     return (
@@ -183,25 +562,35 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
             marginBottom: '1.25rem',
             border: `2px solid ${colors.borderPrimary}`
           }}>
-            {/* Event */}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
               <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Event</span>
               <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, textAlign: 'right', maxWidth: '60%' }}>{payment.eventName}</span>
             </div>
-            {/* Photographer */}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
               <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Photographer</span>
               <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{payment.photographerName}</span>
             </div>
-            {/* Date */}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
               <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Date</span>
               <span style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>{payment.date}</span>
             </div>
-            {/* Invoice */}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
               <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Invoice</span>
               <span style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>{payment.invoiceNumber}</span>
+            </div>
+            {/* Payment Type */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+              <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Payment Type</span>
+              <span style={{
+                fontSize: '0.75rem',
+                fontWeight: '600',
+                padding: '0.2rem 0.6rem',
+                borderRadius: '9999px',
+                backgroundColor: selectedPercentage === 100 ? '#D1FAE5' : '#FEF3C7',
+                color: selectedPercentage === 100 ? '#065F46' : '#92400E',
+              }}>
+                {selectedPercentage}% - {selectedPercentage === 100 ? 'Direct' : 'Escrow'}
+              </span>
             </div>
             {/* Payment Method */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
@@ -221,15 +610,21 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
               </div>
             </div>
 
-            {/* Divider */}
             <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, margin: '0.75rem 0' }} />
 
             {/* Amount Due */}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-              <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>Amount Due</span>
+              <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>Amount Due ({selectedPercentage}%)</span>
               <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(amountDue)}</span>
             </div>
-            {/* Donation (if any) */}
+            {/* Remaining Balance (for < 100%) */}
+            {selectedPercentage && selectedPercentage < 100 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textSecondary }}>Remaining</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textSecondary }}>{formatPrice(fullAmountDue - amountDue)}</span>
+              </div>
+            )}
+            {/* Donation */}
             {donationValue > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
@@ -240,7 +635,6 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
               </div>
             )}
 
-            {/* Divider */}
             <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, margin: '0.75rem 0' }} />
 
             {/* Total */}
@@ -252,39 +646,75 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
             </div>
           </div>
 
+          {/* Escrow notice */}
+          {selectedPercentage && selectedPercentage < 100 && (
+            <div style={{
+              backgroundColor: actualTheme === 'dark' ? 'rgba(59, 130, 246, 0.1)' : '#EFF6FF',
+              border: `1px solid ${actualTheme === 'dark' ? 'rgba(59, 130, 246, 0.3)' : '#BFDBFE'}`,
+              borderRadius: '0.5rem',
+              padding: '0.75rem 1rem',
+              marginBottom: '1rem',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '0.5rem',
+            }}>
+              <i className="bi bi-shield-check" style={{ color: '#3B82F6', fontSize: '0.9rem', marginTop: '0.1rem' }} />
+              <span style={{ fontSize: '0.8rem', color: actualTheme === 'dark' ? '#93C5FD' : '#1E40AF', lineHeight: '1.4' }}>
+                This payment will be held in escrow and released to the photographer once you confirm satisfaction.
+              </span>
+            </div>
+          )}
+
           {/* Actions */}
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
             <button
-              onClick={() => setShowReceipt(false)}
+              onClick={() => setStep('method')}
+              disabled={paymentLoading}
               style={{
-                flex: 1,
-                padding: '0.75rem 1rem',
-                border: `2px solid ${colors.borderPrimary}`,
-                borderRadius: '0.5rem',
-                background: colors.bgTertiary,
-                color: colors.textPrimary,
-                fontSize: '0.9rem',
-                fontWeight: '600',
-                cursor: 'pointer'
+                flex: 1, padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem',
+                background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600',
+                cursor: paymentLoading ? 'not-allowed' : 'pointer',
               }}
-            >
-              Cancel
-            </button>
+            >Cancel</button>
             <button
+              disabled={paymentLoading}
+              onClick={async () => {
+                setPaymentLoading(true);
+                try {
+                  const apiUrl = getApiUrl();
+                  const res = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/payments/pay`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      declarationId: String(payment.declarationId || payment.id),
+                      amount: totalAmount,
+                      method: selectedPaymentMethod,
+                      donationAmount: donationValue > 0 ? donationValue : undefined,
+                    }),
+                  });
+                  if (res.ok) {
+                    handleClose();
+                    onPaymentSuccess?.();
+                  } else {
+                    const data = await res.json().catch(() => ({}));
+                    alert(data.message || 'Payment failed. Please try again.');
+                  }
+                } catch {
+                  alert('Payment failed. Please try again.');
+                } finally {
+                  setPaymentLoading(false);
+                }
+              }}
               style={{
-                flex: 1,
-                padding: '0.75rem 1rem',
+                flex: 1, padding: '0.75rem 1rem',
                 border: payment.status === 'failed' ? '2px solid #c00a72' : '2px solid #062a63',
                 borderRadius: '0.5rem',
-                background: payment.status === 'failed' ? '#F20C8F' : '#083A85',
-                color: 'white',
-                fontSize: '0.9rem',
-                fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
+                background: paymentLoading ? '#9CA3AF' : (payment.status === 'failed' ? '#F20C8F' : '#083A85'),
+                color: 'white', fontSize: '0.9rem', fontWeight: '600',
+                cursor: paymentLoading ? 'not-allowed' : 'pointer', transition: 'all 0.2s'
               }}
             >
-              {payment.status === 'failed' ? 'Retry' : 'Pay'} {formatPrice(totalAmount)}
+              {paymentLoading ? 'Processing...' : `${payment.status === 'failed' ? 'Retry' : 'Pay'} ${formatPrice(totalAmount)}`}
             </button>
           </div>
         </div>
@@ -292,7 +722,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
     );
   }
 
-  // Selection View (Phase 1)
+  // ==================== STEP: METHOD (Payment Method + Donation) ====================
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title={payment.status === 'failed' ? 'Retry Payment' : 'Complete Payment'} maxWidth="450px">
       <div>
@@ -549,7 +979,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
             {donationSkipped ? '✓ Donation skipped' : 'No thanks, skip donation'}
           </button>
 
-          {/* Donations Page Link — opens on the public platform */}
+          {/* Donations Page Link */}
           <div style={{ marginTop: '0.5rem' }}>
             <a
               href={`${process.env.NEXT_PUBLIC_LANDING_URL || 'https://amoria-connekt.vercel.app'}/user/donations`}
@@ -582,7 +1012,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
         {/* Actions */}
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           <button
-            onClick={handleClose}
+            onClick={() => setStep('percentage')}
             style={{
               flex: 1,
               padding: '0.75rem 1rem',
@@ -596,11 +1026,11 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
               opacity: paymentLoading ? 0.6 : 1,
             }}
           >
-            Cancel
+            Back
           </button>
           <button
             disabled={!isPayEnabled}
-            onClick={() => setShowReceipt(true)}
+            onClick={() => setStep('receipt')}
             style={{
               flex: 1,
               padding: '0.75rem 1rem',

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101/';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend.connekyt.com/';
 
 type RouteContext = {
   params: Promise<{ path: string[] }>;
