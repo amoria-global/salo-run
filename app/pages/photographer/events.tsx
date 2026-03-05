@@ -7,13 +7,8 @@ import Image from 'next/image';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
-
-function getApiUrl(): string {
-  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
-    return '/api/proxy';
-  }
-  return process.env.NEXT_PUBLIC_API_URL || 'https://backend.connekyt.com';
-}
+import { getApiUrl } from '@/lib/api';
+import { getFindMyPhotosLink } from '@/lib/urls';
 
 // ============================================
 // ICONS
@@ -1567,8 +1562,8 @@ const PhotographerEventsPage = () => {
             <div style={{ marginBottom: '1.25rem' }}>
               <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Find-My-Photos Link</label>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <input readOnly value={`${process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekt.rw'}/find-my-photos?code=${selectedAlbum.inviteCode}`} style={{ ...inputStyle, flex: 1, fontSize: '0.8rem' }} />
-                <button onClick={() => handleCopyLink(`${process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekt.rw'}/find-my-photos?code=${selectedAlbum.inviteCode}`)} style={smallActionBtn}>{copiedLink ? 'Copied!' : <><CopyIcon /> Copy</>}</button>
+                <input readOnly value={getFindMyPhotosLink(selectedAlbum.inviteCode || '')} style={{ ...inputStyle, flex: 1, fontSize: '0.8rem' }} />
+                <button onClick={() => handleCopyLink(getFindMyPhotosLink(selectedAlbum.inviteCode || ''))} style={smallActionBtn}>{copiedLink ? 'Copied!' : <><CopyIcon /> Copy</>}</button>
               </div>
             </div>
             {/* Upload Button */}

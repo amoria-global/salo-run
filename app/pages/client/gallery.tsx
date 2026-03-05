@@ -13,6 +13,8 @@ import { useCurrency } from '@/app/context/CurrencyContext';
 
 import { Unlock } from 'lucide-react';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
+import { getApiUrl } from '@/lib/api';
+import { getGalleryShareLink } from '@/lib/urls';
 
 type PaymentStatus = 'paid' | 'pending' | 'failed' | 'refunded' | 'partially_paid';
 
@@ -29,13 +31,6 @@ interface Payment {
   paidAmount: number;
   status: PaymentStatus;
   invoiceNumber: string;
-}
-
-function getApiUrl(): string {
-  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
-    return '/api/proxy';
-  }
-  return process.env.NEXT_PUBLIC_API_URL || 'https://backend.connekyt.com';
 }
 
 // Icons
@@ -798,7 +793,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   };
 
   const getShareLink = (album: any) => {
-    return `https://connekt.com/gallery/${album.id}`;
+    return getGalleryShareLink(album.id);
   };
 
   const handleCopyLink = (link: string) => {
