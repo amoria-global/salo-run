@@ -134,7 +134,16 @@
       "Bash(echo \"=== PUT chat/messages/$FAKE_ID ===\")",
       "Bash(echo \"=== PUT photographer/plans/$FAKE_ID ===\")",
       "Bash(echo \"=== PUT customer/galleries/$FAKE_ID \\(photographer/events.tsx\\) ===\")",
-      "Bash(__NEW_LINE_0bf7ce0a8d99dabe__ echo \"=== GET coordinator/notifications \\(sanity check\\) ===\")"
+      "Bash(__NEW_LINE_0bf7ce0a8d99dabe__ echo \"=== GET coordinator/notifications \\(sanity check\\) ===\")",
+      "WebFetch(domain:197.243.24.101)",
+      "Bash(npx next lint:*)",
+      "Bash(node:*)",
+      "Bash(npm --version:*)",
+      "Bash(/home/joseph/Desktop/codereveur/connekt/dashboard/node_modules/.bin/next build:*)",
+      "Bash(export PATH=\"/home/joseph/.nvm/versions/node/v20.19.6/bin:$PATH\")",
+      "Bash(export PATH=\"/home/joseph/.nvm/versions/node/v20.19.6/bin:$PATH:/usr/bin\")",
+      "Bash(/usr/bin/head:*)",
+      "Bash(/usr/bin/tail:*)"
     ],
     "deny": [],
     "ask": []
