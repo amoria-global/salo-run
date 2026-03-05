@@ -8,6 +8,8 @@ import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
+import { getApiUrl } from '@/lib/api';
+import { getLandingUrl, getEventShareLink, getPhotographerRegisterLink } from '@/lib/urls';
 
 // Configure localforage for event form data
 const eventFormStorage = localforage.createInstance({
@@ -53,14 +55,6 @@ const fallbackCurrencyOptions = [
   { value: 'UGX', label: 'UGX' },
   { value: 'TZS', label: 'TZS' }
 ];
-
-// API URL helper
-function getApiUrl(): string {
-  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
-    return '/api/proxy';
-  }
-  return process.env.NEXT_PUBLIC_API_URL || 'https://backend.connekyt.com';
-}
 
 function parseTimeToApiString(timeStr: string): string {
   const [hours, minutes] = timeStr.split(':').map(Number);
@@ -718,7 +712,7 @@ const MyEventsPage = () => {
             photographerName: (evt.photographerName as string) || '',
             photographerImage: (evt.photographerImage as string) || '',
             inviteCode: (evt.inviteCode as string) || (evt.hostId as string) || '',
-            shareLink: `${process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekt.app'}/user/event/${evt.id}`,
+            shareLink: getEventShareLink(evt.id as string),
             createdAt: (evt.createdAt as string) || '',
           };
         });
@@ -1180,7 +1174,7 @@ const MyEventsPage = () => {
         hasPhotographer: !!selectedPhotographer,
         photographerName: selectedPhotographer?.name,
         photographerImage: selectedPhotographer?.image,
-        shareLink: `${process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekt.app'}/user/event/evt_${Date.now()}`,
+        shareLink: getEventShareLink(`evt_${Date.now()}`),
         createdAt: new Date().toISOString().split('T')[0]
       };
 
@@ -2099,7 +2093,7 @@ const MyEventsPage = () => {
                     <input
                       type="text"
                       readOnly
-                      value="https://connekt.rw/register/photographer?ref=invite"
+                      value={getPhotographerRegisterLink()}
                       style={{
                         flex: 1,
                         padding: '0.625rem 0.75rem',
@@ -2113,7 +2107,7 @@ const MyEventsPage = () => {
                     />
                     <button
                       onClick={() => {
-                        navigator.clipboard.writeText('https://connekt.rw/register/photographer?ref=invite');
+                        navigator.clipboard.writeText(getPhotographerRegisterLink());
                         setInviteLinkCopied(true);
                         setTimeout(() => setInviteLinkCopied(false), 2000);
                       }}
@@ -2270,8 +2264,7 @@ const MyEventsPage = () => {
               </button>
               <button
                 onClick={() => {
-                  const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL || 'http://localhost:3000';
-                  window.open(`${landingUrl}/user/photographers`, '_blank');
+                  window.open(`${getLandingUrl()}/user/photographers`, '_blank');
                   setShowFindPhotographerModal(false);
                 }}
                 style={{

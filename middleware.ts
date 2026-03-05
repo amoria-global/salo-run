@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { getLandingUrl } from '@/lib/urls';
 
 /**
  * Dashboard middleware for route protection
@@ -52,8 +53,7 @@ export function middleware(request: NextRequest) {
 
   // If no token at all on protected routes, redirect to home app login
   if (!hasToken && pathname.startsWith('/user')) {
-    const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL || 'http://localhost:3000';
-    const loginUrl = new URL(`${landingUrl}/user/auth/login`);
+    const loginUrl = new URL(`${getLandingUrl()}/user/auth/login`);
 
     // Add return URL so user can be redirected back after login
     loginUrl.searchParams.set('returnUrl', request.nextUrl.href);
@@ -66,8 +66,7 @@ export function middleware(request: NextRequest) {
 
   // Defensive guard: If we have a role but no token, clear the role cookie to force re-auth
   if (userRole && !hasToken && pathname.startsWith('/user/')) {
-    const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL || 'http://localhost:3000';
-    const loginUrl = new URL(`${landingUrl}/user/auth/login`, request.url);
+    const loginUrl = new URL(`${getLandingUrl()}/user/auth/login`, request.url);
     loginUrl.searchParams.set('returnUrl', request.nextUrl.href);
 
     const response = NextResponse.redirect(loginUrl);

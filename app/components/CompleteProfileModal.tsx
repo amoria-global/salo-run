@@ -4,17 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useDashboardAuth } from '../providers/AuthProvider';
 
-// API helpers
-function getApiUrl(): string {
-  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
-    return '/api/proxy';
-  }
-  return process.env.NEXT_PUBLIC_API_URL || 'https://backend.connekyt.com';
-}
-
-function getApiKey(): string {
-  return process.env.NEXT_PUBLIC_API_KEY || '';
-}
+import { getApiUrl, getApiKey } from '@/lib/api';
 
 interface CompleteProfileModalProps {
   isOpen: boolean;

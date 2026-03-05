@@ -2,6 +2,8 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams, usePathname } from 'next/navigation';
+import { getApiUrl, getApiKey } from '@/lib/api';
+import { getLandingUrl, getLoginUrl } from '@/lib/urls';
 
 /**
  * Availability time structure from API
@@ -138,7 +140,7 @@ function normalizeImageUrl(url: string | undefined | null): string | undefined {
   // Backend returns http://host/uploads/null when no image is set — treat as no image
   if (url.includes('/null')) return undefined;
   if (typeof window === 'undefined') return url;
-  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://backend.connekyt.com';
+  const apiBase = process.env.NEXT_PUBLIC_API_URL as string;
   // Only rewrite if the URL points to the backend and we're on a different origin (production)
   if (url.startsWith(apiBase) && window.location.origin !== apiBase) {
     return url.replace(apiBase, '/api/proxy');
@@ -206,23 +208,6 @@ function clearAuthFromStorage(): void {
   }
 }
 
-/**
- * Get API URL
- */
-function getApiUrl(): string {
-  // In production (Vercel), use the proxy to avoid mixed content
-  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
-    return '/api/proxy';
-  }
-  return process.env.NEXT_PUBLIC_API_URL || 'https://backend.connekyt.com';
-}
-
-/**
- * Get API key
- */
-function getApiKey(): string {
-  return process.env.NEXT_PUBLIC_API_KEY || '';
-}
 
 /**
  * Get token from cookie
@@ -439,9 +424,7 @@ async function fetchUserProfile(token: string): Promise<DashboardUser | null> {
       // Refresh failed — redirect to login
       console.log('[Dashboard Auth] Token refresh failed, redirecting to login');
       if (typeof window !== 'undefined') {
-        const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL || 'http://localhost:3000';
-        const loginUrl = `${landingUrl}/user/auth/login?session_expired=true`;
-        window.location.href = loginUrl;
+        window.location.href = getLoginUrl({ sessionExpired: true });
       }
       return null;
     }
@@ -660,7 +643,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     setIsLoggingOut(true);
 
     if (typeof window !== 'undefined') {
-      const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL || 'http://localhost:3000';
+      const landingUrl = getLandingUrl();
 
       // Notify the landing page via postMessage (works when opened as a popup)
       if (window.opener && !window.opener.closed) {
