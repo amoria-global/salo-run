@@ -138,7 +138,7 @@ function normalizeImageUrl(url: string | undefined | null): string | undefined {
   // Backend returns http://host/uploads/null when no image is set — treat as no image
   if (url.includes('/null')) return undefined;
   if (typeof window === 'undefined') return url;
-  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://backend.connekyt.com';
   // Only rewrite if the URL points to the backend and we're on a different origin (production)
   if (url.startsWith(apiBase) && window.location.origin !== apiBase) {
     return url.replace(apiBase, '/api/proxy');
@@ -214,7 +214,7 @@ function getApiUrl(): string {
   if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
     return '/api/proxy';
   }
-  return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+  return process.env.NEXT_PUBLIC_API_URL || 'https://backend.connekyt.com';
 }
 
 /**
