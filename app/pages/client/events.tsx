@@ -8,13 +8,8 @@ import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
-
-function getApiUrl(): string {
-  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
-    return '/api/proxy';
-  }
-  return process.env.NEXT_PUBLIC_API_URL || 'https://backend.connekyt.com';
-}
+import { getApiUrl } from '@/lib/api';
+import { getLandingUrl, getEventShareLink } from '@/lib/urls';
 
 function parseTimeToApiString(timeStr: string): string {
   const [hours, minutes] = timeStr.split(':').map(Number);
@@ -684,11 +679,7 @@ const MyEventsPage = () => {
             photographerName: (evt.photographerName as string) || '',
             photographerImage: (evt.photographerImage as string) || '',
             inviteCode: (evt.inviteCode as string) || (evt.hostId as string) || '',
-            shareLink: (() => {
-              const base = `${process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekt.app'}/user/event/${evt.id}`;
-              const code = (evt.inviteCode as string) || (evt.hostId as string) || '';
-              return code ? `${base}?hostId=${code}` : base;
-            })(),
+            shareLink: getEventShareLink(evt.id as string, (evt.inviteCode as string) || (evt.hostId as string) || ''),
             createdAt: (evt.createdAt as string) || '',
           };
         });
@@ -1154,7 +1145,7 @@ const MyEventsPage = () => {
         hasPhotographer: !!selectedPhotographer,
         photographerName: selectedPhotographer?.name,
         photographerImage: selectedPhotographer?.image,
-        shareLink: `${process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekt.app'}/user/event/${backendEventId || `evt_${Date.now()}`}`,
+        shareLink: getEventShareLink(backendEventId || `evt_${Date.now()}`),
         createdAt: new Date().toISOString().split('T')[0]
       };
 
@@ -2083,8 +2074,7 @@ const MyEventsPage = () => {
               </button>
               <button
                 onClick={() => {
-                  const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL || 'http://localhost:3000';
-                  window.open(`${landingUrl}/user/photographers`, '_blank');
+                  window.open(`${getLandingUrl()}/user/photographers`, '_blank');
                   setShowFindPhotographerModal(false);
                 }}
                 style={{

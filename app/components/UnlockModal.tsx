@@ -7,12 +7,8 @@ import { useTheme } from "../context/ThemeContext";
 import { dashboardAuthFetch } from "../providers/AuthProvider";
 import { useCurrency } from "../context/CurrencyContext";
 
-function getApiUrl(): string {
-  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
-    return '/api/proxy';
-  }
-  return process.env.NEXT_PUBLIC_API_URL || 'https://backend.connekyt.com';
-}
+import { getApiUrl } from '@/lib/api';
+import { getDonationsPageUrl } from '@/lib/urls';
 
 type PaymentPercentage = 50 | 75 | 100;
 type PaymentStep = 'percentage' | 'survey' | 'method' | 'receipt';
@@ -982,7 +978,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
           {/* Donations Page Link */}
           <div style={{ marginTop: '0.5rem' }}>
             <a
-              href={`${process.env.NEXT_PUBLIC_LANDING_URL || 'https://amoria-connekt.vercel.app'}/user/donations`}
+              href={getDonationsPageUrl()}
               target="_blank"
               rel="noopener noreferrer"
               style={{

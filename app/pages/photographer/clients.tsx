@@ -8,18 +8,7 @@ import Link from 'next/link';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
-
-// API helpers
-function getApiUrl(): string {
-  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
-    return '/api/proxy';
-  }
-  return process.env.NEXT_PUBLIC_API_URL || 'https://backend.connekyt.com';
-}
-
-function getApiKey(): string {
-  return process.env.NEXT_PUBLIC_API_KEY || '';
-}
+import { getApiUrl, getApiKey } from '@/lib/api';
 
 // Icons
 const SearchIcon = () => (

@@ -9,13 +9,8 @@ import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
 import { HeartIcon } from '../../components/UnlockModal';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
-
-function getApiUrl(): string {
-  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
-    return '/api/proxy';
-  }
-  return process.env.NEXT_PUBLIC_API_URL || 'https://backend.connekyt.com';
-}
+import { getApiUrl } from '@/lib/api';
+import { getDonationsPageUrl } from '@/lib/urls';
 
 // Icons
 const DownloadIcon = () => (
@@ -1119,7 +1114,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
             {/* Donations Page Link */}
             <div style={{ marginTop: '0.5rem' }}>
               <a
-                href={`${process.env.NEXT_PUBLIC_LANDING_URL || 'https://amoria-connekt.vercel.app'}/user/donations`}
+                href={getDonationsPageUrl()}
                 onClick={(e) => {
                   e.preventDefault();
                   router.push('/user/donations');

@@ -9,13 +9,8 @@ import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { HeartIcon as DonateHeartIcon } from '../../components/UnlockModal';
-
-function getApiUrl(): string {
-  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
-    return '/api/proxy';
-  }
-  return process.env.NEXT_PUBLIC_API_URL || 'https://backend.connekyt.com';
-}
+import { getApiUrl } from '@/lib/api';
+import { getPhotographerInviteLink, getDonationsPageUrl } from '@/lib/urls';
 
 // Icons
 const SearchIcon = () => (
@@ -785,7 +780,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
   };
 
   // --- Coordinator: Invite photographer by email ---
-  const inviteLink = `https://connekt.app/invite/photographer/${user?.id || ''}`;
+  const inviteLink = getPhotographerInviteLink(user?.id || '');
 
   const handleInvitePhotographer = async () => {
     if (userRole !== 'event-coordinator' || !inviteEmail.trim()) {
@@ -2697,7 +2692,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                   fontSize: '0.875rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center'
                 }}>{payDonationSkipped ? '✓ Donation skipped' : 'No thanks, skip donation'}</button>
                 <div style={{ marginTop: '0.5rem' }}>
-                  <a href={`${process.env.NEXT_PUBLIC_LANDING_URL || 'https://amoria-connekt.vercel.app'}/user/donations`} onClick={(e) => { e.preventDefault(); router.push('/user/donations'); }} style={{ fontSize: '0.81rem', color: '#F20C8F', textDecoration: 'none', fontWeight: '500' }}>Learn more about our donation program →</a>
+                  <a href={getDonationsPageUrl()} onClick={(e) => { e.preventDefault(); router.push('/user/donations'); }} style={{ fontSize: '0.81rem', color: '#F20C8F', textDecoration: 'none', fontWeight: '500' }}>Learn more about our donation program →</a>
                 </div>
               </div>
 
@@ -3105,7 +3100,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                   fontSize: '0.875rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center'
                 }}>{tipDonationSkipped ? '✓ Donation skipped' : 'No thanks, skip donation'}</button>
                 <div style={{ marginTop: '0.5rem' }}>
-                  <a href={`${process.env.NEXT_PUBLIC_LANDING_URL || 'https://amoria-connekt.vercel.app'}/user/donations`} onClick={(e) => { e.preventDefault(); router.push('/user/donations'); }} style={{ fontSize: '0.81rem', color: '#F20C8F', textDecoration: 'none', fontWeight: '500' }}>Learn more about our donation program →</a>
+                  <a href={getDonationsPageUrl()} onClick={(e) => { e.preventDefault(); router.push('/user/donations'); }} style={{ fontSize: '0.81rem', color: '#F20C8F', textDecoration: 'none', fontWeight: '500' }}>Learn more about our donation program →</a>
                 </div>
               </div>
 

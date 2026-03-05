@@ -40,14 +40,9 @@ const DEFAULT_CURRENCIES: CurrencyInfo[] = [
   { code: "TZS", name: "Tanzanian Shilling", symbol: "TZS", flag: "tz", rate: 2607, decimals: 0 },
 ];
 
-const STORAGE_KEY = "connekt-currency";
+import { getApiUrl } from '@/lib/api';
 
-function getApiUrl(): string {
-  if (typeof window !== "undefined" && process.env.NODE_ENV === "production") {
-    return "/api/proxy";
-  }
-  return process.env.NEXT_PUBLIC_API_URL || "https://backend.connekyt.com";
-}
+const STORAGE_KEY = "connekt-currency";
 
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
 

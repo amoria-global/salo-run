@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getLandingUrl } from '@/lib/urls';
 
 /**
  * Auth callback route
@@ -11,8 +12,7 @@ export async function GET(request: NextRequest) {
 
   if (!token) {
     // No token in header - redirect to login
-    const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL || 'http://localhost:3000';
-    return NextResponse.redirect(new URL(`${landingUrl}/user/auth/login`));
+    return NextResponse.redirect(new URL(`${getLandingUrl()}/user/auth/login`));
   }
 
   // Route to the correct dashboard based on user type
