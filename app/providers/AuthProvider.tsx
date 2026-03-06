@@ -139,7 +139,7 @@ function normalizeImageUrl(url: string | undefined | null): string | undefined {
   if (url.includes('/null')) return undefined;
   if (typeof window === 'undefined') return url;
 
-  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://backend.connekyt.com';
+  const apiBase = 'https://backend.connekyt.com';
   // The backend still returns image URLs with the old IP — handle both
   const OLD_BACKEND_IP = 'http://197.243.24.101';
 
@@ -149,7 +149,7 @@ function normalizeImageUrl(url: string | undefined | null): string | undefined {
     if (url.startsWith(OLD_BACKEND_IP)) return url.replace(OLD_BACKEND_IP, '');
   }
   // In dev, rewrite old IP URLs to use the current API base
-  if (url.startsWith(OLD_BACKEND_IP) && apiBase !== OLD_BACKEND_IP) {
+  if (url.startsWith(OLD_BACKEND_IP)) {
     return url.replace(OLD_BACKEND_IP, apiBase);
   }
   return url;
@@ -223,7 +223,7 @@ function getApiUrl(): string {
   if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
     return '';
   }
-  return process.env.NEXT_PUBLIC_API_URL || 'https://backend.connekyt.com';
+  return 'https://backend.connekyt.com';
 }
 
 /**
