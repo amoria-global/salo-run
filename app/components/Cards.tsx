@@ -54,6 +54,14 @@ const LockIcon = () => (
   </svg>
 );
 
+const ImageIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+    <polyline points="21 15 16 10 5 21"></polyline>
+  </svg>
+);
+
 const AlbumCard: React.FC<AlbumCardProps> = ({
   album,
   viewMode,
@@ -67,152 +75,55 @@ const AlbumCard: React.FC<AlbumCardProps> = ({
   if (viewMode === 'grid') {
     return (
       <div
-        style={{
-          backgroundColor: colors.bgCard,
-          borderRadius: '0.75rem',
-          overflow: 'hidden',
-          border: `2px solid ${colors.borderPrimary}`,
-          boxShadow: colors.shadowCard || 'none',
-          transition: 'all 0.2s',
-        }}
-        onMouseEnter={(e) => {
-          if (!isArchived) {
-            e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
-            e.currentTarget.style.transform = 'translateY(-2px)';
-          }
-        }}
-        onMouseLeave={(e) => {
-          if (!isArchived) {
-            e.currentTarget.style.boxShadow = colors.shadowCard || 'none';
-            e.currentTarget.style.transform = 'translateY(0)';
-          }
-        }}
+        style={{ position: 'relative', height: '450px', borderRadius: '1.5rem', overflow: 'hidden', transition: 'transform 0.3s ease', willChange: 'transform' }}
+        onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.03)'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
       >
-        {/* Album Thumbnail */}
-        <div style={{ position: 'relative', height: '180px', overflow: 'hidden' }}>
-          <Image
-            src={album.thumbnail}
-            alt={album.title}
-            fill
-            style={{ 
-              objectFit: 'cover',
-              filter: isArchived ? 'blur(2px)' : 'none'
-            }}
-          />
-          
-          {/* Lock Icon Overlay for Archived */}
-          {isArchived && (
-            <div style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: 'rgba(0, 0, 0, 0.4)',
-              zIndex: 2
-            }}>
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="rgba(255,255,255,0.85)" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.5))' }}>
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                <path d="M7 11V7a5 5 0 0 1 10 0v4" fill="none"></path>
-              </svg>
-            </div>
-          )}
+        {/* Blurred cover = glow effect */}
+        <img src={album.thumbnail || '/coverr.jpg'} alt="" style={{ position: 'absolute', inset: '-10px', width: 'calc(100% + 20px)', height: 'calc(100% + 20px)', objectFit: 'cover', filter: 'blur(14px) brightness(0.7)', pointerEvents: 'none' }} />
+        {/* Inner card — clickable */}
+        <div
+          onClick={(e) => { if (!hideActionButton) { e.stopPropagation(); onCardClick(album); } }}
+          style={{ position: 'absolute', inset: '7px', borderRadius: '1.05rem', overflow: 'hidden', backgroundColor: '#000', cursor: 'pointer', transition: 'filter 0.2s' }}
+          onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.15)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.filter = 'brightness(1)'; }}
+        >
+          {/* Full-bleed cover image */}
+          <img src={album.thumbnail || '/coverr.jpg'} alt={album.title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+          {/* Gradient overlay */}
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0) 35%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0.55) 100%)', pointerEvents: 'none' }} />
 
-          <div style={{
-            position: 'absolute',
-            top: '0.5rem',
-            right: '0.5rem',
-            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-            color: 'white',
-            padding: '0.25rem 0.5rem',
-            borderRadius: '0.25rem',
-            fontSize: '0.75rem',
-            fontWeight: '500',
-            zIndex: 1
-          }}>
-            {album.photoCount} photos
-          </div>
-          {!isArchived && (
-            <div style={{
-              position: 'absolute',
-              bottom: '0.5rem',
-              left: '0.5rem',
-              backgroundColor: '#083A85',
-              color: 'white',
-              padding: '0.25rem 0.5rem',
-              borderRadius: '0.25rem',
-              fontSize: '0.7rem',
-              fontWeight: '500',
-              zIndex: 1
-            }}>
-              {album.category}
+          {/* TOP: category/locked + photo count */}
+          <div style={{ position: 'absolute', top: '0.6rem', left: '0.6rem', right: '0.6rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', pointerEvents: 'none', zIndex: 3 }}>
+            <div style={{ backgroundColor: isArchived ? '#DC2626' : '#083A85', backdropFilter: 'blur(8px)', color: 'white', padding: '0.25rem 0.7rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.02em' }}>
+              {isArchived ? 'Locked' : album.category}
             </div>
-          )}
-        </div>
-
-        {/* Album Info */}
-        <div style={{ padding: '1rem' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: '600', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: colors.textPrimary, margin: 0, marginBottom: '0.5rem', textAlign:'left' }}>
-            <span>{album.title}</span>
-            {isArchived && (
-              <span style={{ color: 'white', backgroundColor: '#DC2626', padding: '0.15rem 0.4rem', borderRadius: '0.25rem', fontSize: '0.75rem', fontWeight: '700' }}>Locked</span>
-            )}
-          </h3>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-            <div style={{ position: 'relative', width: '24px', height: '24px', borderRadius: '50%', overflow: 'hidden' }}>
-              <Image src={album.photographerAvatar} alt={album.photographer} fill style={{ objectFit: 'cover' }} />
+            <div style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', color: 'white', padding: '0.25rem 0.7rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.02em', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <ImageIcon /> {album.photoCount}
             </div>
-            <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>{album.photographer}</span>
-          </div>
-          <div style={{ fontSize: '0.8rem', color: '#9CA3AF', marginBottom: '0.75rem' }}>
-            <p style={{textAlign:'left'}}>Received: {album.receivedDate}</p> 
           </div>
 
-          {/* Action Buttons */}
-          {!hideActionButton && (
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation(); // Prevent event bubbling
-                  onCardClick(album);
-                }}
-                onMouseEnter={(e) => {
-                  if (!isArchived) {
-                    e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isArchived) {
-                    e.currentTarget.style.boxShadow = 'none';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                  }
-                }}
-                style={{
-                  cursor: 'pointer',
-                  flex: 1,
-                  padding: '0.5rem',
-                  borderRadius: '0.375rem',
-                  border: '2px solid #062a63',
-                  backgroundColor: '#083A85',
-                  color: 'white',
-                  fontSize: '0.8rem',
-                  fontWeight: '600',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.25rem',
-                  transition: 'all 0.2s',
-                }}
-              >
-                {isArchived ? <LockIcon /> : <EyeIcon />}
-                {isArchived ? 'Click to Unlock' : 'Browse'}
-              </button>
+          {/* MIDDLE-BOTTOM: album title */}
+          <div style={{ position: 'absolute', bottom: '6.2rem', left: 0, right: 0, padding: '0 0.8rem', zIndex: 3 }}>
+            <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: '0.15rem' }}>Received: {album.receivedDate}</div>
+            <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '0.03em', textTransform: 'uppercase', lineHeight: 1.3 }}>
+              {album.title}
             </div>
-          )}
+          </div>
+
+          {/* FOOTER BAR: frosted glass */}
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)', padding: '0.6rem 0.8rem', borderTop: '1px solid rgba(255,255,255,0.1)', borderRadius: '0 0 1.05rem 1.05rem' }}>
+            {/* Photographer avatar + name */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
+              {album.photographerAvatar ? (
+                <img src={album.photographerAvatar} alt={album.photographer} style={{ width: '36px', height: '36px', borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', objectFit: 'cover', flexShrink: 0 }} onError={(e) => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement)?.style.setProperty('display', 'flex'); }} />
+              ) : null}
+              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, #083A85, #3B82F6)', border: '2px solid rgba(255,255,255,0.3)', display: album.photographerAvatar ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.75rem', fontWeight: 700, flexShrink: 0 }}>
+                {album.photographer.charAt(0).toUpperCase()}
+              </div>
+              <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.9)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{album.photographer}</span>
+            </div>
+          </div>
         </div>
       </div>
     );

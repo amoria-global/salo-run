@@ -62,7 +62,9 @@ export function middleware(request: NextRequest) {
   }
 
   // Role-based access control: prevent users from accessing other roles' pages
-  const userRole = request.cookies.get('userRole')?.value?.toLowerCase();
+  // Normalize: cookie stores 'event_coordinator' (from API customerType) but URL uses 'event-coordinator'
+  const rawRole = request.cookies.get('userRole')?.value?.toLowerCase();
+  const userRole = rawRole?.replace(/_/g, '-');
 
   // Defensive guard: If we have a role but no token, clear the role cookie to force re-auth
   if (userRole && !hasToken && pathname.startsWith('/user/')) {

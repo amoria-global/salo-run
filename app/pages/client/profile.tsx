@@ -5,8 +5,14 @@ import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 import { useUserProfile } from '../../context/UserProfileContext';
-import { useDashboardAuth } from '../../providers/AuthProvider';
-import { getApiUrl } from '@/lib/api';
+import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
+
+function getApiUrl(): string {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    return '/api/proxy';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+}
 
 // Camera icon for avatar edit
 const CameraIcon = () => (
@@ -106,12 +112,10 @@ const ProfilePage = () => {
     setIsSaving(true);
     try {
       const apiUrl = getApiUrl();
-      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
-
       const nameParts = formData.fullName.trim().split(/\s+/);
       const firstName = nameParts[0] || '';
       const lastName = nameParts.slice(1).join(' ') || '';
-      const phone = `${formData.phoneCode}${formData.phoneNumber}`;
+      const phone = `${formData.phoneCode}${formData.phoneNumber.replace(/\s/g, '')}`;
       const address = [formData.sector, formData.district, formData.province, formData.country].filter(Boolean).join(', ');
 
       const params = new URLSearchParams();
@@ -119,14 +123,9 @@ const ProfilePage = () => {
       if (lastName) params.append('lastName', lastName);
       if (phone) params.append('phone', phone);
       if (address) params.append('address', address);
-      if (formData.bio) params.append('about', formData.bio);
 
-      const response = await fetch(`${apiUrl}/api/remote/customer/profile?${params.toString()}`, {
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/profile?${params.toString()}`, {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'api-token': apiKey,
-        },
       });
 
       if (!response.ok) {
@@ -218,19 +217,15 @@ const ProfilePage = () => {
         setIsUploadingImage(true);
         try {
           const apiUrl = getApiUrl();
-          const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
           const uploadData = new FormData();
           uploadData.append('profilePicture', file);
-          const response = await fetch(`${apiUrl}/api/remote/customer/profile/profile-picture`, {
+          const response = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/profile/profile-picture`, {
             method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'api-token': apiKey,
-            },
             body: uploadData,
           });
           if (!response.ok) {
             console.error('Failed to upload profile picture:', response.status);
+            alert('Failed to upload profile picture. Please try again.');
           }
         } catch (err) {
           console.error('Profile picture upload error:', err);
