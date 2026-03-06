@@ -10,9 +10,6 @@ import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvid
 import CompleteProfileModal from '../../components/CompleteProfileModal';
 
 function getApiUrl(): string {
-  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
-    return '';
-  }
   return 'https://backend.connekyt.com';
 }
 import {
