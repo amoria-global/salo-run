@@ -8,6 +8,7 @@ import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
+import { StatCard } from '../../components/dashboard/StatCard';
 
 // Configure localforage for event form data
 const eventFormStorage = localforage.createInstance({
@@ -57,9 +58,9 @@ const fallbackCurrencyOptions = [
 // API URL helper
 function getApiUrl(): string {
   if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
-    return '/api/proxy';
+    return '';
   }
-  return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+  return process.env.NEXT_PUBLIC_API_URL || 'https://backend.connekyt.com';
 }
 
 function parseTimeToApiString(timeStr: string): string {
@@ -229,7 +230,7 @@ type EventCategory =
   | 'Baby Shower'
   | 'Graduation';
 
-type EventStatus = 'UPCOMING' | 'LIVE' | 'PUBLISHED' | 'upcoming' | 'ongoing' | 'completed' | 'cancelled' | 'published';
+type EventStatus = 'UPCOMING' | 'LIVE' | 'PUBLISHED' | 'upcoming' | 'ongoing' | 'completed' | 'published';
 
 interface Event {
   id: string;
@@ -347,7 +348,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
 const MyEventsPage = () => {
   const { colors, actualTheme } = useTheme();
   const { token, user } = useDashboardAuth();
-  const [activeTab, setActiveTab] = useState<'upcoming' | 'past' | 'all'>('upcoming');
+  const [activeTab, setActiveTab] = useState<'upcoming' | 'published' | 'past' | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEventDetails, setShowEventDetails] = useState<Event | null>(null);
@@ -364,6 +365,8 @@ const MyEventsPage = () => {
   const [pastPhotographers, setPastPhotographers] = useState<{id: string; name: string; image: string; speciality: string; rating: number; eventsWorked: number}[]>([]);
   const [showFindPhotographerModal, setShowFindPhotographerModal] = useState(false);
   const [photographerSearchQuery, setPhotographerSearchQuery] = useState('');
+  const [photographerAssignMode, setPhotographerAssignMode] = useState<'none' | 'existing' | 'platform' | 'invite'>('none');
+  const [invitePhotographerEmail, setInvitePhotographerEmail] = useState('');
 
   useEffect(() => {
     const fetchPhotographers = async () => {
@@ -609,7 +612,9 @@ const MyEventsPage = () => {
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
   const [eventsError, setEventsError] = useState<string | null>(null);
   const [publishingEventId, setPublishingEventId] = useState<string | null>(null);
-  const [confirmingEventId, setConfirmingEventId] = useState<string | null>(null);
+  const [unpublishingEventId, setUnpublishingEventId] = useState<string | null>(null);
+  const [publishConfirmEvent, setPublishConfirmEvent] = useState<Event | null>(null);
+  const [unpublishConfirmEvent, setUnpublishConfirmEvent] = useState<Event | null>(null);
 
   // Fetch events — use coordinator endpoint (returns only this user's events)
   const fetchMyEvents = useCallback(async () => {
@@ -631,12 +636,13 @@ const MyEventsPage = () => {
         const mappedEvents: Event[] = myEvents.map((evt: Record<string, unknown>) => {
           const locationStr = (evt.location as string) || '';
           const locationParts = locationStr.split(',').map((s: string) => s.trim());
+          const photo = (evt.eventPhoto as string) || (evt.bannerImage as string) || (evt.coverImage as string) || '';
           return {
             id: (evt.id as string) || '',
             title: (evt.title as string) || 'Untitled Event',
             description: (evt.description as string) || '',
-            eventType: (evt.eventType as string) || (evt.category as string) || '',
-            category: ((evt.category as string) || (evt.eventType as string) || 'Entertainment') as EventCategory,
+            eventType: (evt.eventType as string) || (evt.eventCategory as string) || (evt.category as string) || '',
+            category: ((evt.eventCategory as string) || (evt.category as string) || (evt.eventType as string) || 'Entertainment') as EventCategory,
             date: (evt.eventDate as string) || '',
             time: (evt.startTime as string) || '',
             endTime: (evt.endTime as string) || '',
@@ -646,12 +652,12 @@ const MyEventsPage = () => {
               city: locationParts[1] || '',
               country: locationParts[2] || '',
             },
-            coverImage: (evt.coverImage as string) || (evt.bannerImage as string) || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800',
-            bannerImage: (evt.bannerImage as string) || (evt.coverImage as string) || '',
-            price: evt.price ? `${evt.price}` : 'Free',
+            coverImage: photo,
+            bannerImage: photo,
+            price: evt.price ? `${evt.price}` : (evt.isEventFree ? 'Free' : 'Free'),
             guestCount: (evt.guestCount as number) || 0,
             maxGuests: (evt.maxGuests as number) || 0,
-            status: ((evt.status as string) || 'UPCOMING').toUpperCase() as EventStatus,
+            status: ((evt.eventStatus as string) || (evt.status as string) || 'UPCOMING').toUpperCase() as EventStatus,
             organizer: (evt.eventOrganizer as string) || '',
             tags: evt.eventTags ? (evt.eventTags as string).split(',').map((t: string) => t.trim()) : [],
             hasPhotographer: !!(evt.photographerId),
@@ -664,6 +670,33 @@ const MyEventsPage = () => {
         });
 
         setEvents(mappedEvents);
+
+        // Auto-complete events whose date+endTime have passed
+        const now = new Date();
+        const apiUrl = getApiUrl();
+        for (const evt of mappedEvents) {
+          const s = evt.status.toUpperCase();
+          if (s === 'COMPLETED') continue;
+          if (!evt.date) continue;
+          const endTimeStr = evt.endTime || '23:59:59';
+          const eventEnd = new Date(`${evt.date}T${endTimeStr}`);
+          if (eventEnd < now) {
+            // Unpublish from landing if published
+            if (s === 'PUBLISHED') {
+              dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/events/${evt.id}/unpublish`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+              }).catch(() => {});
+            }
+            // Mark as completed
+            dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/events/${evt.id}/confirm-completion`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+            }).then(res => {
+              if (res.ok) {
+                setEvents(prev => prev.map(e => e.id === evt.id ? { ...e, status: 'COMPLETED' as EventStatus } : e));
+              }
+            }).catch(() => {});
+          }
+        }
       }
     } catch (err) {
       setEventsError(err instanceof Error ? err.message : 'Failed to fetch events');
@@ -680,6 +713,7 @@ const MyEventsPage = () => {
 
   const handlePublishEvent = async (eventId: string) => {
     if (!token) return;
+    setPublishConfirmEvent(null);
     setPublishingEventId(eventId);
     try {
       const apiUrl = getApiUrl();
@@ -700,46 +734,64 @@ const MyEventsPage = () => {
     setPublishingEventId(null);
   };
 
-  const handleConfirmCompletion = async (eventId: string) => {
+  const handleUnpublishEvent = async (eventId: string) => {
     if (!token) return;
-    setConfirmingEventId(eventId);
+    setUnpublishConfirmEvent(null);
+    setUnpublishingEventId(eventId);
     try {
       const apiUrl = getApiUrl();
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/events/${eventId}/confirm-completion`, {
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/events/${eventId}/unpublish`, {
         method: 'POST',
       });
       if (res.ok) {
         setEvents(prev => prev.map(evt =>
-          evt.id === eventId ? { ...evt, status: 'completed' as EventStatus } : evt
+          evt.id === eventId ? { ...evt, status: 'UPCOMING' as EventStatus } : evt
         ));
       } else {
         const data = await res.json().catch(() => ({}));
-        alert(data.message || 'Failed to confirm event completion. Please try again.');
+        alert(data.message || 'Failed to unpublish event. Please try again.');
       }
     } catch (err) {
-      alert('Failed to confirm event completion. Please try again.');
+      alert('Failed to unpublish event. Please try again.');
     }
-    setConfirmingEventId(null);
+    setUnpublishingEventId(null);
   };
+
 
   const handleDeleteEvent = async () => {
     if (!deleteEvent) return;
     const eventId = deleteEvent.id;
+    const wasPublished = deleteEvent.status.toUpperCase() === 'PUBLISHED';
     setDeleteEvent(null);
     setShowDeleteModal(false);
     try {
       const apiUrl = getApiUrl();
+      // Unpublish first if the event is published, so it's removed from the public platform
+      if (wasPublished) {
+        const unpubRes = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/events/${eventId}/unpublish`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        if (!unpubRes.ok) {
+          const errorData = await unpubRes.json().catch(() => ({}));
+          throw new Error(errorData.message || `Failed to unpublish event before deletion (${unpubRes.status})`);
+        }
+        // Update local state to reflect unpublish
+        setEvents(prev => prev.map(e => e.id === eventId ? { ...e, status: 'UPCOMING' as EventStatus } : e));
+      }
       const res = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/events/${eventId}`, {
         method: 'DELETE',
       });
       if (!res.ok) {
-        const errorText = await res.text().catch(() => '');
-        throw new Error(`Failed to delete event: ${res.status} ${errorText}`);
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || `Failed to delete event (${res.status})`);
       }
       setEvents(prev => prev.filter(e => e.id !== eventId));
     } catch (err) {
       console.error('Failed to delete event:', err);
       alert(err instanceof Error ? err.message : 'Failed to delete event');
+      // Refetch to sync state with backend
+      fetchMyEvents();
     }
   };
 
@@ -834,19 +886,31 @@ const MyEventsPage = () => {
     // Send update to backend
     try {
       const apiUrl = getApiUrl();
+      const editNumericPrice = editPrice.replace(/[^\d]/g, '');
+      const editPayload: Record<string, unknown> = {
+        title: editTitle,
+        description: editDescription,
+        eventType: editCategory,
+        eventDate: editDate,
+        startTime: editTime ? parseTimeToApiString(editTime) : null,
+        endTime: editEndTime ? parseTimeToApiString(editEndTime) : null,
+        location: editVenueName ? `${editVenueName}${editAddress ? ', ' + editAddress : ''}${editCity ? ', ' + editCity : ''}${editCountry ? ', ' + editCountry : ''}` : editAddress,
+        eventOrganizer: editOrganizer,
+        eventTags: editTags.join(','),
+        price: editNumericPrice ? Number(editNumericPrice) : 0,
+        priceCurrency: editPriceCurrency || 'RWF',
+        maxGuests: editMaxGuests ? Number(editMaxGuests.replace(/[^\d]/g, '')) : 0,
+      };
+      if (editBannerImage && editBannerImage.startsWith('data:')) {
+        editPayload.eventPhoto = editBannerImage;
+      }
+      Object.keys(editPayload).forEach(key => {
+        if (editPayload[key] === undefined || editPayload[key] === null) delete editPayload[key];
+      });
       await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/events/${editEvent.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: editTitle,
-          description: editDescription,
-          eventDate: editDate,
-          startTime: editTime ? parseTimeToApiString(editTime) : null,
-          endTime: editEndTime ? parseTimeToApiString(editEndTime) : null,
-          location: editVenueName ? `${editVenueName}${editAddress ? ', ' + editAddress : ''}${editCity ? ', ' + editCity : ''}${editCountry ? ', ' + editCountry : ''}` : editAddress,
-          eventOrganizer: editOrganizer,
-          eventTags: editTags.join(','),
-        }),
+        body: JSON.stringify(editPayload),
       });
     } catch (err) {
       console.error('Failed to update event:', err);
@@ -884,6 +948,8 @@ const MyEventsPage = () => {
     setCreateEventVisibility('PUBLIC');
     setShowFindPhotographerModal(false);
     setPhotographerSearchQuery('');
+    setPhotographerAssignMode('none');
+    setInvitePhotographerEmail('');
     setIsSubmitting(false);
     setSubmitError(null);
     setDateError('');
@@ -987,21 +1053,29 @@ const MyEventsPage = () => {
         const locationStr = locationParts.join(', ');
         const tagsStr = createTags.length > 0 ? createTags.join(',') : createCategory;
 
-        const validPhotographerId = (createPhotographerId && isValidUUID(createPhotographerId)) ? createPhotographerId : undefined;
+        const validPhotographerId = (createPhotographerId && isValidUUID(createPhotographerId)) ? createPhotographerId : null;
+
+        const numericPrice = createPrice.replace(/[^\d]/g, '');
 
         const payload: Record<string, unknown> = {
           title: createTitle,
           description: createDescription || '',
+          eventType: createCategory,
           startTime: parseTimeToApiString(createTime),
           endTime: createEndTime ? parseTimeToApiString(createEndTime) : parseTimeToApiString(createTime),
           eventDate: createDate,
           location: locationStr,
           eventOrganizer: createOrganizer || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Organizer',
-          eventVisibility: createEventVisibility,
+          eventVisibility: createEventVisibility || 'PUBLIC',
           eventTags: tagsStr,
+          price: numericPrice ? Number(numericPrice) : 0,
+          priceCurrency: createPriceCurrency || 'RWF',
+          maxGuests: createMaxGuests ? Number(createMaxGuests.replace(/[^\d]/g, '')) : 0,
+          eventPhoto: createBannerImage || undefined,
           notes: '',
         };
 
+        // Only include photographer/package IDs if they are valid UUIDs — sending null causes backend JPA errors
         if (validPhotographerId) {
           payload.photographerId = validPhotographerId;
         }
@@ -1009,6 +1083,11 @@ const MyEventsPage = () => {
         if (createPackageId && isValidUUID(createPackageId)) {
           payload.packageId = createPackageId;
         }
+
+        // Strip any undefined/null values to prevent backend "id must not be null" errors
+        Object.keys(payload).forEach(key => {
+          if (payload[key] === undefined || payload[key] === null) delete payload[key];
+        });
 
         const res = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/events/book`, {
           method: 'POST',
@@ -1055,15 +1134,15 @@ const MyEventsPage = () => {
   };
 
   const getStatusBadgeStyle = (status: string) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case 'upcoming':
-        return { backgroundColor: '#DBEAFE', color: '#1D4ED8' };
+        return { backgroundColor: '#d19d0d', color: '#FFFFFF' };
+      case 'published':
+        return { backgroundColor: '#05a129', color: '#FFFFFF' };
       case 'ongoing':
         return { backgroundColor: '#D1FAE5', color: '#059669' };
       case 'completed':
-        return { backgroundColor: colors.bgTertiary, color: colors.textSecondary };
-      case 'cancelled':
-        return { backgroundColor: '#FEE2E2', color: '#DC2626' };
+        return { backgroundColor: '#DC2626', color: '#FFFFFF' };
       default:
         return { backgroundColor: colors.bgTertiary, color: colors.textSecondary };
     }
@@ -1077,8 +1156,10 @@ const MyEventsPage = () => {
     const statusLower = event.status.toLowerCase();
     if (activeTab === 'upcoming') {
       return matchesSearch && (statusLower === 'upcoming' || statusLower === 'ongoing' || statusLower === 'live');
+    } else if (activeTab === 'published') {
+      return matchesSearch && statusLower === 'published';
     } else if (activeTab === 'past') {
-      return matchesSearch && (statusLower === 'completed' || statusLower === 'cancelled');
+      return matchesSearch && statusLower === 'completed';
     }
     return matchesSearch;
   });
@@ -1087,10 +1168,9 @@ const MyEventsPage = () => {
     const s = e.status.toLowerCase();
     return s === 'upcoming' || s === 'ongoing' || s === 'live';
   }).length;
-  const pastCount = events.filter(e => {
-    const s = e.status.toLowerCase();
-    return s === 'completed' || s === 'cancelled';
-  }).length;
+  const publishedCount = events.filter(e => e.status.toLowerCase() === 'published').length;
+  const completedCount = events.filter(e => e.status.toLowerCase() === 'completed').length;
+  const pastCount = completedCount;
 
   return (
     <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
@@ -1203,6 +1283,14 @@ const MyEventsPage = () => {
             </button>
           </header>
 
+          {/* Status Summary Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem', marginBottom: '1.5rem' }}>
+            <StatCard title="Total Events" value={String(events.length)} percentage="" timeframe="" icon={<CalendarIcon />} accentColor="#083A85" />
+            <StatCard title="Upcoming" value={String(upcomingCount)} percentage="" timeframe="" icon={<ClockIcon />} accentColor="#3B82F6" />
+            <StatCard title="Published" value={String(publishedCount)} percentage="" timeframe="" icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#10B981" strokeWidth="2"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" stroke="#10B981" strokeWidth="2"/></svg>} accentColor="#10B981" />
+            <StatCard title="Completed" value={String(completedCount)} percentage="" timeframe="" icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="#8B5CF6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><polyline points="22,4 12,14.01 9,11.01" stroke="#8B5CF6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>} accentColor="#8B5CF6" />
+          </div>
+
           {/* Search */}
           <div style={{ marginBottom: '1.5rem' }}>
             <div className="mobile-search" style={{ position: 'relative', maxWidth: '400px' }}>
@@ -1232,9 +1320,10 @@ const MyEventsPage = () => {
           {/* Tabs */}
           <div className="mobile-tabs" style={{ display: 'flex', gap: '0.25rem', marginBottom: '1.5rem', backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '0.25rem', width: 'fit-content' }}>
             {([
+              { key: 'all' as const, label: 'All Events', count: events.length },
               { key: 'upcoming' as const, label: 'Upcoming', count: upcomingCount },
-              { key: 'past' as const, label: 'Past', count: pastCount },
-              { key: 'all' as const, label: 'All Events', count: events.length }
+              { key: 'published' as const, label: 'Published', count: publishedCount },
+              { key: 'past' as const, label: 'Past', count: pastCount }
             ]).map((tab) => (
               <button
                 key={tab.key}
@@ -1387,29 +1476,24 @@ const MyEventsPage = () => {
                           </div>
                         )}
                       </div>
-                      {/* Action buttons */}
+                      {/* Action buttons — always 4 buttons: Share, Edit, Delete, Publish/Unpublish */}
                       <div className="mobile-event-actions" style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
                         <button onClick={() => { setShareEvent(event); setShowShareModal(true); }} title="Share" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.4rem 0.5rem', backgroundColor: 'rgba(255,255,255,0.12)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
                           <ShareIcon />
                         </button>
-                        {(event.status.toLowerCase() === 'upcoming' || event.status.toLowerCase() === 'live') && (
-                          <>
-                            <button onClick={() => openEditModal(event)} title="Edit" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.4rem 0.5rem', backgroundColor: 'rgba(255,255,255,0.12)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
-                              <EditIcon />
-                            </button>
-                            <button onClick={() => { setDeleteEvent(event); setShowDeleteModal(true); }} title="Delete" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.4rem 0.5rem', backgroundColor: 'rgba(220,38,38,0.82)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
-                              <TrashIcon />
-                            </button>
-                          </>
-                        )}
-                        {event.status.toUpperCase() === 'UPCOMING' && (
-                          <button onClick={() => handlePublishEvent(event.id)} disabled={publishingEventId === event.id} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.4rem 0.5rem', backgroundColor: 'rgba(8,58,133,0.9)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: publishingEventId === event.id ? 'not-allowed' : 'pointer', fontSize: '0.75rem', fontWeight: 600, opacity: publishingEventId === event.id ? 0.7 : 1 }}>
-                            {publishingEventId === event.id ? 'Publishing...' : 'Publish'}
+                        <button onClick={() => openEditModal(event)} title="Edit" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.4rem 0.5rem', backgroundColor: 'rgba(255,255,255,0.12)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
+                          <EditIcon />
+                        </button>
+                        <button onClick={() => { setDeleteEvent(event); setShowDeleteModal(true); }} title="Delete" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.4rem 0.5rem', backgroundColor: 'rgba(220,38,38,0.82)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
+                          <TrashIcon />
+                        </button>
+                        {event.status.toUpperCase() === 'PUBLISHED' ? (
+                          <button onClick={() => setUnpublishConfirmEvent(event)} disabled={unpublishingEventId === event.id} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.4rem 0.5rem', backgroundColor: '#d19d0d', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: unpublishingEventId === event.id ? 'not-allowed' : 'pointer', fontSize: '0.75rem', fontWeight: 600, opacity: unpublishingEventId === event.id ? 0.7 : 1 }}>
+                            {unpublishingEventId === event.id ? 'Unpublishing...' : 'Unpublish'}
                           </button>
-                        )}
-                        {(event.status.toUpperCase() === 'LIVE' || event.status.toUpperCase() === 'PUBLISHED' || event.status.toLowerCase() === 'ongoing') && (
-                          <button onClick={() => handleConfirmCompletion(event.id)} disabled={confirmingEventId === event.id} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.4rem 0.5rem', backgroundColor: 'rgba(3,145,48,0.85)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: confirmingEventId === event.id ? 'not-allowed' : 'pointer', fontSize: '0.75rem', fontWeight: 600, opacity: confirmingEventId === event.id ? 0.7 : 1 }}>
-                            {confirmingEventId === event.id ? 'Confirming...' : 'Complete'}
+                        ) : (
+                          <button onClick={() => setPublishConfirmEvent(event)} disabled={publishingEventId === event.id} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.4rem 0.5rem', backgroundColor: '#05a129', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: publishingEventId === event.id ? 'not-allowed' : 'pointer', fontSize: '0.75rem', fontWeight: 600, opacity: publishingEventId === event.id ? 0.7 : 1 }}>
+                            {publishingEventId === event.id ? 'Publishing...' : 'Publish'}
                           </button>
                         )}
                       </div>
@@ -1665,13 +1749,113 @@ const MyEventsPage = () => {
             </div>
           </div>
 
-          {/* Section: Photographer Assignment — blocked until published */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.625rem', padding: '0.875rem 1rem', backgroundColor: actualTheme === 'dark' ? '#1E293B' : '#F8FAFC', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', marginBottom: '1.5rem' }}>
-            <CameraIcon />
-            <div>
-              <div style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.2rem' }}>Photographer assignment</div>
-              <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Publish this event first, then assign a photographer from the <strong>Photographers</strong> page.</div>
+          {/* Section: Photographer Assignment */}
+          <div style={{ marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+              <CameraIcon />
+              <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Photographer Assignment</span>
+              <span style={{ fontSize: '0.8rem', color: colors.textSecondary, marginLeft: 'auto' }}>(Optional)</span>
             </div>
+
+            {/* Three assignment option buttons */}
+            {photographerAssignMode === 'none' && !createPhotographerId && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <button type="button" onClick={() => setPhotographerAssignMode('existing')} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer', textAlign: 'left' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2"/><path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  Assign an existing Photographer you worked with before
+                </button>
+                <button type="button" onClick={() => setPhotographerAssignMode('platform')} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer', textAlign: 'left' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2"/><path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  Assign a new Photographer from platform
+                </button>
+                <button type="button" onClick={() => setPhotographerAssignMode('invite')} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer', textAlign: 'left' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><polyline points="22,6 12,13 2,6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  Invite and assign a new Photographer on platform
+                </button>
+              </div>
+            )}
+
+            {/* Existing photographer selection */}
+            {photographerAssignMode === 'existing' && (
+              <div>
+                <input type="text" value={photographerSearchQuery} onChange={(e) => setPhotographerSearchQuery(e.target.value)} placeholder="Search photographers..." style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, backgroundColor: colors.bgCard, marginBottom: '0.5rem' }} />
+                <div style={{ maxHeight: '200px', overflowY: 'auto', border: `1px solid ${colors.borderPrimary}`, borderRadius: '0.5rem' }}>
+                  {pastPhotographers.filter(p => p.name.toLowerCase().includes(photographerSearchQuery.toLowerCase())).map(p => (
+                    <div key={p.id} onClick={() => { setCreatePhotographerId(p.id); setPhotographerAssignMode('none'); setPhotographerSearchQuery(''); }} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.625rem 0.75rem', cursor: 'pointer', borderBottom: `1px solid ${colors.borderPrimary}`, backgroundColor: createPhotographerId === p.id ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : 'transparent' }}>
+                      <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#E5E7EB', overflow: 'hidden', flexShrink: 0 }}>
+                        {p.image ? <img src={p.image} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: '600', color: '#6B7280' }}>{p.name.charAt(0)}</div>}
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{p.name}</div>
+                        <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>{p.speciality}</div>
+                      </div>
+                    </div>
+                  ))}
+                  {pastPhotographers.filter(p => p.name.toLowerCase().includes(photographerSearchQuery.toLowerCase())).length === 0 && (
+                    <div style={{ padding: '1rem', textAlign: 'center', color: colors.textSecondary, fontSize: '0.85rem' }}>No photographers found</div>
+                  )}
+                </div>
+                <button type="button" onClick={() => { setPhotographerAssignMode('none'); setPhotographerSearchQuery(''); }} style={{ marginTop: '0.5rem', padding: '0.5rem 1rem', border: `1px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', background: 'transparent', color: colors.textSecondary, fontSize: '0.8rem', cursor: 'pointer' }}>Cancel</button>
+              </div>
+            )}
+
+            {/* Platform photographer browse */}
+            {photographerAssignMode === 'platform' && (
+              <div>
+                <input type="text" value={photographerSearchQuery} onChange={(e) => setPhotographerSearchQuery(e.target.value)} placeholder="Search platform photographers..." style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, backgroundColor: colors.bgCard, marginBottom: '0.5rem' }} />
+                <div style={{ maxHeight: '200px', overflowY: 'auto', border: `1px solid ${colors.borderPrimary}`, borderRadius: '0.5rem' }}>
+                  {pastPhotographers.filter(p => p.name.toLowerCase().includes(photographerSearchQuery.toLowerCase())).map(p => (
+                    <div key={p.id} onClick={() => { setCreatePhotographerId(p.id); setPhotographerAssignMode('none'); setPhotographerSearchQuery(''); }} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.625rem 0.75rem', cursor: 'pointer', borderBottom: `1px solid ${colors.borderPrimary}`, backgroundColor: createPhotographerId === p.id ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : 'transparent' }}>
+                      <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#E5E7EB', overflow: 'hidden', flexShrink: 0 }}>
+                        {p.image ? <img src={p.image} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: '600', color: '#6B7280' }}>{p.name.charAt(0)}</div>}
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{p.name}</div>
+                        <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>{p.speciality}</div>
+                      </div>
+                    </div>
+                  ))}
+                  {pastPhotographers.filter(p => p.name.toLowerCase().includes(photographerSearchQuery.toLowerCase())).length === 0 && (
+                    <div style={{ padding: '1rem', textAlign: 'center', color: colors.textSecondary, fontSize: '0.85rem' }}>No photographers found. <button type="button" onClick={() => { setShowFindPhotographerModal(true); setPhotographerAssignMode('none'); }} style={{ color: '#083A85', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.85rem' }}>Browse on platform</button></div>
+                  )}
+                </div>
+                <button type="button" onClick={() => { setPhotographerAssignMode('none'); setPhotographerSearchQuery(''); }} style={{ marginTop: '0.5rem', padding: '0.5rem 1rem', border: `1px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', background: 'transparent', color: colors.textSecondary, fontSize: '0.8rem', cursor: 'pointer' }}>Cancel</button>
+              </div>
+            )}
+
+            {/* Invite photographer by email */}
+            {photographerAssignMode === 'invite' && (
+              <div>
+                <p style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.5rem' }}>Send an invitation email to a photographer to join the platform and be assigned to this event.</p>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input type="email" value={invitePhotographerEmail} onChange={(e) => setInvitePhotographerEmail(e.target.value)} placeholder="photographer@email.com" style={{ flex: 1, padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, backgroundColor: colors.bgCard }} />
+                  <button type="button" onClick={() => {
+                    if (invitePhotographerEmail) {
+                      alert(`Invitation will be sent to ${invitePhotographerEmail} when the event is created.`);
+                      setPhotographerAssignMode('none');
+                    }
+                  }} disabled={!invitePhotographerEmail} style={{ padding: '0.625rem 1rem', backgroundColor: invitePhotographerEmail ? '#083A85' : '#9CA3AF', color: 'white', border: '2px solid #062a63', borderRadius: '0.5rem', fontSize: '0.85rem', fontWeight: '600', cursor: invitePhotographerEmail ? 'pointer' : 'not-allowed' }}>Send Invite</button>
+                </div>
+                <button type="button" onClick={() => { setPhotographerAssignMode('none'); setInvitePhotographerEmail(''); }} style={{ marginTop: '0.5rem', padding: '0.5rem 1rem', border: `1px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', background: 'transparent', color: colors.textSecondary, fontSize: '0.8rem', cursor: 'pointer' }}>Cancel</button>
+              </div>
+            )}
+
+            {/* Selected photographer display */}
+            {createPhotographerId && photographerAssignMode === 'none' && (() => {
+              const selected = pastPhotographers.find(p => p.id === createPhotographerId);
+              return selected ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.625rem 0.75rem', border: `2px solid #083A85`, borderRadius: '0.5rem', backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#E5E7EB', overflow: 'hidden', flexShrink: 0 }}>
+                    {selected.image ? <img src={selected.image} alt={selected.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: '600', color: '#6B7280' }}>{selected.name.charAt(0)}</div>}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{selected.name}</div>
+                    <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>{selected.speciality}</div>
+                  </div>
+                  <button type="button" onClick={() => setCreatePhotographerId('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#DC2626', fontSize: '1.1rem', padding: '0.25rem' }} title="Remove photographer">×</button>
+                </div>
+              ) : null;
+            })()}
           </div>
 
 
@@ -2187,6 +2371,132 @@ const MyEventsPage = () => {
       </Modal>
 
       {/* Delete Confirmation Modal */}
+      {/* Publish Confirmation Modal */}
+      {publishConfirmEvent && (
+        <div
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 1100, padding: '1rem'
+          }}
+          onClick={() => setPublishConfirmEvent(null)}
+        >
+          <div
+            style={{
+              backgroundColor: colors.bgCard, borderRadius: '1rem',
+              padding: '1.5rem', width: '400px', maxWidth: '90%',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+              <div style={{
+                width: '64px', height: '64px', borderRadius: '50%',
+                backgroundColor: '#e6f9eb',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>
+                <i className="bi bi-globe" style={{ fontSize: '2rem', color: '#05a129' }}></i>
+              </div>
+            </div>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: colors.textPrimary, margin: 0, marginBottom: '0.75rem', textAlign: 'center' }}>
+              Publish Event
+            </h2>
+            <p style={{ fontSize: '0.95rem', color: colors.textSecondary, margin: 0, marginBottom: '0.5rem', textAlign: 'center', lineHeight: '1.5' }}>
+              Are you sure you want to publish <strong style={{ color: colors.textPrimary }}>&quot;{publishConfirmEvent.title}&quot;</strong>?
+            </p>
+            <p style={{ fontSize: '0.85rem', color: '#05a129', margin: 0, marginBottom: '1.5rem', textAlign: 'center', fontWeight: '500' }}>
+              This event will become visible to all users on the public platform. Photographers will be able to see and accept bookings for it.
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '4rem' }}>
+              <button
+                onClick={() => setPublishConfirmEvent(null)}
+                style={{
+                  flex: 1, padding: '0.75rem 1rem', borderRadius: '0.5rem',
+                  border: `2px solid ${colors.borderPrimary}`, backgroundColor: colors.bgCard,
+                  color: colors.textPrimary, fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer'
+                }}
+              >Cancel</button>
+              <button
+                onClick={() => handlePublishEvent(publishConfirmEvent.id)}
+                style={{
+                  flex: 1, padding: '0.75rem 1rem', borderRadius: '0.5rem',
+                  border: '2px solid #05a129', backgroundColor: '#05a129',
+                  color: 'white', fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
+                }}
+              >
+                <i className="bi bi-globe" style={{ fontSize: '1rem' }}></i>
+                Publish Event
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unpublish Confirmation Modal */}
+      {unpublishConfirmEvent && (
+        <div
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 1100, padding: '1rem'
+          }}
+          onClick={() => setUnpublishConfirmEvent(null)}
+        >
+          <div
+            style={{
+              backgroundColor: colors.bgCard, borderRadius: '1rem',
+              padding: '1.5rem', width: '400px', maxWidth: '90%',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+              <div style={{
+                width: '64px', height: '64px', borderRadius: '50%',
+                backgroundColor: '#fdf3d7',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>
+                <i className="bi bi-eye-slash-fill" style={{ fontSize: '2rem', color: '#d19d0d' }}></i>
+              </div>
+            </div>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: colors.textPrimary, margin: 0, marginBottom: '0.75rem', textAlign: 'center' }}>
+              Unpublish Event
+            </h2>
+            <p style={{ fontSize: '0.95rem', color: colors.textSecondary, margin: 0, marginBottom: '0.5rem', textAlign: 'center', lineHeight: '1.5' }}>
+              Are you sure you want to unpublish <strong style={{ color: colors.textPrimary }}>&quot;{unpublishConfirmEvent.title}&quot;</strong>?
+            </p>
+            <p style={{ fontSize: '0.85rem', color: '#d19d0d', margin: 0, marginBottom: '1.5rem', textAlign: 'center', fontWeight: '500' }}>
+              This event will be removed from the public platform and will no longer be visible to users or photographers.
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '4rem' }}>
+              <button
+                onClick={() => setUnpublishConfirmEvent(null)}
+                style={{
+                  flex: 1, padding: '0.75rem 1rem', borderRadius: '0.5rem',
+                  border: `2px solid ${colors.borderPrimary}`, backgroundColor: colors.bgCard,
+                  color: colors.textPrimary, fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer'
+                }}
+              >Keep Published</button>
+              <button
+                onClick={() => handleUnpublishEvent(unpublishConfirmEvent.id)}
+                style={{
+                  flex: 1, padding: '0.75rem 1rem', borderRadius: '0.5rem',
+                  border: '2px solid #d19d0d', backgroundColor: '#d19d0d',
+                  color: 'white', fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
+                }}
+              >
+                <i className="bi bi-eye-slash" style={{ fontSize: '1rem' }}></i>
+                Unpublish
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showDeleteModal && deleteEvent && (
         <div
           style={{
