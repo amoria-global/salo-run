@@ -12,9 +12,6 @@ import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvid
 import { HeartIcon } from '../../components/UnlockModal';
 
 function getApiUrl(): string {
-  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
-    return '';
-  }
   return 'https://backend.connekyt.com';
 }
 
