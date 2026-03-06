@@ -60,7 +60,7 @@ function getApiUrl(): string {
   if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
     return '';
   }
-  return process.env.NEXT_PUBLIC_API_URL || 'https://backend.connekyt.com';
+  return 'https://backend.connekyt.com';
 }
 
 function parseTimeToApiString(timeStr: string): string {
