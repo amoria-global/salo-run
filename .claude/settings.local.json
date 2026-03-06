@@ -205,7 +205,12 @@
       "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtdWd3aWpheDQ1QGdtYWlsLmNvbSIsImlhdCI6MTc3MjgxNDExOCwiZXhwIjoxNzcyODE3NzE4fQ.ats9qB4bdM24LLwNHeDAHx-Kp4buKxvva7x1FDTCHqU\")",
       "Bash(echo $TOKEN)",
       "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtdWd3aWpheDQ1QGdtYWlsLmNvbSIsImlhdCI6MTc3MjgxNDIxMSwiZXhwIjoxNzcyODE3ODExfQ.FYbDkhxDSF2Ar6Hsn-0r24_U3e9nDWvuyN7b8emIZJg\")",
-      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiJ9.eyJ2dWIiOiJtdWd3aWpheDQ1QGdtYWlsLmNvbSIsImlhdCI6MTc3MjgxNDIxMSwiZXhwIjoxNzcyODE3ODExfQ.FYbDkhxDSF2Ar6Hsn-0r24_U3e9nDWvuyN7b8emIZJg\")"
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiJ9.eyJ2dWIiOiJtdWd3aWpheDQ1QGdtYWlsLmNvbSIsImlhdCI6MTc3MjgxNDIxMSwiZXhwIjoxNzcyODE3ODExfQ.FYbDkhxDSF2Ar6Hsn-0r24_U3e9nDWvuyN7b8emIZJg\")",
+      "Bash(grep -rl \"process\\\\.env\\\\.NEXT_PUBLIC_API_URL || ''https://backend\\\\.connekyt\\\\.com''\" --include=\"*.tsx\" --include=\"*.ts\" --include=\"*.js\")",
+      "Bash(while read f)",
+      "Bash(do sed -i \"s|process\\\\.env\\\\.NEXT_PUBLIC_API_URL || ''https://backend\\\\.connekyt\\\\.com''|''https://backend.connekyt.com''|g\" \"$f\")",
+      "Bash(echo \"Updated: $f\")",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": []
