@@ -143,12 +143,7 @@ function normalizeImageUrl(url: string | undefined | null): string | undefined {
   // The backend still returns image URLs with the old IP — handle both
   const OLD_BACKEND_IP = 'http://197.243.24.101';
 
-  // In production, rewrite backend URLs to same-origin paths (server reverse-proxies to backend)
-  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
-    if (url.startsWith(apiBase)) return url.replace(apiBase, '');
-    if (url.startsWith(OLD_BACKEND_IP)) return url.replace(OLD_BACKEND_IP, '');
-  }
-  // In dev, rewrite old IP URLs to use the current API base
+  // Rewrite old IP URLs to use the current API base
   if (url.startsWith(OLD_BACKEND_IP)) {
     return url.replace(OLD_BACKEND_IP, apiBase);
   }
@@ -219,10 +214,6 @@ function clearAuthFromStorage(): void {
  * Get API URL
  */
 function getApiUrl(): string {
-  // In production, the server reverse-proxies /api/* to the backend directly
-  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
-    return '';
-  }
   return 'https://backend.connekyt.com';
 }
 
