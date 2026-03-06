@@ -26,12 +26,12 @@ function formatRelativeTime(dateStr: string): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function mapBackendType(backendType: string): NotificationType {
+function mapBackendType(backendType: string, role: string = 'client'): NotificationType {
   switch (backendType?.toUpperCase()) {
     case 'MEDIA': return 'album';
-    case 'PAYMENT': return 'gift';
+    case 'PAYMENT': return role === 'event-coordinator' ? 'streamfee' : 'gift';
     case 'BOOKING': return 'booking';
-    case 'EVENT': return 'photographer';
+    case 'EVENT': return 'booking';
     case 'SYSTEM': return 'security';
     default: return 'album';
   }
@@ -150,7 +150,7 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
       const data = result?.data?.content || result?.data || [];
       const mapped: Notification[] = data.map((n: { id: string; title: string; message: string; type: string; isRead: boolean; link?: string; createdAt: string }) => ({
         id: n.id,
-        type: mapBackendType(n.type),
+        type: mapBackendType(n.type, userRole),
         title: n.title,
         message: n.message,
         timestamp: formatRelativeTime(n.createdAt),

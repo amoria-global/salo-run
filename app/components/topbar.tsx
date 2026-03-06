@@ -154,8 +154,9 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
 
       if (notifRes.status === 'fulfilled' && notifRes.value.ok) {
         const data = await notifRes.value.json();
-        if (data.action === 1 && Array.isArray(data.data)) {
-          setNotifications(data.data.map((n: any) => ({
+        if (data.action === 1 && (Array.isArray(data.data) || data.data?.content)) {
+          const items = Array.isArray(data.data) ? data.data : data.data?.content || [];
+          setNotifications(items.map((n: any) => ({
             id: n.id,
             type: n.type || 'system',
             title: n.title || '',
@@ -229,8 +230,9 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
   }, [fetchNotifications, fetchFinancials]);
 
   const markAsRead = async (id: string) => {
+    const wasUnread = notifications.find(n => n.id === id && !n.read);
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-    setUnreadCount(prev => Math.max(0, prev - 1));
+    if (wasUnread) setUnreadCount(prev => Math.max(0, prev - 1));
     const apiUrl = getApiUrl();
     const base = userRole === 'event-coordinator' ? 'coordinator' : userRole === 'photographer' ? 'photographer' : 'customer';
     try {

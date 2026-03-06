@@ -81,7 +81,7 @@ const AllTransactions = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [balance]);
+  }, []);
 
   useEffect(() => {
     fetchTransactions(0);
@@ -95,6 +95,8 @@ const AllTransactions = () => {
         return { bg: '#DBEAFE', text: '#1E40AF' };
       case 'initiated':
         return { bg: '#E0E7FF', text: '#3730A3' };
+      case 'completed':
+        return { bg: '#D1FAE5', text: '#065F46' };
       default:
         return { bg: '#F3F4F6', text: '#374151' };
     }
@@ -373,7 +375,7 @@ const AllTransactions = () => {
             {/* Status Filter */}
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               <span style={{ fontSize: '0.875rem', color: colors.textSecondary, fontWeight: '500' }}>Status:</span>
-              {['All', 'Pending', 'In progress', 'Initiated'].map((status) => (
+              {['All', 'Pending', 'In progress', 'Initiated', 'Completed'].map((status) => (
                 <button
                   key={status}
                   onClick={() => setFilterStatus(status)}

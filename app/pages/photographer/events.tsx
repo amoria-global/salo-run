@@ -7,8 +7,13 @@ import Image from 'next/image';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
-import { getApiUrl } from '@/lib/api';
-import { getFindMyPhotosLink } from '@/lib/urls';
+
+function getApiUrl(): string {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    return '/api/proxy';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+}
 
 // ============================================
 // ICONS
@@ -337,6 +342,8 @@ interface Album {
   faceRecognitionEnabled: boolean;
   inviteCode: string | null;
   createdAt: string;
+  eventDate: string;
+  clientImage: string;
 }
 
 // ============================================
@@ -420,7 +427,7 @@ const PhotographerEventsPage = () => {
     if (!user?.id) return;
     const loadEvents = async () => {
       try {
-        const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/events`);
+        const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/events?page=0&size=100`);
         if (res.ok) {
           const result = await res.json();
           const data = result?.data || [];
@@ -479,7 +486,7 @@ const PhotographerEventsPage = () => {
     if (!user?.id) return;
     const loadAlbums = async () => {
       try {
-        const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/galleries`);
+        const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums`);
         if (res.ok) {
           const result = await res.json();
           const data = result?.data || [];
@@ -504,6 +511,8 @@ const PhotographerEventsPage = () => {
               faceRecognitionEnabled: a.faceRecognitionEnabled || false,
               inviteCode: a.inviteCode || null,
               createdAt: a.createdAt || '',
+              eventDate: a.eventDate || a.date || '',
+              clientImage: a.clientImage || '',
             }));
             setAlbums(mapped);
           } else {
@@ -650,10 +659,12 @@ const PhotographerEventsPage = () => {
       if (res.ok) {
         setEvents(prev => prev.map(e => e.id === eventId ? { ...e, status: 'upcoming' as EventStatus } : e));
       } else {
-        console.error('Failed to accept event:', res.status);
+        const errorText = await res.text().catch(() => '');
+        alert(`Failed to accept event: ${res.status} ${errorText}`);
       }
     } catch (err) {
       console.error('Error accepting event:', err);
+      alert('Failed to accept event. Please try again.');
     }
   };
 
@@ -663,10 +674,12 @@ const PhotographerEventsPage = () => {
       if (res.ok) {
         setEvents(prev => prev.filter(e => e.id !== eventId));
       } else {
-        console.error('Failed to decline event:', res.status);
+        const errorText = await res.text().catch(() => '');
+        alert(`Failed to decline event: ${res.status} ${errorText}`);
       }
     } catch (err) {
       console.error('Error declining event:', err);
+      alert('Failed to decline event. Please try again.');
     }
   };
 
@@ -674,7 +687,7 @@ const PhotographerEventsPage = () => {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/events/${eventId}/media/upload`, {
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/events/${eventId}/media/upload`, {
         method: 'POST',
         body: formData,
       });
@@ -693,7 +706,7 @@ const PhotographerEventsPage = () => {
 
   const fetchEventMedia = async (eventId: string): Promise<{ id: string; url: string }[]> => {
     try {
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/events/${eventId}/media`);
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/events/${eventId}/media`);
       if (res.ok) {
         const data = await res.json();
         const mediaList = data.data || [];
@@ -708,7 +721,7 @@ const PhotographerEventsPage = () => {
 
   const deleteEventMedia = async (eventId: string, mediaId: string): Promise<boolean> => {
     try {
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/events/${eventId}/media/${mediaId}`, { method: 'DELETE' });
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/events/${eventId}/media/${mediaId}`, { method: 'DELETE' });
       return res.ok;
     } catch (err) {
       console.error('Error deleting media:', err);
@@ -792,7 +805,7 @@ const PhotographerEventsPage = () => {
       }
     }
 
-    const newAlbum: Album = { id: `a${Date.now()}`, title: albumTitle, description: albumDescription, category: albumCategory, eventId: event.id, eventTitle: event.title, clientId: event.bookingId, clientName: event.clientName, coverImage: albumCover, images: albumImages, photoCount: albumImages.length, views: 0, likes: 0, downloads: 0, shared: false, sharedWithClient: false, faceRecognitionEnabled: false, inviteCode: null, createdAt: new Date().toISOString().split('T')[0] };
+    const newAlbum: Album = { id: `a${Date.now()}`, title: albumTitle, description: albumDescription, category: albumCategory, eventId: event.id, eventTitle: event.title, clientId: event.bookingId, clientName: event.clientName, coverImage: albumCover, images: albumImages, photoCount: albumImages.length, views: 0, likes: 0, downloads: 0, shared: false, sharedWithClient: false, faceRecognitionEnabled: false, inviteCode: null, createdAt: new Date().toISOString().split('T')[0], eventDate: event.date, clientImage: event.clientImage };
     setAlbums(prev => [newAlbum, ...prev]); setShowCreateAlbumModal(false); setActiveTab('albums');
     setIsUploadingAlbum(false); setUploadProgress('');
 
@@ -801,7 +814,9 @@ const PhotographerEventsPage = () => {
       const formData = new FormData();
       formData.append('title', albumTitle);
       if (albumDescription) formData.append('description', albumDescription);
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/galleries`, { method: 'POST', body: formData });
+      formData.append('eventId', event.id);
+      if (albumCategory) formData.append('category', albumCategory);
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums`, { method: 'POST', body: formData });
       if (res.ok) {
         const result = await res.json();
         const backendId = result?.data?.id;
@@ -813,7 +828,7 @@ const PhotographerEventsPage = () => {
   };
 
   const handleOpenEdit = (album: Album) => { setSelectedAlbum(album); setEditTitle(album.title); setEditDescription(album.description); setEditCategory(album.category); setEditImages([...album.images]); setEditCoverIndex(album.images.indexOf(album.coverImage) >= 0 ? album.images.indexOf(album.coverImage) : 0); setShowAlbumEditModal(true); };
-  const handleSaveEdit = async () => { if (!selectedAlbum || editImages.length === 0) return; const coverIdx = Math.min(editCoverIndex, editImages.length - 1); setAlbums(prev => prev.map(a => a.id === selectedAlbum.id ? { ...a, title: editTitle, description: editDescription, category: editCategory, images: editImages, coverImage: editImages[coverIdx], photoCount: editImages.length } : a)); setShowAlbumEditModal(false); try { const formData = new FormData(); formData.append('title', editTitle); formData.append('description', editDescription); await dashboardAuthFetch(`${apiUrl}/api/remote/customer/galleries/${selectedAlbum.id}`, { method: 'PUT', body: formData }); } catch (err) { console.error('Failed to update album:', err); } };
+  const handleSaveEdit = async () => { if (!selectedAlbum || editImages.length === 0) return; const coverIdx = Math.min(editCoverIndex, editImages.length - 1); setAlbums(prev => prev.map(a => a.id === selectedAlbum.id ? { ...a, title: editTitle, description: editDescription, category: editCategory, images: editImages, coverImage: editImages[coverIdx], photoCount: editImages.length } : a)); setShowAlbumEditModal(false); try { const formData = new FormData(); formData.append('title', editTitle); formData.append('description', editDescription); await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${selectedAlbum.id}`, { method: 'PUT', body: formData }); } catch (err) { console.error('Failed to update album:', err); } };
   const handleEditFileAdd = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files; if (!files || !selectedAlbum) return;
     for (const file of Array.from(files)) {
@@ -840,7 +855,7 @@ const PhotographerEventsPage = () => {
     }
     setEditImages(prev => { const updated = prev.filter((_, i) => i !== index); if (editCoverIndex >= updated.length) setEditCoverIndex(Math.max(0, updated.length - 1)); else if (editCoverIndex === index) setEditCoverIndex(0); else if (editCoverIndex > index) setEditCoverIndex(editCoverIndex - 1); return updated; });
   };
-  const handleToggleFaceRecognition = async (album: Album) => { let inviteCode = album.inviteCode; if (!album.faceRecognitionEnabled && !inviteCode) { try { const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/galleries/${album.id}/invite-code`, { method: 'POST' }); if (res.ok) { const result = await res.json(); inviteCode = result?.data?.inviteCode || generateInviteCode(); } else { inviteCode = generateInviteCode(); } } catch { inviteCode = generateInviteCode(); } } const updated = { ...album, faceRecognitionEnabled: !album.faceRecognitionEnabled, inviteCode }; setAlbums(prev => prev.map(a => a.id === album.id ? updated : a)); setSelectedAlbum(updated); };
+  const handleToggleFaceRecognition = async (album: Album) => { let inviteCode = album.inviteCode; if (!album.faceRecognitionEnabled && !inviteCode) { try { const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${album.id}/invite-code`, { method: 'POST' }); if (res.ok) { const result = await res.json(); inviteCode = result?.data?.inviteCode || generateInviteCode(); } else { inviteCode = generateInviteCode(); } } catch { inviteCode = generateInviteCode(); } } const updated = { ...album, faceRecognitionEnabled: !album.faceRecognitionEnabled, inviteCode }; setAlbums(prev => prev.map(a => a.id === album.id ? updated : a)); setSelectedAlbum(updated); };
   const handleSendToClient = async (album: Album) => {
     setAlbums(prev => prev.map(a => a.id === album.id ? { ...a, sharedWithClient: true, shared: true } : a));
     setShowSendModal(false);
@@ -855,7 +870,7 @@ const PhotographerEventsPage = () => {
     });
     setShowAlbumSuccessModal(true);
   };
-  const handleDeleteAlbum = async () => { if (!albumToDelete) return; setAlbums(prev => prev.filter(a => a.id !== albumToDelete.id)); setShowDeleteConfirm(false); const id = albumToDelete.id; setAlbumToDelete(null); try { await dashboardAuthFetch(`${apiUrl}/api/remote/customer/galleries/${id}`, { method: 'DELETE' }); } catch (err) { console.error('Failed to delete album:', err); } };
+  const handleDeleteAlbum = async () => { if (!albumToDelete) return; setAlbums(prev => prev.filter(a => a.id !== albumToDelete.id)); setShowDeleteConfirm(false); const id = albumToDelete.id; setAlbumToDelete(null); try { await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${id}`, { method: 'DELETE' }); } catch (err) { console.error('Failed to delete album:', err); } };
 
   const handleBrowseKeyDown = useCallback((e: KeyboardEvent) => {
     if (!showAlbumBrowseModal || !viewerAlbum) return;
@@ -982,66 +997,103 @@ const PhotographerEventsPage = () => {
                     const streamCfg = event.hasLiveStream ? streamConfigs[event.id] : null;
                     const isLive = streamCfg?.connectionStatus === 'live';
                     return (
-                      <div key={event.id} style={cardStyle}>
-                        {/* Cover Image */}
-                        <div style={{ position: 'relative', height: '160px', overflow: 'hidden', backgroundColor: event.coverImage ? 'transparent' : '#0D1B2A' }}>
-                          <img src={event.coverImage || '/coverr.jpg'} alt={event.title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: event.coverImage ? 'cover' : 'contain' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; (e.currentTarget as HTMLImageElement).style.objectFit = 'contain'; const p = e.currentTarget.parentElement; if (p) p.style.backgroundColor = '#0D1B2A'; }} />
-                          {/* Status Badge */}
-                          <div style={{ position: 'absolute', top: '0.5rem', left: '0.5rem', backgroundColor: badge.bg, color: badge.color, padding: '0.2rem 0.6rem', borderRadius: '0.25rem', fontSize: '0.75rem', fontWeight: 600 }}>{badge.label}</div>
-                          {/* Live Stream Badge */}
-                          {event.hasLiveStream && (
-                            <div style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', backgroundColor: isLive ? '#DC2626' : (actualTheme === 'dark' ? '#374151' : '#F3F4F6'), color: isLive ? 'white' : colors.textSecondary, padding: '0.2rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.7rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem', animation: isLive ? 'pulse 2s infinite' : 'none' }}>
-                              <BroadcastIcon /> {isLive ? 'LIVE' : 'Live Stream'}
+                      /* Outer glow wrapper — blurred image border */
+                      <div key={event.id} style={{ position: 'relative', height: '450px', borderRadius: '1.25rem', overflow: 'hidden', transition: 'transform 0.3s ease', willChange: 'transform' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.03)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}>
+                        <img src={event.coverImage || '/coverr.jpg'} alt="" style={{ position: 'absolute', inset: '-10px', width: 'calc(100% + 20px)', height: 'calc(100% + 20px)', objectFit: 'cover', filter: 'blur(14px) brightness(0.7)', pointerEvents: 'none' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }} />
+                        {/* Inner card — clickable to open details */}
+                        <div
+                          onClick={() => { setSelectedEvent(event); setShowEventDetailModal(true); }}
+                          style={{ position: 'absolute', inset: '7px', borderRadius: '1.05rem', overflow: 'hidden', backgroundColor: '#000', cursor: 'pointer', transition: 'filter 0.2s' }}
+                          onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.15)'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.filter = 'brightness(1)'; }}
+                        >
+                          {/* Full-bleed cover image */}
+                          <img src={event.coverImage || '/coverr.jpg'} alt={event.title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }} />
+                          {/* Gradient overlay */}
+                          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0) 35%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0.55) 100%)', pointerEvents: 'none' }} />
+
+                          {/* TOP: date badge + status badge + live badge */}
+                          <div style={{ position: 'absolute', top: '0.6rem', left: '0.6rem', right: '0.6rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', pointerEvents: 'none' }}>
+                            <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+                              <div style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', color: 'white', padding: '0.25rem 0.7rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.02em' }}>
+                                {formatDate(event.date)}
+                              </div>
+                              <div style={{ backgroundColor: badge.bg, color: badge.color, padding: '0.25rem 0.65rem', borderRadius: '2rem', fontSize: '0.67rem', fontWeight: 700 }}>{badge.label}</div>
                             </div>
-                          )}
+                            {event.hasLiveStream && (
+                              <div style={{ backgroundColor: isLive ? '#DC2626' : 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', color: 'white', padding: '0.25rem 0.6rem', borderRadius: '2rem', fontSize: '0.67rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.25rem', animation: isLive ? 'pulse 2s infinite' : 'none' }}>
+                                <BroadcastIcon /> {isLive ? 'LIVE' : 'Stream'}
+                              </div>
+                            )}
+                          </div>
+
                           {/* Viewer count for live */}
                           {isLive && streamCfg && (
-                            <div style={{ position: 'absolute', bottom: '0.5rem', right: '0.5rem', backgroundColor: 'rgba(0,0,0,0.7)', color: 'white', padding: '0.15rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.7rem', fontWeight: 600 }}>{streamCfg.viewerCount.toLocaleString()} viewers</div>
+                            <div style={{ position: 'absolute', top: '2.5rem', right: '0.6rem', backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', color: 'white', padding: '0.15rem 0.5rem', borderRadius: '2rem', fontSize: '0.65rem', fontWeight: 600, pointerEvents: 'none' }}>{streamCfg.viewerCount.toLocaleString()} viewers</div>
                           )}
-                        </div>
-                        {/* Card Content */}
-                        <div style={{ padding: '0.875rem' }}>
-                          <h3 style={{ fontSize: '1rem', fontWeight: 600, color: colors.textPrimary, margin: '0 0 0.5rem 0', lineHeight: '1.3' }}>{event.title}</h3>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.75rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><CalendarIcon /> {formatDate(event.date)}</div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><ClockIcon /> {formatTime(event.startTime)} - {formatTime(event.endTime)}</div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><LocationIcon /> {event.location.city}, {event.location.country}</div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><UserIcon /> {event.clientName}</div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><PackageIcon /> {event.packageName}</div>
+
+                          {/* MIDDLE-BOTTOM: location + title over image */}
+                          <div style={{ position: 'absolute', bottom: '6.2rem', left: 0, right: 0, padding: '0 0.8rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.15rem' }}>
+                              <span style={{ color: 'rgba(255,255,255,0.6)', flexShrink: 0, display: 'flex' }}><LocationIcon /></span>
+                              <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{event.location.city}, {event.location.country}</span>
+                            </div>
+                            <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '0.03em', textTransform: 'uppercase', lineHeight: 1.3 }}>
+                              {event.title}
+                            </div>
                           </div>
-                          {/* Action Buttons */}
-                          <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                            {event.status === 'pending' ? (
-                              <>
-                                <button onClick={() => handleAcceptEvent(event.id)} style={{ ...smallActionBtn, backgroundColor: '#059669', borderColor: '#059669', color: 'white', flex: 1 }}>
-                                  <CheckCircleIcon /> Accept
-                                </button>
-                                <button onClick={() => handleDenyEvent(event.id)} style={{ ...smallActionBtn, backgroundColor: '#DC2626', borderColor: '#DC2626', color: 'white', flex: 1 }}>
-                                  <CloseIcon /> Deny
-                                </button>
-                              </>
-                            ) : (
-                              <>
-                                <button onClick={() => { setSelectedEvent(event); setShowEventDetailModal(true); }} style={{ ...smallActionBtn, backgroundColor: colors.bgTertiary, color: colors.textPrimary }}>
-                                  <EyeIcon /> Details
-                                </button>
-                                {event.hasLiveStream && (event.status === 'upcoming' || event.status === 'ongoing') && (
-                                  <button onClick={() => { setSelectedEvent(event); setShowStreamSetupModal(true); setShowStreamKey(false); }} style={{ ...smallActionBtn, backgroundColor: '#8B5CF6', borderColor: '#8B5CF6', color: 'white' }}>
-                                    <BroadcastIcon /> Stream Setup
+
+                          {/* FOOTER BAR: frosted glass */}
+                          <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)', padding: '0.6rem 0.8rem', borderTop: '1px solid rgba(255,255,255,0.1)', borderRadius: '0 0 1.05rem 1.05rem' }}>
+                            {/* Client avatar + name + time */}
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', minWidth: 0 }}>
+                                {event.clientImage ? (
+                                  <img src={event.clientImage} alt={event.clientName} style={{ width: '24px', height: '24px', borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', objectFit: 'cover', flexShrink: 0 }} onError={(e) => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement)?.style.setProperty('display', 'flex'); }} />
+                                ) : null}
+                                <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'linear-gradient(135deg, #083A85, #3B82F6)', border: '2px solid rgba(255,255,255,0.3)', display: event.clientImage ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.65rem', fontWeight: 700, flexShrink: 0 }}>
+                                  {event.clientName.charAt(0).toUpperCase()}
+                                </div>
+                                <span style={{ fontSize: '0.74rem', color: 'rgba(255,255,255,0.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{event.clientName}</span>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', backgroundColor: 'rgba(255,255,255,0.12)', padding: '0.2rem 0.6rem', borderRadius: '2rem', fontSize: '0.67rem', color: 'rgba(255,255,255,0.85)', fontWeight: 600, flexShrink: 0 }}>
+                                <ClockIcon /> {formatTime(event.startTime)}
+                              </div>
+                            </div>
+                            {/* Action buttons */}
+                            <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
+                              {event.status === 'pending' ? (
+                                <>
+                                  <button onClick={() => handleAcceptEvent(event.id)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0', fontSize: '0.72rem', fontWeight: 600, backgroundColor: 'rgba(5,150,105,0.9)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
+                                    <CheckCircleIcon /> Accept
                                   </button>
-                                )}
-                                {event.status === 'completed' && (
-                                  <button onClick={() => handleOpenCreateAlbum(event.id)} style={{ ...smallActionBtn, backgroundColor: '#10B981', borderColor: '#10B981', color: 'white' }}>
-                                    <PlusIcon /> Create Album
+                                  <button onClick={() => handleDenyEvent(event.id)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0', fontSize: '0.72rem', fontWeight: 600, backgroundColor: 'rgba(220,38,38,0.85)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
+                                    <CloseIcon /> Deny
                                   </button>
-                                )}
-                                {event.hasLiveStream && event.status === 'ongoing' && (
-                                  <button onClick={() => setMarkCompleteTarget(event)} style={{ ...smallActionBtn, backgroundColor: '#059669', borderColor: '#059669', color: 'white' }}>
-                                    <CheckCircleIcon /> Mark Complete
-                                  </button>
-                                )}
-                              </>
-                            )}
+                                </>
+                              ) : (
+                                <>
+                                  {event.hasLiveStream && (event.status === 'upcoming' || event.status === 'ongoing') && (
+                                    <button onClick={() => { setSelectedEvent(event); setShowStreamSetupModal(true); setShowStreamKey(false); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0.5rem', fontSize: '0.72rem', fontWeight: 600, backgroundColor: 'rgba(139,92,246,0.85)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
+                                      <BroadcastIcon /> Stream Setup
+                                    </button>
+                                  )}
+                                  {event.status === 'completed' && (
+                                    <button onClick={() => handleOpenCreateAlbum(event.id)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0.5rem', fontSize: '0.72rem', fontWeight: 600, backgroundColor: 'rgba(16,185,129,0.85)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
+                                      <PlusIcon /> Create Album
+                                    </button>
+                                  )}
+                                  {event.hasLiveStream && event.status === 'ongoing' && (
+                                    <button onClick={() => setMarkCompleteTarget(event)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0.5rem', fontSize: '0.72rem', fontWeight: 600, backgroundColor: 'rgba(5,150,105,0.85)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
+                                      <CheckCircleIcon /> Complete
+                                    </button>
+                                  )}
+                                  <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.25rem', backgroundColor: '#083A85', padding: '0.38rem 0.6rem', borderRadius: '0.375rem', fontSize: '0.7rem', color: 'white', fontWeight: 700, flexShrink: 0 }}>
+                                    <PackageIcon /> {event.packageName}
+                                  </div>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -1094,46 +1146,133 @@ const PhotographerEventsPage = () => {
 
                 {/* Album Cards */}
                 <div className="events-page-grid" style={{ display: 'grid', gridTemplateColumns: albumViewMode === 'grid' ? 'repeat(3, 1fr)' : '1fr', gap: '1rem' }}>
-                  {filteredAlbums.map(album => (
-                    <div key={album.id} style={{ ...cardStyle, display: albumViewMode === 'list' ? 'flex' : 'block' }}>
-                      {/* Cover */}
-                      <div style={{ position: 'relative', height: albumViewMode === 'list' ? '140px' : '180px', width: albumViewMode === 'list' ? '200px' : '100%', flexShrink: 0, overflow: 'hidden', backgroundColor: album.coverImage ? 'transparent' : '#0D1B2A' }}>
-                        <img src={album.coverImage || '/coverr.jpg'} alt={album.title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: album.coverImage ? 'cover' : 'contain' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; (e.currentTarget as HTMLImageElement).style.objectFit = 'contain'; const p = e.currentTarget.parentElement; if (p) p.style.backgroundColor = '#0D1B2A'; }} />
-                        <div style={{ position: 'absolute', bottom: '0.4rem', right: '0.4rem', backgroundColor: 'rgba(0,0,0,0.7)', color: 'white', padding: '0.15rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.7rem', fontWeight: 600 }}>{album.photoCount} photos</div>
-                        {album.shared && (
-                          <div style={{ position: 'absolute', top: '0.4rem', left: '0.4rem', backgroundColor: '#10B981', color: 'white', padding: '0.15rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.65rem', fontWeight: 600 }}>Shared</div>
-                        )}
-                      </div>
-                      {/* Content */}
-                      <div style={{ padding: '0.875rem', flex: 1 }}>
-                        <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: colors.textPrimary, margin: '0 0 0.3rem 0' }}>{album.title}</h3>
-                        <div style={{ fontSize: '0.78rem', color: colors.textTertiary, marginBottom: '0.3rem' }}>From: {album.eventTitle}</div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.78rem', color: colors.textSecondary, marginBottom: '0.3rem' }}>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><UserIcon /> {album.clientName}</span>
-                          <span>{album.category}</span>
-                        </div>
-                        <div style={{ fontSize: '0.75rem', color: colors.textTertiary, marginBottom: '0.5rem' }}>{formatDate(album.createdAt)}</div>
-                        <div style={{ display: 'flex', gap: '0.75rem', fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.65rem' }}>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}><EyeIcon /> {album.views}</span>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}><HeartIcon filled={false} /> {album.likes}</span>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}><DownloadIcon /> {album.downloads}</span>
-                        </div>
-                        {/* Browse Button - Primary action */}
-                        <button onClick={() => { setSelectedAlbum(album); setViewerAlbum(album); setCurrentImageIndex(0); setShowAlbumBrowseModal(true); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', width: '100%', padding: '0.45rem', fontSize: '0.78rem', fontWeight: 600, backgroundColor: '#083A85', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', transition: 'all 0.2s', marginBottom: '0.35rem' }}><EyeIcon /> Browse Photos</button>
-                        {/* Actions Row: Send, Face AI, Edit, Delete */}
-                        <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
-                          {album.sharedWithClient ? (
-                            <span style={{ ...smallActionBtn, backgroundColor: '#059669', borderColor: '#059669', color: 'white', cursor: 'default', opacity: 0.85 }}><CheckCircleIcon /> Sent</span>
-                          ) : (
-                            <button onClick={() => { setSelectedAlbum(album); setShowSendModal(true); }} style={{ ...smallActionBtn, backgroundColor: '#083A85', borderColor: '#083A85', color: 'white' }}><SendIcon /> Send</button>
+                  {filteredAlbums.map(album => {
+                    const matchedEvent = events.find(e => e.id === album.eventId);
+                    const displayDate = album.eventDate || matchedEvent?.date || album.createdAt;
+                    const clientImg = album.clientImage || matchedEvent?.clientImage || '';
+                    return albumViewMode === 'grid' ? (
+                    /* ── GRID VIEW: outer glow wrapper + inner card ── */
+                    <div key={album.id} style={{ position: 'relative', height: '450px', borderRadius: '1.5rem', overflow: 'hidden', transition: 'transform 0.3s ease', willChange: 'transform' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.03)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}>
+                      {/* Blurred cover image behind card = image-based border glow */}
+                      <img src={album.coverImage || '/coverr.jpg'} alt="" style={{ position: 'absolute', inset: '-10px', width: 'calc(100% + 20px)', height: 'calc(100% + 20px)', objectFit: 'cover', filter: 'blur(14px) brightness(0.7)', pointerEvents: 'none' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }} />
+                      {/* Inner card — clickable to browse album */}
+                      <div
+                        onClick={() => { setSelectedAlbum(album); setViewerAlbum(album); setCurrentImageIndex(0); setShowAlbumBrowseModal(true); }}
+                        style={{ position: 'absolute', inset: '7px', borderRadius: '1.05rem', overflow: 'hidden', backgroundColor: '#000', cursor: 'pointer', transition: 'filter 0.2s' }}
+                        onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.15)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.filter = 'brightness(1)'; }}
+                      >
+                        {/* Full-bleed cover image spanning entire inner card */}
+                        <img src={album.coverImage || '/coverr.jpg'} alt={album.title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }} />
+                        {/* Gradient overlay — lighter so image shows through */}
+                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0) 35%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0.55) 100%)', pointerEvents: 'none' }} />
+
+                        {/* TOP: date badge + shared badge */}
+                        <div style={{ position: 'absolute', top: '0.6rem', left: '0.6rem', right: '0.6rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', pointerEvents: 'none' }}>
+                          <div style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', color: 'white', padding: '0.25rem 0.7rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.02em' }}>
+                            {formatDate(displayDate)}
+                          </div>
+                          {album.shared && (
+                            <div style={{ backgroundColor: '#10B981', color: 'white', padding: '0.25rem 0.65rem', borderRadius: '2rem', fontSize: '0.67rem', fontWeight: 700, letterSpacing: '0.02em' }}>Shared</div>
                           )}
-                          <button onClick={() => handleOpenFaceAI(album)} style={{ ...smallActionBtn, backgroundColor: '#8B5CF6', borderColor: '#8B5CF6', color: 'white' }}><FaceRecognitionIcon /> Face AI</button>
-                          <button onClick={() => handleOpenEdit(album)} style={{ ...smallActionBtn, backgroundColor: colors.bgTertiary, color: colors.textPrimary }}><EditIcon /> Edit</button>
-                          <button onClick={() => { setAlbumToDelete(album); setShowDeleteConfirm(true); }} style={{ ...smallActionBtn, backgroundColor: '#DC2626', borderColor: '#DC2626', color: 'white' }}><TrashIcon /></button>
+                        </div>
+
+                        {/* MIDDLE-BOTTOM: title content over image */}
+                        <div style={{ position: 'absolute', bottom: '5.8rem', left: 0, right: 0, padding: '0 0.8rem' }}>
+                          <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: '0.15rem' }}>{album.eventTitle}</div>
+                          <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '0.03em', textTransform: 'uppercase', lineHeight: 1.3 }}>
+                            {album.title}
+                          </div>
+                        </div>
+
+                        {/* FOOTER BAR: frosted glass over blurred cover image */}
+                        <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)', padding: '0.6rem 0.8rem', borderTop: '1px solid rgba(255,255,255,0.1)', borderRadius: '0 0 1.05rem 1.05rem' }}>
+                          {/* Client avatar + name */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', minWidth: 0, marginBottom: '0.5rem' }}>
+                            {clientImg ? (
+                              <img src={clientImg} alt={album.clientName} style={{ width: '24px', height: '24px', borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', objectFit: 'cover', flexShrink: 0 }} onError={(e) => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement)?.style.setProperty('display', 'flex'); }} />
+                            ) : null}
+                            <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'linear-gradient(135deg, #083A85, #3B82F6)', border: '2px solid rgba(255,255,255,0.3)', display: clientImg ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.65rem', fontWeight: 700, flexShrink: 0 }}>
+                              {album.clientName.charAt(0).toUpperCase()}
+                            </div>
+                            <span style={{ fontSize: '0.74rem', color: 'rgba(255,255,255,0.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{album.clientName}</span>
+                          </div>
+                          {/* Action buttons + photo count pill */}
+                          <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
+                            {album.sharedWithClient ? (
+                              <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.38rem 0.5rem', fontSize: '0.72rem', fontWeight: 600, backgroundColor: 'rgba(5,150,105,0.85)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem' }}>
+                                <CheckCircleIcon /> Sent
+                              </span>
+                            ) : (
+                              <button onClick={() => { setSelectedAlbum(album); setShowSendModal(true); }} title="Send to Client" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0.5rem', backgroundColor: 'rgba(8,58,133,0.9)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600 }}>
+                                <SendIcon /> Send
+                              </button>
+                            )}
+                            <button onClick={() => handleOpenFaceAI(album)} title="Face AI / Find-My-Photos" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0.5rem', backgroundColor: 'rgba(139,92,246,0.85)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600 }}>
+                              <FaceRecognitionIcon /> Face AI
+                            </button>
+                            <button onClick={() => handleOpenEdit(album)} title="Edit Album" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.38rem 0.5rem', backgroundColor: 'rgba(255,255,255,0.12)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
+                              <EditIcon />
+                            </button>
+                            <button onClick={() => { setAlbumToDelete(album); setShowDeleteConfirm(true); }} title="Delete Album" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.38rem 0.5rem', backgroundColor: 'rgba(220,38,38,0.82)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
+                              <TrashIcon />
+                            </button>
+                            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.25rem', backgroundColor: '#083A85', padding: '0.38rem 0.6rem', borderRadius: '0.375rem', fontSize: '0.7rem', color: 'white', fontWeight: 700, flexShrink: 0, letterSpacing: '0.02em' }}>
+                              <ImageIcon /> {album.photoCount}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  ))}
+                    ) : (
+                    /* ── LIST VIEW ── */
+                    <div key={album.id} style={{ ...cardStyle, position: 'relative', height: '150px', display: 'flex', flexDirection: 'row' }}>
+                      {/* Image side with overlay */}
+                      <div style={{ position: 'relative', width: '200px', flexShrink: 0, overflow: 'hidden' }}>
+                        <img src={album.coverImage || '/coverr.jpg'} alt={album.title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }} />
+                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(0,0,0,0) 40%, rgba(0,0,0,0.35) 100%)', pointerEvents: 'none' }} />
+                        <div style={{ position: 'absolute', top: '0.5rem', left: '0.5rem', backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', color: 'white', padding: '0.2rem 0.55rem', borderRadius: '2rem', fontSize: '0.67rem', fontWeight: 700 }}>
+                          {formatDate(displayDate)}
+                        </div>
+                        {album.shared && (
+                          <div style={{ position: 'absolute', bottom: '0.5rem', left: '0.5rem', backgroundColor: '#10B981', color: 'white', padding: '0.2rem 0.55rem', borderRadius: '2rem', fontSize: '0.64rem', fontWeight: 700 }}>Shared</div>
+                        )}
+                      </div>
+                      {/* Content side */}
+                      <div style={{ flex: 1, display: 'flex', minWidth: 0 }}>
+                        <div style={{ padding: '0.75rem 0.875rem', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minWidth: 0 }}>
+                          <div>
+                            <div style={{ fontSize: '0.72rem', color: colors.textTertiary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: '0.15rem' }}>{album.eventTitle}</div>
+                            <div style={{ fontSize: '0.95rem', fontWeight: 800, color: colors.textPrimary, marginBottom: '0.35rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: '0.03em' }}>{album.title}</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.75rem', color: colors.textSecondary }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                {clientImg ? (
+                                  <img src={clientImg} alt={album.clientName} style={{ width: '22px', height: '22px', borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', objectFit: 'cover', flexShrink: 0 }} onError={(e) => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement)?.style.setProperty('display', 'flex'); }} />
+                                ) : null}
+                                <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'linear-gradient(135deg, #083A85, #3B82F6)', border: '2px solid rgba(255,255,255,0.3)', display: clientImg ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.6rem', fontWeight: 700 }}>{album.clientName.charAt(0).toUpperCase()}</div>
+                                <span>{album.clientName}</span>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', backgroundColor: '#083A85', padding: '0.15rem 0.5rem', borderRadius: '2rem', fontSize: '0.68rem', color: 'white', fontWeight: 700 }}>
+                                <ImageIcon /> {album.photoCount}
+                              </div>
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                            <button onClick={() => { setSelectedAlbum(album); setViewerAlbum(album); setCurrentImageIndex(0); setShowAlbumBrowseModal(true); }} style={{ ...smallActionBtn, backgroundColor: '#083A85', borderColor: '#083A85', color: 'white' }}><EyeIcon /> Browse</button>
+                            {album.sharedWithClient ? (
+                              <span style={{ ...smallActionBtn, backgroundColor: '#059669', borderColor: '#059669', color: 'white', cursor: 'default', opacity: 0.85 }}><CheckCircleIcon /> Sent</span>
+                            ) : (
+                              <button onClick={() => { setSelectedAlbum(album); setShowSendModal(true); }} style={{ ...smallActionBtn, backgroundColor: '#083A85', borderColor: '#083A85', color: 'white' }}><SendIcon /> Send</button>
+                            )}
+                            <button onClick={() => handleOpenFaceAI(album)} style={{ ...smallActionBtn, backgroundColor: '#8B5CF6', borderColor: '#8B5CF6', color: 'white' }}><FaceRecognitionIcon /> Face AI</button>
+                            <button onClick={() => handleOpenEdit(album)} style={{ ...smallActionBtn, backgroundColor: colors.bgTertiary, color: colors.textPrimary }}><EditIcon /> Edit</button>
+                            <button onClick={() => { setAlbumToDelete(album); setShowDeleteConfirm(true); }} style={{ ...smallActionBtn, backgroundColor: '#DC2626', borderColor: '#DC2626', color: 'white' }}><TrashIcon /></button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    );
+                  })}
                 </div>
                 {filteredAlbums.length === 0 && (
                   <div style={{ textAlign: 'center', padding: '3rem', color: colors.textTertiary }}>
@@ -1562,8 +1701,8 @@ const PhotographerEventsPage = () => {
             <div style={{ marginBottom: '1.25rem' }}>
               <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Find-My-Photos Link</label>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <input readOnly value={getFindMyPhotosLink(selectedAlbum.inviteCode || '')} style={{ ...inputStyle, flex: 1, fontSize: '0.8rem' }} />
-                <button onClick={() => handleCopyLink(getFindMyPhotosLink(selectedAlbum.inviteCode || ''))} style={smallActionBtn}>{copiedLink ? 'Copied!' : <><CopyIcon /> Copy</>}</button>
+                <input readOnly value={`${process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekyt.com'}/find-my-photos?code=${selectedAlbum.inviteCode}`} style={{ ...inputStyle, flex: 1, fontSize: '0.8rem' }} />
+                <button onClick={() => handleCopyLink(`${process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekyt.com'}/find-my-photos?code=${selectedAlbum.inviteCode}`)} style={smallActionBtn}>{copiedLink ? 'Copied!' : <><CopyIcon /> Copy</>}</button>
               </div>
             </div>
             {/* Upload Button */}

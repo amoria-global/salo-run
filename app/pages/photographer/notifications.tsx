@@ -156,7 +156,7 @@ const Notifications = () => {
     } finally {
       setLoading(false);
     }
-  }, [balance]);
+  }, []);
 
   useEffect(() => {
     fetchNotifications();
