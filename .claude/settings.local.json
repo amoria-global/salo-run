@@ -201,7 +201,11 @@
       "Bash(rm fix-profile.js)",
       "Bash(npx next dev --port 3001)",
       "Bash(ls -la .env*)",
-      "Bash(node -e \"console.log\\(require\\(''./package.json''\\).dependencies.next\\)\")"
+      "Bash(node -e \"console.log\\(require\\(''./package.json''\\).dependencies.next\\)\")",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtdWd3aWpheDQ1QGdtYWlsLmNvbSIsImlhdCI6MTc3MjgxNDExOCwiZXhwIjoxNzcyODE3NzE4fQ.ats9qB4bdM24LLwNHeDAHx-Kp4buKxvva7x1FDTCHqU\")",
+      "Bash(echo $TOKEN)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtdWd3aWpheDQ1QGdtYWlsLmNvbSIsImlhdCI6MTc3MjgxNDIxMSwiZXhwIjoxNzcyODE3ODExfQ.FYbDkhxDSF2Ar6Hsn-0r24_U3e9nDWvuyN7b8emIZJg\")",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiJ9.eyJ2dWIiOiJtdWd3aWpheDQ1QGdtYWlsLmNvbSIsImlhdCI6MTc3MjgxNDIxMSwiZXhwIjoxNzcyODE3ODExfQ.FYbDkhxDSF2Ar6Hsn-0r24_U3e9nDWvuyN7b8emIZJg\")"
     ],
     "deny": [],
     "ask": []
