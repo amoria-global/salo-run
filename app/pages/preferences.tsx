@@ -213,6 +213,11 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
           })));
         }
 
+        // Load notification preferences
+        if (prefs.email_notifications !== undefined) setEmailNotifications(prefs.email_notifications === 'true');
+        if (prefs.push_notifications !== undefined) setPushNotifications(prefs.push_notifications === 'true');
+        if (prefs.security_alerts !== undefined) setSecurityAlerts(prefs.security_alerts === 'true');
+
         // Load saved payment methods
         const paymentKeys = Object.keys(prefs).filter(k => k.startsWith('payment_method_'));
         if (paymentKeys.length > 0) {
@@ -867,7 +872,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                     </div>
                   </div>
                   <button
-                    onClick={() => setEmailNotifications(!emailNotifications)}
+                    onClick={() => { setEmailNotifications(!emailNotifications); savePreference('email_notifications', String(!emailNotifications)); }}
                     style={{
                       width: '48px',
                       height: '26px',
@@ -913,7 +918,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                     </div>
                   </div>
                   <button
-                    onClick={() => setPushNotifications(!pushNotifications)}
+                    onClick={() => { setPushNotifications(!pushNotifications); savePreference('push_notifications', String(!pushNotifications)); }}
                     style={{
                       width: '48px',
                       height: '26px',
@@ -1254,7 +1259,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                     </div>
                   </div>
                   <button
-                    onClick={() => setSecurityAlerts(!securityAlerts)}
+                    onClick={() => { setSecurityAlerts(!securityAlerts); savePreference('security_alerts', String(!securityAlerts)); }}
                     style={{
                       width: '48px',
                       height: '26px',

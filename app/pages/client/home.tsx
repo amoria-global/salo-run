@@ -275,7 +275,7 @@ const ClientDashboard = () => {
             amount: p.amount,
             paidAmount: p.paidAmount || 0,
             dueDate: p.dueDate ? p.dueDate.split('T')[0] : '',
-            status: p.status === 'PARTIAL' ? 'partially_paid' : 'pending' as PendingPayment['status'],
+            status: p.status === 'PARTIAL' ? 'partially_paid' : p.status === 'FAILED' ? 'failed' : 'pending' as PendingPayment['status'],
           }));
           setPendingPayments(mapped);
         }
@@ -1231,6 +1231,7 @@ const ClientDashboard = () => {
         isOpen={showPayNowModal}
         onClose={() => setShowPayNowModal(false)}
         payment={payNowPayment}
+        onPaymentSuccess={() => { setShowPayNowModal(false); fetchDashboardData(); }}
       />
     </>
   );

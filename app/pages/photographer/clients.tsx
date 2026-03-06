@@ -8,7 +8,14 @@ import Link from 'next/link';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
-import { getApiUrl, getApiKey } from '@/lib/api';
+
+// API helpers
+function getApiUrl(): string {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    return '/api/proxy';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+}
 
 // Icons
 const SearchIcon = () => (
@@ -291,12 +298,7 @@ export default function Clients() {
     if (!token) return;
     setBookingsLoading(true);
     try {
-      const response = await fetch(`${getApiUrl()}/api/remote/photographer/bookings`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'api-token': getApiKey(),
-        },
-      });
+      const response = await dashboardAuthFetch(`${getApiUrl()}/api/remote/photographer/bookings`);
       const result = await response.json();
       if (result.action === 1 && Array.isArray(result.data)) {
         setBookings(result.data);
@@ -318,15 +320,9 @@ export default function Clients() {
     if (!token) return;
     setProcessingBookingId(bookingId);
     try {
-      const response = await fetch(
+      const response = await dashboardAuthFetch(
         `${getApiUrl()}/api/remote/photographer/bookings/${bookingId}/accept`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'api-token': getApiKey(),
-          },
-        }
+        { method: 'POST' }
       );
       const result = await response.json();
       if (result.action === 1) {
@@ -344,15 +340,9 @@ export default function Clients() {
     if (!token) return;
     setProcessingBookingId(bookingId);
     try {
-      const response = await fetch(
+      const response = await dashboardAuthFetch(
         `${getApiUrl()}/api/remote/photographer/bookings/${bookingId}/reject`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'api-token': getApiKey(),
-          },
-        }
+        { method: 'POST' }
       );
       const result = await response.json();
       if (result.action === 1) {

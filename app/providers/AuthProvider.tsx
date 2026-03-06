@@ -2,8 +2,6 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams, usePathname } from 'next/navigation';
-import { getApiUrl, getApiKey } from '@/lib/api';
-import { getLandingUrl, getLoginUrl } from '@/lib/urls';
 
 /**
  * Availability time structure from API
@@ -131,12 +129,29 @@ const AUTH_USER_KEY = 'authUser';
 const REFRESH_TOKEN_KEY = 'refreshToken';
 
 /**
- * Normalize image URLs from the API.
+ * Normalize image URLs from the API to avoid mixed content issues.
+ * In production, rewrites http://backend-ip/... to /api/proxy/... so images
+ * are served through the same HTTPS origin.
  */
 function normalizeImageUrl(url: string | undefined | null): string | undefined {
   if (!url) return undefined;
   // Backend returns http://host/uploads/null when no image is set — treat as no image
   if (url.includes('/null')) return undefined;
+  if (typeof window === 'undefined') return url;
+
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://backend.connekyt.com';
+  // The backend still returns image URLs with the old IP — handle both
+  const OLD_BACKEND_IP = 'http://197.243.24.101';
+
+  // In production, rewrite backend URLs to go through the proxy
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    if (url.startsWith(apiBase)) return url.replace(apiBase, '/api/proxy');
+    if (url.startsWith(OLD_BACKEND_IP)) return url.replace(OLD_BACKEND_IP, '/api/proxy');
+  }
+  // In dev, rewrite old IP URLs to use the current API base
+  if (url.startsWith(OLD_BACKEND_IP) && apiBase !== OLD_BACKEND_IP) {
+    return url.replace(OLD_BACKEND_IP, apiBase);
+  }
   return url;
 }
 
@@ -200,6 +215,23 @@ function clearAuthFromStorage(): void {
   }
 }
 
+/**
+ * Get API URL
+ */
+function getApiUrl(): string {
+  // In production (Vercel), use the proxy to avoid mixed content
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    return '/api/proxy';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'https://backend.connekyt.com';
+}
+
+/**
+ * Get API key
+ */
+function getApiKey(): string {
+  return process.env.NEXT_PUBLIC_API_KEY || '';
+}
 
 /**
  * Get token from cookie
@@ -344,7 +376,8 @@ async function tryFetchProfile(
   roleName: string
 ): Promise<{ user: DashboardUser | null; status: number }> {
   try {
-    const response = await fetch(`${getApiUrl()}${endpoint}`, {
+    const url = `${getApiUrl()}${endpoint}`;
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -359,7 +392,6 @@ async function tryFetchProfile(
 
     const result = await response.json();
     if (result.action === 1 && result.data) {
-      console.log(`[Dashboard Auth] Profile fetched via ${roleName} endpoint for:`, result.data.firstName, result.data.lastName);
       const userData = mapProfileData(result.data);
       // Ensure customerType is set — infer from endpoint if API didn't return it
       if (!userData.customerType) {
@@ -369,7 +401,6 @@ async function tryFetchProfile(
       }
       return { user: userData, status: response.status };
     }
-    console.warn(`[Dashboard Auth] ${roleName} profile returned unexpected body:`, result);
     return { user: null, status: response.status };
   } catch (err) {
     console.warn(`[Dashboard Auth] ${roleName} profile network error:`, err);
@@ -392,41 +423,42 @@ const PROFILE_ENDPOINTS = [
  * Tries photographer, coordinator, and customer endpoints in order.
  * On 401, attempts token refresh and retries all endpoints.
  */
-async function fetchUserProfile(token: string): Promise<DashboardUser | null> {
+async function fetchUserProfile(token: string): Promise<{ user: DashboardUser | null; reason: 'success' | 'unauthorized' | 'server_error' | 'network_error' }> {
   try {
     // Try each role endpoint until one succeeds
     let got401 = false;
+    let gotServerError = false;
     for (const { endpoint, role } of PROFILE_ENDPOINTS) {
       const { user, status } = await tryFetchProfile(endpoint, token, role);
-      if (user) return user;
+      if (user) return { user, reason: 'success' };
       if (status === 401) { got401 = true; break; }
-      // 403/404/500 means wrong role — try next endpoint
+      if (status >= 500) { gotServerError = true; }
+      // 403/404 means wrong role — try next endpoint
     }
 
     // If any endpoint returned 401, attempt token refresh and retry all
     if (got401) {
-      console.log('[Dashboard Auth] Got 401, attempting token refresh...');
       const newToken = await attemptDashboardTokenRefresh(token);
       if (newToken) {
         for (const { endpoint, role } of PROFILE_ENDPOINTS) {
           const { user } = await tryFetchProfile(endpoint, newToken, role);
-          if (user) return user;
+          if (user) return { user, reason: 'success' };
         }
       }
-      // Refresh failed — redirect to login
-      console.log('[Dashboard Auth] Token refresh failed, redirecting to login');
       if (typeof window !== 'undefined') {
-        window.location.href = getLoginUrl({ sessionExpired: true });
+        const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekyt.com';
+        const loginUrl = `${landingUrl}/user/auth/login?session_expired=true`;
+        window.location.href = loginUrl;
       }
-      return null;
+      return { user: null, reason: 'unauthorized' };
     }
 
     // All endpoints failed with non-401 errors
-    console.error(`[Dashboard Auth] All profile endpoints failed. API URL: ${getApiUrl()}. Is the backend running?`);
-    return null;
+    console.error(`[Dashboard Auth] All profile endpoints failed (server errors: ${gotServerError}). API URL: ${getApiUrl()}. Is the backend running?`);
+    return { user: null, reason: gotServerError ? 'server_error' : 'network_error' };
   } catch (error) {
     console.error('[Dashboard Auth] Error fetching user profile:', error);
-    return null;
+    return { user: null, reason: 'network_error' };
   }
 }
 
@@ -463,7 +495,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 
       if (activeToken) {
         // Fetch profile summary - this also validates the token (will fail if token is invalid)
-        const userProfile = await fetchUserProfile(activeToken);
+        const { user: userProfile, reason } = await fetchUserProfile(activeToken);
 
         if (userProfile) {
           // Token may have been refreshed during profile fetch — use latest from storage
@@ -489,20 +521,36 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
             url.searchParams.delete('email'); // Clean up email too if present (legacy)
             window.history.replaceState({}, '', url.pathname + url.search);
           }
+        } else if (reason === 'server_error' || reason === 'network_error') {
+          // Backend is down or returning 500 — keep the token and use cached data if available
+          // Do NOT clear auth — the token may still be valid, the backend is just broken
+          if (storedUserStr) {
+            try {
+              const storedUser = JSON.parse(storedUserStr);
+              setToken(activeToken);
+              setUser(storedUser);
+              saveTokenToStorage(activeToken);
+            } catch {
+              // Invalid JSON but still keep the token — don't clear auth
+              setToken(activeToken);
+              saveTokenToStorage(activeToken);
+            }
+          } else {
+            // No cached data and backend is down — keep token, user stays null but auth isn't cleared
+            setToken(activeToken);
+            saveTokenToStorage(activeToken);
+          }
         } else if (storedUserStr && storedToken === activeToken) {
-          // Profile fetch failed but we have cached data - use it temporarily
-          // This handles offline/network issues
+          // Unauthorized but have cached data — use briefly (will redirect soon anyway)
           try {
             const storedUser = JSON.parse(storedUserStr);
             setToken(activeToken);
             setUser(storedUser);
-            console.log('[Dashboard Auth] Using cached user profile');
           } catch {
-            // Invalid JSON - clear storage
             clearAuthFromStorage();
           }
         } else {
-          // Invalid token - clear storage
+          // Unauthorized, no cache — clear storage
           clearAuthFromStorage();
         }
       }
@@ -520,20 +568,14 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     const FIVE_MINUTES = 5 * 60 * 1000;
 
     const intervalId = setInterval(async () => {
-      console.log('[Dashboard Auth] Running periodic profile refresh...');
-      // fetchUserProfile now handles 401 internally:
-      // on 401 it tries token refresh, retries, and redirects to login if refresh fails
-      const userProfile = await fetchUserProfile(token);
+      const { user: userProfile } = await fetchUserProfile(token);
 
       if (!userProfile) {
-        // Profile fetch returned null — either a non-401 error (network issue)
-        // or 401 handler already triggered redirect. Don't double-clear.
-        console.log('[Dashboard Auth] Periodic profile refresh returned null');
+        // Don't clear state on server errors — keep existing user data
       } else {
         // Success — sync latest token from storage (may have been refreshed)
         const latestToken = (typeof window !== 'undefined' ? localStorage.getItem(AUTH_TOKEN_KEY) : null) || token;
         if (latestToken !== token) {
-          console.log('[Dashboard Auth] Token was refreshed during periodic check, syncing state');
           setToken(latestToken);
         }
         // Update user with fresh data
@@ -545,7 +587,6 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
             document.cookie = `userRole=${userProfile.customerType.toLowerCase()}; path=/; max-age=${60*60*24*7}; samesite=lax`;
           }
         }
-        console.log('[Dashboard Auth] Profile refresh successful');
       }
     }, FIVE_MINUTES);
 
@@ -635,7 +676,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     setIsLoggingOut(true);
 
     if (typeof window !== 'undefined') {
-      const landingUrl = getLandingUrl();
+      const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekyt.com';
 
       // Notify the landing page via postMessage (works when opened as a popup)
       if (window.opener && !window.opener.closed) {
@@ -679,19 +720,16 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
       return false;
     }
 
-    console.log('[Dashboard Auth] Refreshing user profile...');
-    const userProfile = await fetchUserProfile(token);
+    const { user: userProfile } = await fetchUserProfile(token);
 
     if (userProfile) {
       setUser(userProfile);
       if (typeof window !== 'undefined') {
         localStorage.setItem(AUTH_USER_KEY, JSON.stringify(userProfile));
       }
-      console.log('[Dashboard Auth] Profile refreshed successfully');
       return true;
     }
 
-    console.error('[Dashboard Auth] Failed to refresh profile');
     return false;
   }, [token]);
 

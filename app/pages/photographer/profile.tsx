@@ -401,15 +401,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     setSavingPackageId(pkg.id);
     try {
       const apiUrl = getApiUrl();
-      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
-
-      const response = await fetch(`${apiUrl}/api/remote/photographer/packages`, {
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/packages`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'api-token': apiKey,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           packageName: pkg.packageName,
           price: parseFloat(pkg.price) || 0,
@@ -588,7 +582,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     const fetchCurrencies = async () => {
       try {
         const apiUrl = getApiUrl();
-        const response = await fetch(`${apiUrl}/api/remote/public/currencies`);
+        const response = await dashboardAuthFetch(`${apiUrl}/api/remote/public/currencies`);
         if (response.ok) {
           const result = await response.json();
           if (result.data && Array.isArray(result.data)) {
@@ -984,15 +978,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
     try {
       const apiUrl = getApiUrl();
-      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
-
-      const response = await fetch(`${apiUrl}/api/remote/photographer/add-education-level`, {
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/add-education-level`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'api-token': apiKey,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           degree: edu.degree,
           institution: edu.institution,
@@ -1035,15 +1023,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
     try {
       const apiUrl = getApiUrl();
-      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
-
-      const response = await fetch(`${apiUrl}/api/remote/photographer/add-trainting-certification`, {
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/add-trainting-certification`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'api-token': apiKey,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: training.name,
           institution: training.issuer || '',
@@ -1085,15 +1067,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
     try {
       const apiUrl = getApiUrl();
-      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
-
-      const response = await fetch(`${apiUrl}/api/remote/photographer/add-professional-skills`, {
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/add-professional-skills`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'api-token': apiKey,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: skill.name,
           skillPercentage: skill.level,
@@ -1132,15 +1108,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
     try {
       const apiUrl = getApiUrl();
-      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
-
-      const response = await fetch(`${apiUrl}/api/remote/photographer/add-equipment`, {
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/add-equipment`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'api-token': apiKey,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: name,
         }),
@@ -1172,14 +1142,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     if (!token) return false;
     try {
       const apiUrl = getApiUrl();
-      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
-      const response = await fetch(`${apiUrl}/api/remote/photographer/update-important-details`, {
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/update-important-details`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'api-token': apiKey,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
       if (!response.ok) return false;
@@ -1247,15 +1212,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
     try {
       const apiUrl = getApiUrl();
-      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
-
-      const response = await fetch(`${apiUrl}/api/remote/photographer/add-availability`, {
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/add-availability`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'api-token': apiKey,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           dayOfWeek: day.toUpperCase(),
           startTime: parseTimeToAPI(startTime),
@@ -1290,17 +1249,12 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
     try {
       const apiUrl = getApiUrl();
-      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
-
       const formData = new FormData();
       formData.append('profilePicture', file);
 
-      const response = await fetch(`${apiUrl}/api/remote/photographer/update-profile-picture`, {
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/update-profile-picture`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'api-token': apiKey,
-        },
+        headers: {},
         body: formData,
       });
 
@@ -1331,17 +1285,12 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
     try {
       const apiUrl = getApiUrl();
-      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
-
       const formData = new FormData();
       formData.append('coverPhoto', file);
 
-      const response = await fetch(`${apiUrl}/api/remote/photographer/update-cover-photo`, {
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/update-cover-photo`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'api-token': apiKey,
-        },
+        headers: {},
         body: formData,
       });
 
@@ -1377,8 +1326,6 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
     try {
       const apiUrl = getApiUrl();
-      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
-
       const formData = new FormData();
       formData.append('requestDTO', new Blob([JSON.stringify({
         title: project.title,
@@ -1396,12 +1343,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         formData.append('projectImage', blob, 'project-image.jpg');
       }
 
-      const apiResponse = await fetch(`${apiUrl}/api/remote/photographer/add-project-portfolio`, {
+      const apiResponse = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/add-project-portfolio`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'api-token': apiKey,
-        },
+        headers: {},
         body: formData,
       });
 
@@ -1426,13 +1370,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     if (!token) return false;
     try {
       const apiUrl = getApiUrl();
-      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
-      const response = await fetch(`${apiUrl}/api/remote/photographer/delete-professional-skills/${skillId}`, {
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/delete-professional-skills/${skillId}`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'api-token': apiKey,
-        },
+        headers: {},
       });
       if (response.ok) {
         await refreshUserProfile();
@@ -1449,13 +1389,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     if (!token) return false;
     try {
       const apiUrl = getApiUrl();
-      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
-      const response = await fetch(`${apiUrl}/api/remote/photographer/delete-equipment/${equipmentId}`, {
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/delete-equipment/${equipmentId}`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'api-token': apiKey,
-        },
+        headers: {},
       });
       if (response.ok) {
         await refreshUserProfile();
@@ -1472,13 +1408,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     if (!token) return false;
     try {
       const apiUrl = getApiUrl();
-      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
-      const response = await fetch(`${apiUrl}/api/remote/photographer/delete-education-level/${educationId}`, {
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/delete-education-level/${educationId}`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'api-token': apiKey,
-        },
+        headers: {},
       });
       if (response.ok) {
         await refreshUserProfile();
@@ -1495,13 +1427,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     if (!token) return false;
     try {
       const apiUrl = getApiUrl();
-      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
-      const response = await fetch(`${apiUrl}/api/remote/photographer/delete-availability/${availabilityId}`, {
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/delete-availability/${availabilityId}`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'api-token': apiKey,
-        },
+        headers: {},
       });
       if (response.ok) {
         await refreshUserProfile();
@@ -1518,13 +1446,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     if (!token) return false;
     try {
       const apiUrl = getApiUrl();
-      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
-      const response = await fetch(`${apiUrl}/api/remote/photographer/delete-add-project-portfolio/${projectId}`, {
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/delete-add-project-portfolio/${projectId}`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'api-token': apiKey,
-        },
+        headers: {},
       });
       if (response.ok) {
         await refreshUserProfile();
@@ -1541,13 +1465,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     if (!token) return false;
     try {
       const apiUrl = getApiUrl();
-      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
-      const response = await fetch(`${apiUrl}/api/remote/photographer/delete-trainting-certification/${trainingId}`, {
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/delete-trainting-certification/${trainingId}`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'api-token': apiKey,
-        },
+        headers: {},
       });
       if (response.ok) {
         await refreshUserProfile();
