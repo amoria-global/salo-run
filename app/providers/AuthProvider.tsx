@@ -131,20 +131,12 @@ const AUTH_USER_KEY = 'authUser';
 const REFRESH_TOKEN_KEY = 'refreshToken';
 
 /**
- * Normalize image URLs from the API to avoid mixed content issues.
- * In production, rewrites http://backend-ip/... to /api/proxy/... so images
- * are served through the same HTTPS origin.
+ * Normalize image URLs from the API.
  */
 function normalizeImageUrl(url: string | undefined | null): string | undefined {
   if (!url) return undefined;
   // Backend returns http://host/uploads/null when no image is set — treat as no image
   if (url.includes('/null')) return undefined;
-  if (typeof window === 'undefined') return url;
-  const apiBase = process.env.NEXT_PUBLIC_API_URL as string;
-  // Only rewrite if the URL points to the backend and we're on a different origin (production)
-  if (url.startsWith(apiBase) && window.location.origin !== apiBase) {
-    return url.replace(apiBase, '/api/proxy');
-  }
   return url;
 }
 
