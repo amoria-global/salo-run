@@ -130,8 +130,8 @@ const REFRESH_TOKEN_KEY = 'refreshToken';
 
 /**
  * Normalize image URLs from the API to avoid mixed content issues.
- * In production, rewrites http://backend-ip/... to /api/proxy/... so images
- * are served through the same HTTPS origin.
+ * In production, rewrites http://backend-ip/... to same-origin paths so images
+ * are served through the server's reverse proxy.
  */
 function normalizeImageUrl(url: string | undefined | null): string | undefined {
   if (!url) return undefined;
@@ -143,10 +143,10 @@ function normalizeImageUrl(url: string | undefined | null): string | undefined {
   // The backend still returns image URLs with the old IP — handle both
   const OLD_BACKEND_IP = 'http://197.243.24.101';
 
-  // In production, rewrite backend URLs to go through the proxy
+  // In production, rewrite backend URLs to same-origin paths (server reverse-proxies to backend)
   if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
-    if (url.startsWith(apiBase)) return url.replace(apiBase, '/api/proxy');
-    if (url.startsWith(OLD_BACKEND_IP)) return url.replace(OLD_BACKEND_IP, '/api/proxy');
+    if (url.startsWith(apiBase)) return url.replace(apiBase, '');
+    if (url.startsWith(OLD_BACKEND_IP)) return url.replace(OLD_BACKEND_IP, '');
   }
   // In dev, rewrite old IP URLs to use the current API base
   if (url.startsWith(OLD_BACKEND_IP) && apiBase !== OLD_BACKEND_IP) {
@@ -219,9 +219,9 @@ function clearAuthFromStorage(): void {
  * Get API URL
  */
 function getApiUrl(): string {
-  // In production (Vercel), use the proxy to avoid mixed content
+  // In production, the server reverse-proxies /api/* to the backend directly
   if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
-    return '/api/proxy';
+    return '';
   }
   return process.env.NEXT_PUBLIC_API_URL || 'https://backend.connekyt.com';
 }

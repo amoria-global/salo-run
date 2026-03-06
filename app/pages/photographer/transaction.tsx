@@ -12,9 +12,9 @@ import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvid
 
 function getApiUrl(): string {
   if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
-    return '/api/proxy';
+    return '';
   }
-  return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+  return process.env.NEXT_PUBLIC_API_URL || 'https://backend.connekyt.com';
 }
 
 // Icons
