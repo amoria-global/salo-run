@@ -11,9 +11,6 @@ import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvid
 import { StatCard } from '../../components/dashboard/StatCard';
 
 function getApiUrl(): string {
-  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
-    return '';
-  }
   return 'https://backend.connekyt.com';
 }
 
