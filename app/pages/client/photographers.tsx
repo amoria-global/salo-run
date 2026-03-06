@@ -9,8 +9,13 @@ import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { HeartIcon as DonateHeartIcon } from '../../components/UnlockModal';
-import { getApiUrl } from '@/lib/api';
-import { getPhotographerInviteLink, getDonationsPageUrl } from '@/lib/urls';
+
+function getApiUrl(): string {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    return '/api/proxy';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+}
 
 // Icons
 const SearchIcon = () => (
@@ -442,19 +447,13 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
       setReviewError(null);
       try {
         const apiUrl = getApiUrl();
-        const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
-        const response = await fetch(`${apiUrl}/api/remote/public/events/list?page=0&size=100&sortColumn=createdAt&sortDirection=desc`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'api-token': apiKey,
-            'Content-Type': 'application/json',
-          },
-        });
+        const eventsNs = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
+        const response = await dashboardAuthFetch(`${apiUrl}/api/remote/${eventsNs}/events?page=0&size=100`);
 
         if (!response.ok) throw new Error('Failed to fetch events');
 
         const result = await response.json();
-        const events = result?.data?.content || result?.content || [];
+        const events = result?.data?.content || result?.data || [];
 
         // Filter for completed events involving this photographer
         const completedEvents = events
@@ -489,9 +488,10 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
     ));
     try {
       const apiUrl = getApiUrl();
+      const ns = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
       const endpoint = willFavorite
-        ? `${apiUrl}/api/remote/customer/photographers/bookmark/${id}`
-        : `${apiUrl}/api/remote/customer/photographers/unbookmark/${id}`;
+        ? `${apiUrl}/api/remote/${ns}/photographers/bookmark/${id}`
+        : `${apiUrl}/api/remote/${ns}/photographers/unbookmark/${id}`;
       await dashboardAuthFetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
     } catch (err) {
       console.error('Failed to toggle favorite:', err);
@@ -606,14 +606,9 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
 
     try {
       const apiUrl = getApiUrl();
-      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
-      const response = await fetch(`${apiUrl}/api/remote/photographer-reviews`, {
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer-reviews`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'api-token': apiKey,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           eventId: selectedReviewEventId,
           rating: reviewRating,
@@ -727,9 +722,9 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
     setSuccessMessage('');
   };
 
-  // --- Coordinator: Send rebook request ---
+  // --- Send rebook request (both client and coordinator) ---
   const handleSendBookingRequest = async () => {
-    if (userRole !== 'event-coordinator' || !rebookPhotographer) return;
+    if (!rebookPhotographer) return;
 
     if (!rebookEventType || !rebookDate || !rebookTime || !rebookLocation) {
       setRebookError('Please fill in all required fields');
@@ -741,15 +736,17 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
 
     try {
       const apiUrl = getApiUrl();
-      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/rebook`, {
+      const rebookNs = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/${rebookNs}/rebook`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          title: `${rebookEventType} - ${rebookPhotographer.firstName} ${rebookPhotographer.lastName}`.trim(),
           photographerId: rebookPhotographer.id,
           eventType: rebookEventType,
           eventDate: rebookDate,
           startTime: rebookTime,
-          endTime: rebookTime, // default to same; backend may adjust
+          endTime: rebookTime,
           location: rebookLocation,
           notes: rebookNotes,
         }),
@@ -780,7 +777,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
   };
 
   // --- Coordinator: Invite photographer by email ---
-  const inviteLink = getPhotographerInviteLink(user?.id || '');
+  const inviteLink = `https://connekt.app/invite/photographer/${user?.id || ''}`;
 
   const handleInvitePhotographer = async () => {
     if (userRole !== 'event-coordinator' || !inviteEmail.trim()) {
@@ -2435,7 +2432,8 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                   setIsSubmittingReport(true);
                   try {
                     const apiUrl = getApiUrl();
-                    const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/photographers/${reportPhotographer.id}/report`, {
+                    const reportNs = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
+                    const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${reportNs}/photographers/${reportPhotographer.id}/report`, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ reason: reportReason, description: reportDescription }),
@@ -2635,7 +2633,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                 </div>
                 <p style={{ fontSize: '0.86rem', color: colors.textSecondary, margin: '0.75rem 0 0 0', textAlign: 'center' }}>
                   <i className="bi bi-info-circle" style={{ marginRight: '0.375rem' }}></i>
-                  Manage your payment methods in <span onClick={() => router.push('/user/client/preferences?tab=payments')} style={{ color: colors.brandPrimary, fontWeight: '500', cursor: 'pointer', textDecoration: 'underline' }}>Preferences → Payment Accounts</span>
+                  Manage your payment methods in <span onClick={() => router.push(`/user/${userRole === 'event-coordinator' ? 'event-coordinator' : 'client'}/preferences?tab=payments`)} style={{ color: colors.brandPrimary, fontWeight: '500', cursor: 'pointer', textDecoration: 'underline' }}>Preferences → Payment Accounts</span>
                 </p>
               </div>
 
@@ -2692,7 +2690,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                   fontSize: '0.875rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center'
                 }}>{payDonationSkipped ? '✓ Donation skipped' : 'No thanks, skip donation'}</button>
                 <div style={{ marginTop: '0.5rem' }}>
-                  <a href={getDonationsPageUrl()} onClick={(e) => { e.preventDefault(); router.push('/user/donations'); }} style={{ fontSize: '0.81rem', color: '#F20C8F', textDecoration: 'none', fontWeight: '500' }}>Learn more about our donation program →</a>
+                  <a href={`${process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekyt.com'}/user/donations`} onClick={(e) => { e.preventDefault(); router.push('/user/donations'); }} style={{ fontSize: '0.81rem', color: '#F20C8F', textDecoration: 'none', fontWeight: '500' }}>Learn more about our donation program →</a>
                 </div>
               </div>
 
@@ -3043,7 +3041,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                 </div>
                 <p style={{ fontSize: '0.86rem', color: colors.textSecondary, margin: '0.75rem 0 0 0', textAlign: 'center' }}>
                   <i className="bi bi-info-circle" style={{ marginRight: '0.375rem' }}></i>
-                  Manage your payment methods in <span onClick={() => router.push('/user/client/preferences?tab=payments')} style={{ color: colors.brandPrimary, fontWeight: '500', cursor: 'pointer', textDecoration: 'underline' }}>Preferences → Payment Accounts</span>
+                  Manage your payment methods in <span onClick={() => router.push(`/user/${userRole === 'event-coordinator' ? 'event-coordinator' : 'client'}/preferences?tab=payments`)} style={{ color: colors.brandPrimary, fontWeight: '500', cursor: 'pointer', textDecoration: 'underline' }}>Preferences → Payment Accounts</span>
                 </p>
               </div>
 
@@ -3100,7 +3098,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                   fontSize: '0.875rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center'
                 }}>{tipDonationSkipped ? '✓ Donation skipped' : 'No thanks, skip donation'}</button>
                 <div style={{ marginTop: '0.5rem' }}>
-                  <a href={getDonationsPageUrl()} onClick={(e) => { e.preventDefault(); router.push('/user/donations'); }} style={{ fontSize: '0.81rem', color: '#F20C8F', textDecoration: 'none', fontWeight: '500' }}>Learn more about our donation program →</a>
+                  <a href={`${process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekyt.com'}/user/donations`} onClick={(e) => { e.preventDefault(); router.push('/user/donations'); }} style={{ fontSize: '0.81rem', color: '#F20C8F', textDecoration: 'none', fontWeight: '500' }}>Learn more about our donation program →</a>
                 </div>
               </div>
 

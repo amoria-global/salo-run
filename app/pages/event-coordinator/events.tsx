@@ -8,8 +8,6 @@ import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
-import { getApiUrl } from '@/lib/api';
-import { getLandingUrl, getEventShareLink, getPhotographerRegisterLink } from '@/lib/urls';
 
 // Configure localforage for event form data
 const eventFormStorage = localforage.createInstance({
@@ -56,6 +54,14 @@ const fallbackCurrencyOptions = [
   { value: 'TZS', label: 'TZS' }
 ];
 
+// API URL helper
+function getApiUrl(): string {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    return '/api/proxy';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+}
+
 function parseTimeToApiString(timeStr: string): string {
   const [hours, minutes] = timeStr.split(':').map(Number);
   return `${String(hours || 0).padStart(2, '0')}:${String(minutes || 0).padStart(2, '0')}:00`;
@@ -71,11 +77,6 @@ const formatNumberWithCommas = (value: string): string => {
   const numericValue = value.replace(/[^\d]/g, '');
   // Add commas for thousands
   return numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-};
-
-// Parse formatted number back to raw value
-const parseFormattedNumber = (value: string): string => {
-  return value.replace(/,/g, '');
 };
 
 // Icons
@@ -357,23 +358,12 @@ const MyEventsPage = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editEvent, setEditEvent] = useState<Event | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
-  const [showInviteSection, setShowInviteSection] = useState(false);
-  const [inviteLinkCopied, setInviteLinkCopied] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteError, setInviteError] = useState<string | null>(null);
-  const [isSendingInvite, setIsSendingInvite] = useState(false);
   const [apiCurrencies, setApiCurrencies] = useState<{ value: string; label: string }[]>([]);
 
   // Photographers fetched from API
   const [pastPhotographers, setPastPhotographers] = useState<{id: string; name: string; image: string; speciality: string; rating: number; eventsWorked: number}[]>([]);
   const [showFindPhotographerModal, setShowFindPhotographerModal] = useState(false);
   const [photographerSearchQuery, setPhotographerSearchQuery] = useState('');
-
-  const filteredPhotographers = pastPhotographers.filter((photographer) => {
-    if (!photographerSearchQuery.trim()) return true;
-    const query = photographerSearchQuery.toLowerCase();
-    return photographer.name.toLowerCase().includes(query) || photographer.speciality.toLowerCase().includes(query);
-  });
 
   useEffect(() => {
     const fetchPhotographers = async () => {
@@ -406,7 +396,6 @@ const MyEventsPage = () => {
   // Edit form state
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
-  const [editEventType, setEditEventType] = useState('');
   const [editCategory, setEditCategory] = useState<EventCategory | ''>('');
   const [editStatus, setEditStatus] = useState<'UPCOMING' | 'LIVE'>('UPCOMING');
   const [editDate, setEditDate] = useState('');
@@ -452,49 +441,6 @@ const MyEventsPage = () => {
   const [createPhotographerId, setCreatePhotographerId] = useState<string>('');
   const [createEventVisibility, setCreateEventVisibility] = useState<string>('PUBLIC');
   const [createPackageId, setCreatePackageId] = useState<string>('');
-  const [photographerPackages, setPhotographerPackages] = useState<{id: string; packageName: string; price: number; currencyId: string; description: string; durationHours: number}[]>([]);
-  const [packagesLoading, setPackagesLoading] = useState(false);
-  const [packagesError, setPackagesError] = useState<string | null>(null);
-
-  // Fetch packages when photographer changes
-  useEffect(() => {
-    if (!createPhotographerId || !isValidUUID(createPhotographerId)) {
-      setPhotographerPackages([]);
-      setCreatePackageId('');
-      setPackagesError(null);
-      return;
-    }
-    setPackagesLoading(true);
-    setCreatePackageId('');
-    const fetchPackages = async () => {
-      try {
-        const apiUrl = getApiUrl();
-        const response = await fetch(`${apiUrl}/api/remote/public/photographers/${createPhotographerId}/packages`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-        });
-        if (!response.ok) {
-          setPackagesError('Could not load packages. Please try again.');
-          return;
-        }
-        const data = await response.json();
-        const pkgs = data.action === 1 && Array.isArray(data.data) ? data.data : [];
-        setPhotographerPackages(pkgs.filter((p: Record<string, unknown>) => p.isActive !== false).map((p: Record<string, unknown>) => ({
-          id: (p.id as string) || '',
-          packageName: (p.packageName as string) || 'Package',
-          price: (p.price as number) || 0,
-          currencyId: (p.currencyId as string) || 'RWF',
-          description: (p.description as string) || '',
-          durationHours: (p.durationHours as number) || 0,
-        })));
-      } catch {
-        setPackagesError('Could not load packages. Please try again.');
-      } finally {
-        setPackagesLoading(false);
-      }
-    };
-    fetchPackages();
-  }, [createPhotographerId]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -671,7 +617,7 @@ const MyEventsPage = () => {
     setEventsError(null);
     try {
       const apiUrl = getApiUrl();
-      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/events`);
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/events?page=0&size=100`);
 
       if (!response.ok) {
         throw new Error(`Failed to fetch events: ${response.status}`);
@@ -712,7 +658,7 @@ const MyEventsPage = () => {
             photographerName: (evt.photographerName as string) || '',
             photographerImage: (evt.photographerImage as string) || '',
             inviteCode: (evt.inviteCode as string) || (evt.hostId as string) || '',
-            shareLink: getEventShareLink(evt.id as string),
+            shareLink: `${process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekyt.com'}/user/event/${evt.id}`,
             createdAt: (evt.createdAt as string) || '',
           };
         });
@@ -776,8 +722,6 @@ const MyEventsPage = () => {
     setConfirmingEventId(null);
   };
 
-  const eventTypes = ['Wedding', 'Birthday', 'Corporate', 'Baby Shower', 'Graduation', 'Anniversary', 'Engagement', 'Other'];
-
   const handleDeleteEvent = async () => {
     if (!deleteEvent) return;
     const eventId = deleteEvent.id;
@@ -803,7 +747,6 @@ const MyEventsPage = () => {
     setEditEvent(event);
     setEditTitle(event.title);
     setEditDescription(event.description);
-    setEditEventType(event.eventType);
     setEditCategory((event.category as EventCategory) || '');
     setEditStatus(event.status.toLowerCase() === 'live' ? 'LIVE' : 'UPCOMING');
     setEditDate(event.date);
@@ -902,12 +845,12 @@ const MyEventsPage = () => {
           endTime: editEndTime ? parseTimeToApiString(editEndTime) : null,
           location: editVenueName ? `${editVenueName}${editAddress ? ', ' + editAddress : ''}${editCity ? ', ' + editCity : ''}${editCountry ? ', ' + editCountry : ''}` : editAddress,
           eventOrganizer: editOrganizer,
-          eventVisibility: editEvent.status,
           eventTags: editTags.join(','),
         }),
       });
     } catch (err) {
       console.error('Failed to update event:', err);
+      alert(err instanceof Error ? err.message : 'Failed to update event. Please try again.');
     }
 
     setShowEditModal(false);
@@ -938,7 +881,6 @@ const MyEventsPage = () => {
     setCreateBannerImagePreview(null);
     setCreatePhotographerId('');
     setCreatePackageId('');
-    setPhotographerPackages([]);
     setCreateEventVisibility('PUBLIC');
     setShowFindPhotographerModal(false);
     setPhotographerSearchQuery('');
@@ -946,11 +888,6 @@ const MyEventsPage = () => {
     setSubmitError(null);
     setDateError('');
     setTimeError('');
-    setShowInviteSection(false);
-    setInviteEmail('');
-    setInviteError(null);
-    setIsSendingInvite(false);
-    setInviteLinkCopied(false);
     // Clear saved draft from IndexedDB when explicitly requested
     if (clearDraft) {
       clearFormDraft();
@@ -1034,33 +971,6 @@ const MyEventsPage = () => {
     }
   };
 
-  // Handle invite photographer by email
-  const handleInvitePhotographer = async () => {
-    if (!inviteEmail.trim()) {
-      setInviteError('Please enter a valid email address');
-      return;
-    }
-    setIsSendingInvite(true);
-    setInviteError(null);
-    try {
-      const response = await dashboardAuthFetch(
-        `${getApiUrl()}/api/remote/coordinator/photographers/invite?email=${encodeURIComponent(inviteEmail.trim())}`,
-        { method: 'POST' }
-      );
-      const result = await response.json();
-      if (!response.ok || result.action === 0) {
-        throw new Error(result.message || 'Failed to invite photographer');
-      }
-      setInviteEmail('');
-      setInviteError(null);
-    } catch (err) {
-      console.error('Invite photographer error:', err);
-      setInviteError(err instanceof Error ? err.message : 'Failed to invite photographer');
-    } finally {
-      setIsSendingInvite(false);
-    }
-  };
-
   // Handle create event
   const handleCreateEvent = async () => {
     if (!createTitle || !createCategory || !createDate || !createTime) return;
@@ -1072,7 +982,6 @@ const MyEventsPage = () => {
       // Call the backend API
       if (token) {
         const apiUrl = getApiUrl();
-        const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
 
         const locationParts = [createVenueName, createAddress, createCity, createCountry].filter(Boolean);
         const locationStr = locationParts.join(', ');
@@ -1116,71 +1025,16 @@ const MyEventsPage = () => {
             setShowCreateModal(false);
             setIsSubmitting(false);
             return;
+          } else {
+            throw new Error(result.message || 'Failed to create event. Please try again.');
           }
+        } else {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.message || `Failed to create event: ${res.status}`);
         }
+      } else {
+        throw new Error('Authentication required. Please log in again.');
       }
-
-      // Fallback: update local state for immediate UI feedback
-      const selectedPhotographer = pastPhotographers.find(p => p.id === createPhotographerId);
-
-      let calculatedDuration = createDuration || '4 hours';
-      if (createTime && createEndTime) {
-        const startParts = createTime.split(':').map(Number);
-        const endParts = createEndTime.split(':').map(Number);
-        const startMinutes = startParts[0] * 60 + startParts[1];
-        const endMinutes = endParts[0] * 60 + endParts[1];
-        const durationMinutes = endMinutes - startMinutes;
-        if (durationMinutes > 0) {
-          const hours = Math.floor(durationMinutes / 60);
-          const minutes = durationMinutes % 60;
-          calculatedDuration = minutes > 0 ? `${hours} hours ${minutes} minutes` : `${hours} hours`;
-        }
-      }
-
-      const formatTimeDisplay = (time: string) => {
-        const [hours, minutes] = time.split(':').map(Number);
-        const period = hours >= 12 ? 'PM' : 'AM';
-        const displayHours = hours % 12 || 12;
-        return `${String(displayHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')} ${period}`;
-      };
-
-      const timeDisplay = createEndTime
-        ? `${formatTimeDisplay(createTime)} - ${formatTimeDisplay(createEndTime)}`
-        : formatTimeDisplay(createTime);
-
-      const newEvent: Event = {
-        id: `evt_${Date.now()}`,
-        title: createTitle,
-        description: createDescription,
-        eventType: createCategory,
-        category: createCategory as EventCategory,
-        date: createDate,
-        time: timeDisplay,
-        endTime: createEndTime,
-        duration: calculatedDuration,
-        location: {
-          address: createVenueName ? `${createVenueName}${createAddress ? ' - ' + createAddress : ''}` : createAddress,
-          city: createCity,
-          country: createCountry
-        },
-        coverImage: createBannerImage || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800',
-        bannerImage: createBannerImage || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200',
-        price: createPrice || 'Free',
-        guestCount: 0,
-        maxGuests: parseInt(createMaxGuests) || 100,
-        status: createStatus,
-        organizer: createOrganizer || 'Organizer',
-        tags: createTags.length > 0 ? createTags : [createCategory],
-        hasPhotographer: !!selectedPhotographer,
-        photographerName: selectedPhotographer?.name,
-        photographerImage: selectedPhotographer?.image,
-        shareLink: getEventShareLink(`evt_${Date.now()}`),
-        createdAt: new Date().toISOString().split('T')[0]
-      };
-
-      setEvents(prev => [newEvent, ...prev]);
-      resetCreateForm();
-      setShowCreateModal(false);
     } catch (error) {
       console.error('Event creation error:', error);
       setSubmitError(error instanceof Error ? error.message : 'Failed to create event. Please try again.');
@@ -1278,20 +1132,17 @@ const MyEventsPage = () => {
             gap: 1rem !important;
           }
           .mobile-event-card {
-            border-radius: 0.75rem !important;
+            border-radius: 1.25rem !important;
           }
           .mobile-event-image {
             height: 140px !important;
           }
           .mobile-event-content {
-            padding: 1rem !important;
-          }
-          .mobile-event-title {
-            font-size: 1rem !important;
+            padding: 0.5rem 0.7rem !important;
           }
           .mobile-event-actions {
-            flex-direction: row !important;
-            gap: 0.5rem !important;
+            flex-wrap: wrap !important;
+            gap: 0.3rem !important;
           }
         }
         @media (max-width: 640px) {
@@ -1313,10 +1164,7 @@ const MyEventsPage = () => {
             height: 120px !important;
           }
           .mobile-event-content {
-            padding: 0.875rem !important;
-          }
-          .mobile-event-title {
-            font-size: 0.95rem !important;
+            padding: 0.4rem 0.6rem !important;
           }
         }
       `}</style>
@@ -1473,247 +1321,98 @@ const MyEventsPage = () => {
           ) : (
             <div className="mobile-events-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1.25rem' }}>
               {filteredEvents.map((event) => (
-                <div
-                  key={event.id}
-                  className="mobile-event-card"
-                  style={{
-                    backgroundColor: colors.bgCard,
-                    borderRadius: '0.75rem',
-                    overflow: 'hidden',
-                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                    border: `2px solid ${colors.borderPrimary}`
-                  }}
-                >
-                  {/* Cover Image */}
-                  <div className="mobile-event-image" style={{ position: 'relative', height: '160px', backgroundColor: event.coverImage ? 'transparent' : '#0D1B2A' }}>
-                    <img src={event.coverImage || '/coverr.jpg'} alt={event.title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: event.coverImage ? 'cover' : 'contain' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; (e.currentTarget as HTMLImageElement).style.objectFit = 'contain'; const p = e.currentTarget.parentElement; if (p) p.style.backgroundColor = '#0D1B2A'; }} />
-                    {/* Status Badge */}
-                    <div style={{
-                      position: 'absolute',
-                      top: '0.75rem',
-                      left: '0.75rem',
-                      ...getStatusBadgeStyle(event.status),
-                      padding: '0.25rem 0.75rem',
-                      borderRadius: '9999px',
-                      fontSize: '0.75rem',
-                      fontWeight: '600',
-                      textTransform: 'capitalize'
-                    }}>
-                      {event.status}
-                    </div>
-                    {/* Event Type */}
-                    <div style={{
-                      position: 'absolute',
-                      top: '0.75rem',
-                      right: '0.75rem',
-                      backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                      color: 'white',
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '0.25rem',
-                      fontSize: '0.75rem',
-                      fontWeight: '500'
-                    }}>
-                      {event.eventType}
-                    </div>
-                    {/* Photographer Badge */}
-                    {event.hasPhotographer && (
-                      <div style={{
-                        position: 'absolute',
-                        bottom: '0.75rem',
-                        left: '0.75rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.375rem',
-                        backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                        color: 'white',
-                        padding: '0.25rem 0.5rem',
-                        borderRadius: '0.25rem',
-                        fontSize: '0.75rem'
-                      }}>
-                        <CameraIcon />
-                        {event.photographerName}
-                        <Link
-                          href="/user/event-coordinator/photographers"
-                          style={{
-                            marginLeft: '0.5rem',
-                            padding: '0.25rem 0.5rem',
-                            backgroundColor: '#083A85',
-                            color: 'white',
-                            borderRadius: '0.25rem',
-                            fontSize: '0.7rem',
-                            fontWeight: '600',
-                            textDecoration: 'none',
-                            border: '1px solid rgba(255, 255, 255, 0.3)',
-                            transition: 'background 0.2s'
-                          }}
-                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#062a63'}
-                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#083A85'}
-                        >
-                          View
-                        </Link>
-                      </div>
-                    )}
-                  </div>
+                <div key={event.id} className="mobile-event-card" style={{ position: 'relative', height: '450px', borderRadius: '1.5rem', overflow: 'hidden', transition: 'transform 0.3s ease', willChange: 'transform' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.03)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}>
+                  {/* Blurred cover image = glow effect */}
+                  <img src={event.coverImage || '/coverr.jpg'} alt="" style={{ position: 'absolute', inset: '-10px', width: 'calc(100% + 20px)', height: 'calc(100% + 20px)', objectFit: 'cover', filter: 'blur(14px) brightness(0.7)', pointerEvents: 'none' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }} />
+                  {/* Inner card — clickable to view */}
+                  <div
+                    onClick={() => setShowEventDetails(event)}
+                    style={{ position: 'absolute', inset: '7px', borderRadius: '1.05rem', overflow: 'hidden', backgroundColor: '#000', cursor: 'pointer', transition: 'filter 0.2s' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.15)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.filter = 'brightness(1)'; }}
+                  >
+                    {/* Full-bleed cover image */}
+                    <img src={event.coverImage || '/coverr.jpg'} alt={event.title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }} />
+                    {/* Gradient overlay */}
+                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0) 35%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0.55) 100%)', pointerEvents: 'none' }} />
 
-                  {/* Event Info */}
-                  <div className="mobile-event-content" style={{ padding: '1rem' }}>
-                    <h3 className="mobile-event-title" style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>
-                      {event.title}
-                    </h3>
-
-                    {/* Date & Time */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: colors.textSecondary }}>
-                        <CalendarIcon />
-                        <span style={{ fontSize: '0.85rem' }}>{formatDate(event.date)}</span>
+                    {/* TOP: status badge + event type badge */}
+                    <div style={{ position: 'absolute', top: '0.6rem', left: '0.6rem', right: '0.6rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', pointerEvents: 'none' }}>
+                      <div style={{ ...getStatusBadgeStyle(event.status), backdropFilter: 'blur(8px)', padding: '0.25rem 0.7rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.02em', textTransform: 'capitalize' }}>
+                        {event.status}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: colors.textSecondary }}>
-                        <ClockIcon />
-                        <span style={{ fontSize: '0.85rem' }}>{event.time}</span>
+                      <div style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', color: 'white', padding: '0.25rem 0.7rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.02em' }}>
+                        {event.eventType}
                       </div>
                     </div>
 
-                    {/* Location */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: '0.5rem', color: colors.textSecondary }}>
-                      <LocationIcon />
-                      <span style={{ fontSize: '0.85rem' }}>{event.location.city}, {event.location.country}</span>
+                    {/* MIDDLE-BOTTOM: event title + category */}
+                    <div style={{ position: 'absolute', bottom: '9rem', left: 0, right: 0, padding: '0 0.8rem' }}>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '0.03em', textTransform: 'uppercase', lineHeight: 1.3, marginBottom: '0.2rem' }}>
+                        {event.title}
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{event.category}</div>
                     </div>
 
-                    {/* Guest Count */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: '1rem', color: colors.textSecondary }}>
-                      <UsersIcon />
-                      <span style={{ fontSize: '0.85rem' }}>{event.guestCount} / {event.maxGuests} guests</span>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="mobile-event-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.75rem', borderTop: `2px solid ${colors.borderPrimary}` }}>
-                      <div style={{ display: 'flex', gap: '0.5rem', flex: 1 }}>
-                        <button
-                          onClick={() => setShowEventDetails(event)}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.375rem',
-                            backgroundColor: colors.bgTertiary,
-                            color: colors.textPrimary,
-                            border: `2px solid ${colors.borderPrimary}`,
-                            borderRadius: '0.375rem',
-                            padding: '0.5rem 0.75rem',
-                            fontSize: '0.8rem',
-                            fontWeight: '500',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          View Details
-                        </button>
-                        <button
-                          onClick={() => { setShareEvent(event); setShowShareModal(true); }}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            backgroundColor: colors.bgTertiary,
-                            color: colors.textPrimary,
-                            border: `2px solid ${colors.borderPrimary}`,
-                            borderRadius: '0.375rem',
-                            padding: '0.5rem',
-                            cursor: 'pointer'
-                          }}
-                          title="Share Event Stream"
-                        >
+                    {/* FOOTER BAR: frosted glass */}
+                    <div onClick={(e) => e.stopPropagation()} className="mobile-event-content" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)', padding: '0.75rem 1rem', borderTop: '1px solid rgba(255,255,255,0.1)', borderRadius: '0 0 1.05rem 1.05rem' }}>
+                      {/* Info rows */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '0.4rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>
+                          <CalendarIcon />
+                          <span>{formatDate(event.date)}</span>
+                        </div>
+                        {event.time && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>
+                            <ClockIcon />
+                            <span>{event.time}</span>
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '0.6rem' }}>
+                        {(event.location.city || event.location.country) && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: 'rgba(255,255,255,0.75)', fontSize: '0.72rem' }}>
+                            <LocationIcon />
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{event.location.city}{event.location.city && event.location.country ? ', ' : ''}{event.location.country}</span>
+                          </div>
+                        )}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: 'rgba(255,255,255,0.75)', fontSize: '0.72rem' }}>
+                          <UsersIcon />
+                          <span>{event.guestCount}/{event.maxGuests}</span>
+                        </div>
+                        {event.hasPhotographer && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: 'rgba(255,255,255,0.75)', fontSize: '0.72rem' }}>
+                            <CameraIcon />
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100px' }}>{event.photographerName}</span>
+                          </div>
+                        )}
+                      </div>
+                      {/* Action buttons */}
+                      <div className="mobile-event-actions" style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                        <button onClick={() => { setShareEvent(event); setShowShareModal(true); }} title="Share" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.4rem 0.5rem', backgroundColor: 'rgba(255,255,255,0.12)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
                           <ShareIcon />
                         </button>
+                        {(event.status.toLowerCase() === 'upcoming' || event.status.toLowerCase() === 'live') && (
+                          <>
+                            <button onClick={() => openEditModal(event)} title="Edit" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.4rem 0.5rem', backgroundColor: 'rgba(255,255,255,0.12)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
+                              <EditIcon />
+                            </button>
+                            <button onClick={() => { setDeleteEvent(event); setShowDeleteModal(true); }} title="Delete" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.4rem 0.5rem', backgroundColor: 'rgba(220,38,38,0.82)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
+                              <TrashIcon />
+                            </button>
+                          </>
+                        )}
+                        {event.status.toUpperCase() === 'UPCOMING' && (
+                          <button onClick={() => handlePublishEvent(event.id)} disabled={publishingEventId === event.id} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.4rem 0.5rem', backgroundColor: 'rgba(8,58,133,0.9)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: publishingEventId === event.id ? 'not-allowed' : 'pointer', fontSize: '0.75rem', fontWeight: 600, opacity: publishingEventId === event.id ? 0.7 : 1 }}>
+                            {publishingEventId === event.id ? 'Publishing...' : 'Publish'}
+                          </button>
+                        )}
+                        {(event.status.toUpperCase() === 'LIVE' || event.status.toUpperCase() === 'PUBLISHED' || event.status.toLowerCase() === 'ongoing') && (
+                          <button onClick={() => handleConfirmCompletion(event.id)} disabled={confirmingEventId === event.id} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.4rem 0.5rem', backgroundColor: 'rgba(3,145,48,0.85)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: confirmingEventId === event.id ? 'not-allowed' : 'pointer', fontSize: '0.75rem', fontWeight: 600, opacity: confirmingEventId === event.id ? 0.7 : 1 }}>
+                            {confirmingEventId === event.id ? 'Confirming...' : 'Complete'}
+                          </button>
+                        )}
                       </div>
-                      {(event.status.toLowerCase() === 'upcoming' || event.status.toLowerCase() === 'live' || event.status.toLowerCase() === 'published' || event.status.toLowerCase() === 'ongoing') && (
-                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                          {(event.status.toLowerCase() === 'upcoming' || event.status.toLowerCase() === 'live') && (
-                            <>
-                              <button
-                                onClick={() => openEditModal(event)}
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  backgroundColor: colors.bgTertiary,
-                                  color: colors.textPrimary,
-                                  border: `2px solid ${colors.borderPrimary}`,
-                                  borderRadius: '0.375rem',
-                                  padding: '0.5rem',
-                                  cursor: 'pointer'
-                                }}
-                                title="Edit Event"
-                              >
-                                <EditIcon />
-                              </button>
-                              <button
-                                onClick={() => { setDeleteEvent(event); setShowDeleteModal(true); }}
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  backgroundColor: '#FEF2F2',
-                                  color: '#DC2626',
-                                  border: '2px solid #FECACA',
-                                  borderRadius: '0.375rem',
-                                  padding: '0.5rem',
-                                  cursor: 'pointer'
-                                }}
-                                title="Delete Event"
-                              >
-                                <TrashIcon />
-                              </button>
-                            </>
-                          )}
-                          {event.status.toUpperCase() === 'UPCOMING' && (
-                            <button
-                              onClick={() => handlePublishEvent(event.id)}
-                              disabled={publishingEventId === event.id}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: '0.375rem',
-                                backgroundColor: '#083A85',
-                                color: '#FFFFFF',
-                                border: '2px solid #062a63',
-                                borderRadius: '0.375rem',
-                                padding: '0.5rem 0.75rem',
-                                fontSize: '0.8rem',
-                                fontWeight: '600',
-                                cursor: publishingEventId === event.id ? 'not-allowed' : 'pointer',
-                                opacity: publishingEventId === event.id ? 0.7 : 1,
-                              }}
-                              title="Publish Event"
-                            >
-                              {publishingEventId === event.id ? 'Publishing...' : 'Publish'}
-                            </button>
-                          )}
-                          {(event.status.toUpperCase() === 'LIVE' || event.status.toUpperCase() === 'PUBLISHED' || event.status.toLowerCase() === 'ongoing') && (
-                            <button
-                              onClick={() => handleConfirmCompletion(event.id)}
-                              disabled={confirmingEventId === event.id}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: '0.375rem',
-                                backgroundColor: '#039130',
-                                color: '#FFFFFF',
-                                border: '2px solid #027a28',
-                                borderRadius: '0.375rem',
-                                padding: '0.5rem 0.75rem',
-                                fontSize: '0.8rem',
-                                fontWeight: '600',
-                                cursor: confirmingEventId === event.id ? 'not-allowed' : 'pointer',
-                                opacity: confirmingEventId === event.id ? 0.7 : 1,
-                              }}
-                              title="Confirm Event Completion"
-                            >
-                              {confirmingEventId === event.id ? 'Confirming...' : 'Complete'}
-                            </button>
-                          )}
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -1966,215 +1665,15 @@ const MyEventsPage = () => {
             </div>
           </div>
 
-          {/* Section: Photographer Assignment */}
-          <div style={{ marginBottom: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-              <CameraIcon />
-              <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Assign Photographer</span>
+          {/* Section: Photographer Assignment — blocked until published */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.625rem', padding: '0.875rem 1rem', backgroundColor: actualTheme === 'dark' ? '#1E293B' : '#F8FAFC', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', marginBottom: '1.5rem' }}>
+            <CameraIcon />
+            <div>
+              <div style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.2rem' }}>Photographer assignment</div>
+              <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Publish this event first, then assign a photographer from the <strong>Photographers</strong> page.</div>
             </div>
-            <p style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.75rem' }}>Select a photographer you&apos;ve worked with before or find a new one</p>
-            <div style={{ border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', maxHeight: '180px', overflowY: 'auto', marginBottom: '0.75rem' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.625rem', cursor: 'pointer', borderBottom: `2px solid ${colors.borderPrimary}`, backgroundColor: createPhotographerId === '' ? (actualTheme === 'dark' ? '#1E3A5F' : '#F0F9FF') : colors.bgCard }}>
-                <input type="radio" name="photographer" value="" checked={createPhotographerId === ''} onChange={() => setCreatePhotographerId('')} style={{ width: '16px', height: '16px', accentColor: '#083A85' }} />
-                <div><div style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>No photographer assigned</div><div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>You can assign one later</div></div>
-              </label>
-              {pastPhotographers.map((photographer) => (
-                <label key={photographer.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.625rem', cursor: 'pointer', borderBottom: `2px solid ${colors.borderPrimary}`, backgroundColor: createPhotographerId === photographer.id ? (actualTheme === 'dark' ? '#1E3A5F' : '#F0F9FF') : colors.bgCard }}>
-                  <input type="radio" name="photographer" value={photographer.id} checked={createPhotographerId === photographer.id} onChange={() => setCreatePhotographerId(photographer.id)} style={{ width: '16px', height: '16px', accentColor: '#083A85' }} />
-                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, position: 'relative' }}><Image src={photographer.image} alt={photographer.name} fill style={{ objectFit: 'cover' }} /></div>
-                  <div style={{ flex: 1 }}><div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><span style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>{photographer.name}</span><span style={{ fontSize: '0.85rem', color: '#F59E0B' }}>★ {photographer.rating}</span></div><div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>{photographer.speciality}</div></div>
-                </label>
-              ))}
-            </div>
-            <button onClick={() => setShowFindPhotographerModal(true)} style={{ width: '100%', padding: '0.625rem', border: `2px dashed ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}`, borderRadius: '0.5rem', backgroundColor: 'transparent', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85', fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}><PlusIcon />Find a New Photographer</button>
-
-            {/* Invite a New Photographer */}
-            <button
-              onClick={() => setShowInviteSection(!showInviteSection)}
-              style={{
-                width: '100%',
-                padding: '0.625rem',
-                border: `2px dashed ${actualTheme === 'dark' ? '#F472B6' : '#DB2777'}`,
-                borderRadius: '0.5rem',
-                backgroundColor: 'transparent',
-                color: actualTheme === 'dark' ? '#F472B6' : '#DB2777',
-                fontSize: '0.85rem',
-                fontWeight: '500',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.5rem',
-                marginTop: '0.5rem'
-              }}
-            >
-              <LinkIcon />
-              Invite a New Photographer
-            </button>
-
-            {/* Invite Section */}
-            {showInviteSection && (
-              <div style={{
-                marginTop: '0.75rem',
-                padding: '1rem',
-                backgroundColor: actualTheme === 'dark' ? '#1E293B' : '#FDF2F8',
-                borderRadius: '0.5rem',
-                border: `1px solid ${actualTheme === 'dark' ? '#334155' : '#FBCFE8'}`
-              }}>
-                {/* Email Invite */}
-                <div style={{ marginBottom: '1rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>
-                    Send invite via email
-                  </label>
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'stretch' }}>
-                    <input
-                      type="email"
-                      placeholder="photographer@example.com"
-                      value={inviteEmail}
-                      onChange={(e) => { setInviteEmail(e.target.value); setInviteError(null); }}
-                      onKeyDown={(e) => { if (e.key === 'Enter') handleInvitePhotographer(); }}
-                      style={{
-                        flex: 1,
-                        padding: '0.625rem 0.75rem',
-                        border: `2px solid ${inviteError ? '#EF4444' : colors.borderPrimary}`,
-                        borderRadius: '0.375rem',
-                        backgroundColor: colors.bgCard,
-                        color: colors.textPrimary,
-                        fontSize: '0.9rem',
-                        minWidth: 0,
-                        outline: 'none'
-                      }}
-                    />
-                    <button
-                      onClick={handleInvitePhotographer}
-                      disabled={isSendingInvite || !inviteEmail.trim()}
-                      style={{
-                        padding: '0.625rem 1rem',
-                        backgroundColor: (!inviteEmail.trim() || isSendingInvite) ? '#9CA3AF' : (actualTheme === 'dark' ? '#DB2777' : '#DB2777'),
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '0.375rem',
-                        fontSize: '0.85rem',
-                        fontWeight: '500',
-                        cursor: (!inviteEmail.trim() || isSendingInvite) ? 'not-allowed' : 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.375rem',
-                        whiteSpace: 'nowrap',
-                        transition: 'background-color 0.2s'
-                      }}
-                    >
-                      {isSendingInvite ? 'Sending...' : 'Send Invite'}
-                    </button>
-                  </div>
-                  {inviteError && (
-                    <div style={{ color: '#EF4444', fontSize: '0.8rem', marginTop: '0.375rem' }}>
-                      {inviteError}
-                    </div>
-                  )}
-                  {!isSendingInvite && !inviteError && inviteEmail === '' && (
-                    <div style={{ color: '#059669', fontSize: '0.8rem', marginTop: '0.375rem', display: 'none' }} className="invite-sent-hint" />
-                  )}
-                </div>
-
-                {/* Divider */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-                  <div style={{ flex: 1, height: '1px', backgroundColor: actualTheme === 'dark' ? '#334155' : '#FBCFE8' }} />
-                  <span style={{ fontSize: '0.75rem', color: colors.textSecondary, fontWeight: '500' }}>or share link</span>
-                  <div style={{ flex: 1, height: '1px', backgroundColor: actualTheme === 'dark' ? '#334155' : '#FBCFE8' }} />
-                </div>
-
-                {/* Invite Link */}
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>
-                    Invite Link
-                  </label>
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'stretch' }}>
-                    <input
-                      type="text"
-                      readOnly
-                      value={getPhotographerRegisterLink()}
-                      style={{
-                        flex: 1,
-                        padding: '0.625rem 0.75rem',
-                        border: `2px solid ${colors.borderPrimary}`,
-                        borderRadius: '0.375rem',
-                        backgroundColor: colors.bgTertiary,
-                        color: colors.textPrimary,
-                        fontSize: '0.85rem',
-                        minWidth: 0
-                      }}
-                    />
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(getPhotographerRegisterLink());
-                        setInviteLinkCopied(true);
-                        setTimeout(() => setInviteLinkCopied(false), 2000);
-                      }}
-                      style={{
-                        padding: '0.625rem 1rem',
-                        backgroundColor: inviteLinkCopied ? '#10B981' : '#083A85',
-                        color: 'white',
-                        border: inviteLinkCopied ? '2px solid #059669' : '2px solid #062a63',
-                        borderRadius: '0.375rem',
-                        fontSize: '0.85rem',
-                        fontWeight: '500',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.375rem',
-                        whiteSpace: 'nowrap',
-                        transition: 'all 0.2s'
-                      }}
-                    >
-                      <CopyIcon />
-                      {inviteLinkCopied ? 'Copied!' : 'Copy'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
-          {/* Section: Package Selection */}
-          {createPhotographerId && isValidUUID(createPhotographerId) && (
-            <div style={{ marginBottom: '1.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                <TagIcon />
-                <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Select Package</span>
-              </div>
-              {packagesLoading ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem', color: colors.textSecondary, fontSize: '0.85rem' }}>
-                  <div style={{ width: '16px', height: '16px', border: `2px solid ${colors.borderPrimary}`, borderTopColor: '#083A85', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-                  Loading packages...
-                </div>
-              ) : packagesError ? (
-                <p style={{ fontSize: '0.8rem', color: '#ef4444', padding: '0.5rem 0' }}>{packagesError}</p>
-              ) : photographerPackages.length === 0 ? (
-                <p style={{ fontSize: '0.8rem', color: colors.textSecondary, padding: '0.5rem 0' }}>No packages available for this photographer.</p>
-              ) : (
-                <div style={{ border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', maxHeight: '200px', overflowY: 'auto' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.625rem', cursor: 'pointer', borderBottom: `2px solid ${colors.borderPrimary}`, backgroundColor: createPackageId === '' ? (actualTheme === 'dark' ? '#1E3A5F' : '#F0F9FF') : colors.bgCard }}>
-                    <input type="radio" name="package" value="" checked={createPackageId === ''} onChange={() => setCreatePackageId('')} style={{ width: '16px', height: '16px', accentColor: '#083A85' }} />
-                    <div><div style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>No package selected</div></div>
-                  </label>
-                  {photographerPackages.map((pkg) => (
-                    <label key={pkg.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.625rem', cursor: 'pointer', borderBottom: `2px solid ${colors.borderPrimary}`, backgroundColor: createPackageId === pkg.id ? (actualTheme === 'dark' ? '#1E3A5F' : '#F0F9FF') : colors.bgCard }}>
-                      <input type="radio" name="package" value={pkg.id} checked={createPackageId === pkg.id} onChange={() => setCreatePackageId(pkg.id)} style={{ width: '16px', height: '16px', accentColor: '#083A85' }} />
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>{pkg.packageName}</span>
-                          <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#083A85' }}>{pkg.price.toLocaleString()} {pkg.currencyId}</span>
-                        </div>
-                        {pkg.description && <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginTop: '0.125rem' }}>{pkg.description}</div>}
-                        {pkg.durationHours > 0 && <div style={{ fontSize: '0.7rem', color: colors.textSecondary }}>{pkg.durationHours}h duration</div>}
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Submit Error */}
           {submitError && (
@@ -2264,7 +1763,8 @@ const MyEventsPage = () => {
               </button>
               <button
                 onClick={() => {
-                  window.open(`${getLandingUrl()}/user/photographers`, '_blank');
+                  const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekyt.com';
+                  window.open(`${landingUrl}/user/photographers`, '_blank');
                   setShowFindPhotographerModal(false);
                 }}
                 style={{
@@ -2406,7 +1906,7 @@ const MyEventsPage = () => {
             </div>
 
             {/* Photographer Info */}
-            {showEventDetails.hasPhotographer && (
+            {showEventDetails.hasPhotographer ? (
               <div style={{ backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#F0F9FF', borderRadius: '0.5rem', padding: '1rem', marginBottom: '1.25rem' }}>
                 <div style={{ fontSize: '0.85rem', color: actualTheme === 'dark' ? '#93C5FD' : '#0369A1', marginBottom: '0.5rem', fontWeight: '600' }}>Booked Photographer</div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -2443,30 +1943,20 @@ const MyEventsPage = () => {
                   </Link>
                 </div>
               </div>
-            )}
-
-            {!showEventDetails.hasPhotographer && showEventDetails.status === 'upcoming' && (
-              <div style={{ backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FEF3C7', borderRadius: '0.5rem', padding: '1rem', marginBottom: '1.25rem' }}>
-                <div style={{ fontSize: '0.85rem', color: actualTheme === 'dark' ? '#FCD34D' : '#92400E', marginBottom: '0.5rem', fontWeight: '600' }}>
-                  No Photographer Booked
+            ) : showEventDetails.status === 'PUBLISHED' ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: actualTheme === 'dark' ? '#0F172A' : '#F8FAFC', border: `2px dashed ${colors.borderPrimary}`, borderRadius: '0.5rem', padding: '1rem', marginBottom: '1.25rem' }}>
+                <div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.2rem' }}>No photographer assigned</div>
+                  <div style={{ fontSize: '0.78rem', color: colors.textSecondary }}>Your event is published — you can now hire a photographer.</div>
                 </div>
-                <p style={{ fontSize: '0.85rem', color: actualTheme === 'dark' ? '#FCD34D' : '#92400E', marginBottom: '0.75rem' }}>
-                  Don&apos;t miss capturing your special moments!
-                </p>
-                <button
-                  style={{
-                    backgroundColor: '#083A85',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '0.375rem',
-                    padding: '0.5rem 1rem',
-                    fontSize: '0.85rem',
-                    fontWeight: '600',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Find a Photographer
-                </button>
+                <Link href="/user/event-coordinator/photographers" style={{ padding: '0.5rem 0.875rem', backgroundColor: '#083A85', color: 'white', borderRadius: '0.375rem', fontSize: '0.8rem', fontWeight: '600', textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                  Find Photographer
+                </Link>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', backgroundColor: actualTheme === 'dark' ? '#0F172A' : '#F8FAFC', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', padding: '1rem', marginBottom: '1.25rem' }}>
+                <CameraIcon />
+                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Publish this event to assign a photographer.</div>
               </div>
             )}
 
@@ -2560,6 +2050,7 @@ const MyEventsPage = () => {
               )}
               {showEventDetails.status === 'completed' && (
                 <button
+                  onClick={() => { window.location.href = '/user/event-coordinator/gallery'; }}
                   style={{
                     flex: 1,
                     backgroundColor: '#083A85',

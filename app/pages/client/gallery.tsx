@@ -13,8 +13,6 @@ import { useCurrency } from '@/app/context/CurrencyContext';
 
 import { Unlock } from 'lucide-react';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
-import { getApiUrl } from '@/lib/api';
-import { getGalleryShareLink } from '@/lib/urls';
 
 type PaymentStatus = 'paid' | 'pending' | 'failed' | 'refunded' | 'partially_paid';
 
@@ -31,6 +29,13 @@ interface Payment {
   paidAmount: number;
   status: PaymentStatus;
   invoiceNumber: string;
+}
+
+function getApiUrl(): string {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    return '/api/proxy';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
 }
 
 // Icons
@@ -305,36 +310,80 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
     }
   }, [apiUrl, archiveBase]);
 
-  // Fetch albums/galleries from API
+  // Fetch albums/galleries from API, enriched with photographer profile images
   const fetchAlbums = useCallback(async () => {
     try {
-      const endpoint = userRole === 'event-coordinator'
+      // Fetch galleries and photographers in parallel
+      const photogEndpoint = userRole === 'event-coordinator'
+        ? `${apiUrl}/api/remote/coordinator/photographers?page=0&size=100`
+        : `${apiUrl}/api/remote/customer/photographers?page=0&size=100`;
+      const albumEndpoint = userRole === 'event-coordinator'
         ? `${apiUrl}/api/remote/coordinator/galleries`
         : `${apiUrl}/api/remote/customer/albums`;
-      const res = await dashboardAuthFetch(endpoint);
-      if (res.ok) {
-        const data = await res.json();
-        const loaded = (data.data || []).map((a: any) => ({
-          id: a.id,
-          title: a.title || '',
-          photographer: a.photographer || '',
-          photographerAvatar: a.photographerAvatar || '',
-          category: a.category || '',
-          date: a.date || a.createdAt || '',
-          isArchived: a.isArchived || false,
-          receivedDate: a.receivedDate || '',
-          thumbnail: a.thumbnail || a.coverImage || '',
-          photoCount: a.photoCount || a.imageCount || 0,
-          downloadedCount: a.downloadedCount || 0,
-          favoriteCount: a.favoriteCount || 0,
-          images: a.images || [],
-          payment: a.payment ? {
-            amountDue: a.payment.amountDue || 0,
-            status: a.payment.status || 'pending',
-            eventName: a.payment.eventName || '',
-            photographerName: a.payment.photographerName || '',
-          } : undefined,
-        }));
+
+      const [albumRes, photogRes] = await Promise.allSettled([
+        dashboardAuthFetch(albumEndpoint),
+        dashboardAuthFetch(photogEndpoint).catch(() =>
+          fetch(`${apiUrl}/api/remote/public/photographers/list?page=0&size=100`, {
+            headers: { 'Content-Type': 'application/json' }
+          })
+        ),
+      ]);
+
+      // Build photographer lookup (same approach as home.tsx line 278-284)
+      const photogById: Record<string, { name: string; profilePicture: string }> = {};
+      const photogByName: Record<string, string> = {};
+      let allPhotographers: { name: string; profilePicture: string }[] = [];
+      if (photogRes.status === 'fulfilled' && photogRes.value.ok) {
+        const pData = await photogRes.value.json();
+        const photographers = pData.data?.content || pData.data || [];
+        for (const p of photographers) {
+          const name = p.firstName && p.lastName ? `${p.firstName} ${p.lastName}` : (p.name || '');
+          const pic = p.profilePicture || p.profileImage || '';
+          if (p.id) photogById[p.id] = { name, profilePicture: pic };
+          if (name && pic) photogByName[name.toLowerCase()] = pic;
+          if (name) allPhotographers.push({ name, profilePicture: pic });
+        }
+      }
+
+      if (albumRes.status === 'fulfilled' && albumRes.value.ok) {
+        const data = await albumRes.value.json();
+        const loaded = (data.data || []).map((a: any) => {
+          // Try to resolve photographer info from the album itself
+          const rawName = a.photographer || a.photographerName || '';
+          const rawAvatar = a.photographerAvatar || a.photographerImage || '';
+          const photogId = a.photographerId || '';
+
+          // Resolve: by id → by name → first photographer with a profile picture
+          const byId = photogId ? photogById[photogId] : null;
+          const byName = rawName ? photogByName[rawName.toLowerCase()] : null;
+          const firstWithPic = allPhotographers.find(p => p.profilePicture);
+
+          const resolvedName = rawName || (byId?.name || '') || (firstWithPic?.name || '');
+          const resolvedAvatar = rawAvatar || (byId?.profilePicture || '') || (byName || '') || (firstWithPic?.profilePicture || '');
+
+          return {
+            id: a.id,
+            title: a.title || '',
+            photographer: resolvedName,
+            photographerAvatar: resolvedAvatar,
+            category: a.category || '',
+            date: a.date || a.createdAt || '',
+            isArchived: a.isArchived || false,
+            receivedDate: a.receivedDate || '',
+            thumbnail: a.thumbnail || a.coverImage || '',
+            photoCount: a.photoCount || a.imageCount || 0,
+            downloadedCount: a.downloadedCount || 0,
+            favoriteCount: a.favoriteCount || 0,
+            images: a.images || [],
+            payment: a.payment ? {
+              amountDue: a.payment.amountDue || 0,
+              status: a.payment.status || 'pending',
+              eventName: a.payment.eventName || '',
+              photographerName: a.payment.photographerName || '',
+            } : undefined,
+          };
+        });
         setAlbums(loaded);
       }
     } catch (err) {
@@ -793,7 +842,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   };
 
   const getShareLink = (album: any) => {
-    return getGalleryShareLink(album.id);
+    return `${process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekyt.com'}/gallery/${album.id}`;
   };
 
   const handleCopyLink = (link: string) => {
@@ -1817,106 +1866,54 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                   {filteredAlbums.map((album) => (
                     <div
                       key={album.id}
-                      style={{
-                        backgroundColor: colors.bgCard,
-                        borderRadius: '0.75rem',
-                        overflow: 'hidden',
-                        border: `2px solid ${colors.borderPrimary}`,
-                        transition: 'all 0.2s',
-                        cursor: 'pointer'
-                      }}
-                      onClick={() => {
-                        setSelectedAlbum(album);
-                        setShowViewModal(true);
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
-                        e.currentTarget.style.transform = 'translateY(-2px)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.boxShadow = 'none';
-                        e.currentTarget.style.transform = 'translateY(0)';
-                      }}
+                      style={{ position: 'relative', height: '450px', borderRadius: '1.5rem', overflow: 'hidden', transition: 'transform 0.3s ease', willChange: 'transform' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.03)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
                     >
-                      {/* Album Thumbnail */}
-                      <div style={{ position: 'relative', height: '180px', overflow: 'hidden', backgroundColor: album.thumbnail ? 'transparent' : '#0D1B2A' }}>
-                        <img src={album.thumbnail || '/coverr.jpg'} alt={album.title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: album.thumbnail ? 'cover' : 'contain' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; (e.currentTarget as HTMLImageElement).style.objectFit = 'contain'; const p = e.currentTarget.parentElement; if (p) p.style.backgroundColor = '#0D1B2A'; }} />
-                        <div style={{
-                          position: 'absolute',
-                          top: '0.5rem',
-                          right: '0.5rem',
-                          backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                          color: 'white',
-                          padding: '0.25rem 0.5rem',
-                          borderRadius: '0.25rem',
-                          fontSize: '0.75rem',
-                          fontWeight: '500'
-                        }}>
-                          {album.photoCount} photos
-                        </div>
-                        <div style={{
-                          position: 'absolute',
-                          bottom: '0.5rem',
-                          left: '0.5rem',
-                          backgroundColor: '#083A85',
-                          color: 'white',
-                          padding: '0.25rem 0.5rem',
-                          borderRadius: '0.25rem',
-                          fontSize: '0.7rem',
-                          fontWeight: '500'
-                        }}>
-                          {album.category}
-                        </div>
-                      </div>
+                      {/* Blurred cover = glow effect */}
+                      <img src={album.thumbnail || '/coverr.jpg'} alt="" style={{ position: 'absolute', inset: '-10px', width: 'calc(100% + 20px)', height: 'calc(100% + 20px)', objectFit: 'cover', filter: 'blur(14px) brightness(0.7)', pointerEvents: 'none' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }} />
+                      {/* Inner card — clickable to browse */}
+                      <div
+                        onClick={() => { setSelectedAlbum(album); openMultiSelectView(album); }}
+                        style={{ position: 'absolute', inset: '7px', borderRadius: '1.05rem', overflow: 'hidden', backgroundColor: '#000', cursor: 'pointer', transition: 'filter 0.2s' }}
+                        onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.15)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.filter = 'brightness(1)'; }}
+                      >
+                        {/* Full-bleed cover image */}
+                        <img src={album.thumbnail || '/coverr.jpg'} alt={album.title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }} />
+                        {/* Gradient overlay */}
+                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0) 35%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0.55) 100%)', pointerEvents: 'none' }} />
 
-                      {/* Album Info */}
-                      <div style={{ padding: '1rem' }}>
-                        <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0, marginBottom: '0.5rem' }}>
-                          {album.title}
-                        </h3>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                          <div style={{ position: 'relative', width: '24px', height: '24px', borderRadius: '50%', overflow: 'hidden' }}>
-                            {album.photographerAvatar ? (
-                              <Image src={album.photographerAvatar} alt={album.photographer} fill style={{ objectFit: 'cover' }} />
-                            ) : (
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ margin: 'auto' }}>
-                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
-                              </svg>
-                            )}
+                        {/* TOP: category + photo count */}
+                        <div style={{ position: 'absolute', top: '0.6rem', left: '0.6rem', right: '0.6rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', pointerEvents: 'none' }}>
+                          <div style={{ backgroundColor: '#083A85', backdropFilter: 'blur(8px)', color: 'white', padding: '0.25rem 0.7rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.02em' }}>
+                            {album.category}
                           </div>
-                          <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>{album.photographer}</span>
-                        </div>
-                        <div style={{ fontSize: '0.8rem', color: '#9CA3AF', marginBottom: '0.75rem' }}>
-                          Received: {album.receivedDate}
+                          <div style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', color: 'white', padding: '0.25rem 0.7rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.02em', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <ImageIcon /> {album.photoCount}
+                          </div>
                         </div>
 
-                        {/* Action Buttons */}
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openMultiSelectView(album);
-                            }}
-                            style={{
-                              flex: 1,
-                              padding: '0.5rem',
-                              borderRadius: '0.375rem',
-                              border: '2px solid #062a63',
-                              backgroundColor: '#083A85',
-                              color: 'white',
-                              fontSize: '0.8rem',
-                              fontWeight: '600',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '0.25rem'
-                            }}
-                          >
-                            <EyeIcon />
-                            Browse
-                          </button>
+                        {/* MIDDLE-BOTTOM: title content over image */}
+                        <div style={{ position: 'absolute', bottom: '6.2rem', left: 0, right: 0, padding: '0 0.8rem' }}>
+                          <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: '0.15rem' }}>Received: {album.receivedDate}</div>
+                          <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '0.03em', textTransform: 'uppercase', lineHeight: 1.3 }}>
+                            {album.title}
+                          </div>
+                        </div>
+
+                        {/* FOOTER BAR: frosted glass */}
+                        <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)', padding: '0.6rem 0.8rem', borderTop: '1px solid rgba(255,255,255,0.1)', borderRadius: '0 0 1.05rem 1.05rem' }}>
+                          {/* Photographer avatar + name */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
+                            {album.photographerAvatar ? (
+                              <img src={album.photographerAvatar} alt={album.photographer} style={{ width: '36px', height: '36px', borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', objectFit: 'cover', flexShrink: 0 }} onError={(e) => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement)?.style.setProperty('display', 'flex'); }} />
+                            ) : null}
+                            <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, #083A85, #3B82F6)', border: '2px solid rgba(255,255,255,0.3)', display: album.photographerAvatar ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.75rem', fontWeight: 700, flexShrink: 0 }}>
+                              {album.photographer.charAt(0).toUpperCase()}
+                            </div>
+                            <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.9)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{album.photographer}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -2084,231 +2081,90 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                   {filteredPhotobooks.map((photobook) => (
                     <div
                       key={photobook.id}
-                      style={{
-                        backgroundColor: colors.bgCard,
-                        borderRadius: '0.75rem',
-                        overflow: 'hidden',
-                        border: `2px solid ${colors.borderPrimary}`,
-                        boxShadow: colors.shadowCard,
-                        transition: 'all 0.2s'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
-                        e.currentTarget.style.transform = 'translateY(-2px)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.boxShadow = colors.shadowCard || 'none';
-                        e.currentTarget.style.transform = 'translateY(0)';
-                      }}
+                      style={{ position: 'relative', height: '450px', borderRadius: '1.5rem', overflow: 'hidden', transition: 'transform 0.3s ease', willChange: 'transform' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.03)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
                     >
-                      {/* Photobook Thumbnail */}
-                      <div style={{ position: 'relative', height: '180px', overflow: 'hidden', backgroundColor: photobook.thumbnail ? 'transparent' : '#0D1B2A' }}>
-                        <img src={photobook.thumbnail || '/coverr.jpg'} alt={photobook.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: photobook.thumbnail ? 'cover' : 'contain' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; (e.currentTarget as HTMLImageElement).style.objectFit = 'contain'; const p = e.currentTarget.parentElement; if (p) p.style.backgroundColor = '#0D1B2A'; }} />
-                        <div style={{
-                          position: 'absolute',
-                          top: '0.5rem',
-                          right: '0.5rem',
-                          backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                          color: 'white',
-                          padding: '0.25rem 0.5rem',
-                          borderRadius: '0.25rem',
-                          fontSize: '0.75rem',
-                          fontWeight: '500'
-                        }}>
-                          {photobook.images.length} photos
-                        </div>
-                        <div style={{
-                          position: 'absolute',
-                          bottom: '0.5rem',
-                          left: '0.5rem',
-                          display: 'flex',
-                          gap: '0.375rem',
-                          alignItems: 'center'
-                        }}>
-                          <div style={{
-                            backgroundColor: '#083A85',
-                            color: 'white',
-                            padding: '0.25rem 0.5rem',
-                            borderRadius: '0.25rem',
-                            fontSize: '0.7rem',
-                            fontWeight: '500'
-                          }}>
-                            Photobook
-                          </div>
-                          {photobook.layout && (
-                            <div style={{
-                              backgroundColor: photobook.layout === 'book-flip' ? '#7C3AED' : photobook.layout === 'mosaic' ? '#D97706' : '#059669',
-                              color: 'white',
-                              padding: '0.25rem 0.5rem',
-                              borderRadius: '0.25rem',
-                              fontSize: '0.65rem',
-                              fontWeight: '500',
-                              textTransform: 'capitalize'
-                            }}>
-                              {photobook.layout === 'book-flip' ? 'Book Flip' : photobook.layout === 'mosaic' ? 'Mosaic' : 'Gallery Wall'}
+                      {/* Blurred cover = glow effect */}
+                      <img src={photobook.thumbnail || '/coverr.jpg'} alt="" style={{ position: 'absolute', inset: '-10px', width: 'calc(100% + 20px)', height: 'calc(100% + 20px)', objectFit: 'cover', filter: 'blur(14px) brightness(0.7)', pointerEvents: 'none' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }} />
+                      {/* Inner card — clickable */}
+                      <div
+                        onClick={() => { if (photobook.images.length > 0) openPhotobookBrowse(photobook); else openSetupWizard(photobook); }}
+                        style={{ position: 'absolute', inset: '7px', borderRadius: '1.05rem', overflow: 'hidden', backgroundColor: '#000', cursor: 'pointer', transition: 'filter 0.2s' }}
+                        onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.15)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.filter = 'brightness(1)'; }}
+                      >
+                        {/* Full-bleed cover image */}
+                        <img src={photobook.thumbnail || '/coverr.jpg'} alt={photobook.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }} />
+                        {/* Gradient overlay */}
+                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0) 35%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0.55) 100%)', pointerEvents: 'none' }} />
+
+                        {/* TOP: badges + photo count */}
+                        <div style={{ position: 'absolute', top: '0.6rem', left: '0.6rem', right: '0.6rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', pointerEvents: 'none' }}>
+                          <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
+                            <div style={{ backgroundColor: '#083A85', backdropFilter: 'blur(8px)', color: 'white', padding: '0.25rem 0.7rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.02em' }}>
+                              Photobook
                             </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Photobook Info */}
-                      <div style={{ padding: '1rem' }}>
-                        <h3 style={{ fontSize: '1rem', fontWeight: '600',display:'flex',justifyContent:'space-between',alignItems:'center', color: colors.textPrimary, margin: 0, marginBottom: '0.375rem' }}>
-                        <span> {photobook.name}</span> <span style={{color:'white', backgroundColor:'#16A34A', padding:'0.15rem 0.4rem', borderRadius:'0.25rem', fontSize:'0.75rem', fontWeight:'700'}}>Unlocked</span>
-                        </h3>
-                        {photobook.description && (
-                          <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: '0 0 0.5rem 0', lineHeight: '1.4' }}>
-                            {photobook.description}
-                          </p>
-                        )}
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                          <span style={{ fontSize: '0.8rem', color: '#9CA3AF' }}>
-                            {photobook.createdAt}
-                          </span>
-                          {photobook.layout && (
-                            <span style={{
-                              fontSize: '0.7rem',
-                              color: photobook.layout === 'book-flip' ? '#7C3AED' : photobook.layout === 'mosaic' ? '#D97706' : '#059669',
-                              fontWeight: '600',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '0.25rem'
-                            }}>
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                {photobook.layout === 'book-flip' ? (
-                                  <><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></>
-                                ) : photobook.layout === 'mosaic' ? (
-                                  <><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></>
-                                ) : (
-                                  <><rect x="2" y="7" width="20" height="14" rx="2"></rect><line x1="12" y1="3" x2="12" y2="7"></line></>
-                                )}
-                              </svg>
-                              {photobook.layout === 'book-flip' ? 'Book Flip' : photobook.layout === 'mosaic' ? 'Mosaic' : 'Gallery Wall'}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Empty Photobook Message */}
-                        {photobook.images.length === 0 && (
-                          <div style={{
-                            padding: '0.75rem',
-                            backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF',
-                            border: `1px solid ${actualTheme === 'dark' ? '#2563EB' : '#BFDBFE'}`,
-                            borderRadius: '0.5rem',
-                            marginBottom: '0.75rem'
-                          }}>
-                            <p style={{ fontSize: '0.75rem', color: actualTheme === 'dark' ? '#93C5FD' : '#1D4ED8', margin: 0, lineHeight: '1.4' }}>
-                              Select an album to add images and configure your photobook.
-                            </p>
+                            {photobook.layout && (
+                              <div style={{ backgroundColor: photobook.layout === 'book-flip' ? '#7C3AED' : photobook.layout === 'mosaic' ? '#D97706' : '#059669', backdropFilter: 'blur(8px)', color: 'white', padding: '0.25rem 0.7rem', borderRadius: '1rem', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.02em' }}>
+                                {photobook.layout === 'book-flip' ? 'Book Flip' : photobook.layout === 'mosaic' ? 'Mosaic' : 'Gallery Wall'}
+                              </div>
+                            )}
                           </div>
-                        )}
+                          <div style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', color: 'white', padding: '0.25rem 0.7rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.02em', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <ImageIcon /> {photobook.images.length}
+                          </div>
+                        </div>
 
-                        {/* Action Buttons */}
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          {photobook.images.length === 0 ? (
-                            /* Empty photobook: Show Select Album button */
-                            <button
-                              onClick={() => openSetupWizard(photobook)}
-                              style={{
-                                flex: 1,
-                                padding: '0.5rem',
-                                borderRadius: '0.375rem',
-                                border: '2px solid #062a63',
-                                backgroundColor: '#083A85',
-                                color: 'white',
-                                fontSize: '0.8rem',
-                                fontWeight: '600',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: '0.25rem'
-                              }}
-                            >
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                                <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                                <polyline points="21 15 16 10 5 21"></polyline>
-                              </svg>
-                              Select Album
-                            </button>
-                          ) : (
-                            /* Configured photobook: Show View, Edit, Delete buttons */
-                            <>
-                              {/* View Button */}
-                              <button
-                                onClick={() => openPhotobookBrowse(photobook)}
-                                style={{
-                                  flex: 1,
-                                  padding: '0.5rem',
-                                  borderRadius: '0.375rem',
-                                  border: '2px solid #062a63',
-                                  backgroundColor: '#083A85',
-                                  color: 'white',
-                                  fontSize: '0.8rem',
-                                  fontWeight: '600',
-                                  cursor: 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  gap: '0.25rem'
-                                }}
-                              >
-                                <EyeIcon />
-                                View
-                              </button>
-                              {/* Edit Button */}
+                        {/* MIDDLE-BOTTOM: title content over image */}
+                        <div style={{ position: 'absolute', bottom: '4.8rem', left: 0, right: 0, padding: '0 0.8rem' }}>
+                          <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: '0.15rem' }}>{photobook.createdAt}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '0.03em', textTransform: 'uppercase', lineHeight: 1.3 }}>
+                              {photobook.name}
+                            </div>
+                            <span style={{ color: 'white', backgroundColor: '#16A34A', padding: '0.15rem 0.5rem', borderRadius: '1rem', fontSize: '0.65rem', fontWeight: 700, flexShrink: 0 }}>Unlocked</span>
+                          </div>
+                          {photobook.description && (
+                            <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '0.15rem' }}>{photobook.description}</div>
+                          )}
+                        </div>
+
+                        {/* FOOTER BAR: frosted glass */}
+                        <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)', padding: '0.6rem 0.8rem', borderTop: '1px solid rgba(255,255,255,0.1)', borderRadius: '0 0 1.05rem 1.05rem' }}>
+                          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                            {photobook.images.length === 0 ? (
                               <button
                                 onClick={() => openSetupWizard(photobook)}
-                                style={{
-                                  flex: 1,
-                                  padding: '0.5rem',
-                                  borderRadius: '0.375rem',
-                                  border: '2px solid #083A85',
-                                  backgroundColor: 'transparent',
-                                  color: '#083A85',
-                                  fontSize: '0.8rem',
-                                  fontWeight: '600',
-                                  cursor: 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  gap: '0.25rem'
-                                }}
+                                style={{ flex: 1, padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: 'none', backgroundColor: '#083A85', color: 'white', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
                               >
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                </svg>
-                                Edit
+                                <ImageIcon /> Select Album
                               </button>
-                              {/* Delete Button */}
-                              <button
-                                onClick={() => openDeletePhotobookModal(photobook)}
-                                style={{
-                                  flex: 1,
-                                  padding: '0.5rem',
-                                  borderRadius: '0.375rem',
-                                  border: '2px solid #DC2626',
-                                  backgroundColor: 'transparent',
-                                  color: '#DC2626',
-                                  fontSize: '0.8rem',
-                                  fontWeight: '600',
-                                  cursor: 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  gap: '0.25rem'
-                                }}
-                              >
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                  <polyline points="3 6 5 6 21 6"></polyline>
-                                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                </svg>
-                                Delete
-                              </button>
-                            </>
-                          )}
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => openPhotobookBrowse(photobook)}
+                                  style={{ flex: 1, padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: 'none', backgroundColor: '#083A85', color: 'white', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
+                                >
+                                  <EyeIcon /> View
+                                </button>
+                                <button
+                                  onClick={() => openSetupWizard(photobook)}
+                                  style={{ flex: 1, padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: '1.5px solid rgba(255,255,255,0.3)', backgroundColor: 'transparent', color: 'white', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
+                                >
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => openDeletePhotobookModal(photobook)}
+                                  style={{ flex: 1, padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: '1.5px solid rgba(220,38,38,0.5)', backgroundColor: 'transparent', color: '#FCA5A5', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
+                                >
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                  Delete
+                                </button>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>

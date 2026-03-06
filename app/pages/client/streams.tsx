@@ -338,7 +338,7 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
     }));
     try {
       await dashboardAuthFetch(
-        `${apiUrl}/api/remote/customer/streams/${streamId}/videos/${videoId}/viewed`,
+        `${apiUrl}/api/remote/${userRole === 'event-coordinator' ? 'coordinator' : 'customer'}/streams/${streamId}/videos/${videoId}/viewed`,
         { method: 'PATCH', headers: { 'Content-Type': 'application/json' } }
       );
     } catch (err) {
@@ -600,154 +600,93 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
               return (
                 <div
                   key={stream.id ?? index}
-                  style={cardStyle}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.boxShadow = 'none';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                  }}
+                  style={{ position: 'relative', borderRadius: '1.5rem', overflow: 'hidden', transition: 'transform 0.3s ease', willChange: 'transform' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.03)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
                 >
-                  {/* Cover Image */}
-                  <div style={{ position: 'relative', height: '180px', backgroundColor: stream.coverImage ? 'transparent' : '#0D1B2A' }}>
-                    <img src={stream.coverImage || '/coverr.jpg'} alt={stream.streamTitle} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: stream.coverImage ? 'cover' : 'contain' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; (e.currentTarget as HTMLImageElement).style.objectFit = 'contain'; const p = e.currentTarget.parentElement; if (p) p.style.backgroundColor = '#0D1B2A'; }} />
-                    <div style={{
-                      position: 'absolute',
-                      top: '0.75rem',
-                      left: '0.75rem',
-                      backgroundColor: '#111827',
-                      color: 'white',
-                      padding: '0.25rem 0.75rem',
-                      borderRadius: '0.375rem',
-                      fontSize: '0.75rem',
-                      fontWeight: '500',
-                    }}>
-                      {stream.eventType}
-                    </div>
-                    <div style={{
-                      position: 'absolute',
-                      bottom: '0.75rem',
-                      right: '0.75rem',
-                      backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                      color: 'white',
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '0.25rem',
-                      fontSize: '0.75rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.25rem',
-                    }}>
-                      <ClockIcon /> {stream.duration}
-                    </div>
-                    {unviewedCount > 0 && (
-                      <div style={{
-                        position: 'absolute',
-                        top: '0.75rem',
-                        right: '0.75rem',
-                        backgroundColor: '#DC2626',
-                        color: 'white',
-                        padding: '0.25rem 0.5rem',
-                        borderRadius: '9999px',
-                        fontSize: '0.7rem',
-                        fontWeight: '600',
-                      }}>
-                        {unviewedCount} new video{unviewedCount > 1 ? 's' : ''}
-                      </div>
-                    )}
-                  </div>
+                  {/* Blurred cover = glow effect */}
+                  <img src={stream.coverImage || '/coverr.jpg'} alt="" style={{ position: 'absolute', inset: '-10px', width: 'calc(100% + 20px)', height: 'calc(100% + 20px)', objectFit: 'cover', filter: 'blur(14px) brightness(0.7)', pointerEvents: 'none' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }} />
+                  {/* Inner card */}
+                  <div
+                    style={{ position: 'relative', margin: '7px', borderRadius: '1.05rem', overflow: 'hidden', backgroundColor: '#000', cursor: 'pointer', transition: 'filter 0.2s' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.15)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.filter = 'brightness(1)'; }}
+                  >
+                    {/* Cover image section */}
+                    <div style={{ position: 'relative', height: '180px' }}>
+                      <img src={stream.coverImage || '/coverr.jpg'} alt={stream.streamTitle} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }} />
+                      {/* Gradient overlay */}
+                      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0) 35%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0.55) 100%)', pointerEvents: 'none' }} />
 
-                  {/* Content */}
-                  <div style={{ padding: '1rem' }}>
-                    <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                      {stream.streamTitle}
-                    </h3>
-                    <p style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <CalendarIcon /> {formatDate(stream.streamDate)} at {stream.streamTime}
-                    </p>
+                      {/* TOP: event type + duration/unviewed */}
+                      <div style={{ position: 'absolute', top: '0.6rem', left: '0.6rem', right: '0.6rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', pointerEvents: 'none' }}>
+                        <div style={{ backgroundColor: '#083A85', backdropFilter: 'blur(8px)', color: 'white', padding: '0.25rem 0.7rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.02em' }}>
+                          {stream.eventType}
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
+                          {unviewedCount > 0 && (
+                            <div style={{ backgroundColor: '#DC2626', backdropFilter: 'blur(8px)', color: 'white', padding: '0.25rem 0.7rem', borderRadius: '1rem', fontSize: '0.65rem', fontWeight: 700 }}>
+                              {unviewedCount} new
+                            </div>
+                          )}
+                          <div style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', color: 'white', padding: '0.25rem 0.7rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.02em', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <ClockIcon /> {stream.duration}
+                          </div>
+                        </div>
+                      </div>
 
-                    {/* Photographer Info */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                      <div style={{ width: '28px', height: '28px', borderRadius: '50%', overflow: 'hidden', position: 'relative', backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
-                        </svg>
-                        {stream.photographerImage && (
-                          <img src={stream.photographerImage} alt={stream.photographerName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                        )}
-                      </div>
-                      <span style={{ fontSize: '0.8rem', color: colors.textPrimary }}>by {stream.photographerName}</span>
-                    </div>
-
-                    {/* Stats Row */}
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      padding: '0.75rem 0',
-                      borderTop: `2px solid ${colors.borderPrimary}`,
-                      marginBottom: '0.75rem',
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: colors.textSecondary, fontSize: '0.8rem' }}>
-                        <UsersIcon /> {stream.totalViewers} viewers
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: colors.textSecondary, fontSize: '0.8rem' }}>
-                        <MessageIcon /> {stream.totalMessages}
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: colors.textSecondary, fontSize: '0.8rem' }}>
-                        <VideoIcon /> {stream.totalVideoMessages}
+                      {/* BOTTOM OF IMAGE: title + date */}
+                      <div style={{ position: 'absolute', bottom: '0.6rem', left: 0, right: 0, padding: '0 0.8rem' }}>
+                        <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '0.03em', textTransform: 'uppercase', lineHeight: 1.3, marginBottom: '0.15rem' }}>
+                          {stream.streamTitle}
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                          <CalendarIcon /> {formatDate(stream.streamDate)} at {stream.streamTime}
+                        </div>
                       </div>
                     </div>
 
-                    {/* Action Buttons */}
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button
-                        onClick={() => {
-                          setSelectedStream(stream);
-                          setShowMessagesModal(true);
-                        }}
-                        style={{
-                          flex: 1,
-                          padding: '0.625rem',
-                          borderRadius: '0.5rem',
-                          border: 'none',
-                          backgroundColor: '#3B82F6',
-                          color: 'white',
-                          fontSize: '0.8rem',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '0.375rem',
-                        }}
-                      >
-                        <MessageIcon /> View Chats
-                      </button>
-                      <button
-                        onClick={() => {
-                          setSelectedStream(stream);
-                          setShowVideosModal(true);
-                        }}
-                        style={{
-                          flex: 1,
-                          padding: '0.625rem',
-                          borderRadius: '0.5rem',
-                          border: 'none',
-                          backgroundColor: '#DC2626',
-                          color: 'white',
-                          fontSize: '0.8rem',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '0.375rem',
-                        }}
-                      >
-                        <VideoIcon /> Videos {unviewedCount > 0 && `(${unviewedCount})`}
-                      </button>
+                    {/* FOOTER: frosted glass */}
+                    <div style={{ backgroundColor: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)', padding: '0.75rem 1rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                      {/* Photographer + stats row */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '50%', overflow: 'hidden', position: 'relative', background: 'linear-gradient(135deg, #083A85, #3B82F6)', border: '2px solid rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            <circle cx="12" cy="7" r="4" stroke="white" strokeWidth="2"/>
+                          </svg>
+                          {stream.photographerImage && (
+                            <img src={stream.photographerImage} alt={stream.photographerName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                          )}
+                        </div>
+                        <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.9)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{stream.photographerName}</span>
+                        <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexShrink: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.72rem' }}>
+                            <UsersIcon /> {stream.totalViewers}
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.72rem' }}>
+                            <MessageIcon /> {stream.totalMessages}
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.72rem' }}>
+                            <VideoIcon /> {stream.totalVideoMessages}
+                          </div>
+                        </div>
+                      </div>
+                      {/* Action buttons */}
+                      <div style={{ display: 'flex', gap: '0.4rem' }}>
+                        <button
+                          onClick={() => { setSelectedStream(stream); setShowMessagesModal(true); }}
+                          style={{ flex: 1, padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: 'none', backgroundColor: '#083A85', color: 'white', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
+                        >
+                          <MessageIcon /> View Chats
+                        </button>
+                        <button
+                          onClick={() => { setSelectedStream(stream); setShowVideosModal(true); }}
+                          style={{ flex: 1, padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: 'none', backgroundColor: '#DC2626', color: 'white', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
+                        >
+                          <VideoIcon /> Videos {unviewedCount > 0 && `(${unviewedCount})`}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

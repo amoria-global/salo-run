@@ -9,8 +9,13 @@ import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
 import { HeartIcon } from '../../components/UnlockModal';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
-import { getApiUrl } from '@/lib/api';
-import { getDonationsPageUrl } from '@/lib/urls';
+
+function getApiUrl(): string {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    return '/api/proxy';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://197.243.24.101';
+}
 
 // Icons
 const DownloadIcon = () => (
@@ -1114,7 +1119,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
             {/* Donations Page Link */}
             <div style={{ marginTop: '0.5rem' }}>
               <a
-                href={getDonationsPageUrl()}
+                href={`${process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekyt.com'}/user/donations`}
                 onClick={(e) => {
                   e.preventDefault();
                   router.push('/user/donations');
