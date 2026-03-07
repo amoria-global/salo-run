@@ -4,6 +4,7 @@ import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react'
 import localforage from 'localforage';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
+import ApprovalPendingModal from '../../components/ApprovalPendingModal';
 import { useTheme } from '../../context/ThemeContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { getApiUrl } from '@/lib/api';
@@ -462,6 +463,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   // Edit mode state - when false, all fields are disabled
   const [isEditEnabled, setIsEditEnabled] = useState(false);
   const [isSavingAll, setIsSavingAll] = useState(false);
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [isSavingAvailability, setIsSavingAvailability] = useState(false);
 
   // Save all changes handler for the "Save Changes" button
@@ -477,6 +479,10 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       });
       if (success) {
         showToast('success', 'Profile saved successfully!');
+        // Show approval modal if profile is not yet approved
+        if (user?.profileReviewStatus !== 'approved') {
+          setShowApprovalModal(true);
+        }
       } else {
         showToast('error', 'Failed to save profile');
       }
@@ -1983,9 +1989,38 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
             <h1 style={{
               fontSize: '1.5rem',
               fontWeight: '700',
-              color: colors.textPrimary
+              color: colors.textPrimary,
+              margin: 0,
             }}>Edit Profile</h1>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              {/* Profile Review Status Badge */}
+              {user?.profileReviewStatus && (() => {
+                const status = user.profileReviewStatus.toLowerCase();
+                const config = status === 'approved'
+                  ? { label: 'Accepted', color: '#16A34A', bg: actualTheme === 'dark' ? '#1A3B2A' : '#F0FDF4', border: '#86EFAC', icon: 'bi-check-circle-fill' }
+                  : status === 'rejected'
+                  ? { label: 'Rejected', color: '#DC2626', bg: actualTheme === 'dark' ? '#3B1A1A' : '#FEF2F2', border: '#FCA5A5', icon: 'bi-x-circle-fill' }
+                  : { label: 'Pending', color: '#D97706', bg: actualTheme === 'dark' ? '#3B2E1A' : '#FFFBEB', border: '#FCD34D', icon: 'bi-hourglass-split' };
+                return (
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    padding: '0.25rem 0.75rem',
+                    borderRadius: '9999px',
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                    color: config.color,
+                    backgroundColor: config.bg,
+                    border: `1.5px solid ${config.border}`,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                  }}>
+                    <i className={`bi ${config.icon}`} style={{ fontSize: '12px' }}></i>
+                    {config.label}
+                  </span>
+                );
+              })()}
               {/* Edit Toggle Switch */}
               <div style={{
                 display: 'flex',
@@ -4679,6 +4714,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           </div>
         ))}
       </div>
+
+      {/* Show approval pending modal after profile save */}
+      <ApprovalPendingModal isOpen={showApprovalModal} />
     </div>
   );
 };
