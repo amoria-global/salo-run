@@ -210,7 +210,12 @@
       "Bash(while read f)",
       "Bash(do sed -i \"s|process\\\\.env\\\\.NEXT_PUBLIC_API_URL || ''https://backend\\\\.connekyt\\\\.com''|''https://backend.connekyt.com''|g\" \"$f\")",
       "Bash(echo \"Updated: $f\")",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(NEXT_TURBOPACK=0 npx next build)",
+      "Bash(node node_modules/.bin/next build)",
+      "Bash(cmd.exe /c \"npx next build\")",
+      "Bash(npx.cmd next build)",
+      "Bash(node -e \"const ts = require\\(''typescript''\\); const p = ts.createProgram\\([''app/pages/event-coordinator/events.tsx'', ''app/pages/client/events.tsx''], {noEmit: true, jsx: 1, esModuleInterop: true, moduleResolution: 2, target: 99, module: 99, strict: false, skipLibCheck: true}\\); const d = ts.getPreEmitDiagnostics\\(p\\); d.forEach\\(dd => { const f = dd.file ? dd.file.fileName : ''''; const msg = ts.flattenDiagnosticMessageText\\(dd.messageText, ''\\\\n''\\); console.log\\(f + '': '' + msg\\); }\\); console.log\\(''Errors: '' + d.length\\);\")"
     ],
     "deny": [],
     "ask": []
