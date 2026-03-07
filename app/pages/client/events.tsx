@@ -401,6 +401,7 @@ const MyEventsPage = () => {
   const [editTagInput, setEditTagInput] = useState('');
   const [editBannerImage, setEditBannerImage] = useState<string | null>(null);
   const [editBannerImagePreview, setEditBannerImagePreview] = useState<string | null>(null);
+  const [editBannerImageFile, setEditBannerImageFile] = useState<File | null>(null);
 
   // Create form state
   const [createTitle, setCreateTitle] = useState('');
@@ -425,6 +426,7 @@ const MyEventsPage = () => {
   const [createTagInput, setCreateTagInput] = useState('');
   const [createBannerImage, setCreateBannerImage] = useState<string | null>(null);
   const [createBannerImagePreview, setCreateBannerImagePreview] = useState<string | null>(null);
+  const [createBannerImageFile, setCreateBannerImageFile] = useState<File | null>(null);
   const [createPhotographerId, setCreatePhotographerId] = useState<string>('');
   const [createEventVisibility, setCreateEventVisibility] = useState<string>('PUBLIC');
   const [createPackageId, setCreatePackageId] = useState<string>('');
@@ -650,8 +652,13 @@ const MyEventsPage = () => {
 
         const mappedEvents: Event[] = myEvents.map((evt: Record<string, unknown>) => {
           const locationStr = (evt.location as string) || '';
-          const locationParts = locationStr.split(',').map((s: string) => s.trim());
-          const photo = (evt.eventPhoto as string) || (evt.bannerImage as string) || (evt.coverImage as string) || '';
+          const lp = locationStr.split(',').map((s: string) => s.trim());
+          // Handle both "Venue, Address, City, Country" (4 parts) and "Address, City, Country" (3 parts)
+          const locAddress = lp.length >= 4 ? `${lp[0]}, ${lp[1]}` : (lp[0] || locationStr);
+          const locCity = lp.length >= 4 ? (lp[2] || '') : (lp[1] || '');
+          const locCountry = lp.length >= 4 ? (lp[3] || '') : (lp[2] || '');
+          const rawPhoto = (evt.eventPhoto as string) || (evt.bannerImage as string) || (evt.coverImage as string) || '';
+          const photo = rawPhoto.replace('http://197.243.24.101', 'https://backend.connekyt.com');
           return {
             id: (evt.id as string) || '',
             title: (evt.title as string) || 'Untitled Event',
@@ -663,9 +670,9 @@ const MyEventsPage = () => {
             endTime: (evt.endTime as string) || '',
             duration: '',
             location: {
-              address: locationParts[0] || locationStr,
-              city: locationParts[1] || '',
-              country: locationParts[2] || '',
+              address: locAddress,
+              city: locCity,
+              country: locCountry,
             },
             coverImage: photo,
             bannerImage: photo,
@@ -835,11 +842,12 @@ const MyEventsPage = () => {
     setEditTime(event.time);
     setEditEndTime(event.endTime || '');
     setEditDuration(event.duration);
-    // Parse venue name and address from location.address if it contains ' - '
-    const addressParts = event.location.address.split(' - ');
-    if (addressParts.length > 1) {
-      setEditVenueName(addressParts[0]);
-      setEditAddress(addressParts.slice(1).join(' - '));
+    // Parse venue name and address from location.address
+    // location.address may be "Venue, Address" (from 4-part location) or just "Venue"
+    const addrComma = event.location.address.indexOf(',');
+    if (addrComma !== -1) {
+      setEditVenueName(event.location.address.substring(0, addrComma).trim());
+      setEditAddress(event.location.address.substring(addrComma + 1).trim());
     } else {
       setEditVenueName(event.location.address);
       setEditAddress('');
@@ -853,6 +861,7 @@ const MyEventsPage = () => {
     setEditTagInput('');
     setEditBannerImage(event.bannerImage || null);
     setEditBannerImagePreview(event.bannerImage || null);
+    setEditBannerImageFile(null);
     setShowEditModal(true);
   };
 
@@ -884,8 +893,6 @@ const MyEventsPage = () => {
       ? `${formatTimeDisplay(editTime)} - ${formatTimeDisplay(editEndTime)}`
       : formatTimeDisplay(editTime);
 
-    const locationParts = [editVenueName, editAddress, editCity, editCountry].filter(Boolean);
-
     try {
       const apiUrl = getApiUrl();
       const editNumericPrice = editPrice.replace(/[^\d]/g, '');
@@ -896,16 +903,13 @@ const MyEventsPage = () => {
         eventDate: editDate,
         startTime: editTime ? parseTimeToApiString(editTime) : null,
         endTime: editEndTime ? parseTimeToApiString(editEndTime) : null,
-        location: locationParts.join(', '),
+        location: [editVenueName, editAddress, editCity, editCountry].filter(Boolean).join(', '),
         eventOrganizer: editOrganizer,
         eventTags: editTags.length > 0 ? editTags.join(',') : editCategory,
         price: editNumericPrice ? Number(editNumericPrice) : 0,
         priceCurrency: editPriceCurrency || 'RWF',
         maxGuests: editMaxGuests ? Number(editMaxGuests.replace(/[^\d]/g, '')) : 0,
       };
-      if (editBannerImage && editBannerImage.startsWith('data:')) {
-        editPayload.eventPhoto = editBannerImage;
-      }
       Object.keys(editPayload).forEach(key => {
         if (editPayload[key] === undefined || editPayload[key] === null) delete editPayload[key];
       });
@@ -914,6 +918,19 @@ const MyEventsPage = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editPayload),
       });
+      // Upload banner image if a new file was selected
+      if (editBannerImageFile) {
+        try {
+          const photoForm = new FormData();
+          photoForm.append('file', editBannerImageFile);
+          await dashboardAuthFetch(`${apiUrl}/api/remote/customer/events/${editEvent.id}/photo`, {
+            method: 'POST',
+            body: photoForm,
+          });
+        } catch (photoErr) {
+          console.error('Failed to upload event photo:', photoErr);
+        }
+      }
       if (!response.ok) {
         const errorText = await response.text().catch(() => '');
         throw new Error(`Failed to update event: ${response.status} ${errorText}`);
@@ -937,7 +954,7 @@ const MyEventsPage = () => {
           time: timeDisplay,
           endTime: editEndTime,
           duration: calculatedDuration,
-          location: { address: locationParts.join(', '), city: editCity, country: editCountry },
+          location: { address: [editVenueName, editAddress].filter(Boolean).join(', '), city: editCity, country: editCountry },
           coverImage: editBannerImage || event.coverImage,
           bannerImage: editBannerImage || event.bannerImage,
           price: editPrice || 'Free',
@@ -975,6 +992,7 @@ const MyEventsPage = () => {
     setCreateTagInput('');
     setCreateBannerImage(null);
     setCreateBannerImagePreview(null);
+    setCreateBannerImageFile(null);
     setCreatePhotographerId('');
     setCreatePackageId('');
     setPhotographerPackages([]);
@@ -1024,6 +1042,7 @@ const MyEventsPage = () => {
   const handleBannerImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setCreateBannerImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setCreateBannerImage(reader.result as string);
@@ -1061,6 +1080,7 @@ const MyEventsPage = () => {
   const handleEditBannerImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setEditBannerImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setEditBannerImage(reader.result as string);
@@ -1082,8 +1102,7 @@ const MyEventsPage = () => {
       let backendEventId: string | null = null;
       if (token) {
         const apiUrl = getApiUrl();
-        const locationParts = [createVenueName, createAddress, createCity, createCountry].filter(Boolean);
-        const locationStr = locationParts.join(', ');
+        const locationStr = [createVenueName, createAddress, createCity, createCountry].filter(Boolean).join(', ');
         const tagsStr = createTags.length > 0 ? createTags.join(',') : createCategory;
 
         const validPhotographerId = (createPhotographerId && isValidUUID(createPhotographerId)) ? createPhotographerId : null;
@@ -1104,7 +1123,6 @@ const MyEventsPage = () => {
           price: numericPrice ? Number(numericPrice) : 0,
           priceCurrency: createPriceCurrency || 'RWF',
           maxGuests: createMaxGuests ? Number(createMaxGuests.replace(/[^\d]/g, '')) : 0,
-          eventPhoto: createBannerImage || undefined,
           notes: '',
         };
 
@@ -1144,6 +1162,20 @@ const MyEventsPage = () => {
         // Extract the real event ID from backend response
         // Response shape: { data: { event: { id }, booking } } or { data: { eventId } } or { data: { id } }
         backendEventId = responseData?.data?.event?.id || responseData?.data?.eventId || responseData?.data?.id || null;
+
+        // Upload banner image if a file was selected
+        if (createBannerImageFile && backendEventId) {
+          try {
+            const photoForm = new FormData();
+            photoForm.append('file', createBannerImageFile);
+            await dashboardAuthFetch(`${apiUrl}/api/remote/customer/events/${backendEventId}/photo`, {
+              method: 'POST',
+              body: photoForm,
+            });
+          } catch (photoErr) {
+            console.error('Failed to upload event photo:', photoErr);
+          }
+        }
       }
 
       // Also update local state for immediate UI feedback
@@ -1185,7 +1217,7 @@ const MyEventsPage = () => {
         endTime: createEndTime,
         duration: calculatedDuration,
         location: {
-          address: createVenueName ? `${createVenueName}${createAddress ? ' - ' + createAddress : ''}` : createAddress,
+          address: [createVenueName, createAddress].filter(Boolean).join(', '),
           city: createCity,
           country: createCountry
         },
@@ -1671,7 +1703,7 @@ const MyEventsPage = () => {
                 {createBannerImagePreview ? (
                   <div style={{ position: 'relative', width: '100%', height: '100%' }}>
                     <Image src={createBannerImagePreview} alt="Banner" fill style={{ objectFit: 'cover' }} />
-                    <button onClick={() => { setCreateBannerImage(null); setCreateBannerImagePreview(null); }} style={{ position: 'absolute', top: '8px', right: '8px', backgroundColor: 'rgba(0,0,0,0.6)', color: 'white', border: 'none', borderRadius: '50%', width: '24px', height: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>×</button>
+                    <button onClick={() => { setCreateBannerImage(null); setCreateBannerImagePreview(null); setCreateBannerImageFile(null); }} style={{ position: 'absolute', top: '8px', right: '8px', backgroundColor: 'rgba(0,0,0,0.6)', color: 'white', border: 'none', borderRadius: '50%', width: '24px', height: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>×</button>
                   </div>
                 ) : (
                   <label style={{ cursor: 'pointer', textAlign: 'center', padding: '1rem' }}>
@@ -1752,11 +1784,11 @@ const MyEventsPage = () => {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Venue Name *</label>
-                <input type="text" value={createVenueName} onChange={(e) => setCreateVenueName(e.target.value)} placeholder="e.g., BK Arena" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
+                <input type="text" value={createVenueName} onChange={(e) => setCreateVenueName(e.target.value.replace(/,/g, ''))} placeholder="e.g., BK Arena" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Location Address *</label>
-                <input type="text" value={createAddress} onChange={(e) => setCreateAddress(e.target.value)} placeholder="e.g., KN 4 Ave, Kigali" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
+                <input type="text" value={createAddress} onChange={(e) => setCreateAddress(e.target.value.replace(/,/g, ''))} placeholder="e.g., KN 4 Ave" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
               </div>
             </div>
           </div>
@@ -2892,11 +2924,11 @@ const MyEventsPage = () => {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Venue Name *</label>
-                  <input type="text" value={editVenueName} onChange={(e) => setEditVenueName(e.target.value)} placeholder="e.g., BK Arena" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
+                  <input type="text" value={editVenueName} onChange={(e) => setEditVenueName(e.target.value.replace(/,/g, ''))} placeholder="e.g., BK Arena" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Location Address *</label>
-                  <input type="text" value={editAddress} onChange={(e) => setEditAddress(e.target.value)} placeholder="e.g., KN 4 Ave, Kigali" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
+                  <input type="text" value={editAddress} onChange={(e) => setEditAddress(e.target.value.replace(/,/g, ''))} placeholder="e.g., KN 4 Ave" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
                 </div>
               </div>
             </div>
