@@ -19,6 +19,11 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'backend.connekyt.com',
       },
+      {
+        // TODO: Remove once DevOps sets base-url=https://backend.connekyt.com in production application.properties
+        protocol: 'http',
+        hostname: '197.243.24.101',
+      },
     ],
   },
 };

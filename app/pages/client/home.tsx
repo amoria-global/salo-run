@@ -271,7 +271,7 @@ const ClientDashboard = () => {
             id: p.id,
             eventName: p.eventTitle || 'Event',
             photographerName: p.photographerName || 'Photographer',
-            photographerImage: p.photographerImage || undefined,
+            photographerImage: ((url: string | undefined) => url && !url.includes('/null') ? url.replace('http://197.243.24.101', 'https://backend.connekyt.com') : undefined)(p.photographerImage || undefined),
             amount: p.amount,
             paidAmount: p.paidAmount || 0,
             dueDate: p.dueDate ? p.dueDate.split('T')[0] : '',
@@ -290,7 +290,7 @@ const ClientDashboard = () => {
             name: p.name,
             event: p.event || 'Event',
             status: (p.status as Photographer['status']) || 'Pending',
-            avatar: p.avatar || undefined,
+            avatar: ((url: string | undefined) => url && !url.includes('/null') ? url.replace('http://197.243.24.101', 'https://backend.connekyt.com') : undefined)(p.avatar || undefined),
           }));
           setPhotographers(mapped);
         }
@@ -308,17 +308,20 @@ const ClientDashboard = () => {
         }
       }
 
-      // Recent Payments
+      // Recent Transactions — show pending/unpaid photographers
       if (paymentsRes.status === 'fulfilled' && paymentsRes.value.ok) {
         const data = await paymentsRes.value.json();
         if (data.action === 1 && data.data) {
-          const mapped = (data.data as ApiPayment[]).map((p) => ({
-            name: p.photographerName || 'Payment',
-            type: p.paymentType ? p.paymentType.charAt(0) + p.paymentType.slice(1).toLowerCase() : 'Payment',
-            amount: formatPrice(p.paidAmount || p.amount),
-            avatar: p.photographerImage || undefined,
-          }));
-          setRecentPayments(mapped);
+          const pendingTxns = (data.data as ApiPayment[])
+            .filter((p) => p.status !== 'COMPLETED' && p.status !== 'SUCCESS')
+            .slice(0, 5)
+            .map((p) => ({
+              name: p.photographerName || 'Payment',
+              type: p.status === 'PARTIAL' ? 'Partially paid' : p.status === 'FAILED' ? 'Failed' : 'Pending',
+              amount: formatPrice(p.amount),
+              avatar: ((url: string | undefined) => url && !url.includes('/null') ? url.replace('http://197.243.24.101', 'https://backend.connekyt.com') : undefined)(p.photographerImage || undefined),
+            }));
+          setRecentPayments(pendingTxns);
         }
       }
 

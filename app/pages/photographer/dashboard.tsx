@@ -162,7 +162,7 @@ interface Client {
   name: string;
   event: string;
   status: 'In Progress' | 'Completed' | 'Pending';
-  avatar: string;
+  avatar?: string;
 }
 
 const PhotographerDashboard = () => {
@@ -224,12 +224,14 @@ const PhotographerDashboard = () => {
     const fetchStaticData = async () => {
       const apiUrl = getApiUrl();
       try {
-        const [analyticsRes, balanceRes, clientsRes, transactionsRes] = await Promise.allSettled([
+        const [analyticsRes, balanceRes, clientsRes, convRes, transactionsRes] = await Promise.allSettled([
           dashboardAuthFetch(`${apiUrl}/api/remote/photographer/analytics`),
           dashboardAuthFetch(`${apiUrl}/api/remote/photographer/balance`),
           dashboardAuthFetch(`${apiUrl}/api/remote/photographer/clients`),
+          dashboardAuthFetch(`${apiUrl}/api/remote/chat/conversations`),
           dashboardAuthFetch(`${apiUrl}/api/remote/photographer/transactions?page=0&size=5`),
         ]);
+        const normalizeImg = (url: string | undefined) => url && !url.includes('/null') ? url.replace('http://197.243.24.101', 'https://backend.connekyt.com') : undefined;
 
         if (analyticsRes.status === 'fulfilled' && analyticsRes.value.ok) {
           const data = await analyticsRes.value.json();
@@ -239,30 +241,59 @@ const PhotographerDashboard = () => {
           const data = await balanceRes.value.json();
           if (data.action === 1 && data.data) setBalance(data.data);
         }
-        if (clientsRes.status === 'fulfilled' && clientsRes.value.ok) {
-          const data = await clientsRes.value.json();
-          if (data.action === 1 && data.data) {
-            const mapped: Client[] = (Array.isArray(data.data) ? data.data : data.data.content || []).slice(0, 3).map((c: any) => ({
-              id: c.id || c.customerId || String(Math.random()),
-              name: c.name || `${c.firstName || ''} ${c.lastName || ''}`.trim() || 'Client',
-              event: c.lastEventType || c.eventType || 'Photography',
-              status: (c.status === 'active' ? 'In Progress' : c.status === 'completed' ? 'Completed' : 'Pending') as Client['status'],
-              avatar: c.profileImage || c.profilePicture || c.avatar || undefined,
-            }));
-            setApiClients(mapped);
+        // Primary: /photographer/clients; Fallback: chat conversations
+        {
+          let clientsMapped: Client[] = [];
+          if (clientsRes.status === 'fulfilled' && clientsRes.value.ok) {
+            const data = await clientsRes.value.json().catch(() => null);
+
+            if (data?.data) {
+              const rawList = Array.isArray(data.data) ? data.data : data.data.content || [];
+              clientsMapped = rawList.slice(0, 3).map((c: any) => ({
+                id: c.id || '',
+                name: c.name || `${c.firstName || ''} ${c.lastName || ''}`.trim() || 'Client',
+                event: c.lastEventType || 'Photography',
+                status: (c.status === 'COMPLETED' || c.status === 'completed' ? 'Completed' : c.status === 'CONTACTED' || c.status === 'active' ? 'In Progress' : 'Pending') as Client['status'],
+                avatar: normalizeImg(c.profilePicture || c.profileImage || undefined),
+              }));
+            }
           }
+          if (clientsMapped.length === 0 && convRes.status === 'fulfilled' && convRes.value.ok) {
+            const convData = await convRes.value.json().catch(() => null);
+            const convList = convData?.data || convData || [];
+            if (Array.isArray(convList)) {
+              const currentId = user?.id || '';
+              clientsMapped = convList.slice(0, 3).map((conv: any) => {
+                const partner = conv.participants?.find((p: any) => p.id !== currentId) || {};
+                return {
+                  id: partner.id || conv.partnerId || conv.id || '',
+                  name: partner.name || conv.partnerName || conv.name || 'Client',
+                  event: 'Photography',
+                  status: 'In Progress' as Client['status'],
+                  avatar: normalizeImg(partner.image || conv.partnerImage || conv.image || undefined),
+                };
+              });
+            }
+          }
+          setApiClients(clientsMapped);
         }
         if (transactionsRes.status === 'fulfilled' && transactionsRes.value.ok) {
           const data = await transactionsRes.value.json();
-          if (data.action === 1 && data.data) {
+          if (data.data) {
             const txns = Array.isArray(data.data) ? data.data : data.data.content || [];
-            const mapped = txns.slice(0, 3).map((t: any) => ({
-              name: t.clientName || t.customerName || t.photographerName || 'Payment',
-              type: t.paymentType || t.type || t.service || 'Earnings',
-              amount: formatPrice(t.amount || 0),
-              avatar: t.clientImage || t.customerImage || t.photographerImage || undefined,
-            }));
-            setRecentPayments(mapped);
+            const completed = txns
+              .filter((t: any) => {
+                const s = (t.status || '').toUpperCase();
+                return s === 'COMPLETED' || s === 'SUCCESS';
+              })
+              .slice(0, 3)
+              .map((t: any) => ({
+                name: t.clientName || t.customerName || t.photographerName || 'Payment',
+                type: t.paymentType || t.type || t.service || 'Earnings',
+                amount: formatPrice(t.amount || 0),
+                avatar: normalizeImg(t.clientImage || t.customerImage || t.photographerImage || undefined),
+              }));
+            setRecentPayments(completed);
           }
         }
       } catch (error) {
@@ -1363,16 +1394,21 @@ const PhotographerDashboard = () => {
                     onMouseEnter={(e) => e.currentTarget.style.backgroundColor = colors.bgHover}
                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                   >
-                    <img
-                      src={client.avatar}
-                      alt={client.name}
-                      style={{
-                        width: '2.25rem',
-                        height: '2.25rem',
-                        borderRadius: '9999px',
-                        objectFit: 'cover'
-                      }}
-                    />
+                    {client.avatar ? (
+                      <img
+                        src={client.avatar}
+                        alt={client.name}
+                        style={{
+                          width: '2.25rem',
+                          height: '2.25rem',
+                          borderRadius: '9999px',
+                          objectFit: 'cover'
+                        }}
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
+                    ) : (
+                      <div style={{ width: '2.25rem', height: '2.25rem', borderRadius: '9999px', backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', fontWeight: '600', color: '#6B7280', flexShrink: 0 }}>{client.name.charAt(0)}</div>
+                    )}
                     <div style={{
                       flex: 1,
                       display: 'flex',
