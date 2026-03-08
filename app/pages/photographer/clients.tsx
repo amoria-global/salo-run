@@ -150,7 +150,7 @@ interface Client {
   lastName: string;
   email: string;
   phone: string;
-  profileImage: string;
+  profileImage?: string;
   coverImage: string;
   location: {
     city: string;
@@ -269,7 +269,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
 export default function Clients() {
   const { colors, actualTheme } = useTheme();
   const { formatPrice } = useCurrency();
-  const { token } = useDashboardAuth();
+  const { token, user } = useDashboardAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -389,8 +389,9 @@ export default function Clients() {
   const fetchClients = useCallback(async () => {
     try {
       const apiUrl = getApiUrl();
-      const [clientsRes, favRes] = await Promise.allSettled([
+      const [clientsRes, convRes, favRes] = await Promise.allSettled([
         dashboardAuthFetch(`${apiUrl}/api/remote/photographer/clients`),
+        dashboardAuthFetch(`${apiUrl}/api/remote/chat/conversations`),
         dashboardAuthFetch(`${apiUrl}/api/remote/photographer/favorite-clients`),
       ]);
 
@@ -402,39 +403,81 @@ export default function Clients() {
         }
       }
 
+      const normalizeImg = (url: string | undefined): string | undefined => url && !url.includes('/null') ? url.replace('http://197.243.24.101', 'https://backend.connekyt.com') : undefined;
+      let clientsMapped: Client[] = [];
+
+      // Primary: use /photographer/clients (populated once backend deploys booking-based logic)
       if (clientsRes.status === 'fulfilled' && clientsRes.value.ok) {
-        const data = await clientsRes.value.json();
-        if (data.action === 1 && data.data) {
+        const data = await clientsRes.value.json().catch(() => null);
+        if (data?.data) {
           const clientList = Array.isArray(data.data) ? data.data : data.data.content || [];
-          const mapped: Client[] = clientList.map((c: any) => ({
-            id: c.id || c.customerId || String(Math.random()),
+          clientsMapped = clientList.map((c: any) => ({
+            id: c.id || '',
             firstName: c.firstName || c.name?.split(' ')[0] || '',
             lastName: c.lastName || c.name?.split(' ').slice(1).join(' ') || '',
             email: c.email || '',
             phone: c.phone || c.phoneNumber || '',
-            profileImage: c.profileImage || c.profilePicture || c.avatar || undefined,
-            coverImage: c.coverImage || 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800',
+            profileImage: normalizeImg(c.profilePicture || c.profileImage || undefined),
+            coverImage: normalizeImg(c.coverImage || undefined) || 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800',
             location: {
               city: c.city || c.location?.city || '',
               country: c.country || c.location?.country || '',
             },
             totalBookings: c.totalBookings || 0,
             totalSpent: c.totalSpent || 0,
-            joinDate: c.joinDate || c.createdAt || '',
-            lastActive: c.lastActive || c.lastSeen || '',
+            joinDate: c.firstContactedAt || c.joinDate || c.createdAt || '',
+            lastActive: c.firstContactedAt || c.lastActive || c.lastSeen || '',
             lastBookingDate: c.lastBookingDate || '',
             lastEventType: c.lastEventType || '',
             lastEventName: c.lastEventName || '',
             status: c.status === 'inactive' ? 'inactive' : 'active' as Client['status'],
-            isFavorite: favoriteIds.includes(String(c.id || c.customerId)),
+            isFavorite: favoriteIds.includes(String(c.id)),
             verified: c.verified || c.isVerified || false,
             review: c.review || undefined,
             bookings: c.bookings || [],
             tipsAndBonuses: c.tipsAndBonuses || [],
           }));
-          setClients(mapped);
         }
       }
+
+      // Fallback: derive from chat conversations until backend deploys new /clients endpoint
+      if (clientsMapped.length === 0 && convRes.status === 'fulfilled' && convRes.value.ok) {
+        const convData = await convRes.value.json().catch(() => null);
+        const convList = convData?.data || convData || [];
+        if (Array.isArray(convList)) {
+          const currentId = user?.id || '';
+          clientsMapped = convList.map((conv: any) => {
+            const partner = conv.participants?.find((p: any) => p.id !== currentId) || {};
+            const pName = partner.name || conv.partnerName || conv.name || 'Client';
+            const nameParts = pName.split(' ');
+            return {
+              id: partner.id || conv.partnerId || conv.id || '',
+              firstName: nameParts[0] || '',
+              lastName: nameParts.slice(1).join(' ') || '',
+              email: '',
+              phone: '',
+              profileImage: normalizeImg(partner.image || conv.partnerImage || conv.image || undefined),
+              coverImage: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800',
+              location: { city: '', country: '' },
+              totalBookings: 0,
+              totalSpent: 0,
+              joinDate: '',
+              lastActive: conv.lastMessage?.createdAt || '',
+              lastBookingDate: '',
+              lastEventType: '',
+              lastEventName: '',
+              status: 'active' as Client['status'],
+              isFavorite: favoriteIds.includes(String(partner.id || conv.partnerId || conv.id)),
+              verified: false,
+              review: undefined,
+              bookings: [],
+              tipsAndBonuses: [],
+            };
+          });
+        }
+      }
+
+      setClients(clientsMapped);
     } catch (err) {
       console.error('Failed to fetch clients:', err);
     } finally {
@@ -482,7 +525,10 @@ export default function Clients() {
   };
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    if (!dateStr) return 'N/A';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return 'N/A';
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   const getPaymentStatusColor = (status: string) => {
@@ -1000,9 +1046,9 @@ export default function Clients() {
             </div>
           ) : viewMode === 'grid' ? (
             <div className="mobile-clients-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem' }}>
-              {filteredClients.map((client) => (
+              {filteredClients.map((client, idx) => (
                 <div
-                  key={client.id}
+                  key={`${client.id}-${idx}`}
                   className="mobile-client-card"
                   style={{
                     backgroundColor: colors.bgCard,
@@ -1099,8 +1145,8 @@ export default function Clients() {
                   {/* Quick Stats Row */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', backgroundColor: colors.bgTertiary, borderRadius: '0.375rem', marginBottom: '0.5rem' }}>
                     <div>
-                      <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Last: {client.lastEventType}</div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>{formatDate(client.lastBookingDate)}</div>
+                      <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{client.lastEventType ? `Last: ${client.lastEventType}` : 'First Contact'}</div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>{formatDate(client.lastBookingDate || client.joinDate)}</div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Total Spent</div>
@@ -1281,9 +1327,9 @@ export default function Clients() {
           ) : (
             /* List View */
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {filteredClients.map((client) => (
+              {filteredClients.map((client, idx) => (
                 <div
-                  key={client.id}
+                  key={`${client.id}-${idx}`}
                   onClick={() => setSelectedClient(client)}
                   style={{
                     backgroundColor: colors.bgCard,
@@ -1353,7 +1399,7 @@ export default function Clients() {
                       {client.lastEventName}
                     </p>
                     <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: 0 }}>
-                      {client.lastEventType} • {formatDate(client.lastBookingDate)}
+                      {client.lastEventType ? `${client.lastEventType} • ` : ''}{formatDate(client.lastBookingDate || client.joinDate)}
                     </p>
                   </div>
 
@@ -1801,9 +1847,9 @@ export default function Clients() {
               </div>
               <div style={{ backgroundColor: colors.bgTertiary, padding: '0.75rem', borderRadius: '0.5rem', textAlign: 'center' }}>
                 <p style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, margin: 0, marginBottom: '0.25rem' }}>
-                  {formatDate(selectedClient.joinDate)}
+                  {formatDate(selectedClient.lastBookingDate || selectedClient.joinDate)}
                 </p>
-                <p style={{ fontSize: '0.75rem', color: colors.textSecondary, margin: 0 }}>Joined</p>
+                <p style={{ fontSize: '0.75rem', color: colors.textSecondary, margin: 0 }}>{selectedClient.lastBookingDate ? 'Last Booking' : 'First Contact'}</p>
               </div>
             </div>
 

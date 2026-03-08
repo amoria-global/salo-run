@@ -339,7 +339,8 @@ const MyEventsPage = () => {
   const [copiedLink, setCopiedLink] = useState(false);
 
   // Photographers fetched from API
-  const [pastPhotographers, setPastPhotographers] = useState<{id: string; name: string; image: string; speciality: string; rating: number; eventsWorked: number}[]>([]);
+  const [pastPhotographers, setPastPhotographers] = useState<{id: string; name: string; image?: string; speciality: string; rating: number; eventsWorked: number}[]>([]);
+  const [platformPhotographers, setPlatformPhotographers] = useState<{id: string; name: string; image?: string; speciality: string; rating: number; eventsWorked: number}[]>([]);
   const [showFindPhotographerModal, setShowFindPhotographerModal] = useState(false);
   const [photographerSearchQuery, setPhotographerSearchQuery] = useState('');
   const [photographerAssignMode, setPhotographerAssignMode] = useState<'none' | 'existing' | 'platform' | 'invite'>('none');
@@ -352,7 +353,33 @@ const MyEventsPage = () => {
   });
 
   useEffect(() => {
-    const fetchPhotographers = async () => {
+    const normalizeImg = (url: string | undefined | null): string | undefined => {
+      if (!url || url.includes('/null')) return undefined;
+      return url.replace('http://197.243.24.101', 'https://backend.connekyt.com');
+    };
+    // Fetch booked/existing photographers (authenticated)
+    const fetchBookedPhotographers = async () => {
+      try {
+        const apiUrl = getApiUrl();
+        const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/photographers`);
+        if (res.ok) {
+          const data = await res.json();
+          const list = (data.data?.content || data.data || []).map((p: Record<string, unknown>) => ({
+            id: (p.id as string) || '',
+            name: `${(p.firstName as string) || ''} ${(p.lastName as string) || ''}`.trim() || (p.name as string) || 'Photographer',
+            image: normalizeImg((p.profilePicture as string) || (p.image as string) || null),
+            speciality: (p.speciality as string) || (p.category as string) || 'Photography',
+            rating: (p.rating as number) || 0,
+            eventsWorked: 0,
+          }));
+          setPastPhotographers(list);
+        }
+      } catch {
+        // Silently fail
+      }
+    };
+    // Fetch all platform photographers (public endpoint)
+    const fetchPlatformPhotographers = async () => {
       try {
         const apiUrl = getApiUrl();
         const response = await fetch(`${apiUrl}/api/remote/public/photographers/list?page=0&size=50&sortColumn=createdAt&sortDirection=desc`, {
@@ -365,18 +392,19 @@ const MyEventsPage = () => {
           const mapped = data.data.content.map((p: Record<string, unknown>) => ({
             id: (p.id as string) || '',
             name: `${(p.firstName as string) || ''} ${(p.lastName as string) || ''}`.trim() || 'Photographer',
-            image: (p.profilePicture as string) || undefined,
+            image: normalizeImg((p.profilePicture as string) || null),
             speciality: Array.isArray(p.specialties) ? (p.specialties as string[]).join(', ') : (p.customerType as string) || 'Photography',
             rating: (p.rating as number) || 0,
             eventsWorked: 0,
           }));
-          setPastPhotographers(mapped);
+          setPlatformPhotographers(mapped);
         }
       } catch {
-        // Silently fail — photographer list is optional
+        // Silently fail
       }
     };
-    fetchPhotographers();
+    fetchBookedPhotographers();
+    fetchPlatformPhotographers();
   }, []);
 
   // Edit form state
@@ -1815,13 +1843,6 @@ const MyEventsPage = () => {
               <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Organizer Name *</label>
               <input type="text" value={createOrganizer} onChange={(e) => setCreateOrganizer(e.target.value)} placeholder="e.g., Rwanda Basketball Federation" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
             </div>
-            <div style={{ marginTop: '0.75rem' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Event Visibility</label>
-              <select value={createEventVisibility} onChange={(e) => setCreateEventVisibility(e.target.value)} style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, backgroundColor: colors.bgCard }}>
-                <option value="PUBLIC">Public</option>
-                <option value="PRIVATE">Private</option>
-              </select>
-            </div>
           </div>
 
           {/* Section: Description */}
@@ -1912,7 +1933,7 @@ const MyEventsPage = () => {
               <div>
                 <input type="text" value={photographerSearchQuery} onChange={(e) => setPhotographerSearchQuery(e.target.value)} placeholder="Search platform photographers..." style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, backgroundColor: colors.bgCard, marginBottom: '0.5rem' }} />
                 <div style={{ maxHeight: '200px', overflowY: 'auto', border: `1px solid ${colors.borderPrimary}`, borderRadius: '0.5rem' }}>
-                  {pastPhotographers.filter(p => p.name.toLowerCase().includes(photographerSearchQuery.toLowerCase())).map(p => (
+                  {platformPhotographers.filter(p => p.name.toLowerCase().includes(photographerSearchQuery.toLowerCase())).map(p => (
                     <div key={p.id} onClick={() => { setCreatePhotographerId(p.id); setPhotographerAssignMode('none'); setPhotographerSearchQuery(''); }} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.625rem 0.75rem', cursor: 'pointer', borderBottom: `1px solid ${colors.borderPrimary}`, backgroundColor: createPhotographerId === p.id ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : 'transparent' }}>
                       <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#E5E7EB', overflow: 'hidden', flexShrink: 0 }}>
                         {p.image ? <img src={p.image} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: '600', color: '#6B7280' }}>{p.name.charAt(0)}</div>}
@@ -1923,8 +1944,8 @@ const MyEventsPage = () => {
                       </div>
                     </div>
                   ))}
-                  {pastPhotographers.filter(p => p.name.toLowerCase().includes(photographerSearchQuery.toLowerCase())).length === 0 && (
-                    <div style={{ padding: '1rem', textAlign: 'center', color: colors.textSecondary, fontSize: '0.85rem' }}>No photographers found. <button type="button" onClick={() => { setShowFindPhotographerModal(true); setPhotographerAssignMode('none'); }} style={{ color: '#083A85', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.85rem' }}>Browse on platform</button></div>
+                  {platformPhotographers.filter(p => p.name.toLowerCase().includes(photographerSearchQuery.toLowerCase())).length === 0 && (
+                    <div style={{ padding: '1rem', textAlign: 'center', color: colors.textSecondary, fontSize: '0.85rem' }}>No photographers found on platform.</div>
                   )}
                 </div>
                 <button type="button" onClick={() => { setPhotographerAssignMode('none'); setPhotographerSearchQuery(''); }} style={{ marginTop: '0.5rem', padding: '0.5rem 1rem', border: `1px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', background: 'transparent', color: colors.textSecondary, fontSize: '0.8rem', cursor: 'pointer' }}>Cancel</button>
@@ -1950,7 +1971,7 @@ const MyEventsPage = () => {
 
             {/* Selected photographer display */}
             {createPhotographerId && photographerAssignMode === 'none' && (() => {
-              const selected = pastPhotographers.find(p => p.id === createPhotographerId);
+              const selected = pastPhotographers.find(p => p.id === createPhotographerId) || platformPhotographers.find(p => p.id === createPhotographerId);
               return selected ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.625rem 0.75rem', border: `2px solid #083A85`, borderRadius: '0.5rem', backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF' }}>
                   <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#E5E7EB', overflow: 'hidden', flexShrink: 0 }}>
