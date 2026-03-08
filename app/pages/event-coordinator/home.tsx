@@ -179,6 +179,8 @@ const EventCoordinatorDashboard = () => {
   const { user } = useDashboardAuth();
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<'today' | 'week' | 'month' | 'custom'>('week');
+  const [customDateFrom, setCustomDateFrom] = useState('');
+  const [customDateTo, setCustomDateTo] = useState('');
   const [timeOfDay, setTimeOfDay] = useState(getTimeOfDay());
   const [greetingIndex, setGreetingIndex] = useState(0);
   const [greetings, setGreetings] = useState(getGreetings(getTimeOfDay()));
@@ -395,9 +397,21 @@ const EventCoordinatorDashboard = () => {
     <div style={{
       display: 'flex',
       height: '100vh',
-      backgroundColor: colors.bgPrimary
+      backgroundColor: colors.bgPrimary,
+      overflow: 'hidden',
+      width: '100%',
+      maxWidth: '100vw'
     }}>
       <style jsx>{`
+        @media (max-width: 1024px) {
+          .mobile-stats-grid {
+            grid-template-columns: repeat(3, 1fr) !important;
+          }
+          .mobile-main-grid {
+            grid-template-columns: 1fr !important;
+            gap: 1rem !important;
+          }
+        }
         @media (max-width: 768px) {
           .mobile-main-content {
             padding: 1rem !important;
@@ -436,8 +450,13 @@ const EventCoordinatorDashboard = () => {
             font-size: 0.85rem !important;
             padding: 0.5rem 0.75rem !important;
           }
+          .mobile-custom-date-row {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 0.5rem !important;
+          }
           .mobile-stats-grid {
-            grid-template-columns: 1fr !important;
+            grid-template-columns: repeat(2, 1fr) !important;
             gap: 0.75rem !important;
           }
           .mobile-main-grid {
@@ -447,8 +466,25 @@ const EventCoordinatorDashboard = () => {
           .mobile-pending-payments {
             padding: 1rem !important;
           }
+          .mobile-pending-payments > div:first-child {
+            flex-direction: column !important;
+            gap: 0.75rem !important;
+          }
+          .mobile-pending-payments > div:first-child > a {
+            align-self: flex-start !important;
+          }
           .mobile-card {
             padding: 1rem !important;
+            min-width: 0 !important;
+            box-sizing: border-box !important;
+          }
+          .mobile-main-grid {
+            min-width: 0 !important;
+            box-sizing: border-box !important;
+            width: 100% !important;
+          }
+          .mobile-main-grid > div {
+            min-width: 0 !important;
           }
         }
         @media (max-width: 640px) {
@@ -462,6 +498,26 @@ const EventCoordinatorDashboard = () => {
           .mobile-filter-tabs button {
             font-size: 0.8rem !important;
             padding: 0.5rem 0.625rem !important;
+          }
+          .mobile-stats-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .mobile-pending-payments > div:nth-child(2) {
+            flex-direction: column !important;
+            overflow-x: visible !important;
+          }
+          .mobile-pending-payments > div:nth-child(2) > div {
+            min-width: 100% !important;
+            flex: 1 1 100% !important;
+          }
+        }
+        @media (max-width: 480px) {
+          .mobile-filter-tabs {
+            gap: 0.35rem !important;
+          }
+          .mobile-filter-tabs button {
+            font-size: 0.75rem !important;
+            padding: 0.4rem 0.5rem !important;
           }
         }
       `}</style>
@@ -663,6 +719,73 @@ const EventCoordinatorDashboard = () => {
         </button>
       </div>
 
+      {activeFilter === 'custom' && (
+        <div className="mobile-custom-date-row" style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          marginBottom: '1rem',
+          flexWrap: 'wrap'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <label style={{ fontSize: '0.85rem', color: colors.textSecondary, whiteSpace: 'nowrap' }}>From</label>
+            <input
+              type="date"
+              value={customDateFrom}
+              onChange={(e) => setCustomDateFrom(e.target.value)}
+              style={{
+                padding: '0.4rem 0.6rem',
+                borderRadius: '0.375rem',
+                border: `1px solid ${colors.borderPrimary}`,
+                backgroundColor: colors.bgCard,
+                color: colors.textPrimary,
+                fontSize: '0.85rem',
+                outline: 'none'
+              }}
+            />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <label style={{ fontSize: '0.85rem', color: colors.textSecondary, whiteSpace: 'nowrap' }}>To</label>
+            <input
+              type="date"
+              value={customDateTo}
+              onChange={(e) => setCustomDateTo(e.target.value)}
+              style={{
+                padding: '0.4rem 0.6rem',
+                borderRadius: '0.375rem',
+                border: `1px solid ${colors.borderPrimary}`,
+                backgroundColor: colors.bgCard,
+                color: colors.textPrimary,
+                fontSize: '0.85rem',
+                outline: 'none'
+              }}
+            />
+          </div>
+          <button
+            onClick={() => {
+              if (customDateFrom && customDateTo) {
+                // TODO: trigger data fetch with customDateFrom and customDateTo
+                console.log('Custom range:', customDateFrom, 'to', customDateTo);
+              }
+            }}
+            disabled={!customDateFrom || !customDateTo}
+            style={{
+              padding: '0.4rem 1rem',
+              borderRadius: '0.375rem',
+              border: 'none',
+              backgroundColor: (!customDateFrom || !customDateTo) ? colors.borderPrimary : '#F20C8F',
+              color: (!customDateFrom || !customDateTo) ? colors.textSecondary : 'white',
+              fontSize: '0.85rem',
+              cursor: (!customDateFrom || !customDateTo) ? 'not-allowed' : 'pointer',
+              fontWeight: '600',
+              transition: 'all 0.3s'
+            }}
+          >
+            Apply
+          </button>
+        </div>
+      )}
+
       <div className="mobile-stats-grid" style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(5, 1fr)',
@@ -676,7 +799,6 @@ const EventCoordinatorDashboard = () => {
           timeframe="last week"
           icon={<MoneyIcon />}
           trend="up"
-          href="/user/event-coordinator/payments"
           accentColor="#083A85"
         />
         <StatCard
@@ -686,7 +808,6 @@ const EventCoordinatorDashboard = () => {
           timeframe="last week"
           icon={<ClockIcon />}
           trend="down"
-          href="/user/event-coordinator/events"
           accentColor="#F59E0B"
         />
         <StatCard
@@ -706,7 +827,6 @@ const EventCoordinatorDashboard = () => {
           timeframe="last week"
           icon={<LiveStreamFeeIcon />}
           trend="up"
-          href="/user/event-coordinator/payments"
           accentColor="#10B981"
         />
         <StatCard
