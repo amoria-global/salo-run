@@ -397,7 +397,151 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary, overflow: 'hidden', width: '100%', maxWidth: '100vw' }}>
+      <style>{`
+        @media (max-width: 768px) {
+          .mobile-pref-content {
+            padding: 1rem !important;
+            padding-bottom: 8rem !important;
+            overflow-x: hidden !important;
+          }
+          .mobile-pref-title {
+            font-size: 1.4rem !important;
+          }
+          .mobile-pref-subtitle {
+            font-size: 0.85rem !important;
+          }
+          .mobile-pref-tabs {
+            width: 100% !important;
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            -ms-overflow-style: none !important;
+            scrollbar-width: none !important;
+            padding-right: 0.5rem !important;
+          }
+          .mobile-pref-tabs::-webkit-scrollbar {
+            display: none !important;
+          }
+          .mobile-pref-tabs button {
+            white-space: nowrap !important;
+            flex-shrink: 0 !important;
+            min-height: 40px !important;
+            font-size: 0.8rem !important;
+            padding: 0.4rem 0.625rem !important;
+            gap: 0.25rem !important;
+          }
+          .mobile-pref-tabs button i {
+            font-size: 0.85rem !important;
+          }
+          .mobile-theme-grid {
+            grid-template-columns: 1fr !important;
+            gap: 0.75rem !important;
+          }
+          .mobile-pref-card {
+            padding: 1rem !important;
+            border-radius: 0.75rem !important;
+          }
+          .mobile-pref-card h2 {
+            font-size: 1.1rem !important;
+          }
+          .mobile-payment-item {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 0.75rem !important;
+          }
+          .mobile-payment-actions {
+            width: 100% !important;
+            justify-content: flex-end !important;
+          }
+          .mobile-payment-actions button {
+            min-height: 40px !important;
+          }
+          .mobile-notif-container > div > div > div {
+            flex-wrap: wrap !important;
+            gap: 0.5rem !important;
+          }
+          .mobile-notif-container button {
+            flex-shrink: 0 !important;
+          }
+          .mobile-modal-inner {
+            margin: 0.5rem !important;
+            margin-bottom: 4rem !important;
+            padding: 1rem !important;
+            padding-bottom: 1.5rem !important;
+            max-height: calc(100vh - 8rem) !important;
+            width: calc(100% - 1rem) !important;
+            max-width: none !important;
+          }
+          .mobile-modal-inner h2 {
+            font-size: 1.05rem !important;
+          }
+          .mobile-modal-inner input,
+          .mobile-modal-inner select {
+            min-height: 44px !important;
+            font-size: 0.9rem !important;
+          }
+          .mobile-payment-option {
+            gap: 0.625rem !important;
+            padding: 0.625rem !important;
+          }
+          .mobile-payment-option-icon {
+            width: 36px !important;
+            height: 36px !important;
+          }
+          .mobile-payment-option-label {
+            font-size: 0.85rem !important;
+          }
+          .mobile-payment-option-desc {
+            font-size: 0.7rem !important;
+          }
+          .mobile-payment-option-radio {
+            width: 16px !important;
+            height: 16px !important;
+          }
+          .mobile-modal-grid-2 {
+            grid-template-columns: 1fr !important;
+          }
+          .mobile-modal-footer {
+            flex-direction: column !important;
+            gap: 0.5rem !important;
+            margin-top: 1rem !important;
+            padding-bottom: 1rem !important;
+          }
+          .mobile-modal-footer button {
+            width: 100% !important;
+            min-height: 44px !important;
+          }
+        }
+        @media (max-width: 640px) {
+          .mobile-pref-content {
+            padding: 0.75rem !important;
+            padding-bottom: 10rem !important;
+          }
+          .mobile-pref-title {
+            font-size: 1.2rem !important;
+          }
+          .mobile-pref-tabs button {
+            font-size: 0.75rem !important;
+            padding: 0.375rem 0.5rem !important;
+          }
+        }
+        @media (max-width: 375px) {
+          .mobile-pref-content {
+            padding: 0.5rem !important;
+            padding-bottom: 10rem !important;
+          }
+          .mobile-pref-title {
+            font-size: 1.1rem !important;
+          }
+          .mobile-pref-tabs button {
+            font-size: 0.7rem !important;
+            padding: 0.325rem 0.4rem !important;
+          }
+          .mobile-pref-tabs button i {
+            display: none !important;
+          }
+        }
+      `}</style>
       {/* Handle URL params for tab selection */}
       <Suspense fallback={null}>
         <TabParamHandler setActiveTab={setActiveTab} />
@@ -405,20 +549,20 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <Topbar userRole={userType} />
-        <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
+        <div className="mobile-pref-content" style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
 
           {/* Header */}
           <header style={{ marginBottom: '1.5rem' }}>
-            <h1 style={{ fontSize: '1.8rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
+            <h1 className="mobile-pref-title" style={{ fontSize: '1.8rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
               Preferences
             </h1>
-            <p style={{ fontSize: '0.95rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
+            <p className="mobile-pref-subtitle" style={{ fontSize: '0.95rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
               Customize your dashboard experience and manage payment settings
             </p>
           </header>
 
           {/* Tabs */}
-          <div style={{
+          <div className="mobile-pref-tabs" style={{
             display: 'flex',
             gap: '0.25rem',
             backgroundColor: colors.bgTertiary,
@@ -459,7 +603,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
 
           {/* Appearance Tab */}
           {activeTab === 'appearance' && (
-            <div style={{
+            <div className="mobile-pref-card" style={{
               backgroundColor: colors.bgSecondary,
               borderRadius: '1rem',
               padding: '1.5rem',
@@ -473,7 +617,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                 Choose how the dashboard looks to you. Select a single theme, or sync with your system settings.
               </p>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+              <div className="mobile-theme-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', maxWidth: '480px' }}>
                 {themeOptions.map((option) => (
                   <button
                     key={option.mode}
@@ -485,9 +629,9 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
-                      gap: '0.75rem',
-                      padding: '1.5rem',
-                      borderRadius: '0.75rem',
+                      gap: '0.5rem',
+                      padding: '0.75rem',
+                      borderRadius: '0.5rem',
                       border: theme === option.mode
                         ? `2px solid ${colors.brandPrimary}`
                         : `2px solid ${colors.borderPrimary}`,
@@ -502,7 +646,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                     {/* Preview */}
                     <div style={{
                       width: '100%',
-                      height: '80px',
+                      height: '56px',
                       borderRadius: '0.5rem',
                       backgroundColor: option.mode === 'dark' ? '#1F2937' : option.mode === 'light' ? '#F9FAFB' : (actualTheme === 'dark' ? '#1F2937' : '#F9FAFB'),
                       border: `1px solid ${option.mode === 'dark' ? '#374151' : '#E5E7EB'}`,
@@ -562,7 +706,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                     </div>
 
                     <p style={{
-                      fontSize: '0.8rem',
+                      fontSize: '0.7rem',
                       color: colors.textSecondary,
                       margin: 0,
                       textAlign: 'center'
@@ -702,6 +846,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                     {paymentMethods.map((method, index) => (
                       <div
                         key={method.id}
+                        className="mobile-payment-item"
                         style={{
                           display: 'flex',
                           alignItems: 'center',
@@ -764,7 +909,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                           </div>
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div className="mobile-payment-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                           {!method.isDefault && (
                             <button
                               onClick={() => handleSetDefault(method.id)}
@@ -838,7 +983,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
 
           {/* Notifications Tab */}
           {activeTab === 'notifications' && (
-            <div style={{
+            <div className="mobile-pref-card mobile-notif-container" style={{
               backgroundColor: colors.bgSecondary,
               borderRadius: '1rem',
               padding: '1.5rem',
@@ -1310,6 +1455,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
           onClick={() => { setShowAddPaymentModal(false); resetForm(); }}
         >
           <div
+            className="mobile-modal-inner"
             style={{
               backgroundColor: colors.bgModal,
               borderRadius: '1rem',
@@ -1345,8 +1491,8 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
             <div style={{
               display: 'flex',
               flexDirection: 'column',
-              gap: '0.625rem',
-              marginBottom: '1.5rem'
+              gap: '0.5rem',
+              marginBottom: '1.25rem'
             }}>
               {(userType === 'photographer' ? [
                 { type: 'mtn' as const, label: 'MTN Mobile Money', description: 'Pay and receive via MTN Mobile Money', image: '/mtn.png' },
@@ -1358,23 +1504,24 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
               ]).map((option) => (
                 <div
                   key={option.type}
+                  className="mobile-payment-option"
                   onClick={() => setPaymentType(option.type)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '1rem',
-                    padding: '1rem',
+                    gap: '0.75rem',
+                    padding: '0.75rem',
                     border: paymentType === option.type ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                    borderRadius: '0.75rem',
+                    borderRadius: '0.625rem',
                     cursor: 'pointer',
                     backgroundColor: paymentType === option.type ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
                     transition: 'all 0.2s'
                   }}
                 >
-                  <div style={{
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: '0.5rem',
+                  <div className="mobile-payment-option-icon" style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '0.375rem',
                     overflow: 'hidden',
                     flexShrink: 0,
                     display: 'flex',
@@ -1384,33 +1531,33 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                   }}>
                     {option.type === 'card' ? (
                       <>
-                        <Image src="/visa.png" alt="Visa" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
-                        <Image src="/master.png" alt="Mastercard" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
+                        <Image src="/visa.png" alt="Visa" width={20} height={32} unoptimized style={{ objectFit: 'contain' }} />
+                        <Image src="/master.png" alt="Mastercard" width={20} height={32} unoptimized style={{ objectFit: 'contain' }} />
                       </>
                     ) : (
                       <Image
                         src={option.image}
                         alt={option.label}
-                        width={48}
-                        height={48}
+                        width={40}
+                        height={40}
                         unoptimized
                         style={{ objectFit: 'cover', width: '100%', height: '100%' }}
                       />
                     )}
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="mobile-payment-option-label" style={{ fontSize: '0.875rem', fontWeight: '600', color: colors.textPrimary }}>
                       {option.label}
                     </div>
-                    <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>
+                    <div className="mobile-payment-option-desc" style={{ fontSize: '0.75rem', color: colors.textSecondary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {option.description}
                     </div>
                   </div>
-                  <div style={{
-                    width: '20px',
-                    height: '20px',
+                  <div className="mobile-payment-option-radio" style={{
+                    width: '18px',
+                    height: '18px',
                     borderRadius: '50%',
-                    border: paymentType === option.type ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                    border: paymentType === option.type ? '5px solid #083A85' : `2px solid ${colors.borderPrimary}`,
                     backgroundColor: colors.bgCard,
                     flexShrink: 0
                   }} />
@@ -1466,7 +1613,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                     }}
                   />
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="mobile-modal-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>
                       Expiry Date
@@ -1663,7 +1810,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
             )}
 
             {/* Action Buttons */}
-            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', alignItems: 'center' }}>
+            <div className="mobile-modal-footer" style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', alignItems: 'center' }}>
               <button
                 onClick={() => { setShowAddPaymentModal(false); resetForm(); }}
                 style={{
@@ -1782,7 +1929,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
               This action cannot be undone.
             </p>
 
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <div className="mobile-modal-footer" style={{ display: 'flex', gap: '0.75rem' }}>
               <button
                 onClick={() => { setShowDeleteModal(false); setSelectedPayment(null); }}
                 style={{
