@@ -34,6 +34,7 @@ function mapBackendType(backendType: string): NotificationType {
     case 'SECURITY': case 'SYSTEM': return 'security';
     case 'MEDIA': case 'ALBUM': return 'album';
     case 'REVIEW': return 'review';
+    case 'BOOKING': case 'EVENT': case 'ASSIGNMENT': return 'event';
     default: return 'payment';
   }
 }
@@ -94,7 +95,7 @@ const TrashIcon = () => (
 );
 
 // Notification types specific to photographers
-type NotificationType = 'payment' | 'tip' | 'bonus' | 'security' | 'album' | 'review';
+type NotificationType = 'payment' | 'tip' | 'bonus' | 'security' | 'album' | 'review' | 'event';
 
 interface Notification {
   id: string;
@@ -178,6 +179,8 @@ const Notifications = () => {
         return { icon: <ImageIcon />, bg: actualTheme === 'dark' ? '#581C87' : '#F3E8FF', color: actualTheme === 'dark' ? '#C084FC' : '#9333EA' };
       case 'review':
         return { icon: <StarIcon />, bg: actualTheme === 'dark' ? '#78350F' : '#FEF3C7', color: actualTheme === 'dark' ? '#FCD34D' : '#F59E0B' };
+      case 'event':
+        return { icon: <ImageIcon />, bg: actualTheme === 'dark' ? '#1E3A5F' : '#DBEAFE', color: actualTheme === 'dark' ? '#60A5FA' : '#2563EB' };
       default:
         return { icon: <BellIcon />, bg: colors.bgTertiary, color: colors.textSecondary };
     }
@@ -199,11 +202,11 @@ const Notifications = () => {
   };
 
   const getNotificationDest = (notification: Notification): string | null => {
-    if (notification.actionUrl) return notification.actionUrl;
+    // Ignore backend actionUrl — use role-aware routing instead
     switch (notification.type) {
       case 'payment': case 'tip': case 'bonus': return '/user/photographer/all-transactions';
       case 'security': return '/user/photographer/profile';
-      case 'album': return '/user/photographer/events';
+      case 'album': case 'event': return '/user/photographer/events';
       case 'review': return '/user/photographer/clients';
       default: return null;
     }
@@ -267,6 +270,7 @@ const Notifications = () => {
     { value: 'tip', label: 'Tips' },
     { value: 'bonus', label: 'Bonuses' },
     { value: 'security', label: 'Security' },
+    { value: 'event', label: 'Events' },
     { value: 'review', label: 'Reviews' }
   ];
 
@@ -600,49 +604,61 @@ const Notifications = () => {
                 </p>
               </div>
             ) : (
-              filteredNotifications.map((notification, index) => {
+              filteredNotifications.map((notification) => {
                 const iconStyle = getNotificationIcon(notification.type);
+                const dest = getNotificationDest(notification);
+                const isUnread = !notification.read;
                 return (
                   <div
                     key={notification.id}
+                    onClick={() => { markAsRead(notification.id); if (dest) window.location.href = dest; }}
                     style={{
                       display: 'flex',
-                      gap: '1rem',
+                      gap: '0.875rem',
                       padding: '1rem 1.25rem',
-                      borderBottom: index < filteredNotifications.length - 1 ? `2px solid ${colors.borderPrimary}` : 'none',
-                      backgroundColor: notification.read ? colors.bgCard : (actualTheme === 'dark' ? '#1E3A5F' : '#F0F9FF'),
-                      transition: 'background-color 0.2s',
-                      cursor: 'pointer'
+                      marginBottom: '0.5rem',
+                      borderRadius: '0.75rem',
+                      backgroundColor: isUnread
+                        ? (actualTheme === 'dark' ? 'rgba(59,130,246,0.12)' : '#EFF6FF')
+                        : (actualTheme === 'dark' ? colors.bgCard : '#FAFAFA'),
+                      border: `1.5px solid ${isUnread
+                        ? (actualTheme === 'dark' ? 'rgba(59,130,246,0.3)' : '#BFDBFE')
+                        : (actualTheme === 'dark' ? colors.borderPrimary : '#E5E7EB')}`,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      position: 'relative' as const,
+                      overflow: 'hidden',
                     }}
-                    onClick={() => markAsRead(notification.id)}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = notification.read ? colors.bgTertiary : (actualTheme === 'dark' ? '#2D4A6F' : '#E0F2FE');
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                      e.currentTarget.style.boxShadow = actualTheme === 'dark'
+                        ? '0 4px 12px rgba(0,0,0,0.3)' : '0 4px 12px rgba(0,0,0,0.08)';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = notification.read ? colors.bgCard : (actualTheme === 'dark' ? '#1E3A5F' : '#F0F9FF');
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = 'none';
                     }}
                   >
-                    {/* Icon or Avatar */}
+                    {/* Left accent line for unread */}
+                    {isUnread && (
+                      <div style={{
+                        position: 'absolute', left: 0, top: 0, bottom: 0, width: '3px',
+                        background: 'linear-gradient(180deg, #3B82F6, #8B5CF6)',
+                        borderRadius: '3px 0 0 3px',
+                      }} />
+                    )}
+
+                    {/* Icon */}
                     <div style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: '50%',
-                      backgroundColor: notification.avatar ? 'transparent' : iconStyle.bg,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                      color: iconStyle.color,
-                      overflow: 'hidden'
+                      width: '44px', height: '44px', borderRadius: '12px',
+                      background: iconStyle.bg,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0, color: iconStyle.color,
+                      overflow: 'hidden',
+                      boxShadow: `0 2px 8px ${actualTheme === 'dark' ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.06)'}`,
                     }}>
                       {notification.avatar ? (
-                        <Image
-                          src={notification.avatar}
-                          alt=""
-                          width={48}
-                          height={48}
-                          style={{ objectFit: 'cover' }}
-                        />
+                        <Image src={notification.avatar} alt="" width={44} height={44} style={{ objectFit: 'cover', borderRadius: '12px' }} />
                       ) : (
                         iconStyle.icon
                       )}
@@ -650,108 +666,109 @@ const Notifications = () => {
 
                     {/* Content */}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'flex-start',
-                        gap: '1rem',
-                        marginBottom: '0.25rem'
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', marginBottom: '0.2rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
                           <span style={{
-                            fontSize: '0.95rem',
-                            fontWeight: notification.read ? '500' : '600',
-                            color: colors.textPrimary
+                            fontSize: '0.9rem',
+                            fontWeight: isUnread ? 700 : 500,
+                            color: colors.textPrimary,
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const,
                           }}>
                             {notification.title}
                           </span>
-                          {!notification.read && (
+                          {isUnread && (
                             <div style={{
-                              width: '8px',
-                              height: '8px',
-                              borderRadius: '50%',
-                              backgroundColor: '#3B82F6'
+                              width: '7px', height: '7px', borderRadius: '50%', flexShrink: 0,
+                              background: 'linear-gradient(135deg, #3B82F6, #8B5CF6)',
+                              boxShadow: '0 0 6px rgba(59,130,246,0.4)',
                             }} />
-                          )}
-                          {notification.amount && (
-                            <span style={{
-                              fontSize: '0.85rem',
-                              fontWeight: '700',
-                              color: notification.type === 'payment' ? '#16A34A'
-                                : notification.type === 'tip' ? '#F59E0B'
-                                : '#2563EB',
-                              backgroundColor: notification.type === 'payment' ? '#DCFCE7'
-                                : notification.type === 'tip' ? '#FEF3C7'
-                                : '#DBEAFE',
-                              padding: '0.125rem 0.5rem',
-                              borderRadius: '0.25rem'
-                            }}>
-                              +{formatPrice(notification.amount)}
-                            </span>
                           )}
                         </div>
                         <span style={{
-                          fontSize: '0.8rem',
-                          color: '#9CA3AF',
-                          whiteSpace: 'nowrap'
+                          fontSize: '0.75rem', color: colors.textSecondary,
+                          whiteSpace: 'nowrap' as const, flexShrink: 0,
                         }}>
                           {notification.timestamp}
                         </span>
                       </div>
 
                       <p style={{
-                        fontSize: '0.875rem',
-                        color: colors.textSecondary,
-                        margin: 0,
-                        lineHeight: '1.5'
+                        fontSize: '0.82rem', color: colors.textSecondary,
+                        margin: '0 0 0.5rem 0', lineHeight: '1.45',
+                        overflow: 'hidden', textOverflow: 'ellipsis',
+                        display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const,
                       }}>
                         {notification.message}
                       </p>
 
-                      {/* Action buttons */}
-                      <div style={{
-                        display: 'flex',
-                        gap: '0.75rem',
-                        marginTop: '0.75rem'
-                      }}>
-                        {(() => {
-                          const dest = getNotificationDest(notification);
-                          return dest ? (
+                      {/* Bottom row: amount badge + type badge + actions */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' as const }}>
+                        {notification.amount && (
+                          <span style={{
+                            fontSize: '0.78rem', fontWeight: 700,
+                            color: notification.type === 'payment' ? '#16A34A' : notification.type === 'tip' ? '#F59E0B' : '#2563EB',
+                            backgroundColor: notification.type === 'payment' ? (actualTheme === 'dark' ? 'rgba(22,163,74,0.15)' : '#DCFCE7')
+                              : notification.type === 'tip' ? (actualTheme === 'dark' ? 'rgba(245,158,11,0.15)' : '#FEF3C7')
+                              : (actualTheme === 'dark' ? 'rgba(37,99,235,0.15)' : '#DBEAFE'),
+                            padding: '0.2rem 0.6rem', borderRadius: '6px',
+                          }}>
+                            +{formatPrice(notification.amount)}
+                          </span>
+                        )}
+                        <span style={{
+                          fontSize: '0.7rem', fontWeight: 600,
+                          color: iconStyle.color,
+                          backgroundColor: iconStyle.bg,
+                          padding: '0.15rem 0.5rem', borderRadius: '6px',
+                          textTransform: 'capitalize' as const,
+                        }}>
+                          {notification.type}
+                        </span>
+                        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                          {isUnread && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); markAsRead(notification.id); }}
+                              style={{
+                                background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                                fontSize: '0.78rem', fontWeight: 600,
+                                color: actualTheme === 'dark' ? '#4ADE80' : '#059669',
+                                display: 'flex', alignItems: 'center', gap: '0.25rem',
+                                transition: 'opacity 0.2s',
+                              }}
+                              title="Mark as read"
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                              Read
+                            </button>
+                          )}
+                          {dest && (
                             <Link
                               href={dest}
-                              style={{
-                                fontSize: '0.85rem',
-                                fontWeight: '500',
-                                color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
-                                textDecoration: 'none',
-                                backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#DBEAFE',
-                                padding: '0.3rem 0.75rem',
-                                borderRadius: '9999px',
-                                display: 'inline-block'
-                              }}
                               onClick={(e) => e.stopPropagation()}
+                              style={{
+                                fontSize: '0.78rem', fontWeight: 600, textDecoration: 'none',
+                                color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
+                                display: 'flex', alignItems: 'center', gap: '0.25rem',
+                              }}
                             >
-                              View details
+                              View
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                             </Link>
-                          ) : null;
-                        })()}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteNotification(notification.id);
-                          }}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            fontSize: '0.85rem',
-                            fontWeight: '500',
-                            color: '#DC2626',
-                            cursor: 'pointer',
-                            padding: 0
-                          }}
-                        >
-                          Delete
-                        </button>
+                          )}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); deleteNotification(notification.id); }}
+                            style={{
+                              background: 'none', border: 'none', cursor: 'pointer', padding: '0.2rem',
+                              color: colors.textSecondary, display: 'flex', alignItems: 'center',
+                              opacity: 0.5, transition: 'opacity 0.2s',
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = '#DC2626'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.5'; e.currentTarget.style.color = colors.textSecondary; }}
+                            title="Delete notification"
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>

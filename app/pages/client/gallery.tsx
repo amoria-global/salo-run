@@ -343,8 +343,14 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
         }
       }
 
+      const normalizeImg = (url: string | undefined | null): string => {
+        if (!url || url === 'null' || url.endsWith('/null')) return '';
+        return url.replace('http://197.243.24.101', 'https://backend.connekyt.com');
+      };
+
       if (albumRes.status === 'fulfilled' && albumRes.value.ok) {
         const data = await albumRes.value.json();
+        console.log('[Gallery] Raw albums:', JSON.stringify(data, null, 2));
         const loaded = (data.data || []).map((a: any) => {
           // Try to resolve photographer info from the album itself
           const rawName = a.photographer || a.photographerName || '';
@@ -362,17 +368,23 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
           return {
             id: a.id,
             title: a.title || '',
+            description: a.description || '',
             photographer: resolvedName,
-            photographerAvatar: resolvedAvatar,
+            photographerAvatar: normalizeImg(resolvedAvatar),
             category: a.category || '',
             date: a.date || a.createdAt || '',
             isArchived: a.isArchived || false,
-            receivedDate: a.receivedDate || '',
-            thumbnail: a.thumbnail || a.coverImage || '',
+            receivedDate: a.receivedDate || a.sentAt || '',
+            thumbnail: normalizeImg(a.thumbnail || a.coverImage),
             photoCount: a.photoCount || a.imageCount || 0,
             downloadedCount: a.downloadedCount || 0,
             favoriteCount: a.favoriteCount || 0,
-            images: a.images || [],
+            images: (a.images || []).map((img: string) => normalizeImg(img)),
+            eventId: a.eventId || '',
+            eventTitle: a.eventTitle || '',
+            eventDate: a.eventDate || '',
+            eventLocation: a.eventLocation || '',
+            shared: a.shared || a.sharedWithClient || false,
             payment: a.payment ? {
               amountDue: a.payment.amountDue || 0,
               status: a.payment.status || 'pending',
@@ -1891,11 +1903,13 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                           </div>
                         </div>
 
-                        {/* MIDDLE-BOTTOM: title content over image */}
+                        {/* MIDDLE-BOTTOM: title + event info over image */}
                         <div style={{ position: 'absolute', bottom: '6.2rem', left: 0, right: 0, padding: '0 0.8rem' }}>
-                          <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: '0.15rem' }}>Received: {album.receivedDate}</div>
-                          <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '0.03em', textTransform: 'uppercase', lineHeight: 1.3 }}>
+                          <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '0.03em', textTransform: 'uppercase', lineHeight: 1.3, marginBottom: '0.15rem' }}>
                             {album.title}
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.75)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>
+                            {album.eventTitle ? `${album.eventTitle}${album.eventDate ? ` — ${album.eventDate}` : ''}` : (album.receivedDate ? `Received: ${album.receivedDate}` : album.date)}
                           </div>
                         </div>
 
@@ -1972,7 +1986,9 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                       {/* Album Title */}
                       <div>
                         <div style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{album.title}</div>
-                        <div style={{ fontSize: '0.8rem', color: '#9CA3AF' }}>Received: {album.receivedDate}</div>
+                        <div style={{ fontSize: '0.78rem', color: '#9CA3AF' }}>
+                          {album.eventTitle ? `${album.eventTitle}${album.eventDate ? ` — ${album.eventDate}` : ''}` : (album.receivedDate ? `Received: ${album.receivedDate}` : album.date)}
+                        </div>
                       </div>
 
                       {/* Photographer */}
@@ -2590,9 +2606,12 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
               </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.25rem', fontSize: '0.85rem', color: colors.textSecondary }}>
-              <span>Category: <strong style={{ color: colors.textPrimary }}>{selectedAlbum.category}</strong></span>
-              <span>Received: <strong style={{ color: colors.textPrimary }}>{selectedAlbum.receivedDate}</strong></span>
+            <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: '0.5rem 1.5rem', marginBottom: '1.25rem', fontSize: '0.85rem', color: colors.textSecondary }}>
+              {selectedAlbum.category && <span>Category: <strong style={{ color: colors.textPrimary }}>{selectedAlbum.category}</strong></span>}
+              {selectedAlbum.eventTitle && <span>Event: <strong style={{ color: colors.textPrimary }}>{selectedAlbum.eventTitle}</strong></span>}
+              {selectedAlbum.eventDate && <span>Event Date: <strong style={{ color: colors.textPrimary }}>{selectedAlbum.eventDate}</strong></span>}
+              {selectedAlbum.eventLocation && <span>Location: <strong style={{ color: colors.textPrimary }}>{selectedAlbum.eventLocation}</strong></span>}
+              {selectedAlbum.receivedDate && <span>Received: <strong style={{ color: colors.textPrimary }}>{selectedAlbum.receivedDate}</strong></span>}
             </div>
 
             {/* Action Buttons */}

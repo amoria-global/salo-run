@@ -241,26 +241,29 @@ const EventCoordinatorDashboard = () => {
           const items = data.data.content || data.data || [];
           // Pending payments
           const pending: PendingPayment[] = items
-            .filter((p: any) => p.status === 'PENDING' || p.status === 'FAILED' || p.status === 'PARTIAL')
+            .filter((p: any) => p.status !== 'COMPLETED' && p.status !== 'SUCCESS')
             .map((p: any) => ({
               id: p.id || '',
               eventName: p.eventTitle || p.eventName || 'Event',
               photographerName: p.photographerName || 'Photographer',
-              photographerImage: p.photographerImage || undefined,
+              photographerImage: ((url: string | undefined) => url && !url.includes('/null') ? url.replace('http://197.243.24.101', 'https://backend.connekyt.com') : undefined)(p.photographerImage || undefined),
               amount: p.amount || 0,
               paidAmount: p.paidAmount || 0,
               dueDate: p.dueDate ? p.dueDate.split('T')[0] : '',
               status: p.status === 'FAILED' ? 'failed' : p.status === 'PARTIAL' ? 'partially_paid' : 'pending' as PendingPayment['status'],
             }));
           setPendingPayments(pending);
-          // Recent payments
-          const recent = items.slice(0, 5).map((p: any) => ({
-            name: p.photographerName || p.eventTitle || 'Payment',
-            type: p.paymentType ? p.paymentType.charAt(0) + p.paymentType.slice(1).toLowerCase().replace(/_/g, ' ') : 'Payment',
-            amount: formatPrice(p.paidAmount || p.amount || 0),
-            avatar: p.photographerImage || undefined,
-          }));
-          setRecentPayments(recent);
+          // Recent transactions — show all non-completed (pending/unpaid)
+          const pendingTxns = items
+            .filter((p: any) => p.status !== 'COMPLETED' && p.status !== 'SUCCESS')
+            .slice(0, 5)
+            .map((p: any) => ({
+              name: p.photographerName || p.eventTitle || 'Payment',
+              type: p.status === 'PARTIAL' ? 'Partially paid' : p.status === 'FAILED' ? 'Failed' : 'Pending',
+              amount: formatPrice(p.amount || 0),
+              avatar: ((url: string | undefined) => url && !url.includes('/null') ? url.replace('http://197.243.24.101', 'https://backend.connekyt.com') : undefined)(p.photographerImage || undefined),
+            }));
+          setRecentPayments(pendingTxns);
         }
       }
 
@@ -269,13 +272,13 @@ const EventCoordinatorDashboard = () => {
         const data = await photographersRes.value.json();
         if (data.action === 1 && data.data) {
           const items = data.data.content || data.data || [];
-          const mapped: Photographer[] = items.slice(0, 5).map((p: any) => ({
+          const approved = items.filter((p: any) => p.profileReviewStatus === 'ACCEPTED');
+          const mapped: Photographer[] = approved.slice(0, 5).map((p: any) => ({
             id: p.id || '',
             name: p.firstName && p.lastName ? `${p.firstName} ${p.lastName}` : p.name || 'Photographer',
             event: p.specialties?.[0]?.name || p.specialties?.[0] || p.specializations?.[0] || '',
-            status: p.profileReviewStatus === 'ACCEPTED' ? 'Completed' as const :
-                    p.profileReviewStatus === 'PENDING' ? 'Pending' as const : 'In Progress' as const,
-            avatar: p.profilePicture || p.profileImage || undefined,
+            status: 'Completed' as const,
+            avatar: ((url: string | undefined) => url && !url.includes('/null') ? url.replace('http://197.243.24.101', 'https://backend.connekyt.com') : undefined)(p.profilePicture || p.profileImage || undefined),
           }));
           setPhotographers(mapped);
         }
@@ -970,8 +973,10 @@ const EventCoordinatorDashboard = () => {
                       padding: '0.5rem',
                       borderRadius: '0.375rem',
                       transition: 'background-color 0.3s',
-                      position: 'relative'
+                      position: 'relative',
+                      cursor: 'pointer'
                     }}
+                    onClick={() => router.push('/user/event-coordinator/photographers')}
                     onMouseEnter={(e) => e.currentTarget.style.backgroundColor = colors.bgHover}
                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                   >
@@ -1012,7 +1017,7 @@ const EventCoordinatorDashboard = () => {
                       lineHeight: '1rem',
                       fontWeight: '600',
                       ...getStatusStyle()
-                    }}>{photographer.status}</span>
+                    }}>{photographer.status === 'Completed' ? 'Approved' : photographer.status}</span>
                     <div style={{ position: 'relative' }}>
                       <button
                         style={{
