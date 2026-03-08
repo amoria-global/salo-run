@@ -204,6 +204,9 @@ const ClientDashboard = () => {
   const [showSetupModal, setShowSetupModal] = useState(false);
   const [hasPaymentAccount, setHasPaymentAccount] = useState<boolean | null>(null);
   const [payNowPayment, setPayNowPayment] = useState<Payment | null>(null);
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const [customApplied, setCustomApplied] = useState(false);
 
   // API data state
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
@@ -244,6 +247,11 @@ const ClientDashboard = () => {
   const fetchDashboardData = useCallback(async () => {
     const apiUrl = getApiUrl();
     const periodParam = activeFilter === 'today' ? 'today' : activeFilter === 'month' ? 'month' : 'week';
+    const customDateQuery = activeFilter === 'custom' && customApplied && customStartDate && customEndDate
+      ? `&startDate=${customStartDate}&endDate=${customEndDate}` : '';
+    const perfQuery = activeFilter === 'custom' && customApplied && customStartDate && customEndDate
+      ? `period=custom${customDateQuery}` : `period=${periodParam}`;
+    const trendsQuery = perfQuery;
     try {
       const [analyticsRes, pendingRes, photographersRes, activitiesRes, paymentsRes, performanceRes, trendsRes] = await Promise.allSettled([
         dashboardAuthFetch(`${apiUrl}/api/remote/customer/analytics`),
@@ -251,8 +259,8 @@ const ClientDashboard = () => {
         dashboardAuthFetch(`${apiUrl}/api/remote/customer/analytics/photographers?size=5`),
         dashboardAuthFetch(`${apiUrl}/api/remote/customer/analytics/recent-activities?size=6`),
         dashboardAuthFetch(`${apiUrl}/api/remote/customer/analytics/recent-payments?size=5`),
-        dashboardAuthFetch(`${apiUrl}/api/remote/customer/analytics/performance?period=${periodParam}`),
-        dashboardAuthFetch(`${apiUrl}/api/remote/customer/analytics/trends?period=${periodParam}`),
+        dashboardAuthFetch(`${apiUrl}/api/remote/customer/analytics/performance?${perfQuery}`),
+        dashboardAuthFetch(`${apiUrl}/api/remote/customer/analytics/trends?${trendsQuery}`),
       ]);
 
       // Analytics
@@ -356,7 +364,7 @@ const ClientDashboard = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [formatPrice, activeFilter]);
+  }, [formatPrice, activeFilter, customApplied, customStartDate, customEndDate]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -430,7 +438,7 @@ const ClientDashboard = () => {
   const totalPendingAmount = pendingPayments.reduce((sum, p) => sum + (p.amount - p.paidAmount), 0);
   const hasFailedPayments = pendingPayments.some(p => p.status === 'failed');
 
-  const periodLabel = activeFilter === 'today' ? 'yesterday' : activeFilter === 'month' ? 'last month' : 'last week';
+  const periodLabel = activeFilter === 'today' ? 'yesterday' : activeFilter === 'month' ? 'last month' : activeFilter === 'custom' && customStartDate && customEndDate ? `${customStartDate} - ${customEndDate}` : 'last week';
 
   const toggleDropdown = (id: string) => {
     setActiveDropdown(activeDropdown === id ? null : id);
@@ -441,9 +449,21 @@ const ClientDashboard = () => {
     <div style={{
       display: 'flex',
       height: '100vh',
-      backgroundColor: colors.bgPrimary
+      backgroundColor: colors.bgPrimary,
+      overflow: 'hidden',
+      width: '100%',
+      maxWidth: '100vw'
     }}>
       <style jsx>{`
+        @media (max-width: 1024px) {
+          .mobile-stats-grid {
+            grid-template-columns: repeat(3, 1fr) !important;
+          }
+          .mobile-main-grid {
+            grid-template-columns: 1fr !important;
+            gap: 1rem !important;
+          }
+        }
         @media (max-width: 768px) {
           .mobile-main-content {
             padding: 1rem !important;
@@ -483,7 +503,7 @@ const ClientDashboard = () => {
             padding: 0.5rem 0.75rem !important;
           }
           .mobile-stats-grid {
-            grid-template-columns: 1fr !important;
+            grid-template-columns: repeat(2, 1fr) !important;
             gap: 0.75rem !important;
           }
           .mobile-main-grid {
@@ -493,8 +513,58 @@ const ClientDashboard = () => {
           .mobile-pending-payments {
             padding: 1rem !important;
           }
+          .mobile-pending-header {
+            flex-direction: column !important;
+            gap: 0.75rem !important;
+          }
+          .mobile-pending-header .mobile-view-all-link {
+            align-self: flex-start !important;
+          }
+          .mobile-pending-card {
+            min-width: 240px !important;
+          }
           .mobile-card {
             padding: 1rem !important;
+          }
+          .mobile-photographer-row {
+            flex-wrap: wrap !important;
+            gap: 0.5rem !important;
+          }
+          .mobile-photographer-status {
+            order: 4 !important;
+            margin-left: 2.875rem !important;
+          }
+          .mobile-photographer-menu {
+            position: absolute !important;
+            top: 0.5rem !important;
+            right: 0 !important;
+          }
+          .mobile-photographer-menu button {
+            padding: 0.5rem !important;
+            min-width: 44px !important;
+            min-height: 44px !important;
+          }
+          .mobile-pay-btn {
+            min-height: 40px !important;
+            padding: 0.5rem 1rem !important;
+            font-size: 0.8rem !important;
+          }
+          .mobile-custom-dates {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 0.5rem !important;
+          }
+          .mobile-custom-dates > div {
+            width: 100% !important;
+          }
+          .mobile-custom-dates input[type="date"] {
+            flex: 1 !important;
+            width: 100% !important;
+            min-height: 40px !important;
+          }
+          .mobile-custom-dates button {
+            width: 100% !important;
+            min-height: 40px !important;
           }
         }
         @media (max-width: 640px) {
@@ -509,6 +579,20 @@ const ClientDashboard = () => {
             font-size: 0.8rem !important;
             padding: 0.5rem 0.625rem !important;
           }
+          .mobile-stats-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .mobile-pending-card {
+            min-width: 100% !important;
+            flex: 1 1 100% !important;
+          }
+          .mobile-pending-cards-scroll {
+            flex-direction: column !important;
+            overflow-x: visible !important;
+          }
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator {
+          cursor: pointer;
         }
       `}</style>
       <Sidebar />
@@ -524,6 +608,7 @@ const ClientDashboard = () => {
         <div className="mobile-main-content" style={{
           flex: 1,
           overflowY: 'auto',
+          overflowX: 'hidden',
           backgroundColor: colors.bgPrimary,
           paddingLeft: '1.25rem',
           paddingRight: '1.25rem',
@@ -709,6 +794,72 @@ const ClientDashboard = () => {
         </button>
       </div>
 
+      {activeFilter === 'custom' && (
+        <div className="mobile-custom-dates" style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          marginBottom: '1rem',
+          flexWrap: 'wrap'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textSecondary, whiteSpace: 'nowrap' }}>From</label>
+            <input
+              type="date"
+              value={customStartDate}
+              onChange={(e) => { setCustomStartDate(e.target.value); setCustomApplied(false); }}
+              max={customEndDate || undefined}
+              style={{
+                padding: '0.4rem 0.625rem',
+                borderRadius: '0.375rem',
+                border: `2px solid ${colors.borderPrimary}`,
+                backgroundColor: colors.bgCard,
+                color: colors.textPrimary,
+                fontSize: '0.85rem',
+                outline: 'none',
+                cursor: 'pointer'
+              }}
+            />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textSecondary, whiteSpace: 'nowrap' }}>To</label>
+            <input
+              type="date"
+              value={customEndDate}
+              onChange={(e) => { setCustomEndDate(e.target.value); setCustomApplied(false); }}
+              min={customStartDate || undefined}
+              style={{
+                padding: '0.4rem 0.625rem',
+                borderRadius: '0.375rem',
+                border: `2px solid ${colors.borderPrimary}`,
+                backgroundColor: colors.bgCard,
+                color: colors.textPrimary,
+                fontSize: '0.85rem',
+                outline: 'none',
+                cursor: 'pointer'
+              }}
+            />
+          </div>
+          <button
+            onClick={() => { if (customStartDate && customEndDate) setCustomApplied(true); }}
+            disabled={!customStartDate || !customEndDate}
+            style={{
+              padding: '0.4rem 1rem',
+              borderRadius: '0.375rem',
+              border: 'none',
+              backgroundColor: customStartDate && customEndDate ? '#F20C8F' : colors.borderPrimary,
+              color: customStartDate && customEndDate ? 'white' : colors.textTertiary,
+              fontSize: '0.85rem',
+              fontWeight: '600',
+              cursor: customStartDate && customEndDate ? 'pointer' : 'not-allowed',
+              transition: 'all 0.3s'
+            }}
+          >
+            Apply
+          </button>
+        </div>
+      )}
+
       <div className="mobile-stats-grid" style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(5, 1fr)',
@@ -722,7 +873,6 @@ const ClientDashboard = () => {
           timeframe={periodLabel}
           icon={<MoneyIcon />}
           trend={statTrends.totalSpent.trend}
-          href="/user/client/transactions"
           accentColor="#083A85"
         />
         <StatCard
@@ -732,7 +882,6 @@ const ClientDashboard = () => {
           timeframe={periodLabel}
           icon={<ClockIcon />}
           trend={statTrends.pending.trend}
-          href="/user/client/bookings"
           accentColor="#F59E0B"
         />
         <StatCard
@@ -742,7 +891,7 @@ const ClientDashboard = () => {
           timeframe={periodLabel}
           icon={<UsersIcon />}
           trend={statTrends.bookings.trend}
-          href="/user/client/bookings"
+          href="/user/client/events"
           accentColor="#3B82F6"
         />
         <StatCard
@@ -752,7 +901,6 @@ const ClientDashboard = () => {
           timeframe={periodLabel}
           icon={<GiftIcon />}
           trend={statTrends.gifts.trend}
-          href="/user/client/payments"
           accentColor="#10B981"
         />
         <StatCard
@@ -776,7 +924,7 @@ const ClientDashboard = () => {
           padding: '1rem 1.25rem',
           marginBottom: '1rem'
         }}>
-          <div style={{
+          <div className="mobile-pending-header" style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'flex-start',
@@ -812,6 +960,7 @@ const ClientDashboard = () => {
               </div>
             </div>
             <Link
+              className="mobile-view-all-link"
               href="/user/client/payments"
               style={{
                 display: 'flex',
@@ -820,7 +969,8 @@ const ClientDashboard = () => {
                 fontSize: '0.85rem',
                 fontWeight: '600',
                 color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
-                textDecoration: 'none'
+                textDecoration: 'none',
+                flexShrink: 0
               }}
             >
               View All
@@ -828,7 +978,7 @@ const ClientDashboard = () => {
             </Link>
           </div>
 
-          <div style={{
+          <div className="mobile-pending-cards-scroll" style={{
             display: 'flex',
             gap: '0.75rem',
             overflowX: 'auto',
@@ -837,6 +987,7 @@ const ClientDashboard = () => {
             {pendingPayments.map((payment) => (
               <div
                 key={payment.id}
+                className="mobile-pending-card"
                 style={{
                   flex: '0 0 auto',
                   backgroundColor: colors.bgCard,
@@ -906,6 +1057,7 @@ const ClientDashboard = () => {
                     {formatPrice(payment.amount - payment.paidAmount)}
                   </div>
                   <button
+                    className="mobile-pay-btn"
                     onClick={() => handlePayNow(payment)}
                     style={{
                       fontSize: '0.75rem',
@@ -944,9 +1096,10 @@ const ClientDashboard = () => {
       <div className="mobile-main-grid" style={{
         display: 'grid',
         gridTemplateColumns: '1fr 320px',
-        gap: '1rem'
+        gap: '1rem',
+        minWidth: 0
       }}>
-        <div>
+        <div style={{ minWidth: 0 }}>
           <section className="mobile-card" style={{
             backgroundColor: colors.bgCard,
             borderRadius: '0.5rem',
@@ -1012,6 +1165,7 @@ const ClientDashboard = () => {
                 return (
                   <div
                     key={photographer.id}
+                    className="mobile-photographer-row"
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -1051,7 +1205,7 @@ const ClientDashboard = () => {
                         color: colors.textSecondary
                       }}>{photographer.event}</span>
                     </div>
-                    <span style={{
+                    <span className="mobile-photographer-status" style={{
                       paddingLeft: '0.625rem',
                       paddingRight: '0.625rem',
                       paddingTop: '0.25rem',
@@ -1062,7 +1216,7 @@ const ClientDashboard = () => {
                       fontWeight: '600',
                       ...getStatusStyle()
                     }}>{photographer.status}</span>
-                    <div style={{ position: 'relative' }}>
+                    <div className="mobile-photographer-menu" style={{ position: 'relative' }}>
                       <button
                         style={{
                           padding: '0.25rem',

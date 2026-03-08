@@ -271,13 +271,22 @@ const ProfilePage = () => {
     <div style={{
       display: 'flex',
       height: '100vh',
-      backgroundColor: colors.bgPrimary
+      backgroundColor: colors.bgPrimary,
+      overflow: 'hidden',
+      width: '100%',
+      maxWidth: '100vw'
     }}>
       <style>{`
         @media (max-width: 768px) {
           .mobile-main-content {
             padding: 1rem !important;
             padding-bottom: 8rem !important;
+            overflow-x: hidden !important;
+          }
+          .mobile-form-grid-2 input,
+          .mobile-form-grid-2 select {
+            min-height: 44px !important;
+            font-size: 0.9rem !important;
           }
           .mobile-page-header {
             flex-direction: column !important;
@@ -414,6 +423,24 @@ const ProfilePage = () => {
           }
           .mobile-profile-card-activity span {
             font-size: 0.75rem !important;
+          }
+        }
+        @media (max-width: 375px) {
+          .mobile-main-content {
+            padding: 0.5rem !important;
+            padding-bottom: 10rem !important;
+          }
+          .mobile-page-header h1 {
+            font-size: 1.1rem !important;
+          }
+          .mobile-tabs button {
+            font-size: 0.78rem !important;
+            padding: 0.5rem 0.375rem !important;
+          }
+          .mobile-form-grid-2 input,
+          .mobile-form-grid-2 select {
+            font-size: 0.85rem !important;
+            padding: 0.625rem 0.75rem !important;
           }
         }
       `}</style>

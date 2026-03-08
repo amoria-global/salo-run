@@ -358,9 +358,22 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
 
         /* Mobile responsive styles */
         @media (max-width: 768px) {
+          .notifications-container {
+            overflow: hidden !important;
+            width: 100% !important;
+            max-width: 100vw !important;
+          }
+
+          .notifications-content {
+            width: 100% !important;
+            min-width: 0 !important;
+            overflow-x: hidden !important;
+          }
+
           .notifications-main {
-            padding: 0.75rem !important;
-            padding-bottom: 5rem !important;
+            padding: 1rem !important;
+            padding-bottom: 8rem !important;
+            overflow-x: hidden !important;
           }
 
           .notifications-header {
@@ -369,33 +382,44 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
             gap: 1rem !important;
           }
 
+          .notifications-header h1 {
+            font-size: 1.4rem !important;
+          }
+
+          .notifications-header p {
+            font-size: 0.85rem !important;
+          }
+
           .header-actions {
             width: 100% !important;
-            justify-content: space-between !important;
+          }
+
+          .header-actions button {
+            min-height: 44px !important;
+            font-size: 0.85rem !important;
           }
 
           .stats-grid {
-            grid-template-columns: repeat(4, 1fr) !important;
-            gap: 0.5rem !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.75rem !important;
           }
 
           .stat-card {
-            aspect-ratio: 1 / 1 !important;
             display: flex !important;
             flex-direction: column !important;
             justify-content: center !important;
             align-items: center !important;
             text-align: center !important;
-            padding: 0.75rem !important;
+            padding: 1rem !important;
           }
 
           .stat-card > div:first-child {
-            font-size: 0.7rem !important;
-            margin-bottom: 0.15rem !important;
+            font-size: 0.8rem !important;
+            margin-bottom: 0.25rem !important;
           }
 
           .stat-card > div:last-child {
-            font-size: 1.1rem !important;
+            font-size: 1.3rem !important;
           }
 
           .filters-section {
@@ -408,30 +432,77 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
             overflow-x: auto !important;
             flex-wrap: nowrap !important;
             width: 100% !important;
+            -ms-overflow-style: none !important;
+            scrollbar-width: none !important;
+            padding-bottom: 0.25rem !important;
+          }
+
+          .filter-buttons::-webkit-scrollbar {
+            display: none !important;
+          }
+
+          .filter-buttons button {
+            flex-shrink: 0 !important;
+            min-height: 40px !important;
+          }
+
+          .notification-item {
+            flex-direction: column !important;
+            gap: 0.625rem !important;
+            padding: 0.875rem 1rem !important;
+          }
+
+          .notification-icon {
+            width: 40px !important;
+            height: 40px !important;
+          }
+
+          .notification-title {
+            font-size: 0.85rem !important;
+          }
+
+          .notification-message {
+            font-size: 0.8rem !important;
+          }
+
+          .notification-actions button,
+          .notification-actions a {
+            min-height: 36px !important;
+            min-width: 36px !important;
+            padding: 0.35rem 0.5rem !important;
           }
         }
 
         /* Extra small mobile (phones in portrait) */
         @media (max-width: 480px) {
           .notifications-main {
-            padding: 0.5rem !important;
-            padding-bottom: 6rem !important;
+            padding: 0.75rem !important;
+            padding-bottom: 10rem !important;
+          }
+
+          .notifications-header h1 {
+            font-size: 1.25rem !important;
           }
 
           .stats-grid {
-            gap: 0.4rem !important;
+            gap: 0.5rem !important;
           }
 
           .stat-card {
-            padding: 0.5rem !important;
+            padding: 0.75rem !important;
           }
 
           .stat-card > div:first-child {
-            font-size: 0.65rem !important;
+            font-size: 0.7rem !important;
           }
 
           .stat-card > div:last-child {
-            font-size: 1rem !important;
+            font-size: 1.1rem !important;
+          }
+
+          .filter-buttons button {
+            font-size: 0.8rem !important;
+            padding: 0.4rem 0.75rem !important;
           }
         }
       `}</style>
@@ -634,6 +705,7 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
                 return (
                   <div
                     key={notification.id}
+                    className="notification-item"
                     onClick={() => { markAsRead(notification.id); if (dest) window.location.href = dest; }}
                     style={{
                       display: 'flex',
@@ -672,7 +744,7 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
                     )}
 
                     {/* Icon */}
-                    <div style={{
+                    <div className="notification-icon" style={{
                       width: '44px', height: '44px', borderRadius: '12px',
                       background: iconStyle.bg,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -691,7 +763,7 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', marginBottom: '0.2rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
-                          <span style={{
+                          <span className="notification-title" style={{
                             fontSize: '0.9rem',
                             fontWeight: isUnread ? 700 : 500,
                             color: colors.textPrimary,
@@ -715,7 +787,7 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
                         </span>
                       </div>
 
-                      <p style={{
+                      <p className="notification-message" style={{
                         fontSize: '0.82rem', color: colors.textSecondary,
                         margin: '0 0 0.5rem 0', lineHeight: '1.45',
                         overflow: 'hidden', textOverflow: 'ellipsis',
@@ -756,7 +828,7 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
                         }}>
                           {notification.type}
                         </span>
-                        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                        <div className="notification-actions" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                           {isUnread && (
                             <button
                               onClick={(e) => { e.stopPropagation(); markAsRead(notification.id); }}

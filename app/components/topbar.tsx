@@ -446,36 +446,30 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
             margin-right: 0.25rem !important;
             padding-left: 0.35rem !important;
             padding-right: 0.35rem !important;
-            flex-direction: column !important;
-            gap: 0.5rem !important;
+            flex-direction: row !important;
+            gap: 0.4rem !important;
           }
 
           .topbar-title {
-            font-size: 0.85rem !important;
-            line-height: 1.1rem !important;
-            text-align: center !important;
-            width: 100% !important;
+            font-size: 0.75rem !important;
+            line-height: 1rem !important;
+            white-space: nowrap !important;
           }
 
           .topbar-right {
-            width: 100% !important;
-            justify-content: space-between !important;
-            gap: 0.3rem !important;
+            gap: 0.35rem !important;
+            flex-shrink: 0 !important;
           }
 
-          .topbar-balance span:first-child,
-          .topbar-tips span:first-child,
-          .topbar-bonus span:first-child {
-            font-size: 0.65rem !important;
+          /* Hide financial stats on small mobile */
+          .topbar-balance,
+          .topbar-tips,
+          .topbar-bonus {
+            display: none !important;
           }
 
-          .topbar-balance span:last-child,
-          .topbar-tips span:last-child,
-          .topbar-bonus span:last-child {
-            font-size: 0.75rem !important;
-          }
-
-          .profile-dropdown-container img {
+          .profile-dropdown-container img,
+          .profile-dropdown-container > div:first-child > div:first-child {
             width: 1.75rem !important;
             height: 1.75rem !important;
           }
