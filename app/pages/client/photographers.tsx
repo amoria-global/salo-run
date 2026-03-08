@@ -317,6 +317,9 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
   const [rebookNotes, setRebookNotes] = useState('');
   const [isSubmittingRebook, setIsSubmittingRebook] = useState(false);
   const [rebookError, setRebookError] = useState<string | null>(null);
+  const [rebookEvents, setRebookEvents] = useState<{id: string; title: string; eventType: string; eventDate: string; startTime: string; endTime: string; location: string; city: string; country: string; address: string}[]>([]);
+  const [rebookEventsLoading, setRebookEventsLoading] = useState(false);
+  const [selectedRebookEventId, setSelectedRebookEventId] = useState<string>('');
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewPhotographer, setReviewPhotographer] = useState<BookedPhotographer | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; photographer: BookedPhotographer } | null>(null);
@@ -374,21 +377,39 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
     const fetchPhotographers = async () => {
       try {
         const apiUrl = getApiUrl();
-        const endpoint = userRole === 'event-coordinator'
-          ? `${apiUrl}/api/remote/coordinator/photographers`
-          : `${apiUrl}/api/remote/customer/photographers`;
-        const response = await dashboardAuthFetch(endpoint, { headers: { 'Content-Type': 'application/json' } });
+        const ns = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
+        const endpoint = `${apiUrl}/api/remote/${ns}/photographers`;
+
+        // Fetch photographers and bookmarks in parallel
+        const [response, bookmarksResponse] = await Promise.all([
+          dashboardAuthFetch(endpoint, { headers: { 'Content-Type': 'application/json' } }),
+          dashboardAuthFetch(`${apiUrl}/api/remote/customer/photographers/bookmarks`, { headers: { 'Content-Type': 'application/json' } }).catch(() => null),
+        ]);
         if (!response.ok) throw new Error('Failed to fetch photographers');
         const result = await response.json();
+
+        // Build a set of bookmarked photographer IDs
+        let bookmarkedIds = new Set<string>();
+        if (bookmarksResponse?.ok) {
+          try {
+            const bmResult = await bookmarksResponse.json();
+            const bmData = bmResult?.data?.content || bmResult?.data || [];
+            const bmArr = Array.isArray(bmData) ? bmData : [];
+            bmArr.forEach((b: any) => {
+              if (b.photographerId) bookmarkedIds.add(b.photographerId);
+            });
+          } catch { /* ignore parse errors */ }
+        }
+
         // Coordinator endpoint returns paginated {content:[...]}, customer returns flat array
         const data = result?.data?.content || result?.data || [];
         const mapped: BookedPhotographer[] = data.map((p: any) => ({
           id: p.id,
           firstName: p.firstName || '',
           lastName: p.lastName || '',
-          profileImage: p.profileImage || p.profilePicture || undefined,
-          coverImage: p.coverImage || p.coverPicture || '',
-          portfolioImages: p.portfolioImages || (p.projects || []).map((proj: any) => proj.imageUrl || ''),
+          profileImage: ((url: string | undefined) => url && !url.includes('/null') ? url.replace('http://197.243.24.101', 'https://backend.connekyt.com') : undefined)(p.profileImage || p.profilePicture || undefined),
+          coverImage: ((url: string) => url && !url.includes('/null') ? url.replace('http://197.243.24.101', 'https://backend.connekyt.com') : '')(p.coverImage || p.coverPicture || ''),
+          portfolioImages: (p.portfolioImages || (p.projects || []).map((proj: any) => proj.imageUrl || '')).map((url: string) => url ? url.replace('http://197.243.24.101', 'https://backend.connekyt.com') : ''),
           bio: p.bio || p.about || '',
           specializations: p.specializations || (p.specialties || []).map((s: any) => typeof s === 'string' ? s : s.name || ''),
           experience: p.experience || 0,
@@ -399,7 +420,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
           verified: p.isVerified || p.profileReviewStatus === 'ACCEPTED' || false,
           startingPrice: p.startingPrice || 0,
           responseTime: p.responseTime || 'N/A',
-          isFavorite: p.isFavorite || false,
+          isFavorite: p.isFavorite || p.isBookmarked || p.bookmarked || bookmarkedIds.has(p.id) || false,
           isAvailable: p.isAvailable || false,
           languages: p.languages || [],
           equipment: p.equipment || (p.equipments || []).map((e: any) => typeof e === 'string' ? e : e.name || ''),
@@ -476,6 +497,67 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
     fetchEvents();
   }, [showReviewModal, reviewPhotographer, token]);
 
+  // Fetch existing events when rebook modal opens
+  useEffect(() => {
+    if (!showRebookModal || !token) return;
+
+    const fetchRebookEvents = async () => {
+      setRebookEventsLoading(true);
+      try {
+        const apiUrl = getApiUrl();
+        const eventsNs = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
+        const response = await dashboardAuthFetch(`${apiUrl}/api/remote/${eventsNs}/events?page=0&size=100`);
+        if (!response.ok) throw new Error('Failed to fetch events');
+        const result = await response.json();
+        const rawEvents = result?.data?.content || result?.data || [];
+        const events = Array.isArray(rawEvents) ? rawEvents : [];
+        const upcoming = events
+          .filter((evt: any) => {
+            const s = (evt.eventStatus || evt.status || '').toUpperCase();
+            return s !== 'CANCELLED' && s !== 'CANCELED';
+          })
+          .map((evt: any) => ({
+            id: evt.id,
+            title: evt.title || evt.eventName || 'Untitled Event',
+            eventType: evt.eventCategory || evt.eventType || evt.title || '',
+            eventDate: evt.eventDate || '',
+            startTime: evt.startTime || '',
+            endTime: evt.endTime || '',
+            location: evt.location || '',
+            city: '',
+            country: '',
+            address: '',
+          }));
+        setRebookEvents(upcoming);
+      } catch (err) {
+        console.error('Failed to fetch events for rebook:', err);
+        setRebookEvents([]);
+      } finally {
+        setRebookEventsLoading(false);
+      }
+    };
+
+    fetchRebookEvents();
+  }, [showRebookModal, token]);
+
+  const handleRebookEventSelect = (eventId: string) => {
+    setSelectedRebookEventId(eventId);
+    if (!eventId) {
+      // Cleared selection — reset fields
+      setRebookEventType('');
+      setRebookDate('');
+      setRebookTime('');
+      setRebookLocation('');
+      return;
+    }
+    const evt = rebookEvents.find(e => e.id === eventId);
+    if (!evt) return;
+    setRebookEventType(evt.eventType || '');
+    setRebookDate(evt.eventDate || '');
+    setRebookTime(evt.startTime || '');
+    setRebookLocation(evt.location || '');
+  };
+
   const toggleFavorite = async (id: string) => {
     const photographer = photographers.find(p => p.id === id);
     if (!photographer) return;
@@ -485,11 +567,15 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
     ));
     try {
       const apiUrl = getApiUrl();
-      const ns = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
+      // Bookmark endpoints are under /customer/ for all roles (no role restriction)
       const endpoint = willFavorite
-        ? `${apiUrl}/api/remote/${ns}/photographers/bookmark/${id}`
-        : `${apiUrl}/api/remote/${ns}/photographers/unbookmark/${id}`;
-      await dashboardAuthFetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+        ? `${apiUrl}/api/remote/customer/photographers/bookmark/${id}`
+        : `${apiUrl}/api/remote/customer/photographers/unbookmark/${id}`;
+      const res = await dashboardAuthFetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.message || 'Bookmark failed');
+      }
     } catch (err) {
       console.error('Failed to toggle favorite:', err);
       setPhotographers(prev => prev.map(p =>
@@ -738,7 +824,10 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: `${rebookEventType} - ${rebookPhotographer.firstName} ${rebookPhotographer.lastName}`.trim(),
+          ...(selectedRebookEventId ? { eventId: selectedRebookEventId } : {}),
+          title: selectedRebookEventId
+            ? (rebookEvents.find(e => e.id === selectedRebookEventId)?.title || `${rebookEventType} - ${rebookPhotographer.firstName} ${rebookPhotographer.lastName}`.trim())
+            : `${rebookEventType} - ${rebookPhotographer.firstName} ${rebookPhotographer.lastName}`.trim(),
           photographerId: rebookPhotographer.id,
           eventType: rebookEventType,
           eventDate: rebookDate,
@@ -762,6 +851,8 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
       setRebookLocation('');
       setRebookNotes('');
       setRebookPhotographer(null);
+      setSelectedRebookEventId('');
+      setRebookEvents([]);
 
       setSuccessMessage('Booking request sent successfully!');
       setShowSuccessModal(true);
@@ -816,9 +907,13 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
     setTimeout(() => setInviteCopied(false), 2000);
   };
 
-  // Check if photographer has any completed events (reviews only allowed for past events)
+  // Allow reviews only for photographers with completed events
   const hasCompletedEvent = (photographer: BookedPhotographer) => {
-    return photographer.bookings.some(booking => booking.status === 'completed');
+    if (photographer.completedBookings > 0) return true;
+    return photographer.bookings.some(booking => {
+      const s = (booking.status || '').toUpperCase();
+      return s === 'COMPLETED';
+    });
   };
 
   // Close context menu when clicking outside
@@ -1424,7 +1519,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                           </button>
                         )}
                         <button
-                          onClick={(e) => { e.stopPropagation(); setRebookPhotographer(photographer); setShowRebookModal(true); }}
+                          onClick={(e) => { e.stopPropagation(); setRebookPhotographer(photographer); setSelectedRebookEventId(''); setRebookEventType(''); setRebookDate(''); setRebookTime(''); setRebookLocation(''); setRebookNotes(''); setShowRebookModal(true); }}
                           style={{
                             backgroundColor: '#F20C8F',
                             color: 'white',
@@ -1634,7 +1729,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                         </button>
                       )}
                       <button
-                        onClick={(e) => { e.stopPropagation(); setRebookPhotographer(photographer); setShowRebookModal(true); }}
+                        onClick={(e) => { e.stopPropagation(); setRebookPhotographer(photographer); setSelectedRebookEventId(''); setRebookEventType(''); setRebookDate(''); setRebookTime(''); setRebookLocation(''); setRebookNotes(''); setShowRebookModal(true); }}
                         style={{
                           backgroundColor: '#F20C8F',
                           color: 'white',
@@ -1679,7 +1774,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
           onClick={(e) => e.stopPropagation()}
         >
           {[
-            { icon: <RefreshIcon />, label: 'Rebook Photographer', action: () => { setRebookPhotographer(contextMenu.photographer); setShowRebookModal(true); } },
+            { icon: <RefreshIcon />, label: 'Rebook Photographer', action: () => { setRebookPhotographer(contextMenu.photographer); setSelectedRebookEventId(''); setRebookEventType(''); setRebookDate(''); setRebookTime(''); setRebookLocation(''); setRebookNotes(''); setShowRebookModal(true); } },
             { icon: <MessageIcon />, label: 'Send Message', action: () => {} },
             { icon: <CameraIcon />, label: 'View Profile', action: () => setSelectedPhotographer(contextMenu.photographer) },
             { icon: <HeartIcon filled={contextMenu.photographer.isFavorite} />, label: contextMenu.photographer.isFavorite ? 'Remove from Favorites' : 'Add to Favorites', action: () => toggleFavorite(contextMenu.photographer.id) },
@@ -1939,7 +2034,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                 </button>
               )}
               <button
-                onClick={() => { setRebookPhotographer(selectedPhotographer); setShowRebookModal(true); setSelectedPhotographer(null); }}
+                onClick={() => { setRebookPhotographer(selectedPhotographer); setSelectedRebookEventId(''); setRebookEventType(''); setRebookDate(''); setRebookTime(''); setRebookLocation(''); setRebookNotes(''); setShowRebookModal(true); setSelectedPhotographer(null); }}
                 style={{
                   flex: 1,
                   backgroundColor: '#F20C8F',
@@ -2016,26 +2111,64 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
               <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{rebookPhotographer.lastEventType} • {formatDate(rebookPhotographer.lastBookingDate)}</div>
             </div>
 
+            {/* Assign to existing event */}
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+                Assign to Existing Event
+              </label>
+              <select
+                value={selectedRebookEventId}
+                onChange={(e) => handleRebookEventSelect(e.target.value)}
+                disabled={rebookEventsLoading}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: `2px solid ${selectedRebookEventId ? '#F20C8F' : colors.borderPrimary}`,
+                  borderRadius: '0.5rem',
+                  fontSize: '0.9rem',
+                  backgroundColor: colors.bgCard,
+                  color: colors.textPrimary,
+                  cursor: rebookEventsLoading ? 'wait' : 'pointer'
+                }}
+              >
+                <option value="">{rebookEventsLoading ? 'Loading events...' : '-- Select an event or fill manually --'}</option>
+                {rebookEvents.map(evt => (
+                  <option key={evt.id} value={evt.id}>
+                    {evt.title}{evt.eventDate ? ` — ${evt.eventDate}` : ''}
+                  </option>
+                ))}
+              </select>
+              {selectedRebookEventId && (
+                <div style={{ fontSize: '0.8rem', color: '#F20C8F', marginTop: '0.375rem' }}>
+                  Fields auto-filled from selected event. You can still edit them below.
+                </div>
+              )}
+            </div>
+
+            <div style={{ height: '1px', backgroundColor: colors.borderPrimary, margin: '0.75rem 0 1rem' }} />
+
             <div style={{ marginBottom: '1rem' }}>
               <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
                 Event Type
               </label>
-              <select
+              <input
+                list="rebook-event-types"
                 value={rebookEventType}
                 onChange={(e) => setRebookEventType(e.target.value)}
+                placeholder="Enter or select event type"
                 style={{
-                width: '100%',
-                padding: '0.75rem',
-                border: `2px solid ${colors.borderPrimary}`,
-                borderRadius: '0.5rem',
-                fontSize: '0.9rem',
-                backgroundColor: colors.bgCard,
-                color: colors.textPrimary,
-                cursor: 'pointer'
-              }}>
-                <option value="">Select event type</option>
-                {rebookPhotographer.specializations.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: `2px solid ${colors.borderPrimary}`,
+                  borderRadius: '0.5rem',
+                  fontSize: '0.9rem',
+                  backgroundColor: colors.bgCard,
+                  color: colors.textPrimary,
+                }}
+              />
+              <datalist id="rebook-event-types">
+                {rebookPhotographer.specializations.map(s => <option key={s} value={s} />)}
+              </datalist>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>

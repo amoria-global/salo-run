@@ -303,6 +303,7 @@ interface AssignedEvent {
   guestCount: number;
   maxGuests: number;
   bookingId: string;
+  bookingStatus?: string;
   totalAmount: number;
   createdAt: string;
 }
@@ -374,7 +375,7 @@ const PhotographerEventsPage = () => {
 
   const [activeTab, setActiveTab] = useState<'events' | 'albums'>('events');
   const [events, setEvents] = useState<AssignedEvent[]>([]);
-  const [eventFilter, setEventFilter] = useState<'all' | 'pending' | 'upcoming' | 'ongoing' | 'completed'>('all');
+  const [eventFilter, setEventFilter] = useState<'all' | 'upcoming' | 'ongoing' | 'completed'>('all');
   const [eventSearch, setEventSearch] = useState('');
   const [selectedEvent, setSelectedEvent] = useState<AssignedEvent | null>(null);
   const [showEventDetailModal, setShowEventDetailModal] = useState(false);
@@ -384,6 +385,10 @@ const PhotographerEventsPage = () => {
   const [copiedField, setCopiedField] = useState('');
   const [markCompleteTarget, setMarkCompleteTarget] = useState<AssignedEvent | null>(null);
   const [markingCompletedId, setMarkingCompletedId] = useState<string | null>(null);
+  const [bookingActionTarget, setBookingActionTarget] = useState<AssignedEvent | null>(null);
+  const [bookingActionType, setBookingActionType] = useState<'accept' | 'decline' | null>(null);
+  const [declineReason, setDeclineReason] = useState('');
+  const [bookingActionLoading, setBookingActionLoading] = useState(false);
   const [albums, setAlbums] = useState<Album[]>([]);
   const [albumFilter, setAlbumFilter] = useState<'all' | 'shared' | 'unshared'>('all');
   const [albumSearch, setAlbumSearch] = useState('');
@@ -419,6 +424,12 @@ const PhotographerEventsPage = () => {
   const [uploadProgress, setUploadProgress] = useState('');
   const [mediaIdMap, setMediaIdMap] = useState<Record<string, string>>({});
 
+  const normalizeImg = (url: string | undefined | null): string | undefined => {
+    if (!url || url === 'null' || url.endsWith('/null')) return undefined;
+    if (typeof url === 'string') return url.replace('http://197.243.24.101', 'https://backend.connekyt.com');
+    return undefined;
+  };
+
   // Fetch events from API
   useEffect(() => {
     if (!user?.id) return;
@@ -427,22 +438,22 @@ const PhotographerEventsPage = () => {
         const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/events?page=0&size=100`);
         if (res.ok) {
           const result = await res.json();
-          const data = result?.data || [];
+          const data = Array.isArray(result?.data) ? result.data : result?.data?.content || [];
           if (data.length > 0) {
             const mapped: AssignedEvent[] = data.map((e: any) => ({
               id: e.id,
               title: e.title || '',
               description: e.description || '',
-              eventType: e.eventType || '',
-              category: e.category || '',
+              eventType: e.eventType || e.eventCategory || e.category || '',
+              category: e.eventCategory || e.category || e.eventType || '',
               date: e.date || '',
               startTime: e.startTime || '',
               endTime: e.endTime || '',
               duration: '',
               location: e.location || { address: '', city: '', country: '' },
-              coverImage: e.coverImage || e.bannerImage || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800',
+              coverImage: normalizeImg(e.coverImage || e.bannerImage) || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800',
               status: (() => {
-                switch (e.status?.toUpperCase()) {
+                switch ((e.eventStatus || e.status || '')?.toUpperCase()) {
                   case 'PENDING': case 'PROPOSED': case 'ASSIGNED': return 'pending';
                   case 'UPCOMING': return 'upcoming';
                   case 'ONGOING': case 'IN_PROGRESS': return 'ongoing';
@@ -452,7 +463,7 @@ const PhotographerEventsPage = () => {
                 }
               })() as EventStatus,
               clientName: e.clientName || '',
-              clientImage: e.clientImage || '',
+              clientImage: normalizeImg(e.clientImage) || '',
               clientEmail: e.clientEmail || '',
               organizerName: e.organizerName || '',
               packageName: e.packageName || '',
@@ -461,6 +472,7 @@ const PhotographerEventsPage = () => {
               guestCount: e.guestCount || 0,
               maxGuests: e.maxGuests || 0,
               bookingId: e.bookingId || e.id,
+              bookingStatus: e.bookingStatus || '',
               totalAmount: e.totalAmount || 0,
               createdAt: e.createdAt || '',
             }));
@@ -486,7 +498,7 @@ const PhotographerEventsPage = () => {
         const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums`);
         if (res.ok) {
           const result = await res.json();
-          const data = result?.data || [];
+          const data = Array.isArray(result?.data) ? result.data : result?.data?.content || [];
           if (data.length > 0) {
             const mapped: Album[] = data.map((a: any) => ({
               id: a.id,
@@ -554,7 +566,7 @@ const PhotographerEventsPage = () => {
   const getStatusBadge = (status: EventStatus) => {
     const map: Record<EventStatus, { bg: string; color: string; label: string }> = {
       pending: { bg: actualTheme === 'dark' ? '#312E81' : '#EDE9FE', color: actualTheme === 'dark' ? '#A78BFA' : '#7C3AED', label: 'Pending Approval' },
-      upcoming: { bg: actualTheme === 'dark' ? '#78350F' : '#FEF3C7', color: actualTheme === 'dark' ? '#FBBF24' : '#D97706', label: 'Upcoming' },
+      upcoming: { bg: actualTheme === 'dark' ? '#78350F' : '#c29c04', color: actualTheme === 'dark' ? '#FBBF24' : '#FFFFFF', label: 'Upcoming' },
       ongoing: { bg: actualTheme === 'dark' ? '#1E3A5F' : '#DBEAFE', color: actualTheme === 'dark' ? '#60A5FA' : '#2563EB', label: 'Ongoing' },
       completed: { bg: actualTheme === 'dark' ? '#064E3B' : '#D1FAE5', color: actualTheme === 'dark' ? '#34D399' : '#059669', label: 'Completed' },
       cancelled: { bg: actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2', color: actualTheme === 'dark' ? '#F87171' : '#DC2626', label: 'Cancelled' },
@@ -650,33 +662,53 @@ const PhotographerEventsPage = () => {
     }
   };
 
-  const handleAcceptEvent = async (eventId: string) => {
-    try {
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/events/${eventId}/accept`, { method: 'POST' });
-      if (res.ok) {
-        setEvents(prev => prev.map(e => e.id === eventId ? { ...e, status: 'upcoming' as EventStatus } : e));
-      } else {
-        const errorText = await res.text().catch(() => '');
-        alert(`Failed to accept event: ${res.status} ${errorText}`);
-      }
-    } catch (err) {
-      console.error('Error accepting event:', err);
-      alert('Failed to accept event. Please try again.');
-    }
+  const openBookingAction = (event: AssignedEvent, action: 'accept' | 'decline') => {
+    setBookingActionTarget(event);
+    setBookingActionType(action);
+    setDeclineReason('');
+    setShowEventDetailModal(false);
   };
 
-  const handleDenyEvent = async (eventId: string) => {
+  const closeBookingAction = () => {
+    setBookingActionTarget(null);
+    setBookingActionType(null);
+    setDeclineReason('');
+    setBookingActionLoading(false);
+  };
+
+  const handleConfirmBookingAction = async () => {
+    if (!bookingActionTarget || !bookingActionType) return;
+    setBookingActionLoading(true);
     try {
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/events/${eventId}/decline`, { method: 'POST' });
+      const endpoint = bookingActionType === 'accept' ? 'accept' : 'decline';
+      const body = bookingActionType === 'decline' && declineReason
+        ? JSON.stringify({ reason: declineReason })
+        : undefined;
+      const headers: Record<string, string> = {};
+      if (body) headers['Content-Type'] = 'application/json';
+      const res = await dashboardAuthFetch(
+        `${apiUrl}/api/remote/photographer/events/${bookingActionTarget.id}/${endpoint}`,
+        { method: 'POST', body, headers }
+      );
       if (res.ok) {
-        setEvents(prev => prev.filter(e => e.id !== eventId));
+        if (bookingActionType === 'accept') {
+          setEvents(prev => prev.map(e => e.id === bookingActionTarget.id
+            ? { ...e, bookingStatus: 'ACCEPTED' }
+            : e
+          ));
+        } else {
+          setEvents(prev => prev.filter(e => e.id !== bookingActionTarget.id));
+        }
+        closeBookingAction();
       } else {
         const errorText = await res.text().catch(() => '');
-        alert(`Failed to decline event: ${res.status} ${errorText}`);
+        alert(`Failed to ${bookingActionType} booking: ${res.status} ${errorText}`);
+        setBookingActionLoading(false);
       }
     } catch (err) {
-      console.error('Error declining event:', err);
-      alert('Failed to decline event. Please try again.');
+      console.error(`Error ${bookingActionType}ing booking:`, err);
+      alert(`Failed to ${bookingActionType} booking. Please try again.`);
+      setBookingActionLoading(false);
     }
   };
 
@@ -684,7 +716,7 @@ const PhotographerEventsPage = () => {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/events/${eventId}/media/upload`, {
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/events/${eventId}/media/upload`, {
         method: 'POST',
         body: formData,
       });
@@ -697,6 +729,27 @@ const PhotographerEventsPage = () => {
       return null;
     } catch (err) {
       console.error('Error uploading media:', err);
+      return null;
+    }
+  };
+
+  const uploadImageToAlbum = async (albumId: string, file: File): Promise<{ id: string; url: string } | null> => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${albumId}/images`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const img = data.data || data;
+        return { id: img.id || '', url: img.url || img.fileUrl || img.imageUrl || img.mediaUrl || '' };
+      }
+      console.error('Failed to upload album image:', res.status);
+      return null;
+    } catch (err) {
+      console.error('Error uploading album image:', err);
       return null;
     }
   };
@@ -780,16 +833,39 @@ const PhotographerEventsPage = () => {
   const handleCreateAlbum = async () => {
     const event = events.find(e => e.id === createAlbumEventId); if (!event || !albumTitle) return;
     setIsUploadingAlbum(true);
-    let albumImages = uploadedImagePreviews.length > 0 ? [...uploadedImagePreviews] : [event.coverImage];
-    let albumCover = uploadedImagePreviews[selectedCoverIndex] || event.coverImage;
 
-    // Upload files to event via API if files are selected
+    // 1. Create album on backend first
+    let backendAlbumId = '';
+    try {
+      setUploadProgress('Creating album...');
+      const formData = new FormData();
+      formData.append('title', albumTitle);
+      if (albumDescription) formData.append('description', albumDescription);
+      formData.append('eventId', event.id);
+      if (albumCategory) formData.append('category', albumCategory);
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums`, { method: 'POST', body: formData });
+      if (res.ok) {
+        const result = await res.json();
+        backendAlbumId = result?.data?.id || '';
+      }
+    } catch (err) { console.error('Failed to create album:', err); }
+
+    if (!backendAlbumId) {
+      setIsUploadingAlbum(false); setUploadProgress('');
+      alert('Failed to create album. Please try again.');
+      return;
+    }
+
+    // 2. Upload images to the album
+    let albumImages: string[] = [event.coverImage];
+    let albumCover = event.coverImage;
+
     if (selectedFiles && selectedFiles.length > 0) {
       const uploadedUrls: string[] = [];
       const idMap: Record<string, string> = {};
       for (let i = 0; i < selectedFiles.length; i++) {
         setUploadProgress(`Uploading ${i + 1} of ${selectedFiles.length}...`);
-        const result = await uploadMediaToEvent(event.id, selectedFiles[i]);
+        const result = await uploadImageToAlbum(backendAlbumId, selectedFiles[i]);
         if (result && result.url) {
           uploadedUrls.push(result.url);
           idMap[result.url] = result.id;
@@ -802,26 +878,9 @@ const PhotographerEventsPage = () => {
       }
     }
 
-    const newAlbum: Album = { id: `a${Date.now()}`, title: albumTitle, description: albumDescription, category: albumCategory, eventId: event.id, eventTitle: event.title, clientId: event.bookingId, clientName: event.clientName, coverImage: albumCover, images: albumImages, photoCount: albumImages.length, views: 0, likes: 0, downloads: 0, shared: false, sharedWithClient: false, faceRecognitionEnabled: false, inviteCode: null, createdAt: new Date().toISOString().split('T')[0], eventDate: event.date, clientImage: event.clientImage };
+    const newAlbum: Album = { id: backendAlbumId, title: albumTitle, description: albumDescription, category: albumCategory, eventId: event.id, eventTitle: event.title, clientId: event.bookingId, clientName: event.clientName, coverImage: albumCover, images: albumImages, photoCount: albumImages.length, views: 0, likes: 0, downloads: 0, shared: false, sharedWithClient: false, faceRecognitionEnabled: false, inviteCode: null, createdAt: new Date().toISOString().split('T')[0], eventDate: event.date, clientImage: event.clientImage };
     setAlbums(prev => [newAlbum, ...prev]); setShowCreateAlbumModal(false); setActiveTab('albums');
     setIsUploadingAlbum(false); setUploadProgress('');
-
-    // Persist album to backend
-    try {
-      const formData = new FormData();
-      formData.append('title', albumTitle);
-      if (albumDescription) formData.append('description', albumDescription);
-      formData.append('eventId', event.id);
-      if (albumCategory) formData.append('category', albumCategory);
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums`, { method: 'POST', body: formData });
-      if (res.ok) {
-        const result = await res.json();
-        const backendId = result?.data?.id;
-        if (backendId) {
-          setAlbums(prev => prev.map(a => a.id === newAlbum.id ? { ...a, id: backendId } : a));
-        }
-      }
-    } catch (err) { console.error('Failed to persist album:', err); }
   };
 
   const handleOpenEdit = (album: Album) => { setSelectedAlbum(album); setEditTitle(album.title); setEditDescription(album.description); setEditCategory(album.category); setEditImages([...album.images]); setEditCoverIndex(album.images.indexOf(album.coverImage) >= 0 ? album.images.indexOf(album.coverImage) : 0); setShowAlbumEditModal(true); };
@@ -829,7 +888,7 @@ const PhotographerEventsPage = () => {
   const handleEditFileAdd = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files; if (!files || !selectedAlbum) return;
     for (const file of Array.from(files)) {
-      const result = await uploadMediaToEvent(selectedAlbum.eventId, file);
+      const result = await uploadImageToAlbum(selectedAlbum.id, file);
       if (result && result.url) {
         setEditImages(prev => [...prev, result.url]);
         setMediaIdMap(prev => ({ ...prev, [result.url]: result.id }));
@@ -892,7 +951,7 @@ const PhotographerEventsPage = () => {
     return matchesFilter && matchesSearch;
   });
   const completedEvents = events.filter(e => e.status === 'completed');
-  const eventCounts = { all: events.length, pending: events.filter(e => e.status === 'pending').length, upcoming: events.filter(e => e.status === 'upcoming').length, ongoing: events.filter(e => e.status === 'ongoing').length, completed: completedEvents.length };
+  const eventCounts = { all: events.length, upcoming: events.filter(e => e.status === 'upcoming').length, ongoing: events.filter(e => e.status === 'ongoing').length, completed: completedEvents.length };
 
   const viewToggleBtnStyle = (isActive: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.625rem 1.25rem', backgroundColor: isActive ? '#F20C8F' : 'transparent', color: isActive ? 'white' : (actualTheme === 'dark' ? '#94A3B8' : '#64748B'), border: 'none', borderRadius: '0.5rem', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', boxShadow: isActive ? '0 2px 8px rgba(242, 12, 143, 0.4)' : 'none' });
   const filterBtnStyle = (isActive: boolean): React.CSSProperties => ({ padding: '0.4rem 0.875rem', borderRadius: '0.375rem', border: isActive ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`, backgroundColor: isActive ? '#F20C8F' : colors.bgCard, color: isActive ? 'white' : colors.textSecondary, fontSize: '0.8rem', fontWeight: 500, cursor: 'pointer', transition: 'all 0.2s' });
@@ -959,10 +1018,9 @@ const PhotographerEventsPage = () => {
             {activeTab === 'events' && (
               <>
                 {/* Stat Cards */}
-                <div className="events-page-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                <div className="events-page-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem', marginBottom: '1.25rem' }}>
                   {([
                     { label: 'Total Events', value: eventCounts.all, accent: colors.brandPrimary },
-                    { label: 'Pending', value: eventCounts.pending, accent: '#7C3AED' },
                     { label: 'Upcoming', value: eventCounts.upcoming, accent: '#F59E0B' },
                     { label: 'Ongoing', value: eventCounts.ongoing, accent: '#3B82F6' },
                     { label: 'Completed', value: eventCounts.completed, accent: '#10B981' },
@@ -976,7 +1034,7 @@ const PhotographerEventsPage = () => {
 
                 {/* Filters + Search */}
                 <div className="events-page-filters" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
-                  {(['all', 'pending', 'upcoming', 'ongoing', 'completed'] as const).map(f => (
+                  {(['all', 'upcoming', 'ongoing', 'completed'] as const).map(f => (
                     <button key={f} onClick={() => setEventFilter(f)} style={filterBtnStyle(eventFilter === f)}>
                       {f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)} {f !== 'all' && <span style={{ marginLeft: '0.25rem', opacity: 0.8 }}>({eventCounts[f]})</span>}
                     </button>
@@ -1029,14 +1087,17 @@ const PhotographerEventsPage = () => {
                             <div style={{ position: 'absolute', top: '2.5rem', right: '0.6rem', backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', color: 'white', padding: '0.15rem 0.5rem', borderRadius: '2rem', fontSize: '0.65rem', fontWeight: 600, pointerEvents: 'none' }}>{streamCfg.viewerCount.toLocaleString()} viewers</div>
                           )}
 
-                          {/* MIDDLE-BOTTOM: location + title over image */}
+                          {/* MIDDLE-BOTTOM: title + location over image */}
                           <div style={{ position: 'absolute', bottom: '6.2rem', left: 0, right: 0, padding: '0 0.8rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.15rem' }}>
-                              <span style={{ color: 'rgba(255,255,255,0.6)', flexShrink: 0, display: 'flex' }}><LocationIcon /></span>
-                              <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{event.location.city}, {event.location.country}</span>
-                            </div>
-                            <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '0.03em', textTransform: 'uppercase', lineHeight: 1.3 }}>
+                            <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '0.03em', textTransform: 'uppercase', lineHeight: 1.3, marginBottom: '0.25rem', marginTop: '-0.5rem' }}>
                               {event.title}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z" stroke="rgba(255,255,255,0.85)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+                                <circle cx="12" cy="10" r="3" stroke="rgba(255,255,255,0.85)" strokeWidth="3"/>
+                              </svg>
+                              <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.85)', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{[event.location.city, event.location.country].filter(Boolean).join(', ') || event.location.address || 'No location'}</span>
                             </div>
                           </div>
 
@@ -1046,9 +1107,9 @@ const PhotographerEventsPage = () => {
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', minWidth: 0 }}>
                                 {event.clientImage ? (
-                                  <img src={event.clientImage} alt={event.clientName} style={{ width: '24px', height: '24px', borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', objectFit: 'cover', flexShrink: 0 }} onError={(e) => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement)?.style.setProperty('display', 'flex'); }} />
+                                  <img src={event.clientImage} alt={event.clientName} style={{ width: '32px', height: '32px', borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', objectFit: 'cover', flexShrink: 0 }} onError={(e) => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement)?.style.setProperty('display', 'flex'); }} />
                                 ) : null}
-                                <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'linear-gradient(135deg, #083A85, #3B82F6)', border: '2px solid rgba(255,255,255,0.3)', display: event.clientImage ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.65rem', fontWeight: 700, flexShrink: 0 }}>
+                                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #083A85, #3B82F6)', border: '2px solid rgba(255,255,255,0.3)', display: event.clientImage ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.75rem', fontWeight: 700, flexShrink: 0 }}>
                                   {event.clientName.charAt(0).toUpperCase()}
                                 </div>
                                 <span style={{ fontSize: '0.74rem', color: 'rgba(255,255,255,0.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{event.clientName}</span>
@@ -1059,12 +1120,12 @@ const PhotographerEventsPage = () => {
                             </div>
                             {/* Action buttons */}
                             <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
-                              {event.status === 'pending' ? (
+                              {event.bookingStatus?.toUpperCase() === 'PENDING' ? (
                                 <>
-                                  <button onClick={() => handleAcceptEvent(event.id)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0', fontSize: '0.72rem', fontWeight: 600, backgroundColor: 'rgba(5,150,105,0.9)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
+                                  <button onClick={() => openBookingAction(event, 'accept')} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0', fontSize: '0.72rem', fontWeight: 600, backgroundColor: 'rgba(5,150,105,0.9)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
                                     <CheckCircleIcon /> Accept
                                   </button>
-                                  <button onClick={() => handleDenyEvent(event.id)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0', fontSize: '0.72rem', fontWeight: 600, backgroundColor: 'rgba(220,38,38,0.85)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
+                                  <button onClick={() => openBookingAction(event, 'decline')} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0', fontSize: '0.72rem', fontWeight: 600, backgroundColor: 'rgba(220,38,38,0.85)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
                                     <CloseIcon /> Deny
                                   </button>
                                 </>
@@ -1075,8 +1136,8 @@ const PhotographerEventsPage = () => {
                                       <BroadcastIcon /> Stream Setup
                                     </button>
                                   )}
-                                  {event.status === 'completed' && (
-                                    <button onClick={() => handleOpenCreateAlbum(event.id)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0.5rem', fontSize: '0.72rem', fontWeight: 600, backgroundColor: 'rgba(16,185,129,0.85)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
+                                  {(event.status === 'completed' || event.bookingStatus?.toUpperCase() === 'ACCEPTED') && (
+                                    <button onClick={() => handleOpenCreateAlbum(event.id)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0.5rem', fontSize: '0.72rem', fontWeight: 600, backgroundColor: '#083A85', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
                                       <PlusIcon /> Create Album
                                     </button>
                                   )}
@@ -1084,6 +1145,11 @@ const PhotographerEventsPage = () => {
                                     <button onClick={() => setMarkCompleteTarget(event)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0.5rem', fontSize: '0.72rem', fontWeight: 600, backgroundColor: 'rgba(5,150,105,0.85)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
                                       <CheckCircleIcon /> Complete
                                     </button>
+                                  )}
+                                  {event.bookingStatus?.toUpperCase() === 'ACCEPTED' && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', backgroundColor: 'rgba(5,150,105,0.85)', padding: '0.38rem 0.6rem', borderRadius: '0.375rem', fontSize: '0.7rem', color: 'white', fontWeight: 700 }}>
+                                      <CheckCircleIcon /> Accepted
+                                    </div>
                                   )}
                                   <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.25rem', backgroundColor: '#083A85', padding: '0.38rem 0.6rem', borderRadius: '0.375rem', fontSize: '0.7rem', color: 'white', fontWeight: 700, flexShrink: 0 }}>
                                     <PackageIcon /> {event.packageName}
@@ -1304,14 +1370,24 @@ const PhotographerEventsPage = () => {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', fontSize: '0.85rem', color: colors.textSecondary }}>
               <div><strong style={{ color: colors.textPrimary }}>Date:</strong> {formatDate(selectedEvent.date)}</div>
               <div><strong style={{ color: colors.textPrimary }}>Time:</strong> {formatTime(selectedEvent.startTime)} - {formatTime(selectedEvent.endTime)}</div>
-              <div><strong style={{ color: colors.textPrimary }}>Location:</strong> {selectedEvent.location.address}, {selectedEvent.location.city}</div>
+              <div><strong style={{ color: colors.textPrimary }}>Location:</strong> {[selectedEvent.location.address, selectedEvent.location.city, selectedEvent.location.country].filter(Boolean).join(', ') || 'No location'}</div>
               <div><strong style={{ color: colors.textPrimary }}>Client:</strong> {selectedEvent.clientName}</div>
               <div><strong style={{ color: colors.textPrimary }}>Package:</strong> {selectedEvent.packageName}</div>
               <div><strong style={{ color: colors.textPrimary }}>Event Type:</strong> {selectedEvent.eventType}</div>
               <div><strong style={{ color: colors.textPrimary }}>Guests:</strong> {selectedEvent.guestCount} / {selectedEvent.maxGuests}</div>
               <div><strong style={{ color: colors.textPrimary }}>Amount:</strong> {formatPrice(selectedEvent.totalAmount)}</div>
             </div>
-            {selectedEvent.status === 'completed' && (
+            {selectedEvent.bookingStatus?.toUpperCase() === 'PENDING' && (
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.25rem' }}>
+                <button onClick={() => openBookingAction(selectedEvent, 'accept')} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', padding: '0.6rem 0', fontSize: '0.85rem', fontWeight: 600, backgroundColor: '#059669', color: 'white', border: 'none', borderRadius: '0.5rem', cursor: 'pointer' }}>
+                  <CheckCircleIcon /> Accept
+                </button>
+                <button onClick={() => openBookingAction(selectedEvent, 'decline')} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', padding: '0.6rem 0', fontSize: '0.85rem', fontWeight: 600, backgroundColor: '#DC2626', color: 'white', border: 'none', borderRadius: '0.5rem', cursor: 'pointer' }}>
+                  <CloseIcon /> Deny
+                </button>
+              </div>
+            )}
+            {(selectedEvent.status === 'completed' || selectedEvent.bookingStatus?.toUpperCase() === 'ACCEPTED') && (
               <div style={{ marginTop: '1.25rem' }}>
                 <button onClick={() => { setShowEventDetailModal(false); handleOpenCreateAlbum(selectedEvent.id); }} style={{ ...primaryBtn, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}><PlusIcon /> Create Album from this Event</button>
               </div>
@@ -1438,6 +1514,82 @@ const PhotographerEventsPage = () => {
         </div>
       )}
 
+      {/* Booking Accept/Decline Confirmation Modal */}
+      {bookingActionTarget && bookingActionType && (
+        <div style={modalOverlay} onClick={closeBookingAction}>
+          <div style={modalContent('480px')} onClick={e => e.stopPropagation()}>
+            <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: colors.textPrimary, margin: '0 0 1rem 0' }}>
+              {bookingActionType === 'accept' ? 'Accept Booking' : 'Decline Booking'}
+            </h2>
+
+            {/* Event Summary */}
+            <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '1rem', marginBottom: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
+              <div style={{ fontSize: '1rem', fontWeight: 700, color: colors.textPrimary, marginBottom: '0.5rem' }}>{bookingActionTarget.title}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem', fontSize: '0.82rem', color: colors.textSecondary }}>
+                <div><strong style={{ color: colors.textPrimary }}>Date:</strong> {formatDate(bookingActionTarget.date)}</div>
+                <div><strong style={{ color: colors.textPrimary }}>Time:</strong> {formatTime(bookingActionTarget.startTime)} - {formatTime(bookingActionTarget.endTime)}</div>
+                <div><strong style={{ color: colors.textPrimary }}>Client:</strong> {bookingActionTarget.clientName}</div>
+                <div><strong style={{ color: colors.textPrimary }}>Location:</strong> {bookingActionTarget.location.address || [bookingActionTarget.location.city, bookingActionTarget.location.country].filter(Boolean).join(', ') || 'N/A'}</div>
+                {bookingActionTarget.packageName && <div><strong style={{ color: colors.textPrimary }}>Package:</strong> {bookingActionTarget.packageName}</div>}
+                {bookingActionTarget.totalAmount > 0 && <div><strong style={{ color: colors.textPrimary }}>Amount:</strong> {formatPrice(bookingActionTarget.totalAmount)}</div>}
+              </div>
+            </div>
+
+            {bookingActionType === 'accept' ? (
+              <p style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '1.25rem', lineHeight: '1.5' }}>
+                By accepting, you confirm your availability for this event. The client will be notified and a payment will be initiated.
+              </p>
+            ) : (
+              <>
+                <p style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.75rem', lineHeight: '1.5' }}>
+                  The client will be notified and can assign another photographer. Please provide a reason (optional):
+                </p>
+                <div style={{ marginBottom: '1rem' }}>
+                  <select
+                    value={declineReason}
+                    onChange={e => setDeclineReason(e.target.value)}
+                    style={{ ...inputStyle, marginBottom: '0.5rem', cursor: 'pointer' }}
+                  >
+                    <option value="">Select a reason (optional)</option>
+                    <option value="Scheduling conflict">Scheduling conflict</option>
+                    <option value="Location too far">Location too far</option>
+                    <option value="Rate doesn't match">Rate doesn&apos;t match expectations</option>
+                    <option value="Already booked">Already booked for this date</option>
+                    <option value="Personal reasons">Personal reasons</option>
+                    <option value="Other">Other</option>
+                  </select>
+                  {declineReason === 'Other' && (
+                    <textarea
+                      placeholder="Please specify your reason..."
+                      onChange={e => setDeclineReason(e.target.value === '' ? 'Other' : e.target.value)}
+                      style={{ ...inputStyle, minHeight: '70px', resize: 'vertical' as const }}
+                    />
+                  )}
+                </div>
+              </>
+            )}
+
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+              <button onClick={closeBookingAction} style={secondaryBtn}>Cancel</button>
+              <button
+                onClick={handleConfirmBookingAction}
+                disabled={bookingActionLoading}
+                style={{
+                  ...primaryBtn,
+                  backgroundColor: bookingActionType === 'accept' ? '#059669' : '#DC2626',
+                  borderColor: bookingActionType === 'accept' ? '#059669' : '#DC2626',
+                  opacity: bookingActionLoading ? 0.7 : 1,
+                }}
+              >
+                {bookingActionLoading
+                  ? 'Processing...'
+                  : bookingActionType === 'accept' ? 'Confirm Accept' : 'Confirm Decline'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Create Album Modal */}
       {showCreateAlbumModal && (
         <div style={modalOverlay} onClick={() => setShowCreateAlbumModal(false)}>
@@ -1448,10 +1600,10 @@ const PhotographerEventsPage = () => {
             </div>
             {/* Select Event */}
             <div style={{ marginBottom: '1rem' }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Select Completed Event *</label>
+              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Select Event *</label>
               <select value={createAlbumEventId} onChange={e => handleEventSelectForAlbum(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
                 <option value="">Choose an event...</option>
-                {completedEvents.map(e => <option key={e.id} value={e.id}>{e.title} - {formatDate(e.date)}</option>)}
+                {events.filter(e => e.bookingStatus?.toUpperCase() === 'ACCEPTED' || e.status === 'completed').map(e => <option key={e.id} value={e.id}>{e.title} - {formatDate(e.date)}</option>)}
               </select>
             </div>
             {createAlbumEventId && (
@@ -1644,7 +1796,10 @@ const PhotographerEventsPage = () => {
               <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.5rem' }}>Recipient</label>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.bgTertiary, borderRadius: '0.625rem', padding: '0.875rem 1rem', border: `1px solid ${colors.borderPrimary}` }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                  <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: 'linear-gradient(135deg, #083A85, #3B82F6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.85rem', fontWeight: 700 }}>{selectedAlbum.clientName.charAt(0)}</div>
+                  <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: 'linear-gradient(135deg, #083A85, #3B82F6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.85rem', fontWeight: 700, overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
+                    {selectedAlbum.clientName.charAt(0)}
+                    {selectedAlbum.clientImage && <img src={selectedAlbum.clientImage} alt={selectedAlbum.clientName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
+                  </div>
                   <div>
                     <div style={{ fontSize: '0.875rem', fontWeight: 600, color: colors.textPrimary }}>{selectedAlbum.clientName}</div>
                     <div style={{ fontSize: '0.75rem', color: colors.textTertiary }}>Booked client</div>
