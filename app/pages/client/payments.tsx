@@ -1699,7 +1699,7 @@ Amount: ${formatPrice(payment.amountNum)}
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary, overflow: 'hidden', width: '100%', maxWidth: '100vw' }}>
       <style>{`
         @media (max-width: 768px) {
           .mobile-header {
@@ -1722,6 +1722,14 @@ Amount: ${formatPrice(payment.amountNum)}
             align-items: flex-start !important;
             gap: 1rem !important;
           }
+          .mobile-summary-stats {
+            flex-wrap: wrap !important;
+            gap: 0.75rem !important;
+          }
+          .mobile-summary-stats > div {
+            flex: 1 !important;
+            min-width: 60px !important;
+          }
           .mobile-stats-grid {
             grid-template-columns: repeat(2, 1fr) !important;
             gap: 0.75rem !important;
@@ -1736,12 +1744,65 @@ Amount: ${formatPrice(payment.amountNum)}
             font-size: 1.2rem !important;
           }
           .mobile-tabs {
-            flex-wrap: wrap !important;
-            gap: 0.5rem !important;
+            overflow-x: auto !important;
+            flex-wrap: nowrap !important;
+            width: 100% !important;
+            -webkit-overflow-scrolling: touch;
+            -ms-overflow-style: none !important;
+            scrollbar-width: none !important;
+            padding-bottom: 0.25rem !important;
+          }
+          .mobile-tabs::-webkit-scrollbar {
+            display: none !important;
+          }
+          .mobile-tabs button {
+            flex-shrink: 0 !important;
+            white-space: nowrap !important;
+            min-height: 40px !important;
           }
           .mobile-filters {
             flex-direction: column !important;
             gap: 0.75rem !important;
+          }
+          .mobile-filters input {
+            min-height: 44px !important;
+          }
+          .mobile-gifts-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 0.75rem !important;
+          }
+          .mobile-gifts-actions {
+            flex-direction: column !important;
+            width: 100% !important;
+            gap: 0.75rem !important;
+          }
+          .mobile-gifts-actions > div {
+            max-width: 100% !important;
+            width: 100% !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+          .mobile-gifts-actions button {
+            width: 100% !important;
+            min-height: 44px !important;
+            white-space: normal !important;
+            flex-shrink: 1 !important;
+          }
+          .mobile-table-scroll {
+            -webkit-overflow-scrolling: touch !important;
+          }
+          .mobile-table-scroll::-webkit-scrollbar {
+            display: none !important;
+          }
+          .mobile-table-scroll {
+            -ms-overflow-style: none !important;
+            scrollbar-width: none !important;
+          }
+          .mobile-pagination {
+            flex-direction: column !important;
+            gap: 0.75rem !important;
+            align-items: center !important;
           }
           .mobile-payments-grid {
             grid-template-columns: 1fr !important;
@@ -1752,8 +1813,9 @@ Amount: ${formatPrice(payment.amountNum)}
             gap: 1rem !important;
           }
           .mobile-main-content {
-            padding: 0.75rem !important;
+            padding: 1rem !important;
             padding-bottom: 8rem !important;
+            overflow-x: hidden !important;
           }
         }
         @media (max-width: 640px) {
@@ -1775,9 +1837,38 @@ Amount: ${formatPrice(payment.amountNum)}
           .mobile-stats-grid > div > div:last-child {
             font-size: 1.1rem !important;
           }
+          .mobile-tabs button {
+            font-size: 0.8rem !important;
+            padding: 0.4rem 0.75rem !important;
+          }
+          .mobile-main-content {
+            padding: 0.75rem !important;
+            padding-bottom: 10rem !important;
+          }
+        }
+        @media (max-width: 375px) {
           .mobile-main-content {
             padding: 0.5rem !important;
-            padding-bottom: 10rem !important;
+            padding-bottom: 8rem !important;
+          }
+          .mobile-title {
+            font-size: 1.2rem !important;
+          }
+          .mobile-subtitle {
+            font-size: 0.75rem !important;
+          }
+          .mobile-tabs button {
+            font-size: 0.75rem !important;
+            padding: 0.35rem 0.5rem !important;
+          }
+          .mobile-stats-grid > div {
+            padding: 0.5rem !important;
+          }
+          .mobile-stats-grid > div > div:first-child {
+            font-size: 0.65rem !important;
+          }
+          .mobile-stats-grid > div > div:last-child {
+            font-size: 1rem !important;
           }
         }
       `}</style>
@@ -1901,7 +1992,7 @@ Amount: ${formatPrice(payment.amountNum)}
                 </div>
                 <button onClick={() => setShowReportModal(true)} style={{ fontSize: '0.85rem', color: '#2563EB', textDecoration: 'none', fontWeight: '500', background: 'none', border: 'none', cursor: 'pointer' }}>View report</button>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+              <div className="mobile-summary-stats" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10B981' }} />
@@ -1930,7 +2021,7 @@ Amount: ${formatPrice(payment.amountNum)}
 
           {/* Gifts Section */}
           <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)', overflow: 'hidden', marginBottom: '1rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderBottom: `2px solid ${colors.borderPrimary}` }}>
+            <div className="mobile-gifts-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderBottom: `2px solid ${colors.borderPrimary}` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <div style={{
                   width: '40px',
@@ -1949,7 +2040,7 @@ Amount: ${formatPrice(payment.amountNum)}
                   <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: 0 }}>From live-stream viewers on ConnektLive</p>
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div className="mobile-gifts-actions" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 {/* Withdrawal Setup Card */}
                 <div style={{
                   backgroundColor: actualTheme === 'dark' ? '#14532D' : '#F0FDF4',
@@ -2119,8 +2210,8 @@ Amount: ${formatPrice(payment.amountNum)}
               </button>
             </div>
 
-            <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <div className="mobile-table-scroll" style={{ maxHeight: '500px', overflowY: 'auto', overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
               <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
                 <tr style={{ backgroundColor: colors.bgTertiary }}>
                   <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase', backgroundColor: colors.bgTertiary }}>Date</th>
@@ -2219,7 +2310,7 @@ Amount: ${formatPrice(payment.amountNum)}
             </div>
 
             {/* Pagination */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderTop: `2px solid ${colors.borderPrimary}` }}>
+            <div className="mobile-pagination" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderTop: `2px solid ${colors.borderPrimary}` }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Showing {resultsPerPage} of {totalResults} Results</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 <button onClick={() => setCurrentPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1} style={{ background: 'none', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', padding: '0.5rem', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', opacity: currentPage === 1 ? 0.5 : 1 }}>

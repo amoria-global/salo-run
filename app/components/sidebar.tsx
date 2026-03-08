@@ -232,7 +232,7 @@ export default function Sidebar() {
             display: flex !important;
             position: fixed !important;
             top: 1rem !important;
-            left: 0.5rem !important;
+            left: ${isMobileMenuOpen ? '16.5rem' : '0.5rem'} !important;
             z-index: 1001 !important;
             background-color: ${colors.bgSecondary} !important;
             border: 2px solid ${colors.borderPrimary} !important;
@@ -242,6 +242,7 @@ export default function Sidebar() {
             align-items: center !important;
             justify-content: center !important;
             box-shadow: ${colors.shadowMd} !important;
+            transition: left 0.3s ease-in-out !important;
           }
 
           .mobile-overlay {
@@ -265,6 +266,10 @@ export default function Sidebar() {
           .sidebar-container {
             width: 14rem !important;
           }
+
+          .mobile-menu-button {
+            left: ${isMobileMenuOpen ? '14.5rem' : '0.5rem'} !important;
+          }
         }
       `}</style>
 
@@ -286,9 +291,18 @@ export default function Sidebar() {
           strokeLinecap="round"
           strokeLinejoin="round"
         >
-          <line x1="3" y1="12" x2="21" y2="12"/>
-          <line x1="3" y1="6" x2="21" y2="6"/>
-          <line x1="3" y1="18" x2="21" y2="18"/>
+          {isMobileMenuOpen ? (
+            <>
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </>
+          ) : (
+            <>
+              <line x1="3" y1="12" x2="21" y2="12"/>
+              <line x1="3" y1="6" x2="21" y2="6"/>
+              <line x1="3" y1="18" x2="21" y2="18"/>
+            </>
+          )}
         </svg>
       </button>
 
