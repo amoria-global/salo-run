@@ -1482,7 +1482,7 @@ Amount: ${formatPrice(payment.amountNum)}
   const totalResults = payments.length;
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary, overflow: 'hidden', width: '100%', maxWidth: '100vw' }}>
       <style>{`
         @media (max-width: 768px) {
           .mobile-header {
@@ -1533,6 +1533,27 @@ Amount: ${formatPrice(payment.amountNum)}
           .mobile-stream-fees-grid {
             grid-template-columns: 1fr !important;
             gap: 1rem !important;
+          }
+          .mobile-stream-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 1rem !important;
+            padding: 1rem !important;
+          }
+          .mobile-stream-right {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 0.75rem !important;
+            width: 100% !important;
+          }
+          .mobile-withdraw-card {
+            max-width: 100% !important;
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 0.75rem !important;
+          }
+          .mobile-withdraw-card button {
+            width: 100% !important;
           }
           .mobile-main-content {
             padding: 0.75rem !important;
@@ -1713,7 +1734,7 @@ Amount: ${formatPrice(payment.amountNum)}
 
           {/* Stream Fees Section */}
           <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)', overflow: 'hidden', marginBottom: '1rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderBottom: `2px solid ${colors.borderPrimary}` }}>
+            <div className="mobile-stream-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderBottom: `2px solid ${colors.borderPrimary}` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <div style={{
                   width: '40px',
@@ -1732,9 +1753,9 @@ Amount: ${formatPrice(payment.amountNum)}
                   <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: 0 }}>From ticketed live-stream viewers on ConnektLive</p>
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div className="mobile-stream-right" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 {/* Withdrawal Setup Card */}
-                <div style={{
+                <div className="mobile-withdraw-card" style={{
                   backgroundColor: actualTheme === 'dark' ? '#14532D' : '#F0FDF4',
                   border: `1px solid ${actualTheme === 'dark' ? '#16A34A' : '#BBF7D0'}`,
                   borderRadius: '0.5rem',
