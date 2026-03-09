@@ -12,6 +12,10 @@ function getApiUrl(): string {
   return 'https://backend.connekyt.com';
 }
 
+const CURRENCY_FLAG_MAP: Record<string, string> = {
+  USD: 'us', RWF: 'rw', EUR: 'eu', KES: 'ke', UGX: 'ug', TZS: 'tz', GBP: 'gb',
+};
+
 // ============================================
 // ICONS
 // ============================================
@@ -378,7 +382,7 @@ const PhotobooksViewIcon = ({ active }: { active: boolean }) => (
 const PhotographerEventsPage = () => {
   const { colors, actualTheme } = useTheme();
   const { user, token } = useDashboardAuth();
-  const { formatPrice } = useCurrency();
+  const { formatPrice, currencies } = useCurrency();
   const apiUrl = getApiUrl();
 
   const [activeTab, setActiveTab] = useState<'events' | 'albums' | 'photobooks'>(() => {
@@ -431,6 +435,10 @@ const PhotographerEventsPage = () => {
   const [selectedAlbum, setSelectedAlbum] = useState<Album | null>(null);
   const [showSendModal, setShowSendModal] = useState(false);
   const [showFaceRecognitionModal, setShowFaceRecognitionModal] = useState(false);
+  const [faceAIPrice, setFaceAIPrice] = useState('');
+  const [faceAICurrency, setFaceAICurrency] = useState('');
+  const [showFaceAICurrencyDropdown, setShowFaceAICurrencyDropdown] = useState(false);
+  const faceAICurrencyRef = useRef<HTMLDivElement>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [albumToDelete, setAlbumToDelete] = useState<Album | null>(null);
   const [showAlbumSuccessModal, setShowAlbumSuccessModal] = useState(false);
@@ -584,8 +592,14 @@ const PhotographerEventsPage = () => {
               id: e.id,
               title: e.title || '',
               description: e.description || '',
-              eventType: e.eventType || e.eventCategory || e.category || '',
-              category: e.eventCategory || e.category || e.eventType || '',
+              eventType: (typeof e.eventType === 'object' && e.eventType !== null ? (e.eventType as Record<string, unknown>).name as string : e.eventType)
+                || (typeof e.eventCategory === 'object' && e.eventCategory !== null ? (e.eventCategory as Record<string, unknown>).name as string : e.eventCategory)
+                || (typeof e.category === 'object' && e.category !== null ? (e.category as Record<string, unknown>).name as string : e.category)
+                || '',
+              category: (typeof e.eventCategory === 'object' && e.eventCategory !== null ? (e.eventCategory as Record<string, unknown>).name as string : e.eventCategory)
+                || (typeof e.category === 'object' && e.category !== null ? (e.category as Record<string, unknown>).name as string : e.category)
+                || (typeof e.eventType === 'object' && e.eventType !== null ? (e.eventType as Record<string, unknown>).name as string : e.eventType)
+                || '',
               date: e.date || '',
               startTime: e.startTime || '',
               endTime: e.endTime || '',
@@ -747,6 +761,17 @@ const PhotographerEventsPage = () => {
     loadStreamConfigs();
   }, [events, apiUrl]);
 
+  // Close face AI currency dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (faceAICurrencyRef.current && !faceAICurrencyRef.current.contains(e.target as Node)) {
+        setShowFaceAICurrencyDropdown(false);
+      }
+    };
+    if (showFaceAICurrencyDropdown) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showFaceAICurrencyDropdown]);
+
   const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   const formatTime = (time: string) => { const [h, m] = time.split(':'); const hour = parseInt(h); return `${hour % 12 || 12}:${m} ${hour >= 12 ? 'PM' : 'AM'}`; };
 
@@ -761,8 +786,6 @@ const PhotographerEventsPage = () => {
     return map[status];
   };
 
-  const generateInviteCode = () => { const c = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'; let r = ''; for (let i = 0; i < 8; i++) r += c.charAt(Math.floor(Math.random() * c.length)); return r; };
-
   // Opens the Face AI modal, generating the invite code from the API if one doesn't exist yet
   const handleOpenFaceAI = async (album: Album) => {
     let updated = album;
@@ -771,18 +794,23 @@ const PhotographerEventsPage = () => {
         const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${album.id}/invite-code`, { method: 'POST' });
         if (res.ok) {
           const result = await res.json();
-          const code = result?.data?.inviteCode || generateInviteCode();
-          updated = { ...album, inviteCode: code, faceRecognitionEnabled: album.faceRecognitionEnabled };
-        } else {
-          updated = { ...album, inviteCode: generateInviteCode() };
+          const code = result?.data?.inviteCode || result?.data?.code || result?.data;
+          if (code && typeof code === 'string') {
+            updated = { ...album, inviteCode: code, faceRecognitionEnabled: album.faceRecognitionEnabled };
+          }
         }
-      } catch {
-        updated = { ...album, inviteCode: generateInviteCode() };
+      } catch (err) {
+        console.error('Failed to generate invite code:', err);
       }
-      setAlbums(prev => prev.map(a => a.id === album.id ? updated : a));
+      if (updated.inviteCode) {
+        setAlbums(prev => prev.map(a => a.id === album.id ? updated : a));
+      }
     }
     setSelectedAlbum(updated);
     setShowFaceRecognitionModal(true);
+    setFaceAIPrice('');
+    setFaceAICurrency('');
+    setShowFaceAICurrencyDropdown(false);
   };
 
   const handleCopyField = (text: string, field: string) => { navigator.clipboard.writeText(text); setCopiedField(field); setTimeout(() => setCopiedField(''), 2000); };
@@ -1164,7 +1192,7 @@ const PhotographerEventsPage = () => {
     }
     setEditImages(prev => { const updated = prev.filter((_, i) => i !== index); if (editCoverIndex >= updated.length) setEditCoverIndex(Math.max(0, updated.length - 1)); else if (editCoverIndex === index) setEditCoverIndex(0); else if (editCoverIndex > index) setEditCoverIndex(editCoverIndex - 1); return updated; });
   };
-  const handleToggleFaceRecognition = async (album: Album) => { let inviteCode = album.inviteCode; if (!album.faceRecognitionEnabled && !inviteCode) { try { const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${album.id}/invite-code`, { method: 'POST' }); if (res.ok) { const result = await res.json(); inviteCode = result?.data?.inviteCode || generateInviteCode(); } else { inviteCode = generateInviteCode(); } } catch { inviteCode = generateInviteCode(); } } const updated = { ...album, faceRecognitionEnabled: !album.faceRecognitionEnabled, inviteCode }; setAlbums(prev => prev.map(a => a.id === album.id ? updated : a)); setSelectedAlbum(updated); };
+  const handleToggleFaceRecognition = async (album: Album) => { let inviteCode = album.inviteCode; if (!album.faceRecognitionEnabled && !inviteCode) { try { const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${album.id}/invite-code`, { method: 'POST' }); if (res.ok) { const result = await res.json(); inviteCode = result?.data?.inviteCode || result?.data?.code || (typeof result?.data === 'string' ? result.data : null); } } catch (err) { console.error('Failed to generate invite code:', err); } } const updated = { ...album, faceRecognitionEnabled: !album.faceRecognitionEnabled, inviteCode }; setAlbums(prev => prev.map(a => a.id === album.id ? updated : a)); setSelectedAlbum(updated); };
   const handleSendToClient = async (album: Album) => {
     setAlbums(prev => prev.map(a => a.id === album.id ? { ...a, sharedWithClient: true, shared: true } : a));
     setShowSendModal(false);
@@ -1574,9 +1602,15 @@ const PhotographerEventsPage = () => {
                                 <SendIcon /> Send
                               </button>
                             )}
-                            <button onClick={() => handleOpenFaceAI(album)} title="Face AI / Find-My-Photos" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0.5rem', backgroundColor: 'rgba(139,92,246,0.85)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600 }}>
-                              <FaceRecognitionIcon /> Face AI
-                            </button>
+                            {album.faceRecognitionEnabled ? (
+                              <span onClick={() => handleOpenFaceAI(album)} title="Album is live on Find-My-Photos" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0.5rem', backgroundColor: 'rgba(5,150,105,0.85)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600 }}>
+                                <CheckCircleIcon /> Face AI
+                              </span>
+                            ) : (
+                              <button onClick={() => handleOpenFaceAI(album)} title="Face AI / Find-My-Photos" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0.5rem', backgroundColor: 'rgba(139,92,246,0.85)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600 }}>
+                                <FaceRecognitionIcon /> Face AI
+                              </button>
+                            )}
                             {canEditAlbum(album) && (
                               <button onClick={() => handleOpenEdit(album)} title={album.sharedWithClient ? `Edit (${getEditDaysRemaining(album)} days left)` : 'Edit Album'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.38rem 0.5rem', backgroundColor: 'rgba(255,255,255,0.12)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
                                 <EditIcon />
@@ -1638,7 +1672,11 @@ const PhotographerEventsPage = () => {
                             ) : (
                               <button onClick={() => { setSelectedAlbum(album); setShowSendModal(true); }} style={{ ...smallActionBtn, backgroundColor: '#083A85', borderColor: '#083A85', color: 'white' }}><SendIcon /> Send</button>
                             )}
-                            <button onClick={() => handleOpenFaceAI(album)} style={{ ...smallActionBtn, backgroundColor: '#8B5CF6', borderColor: '#8B5CF6', color: 'white' }}><FaceRecognitionIcon /> Face AI</button>
+                            {album.faceRecognitionEnabled ? (
+                              <span onClick={() => handleOpenFaceAI(album)} style={{ ...smallActionBtn, backgroundColor: '#059669', borderColor: '#059669', color: 'white', cursor: 'pointer', opacity: 0.85 }}><CheckCircleIcon /> Face AI</span>
+                            ) : (
+                              <button onClick={() => handleOpenFaceAI(album)} style={{ ...smallActionBtn, backgroundColor: '#8B5CF6', borderColor: '#8B5CF6', color: 'white' }}><FaceRecognitionIcon /> Face AI</button>
+                            )}
                             {canEditAlbum(album) && (
                               <button onClick={() => handleOpenEdit(album)} style={{ ...smallActionBtn, backgroundColor: colors.bgTertiary, color: colors.textPrimary }}><EditIcon /> Edit{album.sharedWithClient ? ` (${getEditDaysRemaining(album)}d)` : ''}</button>
                             )}
@@ -2290,48 +2328,135 @@ const PhotographerEventsPage = () => {
                 <div style={{ fontSize: '0.75rem', color: colors.textTertiary, marginTop: '0.15rem' }}>From: {selectedAlbum.eventTitle}</div>
               </div>
             </div>
-            <p style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '1rem', lineHeight: '1.5' }}>
-              Upload this album to the <strong style={{ color: colors.textPrimary }}>Find-My-Photos</strong> page so event attendees can use face recognition to find their photos. Share the invite code below to help them filter results.
-            </p>
-            {/* Invite Code */}
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Invite Code</label>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <input readOnly value={selectedAlbum.inviteCode || ''} style={{ ...inputStyle, flex: 1, fontSize: '1rem', fontWeight: 700, letterSpacing: '0.1em', textAlign: 'center' }} />
-                <button onClick={() => handleCopyInviteCode(selectedAlbum.inviteCode!)} style={smallActionBtn}>{copiedInviteCode ? 'Copied!' : <><CopyIcon /> Copy</>}</button>
-              </div>
-            </div>
-            {/* Find-My-Photos Link */}
-            <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Find-My-Photos Link</label>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <input readOnly value={`${process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekyt.com'}/find-my-photos?code=${selectedAlbum.inviteCode}`} style={{ ...inputStyle, flex: 1, fontSize: '0.8rem' }} />
-                <button onClick={() => handleCopyLink(`${process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekyt.com'}/find-my-photos?code=${selectedAlbum.inviteCode}`)} style={smallActionBtn}>{copiedLink ? 'Copied!' : <><CopyIcon /> Copy</>}</button>
-              </div>
-            </div>
-            {/* Upload Button */}
-            <button onClick={async () => {
-              const updated = { ...selectedAlbum, faceRecognitionEnabled: true };
-              setAlbums(prev => prev.map(a => a.id === selectedAlbum.id ? updated : a));
-              setSelectedAlbum(updated);
-              setShowFaceRecognitionModal(false);
-              try {
-                await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${selectedAlbum.id}/send`, { method: 'POST' });
-              } catch (err) {
-                console.error('Failed to enable face recognition on album:', err);
-              }
-              setAlbumSuccessMessage({
-                title: 'Album Uploaded to Find-My-Photos',
-                description: `"${selectedAlbum.title}" is now live. Share the invite code with event attendees so they can find their photos using face recognition.`,
-              });
-              setShowAlbumSuccessModal(true);
-            }} style={{ ...primaryBtn, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: '#8B5CF6', borderColor: '#8B5CF6' }}>
-              <FaceRecognitionIcon /> Upload to Find-My-Photos
-            </button>
-            {selectedAlbum.faceRecognitionEnabled && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.75rem', padding: '0.5rem 0.75rem', backgroundColor: actualTheme === 'dark' ? 'rgba(16,185,129,0.1)' : '#D1FAE5', borderRadius: '0.375rem', fontSize: '0.8rem', color: actualTheme === 'dark' ? '#34D399' : '#059669', fontWeight: 500 }}>
-                <CheckCircleIcon /> Album is live on Find-My-Photos
-              </div>
+            {selectedAlbum.faceRecognitionEnabled ? (
+              <>
+                {/* Already live — show status + invite code + link */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.6rem 0.75rem', backgroundColor: actualTheme === 'dark' ? 'rgba(16,185,129,0.1)' : '#D1FAE5', borderRadius: '0.375rem', fontSize: '0.85rem', color: actualTheme === 'dark' ? '#34D399' : '#059669', fontWeight: 600, marginBottom: '1rem' }}>
+                  <CheckCircleIcon /> Album is live on Find-My-Photos
+                </div>
+                {selectedAlbum.inviteCode && (
+                  <>
+                    <div style={{ marginBottom: '1rem' }}>
+                      <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Invite Code</label>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <input readOnly value={selectedAlbum.inviteCode} style={{ ...inputStyle, flex: 1, fontSize: '1rem', fontWeight: 700, letterSpacing: '0.1em', textAlign: 'center' }} />
+                        <button onClick={() => handleCopyInviteCode(selectedAlbum.inviteCode!)} style={smallActionBtn}>{copiedInviteCode ? 'Copied!' : <><CopyIcon /> Copy</>}</button>
+                      </div>
+                    </div>
+                    <div style={{ marginBottom: '1rem' }}>
+                      <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Find-My-Photos Link</label>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <input readOnly value={`${process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekyt.com'}/user/find-my-photos?code=${selectedAlbum.inviteCode}`} style={{ ...inputStyle, flex: 1, fontSize: '0.8rem' }} />
+                        <button onClick={() => handleCopyLink(`${process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekyt.com'}/user/find-my-photos?code=${selectedAlbum.inviteCode}`)} style={smallActionBtn}>{copiedLink ? 'Copied!' : <><CopyIcon /> Copy</>}</button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </>
+            ) : (
+              <>
+                {/* Not yet sent — show form */}
+                <p style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '1rem', lineHeight: '1.5' }}>
+                  Upload this album to the <strong style={{ color: colors.textPrimary }}>Find-My-Photos</strong> page so event attendees can use face recognition to find their photos. Share the invite code below to help them filter results.
+                </p>
+                {/* Invite Code */}
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Invite Code</label>
+                  {selectedAlbum.inviteCode ? (
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <input readOnly value={selectedAlbum.inviteCode} style={{ ...inputStyle, flex: 1, fontSize: '1rem', fontWeight: 700, letterSpacing: '0.1em', textAlign: 'center' }} />
+                      <button onClick={() => handleCopyInviteCode(selectedAlbum.inviteCode!)} style={smallActionBtn}>{copiedInviteCode ? 'Copied!' : <><CopyIcon /> Copy</>}</button>
+                    </div>
+                  ) : (
+                    <div style={{ padding: '0.6rem 0.75rem', backgroundColor: actualTheme === 'dark' ? 'rgba(239,68,68,0.1)' : '#FEF2F2', borderRadius: '0.375rem', fontSize: '0.8rem', color: '#EF4444', fontWeight: 500 }}>
+                      Failed to generate invite code. Close and try again.
+                    </div>
+                  )}
+                </div>
+                {/* Find-My-Photos Link */}
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Find-My-Photos Link</label>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <input readOnly value={`${process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekyt.com'}/user/find-my-photos?code=${selectedAlbum.inviteCode}`} style={{ ...inputStyle, flex: 1, fontSize: '0.8rem' }} />
+                    <button onClick={() => handleCopyLink(`${process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekyt.com'}/user/find-my-photos?code=${selectedAlbum.inviteCode}`)} style={smallActionBtn}>{copiedLink ? 'Copied!' : <><CopyIcon /> Copy</>}</button>
+                  </div>
+                </div>
+                {/* Price Per Image */}
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Price Per Image *</label>
+                  <p style={{ fontSize: '0.75rem', color: colors.textTertiary, margin: '0 0 0.5rem 0' }}>Set the price users will pay to download each photo on Find-My-Photos.</p>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <div ref={faceAICurrencyRef} style={{ position: 'relative', minWidth: '120px' }}>
+                      <button type="button" onClick={() => setShowFaceAICurrencyDropdown(!showFaceAICurrencyDropdown)}
+                        style={{ ...inputStyle, display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', width: '100%', textAlign: 'left' as const, padding: '0.75rem' }}>
+                        {(() => {
+                          const selCode = currencies.find(c => (c.id || c.code) === faceAICurrency)?.code || '';
+                          return (
+                            <>
+                              {CURRENCY_FLAG_MAP[selCode] && <img src={`https://flagcdn.com/w40/${CURRENCY_FLAG_MAP[selCode]}.png`} alt="" style={{ width: '18px', height: '14px', objectFit: 'cover', borderRadius: '2px' }} />}
+                              <span style={{ flex: 1, fontSize: '0.85rem' }}>{selCode || 'Currency'}</span>
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ transform: showFaceAICurrencyDropdown ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
+                                <path d="M6 9L12 15L18 9" stroke={colors.textSecondary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            </>
+                          );
+                        })()}
+                      </button>
+                      {showFaceAICurrencyDropdown && (
+                        <div style={{ position: 'absolute', top: 'calc(100% + 0.35rem)', left: 0, backgroundColor: colors.bgSecondary, borderRadius: '0.75rem', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.2)', border: `2px solid ${colors.borderPrimary}`, padding: '0.4rem', minWidth: '200px', zIndex: 100 }}>
+                          {(currencies.length > 0 ? currencies.map(c => ({ val: c.id || c.code, code: c.code, name: c.name })) : [{ val: 'USD', code: 'USD', name: '' }, { val: 'RWF', code: 'RWF', name: '' }, { val: 'EUR', code: 'EUR', name: '' }, { val: 'GBP', code: 'GBP', name: '' }, { val: 'KES', code: 'KES', name: '' }]).map(opt => {
+                            const flag = CURRENCY_FLAG_MAP[opt.code] || '';
+                            const isSelected = faceAICurrency === opt.val;
+                            return (
+                              <button key={opt.val} type="button" onClick={() => { setFaceAICurrency(opt.val); setShowFaceAICurrencyDropdown(false); }}
+                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0.5rem 0.65rem', borderRadius: '0.5rem', border: 'none', background: isSelected ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : 'transparent', color: colors.textPrimary, fontSize: '0.85rem', fontWeight: isSelected ? '600' : '400', cursor: 'pointer', gap: '0.5rem' }}
+                                onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = colors.bgTertiary; }}
+                                onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                  {flag && <img src={`https://flagcdn.com/w40/${flag}.png`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px' }} />}
+                                  <span style={{ fontWeight: '600' }}>{opt.code}</span>
+                                  {opt.name && <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{opt.name}</span>}
+                                </div>
+                                {isSelected && <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17L4 12" stroke={actualTheme === 'dark' ? '#60A5FA' : '#083A85'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                    <input type="number" min="1" step="0.01" value={faceAIPrice} onChange={e => setFaceAIPrice(e.target.value)} placeholder="Min 1.00" style={{ ...inputStyle, flex: 1 }} />
+                  </div>
+                  {faceAIPrice && parseFloat(faceAIPrice) < 1 && (
+                    <p style={{ fontSize: '0.75rem', color: '#EF4444', margin: '0.35rem 0 0 0' }}>Minimum price is 1.00</p>
+                  )}
+                </div>
+                {/* Upload Button */}
+                <button onClick={async () => {
+                  const updated = { ...selectedAlbum, faceRecognitionEnabled: true };
+                  setAlbums(prev => prev.map(a => a.id === selectedAlbum.id ? updated : a));
+                  setSelectedAlbum(updated);
+                  setShowFaceRecognitionModal(false);
+                  try {
+                    await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${selectedAlbum.id}/send`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ pricePerImage: parseFloat(faceAIPrice), currencyId: faceAICurrency }),
+                    });
+                    // Publish triggers Rekognition face indexing so face search works on landing
+                    await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${selectedAlbum.id}/publish`, { method: 'POST' });
+                  } catch (err) {
+                    console.error('Failed to enable face recognition on album:', err);
+                  }
+                  setAlbumSuccessMessage({
+                    title: 'Album Uploaded to Find-My-Photos',
+                    description: `"${selectedAlbum.title}" is now live. Share the invite code with event attendees so they can find their photos using face recognition.`,
+                  });
+                  setShowAlbumSuccessModal(true);
+                }} disabled={!selectedAlbum.inviteCode || !faceAIPrice || parseFloat(faceAIPrice) < 1 || !faceAICurrency} style={{ ...primaryBtn, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: (!selectedAlbum.inviteCode || !faceAIPrice || parseFloat(faceAIPrice) < 1 || !faceAICurrency) ? (actualTheme === 'dark' ? '#374151' : '#D1D5DB') : '#8B5CF6', borderColor: (!selectedAlbum.inviteCode || !faceAIPrice || parseFloat(faceAIPrice) < 1 || !faceAICurrency) ? (actualTheme === 'dark' ? '#374151' : '#D1D5DB') : '#8B5CF6', cursor: (!selectedAlbum.inviteCode || !faceAIPrice || parseFloat(faceAIPrice) < 1 || !faceAICurrency) ? 'not-allowed' : 'pointer', opacity: (!selectedAlbum.inviteCode || !faceAIPrice || parseFloat(faceAIPrice) < 1 || !faceAICurrency) ? 0.6 : 1 }}>
+                  <FaceRecognitionIcon /> Upload to Find-My-Photos
+                </button>
+              </>
             )}
           </div>
         </div>
