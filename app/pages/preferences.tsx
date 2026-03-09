@@ -120,29 +120,29 @@ const TabParamHandler = ({ setActiveTab }: { setActiveTab: (tab: 'appearance' | 
   return null;
 };
 
-const COUNTRIES: { name: string; dialCode: string; flag: string }[] = [
-  { name: 'Benin', dialCode: '+229', flag: '🇧🇯' },
-  { name: 'Botswana', dialCode: '+267', flag: '🇧🇼' },
-  { name: 'Cameroon', dialCode: '+237', flag: '🇨🇲' },
-  { name: 'Chad', dialCode: '+235', flag: '🇹🇩' },
-  { name: 'Congo (Brazzaville)', dialCode: '+242', flag: '🇨🇬' },
-  { name: "Côte d'Ivoire", dialCode: '+225', flag: '🇨🇮' },
-  { name: 'Eswatini', dialCode: '+268', flag: '🇸🇿' },
-  { name: 'Gabon', dialCode: '+241', flag: '🇬🇦' },
-  { name: 'Ghana', dialCode: '+233', flag: '🇬🇭' },
-  { name: 'Kenya', dialCode: '+254', flag: '🇰🇪' },
-  { name: 'Liberia', dialCode: '+231', flag: '🇱🇷' },
-  { name: 'Madagascar', dialCode: '+261', flag: '🇲🇬' },
-  { name: 'Malawi', dialCode: '+265', flag: '🇲🇼' },
-  { name: 'Niger', dialCode: '+227', flag: '🇳🇪' },
-  { name: 'Nigeria', dialCode: '+234', flag: '🇳🇬' },
-  { name: 'Rwanda', dialCode: '+250', flag: '🇷🇼' },
-  { name: 'Seychelles', dialCode: '+248', flag: '🇸🇨' },
-  { name: 'South Africa', dialCode: '+27', flag: '🇿🇦' },
-  { name: 'South Sudan', dialCode: '+211', flag: '🇸🇸' },
-  { name: 'Sudan', dialCode: '+249', flag: '🇸🇩' },
-  { name: 'Uganda', dialCode: '+256', flag: '🇺🇬' },
-  { name: 'Zambia', dialCode: '+260', flag: '🇿🇲' },
+const COUNTRIES: { name: string; dialCode: string; flag: string; iso: string }[] = [
+  { name: 'Benin', dialCode: '+229', flag: '🇧🇯', iso: 'bj' },
+  { name: 'Botswana', dialCode: '+267', flag: '🇧🇼', iso: 'bw' },
+  { name: 'Cameroon', dialCode: '+237', flag: '🇨🇲', iso: 'cm' },
+  { name: 'Chad', dialCode: '+235', flag: '🇹🇩', iso: 'td' },
+  { name: 'Congo (Brazzaville)', dialCode: '+242', flag: '🇨🇬', iso: 'cg' },
+  { name: "Côte d'Ivoire", dialCode: '+225', flag: '🇨🇮', iso: 'ci' },
+  { name: 'Eswatini', dialCode: '+268', flag: '🇸🇿', iso: 'sz' },
+  { name: 'Gabon', dialCode: '+241', flag: '🇬🇦', iso: 'ga' },
+  { name: 'Ghana', dialCode: '+233', flag: '🇬🇭', iso: 'gh' },
+  { name: 'Kenya', dialCode: '+254', flag: '🇰🇪', iso: 'ke' },
+  { name: 'Liberia', dialCode: '+231', flag: '🇱🇷', iso: 'lr' },
+  { name: 'Madagascar', dialCode: '+261', flag: '🇲🇬', iso: 'mg' },
+  { name: 'Malawi', dialCode: '+265', flag: '🇲🇼', iso: 'mw' },
+  { name: 'Niger', dialCode: '+227', flag: '🇳🇪', iso: 'ne' },
+  { name: 'Nigeria', dialCode: '+234', flag: '🇳🇬', iso: 'ng' },
+  { name: 'Rwanda', dialCode: '+250', flag: '🇷🇼', iso: 'rw' },
+  { name: 'Seychelles', dialCode: '+248', flag: '🇸🇨', iso: 'sc' },
+  { name: 'South Africa', dialCode: '+27', flag: '🇿🇦', iso: 'za' },
+  { name: 'South Sudan', dialCode: '+211', flag: '🇸🇸', iso: 'ss' },
+  { name: 'Sudan', dialCode: '+249', flag: '🇸🇩', iso: 'sd' },
+  { name: 'Uganda', dialCode: '+256', flag: '🇺🇬', iso: 'ug' },
+  { name: 'Zambia', dialCode: '+260', flag: '🇿🇲', iso: 'zm' },
 ];
 
 const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) => {
@@ -217,6 +217,12 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
         if (prefs.email_notifications !== undefined) setEmailNotifications(prefs.email_notifications === 'true');
         if (prefs.push_notifications !== undefined) setPushNotifications(prefs.push_notifications === 'true');
         if (prefs.security_alerts !== undefined) setSecurityAlerts(prefs.security_alerts === 'true');
+        if (prefs.payment_notifications !== undefined) setPaymentNotifications(prefs.payment_notifications === 'true');
+        if (prefs.tips_and_bonuses !== undefined) setTipsAndBonuses(prefs.tips_and_bonuses === 'true');
+        if (prefs.album_notifications !== undefined) setAlbumNotifications(prefs.album_notifications === 'true');
+        if (prefs.booking_notifications !== undefined) setBookingNotifications(prefs.booking_notifications === 'true');
+        if (prefs.gift_notifications !== undefined) setGiftNotifications(prefs.gift_notifications === 'true');
+        if (prefs.stream_fee_notifications !== undefined) setStreamFeeNotifications(prefs.stream_fee_notifications === 'true');
 
         // Load saved payment methods
         const paymentKeys = Object.keys(prefs).filter(k => k.startsWith('payment_method_'));
@@ -1117,7 +1123,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                       </div>
                     </div>
                     <button
-                      onClick={() => setPaymentNotifications(!paymentNotifications)}
+                      onClick={() => { setPaymentNotifications(!paymentNotifications); savePreference('payment_notifications', String(!paymentNotifications)); }}
                       style={{
                         width: '48px',
                         height: '26px',
@@ -1165,7 +1171,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                       </div>
                     </div>
                     <button
-                      onClick={() => setTipsAndBonuses(!tipsAndBonuses)}
+                      onClick={() => { setTipsAndBonuses(!tipsAndBonuses); savePreference('tips_and_bonuses', String(!tipsAndBonuses)); }}
                       style={{
                         width: '48px',
                         height: '26px',
@@ -1213,7 +1219,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                       </div>
                     </div>
                     <button
-                      onClick={() => setAlbumNotifications(!albumNotifications)}
+                      onClick={() => { setAlbumNotifications(!albumNotifications); savePreference('album_notifications', String(!albumNotifications)); }}
                       style={{
                         width: '48px',
                         height: '26px',
@@ -1261,7 +1267,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                       </div>
                     </div>
                     <button
-                      onClick={() => setBookingNotifications(!bookingNotifications)}
+                      onClick={() => { setBookingNotifications(!bookingNotifications); savePreference('booking_notifications', String(!bookingNotifications)); }}
                       style={{
                         width: '48px',
                         height: '26px',
@@ -1309,7 +1315,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                       </div>
                     </div>
                     <button
-                      onClick={() => setGiftNotifications(!giftNotifications)}
+                      onClick={() => { setGiftNotifications(!giftNotifications); savePreference('gift_notifications', String(!giftNotifications)); }}
                       style={{
                         width: '48px',
                         height: '26px',
@@ -1357,7 +1363,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                       </div>
                     </div>
                     <button
-                      onClick={() => setStreamFeeNotifications(!streamFeeNotifications)}
+                      onClick={() => { setStreamFeeNotifications(!streamFeeNotifications); savePreference('stream_fee_notifications', String(!streamFeeNotifications)); }}
                       style={{
                         width: '48px',
                         height: '26px',
@@ -1692,7 +1698,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                           minWidth: '90px',
                         }}
                       >
-                        <span style={{ fontSize: '1.1rem' }}>{countryFlag}</span>
+                        <img src={`https://flagcdn.com/w40/${(COUNTRIES.find(c => c.dialCode === countryCode) || COUNTRIES[15]).iso}.png`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px', flexShrink: 0 }} />
                         <span style={{ fontWeight: '500' }}>{countryCode}</span>
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
                           <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -1774,7 +1780,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                                     onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = colors.bgHover; }}
                                     onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = countryCode === c.dialCode && countryFlag === c.flag ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : 'transparent'; }}
                                   >
-                                    <span style={{ fontSize: '1rem', flexShrink: 0 }}>{c.flag}</span>
+                                    <img src={`https://flagcdn.com/w40/${c.iso}.png`} alt={c.name} style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px', flexShrink: 0 }} />
                                     <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
                                     <span style={{ color: colors.textSecondary, flexShrink: 0 }}>{c.dialCode}</span>
                                   </div>

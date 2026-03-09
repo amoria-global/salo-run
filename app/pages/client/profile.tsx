@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
+import CountrySelect, { eastAfricanCountries } from '../../components/CountrySelect';
 import { useTheme } from '../../context/ThemeContext';
 import { useUserProfile } from '../../context/UserProfileContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
@@ -27,15 +28,7 @@ const ProfilePage = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
-  // East African countries with phone codes
-  const eastAfricanCountries = [
-    { name: 'Rwanda', code: '+250', flag: '🇷🇼' },
-    { name: 'Kenya', code: '+254', flag: '🇰🇪' },
-    { name: 'Uganda', code: '+256', flag: '🇺🇬' },
-    { name: 'Tanzania', code: '+255', flag: '🇹🇿' },
-    { name: 'Burundi', code: '+257', flag: '🇧🇮' },
-    { name: 'South Sudan', code: '+211', flag: '🇸🇸' },
-  ];
+  // East African countries imported from CountrySelect component
 
   // Rwanda provinces and districts
   const rwandaProvinces: { [key: string]: string[] } = {
@@ -747,22 +740,18 @@ const ProfilePage = () => {
                 <div>
                   <label style={labelStyle}>Phone</label>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <select
+                    <CountrySelect
+                      countries={eastAfricanCountries}
                       value={formData.phoneCode}
-                      onChange={(e) => handleInputChange('phoneCode', e.target.value)}
+                      onChange={(val) => handleInputChange('phoneCode', val)}
+                      valueKey="code"
+                      displayKey="code"
                       disabled={!isEditEnabled}
-                      style={{
-                        ...inputStyle,
-                        width: '120px',
-                        cursor: isEditEnabled ? 'pointer' : 'not-allowed'
-                      }}
-                    >
-                      {eastAfricanCountries.map((country) => (
-                        <option key={country.code} value={country.code}>
-                          {country.flag} {country.code}
-                        </option>
-                      ))}
-                    </select>
+                      inputStyle={{ ...inputStyle, cursor: isEditEnabled ? 'pointer' : 'not-allowed' }}
+                      colors={colors}
+                      actualTheme={actualTheme}
+                      width="140px"
+                    />
                     <input
                       type="tel"
                       value={formData.phoneNumber}
@@ -791,29 +780,24 @@ const ProfilePage = () => {
                 {/* Country */}
                 <div>
                   <label style={labelStyle}>Country</label>
-                  <select
+                  <CountrySelect
+                    countries={eastAfricanCountries}
                     value={formData.country}
-                    onChange={(e) => {
-                      handleInputChange('country', e.target.value);
-                      // Reset province, district, sector when country changes
-                      if (e.target.value !== 'Rwanda') {
+                    onChange={(val) => {
+                      handleInputChange('country', val);
+                      if (val !== 'Rwanda') {
                         setFormData(prev => ({ ...prev, province: '', district: '', sector: '' }));
                       } else {
                         setFormData(prev => ({ ...prev, province: 'Kigali City', district: 'Gasabo', sector: '' }));
                       }
                     }}
+                    valueKey="name"
+                    displayKey="name"
                     disabled={!isEditEnabled}
-                    style={{
-                      ...inputStyle,
-                      cursor: isEditEnabled ? 'pointer' : 'not-allowed'
-                    }}
-                  >
-                    {eastAfricanCountries.map((country) => (
-                      <option key={country.name} value={country.name}>
-                        {country.flag} {country.name}
-                      </option>
-                    ))}
-                  </select>
+                    inputStyle={{ ...inputStyle, cursor: isEditEnabled ? 'pointer' : 'not-allowed' }}
+                    colors={colors}
+                    actualTheme={actualTheme}
+                  />
                 </div>
 
                 {/* Province - Only show dropdown for Rwanda */}
