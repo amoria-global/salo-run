@@ -215,7 +215,9 @@
       "Bash(node node_modules/.bin/next build)",
       "Bash(cmd.exe /c \"npx next build\")",
       "Bash(npx.cmd next build)",
-      "Bash(node -e \"const ts = require\\(''typescript''\\); const p = ts.createProgram\\([''app/pages/event-coordinator/events.tsx'', ''app/pages/client/events.tsx''], {noEmit: true, jsx: 1, esModuleInterop: true, moduleResolution: 2, target: 99, module: 99, strict: false, skipLibCheck: true}\\); const d = ts.getPreEmitDiagnostics\\(p\\); d.forEach\\(dd => { const f = dd.file ? dd.file.fileName : ''''; const msg = ts.flattenDiagnosticMessageText\\(dd.messageText, ''\\\\n''\\); console.log\\(f + '': '' + msg\\); }\\); console.log\\(''Errors: '' + d.length\\);\")"
+      "Bash(node -e \"const ts = require\\(''typescript''\\); const p = ts.createProgram\\([''app/pages/event-coordinator/events.tsx'', ''app/pages/client/events.tsx''], {noEmit: true, jsx: 1, esModuleInterop: true, moduleResolution: 2, target: 99, module: 99, strict: false, skipLibCheck: true}\\); const d = ts.getPreEmitDiagnostics\\(p\\); d.forEach\\(dd => { const f = dd.file ? dd.file.fileName : ''''; const msg = ts.flattenDiagnosticMessageText\\(dd.messageText, ''\\\\n''\\); console.log\\(f + '': '' + msg\\); }\\); console.log\\(''Errors: '' + d.length\\);\")",
+      "Bash(taskkill //f //im node.exe)",
+      "Bash(grep -E \"\\\\.\\(tsx|ts|jsx|js\\)$\")"
     ],
     "deny": [],
     "ask": []

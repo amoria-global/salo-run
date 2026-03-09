@@ -9,6 +9,15 @@ import { useTheme } from '../../context/ThemeContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { getApiUrl } from '@/lib/api';
 
+const normalizeImg = (url: string | undefined | null): string => {
+  if (!url || url === 'null' || url.endsWith('/null')) return '';
+  let u = url;
+  if (!u.includes('/') && !u.startsWith('http')) {
+    u = `https://backend.connekyt.com/uploads/profile/photos/${u}`;
+  }
+  return u.replace('http://197.243.24.101', 'https://backend.connekyt.com');
+};
+
 // Icons
 const SearchIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -180,7 +189,7 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
             id: c.id || c.partnerId || '',
             participants: c.participants || [
               { id: currentUserId, name: '', image: '', userType: userRole, isOnline: true },
-              { id: c.partnerId || c.id, name: c.partnerName || c.name || '', image: c.partnerImage || c.image || '', userType: 'photographer', isOnline: false },
+              { id: c.partnerId || c.id, name: c.partnerName || c.name || '', image: normalizeImg(c.partnerImage || c.image), userType: 'photographer', isOnline: false },
             ],
             lastMessage: c.lastMessage || (c.lastMessageContent ? { content: c.lastMessageContent, senderId: c.lastSenderId || '', createdAt: c.lastMessageAt || '' } : undefined),
             unreadCount: c.unreadCount || 0,
@@ -218,7 +227,7 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
         const list = (data.data?.content || data.data || []).map((p: any) => ({
           id: p.id || '',
           name: `${(p.firstName || '')} ${(p.lastName || '')}`.trim() || p.name || 'Photographer',
-          image: p.profilePicture || p.image || '',
+          image: normalizeImg(p.profilePicture || p.image),
           speciality: p.speciality || p.category || '',
         }));
         setContacts(list);
@@ -243,8 +252,8 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
       const newConv: Conversation = {
         id: contact.id,
         participants: [
-          { id: currentUserId, name: user?.firstName ? `${user.firstName} ${user.lastName || ''}` : '', image: user?.profilePicture || '', userType: userRole, isOnline: true },
-          { id: contact.id, name: contact.name, image: contact.image, userType: 'photographer', isOnline: false },
+          { id: currentUserId, name: user?.firstName ? `${user.firstName} ${user.lastName || ''}` : '', image: normalizeImg(user?.profilePicture), userType: userRole, isOnline: true },
+          { id: contact.id, name: contact.name, image: normalizeImg(contact.image), userType: 'photographer', isOnline: false },
         ],
         unreadCount: 0,
         isPinned: false,
@@ -292,7 +301,7 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
                     conversationId: partnerId,
                     senderId: m.senderId || m.sender?.id || '',
                     senderName: m.senderName || m.sender?.name || '',
-                    senderImage: m.senderImage || m.sender?.image || '',
+                    senderImage: normalizeImg(m.senderImage || m.sender?.image),
                     content: m.content || m.message || '',
                     type: (m.type || 'text') as Message['type'],
                     attachments: m.attachments || [],
@@ -396,7 +405,7 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
       conversationId: selectedConversation,
       senderId: currentUserId,
       senderName: user?.firstName ? `${user.firstName} ${user.lastName || ''}` : '',
-      senderImage: user?.profilePicture || '',
+      senderImage: normalizeImg(user?.profilePicture),
       content,
       type: 'text',
       isRead: false,
@@ -832,22 +841,23 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
                         width: '48px',
                         height: '48px',
                         borderRadius: '50%',
-                        overflow: 'hidden'
+                        overflow: 'hidden',
+                        backgroundColor: '#E5E7EB',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
                       }}>
                         {other.image ? (
-                          <Image
+                          <img
                             src={other.image}
                             alt={other.name}
-                            width={48}
-                            height={48}
                             style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                            onError={(e) => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement)?.style.setProperty('display', 'flex'); }}
                           />
-                        ) : (
-                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                            <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
-                          </svg>
-                        )}
+                        ) : null}
+                        <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'linear-gradient(135deg, #083A85, #3B82F6)', display: other.image ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '1.1rem', fontWeight: 700 }}>
+                          {other.name?.charAt(0)?.toUpperCase() || '?'}
+                        </div>
                       </div>
                       {other.isOnline && (
                         <div style={{
@@ -947,22 +957,23 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
                         width: '44px',
                         height: '44px',
                         borderRadius: '50%',
-                        overflow: 'hidden'
+                        overflow: 'hidden',
+                        backgroundColor: '#E5E7EB',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
                       }}>
                         {otherParticipant.image ? (
-                          <Image
+                          <img
                             src={otherParticipant.image}
                             alt={otherParticipant.name}
-                            width={44}
-                            height={44}
                             style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                            onError={(e) => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement)?.style.setProperty('display', 'flex'); }}
                           />
-                        ) : (
-                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                            <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
-                          </svg>
-                        )}
+                        ) : null}
+                        <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: 'linear-gradient(135deg, #083A85, #3B82F6)', display: otherParticipant.image ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '1rem', fontWeight: 700 }}>
+                          {otherParticipant.name?.charAt(0)?.toUpperCase() || '?'}
+                        </div>
                       </div>
                       {otherParticipant.isOnline && (
                         <div style={{
@@ -1015,19 +1026,16 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
                               flexShrink: 0
                             }}>
                               {message.senderImage ? (
-                                <Image
+                                <img
                                   src={message.senderImage}
                                   alt={message.senderName}
-                                  width={32}
-                                  height={32}
                                   style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                                  onError={(e) => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement)?.style.setProperty('display', 'flex'); }}
                                 />
-                              ) : (
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                  <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
-                                </svg>
-                              )}
+                              ) : null}
+                              <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #083A85, #3B82F6)', display: message.senderImage ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.75rem', fontWeight: 700 }}>
+                                {message.senderName?.charAt(0)?.toUpperCase() || '?'}
+                              </div>
                             </div>
                           )}
                           {!isOwn && !showAvatar && <div style={{ width: '32px' }} />}

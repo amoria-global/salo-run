@@ -35,6 +35,7 @@ function mapBackendType(backendType: string): NotificationType {
     case 'MEDIA': case 'ALBUM': return 'album';
     case 'REVIEW': return 'review';
     case 'BOOKING': case 'EVENT': case 'ASSIGNMENT': return 'event';
+    case 'PHOTOBOOK': case 'PHOTOBOOK_RECEIVED': return 'photobook';
     default: return 'payment';
   }
 }
@@ -95,7 +96,7 @@ const TrashIcon = () => (
 );
 
 // Notification types specific to photographers
-type NotificationType = 'payment' | 'tip' | 'bonus' | 'security' | 'album' | 'review' | 'event';
+type NotificationType = 'payment' | 'tip' | 'bonus' | 'security' | 'album' | 'review' | 'event' | 'photobook';
 
 interface Notification {
   id: string;
@@ -181,6 +182,8 @@ const Notifications = () => {
         return { icon: <StarIcon />, bg: actualTheme === 'dark' ? '#78350F' : '#FEF3C7', color: actualTheme === 'dark' ? '#FCD34D' : '#F59E0B' };
       case 'event':
         return { icon: <ImageIcon />, bg: actualTheme === 'dark' ? '#1E3A5F' : '#DBEAFE', color: actualTheme === 'dark' ? '#60A5FA' : '#2563EB' };
+      case 'photobook':
+        return { icon: <ImageIcon />, bg: actualTheme === 'dark' ? '#4A1D6A' : '#F3E8FF', color: actualTheme === 'dark' ? '#D8B4FE' : '#7C3AED' };
       default:
         return { icon: <BellIcon />, bg: colors.bgTertiary, color: colors.textSecondary };
     }
@@ -207,6 +210,7 @@ const Notifications = () => {
       case 'payment': case 'tip': case 'bonus': return '/user/photographer/all-transactions';
       case 'security': return '/user/photographer/profile';
       case 'album': case 'event': return '/user/photographer/events';
+      case 'photobook': return '/user/photographer/events?tab=photobooks';
       case 'review': return '/user/photographer/clients';
       default: return null;
     }
