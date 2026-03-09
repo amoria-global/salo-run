@@ -924,7 +924,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
   }, []);
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary, overflow: 'hidden', width: '100%', maxWidth: '100vw' }}>
       <style>{`
         @media (max-width: 768px) {
           .mobile-header {
@@ -939,8 +939,15 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
             font-size: 0.85rem !important;
           }
           .mobile-header-actions {
-            flex-direction: column !important;
-            gap: 0.75rem !important;
+            flex-direction: row !important;
+            flex-wrap: wrap !important;
+            gap: 0.5rem !important;
+          }
+          .mobile-header-actions select {
+            min-height: 40px !important;
+          }
+          .mobile-header-actions button {
+            min-height: 40px !important;
           }
           .mobile-stats-grid {
             grid-template-columns: repeat(2, 1fr) !important;
@@ -956,25 +963,51 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
             font-size: 1.2rem !important;
           }
           .mobile-tabs {
-            flex-wrap: wrap !important;
-            gap: 0.5rem !important;
+            overflow-x: auto !important;
+            flex-wrap: nowrap !important;
+            width: 100% !important;
+            -webkit-overflow-scrolling: touch;
+            -ms-overflow-style: none !important;
+            scrollbar-width: none !important;
+            padding-bottom: 0.25rem !important;
+          }
+          .mobile-tabs::-webkit-scrollbar {
+            display: none !important;
+          }
+          .mobile-tabs button {
+            flex-shrink: 0 !important;
+            white-space: nowrap !important;
+            min-height: 40px !important;
           }
           .mobile-search-filters {
             flex-direction: column !important;
             gap: 0.75rem !important;
           }
+          .mobile-search-filters input {
+            min-height: 44px !important;
+          }
           .mobile-filter-buttons {
             overflow-x: auto !important;
             flex-wrap: nowrap !important;
             -webkit-overflow-scrolling: touch;
+            -ms-overflow-style: none !important;
+            scrollbar-width: none !important;
+          }
+          .mobile-filter-buttons::-webkit-scrollbar {
+            display: none !important;
+          }
+          .mobile-filter-buttons button {
+            flex-shrink: 0 !important;
+            min-height: 40px !important;
           }
           .mobile-photographers-grid {
             grid-template-columns: 1fr !important;
             gap: 1rem !important;
           }
           .mobile-main-content {
-            padding: 0.75rem !important;
+            padding: 1rem !important;
             padding-bottom: 8rem !important;
+            overflow-x: hidden !important;
           }
         }
         @media (max-width: 640px) {
@@ -997,8 +1030,49 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
             font-size: 1.1rem !important;
           }
           .mobile-main-content {
-            padding: 0.5rem !important;
+            padding: 0.75rem !important;
             padding-bottom: 10rem !important;
+          }
+          .mobile-tabs button {
+            font-size: 0.8rem !important;
+            padding: 0.4rem 0.75rem !important;
+          }
+          .mobile-tabs button span {
+            font-size: 0.65rem !important;
+          }
+        }
+        @media (max-width: 375px) {
+          .mobile-main-content {
+            padding: 0.5rem !important;
+            padding-bottom: 8rem !important;
+          }
+          .mobile-title {
+            font-size: 1.2rem !important;
+          }
+          .mobile-subtitle {
+            font-size: 0.75rem !important;
+          }
+          .mobile-tabs button {
+            font-size: 0.75rem !important;
+            padding: 0.35rem 0.5rem !important;
+            min-height: 36px !important;
+          }
+          .mobile-tabs button span {
+            font-size: 0.6rem !important;
+            padding: 0.1rem 0.35rem !important;
+          }
+          .mobile-header-actions select {
+            font-size: 0.8rem !important;
+            padding: 0.4rem 1.5rem 0.4rem 0.5rem !important;
+          }
+          .mobile-stats-grid > div {
+            padding: 0.5rem !important;
+          }
+          .mobile-stats-grid > div > div:first-child {
+            font-size: 0.65rem !important;
+          }
+          .mobile-stats-grid > div > div:last-child {
+            font-size: 1rem !important;
           }
         }
       `}</style>

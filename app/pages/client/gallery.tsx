@@ -1379,12 +1379,13 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   }, [handleKeyDown]);
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary, overflow: 'hidden', width: '100%', maxWidth: '100vw' }}>
       <style>{`
         @media (max-width: 768px) {
           .mobile-main-content {
             padding: 1rem !important;
-            padding-bottom: 5rem !important;
+            padding-bottom: 8rem !important;
+            overflow-x: hidden !important;
           }
           .mobile-header {
             flex-direction: column !important;
@@ -1395,12 +1396,16 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
             flex-wrap: wrap !important;
             gap: 0.375rem !important;
           }
+          .mobile-header-buttons button {
+            min-height: 40px !important;
+          }
           .view-toggle-container {
             align-self: stretch !important;
           }
           .view-toggle-container button {
             font-size: 0.8rem !important;
             padding: 0.5rem 0.875rem !important;
+            min-height: 40px !important;
           }
           .mobile-title {
             font-size: 1.5rem !important;
@@ -1412,6 +1417,15 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
           .mobile-tabs {
             overflow-x: auto !important;
             -webkit-overflow-scrolling: touch !important;
+            -ms-overflow-style: none !important;
+            scrollbar-width: none !important;
+          }
+          .mobile-tabs::-webkit-scrollbar {
+            display: none !important;
+          }
+          .mobile-tabs button {
+            flex-shrink: 0 !important;
+            min-height: 40px !important;
           }
           .mobile-albums-grid {
             grid-template-columns: 1fr !important;
@@ -1466,7 +1480,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
         @media (max-width: 640px) {
           .mobile-main-content {
             padding: 0.75rem !important;
-            padding-bottom: 5rem !important;
+            padding-bottom: 10rem !important;
           }
           .mobile-stats-grid {
             grid-template-columns: 1fr 1fr !important;
@@ -1496,7 +1510,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
         @media (max-width: 375px) {
           .mobile-main-content {
             padding: 0.5rem !important;
-            padding-bottom: 5rem !important;
+            padding-bottom: 8rem !important;
           }
           .mobile-stats-grid {
             grid-template-columns: 1fr 1fr !important;
@@ -1675,6 +1689,136 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
           .step3-grid-checkmark {
             width: 18px !important;
             height: 18px !important;
+          }
+        }
+
+        /* Wizard modal mobile styles */
+        @media (max-width: 768px) {
+          .wizard-modal-overlay {
+            padding: 0.5rem !important;
+            padding-bottom: 5rem !important;
+            align-items: flex-start !important;
+            padding-top: 2rem !important;
+          }
+          .wizard-modal-inner {
+            max-width: 100% !important;
+            width: 100% !important;
+            max-height: calc(100vh - 7rem) !important;
+            border-radius: 0.75rem !important;
+          }
+          .wizard-header {
+            padding: 1rem !important;
+          }
+          .wizard-header h2 {
+            font-size: 1rem !important;
+          }
+          .wizard-body {
+            padding: 0.75rem 1rem !important;
+          }
+          .wizard-footer {
+            padding: 0.75rem 1rem !important;
+          }
+          .wizard-footer button {
+            min-height: 44px !important;
+            flex: 1 !important;
+            font-size: 0.85rem !important;
+          }
+          .wizard-album-item {
+            gap: 0.75rem !important;
+            padding: 0.625rem !important;
+          }
+          .wizard-album-thumb {
+            width: 52px !important;
+            height: 52px !important;
+          }
+          .wizard-layout-item {
+            gap: 0.75rem !important;
+            padding: 0.75rem !important;
+          }
+          .wizard-layout-icon {
+            width: 40px !important;
+            height: 40px !important;
+          }
+          .step3-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 0.75rem !important;
+            padding: 0.75rem 1rem !important;
+          }
+          .step3-header-left {
+            flex-wrap: wrap !important;
+            gap: 0.5rem !important;
+          }
+          .step3-header-right {
+            width: 100% !important;
+            justify-content: flex-end !important;
+          }
+          .step3-header-right button {
+            min-height: 40px !important;
+          }
+        }
+        @media (max-width: 375px) {
+          .wizard-modal-overlay {
+            padding: 0.25rem !important;
+            padding-bottom: 5rem !important;
+            padding-top: 1rem !important;
+          }
+          .wizard-modal-inner {
+            border-radius: 0.5rem !important;
+            max-height: calc(100vh - 6rem) !important;
+          }
+          .wizard-header {
+            padding: 0.75rem !important;
+          }
+          .wizard-header h2 {
+            font-size: 0.9rem !important;
+          }
+          .wizard-header p {
+            font-size: 0.7rem !important;
+          }
+          .wizard-body {
+            padding: 0.5rem 0.75rem !important;
+          }
+          .wizard-footer {
+            padding: 0.5rem 0.75rem !important;
+          }
+          .wizard-footer button {
+            padding: 0.5rem 0.75rem !important;
+            font-size: 0.8rem !important;
+          }
+          .wizard-album-thumb {
+            width: 44px !important;
+            height: 44px !important;
+          }
+          .wizard-album-item h4 {
+            font-size: 0.8rem !important;
+          }
+          .wizard-album-item p {
+            font-size: 0.7rem !important;
+          }
+          .wizard-layout-icon {
+            width: 36px !important;
+            height: 36px !important;
+          }
+          .wizard-layout-item h4 {
+            font-size: 0.85rem !important;
+          }
+          .wizard-layout-item p {
+            font-size: 0.7rem !important;
+          }
+          .step3-header-left > span {
+            font-size: 0.7rem !important;
+            padding: 0.25rem 0.5rem !important;
+          }
+          .step3-header-right button {
+            padding: 0.375rem 0.5rem !important;
+            font-size: 0.75rem !important;
+          }
+          .step3-album-info h3 {
+            font-size: 0.85rem !important;
+          }
+          .step3-album-info p {
+            font-size: 0.7rem !important;
           }
         }
       `}</style>
@@ -3558,6 +3702,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
       {/* Setup Wizard Modal - Steps 1 & 2 (Album & Layout selection) */}
       {showSetupWizard && setupStep !== 3 && (
         <div
+          className="wizard-modal-overlay"
           style={{
             position: 'fixed',
             top: 0,
@@ -3574,6 +3719,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
           onClick={resetSetupWizard}
         >
           <div
+            className="wizard-modal-inner"
             onClick={(e) => e.stopPropagation()}
             style={{
               backgroundColor: colors.bgCard,
@@ -3587,7 +3733,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
             }}
           >
             {/* Wizard Header */}
-            <div style={{
+            <div className="wizard-header" style={{
               padding: '1.25rem 1.5rem',
               borderBottom: `2px solid ${colors.borderPrimary}`,
               display: 'flex',
@@ -3637,7 +3783,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
             </div>
 
             {/* Wizard Body */}
-            <div style={{
+            <div className="wizard-body" style={{
               flex: 1,
               overflowY: 'auto',
               padding: '1rem 1.5rem'
@@ -3677,6 +3823,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                         return (
                         <div
                           key={album.id}
+                          className="wizard-album-item"
                           onClick={() => !hasPhotobook && setSetupSelectedAlbum(album)}
                           style={{
                             display: 'flex',
@@ -3695,7 +3842,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                             transition: 'all 0.2s'
                           }}
                         >
-                          <div style={{
+                          <div className="wizard-album-thumb" style={{
                             width: '64px',
                             height: '64px',
                             borderRadius: '0.375rem',
@@ -3767,6 +3914,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                     ].map(layout => (
                       <div
                         key={layout.value}
+                        className="wizard-layout-item"
                         onClick={() => setSetupLayout(layout.value)}
                         style={{
                           display: 'flex',
@@ -3782,7 +3930,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                           transition: 'all 0.2s'
                         }}
                       >
-                        <div style={{
+                        <div className="wizard-layout-icon" style={{
                           width: '48px',
                           height: '48px',
                           borderRadius: '0.5rem',
@@ -3824,7 +3972,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
             </div>
 
             {/* Wizard Footer */}
-            <div style={{
+            <div className="wizard-footer" style={{
               padding: '1rem 1.5rem',
               borderTop: `2px solid ${colors.borderPrimary}`,
               display: 'flex',
@@ -3884,27 +4032,28 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
           }}
         >
           {/* Header */}
-          <div style={{
+          <div className="step3-header" style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             padding: '1rem 1.5rem',
             borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div className="step3-header-left" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <div style={{
                   width: '40px',
                   height: '40px',
                   borderRadius: '0.5rem',
                   overflow: 'hidden',
-                  position: 'relative'
+                  position: 'relative',
+                  flexShrink: 0
                 }}>
                   {setupSelectedAlbum.thumbnail && (
                     <Image src={setupSelectedAlbum.thumbnail} alt={setupSelectedAlbum.title} fill style={{ objectFit: 'cover' }} />
                   )}
                 </div>
-                <div>
+                <div className="step3-album-info">
                   <h3 style={{ fontSize: '1rem', fontWeight: '600', color: 'white', margin: 0 }}>
                     {setupSelectedAlbum.title}
                   </h3>
@@ -3989,7 +4138,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                 </span>
               )}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div className="step3-header-right" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               {/* Back button */}
               <button
                 onClick={() => setSetupStep(2)}

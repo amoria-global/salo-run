@@ -1355,12 +1355,13 @@ const MyEventsPage = () => {
   const pastCount = completedCount;
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary, overflow: 'hidden', width: '100%', maxWidth: '100vw' }}>
       <style>{`
         @media (max-width: 768px) {
           .mobile-main-content {
             padding: 1rem !important;
             padding-bottom: 8rem !important;
+            overflow-x: hidden !important;
           }
           .mobile-header {
             flex-direction: column !important;
@@ -1376,35 +1377,59 @@ const MyEventsPage = () => {
           .mobile-create-btn {
             width: 100% !important;
             justify-content: center !important;
+            min-height: 44px !important;
           }
           .mobile-search {
             max-width: 100% !important;
+          }
+          .mobile-search input {
+            min-height: 44px !important;
+          }
+          .mobile-stats-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.75rem !important;
           }
           .mobile-tabs {
             width: 100% !important;
             overflow-x: auto !important;
             -webkit-overflow-scrolling: touch;
+            -ms-overflow-style: none !important;
+            scrollbar-width: none !important;
+          }
+          .mobile-tabs::-webkit-scrollbar {
+            display: none !important;
           }
           .mobile-tabs button {
             white-space: nowrap !important;
             flex-shrink: 0 !important;
+            min-height: 40px !important;
           }
           .mobile-events-grid {
             grid-template-columns: 1fr !important;
             gap: 1rem !important;
           }
           .mobile-event-card {
+            height: 380px !important;
             border-radius: 1.25rem !important;
           }
-          .mobile-event-image {
-            height: 140px !important;
+          .mobile-event-title-area {
+            bottom: 8rem !important;
           }
           .mobile-event-content {
-            padding: 0.5rem 0.7rem !important;
+            padding: 0.6rem 0.8rem !important;
           }
           .mobile-event-actions {
             flex-wrap: wrap !important;
-            gap: 0.3rem !important;
+            gap: 0.4rem !important;
+          }
+          .mobile-event-actions button {
+            min-height: 40px !important;
+          }
+          .mobile-modal-grid-2 {
+            grid-template-columns: 1fr !important;
+          }
+          .mobile-modal-grid-3 {
+            grid-template-columns: 1fr !important;
           }
         }
         @media (max-width: 640px) {
@@ -1422,17 +1447,20 @@ const MyEventsPage = () => {
             font-size: 0.85rem !important;
             padding: 0.4rem 0.75rem !important;
           }
-          .mobile-event-image {
-            height: 120px !important;
+          .mobile-event-card {
+            height: 350px !important;
+          }
+          .mobile-event-title-area {
+            bottom: 7.5rem !important;
           }
           .mobile-event-content {
-            padding: 0.4rem 0.6rem !important;
+            padding: 0.5rem 0.7rem !important;
           }
         }
         @media (max-width: 375px) {
           .mobile-main-content {
             padding: 0.5rem !important;
-            padding-bottom: 5rem !important;
+            padding-bottom: 8rem !important;
           }
           .mobile-title {
             font-size: 1.2rem !important;
@@ -1444,11 +1472,14 @@ const MyEventsPage = () => {
             font-size: 0.75rem !important;
             padding: 0.35rem 0.5rem !important;
           }
-          .mobile-event-image {
-            height: 100px !important;
+          .mobile-event-card {
+            height: 320px !important;
+          }
+          .mobile-event-title-area {
+            bottom: 7rem !important;
           }
           .mobile-event-content {
-            padding: 0.35rem 0.5rem !important;
+            padding: 0.4rem 0.6rem !important;
           }
           .mobile-create-btn {
             padding: 0.5rem 0.75rem !important;
@@ -1492,7 +1523,7 @@ const MyEventsPage = () => {
           </header>
 
           {/* Status Summary Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem', marginBottom: '1.5rem' }}>
+          <div className="mobile-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem', marginBottom: '1.5rem' }}>
             <StatCard title="Total Events" value={String(events.length)} percentage="" timeframe="" icon={<CalendarIcon />} accentColor="#083A85" />
             <StatCard title="Upcoming" value={String(upcomingCount)} percentage="" timeframe="" icon={<ClockIcon />} accentColor="#3B82F6" />
             <StatCard title="Published" value={String(publishedCount)} percentage="" timeframe="" icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#10B981" strokeWidth="2"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" stroke="#10B981" strokeWidth="2"/></svg>} accentColor="#10B981" />
@@ -1644,7 +1675,7 @@ const MyEventsPage = () => {
                     </div>
 
                     {/* MIDDLE-BOTTOM: event title + category */}
-                    <div style={{ position: 'absolute', bottom: '9rem', left: 0, right: 0, padding: '0 0.8rem' }}>
+                    <div className="mobile-event-title-area" style={{ position: 'absolute', bottom: '9rem', left: 0, right: 0, padding: '0 0.8rem' }}>
                       <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '0.03em', textTransform: 'uppercase', lineHeight: 1.3, marginBottom: '0.2rem' }}>
                         {event.title}
                       </div>
@@ -1783,7 +1814,7 @@ const MyEventsPage = () => {
               <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Event Title *</label>
               <input type="text" value={createTitle} onChange={(e) => setCreateTitle(e.target.value)} placeholder="e.g., APR BBC Vs Espoir BCC" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="mobile-modal-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Category *</label>
                 <select value={createCategory} onChange={(e) => setCreateCategory(e.target.value as EventCategory)} style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', backgroundColor: colors.bgCard, color: colors.textPrimary, cursor: 'pointer' }}>
@@ -1814,7 +1845,7 @@ const MyEventsPage = () => {
               <CalendarIcon />
               <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Date & Time</span>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+            <div className="mobile-modal-grid-3" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Event Date *</label>
                 <input type="date" value={createDate} min={new Date().toISOString().split('T')[0]} onChange={(e) => { setDateError(''); setCreateDate(e.target.value); }} style={{ width: '100%', padding: '0.625rem', border: dateError ? '2px solid #DC2626' : '2px solid #D1D5DB', borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, cursor: 'pointer' }} />
@@ -1838,7 +1869,7 @@ const MyEventsPage = () => {
               <LocationIcon />
               <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Location</span>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="mobile-modal-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Venue Name *</label>
                 <input type="text" value={createVenueName} onChange={(e) => setCreateVenueName(e.target.value.replace(/,/g, ''))} placeholder="e.g., BK Arena" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
@@ -2988,7 +3019,7 @@ const MyEventsPage = () => {
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Event Title *</label>
                 <input type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="e.g., APR BBC Vs Espoir BCC" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="mobile-modal-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Category *</label>
                   <select value={editCategory} onChange={(e) => setEditCategory(e.target.value as EventCategory)} style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', backgroundColor: colors.bgCard, color: colors.textPrimary, cursor: 'pointer' }}>
@@ -3012,7 +3043,7 @@ const MyEventsPage = () => {
                 <CalendarIcon />
                 <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Date & Time</span>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+              <div className="mobile-modal-grid-3" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Event Date *</label>
                   <input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, cursor: 'pointer' }} />
@@ -3034,7 +3065,7 @@ const MyEventsPage = () => {
                 <LocationIcon />
                 <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Location</span>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="mobile-modal-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Venue Name *</label>
                   <input type="text" value={editVenueName} onChange={(e) => setEditVenueName(e.target.value.replace(/,/g, ''))} placeholder="e.g., BK Arena" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
