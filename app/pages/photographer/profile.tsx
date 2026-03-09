@@ -4,6 +4,7 @@ import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react'
 import localforage from 'localforage';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
+import CountrySelect, { eastAfricanCountries } from '../../components/CountrySelect';
 import ApprovalPendingModal from '../../components/ApprovalPendingModal';
 import { useTheme } from '../../context/ThemeContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
@@ -182,6 +183,17 @@ interface ToastMessage {
   message: string;
 }
 
+interface PendingChange {
+  id: string;
+  fieldName: string;
+  oldValue: string;
+  newValue: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  createdAt: string;
+  reviewedAt?: string;
+  reviewComment?: string;
+}
+
 interface PhotographerProfilePageProps {
   userType?: 'photographer' | 'freelancer';
 }
@@ -220,14 +232,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   };
 
   // East African countries with phone codes
-  const eastAfricanCountries = [
-    { name: 'Rwanda', code: '+250', flag: '🇷🇼' },
-    { name: 'Kenya', code: '+254', flag: '🇰🇪' },
-    { name: 'Uganda', code: '+256', flag: '🇺🇬' },
-    { name: 'Tanzania', code: '+255', flag: '🇹🇿' },
-    { name: 'Burundi', code: '+257', flag: '🇧🇮' },
-    { name: 'South Sudan', code: '+211', flag: '🇸🇸' },
-  ];
+  // East African countries imported from CountrySelect component
 
   // Rwanda provinces and districts
   const rwandaProvinces: { [key: string]: string[] } = {
@@ -248,6 +253,18 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     'Live-streaming',
     'Other preferences',
   ];
+
+  // Features restricted by package type
+  const getFeaturesForPackage = (packageName: string) => {
+    if (packageName === 'Essential') {
+      return availableFeatures.filter(f => f !== 'Live-streaming' && f !== 'Same-day preview');
+    }
+    if (packageName === 'Custom') {
+      return availableFeatures.filter(f => f !== 'Live-streaming');
+    }
+    // Premium: all features
+    return availableFeatures;
+  };
 
   // Available specialties
   const availableSpecialties = [
@@ -352,7 +369,16 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   };
 
   const updatePackage = (id: string, field: keyof DeliveryPackage, value: string | boolean) => {
-    setPackages(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
+    setPackages(prev => prev.map(p => {
+      if (p.id !== id) return p;
+      const updated = { ...p, [field]: value };
+      // When package name changes, remove features not allowed for the new package type
+      if (field === 'packageName' && typeof value === 'string') {
+        const allowed = getFeaturesForPackage(value);
+        updated.features = updated.features.filter(f => allowed.includes(f.featureName));
+      }
+      return updated;
+    }));
   };
 
   const removePackage = (id: string) => {
@@ -419,10 +445,10 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           durationHours: parseFloat(pkg.durationHours) || 0,
           description: pkg.description,
           isActive: pkg.isActive,
-          features: pkg.features.map(f => ({
-            featureName: f.featureName,
-            isIncluded: f.isIncluded,
-            displayOrder: f.displayOrder,
+          features: getFeaturesForPackage(pkg.packageName).map((f, idx) => ({
+            featureName: f,
+            isIncluded: true,
+            displayOrder: idx + 1,
           })),
         }),
       });
@@ -472,6 +498,46 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [isSavingAvailability, setIsSavingAvailability] = useState(false);
 
+  // Pending profile changes state (for approved accounts modifying sensitive fields)
+  const [pendingChanges, setPendingChanges] = useState<PendingChange[]>([]);
+  const isAccountAccepted = user?.profileReviewStatus?.toUpperCase() === 'ACCEPTED';
+
+  // Fetch pending changes for approved accounts
+  const fetchPendingChanges = useCallback(async () => {
+    if (!token || !isAccountAccepted) return;
+    try {
+      const apiUrl = getApiUrl();
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/pending-changes`);
+      if (res.ok) {
+        const result = await res.json();
+        if (result.data && Array.isArray(result.data)) {
+          setPendingChanges(result.data.filter((c: PendingChange) => c.status === 'PENDING'));
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch pending changes:', error);
+    }
+  }, [token, isAccountAccepted]);
+
+  // Helper: check if a field has pending changes
+  const getFieldPendingChanges = useCallback((fieldName: string) => {
+    return pendingChanges.filter(c => c.fieldName === fieldName);
+  }, [pendingChanges]);
+
+  // Helper: check if response indicates change was routed to pending
+  const checkPendingResponse = async (response: Response): Promise<boolean> => {
+    try {
+      const result = await response.clone().json();
+      // Backend returns a flag or message indicating pending approval routing
+      if (result.pendingApproval || result.message?.toLowerCase().includes('pending')) {
+        return true;
+      }
+    } catch {
+      // Not JSON or no pending indicator
+    }
+    return false;
+  };
+
   // Save all changes handler for the "Save Changes" button
   const handleSaveAllChanges = async () => {
     if (!token) return;
@@ -486,7 +552,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       if (success) {
         showToast('success', 'Profile saved successfully!');
         // Show approval modal if profile is not yet approved
-        if (user?.profileReviewStatus !== 'approved') {
+        if (user?.profileReviewStatus?.toUpperCase() !== 'ACCEPTED') {
           setShowApprovalModal(true);
         }
       } else {
@@ -672,12 +738,25 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   // Load user data from auth context
   useEffect(() => {
     if (user) {
+      // Strip country code prefix from phone number to avoid duplication with the selector
+      let phone = user.phone || '';
+      let detectedCode = '+250'; // default
+      for (const c of eastAfricanCountries) {
+        const digits = c.code.replace('+', '');
+        if (phone.startsWith(digits)) {
+          phone = phone.slice(digits.length);
+          detectedCode = c.code;
+          break;
+        }
+      }
+
       // Set basic info from user
       setBasicInfo(prev => ({
         ...prev,
         fullName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
         email: user.email || '',
-        phoneNumber: user.phone || '',
+        phoneCode: detectedCode,
+        phoneNumber: phone,
         specialty: (user.customerType === 'Videographer' ? 'Videographer' : 'Photographer') as 'Photographer' | 'Videographer',
       }));
 
@@ -729,6 +808,21 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         })) || [],
       }));
 
+      // Set experience data from user
+      if (user.workExperiences && user.workExperiences.length > 0) {
+        setExperienceData({
+          experiences: user.workExperiences.map(e => ({
+            id: e.id || String(Date.now()),
+            position: e.position || '',
+            company: e.company || '',
+            location: e.location || '',
+            startDate: e.startDate?.split('-')[0] || '',
+            endDate: e.endDate ? e.endDate.split('-')[0] : 'Present',
+            description: e.description || '',
+          })),
+        });
+      }
+
       // Set availability from user data
       if (user.availabilities && user.availabilities.length > 0) {
         const availabilityMap: { [key: string]: DayAvailability } = {};
@@ -761,6 +855,11 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       if (user.coverPicture) setBannerImage(user.coverPicture);
     }
   }, [user]);
+
+  // Fetch pending changes for approved accounts
+  useEffect(() => {
+    fetchPendingChanges();
+  }, [fetchPendingChanges]);
 
   // Fetch balance for Topbar
   useEffect(() => {
@@ -841,6 +940,32 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     if (percentage < 60) return '#F59E0B';
     if (percentage < 90) return '#3B82F6';
     return '#10B981';
+  };
+
+  // Render pending approval badge for a field
+  const renderPendingBadge = (fieldName: string) => {
+    if (!isAccountAccepted) return null;
+    const changes = getFieldPendingChanges(fieldName);
+    if (changes.length === 0) return null;
+    return (
+      <span style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '0.3rem',
+        padding: '0.2rem 0.6rem',
+        borderRadius: '9999px',
+        fontSize: '0.7rem',
+        fontWeight: '600',
+        color: 'white',
+        backgroundColor: '#e68a00',
+        marginLeft: '0.5rem',
+        textTransform: 'uppercase',
+        letterSpacing: '0.3px',
+      }}>
+        <i className="bi bi-hourglass-split" style={{ fontSize: '10px' }}></i>
+        {changes.length} Pending
+      </span>
+    );
   };
 
   // Handle image uploads
@@ -1019,8 +1144,13 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         return false;
       }
 
-      console.log('Education saved successfully');
-      // Refresh profile to get updated data with server-generated IDs
+      const isPending = await checkPendingResponse(response);
+      if (isPending) {
+        showToast('success', 'Education change submitted for admin approval');
+        await fetchPendingChanges();
+      } else {
+        console.log('Education saved successfully');
+      }
       await refreshUserProfile();
       return true;
     } catch (error) {
@@ -1064,7 +1194,13 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         return false;
       }
 
-      console.log('Training added successfully');
+      const isPending = await checkPendingResponse(response);
+      if (isPending) {
+        showToast('success', 'Training/certification change submitted for admin approval');
+        await fetchPendingChanges();
+      } else {
+        console.log('Training added successfully');
+      }
       await refreshUserProfile();
       return true;
     } catch (error) {
@@ -1105,7 +1241,13 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         return false;
       }
 
-      console.log('Skill added successfully');
+      const isPending = await checkPendingResponse(response);
+      if (isPending) {
+        showToast('success', 'Skill change submitted for admin approval');
+        await fetchPendingChanges();
+      } else {
+        console.log('Skill added successfully');
+      }
       await refreshUserProfile();
       return true;
     } catch (error) {
@@ -1145,7 +1287,13 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         return false;
       }
 
-      console.log('Equipment added successfully');
+      const isPending = await checkPendingResponse(response);
+      if (isPending) {
+        showToast('success', 'Equipment change submitted for admin approval');
+        await fetchPendingChanges();
+      } else {
+        console.log('Equipment added successfully');
+      }
       await refreshUserProfile();
       return true;
     } catch (error) {
@@ -1172,6 +1320,11 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         body: JSON.stringify(data),
       });
       if (!response.ok) return false;
+      const isPending = await checkPendingResponse(response);
+      if (isPending) {
+        showToast('success', 'Some changes submitted for admin approval');
+        await fetchPendingChanges();
+      }
       await refreshUserProfile();
       return true;
     } catch (error) {
@@ -1378,7 +1531,13 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         return false;
       }
 
-      console.log('Project added successfully');
+      const isPending = await checkPendingResponse(apiResponse);
+      if (isPending) {
+        showToast('success', 'Project change submitted for admin approval');
+        await fetchPendingChanges();
+      } else {
+        console.log('Project added successfully');
+      }
       await refreshUserProfile();
       return true;
     } catch (error) {
@@ -1503,6 +1662,71 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     }
   };
 
+  // Save work experience to API
+  const [savingExperience, setSavingExperience] = useState<string | null>(null);
+
+  const saveExperienceToAPI = async (exp: Experience) => {
+    if (!token) return false;
+    if (!exp.position || !exp.company) {
+      showToast('error', 'Position and company are required');
+      return false;
+    }
+    setSavingExperience(exp.id);
+    try {
+      const apiUrl = getApiUrl();
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/add-work-experience`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          position: exp.position,
+          company: exp.company,
+          location: exp.location || '',
+          startDate: exp.startDate ? `${exp.startDate}-01-01` : '',
+          endDate: exp.endDate === 'Present' ? '' : (exp.endDate ? `${exp.endDate}-01-01` : ''),
+          description: exp.description || '',
+        }),
+      });
+      if (!response.ok) return false;
+      const isPending = await checkPendingResponse(response);
+      if (isPending) {
+        showToast('success', 'Experience change submitted for admin approval');
+        await fetchPendingChanges();
+      } else {
+        showToast('success', 'Experience saved successfully');
+      }
+      await refreshUserProfile();
+      return true;
+    } catch (error) {
+      console.error('Error saving experience:', error);
+      return false;
+    } finally {
+      setSavingExperience(null);
+    }
+  };
+
+  const deleteExperienceFromAPI = async (experienceId: string) => {
+    if (!token) return false;
+    try {
+      const apiUrl = getApiUrl();
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/delete-work-experience/${experienceId}`, {
+        method: 'POST',
+        headers: {},
+      });
+      if (response.ok) {
+        const isPending = await checkPendingResponse(response);
+        if (isPending) {
+          showToast('success', 'Experience deletion submitted for admin approval');
+          await fetchPendingChanges();
+        }
+        await refreshUserProfile();
+      }
+      return response.ok;
+    } catch (error) {
+      console.error('Error deleting experience:', error);
+      return false;
+    }
+  };
+
   // Qualification handlers
   const addQualification = () => {
     const newId = Date.now().toString();
@@ -1590,11 +1814,16 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     }));
   };
 
-  const removeExperience = (id: string) => {
-    setExperienceData(prev => ({
-      ...prev,
-      experiences: prev.experiences.filter(e => e.id !== id)
-    }));
+  const removeExperience = async (id: string) => {
+    const success = await deleteExperienceFromAPI(id);
+    if (success) {
+      setExperienceData(prev => ({
+        ...prev,
+        experiences: prev.experiences.filter(e => e.id !== id)
+      }));
+    }
+    showToast(success ? 'success' : 'error',
+      success ? 'Experience deleted successfully' : 'Failed to delete experience');
   };
 
   // Project handlers
@@ -2014,11 +2243,13 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
               {/* Profile Review Status Badge */}
               {user?.profileReviewStatus && (() => {
                 const status = user.profileReviewStatus.toLowerCase();
-                const config = status === 'approved'
-                  ? { label: 'Accepted', color: '#16A34A', bg: actualTheme === 'dark' ? '#1A3B2A' : '#F0FDF4', border: '#86EFAC', icon: 'bi-check-circle-fill' }
+                const config = status === 'accepted'
+                  ? { label: 'Account Active', bg: '#03a329', icon: 'bi-check-circle-fill' }
                   : status === 'rejected'
-                  ? { label: 'Rejected', color: '#DC2626', bg: actualTheme === 'dark' ? '#3B1A1A' : '#FEF2F2', border: '#FCA5A5', icon: 'bi-x-circle-fill' }
-                  : { label: 'Pending', color: '#D97706', bg: actualTheme === 'dark' ? '#3B2E1A' : '#FFFBEB', border: '#FCD34D', icon: 'bi-hourglass-split' };
+                  ? { label: 'Changes Needed', bg: '#d41919', icon: 'bi-x-circle-fill' }
+                  : profileCompletion < 90
+                  ? { label: 'Profile Incomplete', bg: '#e68a00', icon: 'bi-pencil-square' }
+                  : { label: 'Under Review', bg: '#0066cc', icon: 'bi-hourglass-split' };
                 return (
                   <span style={{
                     display: 'inline-flex',
@@ -2028,9 +2259,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                     borderRadius: '9999px',
                     fontSize: '0.75rem',
                     fontWeight: '600',
-                    color: config.color,
+                    color: 'white',
                     backgroundColor: config.bg,
-                    border: `1.5px solid ${config.border}`,
+                    border: 'none',
                     textTransform: 'uppercase',
                     letterSpacing: '0.5px',
                   }}>
@@ -2082,29 +2313,43 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                   {isEditEnabled ? 'Enabled' : 'Disabled'}
                 </span>
               </div>
-              {/* Save Changes Button */}
-              <button
-                className="save-button-enhanced"
-                disabled={!isEditEnabled || isSavingAll}
-                onClick={handleSaveAllChanges}
-                style={{
-                  backgroundColor: isEditEnabled && !isSavingAll ? '#083A85' : colors.bgTertiary,
-                  color: isEditEnabled ? 'white' : colors.textSecondary,
-                  border: isEditEnabled ? '2px solid #062a63' : `2px solid ${colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
-                  padding: '0.75rem 1.5rem',
-                  fontSize: '0.95rem',
-                  fontWeight: '600',
-                  cursor: isEditEnabled && !isSavingAll ? 'pointer' : 'not-allowed',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  opacity: isEditEnabled && !isSavingAll ? 1 : 0.6,
-                  transition: 'all 0.2s'
-                }}
-              >
-                {isSavingAll ? 'Saving...' : 'Save Changes'}
-              </button>
+              {/* Save / Submit Button */}
+              {(() => {
+                const btnLabel = !isAccountAccepted
+                  ? 'Submit Profile'
+                  : pendingChanges.length > 0
+                  ? 'Submit Changes'
+                  : 'Save Changes';
+                const btnSavingLabel = !isAccountAccepted
+                  ? 'Submitting...'
+                  : pendingChanges.length > 0
+                  ? 'Submitting...'
+                  : 'Saving...';
+                return (
+                  <button
+                    className="save-button-enhanced"
+                    disabled={!isEditEnabled || isSavingAll}
+                    onClick={handleSaveAllChanges}
+                    style={{
+                      backgroundColor: isEditEnabled && !isSavingAll ? '#083A85' : colors.bgTertiary,
+                      color: isEditEnabled ? 'white' : colors.textSecondary,
+                      border: isEditEnabled ? '2px solid #062a63' : `2px solid ${colors.borderPrimary}`,
+                      borderRadius: '0.5rem',
+                      padding: '0.75rem 1.5rem',
+                      fontSize: '0.95rem',
+                      fontWeight: '600',
+                      cursor: isEditEnabled && !isSavingAll ? 'pointer' : 'not-allowed',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      opacity: isEditEnabled && !isSavingAll ? 1 : 0.6,
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {isSavingAll ? btnSavingLabel : btnLabel}
+                  </button>
+                );
+              })()}
             </div>
           </div>
 
@@ -2126,6 +2371,135 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
               <span style={{ color: '#047857', fontSize: '0.875rem', fontWeight: '500' }}>
                 Your previous changes have been restored
               </span>
+            </div>
+          )}
+
+          {/* Account Status Banner */}
+          {user?.profileReviewStatus && user.profileReviewStatus.toLowerCase() !== 'accepted' && (() => {
+            const status = user.profileReviewStatus.toLowerCase();
+            const isIncomplete = profileCompletion < 90;
+            const isRejected = status === 'rejected';
+
+            if (isRejected) {
+              return (
+                <div style={{
+                  background: 'linear-gradient(135deg, #d41919 0%, #a81212 100%)',
+                  border: 'none',
+                  borderRadius: '0.75rem',
+                  padding: '1.5rem',
+                  marginBottom: '1.5rem',
+                  color: 'white',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                    <div style={{
+                      width: '48px', height: '48px', borderRadius: '50%',
+                      backgroundColor: 'rgba(255,255,255,0.2)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                    }}>
+                      <i className="bi bi-x-circle-fill" style={{ fontSize: '24px', color: 'white' }}></i>
+                    </div>
+                    <div>
+                      <h4 style={{ margin: '0 0 0.5rem', fontSize: '1.15rem', fontWeight: '700', color: 'white' }}>
+                        Your profile needs changes before it can be approved
+                      </h4>
+                      <p style={{ margin: 0, fontSize: '1rem', color: 'rgba(255,255,255,0.9)', lineHeight: '1.7' }}>
+                        Our team has reviewed your profile and found some areas that need attention. Please review the feedback, update the required sections, and save your profile again to resubmit for review.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            if (isIncomplete) {
+              return (
+                <div style={{
+                  background: 'linear-gradient(135deg, #e68a00 0%, #cc7a00 100%)',
+                  border: 'none',
+                  borderRadius: '0.75rem',
+                  padding: '1.5rem',
+                  marginBottom: '1.5rem',
+                  color: 'white',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                    <div style={{
+                      width: '48px', height: '48px', borderRadius: '50%',
+                      backgroundColor: 'rgba(255,255,255,0.2)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                    }}>
+                      <i className="bi bi-pencil-square" style={{ fontSize: '24px', color: 'white' }}></i>
+                    </div>
+                    <div>
+                      <h4 style={{ margin: '0 0 0.5rem', fontSize: '1.15rem', fontWeight: '700', color: 'white' }}>
+                        Complete your profile to get started
+                      </h4>
+                      <p style={{ margin: '0 0 0.5rem', fontSize: '1rem', color: 'rgba(255,255,255,0.9)', lineHeight: '1.7' }}>
+                        Your profile is currently at <strong style={{ color: 'white' }}>{profileCompletion}%</strong>. To submit your profile for approval, you need to fill out at least <strong style={{ color: 'white' }}>90%</strong> of your profile information. This includes your bio, specialties, skills, experience, and portfolio details.
+                      </p>
+                      <p style={{ margin: 0, fontSize: '0.95rem', color: 'rgba(255,255,255,0.8)', lineHeight: '1.6', fontStyle: 'italic' }}>
+                        Once your profile reaches 90%, it will be automatically submitted for review by our team.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            // Profile is >= 90% but still pending — under review
+            return (
+              <div style={{
+                background: 'linear-gradient(135deg, #0066cc 0%, #004d99 100%)',
+                border: 'none',
+                borderRadius: '0.75rem',
+                padding: '1.5rem',
+                marginBottom: '1.5rem',
+                color: 'white',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                  <div style={{
+                    width: '48px', height: '48px', borderRadius: '50%',
+                    backgroundColor: 'rgba(255,255,255,0.2)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                  }}>
+                    <i className="bi bi-hourglass-split" style={{ fontSize: '24px', color: 'white' }}></i>
+                  </div>
+                  <div>
+                    <h4 style={{ margin: '0 0 0.5rem', fontSize: '1.15rem', fontWeight: '700', color: 'white' }}>
+                      Your profile is under review
+                    </h4>
+                    <p style={{ margin: '0 0 0.5rem', fontSize: '1rem', color: 'rgba(255,255,255,0.9)', lineHeight: '1.7' }}>
+                      Thank you for completing your profile! Our team is currently reviewing your information to verify your credentials and ensure quality standards. This process typically takes a few hours.
+                    </p>
+                    <p style={{ margin: 0, fontSize: '0.95rem', color: 'rgba(255,255,255,0.8)', lineHeight: '1.6', fontStyle: 'italic' }}>
+                      You will be notified once your account is approved and you can start receiving bookings from clients.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Pending Profile Changes Banner */}
+          {isAccountAccepted && pendingChanges.length > 0 && (
+            <div style={{
+              background: 'linear-gradient(135deg, #e68a00 0%, #cc7a00 100%)',
+              border: 'none',
+              borderRadius: '0.75rem',
+              padding: '1.25rem 1.5rem',
+              marginBottom: '1.5rem',
+              color: 'white',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <i className="bi bi-hourglass-split" style={{ fontSize: '22px', color: 'white' }}></i>
+                <div>
+                  <h4 style={{ margin: '0 0 0.25rem', fontSize: '1.05rem', fontWeight: '700', color: 'white' }}>
+                    {pendingChanges.length} Profile Change{pendingChanges.length !== 1 ? 's' : ''} Pending Approval
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.9rem', color: 'rgba(255,255,255,0.9)', lineHeight: '1.5' }}>
+                    You have modified sensitive profile fields. These changes are being reviewed by our team and will be applied once approved. Look for the <strong>&quot;Pending&quot;</strong> badges on each section below.
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 
@@ -2263,17 +2637,20 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                     disabled={!isEditEnabled}
                     style={{
                       position: 'absolute',
-                      top: '0.75rem',
-                      right: '0.75rem',
-                      backgroundColor: isEditEnabled ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.25)',
-                      border: '2px solid rgba(255, 255, 255, 0.5)',
-                      borderRadius: '0.375rem',
-                      padding: '0.5rem',
+                      top: '0.5rem',
+                      right: '0.5rem',
+                      backgroundColor: isEditEnabled ? '#083A85' : '#6B7280',
+                      border: '2px solid white',
+                      borderRadius: '50%',
+                      width: '36px',
+                      height: '36px',
+                      padding: 0,
                       cursor: isEditEnabled ? 'pointer' : 'not-allowed',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       opacity: isEditEnabled ? 1 : 0.5,
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
                     }}>
                     <CameraIcon />
                   </button>
@@ -2315,21 +2692,39 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       disabled={!isEditEnabled}
                       style={{
                         position: 'absolute',
-                        bottom: '0',
-                        right: '0',
-                        backgroundColor: isEditEnabled ? '#083A85' : '#9CA3AF',
-                        border: isEditEnabled ? '2px solid #062a63' : '2px solid #6B7280',
+                        bottom: '-2px',
+                        left: '-2px',
+                        backgroundColor: isEditEnabled ? '#083A85' : '#6B7280',
+                        border: '2px solid white',
                         borderRadius: '50%',
-                        width: '32px',
-                        height: '32px',
+                        width: '34px',
+                        height: '34px',
                         cursor: isEditEnabled ? 'pointer' : 'not-allowed',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         opacity: isEditEnabled ? 1 : 0.5,
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+                        zIndex: 2,
                       }}>
                       <CameraIcon />
                     </button>
+                    {/* Verified Badge */}
+                    <div style={{
+                      position: 'absolute',
+                      bottom: '-2px',
+                      right: '-2px',
+                      width: '28px',
+                      height: '28px',
+                      zIndex: 2,
+                    }}>
+                      <svg viewBox="0 0 24 24" width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 1L14.4 3.3L17.5 2.6L18.4 5.6L21.4 6.5L20.7 9.6L23 12L20.7 14.4L21.4 17.5L18.4 18.4L17.5 21.4L14.4 20.7L12 23L9.6 20.7L6.5 21.4L5.6 18.4L2.6 17.5L3.3 14.4L1 12L3.3 9.6L2.6 6.5L5.6 5.6L6.5 2.6L9.6 3.3L12 1Z"
+                          fill={user?.profileReviewStatus?.toUpperCase() === 'ACCEPTED' ? '#1DA1F2' : '#9CA3AF'}
+                        />
+                        <path d="M9 12L11 14L15 10" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
                   </div>
                 </div>
 
@@ -2374,8 +2769,8 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                     <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Reviews</div>
                   </div>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{user?.projects?.length || 0}</div>
-                    <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Jobs</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{user?.completedEvents || 0}</div>
+                    <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Completed Jobs</div>
                   </div>
                 </div>
 
@@ -2414,6 +2809,120 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                     </div>
                   </div>
                 </div>
+
+                {/* Client Reviews */}
+                {user?.reviews && user.reviews.length > 0 && (
+                  <div style={{ padding: '1.25rem', borderTop: `2px solid ${colors.borderPrimary}` }}>
+                    <h3 style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      Client Reviews ({user.reviews.length})
+                    </h3>
+
+                    {/* Average Rating Display */}
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: '0.75rem',
+                      marginBottom: '1rem', padding: '0.75rem',
+                      backgroundColor: actualTheme === 'dark' ? '#1a2332' : '#F8FAFC',
+                      borderRadius: '0.5rem'
+                    }}>
+                      <div style={{ fontSize: '2rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
+                        {user.rating?.toFixed(1) || '0.0'}
+                      </div>
+                      <div>
+                        <div style={{ display: 'flex', gap: '2px', marginBottom: '0.15rem' }}>
+                          {[1, 2, 3, 4, 5].map(star => (
+                            <svg key={star} width="16" height="16" viewBox="0 0 24 24" fill={star <= Math.round(user.rating || 0) ? '#F59E0B' : 'none'} stroke={star <= Math.round(user.rating || 0) ? '#F59E0B' : '#D1D5DB'} strokeWidth="2">
+                              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+                            </svg>
+                          ))}
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>
+                          Based on {user.reviews.length} review{user.reviews.length !== 1 ? 's' : ''}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Review Cards */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      {user.reviews.slice(0, 5).map((rev) => (
+                        <div key={rev.id} style={{
+                          padding: '0.75rem',
+                          border: `1px solid ${colors.borderPrimary}`,
+                          borderRadius: '0.5rem',
+                          backgroundColor: colors.bgCard,
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.5rem' }}>
+                            <div style={{
+                              width: '36px', height: '36px', borderRadius: '50%',
+                              overflow: 'hidden', backgroundColor: colors.bgTertiary, flexShrink: 0,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center'
+                            }}>
+                              {rev.reviewer?.profilePicture ? (
+                                <img src={rev.reviewer.profilePicture.replace('http://197.243.24.101', 'https://backend.connekyt.com')} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                  onError={(e) => { e.currentTarget.style.display = 'none'; if (e.currentTarget.nextElementSibling) (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex'; }}
+                                />
+                              ) : null}
+                              <span style={{ fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, display: rev.reviewer?.profilePicture ? 'none' : 'flex' }}>
+                                {(rev.reviewer?.firstName || '?').charAt(0)}
+                              </span>
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>
+                                {rev.reviewer?.firstName} {rev.reviewer?.lastName}
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <div style={{ display: 'flex', gap: '1px' }}>
+                                  {[1, 2, 3, 4, 5].map(star => (
+                                    <svg key={star} width="12" height="12" viewBox="0 0 24 24" fill={star <= rev.rating ? '#F59E0B' : 'none'} stroke={star <= rev.rating ? '#F59E0B' : '#D1D5DB'} strokeWidth="2">
+                                      <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+                                    </svg>
+                                  ))}
+                                </div>
+                                {rev.createdAt && (
+                                  <span style={{ fontSize: '0.7rem', color: colors.textSecondary }}>
+                                    {(() => {
+                                      const diff = Date.now() - new Date(rev.createdAt).getTime();
+                                      const mins = Math.floor(diff / 60000);
+                                      if (mins < 60) return `${mins}m ago`;
+                                      const hrs = Math.floor(mins / 60);
+                                      if (hrs < 24) return `${hrs}h ago`;
+                                      const days = Math.floor(hrs / 24);
+                                      if (days < 7) return `${days}d ago`;
+                                      const weeks = Math.floor(days / 7);
+                                      if (weeks < 5) return `${weeks}w ago`;
+                                      const months = Math.floor(days / 30);
+                                      if (months < 12) return `${months}mo ago`;
+                                      return `${Math.floor(months / 12)}y ago`;
+                                    })()}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          {rev.review && (
+                            <p style={{ margin: 0, fontSize: '0.85rem', color: colors.textSecondary, lineHeight: '1.5' }}>
+                              {rev.review}
+                            </p>
+                          )}
+                          {rev.images && rev.images.length > 0 && (
+                            <div style={{ display: 'flex', gap: '0.375rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+                              {rev.images.map((img, i) => (
+                                <div key={i} style={{ width: '48px', height: '48px', borderRadius: '0.25rem', overflow: 'hidden' }}>
+                                  <img src={img.replace('http://197.243.24.101', 'https://backend.connekyt.com')} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                      {user.reviews.length > 5 && (
+                        <p style={{ fontSize: '0.8rem', color: colors.textSecondary, textAlign: 'center', margin: '0.25rem 0 0' }}>
+                          + {user.reviews.length - 5} more review{user.reviews.length - 5 !== 1 ? 's' : ''}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -2501,18 +3010,18 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       <div>
                         <label style={labelStyle}>Phone</label>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <select
+                          <CountrySelect
+                            countries={eastAfricanCountries}
                             value={basicInfo.phoneCode}
-                            onChange={(e) => setBasicInfo(prev => ({ ...prev, phoneCode: e.target.value }))}
+                            onChange={(val) => setBasicInfo(prev => ({ ...prev, phoneCode: val }))}
+                            valueKey="code"
+                            displayKey="code"
                             disabled={!isEditEnabled}
-                            style={{ ...selectStyle, width: '110px' }}
-                          >
-                            {eastAfricanCountries.map((country) => (
-                              <option key={country.code} value={country.code}>
-                                {country.flag} {country.code}
-                              </option>
-                            ))}
-                          </select>
+                            inputStyle={selectStyle}
+                            colors={colors}
+                            actualTheme={actualTheme}
+                            width="140px"
+                          />
                           <input
                             type="tel"
                             value={basicInfo.phoneNumber}
@@ -2539,23 +3048,22 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       </div>
                       <div>
                         <label style={labelStyle}>Country</label>
-                        <select
+                        <CountrySelect
+                          countries={eastAfricanCountries}
                           value={basicInfo.country}
-                          disabled={!isEditEnabled}
-                          onChange={(e) => {
-                            setBasicInfo(prev => ({ ...prev, country: e.target.value }));
-                            if (e.target.value !== 'Rwanda') {
+                          onChange={(val) => {
+                            setBasicInfo(prev => ({ ...prev, country: val }));
+                            if (val !== 'Rwanda') {
                               setBasicInfo(prev => ({ ...prev, province: '', district: '', sector: '' }));
                             }
                           }}
-                          style={selectStyle}
-                        >
-                          {eastAfricanCountries.map((country) => (
-                            <option key={country.name} value={country.name}>
-                              {country.flag} {country.name}
-                            </option>
-                          ))}
-                        </select>
+                          valueKey="name"
+                          displayKey="name"
+                          disabled={!isEditEnabled}
+                          inputStyle={selectStyle}
+                          colors={colors}
+                          actualTheme={actualTheme}
+                        />
                       </div>
                       <div>
                         <label style={labelStyle}>Province</label>
@@ -2873,7 +3381,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
                     {/* Specialties */}
                     <div style={sectionTitleStyle}>
-                      <span>Specialties *</span>
+                      <span>Specialties *{renderPendingBadge('specialties')}</span>
                     </div>
                     <p style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '1rem' }}>
                       Select the categories that best describe your photography services (select at least 2)
@@ -2916,7 +3424,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
                     {/* Equipment */}
                     <div style={sectionTitleStyle}>
-                      <span>Equipment</span>
+                      <span>Equipment{renderPendingBadge('equipments')}</span>
                     </div>
                     <p style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '1rem' }}>
                       List your photography equipment (cameras, lenses, drones, etc.)
@@ -3123,7 +3631,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
                     {/* Skills */}
                     <div style={sectionTitleStyle}>
-                      <span>Skills</span>
+                      <span>Skills{renderPendingBadge('professionalSkills')}</span>
                       <button
                         onClick={addSkill}
                         disabled={!isEditEnabled}
@@ -3374,7 +3882,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
                     {/* Education */}
                     <div style={sectionTitleStyle}>
-                      <span>Education</span>
+                      <span>Education{renderPendingBadge('educationLevels')}</span>
                       <button
                         onClick={addEducation}
                         disabled={!isEditEnabled}
@@ -3649,7 +4157,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
                     {/* Training */}
                     <div style={sectionTitleStyle}>
-                      <span>Training & Workshops</span>
+                      <span>Training & Workshops{renderPendingBadge('trainings')}{renderPendingBadge('certifications')}</span>
                       <button
                         onClick={addTraining}
                         disabled={!isEditEnabled}
@@ -3788,7 +4296,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
                     {/* Featured Projects */}
                     <div style={sectionTitleStyle}>
-                      <span>Featured Projects</span>
+                      <span>Featured Projects{renderPendingBadge('projects')}</span>
                       <button
                         onClick={addProject}
                         disabled={!isEditEnabled}
@@ -4037,7 +4545,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                 {activeTab === 'experience' && (
                   <div>
                     <div style={sectionTitleStyle}>
-                      <span>Work Experience</span>
+                      <span>Work Experience{renderPendingBadge('workExperiences')}</span>
                       <button
                         onClick={addExperience}
                         disabled={!isEditEnabled}
@@ -4176,6 +4684,25 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                               style={{ ...inputStyle, resize: 'vertical' }}
                             />
                           </div>
+
+                          {/* Save Experience Button */}
+                          {isEditEnabled && (
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.75rem' }}>
+                              <button
+                                onClick={() => saveExperienceToAPI(exp)}
+                                disabled={savingExperience === exp.id || !exp.position || !exp.company}
+                                style={{
+                                  backgroundColor: (savingExperience === exp.id || !exp.position || !exp.company) ? '#9CA3AF' : '#083A85',
+                                  color: 'white', border: 'none', borderRadius: '0.5rem',
+                                  padding: '0.5rem 1.25rem', fontSize: '0.85rem', fontWeight: '600',
+                                  cursor: (savingExperience === exp.id || !exp.position || !exp.company) ? 'not-allowed' : 'pointer',
+                                  display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                }}
+                              >
+                                {savingExperience === exp.id ? 'Saving...' : 'Save Experience'}
+                              </button>
+                            </div>
+                          )}
                         </div>
                       ))}
 
@@ -4559,84 +5086,47 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                   style={{ ...inputStyle, resize: 'vertical' as const }} />
                               </div>
 
-                              {/* Row 4: Features Section */}
+                              {/* Row 4: Included Features (read-only, determined by package type) */}
                               <div style={{ marginBottom: '1.25rem' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                                  <label style={{ ...labelStyle, marginBottom: 0 }}>Features</label>
-                                  <button onClick={() => addFeatureToPackage(pkg.id)}
-                                    disabled={!isEditEnabled || pkg.features.length >= availableFeatures.length}
-                                    style={{
-                                      backgroundColor: 'transparent',
-                                      color: (isEditEnabled && pkg.features.length < availableFeatures.length) ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.textSecondary,
-                                      border: `1px solid ${(isEditEnabled && pkg.features.length < availableFeatures.length) ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.borderPrimary}`,
-                                      borderRadius: '0.375rem', padding: '0.25rem 0.5rem',
-                                      fontSize: '0.75rem', fontWeight: '500',
-                                      cursor: (isEditEnabled && pkg.features.length < availableFeatures.length) ? 'pointer' : 'not-allowed',
-                                      display: 'flex', alignItems: 'center', gap: '0.25rem',
-                                      opacity: (isEditEnabled && pkg.features.length < availableFeatures.length) ? 1 : 0.6,
-                                    }}
-                                  >
-                                    <PlusIcon /> Add Feature {pkg.features.length > 0 ? `(${availableFeatures.length - pkg.features.length} left)` : ''}
-                                  </button>
-                                </div>
-
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                  {pkg.features.map((feature) => (
-                                    <div key={feature.id} style={{
-                                      display: 'flex', alignItems: 'center', gap: '0.75rem',
-                                      backgroundColor: colors.bgCard, padding: '0.5rem 0.75rem',
-                                      borderRadius: '0.375rem', border: `2px solid ${colors.borderPrimary}`,
-                                    }}>
-                                      {/* isIncluded toggle */}
-                                      <div
-                                        onClick={() => isEditEnabled && updateFeature(pkg.id, feature.id, 'isIncluded', !feature.isIncluded)}
-                                        style={{
-                                          width: '36px', height: '20px', borderRadius: '10px', flexShrink: 0,
-                                          backgroundColor: feature.isIncluded ? '#10B981' : (actualTheme === 'dark' ? '#4B5563' : '#D1D5DB'),
-                                          cursor: isEditEnabled ? 'pointer' : 'not-allowed',
-                                          position: 'relative', transition: 'background-color 0.2s',
-                                        }}
-                                      >
-                                        <div style={{
-                                          width: '16px', height: '16px', borderRadius: '50%',
-                                          backgroundColor: 'white', position: 'absolute', top: '2px',
-                                          left: feature.isIncluded ? '18px' : '2px', transition: 'left 0.2s',
-                                        }} />
+                                <label style={{ ...labelStyle, marginBottom: '0.75rem' }}>Included Features</label>
+                                {pkg.packageName ? (
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                    {getFeaturesForPackage(pkg.packageName).map((feature) => (
+                                      <div key={feature} style={{
+                                        display: 'flex', alignItems: 'center', gap: '0.6rem',
+                                        padding: '0.5rem 0.75rem',
+                                        backgroundColor: colors.bgTertiary,
+                                        borderRadius: '0.375rem',
+                                        border: `1px solid ${colors.borderPrimary}`,
+                                      }}>
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+                                          <path d="M20 6L9 17L4 12" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                        </svg>
+                                        <span style={{ fontSize: '0.85rem', color: colors.textPrimary }}>{feature}</span>
                                       </div>
-                                      {/* Feature name dropdown */}
-                                      <select value={feature.featureName}
-                                        onChange={(e) => updateFeature(pkg.id, feature.id, 'featureName', e.target.value)}
-                                        disabled={!isEditEnabled}
-                                        style={{ ...selectStyle, flex: 1, padding: '0.5rem 0.75rem' }}>
-                                        <option value="">Select a feature</option>
-                                        {availableFeatures
-                                          .filter(f => f === feature.featureName || !pkg.features.some(pf => pf.featureName === f))
-                                          .map((f) => (
-                                            <option key={f} value={f}>{f}</option>
-                                          ))}
-                                      </select>
-                                      {/* Remove feature button */}
-                                      <button
-                                        onClick={() => removeFeature(pkg.id, feature.id)}
-                                        disabled={!isEditEnabled}
-                                        style={{
-                                          padding: '0.25rem', backgroundColor: 'transparent',
-                                          border: 'none', cursor: isEditEnabled ? 'pointer' : 'not-allowed',
-                                          color: colors.textTertiary, display: 'flex', flexShrink: 0,
-                                        }}
-                                        title="Remove feature"
-                                      >
-                                        <XIcon />
-                                      </button>
-                                    </div>
-                                  ))}
-
-                                  {pkg.features.length === 0 && (
-                                    <p style={{ fontSize: '0.8rem', color: colors.textSecondary, fontStyle: 'italic', margin: 0 }}>
-                                      No features added yet. Click &quot;Add Feature&quot; to select features for this package.
-                                    </p>
-                                  )}
-                                </div>
+                                    ))}
+                                    {/* Show excluded features grayed out */}
+                                    {availableFeatures.filter(f => !getFeaturesForPackage(pkg.packageName).includes(f)).map((feature) => (
+                                      <div key={feature} style={{
+                                        display: 'flex', alignItems: 'center', gap: '0.6rem',
+                                        padding: '0.5rem 0.75rem',
+                                        backgroundColor: actualTheme === 'dark' ? 'rgba(75,85,99,0.2)' : 'rgba(0,0,0,0.03)',
+                                        borderRadius: '0.375rem',
+                                        border: `1px solid ${colors.borderPrimary}`,
+                                        opacity: 0.5,
+                                      }}>
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+                                          <path d="M18 6L6 18M6 6L18 18" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                        </svg>
+                                        <span style={{ fontSize: '0.85rem', color: colors.textTertiary, textDecoration: 'line-through' }}>{feature}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p style={{ fontSize: '0.8rem', color: colors.textSecondary, fontStyle: 'italic', margin: 0 }}>
+                                    Select a package to see included features.
+                                  </p>
+                                )}
                               </div>
 
                               {/* Save Button (per package) */}
@@ -4755,7 +5245,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       </div>
 
       {/* Show approval pending modal after profile save */}
-      <ApprovalPendingModal isOpen={showApprovalModal} />
+      <ApprovalPendingModal isOpen={showApprovalModal} profileCompletion={profileCompletion} />
     </div>
   );
 };

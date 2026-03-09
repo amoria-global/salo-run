@@ -46,7 +46,7 @@ export function getGalleryShareLink(albumId: string): string {
 
 /** Build a find-my-photos link on the landing app */
 export function getFindMyPhotosLink(code: string): string {
-  return `${getLandingUrl()}/find-my-photos?code=${code}`;
+  return `${getLandingUrl()}/user/find-my-photos?code=${code}`;
 }
 
 /** Build a photographer invite link on the landing app */
