@@ -55,6 +55,10 @@ const fallbackCurrencyOptions = [
   { value: 'TZS', label: 'TZS' }
 ];
 
+const CURRENCY_FLAG_MAP: Record<string, string> = {
+  USD: 'us', RWF: 'rw', EUR: 'eu', KES: 'ke', UGX: 'ug', TZS: 'tz', GBP: 'gb',
+};
+
 // API URL helper
 function getApiUrl(): string {
   return 'https://backend.connekyt.com';
@@ -253,6 +257,7 @@ interface Event {
   organizer: string;
   tags: string[];
   hasPhotographer: boolean;
+  photographerId?: string;
   photographerName?: string;
   photographerImage?: string;
   shareLink: string;
@@ -364,6 +369,9 @@ const MyEventsPage = () => {
   const [photographerSearchQuery, setPhotographerSearchQuery] = useState('');
   const [photographerAssignMode, setPhotographerAssignMode] = useState<'none' | 'existing' | 'platform' | 'invite'>('none');
   const [invitePhotographerEmail, setInvitePhotographerEmail] = useState('');
+  const [editPhotographerId, setEditPhotographerId] = useState<string>('');
+  const [editPhotographerAssignMode, setEditPhotographerAssignMode] = useState<'none' | 'existing' | 'platform'>('none');
+  const [editPhotographerSearchQuery, setEditPhotographerSearchQuery] = useState('');
 
   const [platformPhotographers, setPlatformPhotographers] = useState<{id: string; name: string; image?: string; speciality: string; rating: number; eventsWorked: number}[]>([]);
 
@@ -473,6 +481,11 @@ const MyEventsPage = () => {
   const [createEventVisibility, setCreateEventVisibility] = useState<string>('PUBLIC');
   const [createPackageId, setCreatePackageId] = useState<string>('');
 
+  const [createCurrencyOpen, setCreateCurrencyOpen] = useState(false);
+  const [editCurrencyOpen, setEditCurrencyOpen] = useState(false);
+  const createCurrencyRef = useRef<HTMLDivElement>(null);
+  const editCurrencyRef = useRef<HTMLDivElement>(null);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [dateError, setDateError] = useState<string>('');
@@ -500,6 +513,16 @@ const MyEventsPage = () => {
       }
     };
     fetchCurrencies();
+  }, []);
+
+  // Close currency dropdowns on click outside
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (createCurrencyRef.current && !createCurrencyRef.current.contains(e.target as Node)) setCreateCurrencyOpen(false);
+      if (editCurrencyRef.current && !editCurrencyRef.current.contains(e.target as Node)) setEditCurrencyOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
   // Use API currencies when available, otherwise fallback
@@ -643,6 +666,7 @@ const MyEventsPage = () => {
   const [unpublishingEventId, setUnpublishingEventId] = useState<string | null>(null);
   const [publishConfirmEvent, setPublishConfirmEvent] = useState<Event | null>(null);
   const [unpublishConfirmEvent, setUnpublishConfirmEvent] = useState<Event | null>(null);
+  const [noPhotographerEvent, setNoPhotographerEvent] = useState<Event | null>(null);
 
   // Fetch events — use coordinator endpoint (returns only this user's events)
   const fetchMyEvents = useCallback(async () => {
@@ -694,6 +718,7 @@ const MyEventsPage = () => {
             organizer: (evt.eventOrganizer as string) || '',
             tags: evt.eventTags ? (evt.eventTags as string).split(',').map((t: string) => t.trim()) : [],
             hasPhotographer: !!(evt.photographerId),
+            photographerId: (evt.photographerId as string) || undefined,
             photographerName: (evt.photographerName as string) || '',
             photographerImage: (evt.photographerImage as string) || '',
             inviteCode: (evt.inviteCode as string) || (evt.hostId as string) || '',
@@ -858,6 +883,9 @@ const MyEventsPage = () => {
     setEditBannerImage(event.bannerImage || null);
     setEditBannerImagePreview(event.bannerImage || null);
     setEditBannerImageFile(null);
+    setEditPhotographerId(event.photographerId || '');
+    setEditPhotographerAssignMode('none');
+    setEditPhotographerSearchQuery('');
     setShowEditModal(true);
   };
 
@@ -912,7 +940,16 @@ const MyEventsPage = () => {
           price: editPrice || 'Free',
           maxGuests: parseInt(editMaxGuests) || event.maxGuests,
           organizer: editOrganizer,
-          tags: editTags
+          tags: editTags,
+          hasPhotographer: !!(editPhotographerId && isValidUUID(editPhotographerId)),
+          photographerId: (editPhotographerId && isValidUUID(editPhotographerId)) ? editPhotographerId : event.photographerId,
+          photographerName: (() => {
+            if (editPhotographerId && isValidUUID(editPhotographerId)) {
+              const sel = pastPhotographers.find(p => p.id === editPhotographerId) || platformPhotographers.find(p => p.id === editPhotographerId);
+              return sel?.name || event.photographerName || '';
+            }
+            return event.photographerName || '';
+          })(),
         };
       }
       return event;
@@ -936,6 +973,10 @@ const MyEventsPage = () => {
         priceCurrency: editPriceCurrency || 'RWF',
         maxGuests: editMaxGuests ? Number(editMaxGuests.replace(/[^\d]/g, '')) : 0,
       };
+      const validEditPhotographerId = (editPhotographerId && isValidUUID(editPhotographerId)) ? editPhotographerId : null;
+      if (validEditPhotographerId) {
+        editPayload.photographerId = validEditPhotographerId;
+      }
       Object.keys(editPayload).forEach(key => {
         if (editPayload[key] === undefined || editPayload[key] === null) delete editPayload[key];
       });
@@ -1554,7 +1595,7 @@ const MyEventsPage = () => {
                             {unpublishingEventId === event.id ? 'Unpublishing...' : 'Unpublish'}
                           </button>
                         ) : (
-                          <button onClick={() => setPublishConfirmEvent(event)} disabled={publishingEventId === event.id} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.4rem 0.5rem', backgroundColor: '#05a129', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: publishingEventId === event.id ? 'not-allowed' : 'pointer', fontSize: '0.75rem', fontWeight: 600, opacity: publishingEventId === event.id ? 0.7 : 1 }}>
+                          <button onClick={() => event.hasPhotographer ? setPublishConfirmEvent(event) : setNoPhotographerEvent(event)} disabled={publishingEventId === event.id} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.4rem 0.5rem', backgroundColor: '#05a129', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: publishingEventId === event.id ? 'not-allowed' : 'pointer', fontSize: '0.75rem', fontWeight: 600, opacity: publishingEventId === event.id ? 0.7 : 1 }}>
                             {publishingEventId === event.id ? 'Publishing...' : 'Publish'}
                           </button>
                         )}
@@ -1731,25 +1772,44 @@ const MyEventsPage = () => {
                     }}
                     required
                   />
-                  <select
-                    value={createPriceCurrency}
-                    onChange={(e) => setCreatePriceCurrency(e.target.value)}
-                    style={{
-                      padding: '0.625rem 0.5rem',
-                      border: `2px solid ${colors.borderPrimary}`,
-                      borderRadius: '0 0.5rem 0.5rem 0',
-                      fontSize: '0.85rem',
-                      fontWeight: '600',
-                      color: colors.textPrimary,
-                      backgroundColor: colors.bgTertiary,
-                      cursor: 'pointer',
-                      minWidth: '70px'
-                    }}
-                  >
-                    {currencyOptions.map(opt => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
+                  <div ref={createCurrencyRef} style={{ position: 'relative', minWidth: '120px' }}>
+                    <button type="button" onClick={() => setCreateCurrencyOpen(!createCurrencyOpen)} style={{
+                      display: 'flex', alignItems: 'center', gap: '0.4rem', width: '100%',
+                      padding: '0.625rem 0.5rem', border: `2px solid ${colors.borderPrimary}`,
+                      borderRadius: '0 0.5rem 0.5rem 0', borderLeft: 'none',
+                      fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary,
+                      backgroundColor: colors.bgTertiary, cursor: 'pointer',
+                    }}>
+                      {CURRENCY_FLAG_MAP[createPriceCurrency] && <img src={`https://flagcdn.com/w40/${CURRENCY_FLAG_MAP[createPriceCurrency]}.png`} alt="" style={{ width: '18px', height: '14px', objectFit: 'cover', borderRadius: '2px' }} />}
+                      <span style={{ flex: 1, textAlign: 'left' }}>{createPriceCurrency}</span>
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ transform: createCurrencyOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
+                        <path d="M6 9L12 15L18 9" stroke={colors.textSecondary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </button>
+                    {createCurrencyOpen && (
+                      <div style={{ position: 'absolute', top: 'calc(100% + 0.35rem)', right: 0, backgroundColor: colors.bgSecondary, borderRadius: '0.75rem', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.2)', border: `2px solid ${colors.borderPrimary}`, padding: '0.4rem', minWidth: '200px', zIndex: 100 }}>
+                        {currencyOptions.map(opt => {
+                          const flag = CURRENCY_FLAG_MAP[opt.value] || '';
+                          const isSelected = createPriceCurrency === opt.value;
+                          const extra = opt.label !== opt.value ? opt.label.replace(opt.value, '').replace(/^\s*-\s*/, '') : '';
+                          return (
+                            <button key={opt.value} type="button" onClick={() => { setCreatePriceCurrency(opt.value); setCreateCurrencyOpen(false); }}
+                              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0.5rem 0.65rem', borderRadius: '0.5rem', border: 'none', background: isSelected ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : 'transparent', color: colors.textPrimary, fontSize: '0.85rem', fontWeight: isSelected ? '600' : '400', cursor: 'pointer', gap: '0.5rem' }}
+                              onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = colors.bgTertiary; }}
+                              onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                {flag && <img src={`https://flagcdn.com/w40/${flag}.png`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px' }} />}
+                                <span style={{ fontWeight: '600' }}>{opt.value}</span>
+                                {extra && <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{extra}</span>}
+                              </div>
+                              {isSelected && <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17L4 12" stroke={actualTheme === 'dark' ? '#60A5FA' : '#083A85'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
               <div>
@@ -2489,6 +2549,69 @@ const MyEventsPage = () => {
         </div>
       )}
 
+      {/* No Photographer Warning Modal */}
+      {noPhotographerEvent && (
+        <div
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 1100, padding: '1rem'
+          }}
+          onClick={() => setNoPhotographerEvent(null)}
+        >
+          <div
+            style={{
+              backgroundColor: colors.bgCard, borderRadius: '1rem',
+              padding: '1.5rem', width: '420px', maxWidth: '90%',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+              <div style={{
+                width: '64px', height: '64px', borderRadius: '50%',
+                backgroundColor: '#fef3c7',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>
+                <i className="bi bi-exclamation-triangle" style={{ fontSize: '2rem', color: '#d97706' }}></i>
+              </div>
+            </div>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: colors.textPrimary, margin: 0, marginBottom: '0.75rem', textAlign: 'center' }}>
+              Photographer Required
+            </h2>
+            <p style={{ fontSize: '0.95rem', color: colors.textSecondary, margin: 0, marginBottom: '0.5rem', textAlign: 'center', lineHeight: '1.5' }}>
+              You cannot publish <strong style={{ color: colors.textPrimary }}>&quot;{noPhotographerEvent.title}&quot;</strong> because no photographer has been assigned to it.
+            </p>
+            <p style={{ fontSize: '0.85rem', color: '#d97706', margin: 0, marginBottom: '1.5rem', textAlign: 'center', fontWeight: '500' }}>
+              Please edit the event and assign a photographer before publishing.
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                onClick={() => setNoPhotographerEvent(null)}
+                style={{
+                  flex: 1, padding: '0.75rem 1rem', borderRadius: '0.5rem',
+                  border: `2px solid ${colors.borderPrimary}`, backgroundColor: colors.bgCard,
+                  color: colors.textPrimary, fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer'
+                }}
+              >Close</button>
+              <button
+                onClick={() => { const evt = noPhotographerEvent; setNoPhotographerEvent(null); openEditModal(evt); }}
+                style={{
+                  flex: 1, padding: '0.75rem 1rem', borderRadius: '0.5rem',
+                  border: '2px solid #d97706', backgroundColor: '#d97706',
+                  color: 'white', fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
+                }}
+              >
+                <i className="bi bi-camera" style={{ fontSize: '1rem' }}></i>
+                Assign Photographer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Unpublish Confirmation Modal */}
       {unpublishConfirmEvent && (
         <div
@@ -2816,25 +2939,44 @@ const MyEventsPage = () => {
                       }}
                       required
                     />
-                    <select
-                      value={editPriceCurrency}
-                      onChange={(e) => setEditPriceCurrency(e.target.value)}
-                      style={{
-                        padding: '0.625rem 0.5rem',
-                        border: `2px solid ${colors.borderPrimary}`,
-                        borderRadius: '0 0.5rem 0.5rem 0',
-                        fontSize: '0.85rem',
-                        fontWeight: '600',
-                        color: colors.textPrimary,
-                        backgroundColor: colors.bgTertiary,
-                        cursor: 'pointer',
-                        minWidth: '70px'
-                      }}
-                    >
-                      {currencyOptions.map(opt => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
+                    <div ref={editCurrencyRef} style={{ position: 'relative', minWidth: '120px' }}>
+                      <button type="button" onClick={() => setEditCurrencyOpen(!editCurrencyOpen)} style={{
+                        display: 'flex', alignItems: 'center', gap: '0.4rem', width: '100%',
+                        padding: '0.625rem 0.5rem', border: `2px solid ${colors.borderPrimary}`,
+                        borderRadius: '0 0.5rem 0.5rem 0', borderLeft: 'none',
+                        fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary,
+                        backgroundColor: colors.bgTertiary, cursor: 'pointer',
+                      }}>
+                        {CURRENCY_FLAG_MAP[editPriceCurrency] && <img src={`https://flagcdn.com/w40/${CURRENCY_FLAG_MAP[editPriceCurrency]}.png`} alt="" style={{ width: '18px', height: '14px', objectFit: 'cover', borderRadius: '2px' }} />}
+                        <span style={{ flex: 1, textAlign: 'left' }}>{editPriceCurrency}</span>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ transform: editCurrencyOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
+                          <path d="M6 9L12 15L18 9" stroke={colors.textSecondary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </button>
+                      {editCurrencyOpen && (
+                        <div style={{ position: 'absolute', top: 'calc(100% + 0.35rem)', right: 0, backgroundColor: colors.bgSecondary, borderRadius: '0.75rem', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.2)', border: `2px solid ${colors.borderPrimary}`, padding: '0.4rem', minWidth: '200px', zIndex: 100 }}>
+                          {currencyOptions.map(opt => {
+                            const flag = CURRENCY_FLAG_MAP[opt.value] || '';
+                            const isSelected = editPriceCurrency === opt.value;
+                            const extra = opt.label !== opt.value ? opt.label.replace(opt.value, '').replace(/^\s*-\s*/, '') : '';
+                            return (
+                              <button key={opt.value} type="button" onClick={() => { setEditPriceCurrency(opt.value); setEditCurrencyOpen(false); }}
+                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0.5rem 0.65rem', borderRadius: '0.5rem', border: 'none', background: isSelected ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : 'transparent', color: colors.textPrimary, fontSize: '0.85rem', fontWeight: isSelected ? '600' : '400', cursor: 'pointer', gap: '0.5rem' }}
+                                onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = colors.bgTertiary; }}
+                                onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                  {flag && <img src={`https://flagcdn.com/w40/${flag}.png`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px' }} />}
+                                  <span style={{ fontWeight: '600' }}>{opt.value}</span>
+                                  {extra && <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{extra}</span>}
+                                </div>
+                                {isSelected && <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17L4 12" stroke={actualTheme === 'dark' ? '#60A5FA' : '#083A85'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div>
@@ -2887,6 +3029,97 @@ const MyEventsPage = () => {
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Section: Photographer Assignment */}
+            <div style={{ marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                <CameraIcon />
+                <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Photographer Assignment</span>
+              </div>
+
+              {editPhotographerAssignMode === 'none' && !editPhotographerId && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <button type="button" onClick={() => setEditPhotographerAssignMode('existing')} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer', textAlign: 'left' }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2"/><path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    Assign an existing Photographer you worked with before
+                  </button>
+                  <button type="button" onClick={() => setEditPhotographerAssignMode('platform')} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer', textAlign: 'left' }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2"/><path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    Assign a new Photographer from platform
+                  </button>
+                </div>
+              )}
+
+              {editPhotographerAssignMode === 'existing' && (
+                <div>
+                  <input type="text" value={editPhotographerSearchQuery} onChange={(e) => setEditPhotographerSearchQuery(e.target.value)} placeholder="Search photographers..." style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, backgroundColor: colors.bgCard, marginBottom: '0.5rem' }} />
+                  <div style={{ maxHeight: '200px', overflowY: 'auto', border: `1px solid ${colors.borderPrimary}`, borderRadius: '0.5rem' }}>
+                    {pastPhotographers.filter(p => p.name.toLowerCase().includes(editPhotographerSearchQuery.toLowerCase())).map(p => (
+                      <div key={p.id} onClick={() => { setEditPhotographerId(p.id); setEditPhotographerAssignMode('none'); setEditPhotographerSearchQuery(''); }} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.625rem 0.75rem', cursor: 'pointer', borderBottom: `1px solid ${colors.borderPrimary}`, backgroundColor: editPhotographerId === p.id ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : 'transparent' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#E5E7EB', overflow: 'hidden', flexShrink: 0 }}>
+                          {p.image ? <img src={p.image} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: '600', color: '#6B7280' }}>{p.name.charAt(0)}</div>}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{p.name}</div>
+                          <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>{p.speciality}</div>
+                        </div>
+                      </div>
+                    ))}
+                    {pastPhotographers.filter(p => p.name.toLowerCase().includes(editPhotographerSearchQuery.toLowerCase())).length === 0 && (
+                      <div style={{ padding: '1rem', textAlign: 'center', color: colors.textSecondary, fontSize: '0.85rem' }}>No photographers found</div>
+                    )}
+                  </div>
+                  <button type="button" onClick={() => { setEditPhotographerAssignMode('none'); setEditPhotographerSearchQuery(''); }} style={{ marginTop: '0.5rem', padding: '0.5rem 1rem', border: `1px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', background: 'transparent', color: colors.textSecondary, fontSize: '0.8rem', cursor: 'pointer' }}>Cancel</button>
+                </div>
+              )}
+
+              {editPhotographerAssignMode === 'platform' && (
+                <div>
+                  <input type="text" value={editPhotographerSearchQuery} onChange={(e) => setEditPhotographerSearchQuery(e.target.value)} placeholder="Search platform photographers..." style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, backgroundColor: colors.bgCard, marginBottom: '0.5rem' }} />
+                  <div style={{ maxHeight: '200px', overflowY: 'auto', border: `1px solid ${colors.borderPrimary}`, borderRadius: '0.5rem' }}>
+                    {platformPhotographers.filter(p => p.name.toLowerCase().includes(editPhotographerSearchQuery.toLowerCase())).map(p => (
+                      <div key={p.id} onClick={() => { setEditPhotographerId(p.id); setEditPhotographerAssignMode('none'); setEditPhotographerSearchQuery(''); }} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.625rem 0.75rem', cursor: 'pointer', borderBottom: `1px solid ${colors.borderPrimary}`, backgroundColor: editPhotographerId === p.id ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : 'transparent' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#E5E7EB', overflow: 'hidden', flexShrink: 0 }}>
+                          {p.image ? <img src={p.image} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: '600', color: '#6B7280' }}>{p.name.charAt(0)}</div>}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{p.name}</div>
+                          <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>{p.speciality}</div>
+                        </div>
+                      </div>
+                    ))}
+                    {platformPhotographers.filter(p => p.name.toLowerCase().includes(editPhotographerSearchQuery.toLowerCase())).length === 0 && (
+                      <div style={{ padding: '1rem', textAlign: 'center', color: colors.textSecondary, fontSize: '0.85rem' }}>No photographers found on platform.</div>
+                    )}
+                  </div>
+                  <button type="button" onClick={() => { setEditPhotographerAssignMode('none'); setEditPhotographerSearchQuery(''); }} style={{ marginTop: '0.5rem', padding: '0.5rem 1rem', border: `1px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', background: 'transparent', color: colors.textSecondary, fontSize: '0.8rem', cursor: 'pointer' }}>Cancel</button>
+                </div>
+              )}
+
+              {editPhotographerId && editPhotographerAssignMode === 'none' && (() => {
+                const selected = pastPhotographers.find(p => p.id === editPhotographerId) || platformPhotographers.find(p => p.id === editPhotographerId);
+                return selected ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.625rem 0.75rem', border: `2px solid #083A85`, borderRadius: '0.5rem', backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF' }}>
+                    <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#E5E7EB', overflow: 'hidden', flexShrink: 0 }}>
+                      {selected.image ? <img src={selected.image} alt={selected.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: '600', color: '#6B7280' }}>{selected.name.charAt(0)}</div>}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{selected.name}</div>
+                      <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>{selected.speciality}</div>
+                    </div>
+                    <button type="button" onClick={() => setEditPhotographerId('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#DC2626', fontSize: '1.1rem', padding: '0.25rem' }} title="Remove photographer">x</button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.625rem 0.75rem', border: `2px solid #083A85`, borderRadius: '0.5rem', backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{editEvent?.photographerName || 'Assigned Photographer'}</div>
+                      <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Currently assigned</div>
+                    </div>
+                    <button type="button" onClick={() => setEditPhotographerId('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#DC2626', fontSize: '1.1rem', padding: '0.25rem' }} title="Remove photographer">x</button>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Action Buttons */}

@@ -18,6 +18,10 @@ const profileFormStorage = localforage.createInstance({
 // Storage key for the profile form
 const PROFILE_FORM_KEY = 'profile_form_draft';
 
+const CURRENCY_FLAG_MAP: Record<string, string> = {
+  USD: 'us', RWF: 'rw', EUR: 'eu', KES: 'ke', UGX: 'ug', TZS: 'tz', GBP: 'gb',
+};
+
 // Interface for day availability
 interface DayAvailability {
   enabled: boolean;
@@ -324,6 +328,8 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   const [savingPackageId, setSavingPackageId] = useState<string | null>(null);
   const [expandedPackageId, setExpandedPackageId] = useState<string | null>(null);
   const [currencies, setCurrencies] = useState<{ id: string; code: string; name: string }[]>([]);
+  const [openCurrencyPkgId, setOpenCurrencyPkgId] = useState<string | null>(null);
+  const currencyDropdownRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Package handler functions
   const addPackage = () => {
@@ -605,6 +611,18 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     };
     fetchCurrencies();
   }, []);
+
+  // Close currency dropdown on click outside
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (openCurrencyPkgId) {
+        const el = currencyDropdownRefs.current[openCurrencyPkgId];
+        if (el && !el.contains(e.target as Node)) setOpenCurrencyPkgId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [openCurrencyPkgId]);
 
   // Restore saved draft on component mount
   useEffect(() => {
@@ -4471,26 +4489,47 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                 </div>
                                 <div>
                                   <label style={labelStyle}>Currency *</label>
-                                  <select value={pkg.currencyId}
-                                    onChange={(e) => updatePackage(pkg.id, 'currencyId', e.target.value)}
-                                    disabled={!isEditEnabled} style={selectStyle}>
-                                    {currencies.length > 0 ? (
-                                      <>
-                                        <option value="">Select currency</option>
-                                        {currencies.map((c) => (
-                                          <option key={c.id} value={c.id}>{c.code}{c.name ? ` - ${c.name}` : ''}</option>
-                                        ))}
-                                      </>
-                                    ) : (
-                                      <>
-                                        <option value="USD">USD</option>
-                                        <option value="RWF">RWF</option>
-                                        <option value="EUR">EUR</option>
-                                        <option value="GBP">GBP</option>
-                                        <option value="KES">KES</option>
-                                      </>
-                                    )}
-                                  </select>
+                                  {(() => {
+                                    const allOpts = currencies.length > 0
+                                      ? currencies.map(c => ({ val: c.id, code: c.code, name: c.name }))
+                                      : [{ val: 'USD', code: 'USD', name: '' }, { val: 'RWF', code: 'RWF', name: '' }, { val: 'EUR', code: 'EUR', name: '' }, { val: 'GBP', code: 'GBP', name: '' }, { val: 'KES', code: 'KES', name: '' }];
+                                    const selectedCode = allOpts.find(o => o.val === pkg.currencyId)?.code || '';
+                                    const isDropdownOpen = openCurrencyPkgId === pkg.id;
+                                    return (
+                                      <div ref={(el) => { currencyDropdownRefs.current[pkg.id] = el; }} style={{ position: 'relative' }}>
+                                        <button type="button" disabled={!isEditEnabled} onClick={() => isEditEnabled && setOpenCurrencyPkgId(isDropdownOpen ? null : pkg.id)}
+                                          style={{ ...selectStyle, display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: isEditEnabled ? 'pointer' : 'not-allowed', opacity: isEditEnabled ? 1 : 0.6, width: '100%', textAlign: 'left' }}>
+                                          {CURRENCY_FLAG_MAP[selectedCode] && <img src={`https://flagcdn.com/w40/${CURRENCY_FLAG_MAP[selectedCode]}.png`} alt="" style={{ width: '18px', height: '14px', objectFit: 'cover', borderRadius: '2px' }} />}
+                                          <span style={{ flex: 1 }}>{selectedCode || 'Select'}</span>
+                                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
+                                            <path d="M6 9L12 15L18 9" stroke={colors.textSecondary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                          </svg>
+                                        </button>
+                                        {isDropdownOpen && (
+                                          <div style={{ position: 'absolute', top: 'calc(100% + 0.35rem)', left: 0, backgroundColor: colors.bgSecondary, borderRadius: '0.75rem', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.2)', border: `2px solid ${colors.borderPrimary}`, padding: '0.4rem', minWidth: '200px', zIndex: 100 }}>
+                                            {allOpts.map(opt => {
+                                              const flag = CURRENCY_FLAG_MAP[opt.code] || '';
+                                              const isSelected = pkg.currencyId === opt.val;
+                                              return (
+                                                <button key={opt.val} type="button" onClick={() => { updatePackage(pkg.id, 'currencyId', opt.val); setOpenCurrencyPkgId(null); }}
+                                                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0.5rem 0.65rem', borderRadius: '0.5rem', border: 'none', background: isSelected ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : 'transparent', color: colors.textPrimary, fontSize: '0.85rem', fontWeight: isSelected ? '600' : '400', cursor: 'pointer', gap: '0.5rem' }}
+                                                  onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = colors.bgTertiary; }}
+                                                  onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                                >
+                                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    {flag && <img src={`https://flagcdn.com/w40/${flag}.png`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px' }} />}
+                                                    <span style={{ fontWeight: '600' }}>{opt.code}</span>
+                                                    {opt.name && <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{opt.name}</span>}
+                                                  </div>
+                                                  {isSelected && <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17L4 12" stroke={actualTheme === 'dark' ? '#60A5FA' : '#083A85'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                                                </button>
+                                              );
+                                            })}
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })()}
                                 </div>
                                 <div>
                                   <label style={labelStyle}>Price Unit *</label>

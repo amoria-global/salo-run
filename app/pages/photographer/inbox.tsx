@@ -9,6 +9,15 @@ import { useTheme } from '../../context/ThemeContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { getApiUrl } from '@/lib/api';
 
+const normalizeImg = (url: string | undefined | null): string => {
+  if (!url || url === 'null' || url.endsWith('/null')) return '';
+  let u = url;
+  if (!u.includes('/') && !u.startsWith('http')) {
+    u = `https://backend.connekyt.com/uploads/profile/photos/${u}`;
+  }
+  return u.replace('http://197.243.24.101', 'https://backend.connekyt.com');
+};
+
 // Icons
 const SearchIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -184,7 +193,7 @@ const InboxPage = () => {
             id: c.id || c.partnerId || '',
             participants: c.participants || [
               { id: currentUserId, name: '', image: '', userType: 'photographer', isOnline: true },
-              { id: c.partnerId || c.id, name: c.partnerName || c.name || '', image: c.partnerImage || c.image || '', userType: 'client', isOnline: false },
+              { id: c.partnerId || c.id, name: c.partnerName || c.name || '', image: normalizeImg(c.partnerImage || c.image), userType: 'client', isOnline: false },
             ],
             lastMessage: c.lastMessage || (c.lastMessageContent ? { content: c.lastMessageContent, senderId: c.lastSenderId || '', createdAt: c.lastMessageAt || '' } : undefined),
             unreadCount: c.unreadCount || 0,
@@ -222,7 +231,7 @@ const InboxPage = () => {
                     conversationId: partnerId,
                     senderId: m.senderId || m.sender?.id || '',
                     senderName: m.senderName || m.sender?.name || '',
-                    senderImage: m.senderImage || m.sender?.image || '',
+                    senderImage: normalizeImg(m.senderImage || m.sender?.image),
                     content: m.content || m.message || '',
                     type: (m.type || 'text') as Message['type'],
                     attachments: m.attachments || [],
@@ -275,7 +284,7 @@ const InboxPage = () => {
         const list = (data.data?.content || data.data || []).map((p: any) => ({
           id: p.id || '',
           name: `${(p.firstName || '')} ${(p.lastName || '')}`.trim() || p.name || 'Client',
-          image: p.profilePicture || p.image || '',
+          image: normalizeImg(p.profilePicture || p.image),
           speciality: p.speciality || p.category || '',
         }));
         setContacts(list);
@@ -298,8 +307,8 @@ const InboxPage = () => {
       const newConv: Conversation = {
         id: contact.id,
         participants: [
-          { id: currentUserId, name: user?.firstName ? `${user.firstName} ${user.lastName || ''}` : '', image: user?.profilePicture || '', userType: 'photographer', isOnline: true },
-          { id: contact.id, name: contact.name, image: contact.image, userType: 'client', isOnline: false },
+          { id: currentUserId, name: user?.firstName ? `${user.firstName} ${user.lastName || ''}` : '', image: normalizeImg(user?.profilePicture), userType: 'photographer', isOnline: true },
+          { id: contact.id, name: contact.name, image: normalizeImg(contact.image), userType: 'client', isOnline: false },
         ],
         unreadCount: 0,
         isPinned: false,
@@ -399,7 +408,7 @@ const InboxPage = () => {
       conversationId: selectedConversation,
       senderId: currentUserId,
       senderName: user?.firstName ? `${user.firstName} ${user.lastName || ''}` : '',
-      senderImage: user?.profilePicture || '',
+      senderImage: normalizeImg(user?.profilePicture),
       content,
       type: 'text',
       isRead: false,
@@ -817,15 +826,23 @@ const InboxPage = () => {
                         width: '48px',
                         height: '48px',
                         borderRadius: '50%',
-                        overflow: 'hidden'
+                        overflow: 'hidden',
+                        backgroundColor: '#E5E7EB',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
                       }}>
-                        <Image
-                          src={other.image}
-                          alt={other.name}
-                          width={48}
-                          height={48}
-                          style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                        />
+                        {other.image ? (
+                          <img
+                            src={other.image}
+                            alt={other.name}
+                            style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                            onError={(e) => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement)?.style.setProperty('display', 'flex'); }}
+                          />
+                        ) : null}
+                        <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'linear-gradient(135deg, #083A85, #3B82F6)', display: other.image ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '1.1rem', fontWeight: 700 }}>
+                          {other.name?.charAt(0)?.toUpperCase() || '?'}
+                        </div>
                       </div>
                       {other.isOnline && (
                         <div style={{
@@ -927,15 +944,23 @@ const InboxPage = () => {
                         width: '44px',
                         height: '44px',
                         borderRadius: '50%',
-                        overflow: 'hidden'
+                        overflow: 'hidden',
+                        backgroundColor: '#E5E7EB',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
                       }}>
-                        <Image
-                          src={otherParticipant.image}
-                          alt={otherParticipant.name}
-                          width={44}
-                          height={44}
-                          style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                        />
+                        {otherParticipant.image ? (
+                          <img
+                            src={otherParticipant.image}
+                            alt={otherParticipant.name}
+                            style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                            onError={(e) => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement)?.style.setProperty('display', 'flex'); }}
+                          />
+                        ) : null}
+                        <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: 'linear-gradient(135deg, #083A85, #3B82F6)', display: otherParticipant.image ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '1rem', fontWeight: 700 }}>
+                          {otherParticipant.name?.charAt(0)?.toUpperCase() || '?'}
+                        </div>
                       </div>
                       {otherParticipant.isOnline && (
                         <div style={{
@@ -987,13 +1012,17 @@ const InboxPage = () => {
                               alignSelf: 'flex-end',
                               flexShrink: 0
                             }}>
-                              <Image
-                                src={message.senderImage}
-                                alt={message.senderName}
-                                width={32}
-                                height={32}
-                                style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                              />
+                              {message.senderImage ? (
+                                <img
+                                  src={message.senderImage}
+                                  alt={message.senderName}
+                                  style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                                  onError={(e) => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement)?.style.setProperty('display', 'flex'); }}
+                                />
+                              ) : null}
+                              <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #083A85, #3B82F6)', display: message.senderImage ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.75rem', fontWeight: 700 }}>
+                                {message.senderName?.charAt(0)?.toUpperCase() || '?'}
+                              </div>
                             </div>
                           )}
                           {!isOwn && !showAvatar && <div style={{ width: '32px' }} />}
