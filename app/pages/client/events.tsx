@@ -696,8 +696,14 @@ const MyEventsPage = () => {
             id: (evt.id as string) || '',
             title: (evt.title as string) || 'Untitled Event',
             description: (evt.description as string) || '',
-            eventType: (evt.eventType as string) || (evt.eventCategory as string) || (evt.category as string) || '',
-            category: ((evt.eventCategory as string) || (evt.category as string) || (evt.eventType as string) || 'Entertainment') as EventCategory,
+            eventType: (typeof evt.eventType === 'object' && evt.eventType !== null ? (evt.eventType as Record<string, unknown>).name as string : evt.eventType as string)
+              || (typeof evt.eventCategory === 'object' && evt.eventCategory !== null ? (evt.eventCategory as Record<string, unknown>).name as string : evt.eventCategory as string)
+              || (typeof evt.category === 'object' && evt.category !== null ? (evt.category as Record<string, unknown>).name as string : evt.category as string)
+              || '',
+            category: ((typeof evt.eventCategory === 'object' && evt.eventCategory !== null ? (evt.eventCategory as Record<string, unknown>).name as string : evt.eventCategory as string)
+              || (typeof evt.category === 'object' && evt.category !== null ? (evt.category as Record<string, unknown>).name as string : evt.category as string)
+              || (typeof evt.eventType === 'object' && evt.eventType !== null ? (evt.eventType as Record<string, unknown>).name as string : evt.eventType as string)
+              || 'Entertainment') as EventCategory,
             date: (evt.eventDate as string) || '',
             time: (evt.startTime as string) || '',
             endTime: (evt.endTime as string) || '',
@@ -973,8 +979,12 @@ const MyEventsPage = () => {
         }
       }
       if (!response.ok) {
-        const errorText = await response.text().catch(() => '');
-        throw new Error(`Failed to update event: ${response.status} ${errorText}`);
+        const errData = await response.json().catch(() => null);
+        throw new Error(errData?.message || `Failed to update event: ${response.status}`);
+      }
+      const editResult = await response.json().catch(() => null);
+      if (editResult && editResult.action === 0) {
+        throw new Error(editResult.message || 'Failed to update event.');
       }
     } catch (err) {
       console.error('Edit event error:', err);

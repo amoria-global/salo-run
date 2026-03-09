@@ -173,7 +173,7 @@ export default function Sidebar() {
   }, []);
 
   // Check if photographer is not accepted (pending or rejected) — restrict to profile only
-  const isNotAccepted = currentRole === 'photographer' && user?.profileReviewStatus !== 'approved';
+  const isNotAccepted = currentRole === 'photographer' && user?.profileReviewStatus?.toUpperCase() !== 'ACCEPTED';
 
   const navigationItems = roleNavigationMap[currentRole].map(item => {
     if (item.name === "Notifications") {

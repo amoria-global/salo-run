@@ -78,6 +78,19 @@ export interface UserProject {
 }
 
 /**
+ * Work Experience structure from API
+ */
+export interface UserWorkExperience {
+  id?: string;
+  position: string;
+  company: string;
+  location: string;
+  startDate: string;
+  endDate: string;
+  description: string;
+}
+
+/**
  * User data stored in dashboard auth context
  */
 export interface DashboardUser {
@@ -102,9 +115,19 @@ export interface DashboardUser {
   educationLevels?: UserEducation[];
   certifications?: UserCertification[];
   trainings?: UserCertification[];
+  workExperiences?: UserWorkExperience[];
   // New fields from profile-summary endpoint
   joinedFrom?: string;
-  reviews?: unknown[];
+  reviews?: {
+    id: string;
+    reviewer: { id: string; firstName: string; lastName: string; profilePicture?: string; customerType?: string };
+    rating: number;
+    review: string;
+    images?: string[];
+    createdAt?: string;
+  }[];
+  completedEvents?: number;
+  pendingChangesCount?: number;
   packages?: unknown[];
   profileReviewStatus?: string;
   reviewComment?: string;
@@ -349,8 +372,11 @@ function mapProfileData(data: any): DashboardUser {
     educationLevels: data.educationLevels || [],
     certifications: data.certifications || [],
     trainings: data.trainings || [],
+    workExperiences: data.workExperiences || [],
     joinedFrom: data.joinedFrom || undefined,
     reviews: data.reviews || [],
+    completedEvents: data.completedEvents || 0,
+    pendingChangesCount: data.pendingChangesCount || 0,
     packages: data.packages || [],
     profileReviewStatus: data.profileReviewStatus || undefined,
     reviewComment: data.reviewComment || undefined,

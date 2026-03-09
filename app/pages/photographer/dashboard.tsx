@@ -173,7 +173,7 @@ const PhotographerDashboard = () => {
 
   // Redirect pending/rejected photographers to their profile page
   useEffect(() => {
-    if (user && user.profileReviewStatus !== 'approved') {
+    if (user && user.profileReviewStatus?.toUpperCase() !== 'ACCEPTED') {
       router.replace('/user/photographer/profile');
     }
   }, [user, router]);
