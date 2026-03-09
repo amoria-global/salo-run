@@ -342,6 +342,8 @@ interface Album {
   createdAt: string;
   eventDate: string;
   clientImage: string;
+  sentAt: string;
+  expiresAt: string;
 }
 
 // ============================================
@@ -362,6 +364,12 @@ const AlbumsViewIcon = ({ active }: { active: boolean }) => (
     <path d="M21 15l-5-5L5 21" stroke={active ? 'white' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
+const PhotobooksViewIcon = ({ active }: { active: boolean }) => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" stroke={active ? 'white' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" stroke={active ? 'white' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
 
 // ============================================
 // MAIN COMPONENT
@@ -373,7 +381,24 @@ const PhotographerEventsPage = () => {
   const { formatPrice } = useCurrency();
   const apiUrl = getApiUrl();
 
-  const [activeTab, setActiveTab] = useState<'events' | 'albums'>('events');
+  const [activeTab, setActiveTab] = useState<'events' | 'albums' | 'photobooks'>(() => {
+    if (typeof window !== 'undefined') {
+      // Query param takes priority (e.g. from notification click)
+      const params = new URLSearchParams(window.location.search);
+      const qTab = params.get('tab');
+      if (qTab === 'albums' || qTab === 'photobooks' || qTab === 'events') {
+        window.history.replaceState({}, '', window.location.pathname);
+        return qTab;
+      }
+      // Otherwise restore from localStorage
+      const saved = localStorage.getItem('connekt_events_tab');
+      if (saved === 'events' || saved === 'albums' || saved === 'photobooks') return saved;
+    }
+    return 'events';
+  });
+  useEffect(() => {
+    localStorage.setItem('connekt_events_tab', activeTab);
+  }, [activeTab]);
   const [events, setEvents] = useState<AssignedEvent[]>([]);
   const [eventFilter, setEventFilter] = useState<'all' | 'upcoming' | 'ongoing' | 'completed'>('all');
   const [eventSearch, setEventSearch] = useState('');
@@ -410,6 +435,11 @@ const PhotographerEventsPage = () => {
   const [albumToDelete, setAlbumToDelete] = useState<Album | null>(null);
   const [showAlbumSuccessModal, setShowAlbumSuccessModal] = useState(false);
   const [albumSuccessMessage, setAlbumSuccessMessage] = useState({ title: '', description: '' });
+  // Soft delete (dismiss) state
+  const [showDismissEventModal, setShowDismissEventModal] = useState(false);
+  const [eventToDismiss, setEventToDismiss] = useState<AssignedEvent | null>(null);
+  const [showDismissAlbumModal, setShowDismissAlbumModal] = useState(false);
+  const [albumToDismiss, setAlbumToDismiss] = useState<Album | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedInviteCode, setCopiedInviteCode] = useState(false);
   const [showImageViewer, setShowImageViewer] = useState(false);
@@ -424,9 +454,119 @@ const PhotographerEventsPage = () => {
   const [uploadProgress, setUploadProgress] = useState('');
   const [mediaIdMap, setMediaIdMap] = useState<Record<string, string>>({});
 
+  // Photobooks state
+  interface Photobook {
+    id: string;
+    name: string;
+    description: string;
+    thumbnail: string;
+    images: string[];
+    layout: string;
+    createdAt: string;
+    sentAt: string;
+    senderName: string;
+  }
+  const [receivedPhotobooks, setReceivedPhotobooks] = useState<Photobook[]>([]);
+  const [photobookSearch, setPhotobookSearch] = useState('');
+  const [selectedPhotobook, setSelectedPhotobook] = useState<Photobook | null>(null);
+  // Phase 1: Grid browse with select mode
+  const [showPhotobookBrowse, setShowPhotobookBrowse] = useState(false);
+  const [photobookSelectedImages, setPhotobookSelectedImages] = useState<string[]>([]);
+  const [isPhotobookSelectMode, setIsPhotobookSelectMode] = useState(false);
+  // Phase 2: Full-screen single image viewer
+  const [showPhotobookImageViewer, setShowPhotobookImageViewer] = useState(false);
+  const [photobookCurrentImageIndex, setPhotobookCurrentImageIndex] = useState(0);
+  const [showDeletePhotobookModal, setShowDeletePhotobookModal] = useState(false);
+  const [photobookToDelete, setPhotobookToDelete] = useState<Photobook | null>(null);
+
+  const handleDeletePhotobook = async () => {
+    if (!photobookToDelete) return;
+    const id = photobookToDelete.id;
+    setReceivedPhotobooks(prev => prev.filter(pb => pb.id !== id));
+    setShowDeletePhotobookModal(false);
+    setPhotobookToDelete(null);
+    try {
+      await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/photobooks/${id}`, { method: 'DELETE' });
+    } catch (err) {
+      console.error('Failed to delete photobook:', err);
+    }
+  };
+
+  const downloadImage = async (url: string, filename: string) => {
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+    } catch (err) {
+      console.error('Failed to download image:', err);
+      window.open(url, '_blank');
+    }
+  };
+
+  const downloadAllImages = async (photobook: Photobook) => {
+    for (let i = 0; i < photobook.images.length; i++) {
+      await downloadImage(photobook.images[i], `${photobook.name.replace(/\s+/g, '_')}_${i + 1}.jpg`);
+    }
+  };
+
+  const openPhotobookBrowse = (photobook: Photobook) => {
+    setSelectedPhotobook(photobook);
+    setPhotobookSelectedImages([]);
+    setIsPhotobookSelectMode(false);
+    setShowPhotobookBrowse(true);
+  };
+
+  const closePhotobookBrowse = () => {
+    setShowPhotobookBrowse(false);
+    setSelectedPhotobook(null);
+    setPhotobookSelectedImages([]);
+    setIsPhotobookSelectMode(false);
+  };
+
+  const openPhotobookImageViewer = (photobook: Photobook, startIndex: number = 0) => {
+    setSelectedPhotobook(photobook);
+    setPhotobookCurrentImageIndex(startIndex);
+    setShowPhotobookImageViewer(true);
+    setShowPhotobookBrowse(false);
+  };
+
+  const closePhotobookImageViewer = () => {
+    setShowPhotobookImageViewer(false);
+    if (selectedPhotobook) {
+      setShowPhotobookBrowse(true);
+    }
+    setPhotobookCurrentImageIndex(0);
+  };
+
+  const handlePhotobookBulkDownload = async () => {
+    if (selectedPhotobook && photobookSelectedImages.length > 0) {
+      const bookName = selectedPhotobook.name.replace(/[^a-z0-9]/gi, '_');
+      for (let i = 0; i < photobookSelectedImages.length; i++) {
+        const image = photobookSelectedImages[i];
+        const imageIndex = selectedPhotobook.images.indexOf(image);
+        const filename = `${bookName}_${imageIndex + 1}.jpg`;
+        await downloadImage(image, filename);
+        if (i < photobookSelectedImages.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
+      }
+    }
+  };
+
   const normalizeImg = (url: string | undefined | null): string | undefined => {
     if (!url || url === 'null' || url.endsWith('/null')) return undefined;
-    if (typeof url === 'string') return url.replace('http://197.243.24.101', 'https://backend.connekyt.com');
+    let u = url;
+    // If it's a bare filename (no slashes, no protocol), construct full URL
+    if (!u.includes('/') && !u.startsWith('http')) {
+      u = `https://backend.connekyt.com/uploads/profile/photos/${u}`;
+    }
+    if (typeof u === 'string') return u.replace('http://197.243.24.101', 'https://backend.connekyt.com');
     return undefined;
   };
 
@@ -496,10 +636,22 @@ const PhotographerEventsPage = () => {
     const loadAlbums = async () => {
       try {
         const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums`);
+        const result = await res.json();
         if (res.ok) {
-          const result = await res.json();
           const data = Array.isArray(result?.data) ? result.data : result?.data?.content || [];
           if (data.length > 0) {
+            // Build URL → image ID map for deletion support
+            const idMap: Record<string, string> = {};
+            data.forEach((a: any) => {
+              (a.images || []).forEach((img: any) => {
+                if (typeof img === 'object' && img?.id) {
+                  const url = normalizeImg(img.fileUrl || img.url || '');
+                  if (url) idMap[url] = img.id;
+                }
+              });
+            });
+            setMediaIdMap(prev => ({ ...prev, ...idMap }));
+
             const mapped: Album[] = data.map((a: any) => ({
               id: a.id,
               title: a.title || '',
@@ -509,19 +661,21 @@ const PhotographerEventsPage = () => {
               eventTitle: a.eventTitle || '',
               clientId: a.clientId || '',
               clientName: a.clientName || '',
-              coverImage: a.coverImage || a.thumbnail || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800',
-              images: a.images || [],
+              coverImage: normalizeImg(a.coverImage || a.thumbnail) || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800',
+              images: (a.images || []).map((img: any) => normalizeImg(typeof img === 'string' ? img : img?.fileUrl || img?.url || '') || '').filter(Boolean),
               photoCount: a.photoCount || a.imageCount || 0,
               views: a.views || 0,
               likes: a.likes || 0,
               downloads: a.downloads || 0,
-              shared: a.shared || false,
-              sharedWithClient: a.sharedWithClient || false,
+              shared: a.shared || a.sent || false,
+              sharedWithClient: a.sharedWithClient || a.sent || false,
               faceRecognitionEnabled: a.faceRecognitionEnabled || false,
               inviteCode: a.inviteCode || null,
               createdAt: a.createdAt || '',
               eventDate: a.eventDate || a.date || '',
-              clientImage: a.clientImage || '',
+              clientImage: normalizeImg(a.clientImage) || '',
+              sentAt: a.sentAt || a.deliveredAt || '',
+              expiresAt: a.expiresAt || '',
             }));
             setAlbums(mapped);
           } else {
@@ -535,6 +689,39 @@ const PhotographerEventsPage = () => {
       }
     };
     loadAlbums();
+  }, [user?.id, apiUrl]);
+
+  // Fetch received photobooks
+  useEffect(() => {
+    if (!user?.id) return;
+    const loadPhotobooks = async () => {
+      try {
+        const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/photobooks`);
+        if (res.ok) {
+          const result = await res.json();
+          const items = result?.data?.content || result?.data || [];
+          if (Array.isArray(items)) {
+            setReceivedPhotobooks(items.map((pb: any) => {
+              const mediaItems = pb.mediaItems || pb.images || [];
+              return {
+                id: pb.id || '',
+                name: pb.name || pb.title || '',
+                description: pb.description || '',
+                thumbnail: normalizeImg(pb.coverImage || pb.thumbnail) || '',
+                images: mediaItems.map((img: any) => typeof img === 'string' ? normalizeImg(img) || '' : normalizeImg(img?.fileUrl || img?.url || '') || '').filter(Boolean),
+                layout: pb.layout || '',
+                createdAt: pb.createdAt || '',
+                sentAt: pb.sentAt || '',
+                senderName: pb.senderName || pb.clientName || pb.coordinatorName || '',
+              };
+            }));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch photobooks:', err);
+      }
+    };
+    loadPhotobooks();
   }, [user?.id, apiUrl]);
 
   // Fetch stream configs for events with live stream
@@ -741,12 +928,12 @@ const PhotographerEventsPage = () => {
         method: 'POST',
         body: formData,
       });
-      if (res.ok) {
-        const data = await res.json();
+      const data = await res.json().catch(() => null);
+      if (res.ok && data) {
         const img = data.data || data;
         return { id: img.id || '', url: img.url || img.fileUrl || img.imageUrl || img.mediaUrl || '' };
       }
-      console.error('Failed to upload album image:', res.status);
+      console.error('Failed to upload album image:', res.status, data);
       return null;
     } catch (err) {
       console.error('Error uploading album image:', err);
@@ -783,6 +970,46 @@ const PhotographerEventsPage = () => {
     const files = e.target.files; if (!files) return; setSelectedFiles(files);
     const previews: string[] = [];
     Array.from(files).forEach(file => { const reader = new FileReader(); reader.onload = (ev) => { previews.push(ev.target?.result as string); if (previews.length === files.length) setUploadedImagePreviews([...previews]); }; reader.readAsDataURL(file); });
+  };
+
+  // Check if an event already has an album (sent albums block creation permanently)
+  const eventHasAlbum = (eventId: string): { exists: boolean; sent: boolean } => {
+    const album = albums.find(a => a.eventId === eventId);
+    if (!album) return { exists: false, sent: false };
+    return { exists: true, sent: album.shared || album.sharedWithClient };
+  };
+
+  const canCreateAlbumForEvent = (eventId: string): boolean => {
+    const { exists, sent } = eventHasAlbum(eventId);
+    if (!exists) return true;    // no album yet → can create
+    if (sent) return false;       // album sent → permanently blocked
+    return false;                 // album exists unsent → still blocked (must delete first)
+  };
+
+  // 7-day edit window for sent albums; unsent albums can always be edited
+  const EDIT_WINDOW_DAYS = 7;
+  // Resolve the date the album was sent
+  const getAlbumSentMs = (album: Album): number | null => {
+    if (album.sentAt) return new Date(album.sentAt).getTime();
+    if (album.expiresAt) return new Date(album.expiresAt).getTime() - 365 * 24 * 60 * 60 * 1000;
+    // Fallback: use createdAt (album is typically sent shortly after creation)
+    if (album.createdAt) return new Date(album.createdAt).getTime();
+    return null;
+  };
+
+  const canEditAlbum = (album: Album): boolean => {
+    if (!album.shared && !album.sharedWithClient) return true; // not sent → always editable
+    const sentMs = getAlbumSentMs(album);
+    if (!sentMs || isNaN(sentMs)) return true; // no date info → allow editing (don't block without reason)
+    const daysSinceSent = (Date.now() - sentMs) / (24 * 60 * 60 * 1000);
+    return daysSinceSent <= EDIT_WINDOW_DAYS;
+  };
+
+  const getEditDaysRemaining = (album: Album): number | null => {
+    if (!album.shared && !album.sharedWithClient) return null; // not sent
+    const sentMs = getAlbumSentMs(album);
+    if (!sentMs || isNaN(sentMs)) return EDIT_WINDOW_DAYS;
+    return Math.max(0, Math.ceil(EDIT_WINDOW_DAYS - (Date.now() - sentMs) / (24 * 60 * 60 * 1000)));
   };
 
   const handleOpenCreateAlbum = async (eventId?: string) => {
@@ -867,8 +1094,9 @@ const PhotographerEventsPage = () => {
         setUploadProgress(`Uploading ${i + 1} of ${selectedFiles.length}...`);
         const result = await uploadImageToAlbum(backendAlbumId, selectedFiles[i]);
         if (result && result.url) {
-          uploadedUrls.push(result.url);
-          idMap[result.url] = result.id;
+          const normalizedUrl = normalizeImg(result.url) || result.url;
+          uploadedUrls.push(normalizedUrl);
+          idMap[normalizedUrl] = result.id;
         }
       }
       if (uploadedUrls.length > 0) {
@@ -878,20 +1106,41 @@ const PhotographerEventsPage = () => {
       }
     }
 
-    const newAlbum: Album = { id: backendAlbumId, title: albumTitle, description: albumDescription, category: albumCategory, eventId: event.id, eventTitle: event.title, clientId: event.bookingId, clientName: event.clientName, coverImage: albumCover, images: albumImages, photoCount: albumImages.length, views: 0, likes: 0, downloads: 0, shared: false, sharedWithClient: false, faceRecognitionEnabled: false, inviteCode: null, createdAt: new Date().toISOString().split('T')[0], eventDate: event.date, clientImage: event.clientImage };
+    const newAlbum: Album = { id: backendAlbumId, title: albumTitle, description: albumDescription, category: albumCategory, eventId: event.id, eventTitle: event.title, clientId: event.bookingId, clientName: event.clientName, coverImage: albumCover, images: albumImages, photoCount: albumImages.length, views: 0, likes: 0, downloads: 0, shared: false, sharedWithClient: false, faceRecognitionEnabled: false, inviteCode: null, createdAt: new Date().toISOString().split('T')[0], eventDate: event.date, clientImage: event.clientImage, sentAt: '', expiresAt: '' };
     setAlbums(prev => [newAlbum, ...prev]); setShowCreateAlbumModal(false); setActiveTab('albums');
     setIsUploadingAlbum(false); setUploadProgress('');
   };
 
   const handleOpenEdit = (album: Album) => { setSelectedAlbum(album); setEditTitle(album.title); setEditDescription(album.description); setEditCategory(album.category); setEditImages([...album.images]); setEditCoverIndex(album.images.indexOf(album.coverImage) >= 0 ? album.images.indexOf(album.coverImage) : 0); setShowAlbumEditModal(true); };
-  const handleSaveEdit = async () => { if (!selectedAlbum || editImages.length === 0) return; const coverIdx = Math.min(editCoverIndex, editImages.length - 1); setAlbums(prev => prev.map(a => a.id === selectedAlbum.id ? { ...a, title: editTitle, description: editDescription, category: editCategory, images: editImages, coverImage: editImages[coverIdx], photoCount: editImages.length } : a)); setShowAlbumEditModal(false); try { const formData = new FormData(); formData.append('title', editTitle); formData.append('description', editDescription); await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${selectedAlbum.id}`, { method: 'PUT', body: formData }); } catch (err) { console.error('Failed to update album:', err); } };
+  const handleSaveEdit = async () => {
+    if (!selectedAlbum || editImages.length === 0) return;
+    const coverIdx = Math.min(editCoverIndex, editImages.length - 1);
+    const newCoverImage = editImages[coverIdx];
+    setAlbums(prev => prev.map(a => a.id === selectedAlbum.id ? { ...a, title: editTitle, description: editDescription, category: editCategory, images: editImages, coverImage: newCoverImage, photoCount: editImages.length } : a));
+    setShowAlbumEditModal(false);
+    try {
+      const formData = new FormData();
+      formData.append('title', editTitle);
+      formData.append('description', editDescription);
+      formData.append('category', editCategory);
+      formData.append('coverImageUrl', newCoverImage);
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${selectedAlbum.id}`, {
+        method: 'PUT',
+        body: formData,
+      });
+      if (!res.ok) console.error('Failed to update album:', await res.text());
+    } catch (err) {
+      console.error('Failed to update album:', err);
+    }
+  };
   const handleEditFileAdd = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files; if (!files || !selectedAlbum) return;
     for (const file of Array.from(files)) {
       const result = await uploadImageToAlbum(selectedAlbum.id, file);
       if (result && result.url) {
-        setEditImages(prev => [...prev, result.url]);
-        setMediaIdMap(prev => ({ ...prev, [result.url]: result.id }));
+        const nUrl = normalizeImg(result.url) || result.url;
+        setEditImages(prev => [...prev, nUrl]);
+        setMediaIdMap(prev => ({ ...prev, [nUrl]: result.id }));
       } else {
         // Fallback to local preview if upload fails
         const reader = new FileReader();
@@ -903,10 +1152,14 @@ const PhotographerEventsPage = () => {
   };
   const handleEditImageRemove = async (index: number) => {
     const imageUrl = editImages[index];
-    const mediaId = mediaIdMap[imageUrl];
-    // Delete from server if we have a media ID
-    if (mediaId && selectedAlbum) {
-      deleteEventMedia(selectedAlbum.eventId, mediaId);
+    const imageId = mediaIdMap[imageUrl];
+    // Delete from album on server if we have an image ID
+    if (imageId && selectedAlbum) {
+      try {
+        await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${selectedAlbum.id}/images/${imageId}`, { method: 'DELETE' });
+      } catch (err) {
+        console.error('Failed to delete album image:', err);
+      }
       setMediaIdMap(prev => { const updated = { ...prev }; delete updated[imageUrl]; return updated; });
     }
     setEditImages(prev => { const updated = prev.filter((_, i) => i !== index); if (editCoverIndex >= updated.length) setEditCoverIndex(Math.max(0, updated.length - 1)); else if (editCoverIndex === index) setEditCoverIndex(0); else if (editCoverIndex > index) setEditCoverIndex(editCoverIndex - 1); return updated; });
@@ -927,6 +1180,43 @@ const PhotographerEventsPage = () => {
     setShowAlbumSuccessModal(true);
   };
   const handleDeleteAlbum = async () => { if (!albumToDelete) return; setAlbums(prev => prev.filter(a => a.id !== albumToDelete.id)); setShowDeleteConfirm(false); const id = albumToDelete.id; setAlbumToDelete(null); try { await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${id}`, { method: 'DELETE' }); } catch (err) { console.error('Failed to delete album:', err); } };
+
+  // Soft delete (dismiss) handlers
+  const handleDismissEvent = async () => {
+    if (!eventToDismiss) return;
+    const id = eventToDismiss.id;
+    setEvents(prev => prev.filter(e => e.id !== id));
+    setShowDismissEventModal(false);
+    setEventToDismiss(null);
+    try {
+      await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/events/${id}/dismiss`, { method: 'POST' });
+    } catch (err) {
+      console.error('Failed to dismiss event:', err);
+    }
+  };
+
+  const handleDismissAlbum = async () => {
+    if (!albumToDismiss) return;
+    const id = albumToDismiss.id;
+    setAlbums(prev => prev.filter(a => a.id !== id));
+    setShowDismissAlbumModal(false);
+    setAlbumToDismiss(null);
+    try {
+      await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${id}/dismiss`, { method: 'POST' });
+    } catch (err) {
+      console.error('Failed to dismiss album:', err);
+    }
+  };
+
+  // Check if event can be dismissed (album has been created for it)
+  const canDismissEvent = (event: AssignedEvent): boolean => {
+    return eventHasAlbum(event.id).exists;
+  };
+
+  // Check if album can be dismissed (sent to client AND Face AI enabled)
+  const canDismissAlbum = (album: Album): boolean => {
+    return album.sharedWithClient && album.faceRecognitionEnabled;
+  };
 
   const handleBrowseKeyDown = useCallback((e: KeyboardEvent) => {
     if (!showAlbumBrowseModal || !viewerAlbum) return;
@@ -1010,6 +1300,9 @@ const PhotographerEventsPage = () => {
                 </button>
                 <button onClick={() => setActiveTab('albums')} style={viewToggleBtnStyle(activeTab === 'albums')}>
                   <AlbumsViewIcon active={activeTab === 'albums'} /> Albums
+                </button>
+                <button onClick={() => setActiveTab('photobooks')} style={viewToggleBtnStyle(activeTab === 'photobooks')}>
+                  <PhotobooksViewIcon active={activeTab === 'photobooks'} /> Photobooks
                 </button>
               </div>
             </header>
@@ -1136,10 +1429,15 @@ const PhotographerEventsPage = () => {
                                       <BroadcastIcon /> Stream Setup
                                     </button>
                                   )}
-                                  {(event.status === 'completed' || event.bookingStatus?.toUpperCase() === 'ACCEPTED') && (
+                                  {(event.status === 'completed' || event.bookingStatus?.toUpperCase() === 'ACCEPTED') && canCreateAlbumForEvent(event.id) && (
                                     <button onClick={() => handleOpenCreateAlbum(event.id)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0.5rem', fontSize: '0.72rem', fontWeight: 600, backgroundColor: '#083A85', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
                                       <PlusIcon /> Create Album
                                     </button>
+                                  )}
+                                  {(event.status === 'completed' || event.bookingStatus?.toUpperCase() === 'ACCEPTED') && !canCreateAlbumForEvent(event.id) && eventHasAlbum(event.id).sent && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.38rem 0.5rem', fontSize: '0.7rem', fontWeight: 600, backgroundColor: 'rgba(5,150,105,0.85)', color: 'white', borderRadius: '0.375rem' }}>
+                                      <CheckCircleIcon /> Album Sent
+                                    </div>
                                   )}
                                   {event.hasLiveStream && event.status === 'ongoing' && (
                                     <button onClick={() => setMarkCompleteTarget(event)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0.5rem', fontSize: '0.72rem', fontWeight: 600, backgroundColor: 'rgba(5,150,105,0.85)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
@@ -1150,6 +1448,11 @@ const PhotographerEventsPage = () => {
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', backgroundColor: 'rgba(5,150,105,0.85)', padding: '0.38rem 0.6rem', borderRadius: '0.375rem', fontSize: '0.7rem', color: 'white', fontWeight: 700 }}>
                                       <CheckCircleIcon /> Accepted
                                     </div>
+                                  )}
+                                  {canDismissEvent(event) && (
+                                    <button onClick={() => { setEventToDismiss(event); setShowDismissEventModal(true); }} title="Dismiss Event" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.38rem 0.5rem', backgroundColor: 'rgba(220,38,38,0.82)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
+                                      <TrashIcon />
+                                    </button>
                                   )}
                                   <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.25rem', backgroundColor: '#083A85', padding: '0.38rem 0.6rem', borderRadius: '0.375rem', fontSize: '0.7rem', color: 'white', fontWeight: 700, flexShrink: 0 }}>
                                     <PackageIcon /> {event.packageName}
@@ -1274,12 +1577,20 @@ const PhotographerEventsPage = () => {
                             <button onClick={() => handleOpenFaceAI(album)} title="Face AI / Find-My-Photos" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0.5rem', backgroundColor: 'rgba(139,92,246,0.85)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600 }}>
                               <FaceRecognitionIcon /> Face AI
                             </button>
-                            <button onClick={() => handleOpenEdit(album)} title="Edit Album" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.38rem 0.5rem', backgroundColor: 'rgba(255,255,255,0.12)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
-                              <EditIcon />
-                            </button>
-                            <button onClick={() => { setAlbumToDelete(album); setShowDeleteConfirm(true); }} title="Delete Album" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.38rem 0.5rem', backgroundColor: 'rgba(220,38,38,0.82)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
-                              <TrashIcon />
-                            </button>
+                            {canEditAlbum(album) && (
+                              <button onClick={() => handleOpenEdit(album)} title={album.sharedWithClient ? `Edit (${getEditDaysRemaining(album)} days left)` : 'Edit Album'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.38rem 0.5rem', backgroundColor: 'rgba(255,255,255,0.12)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
+                                <EditIcon />
+                              </button>
+                            )}
+                            {!album.sharedWithClient ? (
+                              <button onClick={() => { setAlbumToDelete(album); setShowDeleteConfirm(true); }} title="Delete Album" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.38rem 0.5rem', backgroundColor: 'rgba(220,38,38,0.82)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
+                                <TrashIcon />
+                              </button>
+                            ) : canDismissAlbum(album) ? (
+                              <button onClick={() => { setAlbumToDismiss(album); setShowDismissAlbumModal(true); }} title="Dismiss Album" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.38rem 0.5rem', backgroundColor: 'rgba(220,38,38,0.82)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
+                                <TrashIcon />
+                              </button>
+                            ) : null}
                             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.25rem', backgroundColor: '#083A85', padding: '0.38rem 0.6rem', borderRadius: '0.375rem', fontSize: '0.7rem', color: 'white', fontWeight: 700, flexShrink: 0, letterSpacing: '0.02em' }}>
                               <ImageIcon /> {album.photoCount}
                             </div>
@@ -1328,8 +1639,14 @@ const PhotographerEventsPage = () => {
                               <button onClick={() => { setSelectedAlbum(album); setShowSendModal(true); }} style={{ ...smallActionBtn, backgroundColor: '#083A85', borderColor: '#083A85', color: 'white' }}><SendIcon /> Send</button>
                             )}
                             <button onClick={() => handleOpenFaceAI(album)} style={{ ...smallActionBtn, backgroundColor: '#8B5CF6', borderColor: '#8B5CF6', color: 'white' }}><FaceRecognitionIcon /> Face AI</button>
-                            <button onClick={() => handleOpenEdit(album)} style={{ ...smallActionBtn, backgroundColor: colors.bgTertiary, color: colors.textPrimary }}><EditIcon /> Edit</button>
-                            <button onClick={() => { setAlbumToDelete(album); setShowDeleteConfirm(true); }} style={{ ...smallActionBtn, backgroundColor: '#DC2626', borderColor: '#DC2626', color: 'white' }}><TrashIcon /></button>
+                            {canEditAlbum(album) && (
+                              <button onClick={() => handleOpenEdit(album)} style={{ ...smallActionBtn, backgroundColor: colors.bgTertiary, color: colors.textPrimary }}><EditIcon /> Edit{album.sharedWithClient ? ` (${getEditDaysRemaining(album)}d)` : ''}</button>
+                            )}
+                            {!album.sharedWithClient ? (
+                              <button onClick={() => { setAlbumToDelete(album); setShowDeleteConfirm(true); }} style={{ ...smallActionBtn, backgroundColor: '#DC2626', borderColor: '#DC2626', color: 'white' }}><TrashIcon /></button>
+                            ) : canDismissAlbum(album) ? (
+                              <button onClick={() => { setAlbumToDismiss(album); setShowDismissAlbumModal(true); }} title="Dismiss Album" style={{ ...smallActionBtn, backgroundColor: '#DC2626', borderColor: '#DC2626', color: 'white' }}><TrashIcon /></button>
+                            ) : null}
                           </div>
                         </div>
                       </div>
@@ -1340,6 +1657,134 @@ const PhotographerEventsPage = () => {
                 {filteredAlbums.length === 0 && (
                   <div style={{ textAlign: 'center', padding: '3rem', color: colors.textTertiary }}>
                     <ImageIcon /><p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>No albums found. Create one from a completed event!</p>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* ==================== PHOTOBOOKS TAB ==================== */}
+            {activeTab === 'photobooks' && (
+              <>
+                {/* Stats */}
+                <div className="events-page-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                  {([
+                    { label: 'Received Photobooks', value: receivedPhotobooks.length, accent: colors.brandPrimary },
+                    { label: 'Total Photos', value: receivedPhotobooks.reduce((s, pb) => s + pb.images.length, 0), accent: '#F59E0B' },
+                    { label: 'Recent', value: receivedPhotobooks.filter(pb => { const d = new Date(pb.sentAt || pb.createdAt); return (Date.now() - d.getTime()) < 7 * 24 * 60 * 60 * 1000; }).length, accent: '#10B981' },
+                  ] as const).map(stat => (
+                    <div key={stat.label} style={{ backgroundColor: colors.bgCard, borderRadius: '0.5rem', padding: '0.875rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowSm, borderLeft: `4px solid ${stat.accent}` }}>
+                      <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>{stat.label}</div>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 700, color: colors.textPrimary }}>{stat.value}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Search */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                  <div style={{ flex: 1, position: 'relative' }}>
+                    <div style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' }}><SearchIcon /></div>
+                    <input
+                      value={photobookSearch}
+                      onChange={(e) => setPhotobookSearch(e.target.value)}
+                      placeholder="Search photobooks..."
+                      style={{ width: '100%', padding: '0.625rem 0.75rem 0.625rem 2.5rem', borderRadius: '0.5rem', border: `2px solid ${colors.borderPrimary}`, backgroundColor: colors.bgCard, color: colors.textPrimary, fontSize: '0.85rem', outline: 'none' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Photobook Cards Grid */}
+                <div className="events-page-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem' }}>
+                  {receivedPhotobooks
+                    .filter(pb => !photobookSearch || pb.name.toLowerCase().includes(photobookSearch.toLowerCase()) || pb.senderName.toLowerCase().includes(photobookSearch.toLowerCase()))
+                    .map(pb => (
+                    <div
+                      key={pb.id}
+                      style={{ position: 'relative', height: '450px', borderRadius: '1.5rem', overflow: 'hidden', transition: 'transform 0.3s ease', willChange: 'transform' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.03)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+                    >
+                      {/* Blurred cover = glow effect */}
+                      <img src={pb.thumbnail || '/coverr.jpg'} alt="" style={{ position: 'absolute', inset: '-10px', width: 'calc(100% + 20px)', height: 'calc(100% + 20px)', objectFit: 'cover', filter: 'blur(14px) brightness(0.7)', pointerEvents: 'none' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }} />
+                      {/* Inner card */}
+                      <div
+                        onClick={() => { if (pb.images.length > 0) openPhotobookBrowse(pb); }}
+                        style={{ position: 'absolute', inset: '7px', borderRadius: '1.05rem', overflow: 'hidden', backgroundColor: '#000', cursor: 'pointer', transition: 'filter 0.2s' }}
+                        onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.15)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.filter = 'brightness(1)'; }}
+                      >
+                        {/* Full-bleed cover image */}
+                        <img src={pb.thumbnail || '/coverr.jpg'} alt={pb.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }} />
+                        {/* Gradient overlay */}
+                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0) 35%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0.55) 100%)', pointerEvents: 'none' }} />
+
+                        {/* TOP: badges */}
+                        <div style={{ position: 'absolute', top: '0.6rem', left: '0.6rem', right: '0.6rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', pointerEvents: 'none' }}>
+                          <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
+                            <div style={{ backgroundColor: '#083A85', backdropFilter: 'blur(8px)', color: 'white', padding: '0.25rem 0.7rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.02em' }}>
+                              Photobook
+                            </div>
+                            {pb.layout && (
+                              <div style={{ backgroundColor: pb.layout === 'book-flip' ? '#7C3AED' : pb.layout === 'mosaic' ? '#D97706' : pb.layout === 'grid' ? '#6366F1' : '#059669', backdropFilter: 'blur(8px)', color: 'white', padding: '0.25rem 0.7rem', borderRadius: '1rem', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.02em', textTransform: 'capitalize' }}>
+                                {pb.layout === 'book-flip' ? 'Book Flip' : pb.layout === 'mosaic' ? 'Mosaic' : pb.layout === 'gallery-wall' ? 'Gallery Wall' : pb.layout.replace(/-/g, ' ')}
+                              </div>
+                            )}
+                          </div>
+                          <div style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', color: 'white', padding: '0.25rem 0.7rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.02em', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <ImageIcon /> {pb.images.length}
+                          </div>
+                        </div>
+
+                        {/* MIDDLE-BOTTOM: title content */}
+                        <div style={{ position: 'absolute', bottom: '4.8rem', left: 0, right: 0, padding: '0 0.8rem' }}>
+                          <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: '0.15rem' }}>
+                            From: {pb.senderName || 'Client'} &middot; {pb.sentAt ? new Date(pb.sentAt).toLocaleDateString() : pb.createdAt ? new Date(pb.createdAt).toLocaleDateString() : ''}
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '0.03em', textTransform: 'uppercase', lineHeight: 1.3 }}>
+                              {pb.name}
+                            </div>
+                            <span style={{ color: 'white', backgroundColor: '#10B981', padding: '0.15rem 0.5rem', borderRadius: '1rem', fontSize: '0.65rem', fontWeight: 700, flexShrink: 0 }}>Received</span>
+                          </div>
+                          {pb.description && (
+                            <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '0.15rem' }}>{pb.description}</div>
+                          )}
+                        </div>
+
+                        {/* FOOTER BAR: frosted glass */}
+                        <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)', padding: '0.6rem 0.8rem', borderTop: '1px solid rgba(255,255,255,0.1)', borderRadius: '0 0 1.05rem 1.05rem' }}>
+                          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                            <button
+                              onClick={() => openPhotobookBrowse(pb)}
+                              style={{ flex: 1, padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: 'none', backgroundColor: '#083A85', color: 'white', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
+                            >
+                              <EyeIcon /> View
+                            </button>
+                            <button
+                              onClick={() => downloadAllImages(pb)}
+                              style={{ flex: 1, padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: 'none', backgroundColor: '#059669', color: 'white', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
+                            >
+                              <DownloadIcon /> Download
+                            </button>
+                            <button
+                              onClick={() => { setPhotobookToDelete(pb); setShowDeletePhotobookModal(true); }}
+                              style={{ flex: 1, padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: 'none', backgroundColor: '#DC2626', color: 'white', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
+                            >
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {receivedPhotobooks.filter(pb => !photobookSearch || pb.name.toLowerCase().includes(photobookSearch.toLowerCase()) || pb.senderName.toLowerCase().includes(photobookSearch.toLowerCase())).length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '3rem', color: colors.textTertiary }}>
+                    <PhotobooksViewIcon active={false} />
+                    <p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
+                      {photobookSearch ? 'No photobooks match your search.' : 'No photobooks received yet. Clients and coordinators can send you photobooks with their preferred photo selections.'}
+                    </p>
                   </div>
                 )}
               </>
@@ -1387,9 +1832,16 @@ const PhotographerEventsPage = () => {
                 </button>
               </div>
             )}
-            {(selectedEvent.status === 'completed' || selectedEvent.bookingStatus?.toUpperCase() === 'ACCEPTED') && (
+            {(selectedEvent.status === 'completed' || selectedEvent.bookingStatus?.toUpperCase() === 'ACCEPTED') && canCreateAlbumForEvent(selectedEvent.id) && (
               <div style={{ marginTop: '1.25rem' }}>
                 <button onClick={() => { setShowEventDetailModal(false); handleOpenCreateAlbum(selectedEvent.id); }} style={{ ...primaryBtn, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}><PlusIcon /> Create Album from this Event</button>
+              </div>
+            )}
+            {(selectedEvent.status === 'completed' || selectedEvent.bookingStatus?.toUpperCase() === 'ACCEPTED') && !canCreateAlbumForEvent(selectedEvent.id) && (
+              <div style={{ marginTop: '1.25rem', padding: '0.75rem', backgroundColor: eventHasAlbum(selectedEvent.id).sent ? 'rgba(5,150,105,0.1)' : 'rgba(234,179,8,0.1)', border: `1px solid ${eventHasAlbum(selectedEvent.id).sent ? 'rgba(5,150,105,0.3)' : 'rgba(234,179,8,0.3)'}`, borderRadius: '0.5rem', textAlign: 'center' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: eventHasAlbum(selectedEvent.id).sent ? '#059669' : '#B45309' }}>
+                  {eventHasAlbum(selectedEvent.id).sent ? 'Album already created and sent for this event.' : 'Album already created for this event. Delete it first to create a new one.'}
+                </span>
               </div>
             )}
           </div>
@@ -1603,7 +2055,7 @@ const PhotographerEventsPage = () => {
               <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Select Event *</label>
               <select value={createAlbumEventId} onChange={e => handleEventSelectForAlbum(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
                 <option value="">Choose an event...</option>
-                {events.filter(e => e.bookingStatus?.toUpperCase() === 'ACCEPTED' || e.status === 'completed').map(e => <option key={e.id} value={e.id}>{e.title} - {formatDate(e.date)}</option>)}
+                {events.filter(e => (e.bookingStatus?.toUpperCase() === 'ACCEPTED' || e.status === 'completed') && canCreateAlbumForEvent(e.id)).map(e => <option key={e.id} value={e.id}>{e.title} - {formatDate(e.date)}</option>)}
               </select>
             </div>
             {createAlbumEventId && (
@@ -1798,7 +2250,7 @@ const PhotographerEventsPage = () => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                   <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: 'linear-gradient(135deg, #083A85, #3B82F6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.85rem', fontWeight: 700, overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
                     {selectedAlbum.clientName.charAt(0)}
-                    {selectedAlbum.clientImage && <img src={selectedAlbum.clientImage} alt={selectedAlbum.clientName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
+                    {(() => { const img = selectedAlbum.clientImage || events.find(e => e.id === selectedAlbum.eventId)?.clientImage || ''; return img ? <img src={img} alt={selectedAlbum.clientName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} /> : null; })()}
                   </div>
                   <div>
                     <div style={{ fontSize: '0.875rem', fontWeight: 600, color: colors.textPrimary }}>{selectedAlbum.clientName}</div>
@@ -1968,6 +2420,52 @@ const PhotographerEventsPage = () => {
         </div>
       )}
 
+      {/* Dismiss Event Confirmation Modal */}
+      {showDismissEventModal && eventToDismiss && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }} onClick={() => setShowDismissEventModal(false)}>
+          <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1.75rem', maxWidth: '380px', width: '90%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+            <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: actualTheme === 'dark' ? '#3B1A1A' : '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <line x1="12" y1="9" x2="12" y2="13" stroke="#DC2626" strokeWidth="2" strokeLinecap="round"/>
+                <line x1="12" y1="17" x2="12.01" y2="17" stroke="#DC2626" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </div>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>Dismiss Event?</h3>
+            <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0 0 1.5rem', lineHeight: '1.5' }}>
+              <strong style={{ color: colors.textPrimary }}>{eventToDismiss.title}</strong> will be removed from your events list. The event and its album will still exist for the client.
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button onClick={() => setShowDismissEventModal(false)} style={{ flex: 1, padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', backgroundColor: 'transparent', color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '500', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleDismissEvent} style={{ flex: 1, padding: '0.625rem', border: '2px solid #B91C1C', borderRadius: '0.5rem', backgroundColor: '#DC2626', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Dismiss</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dismiss Album Confirmation Modal */}
+      {showDismissAlbumModal && albumToDismiss && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }} onClick={() => setShowDismissAlbumModal(false)}>
+          <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1.75rem', maxWidth: '380px', width: '90%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+            <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: actualTheme === 'dark' ? '#3B1A1A' : '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <line x1="12" y1="9" x2="12" y2="13" stroke="#DC2626" strokeWidth="2" strokeLinecap="round"/>
+                <line x1="12" y1="17" x2="12.01" y2="17" stroke="#DC2626" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </div>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>Dismiss Album?</h3>
+            <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0 0 1.5rem', lineHeight: '1.5' }}>
+              <strong style={{ color: colors.textPrimary }}>{albumToDismiss.title}</strong> will be removed from your albums list. The album and its photos will still be accessible to the client.
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button onClick={() => setShowDismissAlbumModal(false)} style={{ flex: 1, padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', backgroundColor: 'transparent', color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '500', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleDismissAlbum} style={{ flex: 1, padding: '0.625rem', border: '2px solid #B91C1C', borderRadius: '0.5rem', backgroundColor: '#DC2626', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Dismiss</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Album Action Success Modal */}
       {showAlbumSuccessModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }} onClick={() => setShowAlbumSuccessModal(false)}>
@@ -1982,6 +2480,348 @@ const PhotographerEventsPage = () => {
             <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>{albumSuccessMessage.title}</h3>
             <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0 0 1.5rem', lineHeight: '1.5' }}>{albumSuccessMessage.description}</p>
             <button onClick={() => setShowAlbumSuccessModal(false)} style={{ width: '100%', padding: '0.625rem', border: '2px solid #059669', borderRadius: '0.5rem', backgroundColor: '#059669', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Done</button>
+          </div>
+        </div>
+      )}
+
+      {/* Photobook Image Viewer */}
+      {/* Delete Photobook Confirmation Modal */}
+      {showDeletePhotobookModal && photobookToDelete && (
+        <div
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '1rem' }}
+          onClick={() => { setShowDeletePhotobookModal(false); setPhotobookToDelete(null); }}
+        >
+          <div
+            style={{ backgroundColor: colors.bgCard, borderRadius: '1rem', padding: '1.5rem', width: '400px', maxWidth: '90%', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+              <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+              </div>
+            </div>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: colors.textPrimary, margin: '0 0 0.75rem', textAlign: 'center' }}>Delete Photobook</h2>
+            <p style={{ fontSize: '0.95rem', color: colors.textSecondary, margin: '0 0 0.5rem', textAlign: 'center', lineHeight: '1.5' }}>
+              Are you sure you want to delete <strong style={{ color: colors.textPrimary }}>&quot;{photobookToDelete.name}&quot;</strong>?
+            </p>
+            <p style={{ fontSize: '0.85rem', color: '#DC2626', margin: '0 0 1.5rem', textAlign: 'center', fontWeight: '500' }}>
+              This action cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                onClick={() => { setShowDeletePhotobookModal(false); setPhotobookToDelete(null); }}
+                style={{ flex: 1, padding: '0.75rem 1rem', borderRadius: '0.5rem', border: `2px solid ${colors.borderPrimary}`, backgroundColor: colors.bgCard, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeletePhotobook}
+                style={{ flex: 1, padding: '0.75rem 1rem', borderRadius: '0.5rem', border: '2px solid #DC2626', backgroundColor: '#DC2626', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Phase 1: Grid Browse with Select Mode */}
+      {showPhotobookBrowse && selectedPhotobook && (
+        <div
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.95)', display: 'flex', flexDirection: 'column', zIndex: 1001 }}
+          onClick={closePhotobookBrowse}
+        >
+          {/* Header */}
+          <div
+            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.5rem', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: 'white', margin: 0 }}>{selectedPhotobook.name}</h2>
+              <span style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.7)' }}>({selectedPhotobook.images.length} photos)</span>
+              {selectedPhotobook.layout && (
+                <span style={{
+                  padding: '0.25rem 0.625rem', borderRadius: '1rem', fontSize: '0.75rem', fontWeight: '600',
+                  backgroundColor: selectedPhotobook.layout === 'book-flip' ? 'rgba(124, 58, 237, 0.2)' : selectedPhotobook.layout === 'mosaic' ? 'rgba(217, 119, 6, 0.2)' : 'rgba(5, 150, 105, 0.2)',
+                  color: selectedPhotobook.layout === 'book-flip' ? '#A78BFA' : selectedPhotobook.layout === 'mosaic' ? '#FCD34D' : '#6EE7B7',
+                  border: `1px solid ${selectedPhotobook.layout === 'book-flip' ? 'rgba(124, 58, 237, 0.4)' : selectedPhotobook.layout === 'mosaic' ? 'rgba(217, 119, 6, 0.4)' : 'rgba(5, 150, 105, 0.4)'}`
+                }}>
+                  {selectedPhotobook.layout === 'book-flip' ? 'Book Flip' : selectedPhotobook.layout === 'mosaic' ? 'Mosaic' : selectedPhotobook.layout === 'gallery-wall' ? 'Gallery Wall' : selectedPhotobook.layout.replace(/-/g, ' ')}
+                </span>
+              )}
+              {selectedPhotobook.senderName && (
+                <span style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.5)' }}>From: {selectedPhotobook.senderName}</span>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              {/* Select Mode Toggle */}
+              {selectedPhotobook.images.length > 0 && (
+                <button
+                  onClick={() => {
+                    setIsPhotobookSelectMode(!isPhotobookSelectMode);
+                    if (isPhotobookSelectMode) setPhotobookSelectedImages([]);
+                  }}
+                  style={{
+                    padding: '0.5rem 1rem', borderRadius: '0.5rem', border: '2px solid',
+                    borderColor: isPhotobookSelectMode ? '#16A34A' : 'rgba(255, 255, 255, 0.3)',
+                    backgroundColor: isPhotobookSelectMode ? '#16A34A' : 'transparent',
+                    color: 'white', fontSize: '0.875rem', fontWeight: '500', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s'
+                  }}
+                >
+                  <GridIcon active={false} />
+                  {isPhotobookSelectMode ? 'Exit Select Mode' : 'Select Mode'}
+                </button>
+              )}
+              {/* Close Button */}
+              <button
+                onClick={closePhotobookBrowse}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.1)', border: '2px solid rgba(255, 255, 255, 0.3)',
+                  cursor: 'pointer', padding: '0.5rem', borderRadius: '0.5rem',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white'
+                }}
+              >
+                <CloseIcon />
+              </button>
+            </div>
+          </div>
+
+          {/* Selection Controls Bar */}
+          {isPhotobookSelectMode && (
+            <div
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1.5rem', backgroundColor: 'rgba(22, 163, 74, 0.1)', borderBottom: '1px solid rgba(22, 163, 74, 0.3)' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <span style={{ fontSize: '0.875rem', fontWeight: '600', color: '#16A34A' }}>
+                  {photobookSelectedImages.length} of {selectedPhotobook.images.length} selected
+                </span>
+                <button
+                  onClick={() => {
+                    if (photobookSelectedImages.length === selectedPhotobook.images.length) {
+                      setPhotobookSelectedImages([]);
+                    } else {
+                      setPhotobookSelectedImages([...selectedPhotobook.images]);
+                    }
+                  }}
+                  style={{ padding: '0.375rem 0.75rem', borderRadius: '0.375rem', border: '1px solid #16A34A', backgroundColor: 'transparent', color: '#16A34A', fontSize: '0.8rem', fontWeight: '500', cursor: 'pointer' }}
+                >
+                  {photobookSelectedImages.length === selectedPhotobook.images.length ? 'Deselect All' : 'Select All'}
+                </button>
+              </div>
+              {photobookSelectedImages.length > 0 && (
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <button
+                    onClick={handlePhotobookBulkDownload}
+                    style={{ padding: '0.5rem 1rem', borderRadius: '0.5rem', border: 'none', backgroundColor: '#083A85', color: 'white', fontSize: '0.875rem', fontWeight: '500', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                  >
+                    <DownloadIcon />
+                    Download ({photobookSelectedImages.length})
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Image Grid */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem' }}>
+              {selectedPhotobook.images.map((image: string, index: number) => (
+                <div
+                  key={index}
+                  style={{
+                    position: 'relative', aspectRatio: '1', borderRadius: '0.5rem', overflow: 'hidden',
+                    cursor: 'pointer', border: photobookSelectedImages.includes(image) ? '3px solid #16A34A' : '3px solid transparent',
+                    transition: 'all 0.2s'
+                  }}
+                  onClick={() => {
+                    if (isPhotobookSelectMode) {
+                      if (photobookSelectedImages.includes(image)) {
+                        setPhotobookSelectedImages(photobookSelectedImages.filter((img: string) => img !== image));
+                      } else {
+                        setPhotobookSelectedImages([...photobookSelectedImages, image]);
+                      }
+                    } else {
+                      openPhotobookImageViewer(selectedPhotobook, index);
+                    }
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1.02)'; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; }}
+                >
+                  <Image src={image} alt={`${selectedPhotobook.name} - Image ${index + 1}`} fill style={{ objectFit: 'cover' }} />
+                  {/* Selection overlay */}
+                  {isPhotobookSelectMode && (
+                    <div style={{
+                      position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                      backgroundColor: photobookSelectedImages.includes(image) ? 'rgba(22, 163, 74, 0.25)' : 'transparent',
+                      display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end', padding: '0.5rem'
+                    }}>
+                      <div style={{
+                        width: '28px', height: '28px', borderRadius: '50%',
+                        border: photobookSelectedImages.includes(image) ? 'none' : '2px solid rgba(255, 255, 255, 0.8)',
+                        backgroundColor: photobookSelectedImages.includes(image) ? '#16A34A' : 'rgba(0, 0, 0, 0.4)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white'
+                      }}>
+                        {photobookSelectedImages.includes(image) && (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {/* Image number badge */}
+                  {!isPhotobookSelectMode && (
+                    <div style={{
+                      position: 'absolute', bottom: '0.4rem', left: '0.4rem',
+                      backgroundColor: 'rgba(0, 0, 0, 0.6)', color: 'white',
+                      padding: '0.15rem 0.5rem', borderRadius: '0.75rem', fontSize: '0.7rem', fontWeight: '600'
+                    }}>
+                      {index + 1}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Phase 2: Full-screen Single Image Viewer */}
+      {showPhotobookImageViewer && selectedPhotobook && selectedPhotobook.images.length > 0 && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: '#000', zIndex: 2000 }}>
+          {/* Full-screen Image */}
+          <div style={{ position: 'absolute', inset: 0 }}>
+            <Image
+              src={selectedPhotobook.images[photobookCurrentImageIndex]}
+              alt={`${selectedPhotobook.name} - Image ${photobookCurrentImageIndex + 1}`}
+              fill
+              style={{ objectFit: 'contain', padding: '0 4rem' }}
+              priority
+            />
+          </div>
+
+          {/* Top Overlay */}
+          <div style={{
+            position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
+            background: 'linear-gradient(to bottom, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.3) 60%, transparent 100%)',
+            padding: '1rem 1.5rem 2rem',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              {selectedPhotobook.thumbnail && (
+                <div style={{ width: '36px', height: '36px', borderRadius: '0.5rem', overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
+                  <Image src={selectedPhotobook.thumbnail} alt={selectedPhotobook.name} fill style={{ objectFit: 'cover' }} />
+                </div>
+              )}
+              <div>
+                <h3 style={{ fontSize: '0.95rem', fontWeight: '600', color: 'white', margin: 0 }}>{selectedPhotobook.name}</h3>
+                <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', margin: 0 }}>
+                  Photobook &middot; {photobookCurrentImageIndex + 1} / {selectedPhotobook.images.length}
+                  {selectedPhotobook.senderName && <> &middot; From: {selectedPhotobook.senderName}</>}
+                </p>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <button
+                onClick={() => {
+                  const bookName = selectedPhotobook.name.replace(/[^a-z0-9]/gi, '_');
+                  const filename = `${bookName}_${photobookCurrentImageIndex + 1}.jpg`;
+                  downloadImage(selectedPhotobook.images[photobookCurrentImageIndex], filename);
+                }}
+                style={{
+                  width: '36px', height: '36px', borderRadius: '50%',
+                  backgroundColor: 'rgba(255,255,255,0.12)', border: 'none',
+                  color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}
+                title="Download image"
+              >
+                <DownloadIcon />
+              </button>
+              <button
+                onClick={closePhotobookImageViewer}
+                style={{
+                  width: '36px', height: '36px', borderRadius: '50%',
+                  backgroundColor: 'rgba(255,255,255,0.12)', border: 'none',
+                  color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.25)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.12)'; }}
+              >
+                <CloseIcon />
+              </button>
+            </div>
+          </div>
+
+          {/* Navigation Buttons */}
+          <button
+            onClick={() => photobookCurrentImageIndex > 0 && setPhotobookCurrentImageIndex(photobookCurrentImageIndex - 1)}
+            style={{
+              position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', zIndex: 10,
+              width: '48px', height: '48px', borderRadius: '50%',
+              backgroundColor: 'rgba(0,0,0,0.4)', border: 'none', color: 'white',
+              cursor: photobookCurrentImageIndex > 0 ? 'pointer' : 'default',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'all 0.2s', opacity: photobookCurrentImageIndex > 0 ? 0.7 : 0
+            }}
+            onMouseEnter={(e) => { if (photobookCurrentImageIndex > 0) e.currentTarget.style.opacity = '1'; e.currentTarget.style.backgroundColor = 'rgba(8,58,133,0.8)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = photobookCurrentImageIndex > 0 ? '0.7' : '0'; e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.4)'; }}
+          >
+            <ChevronLeftIcon />
+          </button>
+          <button
+            onClick={() => photobookCurrentImageIndex < selectedPhotobook.images.length - 1 && setPhotobookCurrentImageIndex(photobookCurrentImageIndex + 1)}
+            style={{
+              position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', zIndex: 10,
+              width: '48px', height: '48px', borderRadius: '50%',
+              backgroundColor: 'rgba(0,0,0,0.4)', border: 'none', color: 'white',
+              cursor: photobookCurrentImageIndex < selectedPhotobook.images.length - 1 ? 'pointer' : 'default',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'all 0.2s', opacity: photobookCurrentImageIndex < selectedPhotobook.images.length - 1 ? 0.7 : 0
+            }}
+            onMouseEnter={(e) => { if (photobookCurrentImageIndex < selectedPhotobook.images.length - 1) e.currentTarget.style.opacity = '1'; e.currentTarget.style.backgroundColor = 'rgba(8,58,133,0.8)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = photobookCurrentImageIndex < selectedPhotobook.images.length - 1 ? '0.7' : '0'; e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.4)'; }}
+          >
+            <ChevronRightIcon />
+          </button>
+
+          {/* Bottom Thumbnail Strip */}
+          <div style={{
+            position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10,
+            background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 60%, transparent 100%)',
+            padding: '2.5rem 1.5rem 1.25rem'
+          }}>
+            <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', justifyContent: 'center', paddingBottom: '0.25rem' }}>
+              {selectedPhotobook.images.map((image: string, index: number) => (
+                <button
+                  key={index}
+                  onClick={() => setPhotobookCurrentImageIndex(index)}
+                  style={{
+                    position: 'relative', width: '56px', height: '42px', borderRadius: '0.375rem',
+                    overflow: 'hidden', border: photobookCurrentImageIndex === index ? '2px solid white' : '2px solid transparent',
+                    cursor: 'pointer', flexShrink: 0, transition: 'all 0.2s',
+                    opacity: photobookCurrentImageIndex === index ? 1 : 0.5,
+                    transform: photobookCurrentImageIndex === index ? 'scale(1.1)' : 'scale(1)',
+                    background: 'none', padding: 0
+                  }}
+                  onMouseEnter={(e) => { if (photobookCurrentImageIndex !== index) e.currentTarget.style.opacity = '0.8'; }}
+                  onMouseLeave={(e) => { if (photobookCurrentImageIndex !== index) e.currentTarget.style.opacity = '0.5'; }}
+                >
+                  <Image src={image} alt={`Thumbnail ${index + 1}`} fill style={{ objectFit: 'cover' }} />
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}

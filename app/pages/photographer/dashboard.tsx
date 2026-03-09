@@ -174,8 +174,13 @@ const PhotographerDashboard = () => {
   const [greetings, setGreetings] = useState(getGreetings(getTimeOfDay()));
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
-  // Comparison mode state
-  const [isComparisonMode, setIsComparisonMode] = useState(false);
+  // Comparison mode state (persisted to localStorage)
+  const [isComparisonMode, setIsComparisonMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('connekt_comparison_mode') === 'true';
+    }
+    return false;
+  });
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [futurePlans, setFuturePlans] = useState<FuturePlan[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<FuturePlan | null>(null);
@@ -377,6 +382,22 @@ const PhotographerDashboard = () => {
               createdAt: p.createdAt || '',
             }));
             setFuturePlans(mapped);
+            // Restore comparison mode from localStorage
+            const savedPlanId = localStorage.getItem('connekt_comparison_plan_id');
+            const savedMode = localStorage.getItem('connekt_comparison_mode') === 'true';
+            if (savedMode && savedPlanId) {
+              const restored = mapped.find(p => p.id === savedPlanId);
+              if (restored) {
+                setSelectedPlan(restored);
+                setIsComparisonMode(true);
+                setActiveFilter(restored.timePeriod);
+              } else {
+                // Saved plan no longer exists, clear persistence
+                localStorage.removeItem('connekt_comparison_mode');
+                localStorage.removeItem('connekt_comparison_plan_id');
+                setIsComparisonMode(false);
+              }
+            }
           }
         }
       } catch (err) {
@@ -541,6 +562,8 @@ const PhotographerDashboard = () => {
     setIsComparisonMode(true);
     setActiveFilter(planTimePeriod);
     resetPlanForm();
+    localStorage.setItem('connekt_comparison_mode', 'true');
+    localStorage.setItem('connekt_comparison_plan_id', newPlan.id);
 
     // Persist to backend
     try {
@@ -563,7 +586,10 @@ const PhotographerDashboard = () => {
       if (res.ok) {
         const result = await res.json();
         if (result?.data?.id) {
-          setFuturePlans(prev => prev.map(p => p.id === newPlan.id ? { ...p, id: result.data.id } : p));
+          const realId = result.data.id;
+          setFuturePlans(prev => prev.map(p => p.id === newPlan.id ? { ...p, id: realId } : p));
+          setSelectedPlan(prev => prev?.id === newPlan.id ? { ...prev, id: realId } : prev);
+          localStorage.setItem('connekt_comparison_plan_id', realId);
         }
       }
     } catch (err) {
@@ -575,8 +601,9 @@ const PhotographerDashboard = () => {
   const handleSelectPlan = (plan: FuturePlan) => {
     setSelectedPlan(plan);
     setIsComparisonMode(true);
-    // Sync the dashboard filter with the selected plan's time period
     setActiveFilter(plan.timePeriod);
+    localStorage.setItem('connekt_comparison_mode', 'true');
+    localStorage.setItem('connekt_comparison_plan_id', plan.id);
   };
 
   // Handle deleting a plan
@@ -585,6 +612,8 @@ const PhotographerDashboard = () => {
     if (selectedPlan?.id === planId) {
       setSelectedPlan(null);
       setIsComparisonMode(false);
+      localStorage.removeItem('connekt_comparison_mode');
+      localStorage.removeItem('connekt_comparison_plan_id');
     }
     try {
       const apiUrl = getApiUrl();
@@ -678,11 +707,14 @@ const PhotographerDashboard = () => {
     if (isComparisonMode) {
       setIsComparisonMode(false);
       setSelectedPlan(null);
+      localStorage.removeItem('connekt_comparison_mode');
+      localStorage.removeItem('connekt_comparison_plan_id');
     } else if (futurePlans.length > 0) {
       setSelectedPlan(futurePlans[0]);
       setIsComparisonMode(true);
-      // Sync filter with first plan's time period
       setActiveFilter(futurePlans[0].timePeriod);
+      localStorage.setItem('connekt_comparison_mode', 'true');
+      localStorage.setItem('connekt_comparison_plan_id', futurePlans[0].id);
     } else {
       // Initialize modal time period from current filter
       setPlanTimePeriod(activeFilter);
