@@ -213,6 +213,12 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   // Archives state (coordinator only)
   const [coordinatorArchives, setCoordinatorArchives] = useState<any[]>([]);
 
+  // URL normalization (http → https proxy)
+  const normalizeImg = (url: string | undefined | null): string => {
+    if (!url || url === 'null' || url.endsWith('/null')) return '';
+    return url.replace('http://197.243.24.101', 'https://backend.connekyt.com');
+  };
+
   // --- Gallery API helpers (role-aware endpoints) ---
   const galleryBase = userRole === 'event-coordinator' ? 'coordinator/galleries' : 'customer/albums';
   const archiveBase = userRole === 'event-coordinator' ? 'coordinator/archives' : 'customer/archives';
@@ -257,9 +263,9 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
       const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${galleryBase}/${galleryId}`, {
         method: 'DELETE',
       });
-      const data = await res.json();
-      if (!res.ok || data.action !== 1) {
-        console.error('Failed to delete gallery:', data.message);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        console.error('Failed to delete gallery:', data.message || res.status);
         return false;
       }
       return true;
@@ -314,9 +320,8 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
       const photogEndpoint = userRole === 'event-coordinator'
         ? `${apiUrl}/api/remote/coordinator/photographers?page=0&size=100`
         : `${apiUrl}/api/remote/customer/photographers?page=0&size=100`;
-      const albumEndpoint = userRole === 'event-coordinator'
-        ? `${apiUrl}/api/remote/coordinator/galleries`
-        : `${apiUrl}/api/remote/customer/albums`;
+      // Both roles use /customer/albums — no role restriction on this endpoint
+      const albumEndpoint = `${apiUrl}/api/remote/customer/albums`;
 
       const [albumRes, photogRes] = await Promise.allSettled([
         dashboardAuthFetch(albumEndpoint),
@@ -343,14 +348,8 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
         }
       }
 
-      const normalizeImg = (url: string | undefined | null): string => {
-        if (!url || url === 'null' || url.endsWith('/null')) return '';
-        return url.replace('http://197.243.24.101', 'https://backend.connekyt.com');
-      };
-
       if (albumRes.status === 'fulfilled' && albumRes.value.ok) {
         const data = await albumRes.value.json();
-        console.log('[Gallery] Raw albums:', JSON.stringify(data, null, 2));
         const loaded = (data.data || []).map((a: any) => {
           // Try to resolve photographer info from the album itself
           const rawName = a.photographer || a.photographerName || '';
@@ -373,13 +372,16 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
             photographerAvatar: normalizeImg(resolvedAvatar),
             category: a.category || '',
             date: a.date || a.createdAt || '',
-            isArchived: a.isArchived || false,
+            isArchived: a.isArchived || a.isLocked || false,
+            isLocked: a.isLocked || false,
+            expiresAt: a.expiresAt || '',
             receivedDate: a.receivedDate || a.sentAt || '',
             thumbnail: normalizeImg(a.thumbnail || a.coverImage),
             photoCount: a.photoCount || a.imageCount || 0,
             downloadedCount: a.downloadedCount || 0,
             favoriteCount: a.favoriteCount || 0,
-            images: (a.images || []).map((img: string) => normalizeImg(img)),
+            images: (a.images || []).map((img: any) => normalizeImg(typeof img === 'string' ? img : img?.fileUrl || img?.url || '') || '').filter(Boolean),
+            mediaIds: (a.images || []).map((img: any) => typeof img === 'object' ? img?.id || '' : '').filter(Boolean),
             eventId: a.eventId || '',
             eventTitle: a.eventTitle || '',
             eventDate: a.eventDate || '',
@@ -412,7 +414,8 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
       const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${archiveBase}`);
       if (res.ok) {
         const data = await res.json();
-        setCoordinatorArchives((data.data || []).map((a: any) => ({
+        const archiveList = Array.isArray(data.data) ? data.data : data.data?.content || [];
+        setCoordinatorArchives(archiveList.map((a: any) => ({
           id: a.id,
           title: a.title || '',
           description: a.description || '',
@@ -453,8 +456,17 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [albumToDelete, setAlbumToDelete] = useState<any | null>(null);
 
-  // Photobook states
-  const [pageView, setPageView] = useState<'albums' | 'photobooks' | 'archives'>('albums');
+  // Photobook states — persist selected view tab
+  const [pageView, setPageView] = useState<'albums' | 'photobooks' | 'archives'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('connekt_gallery_view');
+      if (saved === 'albums' || saved === 'photobooks' || saved === 'archives') return saved;
+    }
+    return 'albums';
+  });
+  useEffect(() => {
+    localStorage.setItem('connekt_gallery_view', pageView);
+  }, [pageView]);
 
   // Fetch coordinator archives when archives tab is selected
   useEffect(() => {
@@ -464,13 +476,16 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   }, [pageView, userRole, user?.id, fetchCoordinatorArchives]);
 
   const [photobooks, setPhotobooks] = useState<Array<{
-    id: number;
+    id: number | string;
     name: string;
     description: string;
     thumbnail: string;
     images: string[];
+    mediaIds?: string[];
     layout: 'book-flip' | 'mosaic' | 'gallery-wall' | '';
     createdAt: string;
+    isSent?: boolean;
+    sentAt?: string;
   }>>([]);
   const [showThumbnailSelector, setShowThumbnailSelector] = useState(false);
   const MAX_IMAGE_SELECTION = 3;
@@ -481,11 +496,12 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   const [setupSelectedAlbum, setSetupSelectedAlbum] = useState<any | null>(null);
   const [setupLayout, setSetupLayout] = useState<'book-flip' | 'mosaic' | 'gallery-wall'>('book-flip');
   const [setupSelectedImages, setSetupSelectedImages] = useState<string[]>([]);
-  const [setupPhotobookId, setSetupPhotobookId] = useState<number | null>(null);
+  const [setupPhotobookId, setSetupPhotobookId] = useState<number | string | null>(null);
   const [setupCurrentImageIndex, setSetupCurrentImageIndex] = useState(0);
   const [showCoverPicker, setShowCoverPicker] = useState(false);
   const [setupCoverImage, setSetupCoverImage] = useState<string>('');
   const [step3ViewMode, setStep3ViewMode] = useState<'album-grid' | 'image-selection'>('album-grid');
+  const [setupSelectMode, setSetupSelectMode] = useState(false);
   const EXTRA_IMAGE_PRICE = 2;
   const [extraUnlockedImages, setExtraUnlockedImages] = useState<string[]>([]);
   const [showExtraImagePayment, setShowExtraImagePayment] = useState(false);
@@ -527,25 +543,33 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   };
 
   // Fetch photobooks from API
-  const photobookBase = userRole === 'event-coordinator' ? 'coordinator/photobook' : 'customer/events/photobook';
+  const photobookBase = userRole === 'event-coordinator' ? 'coordinator/photobook' : 'events/photobook';
+  const photobookListBase = userRole === 'event-coordinator' ? 'coordinator/photobooks' : 'events/photobooks';
+  const mediaSelectBase = userRole === 'event-coordinator' ? 'coordinator/media' : 'events/media';
   useEffect(() => {
     if (!user?.id) return;
     const loadPhotobooks = async () => {
       try {
-        const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${photobookBase}`);
+        const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${photobookListBase}`);
         if (res.ok) {
           const data = await res.json();
           const items = data?.data?.content || data?.data || [];
           if (items.length > 0) {
-            setPhotobooks(items.map((pb: any, idx: number) => ({
-              id: pb.id || idx,
-              name: pb.name || pb.title || '',
-              description: pb.description || '',
-              thumbnail: pb.thumbnail || pb.coverImage || '',
-              images: pb.images || [],
-              layout: pb.layout || '',
-              createdAt: pb.createdAt || '',
-            })));
+            setPhotobooks(items.map((pb: any, idx: number) => {
+              const mediaItems = pb.mediaItems || pb.images || [];
+              return {
+                id: pb.id || idx,
+                name: pb.name || pb.title || '',
+                description: pb.description || '',
+                thumbnail: normalizeImg(pb.coverImage || pb.thumbnail) || '',
+                images: mediaItems.map((img: any) => typeof img === 'string' ? normalizeImg(img) || '' : normalizeImg(img?.fileUrl || img?.url || '') || '').filter(Boolean),
+                mediaIds: mediaItems.map((img: any) => typeof img === 'object' ? img?.id || '' : '').filter(Boolean),
+                layout: pb.layout || '',
+                createdAt: pb.createdAt || '',
+                isSent: pb.isSent || pb.sent || false,
+                sentAt: pb.sentAt || '',
+              };
+            }));
           }
         }
       } catch (err) {
@@ -555,12 +579,11 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
     loadPhotobooks();
   }, [userRole, user?.id, apiUrl]);
 
-  // PATCH photobook/{mediaId}/select — toggle image selection
+  // PATCH media/{mediaId}/select — toggle image selection
   const selectPhotobookMedia = useCallback(async (mediaId: string, selected: boolean) => {
     try {
-      const selectBase = userRole === 'event-coordinator' ? 'coordinator/photobook' : 'customer/events/media';
       const res = await dashboardAuthFetch(
-        `${apiUrl}/api/remote/${selectBase}/${mediaId}/select?selected=${selected}`,
+        `${apiUrl}/api/remote/${mediaSelectBase}/${mediaId}/select?selected=${selected}`,
         { method: 'PATCH' }
       );
       const data = await res.json();
@@ -641,6 +664,30 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
       ]
     }
   ];
+
+  // --- 1-year auto-archive expiry helpers ---
+  const ARCHIVE_DAYS = 365;
+  const WARNING_DAYS = 30;
+
+  const getAlbumExpiry = (album: any) => {
+    // Use backend isLocked / expiresAt if available
+    if (album.isLocked) return { expiresAt: new Date(album.expiresAt || 0), daysRemaining: 0, isExpired: true, isWarning: false };
+    if (album.expiresAt) {
+      const expMs = new Date(album.expiresAt).getTime();
+      if (!isNaN(expMs)) {
+        const daysRemaining = Math.ceil((expMs - Date.now()) / (24 * 60 * 60 * 1000));
+        return { expiresAt: new Date(expMs), daysRemaining, isExpired: daysRemaining <= 0, isWarning: daysRemaining > 0 && daysRemaining <= WARNING_DAYS };
+      }
+    }
+    // Fallback: client-side calculation from receivedDate
+    const received = album.receivedDate || album.date;
+    if (!received) return null;
+    const receivedMs = new Date(received).getTime();
+    if (isNaN(receivedMs)) return null;
+    const expiresAt = new Date(receivedMs + ARCHIVE_DAYS * 24 * 60 * 60 * 1000);
+    const daysRemaining = Math.ceil((expiresAt.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
+    return { expiresAt, daysRemaining, isExpired: daysRemaining <= 0, isWarning: daysRemaining > 0 && daysRemaining <= WARNING_DAYS };
+  };
 
   // Filter albums
   const filteredAlbums = albums.filter(album => {
@@ -866,11 +913,17 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
     setShowDeletePhotobookModal(true);
   };
 
-  const confirmDeletePhotobook = () => {
+  const confirmDeletePhotobook = async () => {
     if (photobookToDelete) {
       setPhotobooks(photobooks.filter(pb => pb.id !== photobookToDelete.id));
       setShowDeletePhotobookModal(false);
+      const id = photobookToDelete.id;
       setPhotobookToDelete(null);
+      try {
+        await dashboardAuthFetch(`${apiUrl}/api/remote/${photobookBase}/${id}`, { method: 'DELETE' });
+      } catch (err) {
+        console.error('Failed to delete photobook:', err);
+      }
     }
   };
 
@@ -879,13 +932,55 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
     setPhotobookToDelete(null);
   };
 
+  // Send photobook states
+  const [showSendPhotobookModal, setShowSendPhotobookModal] = useState(false);
+  const [photobookToSend, setPhotobookToSend] = useState<typeof photobooks[0] | null>(null);
+  const [showPhotobookSuccessModal, setShowPhotobookSuccessModal] = useState(false);
+  const [photobookSuccessMessage, setPhotobookSuccessMessage] = useState({ title: '', description: '' });
+
+  const handleSendPhotobook = async () => {
+    if (!photobookToSend) return;
+    const pb = photobookToSend;
+    setShowSendPhotobookModal(false);
+    setPhotobookToSend(null);
+    // Optimistic update
+    setPhotobooks(prev => prev.map(p => p.id === pb.id ? { ...p, isSent: true, sentAt: new Date().toISOString() } : p));
+    try {
+      await dashboardAuthFetch(`${apiUrl}/api/remote/${photobookBase}/${pb.id}/send`, { method: 'POST' });
+    } catch (err) {
+      console.error('Failed to send photobook:', err);
+    }
+    setPhotobookSuccessMessage({
+      title: 'Photobook Sent Successfully',
+      description: `"${pb.name}" has been sent to the photographer. They will be notified and can view your selected photos.`,
+    });
+    setShowPhotobookSuccessModal(true);
+  };
+
   // Setup wizard functions (Select Album → Layout → Images)
   const openSetupWizard = (photobook: typeof photobooks[0]) => {
     setSetupPhotobookId(photobook.id);
-    setSetupSelectedAlbum(null);
+    // Find the source album by matching media IDs so user can select/deselect from all album images
+    const pbMediaIds = new Set(photobook.mediaIds || []);
+    const sourceAlbum = albums.find(a =>
+      (a.mediaIds || []).some((id: string) => pbMediaIds.has(id))
+    );
+    if (sourceAlbum) {
+      setSetupSelectedAlbum(sourceAlbum);
+    } else {
+      // Fallback: synthetic album from photobook data
+      setSetupSelectedAlbum({
+        id: photobook.id,
+        title: photobook.name,
+        thumbnail: photobook.thumbnail,
+        images: [...photobook.images],
+        mediaIds: [...(photobook.mediaIds || [])],
+        photographer: '',
+      });
+    }
     setSetupLayout(photobook.layout ? photobook.layout as 'book-flip' | 'mosaic' | 'gallery-wall' : 'book-flip');
     setSetupSelectedImages([...photobook.images]);
-    setSetupStep(1);
+    setSetupStep(2);
     setSetupCurrentImageIndex(0);
     setShowCoverPicker(false);
     setSetupCoverImage('');
@@ -903,6 +998,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
     setShowCoverPicker(false);
     setSetupCoverImage('');
     setStep3ViewMode('album-grid');
+    setSetupSelectMode(false);
     setExtraUnlockedImages([]);
     setShowExtraImagePayment(false);
     setPendingUnlockImage(null);
@@ -942,6 +1038,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
 
     if (setupPhotobookId) {
       // Editing existing photobook
+      const existingPb = photobooks.find(pb => pb.id === setupPhotobookId);
       const updatedPhotobooks = photobooks.map(pb => {
         if (pb.id === setupPhotobookId) {
           return {
@@ -954,6 +1051,32 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
         return pb;
       });
       setPhotobooks(updatedPhotobooks);
+
+      // Persist to backend
+      try {
+        // Resolve media IDs from the source (selected album or existing photobook)
+        const source = setupSelectedAlbum || existingPb;
+        const selectedMediaIds = source?.mediaIds
+          ? setupSelectedImages.map((imgUrl: string) => {
+              const idx = (source.images || []).indexOf(imgUrl);
+              return idx >= 0 ? source.mediaIds[idx] : null;
+            }).filter(Boolean)
+          : [];
+
+        await dashboardAuthFetch(`${apiUrl}/api/remote/${photobookBase}/${setupPhotobookId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: existingPb?.name || '',
+            description: existingPb?.description || '',
+            layout: setupLayout,
+            coverImage: setupCoverImage || setupSelectedImages[0] || '',
+            ...(selectedMediaIds.length > 0 ? { mediaIds: selectedMediaIds } : {}),
+          }),
+        });
+      } catch (err) {
+        console.error('Failed to update photobook:', err);
+      }
     } else {
       // Creating new photobook
       const album = setupSelectedAlbum;
@@ -973,16 +1096,30 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
 
       // Persist to backend
       try {
+        // Collect media IDs from selected album images if available
+        const selectedMediaIds = setupSelectedAlbum?.mediaIds
+          ? setupSelectedImages.map((imgUrl: string) => {
+              const idx = (setupSelectedAlbum.images || []).indexOf(imgUrl);
+              return idx >= 0 ? setupSelectedAlbum.mediaIds[idx] : null;
+            }).filter(Boolean)
+          : [];
+
+        const postBody = {
+          name,
+          description,
+          layout: setupLayout,
+          coverImage: setupCoverImage || setupSelectedImages[0] || '',
+          ...(selectedMediaIds.length > 0 ? { mediaIds: selectedMediaIds } : {}),
+        };
         const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${photobookBase}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, description }),
+          body: JSON.stringify(postBody),
         });
         if (res.ok) {
           const result = await res.json();
           const created = result?.data;
           if (created?.id) {
-            // Replace the temporary ID with the backend-generated one
             setPhotobooks(prev => prev.map(pb =>
               pb.id === newPhotobook.id ? { ...pb, id: created.id } : pb
             ));
@@ -1625,35 +1762,33 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                 <ArchivesViewIcon active={pageView === 'archives'} />
                 Archived
               </button>
-              {photobooks.length > 0 && (
-                <button
-                  onClick={() => setPageView('photobooks')}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    padding: '0.625rem 1.25rem',
-                    backgroundColor: pageView === 'photobooks'
-                      ? '#F20C8F'
-                      : (actualTheme === 'dark' ? 'transparent' : 'transparent'),
-                    color: pageView === 'photobooks'
-                      ? 'white'
-                      : (actualTheme === 'dark' ? '#94A3B8' : '#64748B'),
-                    border: 'none',
-                    borderRadius: '0.5rem',
-                    fontSize: '0.875rem',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    boxShadow: pageView === 'photobooks'
-                      ? '0 2px 8px rgba(242, 12, 143, 0.4)'
-                      : 'none'
-                  }}
-                >
-                  <PhotobooksViewIcon active={pageView === 'photobooks'} />
-                  Photobooks
-                </button>
-              )}
+              <button
+                onClick={() => setPageView('photobooks')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.625rem 1.25rem',
+                  backgroundColor: pageView === 'photobooks'
+                    ? '#F20C8F'
+                    : (actualTheme === 'dark' ? 'transparent' : 'transparent'),
+                  color: pageView === 'photobooks'
+                    ? 'white'
+                    : (actualTheme === 'dark' ? '#94A3B8' : '#64748B'),
+                  border: 'none',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.875rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  boxShadow: pageView === 'photobooks'
+                    ? '0 2px 8px rgba(242, 12, 143, 0.4)'
+                    : 'none'
+                }}
+              >
+                <PhotobooksViewIcon active={pageView === 'photobooks'} />
+                Photobooks
+              </button>
             </div>
           </header>
 
@@ -1689,29 +1824,31 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
             >
               <ListIcon active={viewMode === 'list'} activeColor={actualTheme === 'dark' ? '#60A5FA' : '#083A85'} />
             </button>
-            <button
-              onClick={openCreateWizard}
-              style={{
-                padding: '0.5rem 1rem',
-                borderRadius: '0.5rem',
-                border: '2px solid #062a63',
-                backgroundColor: '#083A85',
-                color: 'white',
-                cursor: 'pointer',
-                fontSize: '0.8rem',
-                fontWeight: '600',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.375rem',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-              Create Photobook
-            </button>
+            {albums.length > 0 && (
+              <button
+                onClick={openCreateWizard}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '0.5rem',
+                  border: '2px solid #062a63',
+                  backgroundColor: '#083A85',
+                  color: 'white',
+                  cursor: 'pointer',
+                  fontSize: '0.8rem',
+                  fontWeight: '600',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.375rem',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Create Photobook
+              </button>
+            )}
           </div>
 
           {/* Stats Cards - Adapt to current view */}
@@ -1850,6 +1987,33 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
           {/* Albums Grid/List or Photobooks View */}
           {pageView === 'albums' ? (
             <>
+              {/* Expiry warning banner */}
+              {(() => {
+                const expiringAlbums = filteredAlbums.filter(a => { const exp = getAlbumExpiry(a); return exp && exp.isWarning; });
+                const expiredAlbums = filteredAlbums.filter(a => { const exp = getAlbumExpiry(a); return exp && exp.isExpired; });
+                if (expiringAlbums.length === 0 && expiredAlbums.length === 0) return null;
+                return (
+                  <div style={{ marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {expiredAlbums.length > 0 && (
+                      <div style={{ padding: '0.75rem 1rem', backgroundColor: actualTheme === 'dark' ? 'rgba(220,38,38,0.15)' : '#FEF2F2', border: '1px solid', borderColor: actualTheme === 'dark' ? 'rgba(220,38,38,0.3)' : '#FECACA', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        <span style={{ fontSize: '0.85rem', color: '#DC2626', fontWeight: 600 }}>
+                          {expiredAlbums.length} album{expiredAlbums.length !== 1 ? 's have' : ' has'} exceeded the 1-year free storage period and {expiredAlbums.length !== 1 ? 'are' : 'is'} now archived. Pay to unlock access.
+                        </span>
+                      </div>
+                    )}
+                    {expiringAlbums.length > 0 && (
+                      <div style={{ padding: '0.75rem 1rem', backgroundColor: actualTheme === 'dark' ? 'rgba(234,179,8,0.15)' : '#FFFBEB', border: '1px solid', borderColor: actualTheme === 'dark' ? 'rgba(234,179,8,0.3)' : '#FDE68A', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B45309" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        <span style={{ fontSize: '0.85rem', color: '#B45309', fontWeight: 600 }}>
+                          {expiringAlbums.length} album{expiringAlbums.length !== 1 ? 's are' : ' is'} expiring within 30 days. Download your photos before they are archived.
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
               {/* Albums Grid/List */}
               {filteredAlbums.length === 0 ? (
                 <div style={{
@@ -1903,6 +2067,27 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                           </div>
                         </div>
 
+                        {/* Expiry badge */}
+                        {(() => {
+                          const exp = getAlbumExpiry(album);
+                          if (!exp) return null;
+                          if (exp.isExpired) return (
+                            <div style={{ position: 'absolute', top: '2.8rem', left: '0.6rem', backgroundColor: 'rgba(220,38,38,0.85)', backdropFilter: 'blur(8px)', color: 'white', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.65rem', fontWeight: 700 }}>
+                              Expired — Archived
+                            </div>
+                          );
+                          if (exp.isWarning) return (
+                            <div style={{ position: 'absolute', top: '2.8rem', left: '0.6rem', backgroundColor: 'rgba(234,179,8,0.85)', backdropFilter: 'blur(8px)', color: '#422006', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.65rem', fontWeight: 700 }}>
+                              Expires in {exp.daysRemaining} day{exp.daysRemaining !== 1 ? 's' : ''}
+                            </div>
+                          );
+                          return (
+                            <div style={{ position: 'absolute', top: '2.8rem', left: '0.6rem', backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)', color: 'rgba(255,255,255,0.8)', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.65rem', fontWeight: 600 }}>
+                              {exp.daysRemaining} day{exp.daysRemaining !== 1 ? 's' : ''} remaining
+                            </div>
+                          );
+                        })()}
+
                         {/* MIDDLE-BOTTOM: title + event info over image */}
                         <div style={{ position: 'absolute', bottom: '6.2rem', left: 0, right: 0, padding: '0 0.8rem' }}>
                           <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '0.03em', textTransform: 'uppercase', lineHeight: 1.3, marginBottom: '0.15rem' }}>
@@ -1913,9 +2098,18 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                           </div>
                         </div>
 
+                        {/* Expired lock overlay */}
+                        {getAlbumExpiry(album)?.isExpired && (
+                          <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 5, borderRadius: '1.05rem' }}>
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                            <span style={{ color: 'white', fontSize: '0.8rem', fontWeight: 700, marginTop: '0.5rem' }}>Storage Expired</span>
+                            <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.7rem', marginTop: '0.2rem' }}>Pay to unlock access</span>
+                          </div>
+                        )}
+
                         {/* FOOTER BAR: frosted glass */}
                         <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)', padding: '0.6rem 0.8rem', borderTop: '1px solid rgba(255,255,255,0.1)', borderRadius: '0 0 1.05rem 1.05rem' }}>
-                          {/* Photographer avatar + name */}
+                          {/* Photographer avatar + name + delete */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
                             {album.photographerAvatar ? (
                               <img src={album.photographerAvatar} alt={album.photographer} style={{ width: '36px', height: '36px', borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', objectFit: 'cover', flexShrink: 0 }} onError={(e) => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement)?.style.setProperty('display', 'flex'); }} />
@@ -1923,7 +2117,14 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                             <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, #083A85, #3B82F6)', border: '2px solid rgba(255,255,255,0.3)', display: album.photographerAvatar ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.75rem', fontWeight: 700, flexShrink: 0 }}>
                               {album.photographer.charAt(0).toUpperCase()}
                             </div>
-                            <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.9)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{album.photographer}</span>
+                            <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.9)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{album.photographer}</span>
+                            <button
+                              onClick={() => openDeleteModal(album)}
+                              title="Delete Album"
+                              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.38rem 0.5rem', backgroundColor: 'rgba(220,38,38,0.82)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer', flexShrink: 0 }}
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><polyline points="3,6 5,6 21,6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -1989,6 +2190,13 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                         <div style={{ fontSize: '0.78rem', color: '#9CA3AF' }}>
                           {album.eventTitle ? `${album.eventTitle}${album.eventDate ? ` — ${album.eventDate}` : ''}` : (album.receivedDate ? `Received: ${album.receivedDate}` : album.date)}
                         </div>
+                        {(() => {
+                          const exp = getAlbumExpiry(album);
+                          if (!exp) return null;
+                          const color = exp.isExpired ? '#DC2626' : exp.isWarning ? '#B45309' : '#6B7280';
+                          const label = exp.isExpired ? 'Expired — Archived' : exp.isWarning ? `Expires in ${exp.daysRemaining} day${exp.daysRemaining !== 1 ? 's' : ''}` : `${exp.daysRemaining} days remaining`;
+                          return <div style={{ fontSize: '0.7rem', color, fontWeight: 600, marginTop: '0.15rem' }}>{label}</div>;
+                        })()}
                       </div>
 
                       {/* Photographer */}
@@ -2039,6 +2247,28 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                         >
                           Browse
                         </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openDeleteModal(album);
+                          }}
+                          style={{
+                            padding: '0.375rem 0.75rem',
+                            borderRadius: '0.375rem',
+                            border: '2px solid #DC2626',
+                            backgroundColor: '#DC2626',
+                            color: 'white',
+                            fontSize: '0.8rem',
+                            fontWeight: '500',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.35rem'
+                          }}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                          Delete
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -2064,9 +2294,9 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                     No Photobooks Yet
                   </h3>
                   <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1.25rem 0' }}>
-                    Create a photobook and select your preferred images from sent albums to add them here.
+                    {albums.length > 0 ? 'Create a photobook and select your preferred images from sent albums to add them here.' : 'You need to receive an album from a photographer first before creating a photobook.'}
                   </p>
-                  <button
+                  {albums.length > 0 && <button
                     onClick={openCreateWizard}
                     style={{
                       padding: '0.625rem 1.25rem',
@@ -2087,7 +2317,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                       <line x1="5" y1="12" x2="19" y2="12"></line>
                     </svg>
                     Create Photobook
-                  </button>
+                  </button>}
                 </div>
               ) : (
                 <div className="mobile-photobooks-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem' }}>
@@ -2153,7 +2383,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                               >
                                 <ImageIcon /> Select Album
                               </button>
-                            ) : (
+                            ) : photobook.isSent ? (
                               <>
                                 <button
                                   onClick={() => openPhotobookBrowse(photobook)}
@@ -2161,16 +2391,37 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                                 >
                                   <EyeIcon /> View
                                 </button>
+                                <span style={{ flex: 0.8, padding: '0.4rem 0.6rem', borderRadius: '0.375rem', backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#10B981', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                  Sent
+                                </span>
+                                <button
+                                  onClick={() => openDeletePhotobookModal(photobook)}
+                                  style={{ flex: 0.6, padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: 'none', backgroundColor: '#DC2626', color: 'white', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
+                                >
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                  Delete
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => { setPhotobookToSend(photobook); setShowSendPhotobookModal(true); }}
+                                  style={{ flex: 1, padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: 'none', backgroundColor: '#083A85', color: 'white', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
+                                >
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" /></svg>
+                                  Send
+                                </button>
                                 <button
                                   onClick={() => openSetupWizard(photobook)}
-                                  style={{ flex: 1, padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: '1.5px solid rgba(255,255,255,0.3)', backgroundColor: 'transparent', color: 'white', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
+                                  style={{ flex: 1, padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: 'none', backgroundColor: '#F20C8F', color: 'white', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
                                 >
                                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                                   Edit
                                 </button>
                                 <button
                                   onClick={() => openDeletePhotobookModal(photobook)}
-                                  style={{ flex: 1, padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: '1.5px solid rgba(220,38,38,0.5)', backgroundColor: 'transparent', color: '#FCA5A5', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
+                                  style={{ flex: 1, padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: 'none', backgroundColor: '#DC2626', color: 'white', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
                                 >
                                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                                   Delete
@@ -2231,7 +2482,33 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                   </button>
                 </div>
               )}
-              {viewMode === 'grid' ? (
+              {archivedAlbums.length === 0 ? (
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '3rem 1.5rem',
+                }}>
+                  <div style={{
+                    width: '64px', height: '64px', borderRadius: '50%',
+                    backgroundColor: colors.bgTertiary, display: 'flex',
+                    alignItems: 'center', justifyContent: 'center', marginBottom: '1rem'
+                  }}>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={colors.textSecondary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="2" y="3" width="20" height="5" rx="1"></rect>
+                      <path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"></path>
+                      <line x1="10" y1="12" x2="14" y2="12"></line>
+                    </svg>
+                  </div>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
+                    No Archived Albums
+                  </h3>
+                  <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: 0, maxWidth: '400px', lineHeight: '1.5' }}>
+                    Albums are automatically archived after 1 year of free storage. Archived albums will appear here.
+                  </p>
+                </div>
+              ) : viewMode === 'grid' ? (
                 <div className="mobile-albums-grid" style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
@@ -2324,7 +2601,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                   Choose Your Storage Plan
                 </h3>
                 <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: 0, lineHeight: '1.5' }}>
-                  Keep your albums safe and accessible. Without an active plan, albums are archived after 2 years.
+                  Keep your albums safe and accessible. Without an active plan, albums are archived after 1 year of free storage.
                 </p>
               </div>
               <button onClick={() => setShowPricingPlans(false)} style={{
@@ -2489,7 +2766,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
               fontSize: '0.8rem', color: colors.textSecondary,
               margin: 0, textAlign: 'center', lineHeight: '1.5'
             }}>
-              Your selected plan unlocks all archived albums and prevents future archiving.
+              Your selected plan unlocks all archived albums and extends storage beyond the 1-year free period.
             </p>
           </div>
         </div>
@@ -3322,7 +3599,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                   {setupStep === 1 ? 'Select Album' : 'Select Layout'}
                 </h2>
                 <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.8rem', color: colors.textSecondary }}>
-                  {!setupPhotobookId ? 'Create Photobook — ' : ''}Step {setupStep} of 3
+                  {!setupPhotobookId ? 'Create Photobook — ' : 'Edit Photobook — '}Step {setupPhotobookId ? setupStep - 1 : setupStep} of {setupPhotobookId ? 2 : 3}
                 </p>
               </div>
               <button
@@ -3348,7 +3625,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
               gap: '0.5rem',
               padding: '1rem 1.5rem 0.5rem',
             }}>
-              {[1, 2, 3].map(step => (
+              {(setupPhotobookId ? [2, 3] : [1, 2, 3]).map(step => (
                 <div key={step} style={{
                   flex: 1,
                   height: '4px',
@@ -3368,6 +3645,12 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
               {/* Step 1: Select Album */}
               {setupStep === 1 && (() => {
                 const albumsWithImages = albums.filter(a => a.images && a.images.length > 0);
+                // Collect all media IDs already used in existing photobooks
+                const usedMediaIds = new Set(photobooks.flatMap(pb => pb.mediaIds || []));
+                const albumHasPhotobook = (album: any) => {
+                  const ids = album.mediaIds || [];
+                  return ids.length > 0 && ids.some((id: string) => usedMediaIds.has(id));
+                };
                 return (
                 <div>
                   <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0 0 1rem 0' }}>
@@ -3389,10 +3672,12 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                      {albumsWithImages.map(album => (
+                      {albumsWithImages.map(album => {
+                        const hasPhotobook = albumHasPhotobook(album);
+                        return (
                         <div
                           key={album.id}
-                          onClick={() => setSetupSelectedAlbum(album)}
+                          onClick={() => !hasPhotobook && setSetupSelectedAlbum(album)}
                           style={{
                             display: 'flex',
                             alignItems: 'center',
@@ -3400,10 +3685,13 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                             padding: '0.75rem',
                             borderRadius: '0.5rem',
                             border: `2px solid ${setupSelectedAlbum?.id === album.id ? '#083A85' : colors.borderPrimary}`,
-                            backgroundColor: setupSelectedAlbum?.id === album.id
-                              ? (actualTheme === 'dark' ? '#0c2d5a' : '#EFF6FF')
-                              : 'transparent',
-                            cursor: 'pointer',
+                            backgroundColor: hasPhotobook
+                              ? (actualTheme === 'dark' ? '#1a1a2e' : '#F3F4F6')
+                              : setupSelectedAlbum?.id === album.id
+                                ? (actualTheme === 'dark' ? '#0c2d5a' : '#EFF6FF')
+                                : 'transparent',
+                            cursor: hasPhotobook ? 'not-allowed' : 'pointer',
+                            opacity: hasPhotobook ? 0.6 : 1,
                             transition: 'all 0.2s'
                           }}
                         >
@@ -3428,14 +3716,19 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                               {album.photographer} · {album.images.length} photos
                             </p>
                           </div>
-                          {setupSelectedAlbum?.id === album.id && (
+                          {hasPhotobook ? (
+                            <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#F20C8F', backgroundColor: 'rgba(242, 12, 143, 0.1)', padding: '0.2rem 0.5rem', borderRadius: '0.25rem', whiteSpace: 'nowrap' }}>
+                              Photobook Created
+                            </span>
+                          ) : setupSelectedAlbum?.id === album.id ? (
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="#083A85" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <circle cx="12" cy="12" r="10"></circle>
                               <polyline points="9 12 11.5 14.5 16 9.5"></polyline>
                             </svg>
-                          )}
+                          ) : null}
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -3539,7 +3832,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
               gap: '0.75rem'
             }}>
               <button
-                onClick={setupStep === 1 ? resetSetupWizard : () => setSetupStep(setupStep - 1)}
+                onClick={(setupStep === 1 || (setupPhotobookId && setupStep === 2)) ? resetSetupWizard : () => setSetupStep(setupStep - 1)}
                 style={{
                   padding: '0.625rem 1.25rem',
                   borderRadius: '0.375rem',
@@ -3551,7 +3844,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                   cursor: 'pointer'
                 }}
               >
-                {setupStep === 1 ? 'Cancel' : 'Back'}
+                {(setupStep === 1 || (setupPhotobookId && setupStep === 2)) ? 'Cancel' : 'Back'}
               </button>
               <button
                 onClick={() => { setSetupCurrentImageIndex(0); setSetupStep(setupStep + 1); }}
@@ -3616,10 +3909,59 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                     {setupSelectedAlbum.title}
                   </h3>
                   <p style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.6)', margin: 0 }}>
-                    Step 3 of 3 · {setupSelectedAlbum.images.length} photos
+                    Step {setupPhotobookId ? 2 : 3} of {setupPhotobookId ? 2 : 3} · {setupSelectedAlbum.images.length} photos
                   </p>
                 </div>
               </div>
+              {/* Select Mode Toggle */}
+              <button
+                onClick={() => setSetupSelectMode(!setupSelectMode)}
+                style={{
+                  padding: '0.375rem 0.75rem',
+                  borderRadius: '0.375rem',
+                  border: setupSelectMode ? '1px solid #083A85' : '1px solid rgba(255, 255, 255, 0.2)',
+                  backgroundColor: setupSelectMode ? '#083A85' : 'rgba(255, 255, 255, 0.1)',
+                  color: 'white',
+                  fontSize: '0.75rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem'
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 11 12 14 22 4"></polyline>
+                  <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                </svg>
+                {setupSelectMode ? 'Done' : 'Select'}
+              </button>
+              {/* Select All / Deselect All (only in select mode) */}
+              {setupSelectMode && (
+                <button
+                  onClick={() => {
+                    if (setupSelectedImages.length === Math.min(MAX_IMAGE_SELECTION, setupSelectedAlbum.images.length)) {
+                      setSetupSelectedImages([]);
+                    } else {
+                      setSetupSelectedImages(setupSelectedAlbum.images.slice(0, MAX_IMAGE_SELECTION));
+                    }
+                  }}
+                  style={{
+                    padding: '0.375rem 0.75rem',
+                    borderRadius: '0.375rem',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    color: 'white',
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {setupSelectedImages.length === Math.min(MAX_IMAGE_SELECTION, setupSelectedAlbum.images.length) ? 'Deselect All' : `Select All (${MAX_IMAGE_SELECTION})`}
+                </button>
+              )}
               {/* Selection counter */}
               <span style={{
                 backgroundColor: setupSelectedImages.length >= MAX_IMAGE_SELECTION ? 'rgba(5, 150, 105, 0.8)' : 'rgba(255, 255, 255, 0.15)',
@@ -3743,6 +4085,8 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                       if (isLocked && !hasSeenLimitMessage) {
                         setShowLimitReachedMessage(true);
                         setHasSeenLimitMessage(true);
+                      } else if (setupSelectMode) {
+                        toggleSetupImageSelection(image);
                       } else {
                         setSetupCurrentImageIndex(index);
                         setStep3ViewMode('image-selection');
@@ -4894,6 +5238,99 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                 Delete Photobook
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Send Photobook Confirmation Modal */}
+      {showSendPhotobookModal && photobookToSend && (
+        <div
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '1rem' }}
+          onClick={() => { setShowSendPhotobookModal(false); setPhotobookToSend(null); }}
+        >
+          <div
+            style={{ backgroundColor: colors.bgCard, borderRadius: '1rem', padding: '1.5rem', width: '400px', maxWidth: '90%', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {(() => {
+              const pbIds = new Set(photobookToSend.mediaIds || []);
+              const sourceAlbum = albums.find(a => (a.mediaIds || []).some((id: string) => pbIds.has(id)));
+              const photographerName = sourceAlbum?.photographer || 'Photographer';
+              const photographerAvatar = sourceAlbum?.photographerAvatar;
+              return (
+                <>
+                  {/* Photographer Profile */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '1.25rem' }}>
+                    {photographerAvatar ? (
+                      <img
+                        src={photographerAvatar}
+                        alt={photographerName}
+                        style={{ width: '72px', height: '72px', borderRadius: '50%', objectFit: 'cover', border: `3px solid ${colors.borderPrimary}`, marginBottom: '0.75rem' }}
+                        onError={(e) => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement)?.style.setProperty('display', 'flex'); }}
+                      />
+                    ) : null}
+                    <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: 'linear-gradient(135deg, #083A85, #3B82F6)', border: `3px solid ${colors.borderPrimary}`, display: photographerAvatar ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.75rem' }}>
+                      {photographerName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                    </div>
+                    <h3 style={{ fontSize: '1rem', fontWeight: '700', color: colors.textPrimary, margin: 0 }}>{photographerName}</h3>
+                    <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Photographer</span>
+                  </div>
+                  <h2 style={{ fontSize: '1.15rem', fontWeight: '700', color: colors.textPrimary, margin: '0 0 0.75rem', textAlign: 'center' }}>
+                    Send Photobook
+                  </h2>
+                  <p style={{ fontSize: '0.95rem', color: colors.textSecondary, margin: '0 0 0.5rem', textAlign: 'center', lineHeight: '1.5' }}>
+                    Send <strong style={{ color: colors.textPrimary }}>&quot;{photobookToSend.name}&quot;</strong> to {photographerName}?
+                  </p>
+                  <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0 0 1.5rem', textAlign: 'center' }}>
+                    {photobookToSend.images.length} selected photo{photobookToSend.images.length !== 1 ? 's' : ''} will be shared. {photographerName} will be notified.
+                  </p>
+                </>
+              );
+            })()}
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                onClick={() => { setShowSendPhotobookModal(false); setPhotobookToSend(null); }}
+                style={{ flex: 1, padding: '0.75rem 1rem', borderRadius: '0.5rem', border: `2px solid ${colors.borderPrimary}`, backgroundColor: colors.bgCard, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSendPhotobook}
+                style={{ flex: 1, padding: '0.75rem 1rem', borderRadius: '0.5rem', border: 'none', backgroundColor: '#083A85', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" />
+                </svg>
+                Send Now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Photobook Sent Success Modal */}
+      {showPhotobookSuccessModal && (
+        <div
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}
+          onClick={() => setShowPhotobookSuccessModal(false)}
+        >
+          <div
+            style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1.75rem', maxWidth: '380px', width: '90%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', textAlign: 'center' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: actualTheme === 'dark' ? '#052E16' : '#D1FAE5', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: '700', color: colors.textPrimary, margin: '0 0 0.5rem' }}>{photobookSuccessMessage.title}</h3>
+            <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1.25rem', lineHeight: '1.5' }}>{photobookSuccessMessage.description}</p>
+            <button
+              onClick={() => setShowPhotobookSuccessModal(false)}
+              style={{ padding: '0.625rem 2rem', borderRadius: '0.5rem', border: 'none', backgroundColor: '#083A85', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}
+            >
+              Done
+            </button>
           </div>
         </div>
       )}
