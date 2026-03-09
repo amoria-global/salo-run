@@ -368,7 +368,7 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary, overflow: 'hidden', width: '100%', maxWidth: '100vw' }}>
       <style>{`
         @media (max-width: 768px) {
           .mobile-header {
@@ -406,22 +406,36 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
           }
           .mobile-search input {
             width: 100% !important;
+            min-height: 44px !important;
           }
           .mobile-filter-buttons {
             overflow-x: auto !important;
             flex-wrap: nowrap !important;
             width: 100% !important;
             -webkit-overflow-scrolling: touch;
+            -ms-overflow-style: none !important;
+            scrollbar-width: none !important;
+          }
+          .mobile-filter-buttons::-webkit-scrollbar {
+            display: none !important;
+          }
+          .mobile-filter-buttons button {
+            flex-shrink: 0 !important;
+            min-height: 40px !important;
           }
           .mobile-streams-grid {
             grid-template-columns: 1fr !important;
             gap: 1rem !important;
             margin-bottom: 3rem !important;
           }
+          .mobile-streams-grid button {
+            min-height: 40px !important;
+          }
           .mobile-main-content {
-            padding: 0.75rem !important;
+            padding: 1rem !important;
             padding-bottom: 8rem !important;
             overflow-y: auto !important;
+            overflow-x: hidden !important;
           }
           .mobile-modal {
             width: 95% !important;
@@ -457,7 +471,7 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
             margin-bottom: 4rem !important;
           }
           .mobile-main-content {
-            padding: 0.5rem !important;
+            padding: 0.75rem !important;
             padding-bottom: 10rem !important;
           }
         }

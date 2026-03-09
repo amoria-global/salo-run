@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
@@ -168,6 +169,14 @@ const PhotographerDashboard = () => {
   const { colors, actualTheme } = useTheme();
   const { formatPrice } = useCurrency();
   const { user } = useDashboardAuth();
+  const router = useRouter();
+
+  // Redirect pending/rejected photographers to their profile page
+  useEffect(() => {
+    if (user && user.profileReviewStatus !== 'approved') {
+      router.replace('/user/photographer/profile');
+    }
+  }, [user, router]);
   const [activeFilter, setActiveFilter] = useState<'today' | 'week' | 'month' | 'custom'>('week');
   const [timeOfDay, setTimeOfDay] = useState(getTimeOfDay());
   const [greetingIndex, setGreetingIndex] = useState(0);
@@ -1996,6 +2005,7 @@ const PhotographerDashboard = () => {
         }}
       />
       */}
+
     </>
   );
 };

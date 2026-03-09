@@ -180,7 +180,7 @@ export const StatCard: React.FC<StatCardProps> = ({
               transition: 'opacity 0.3s',
               textDecoration: 'none'
             }}
-            title="View details"
+            title={`View ${href.split('/').pop()?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'details'}`}
             onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
             onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
           >

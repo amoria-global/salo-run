@@ -172,6 +172,9 @@ export default function Sidebar() {
     return () => window.removeEventListener('inbox:totalCount', handleTotalCount);
   }, []);
 
+  // Check if photographer is not accepted (pending or rejected) — restrict to profile only
+  const isNotAccepted = currentRole === 'photographer' && user?.profileReviewStatus !== 'approved';
+
   const navigationItems = roleNavigationMap[currentRole].map(item => {
     if (item.name === "Notifications") {
       return { ...item, badge: notificationCount };
@@ -229,7 +232,7 @@ export default function Sidebar() {
             display: flex !important;
             position: fixed !important;
             top: 1rem !important;
-            left: 0.5rem !important;
+            left: ${isMobileMenuOpen ? '16.5rem' : '0.5rem'} !important;
             z-index: 1001 !important;
             background-color: ${colors.bgSecondary} !important;
             border: 2px solid ${colors.borderPrimary} !important;
@@ -239,6 +242,7 @@ export default function Sidebar() {
             align-items: center !important;
             justify-content: center !important;
             box-shadow: ${colors.shadowMd} !important;
+            transition: left 0.3s ease-in-out !important;
           }
 
           .mobile-overlay {
@@ -262,6 +266,10 @@ export default function Sidebar() {
           .sidebar-container {
             width: 14rem !important;
           }
+
+          .mobile-menu-button {
+            left: ${isMobileMenuOpen ? '14.5rem' : '0.5rem'} !important;
+          }
         }
       `}</style>
 
@@ -283,9 +291,18 @@ export default function Sidebar() {
           strokeLinecap="round"
           strokeLinejoin="round"
         >
-          <line x1="3" y1="12" x2="21" y2="12"/>
-          <line x1="3" y1="6" x2="21" y2="6"/>
-          <line x1="3" y1="18" x2="21" y2="18"/>
+          {isMobileMenuOpen ? (
+            <>
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </>
+          ) : (
+            <>
+              <line x1="3" y1="12" x2="21" y2="12"/>
+              <line x1="3" y1="6" x2="21" y2="6"/>
+              <line x1="3" y1="18" x2="21" y2="18"/>
+            </>
+          )}
         </svg>
       </button>
 
@@ -386,29 +403,49 @@ export default function Sidebar() {
           const isActive = pathname === item.href ||
             (item.name === 'Transactions' && pathname === `/user/${currentRole}/all-transactions`);
 
+          const navStyle = {
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: isCollapsed ? 'center' : 'flex-start',
+            gap: isCollapsed ? '0' : '0.75rem',
+            borderRadius: '0.375rem',
+            paddingLeft: '0.75rem',
+            paddingRight: '0.75rem',
+            paddingTop: '0.625rem',
+            paddingBottom: '0.625rem',
+            fontSize: '15px',
+            fontWeight: '400' as const,
+            transition: 'all 0.2s',
+            backgroundColor: isActive && !isNotAccepted ? colors.bgActive : 'transparent',
+            color: isNotAccepted ? colors.textSecondary : (isActive ? colors.textInverse : colors.textPrimary),
+            boxShadow: isActive && !isNotAccepted ? '0 1px 2px 0 rgba(0, 0, 0, 0.05)' : 'none',
+            textDecoration: 'none',
+            opacity: isNotAccepted ? 0.4 : 1,
+            cursor: isNotAccepted ? 'not-allowed' : 'pointer',
+            pointerEvents: isNotAccepted ? 'none' as const : 'auto' as const,
+          };
+
+          if (isNotAccepted) {
+            return (
+              <div key={item.name} style={navStyle} title={isCollapsed ? item.name : undefined}>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <i style={{ fontSize: '18px' }} className={`bi ${item.icon}`}></i>
+                </div>
+                {!isCollapsed && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flex: 1 }}>
+                    <span>{item.name}</span>
+                  </div>
+                )}
+              </div>
+            );
+          }
+
           return (
             <Link
               key={item.name}
               href={item.href}
               onClick={closeMobileMenu}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: isCollapsed ? 'center' : 'flex-start',
-                gap: isCollapsed ? '0' : '0.75rem',
-                borderRadius: '0.375rem',
-                paddingLeft: '0.75rem',
-                paddingRight: '0.75rem',
-                paddingTop: '0.625rem',
-                paddingBottom: '0.625rem',
-                fontSize: '15px',
-                fontWeight: '400',
-                transition: 'all 0.2s',
-                backgroundColor: isActive ? colors.bgActive : 'transparent',
-                color: isActive ? colors.textInverse : colors.textPrimary,
-                boxShadow: isActive ? '0 1px 2px 0 rgba(0, 0, 0, 0.05)' : 'none',
-                textDecoration: 'none'
-              }}
+              style={navStyle}
               title={isCollapsed ? item.name : undefined}
               onMouseEnter={(e) => {
                 if (!isActive) {
@@ -498,37 +535,54 @@ export default function Sidebar() {
       }}>
         {bottomNavigationItems.map((item) => {
           const isActive = pathname === item.href;
+          const isLogout = item.name === 'Logout';
+          const isProfile = item.name === 'Profile';
+          const isDisabledItem = isNotAccepted && !isLogout && !isProfile;
+
+          const bottomNavStyle = {
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: isCollapsed ? 'center' : 'flex-start',
+            gap: isCollapsed ? '0' : '0.75rem',
+            borderRadius: '0.375rem',
+            paddingLeft: '0.75rem',
+            paddingRight: '0.75rem',
+            paddingTop: '0.625rem',
+            paddingBottom: '0.625rem',
+            fontSize: '15px',
+            fontWeight: '400' as const,
+            transition: 'all 0.2s',
+            backgroundColor: isActive && !isDisabledItem ? colors.bgActive : 'transparent',
+            color: isDisabledItem ? colors.textSecondary : (isActive ? colors.textInverse : colors.textPrimary),
+            boxShadow: isActive && !isDisabledItem ? '0 1px 2px 0 rgba(0, 0, 0, 0.05)' : 'none',
+            textDecoration: 'none',
+            opacity: isDisabledItem ? 0.4 : 1,
+            cursor: isDisabledItem ? 'not-allowed' : 'pointer',
+            pointerEvents: isDisabledItem ? 'none' as const : 'auto' as const,
+          };
+
+          if (isDisabledItem) {
+            return (
+              <div key={item.name} style={bottomNavStyle} title={isCollapsed ? item.name : undefined}>
+                <i style={{ fontSize: '18px' }} className={`bi ${item.icon}`}></i>
+                {!isCollapsed && <span>{item.name}</span>}
+              </div>
+            );
+          }
 
           return (
             <Link
               key={item.name}
               href={item.href}
               onClick={(e) => {
-                if (item.name === 'Logout') {
+                if (isLogout) {
                   e.preventDefault();
                   setShowLogoutModal(true);
                 } else {
                   closeMobileMenu();
                 }
               }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: isCollapsed ? 'center' : 'flex-start',
-                gap: isCollapsed ? '0' : '0.75rem',
-                borderRadius: '0.375rem',
-                paddingLeft: '0.75rem',
-                paddingRight: '0.75rem',
-                paddingTop: '0.625rem',
-                paddingBottom: '0.625rem',
-                fontSize: '15px',
-                fontWeight: '400',
-                transition: 'all 0.2s',
-                backgroundColor: isActive ? colors.bgActive : 'transparent',
-                color: isActive ? colors.textInverse : colors.textPrimary,
-                boxShadow: isActive ? '0 1px 2px 0 rgba(0, 0, 0, 0.05)' : 'none',
-                textDecoration: 'none'
-              }}
+              style={bottomNavStyle}
               title={isCollapsed ? item.name : undefined}
               onMouseEnter={(e) => {
                 if (!isActive) {

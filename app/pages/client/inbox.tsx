@@ -584,7 +584,7 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
   const otherParticipant = selectedConv ? getOtherParticipant(selectedConv) : null;
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary, overflow: 'hidden', width: '100%', maxWidth: '100vw' }}>
       <style>{`
         @media (max-width: 768px) {
           .mobile-inbox-container {
@@ -684,6 +684,7 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
           .mobile-filter-tabs button {
             font-size: 0.75rem !important;
             padding: 0.5rem 0.75rem !important;
+            min-height: 36px !important;
           }
           .mobile-messages-area {
             padding: 1rem 0.75rem !important;
