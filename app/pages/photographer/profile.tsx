@@ -175,6 +175,10 @@ interface DeliveryPackage {
   description: string;
   isActive: boolean;
   features: PackageFeature[];
+  includedPhotos: string;
+  includedVideos: string;
+  extraPhotoPrice: string;
+  extraVideoPrice: string;
 }
 
 interface ToastMessage {
@@ -362,6 +366,10 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       description: '',
       isActive: true,
       features: [],
+      includedPhotos: '',
+      includedVideos: '',
+      extraPhotoPrice: '',
+      extraVideoPrice: '',
     };
     setPackages(prev => [newPackage, ...prev]);
     setExpandedPackageId(newId);
@@ -445,6 +453,10 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           durationHours: parseFloat(pkg.durationHours) || 0,
           description: pkg.description,
           isActive: pkg.isActive,
+          includedPhotos: parseInt(pkg.includedPhotos) || 0,
+          includedVideos: parseInt(pkg.includedVideos) || 0,
+          extraPhotoPrice: parseFloat(pkg.extraPhotoPrice) || 0,
+          extraVideoPrice: parseFloat(pkg.extraVideoPrice) || 0,
           features: getFeaturesForPackage(pkg.packageName).map((f, idx) => ({
             featureName: f,
             isIncluded: true,
@@ -848,6 +860,31 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           }
         });
         setBasicInfo(prev => ({ ...prev, availability: availabilityMap }));
+      }
+
+      // Set packages from user data
+      if (user.packages && Array.isArray(user.packages) && user.packages.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setPackages(user.packages.map((p: any) => ({
+          id: p.id || String(Date.now() + Math.random()),
+          packageName: p.packageName || '',
+          price: String(p.price ?? ''),
+          currencyId: p.currencyId || 'USD',
+          priceUnit: p.priceUnit || 'per event',
+          durationHours: String(p.durationHours ?? ''),
+          description: p.description || '',
+          isActive: p.isActive ?? true,
+          features: (p.features || []).map((f: any) => ({
+            id: f.id || String(Date.now()),
+            featureName: f.featureName || '',
+            isIncluded: f.isIncluded ?? true,
+            displayOrder: f.displayOrder || 0,
+          })),
+          includedPhotos: String(p.includedPhotos ?? ''),
+          includedVideos: String(p.includedVideos ?? ''),
+          extraPhotoPrice: String(p.extraPhotoPrice ?? ''),
+          extraVideoPrice: String(p.extraVideoPrice ?? ''),
+        })));
       }
 
       // Set images
@@ -1932,7 +1969,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     color: isActive ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.textSecondary,
     backgroundColor: isActive ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : 'transparent',
     border: 'none',
-    borderBottom: isActive ? `3px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}` : '3px solid transparent',
+    borderBottomWidth: '3px',
+    borderBottomStyle: 'solid' as const,
+    borderBottomColor: isActive ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : 'transparent',
     cursor: 'pointer',
     transition: 'all 0.2s'
   });
@@ -2506,6 +2545,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           {/* Profile Completion Card */}
           <div className="mobile-card completion-card-enhanced" style={{
             ...cardStyle,
+            backgroundColor: undefined,
             background: 'linear-gradient(135deg, #083A85 0%, #0a4da8 100%)',
             color: 'white',
             marginBottom: '1.5rem'
@@ -2956,7 +2996,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                 borderRadius: '0 0 0.75rem 0.75rem',
                 padding: '1.5rem',
                 boxShadow: colors.shadowSm,
-                border: `2px solid ${colors.borderPrimary}`,
+                borderLeft: `2px solid ${colors.borderPrimary}`,
+                borderRight: `2px solid ${colors.borderPrimary}`,
+                borderBottom: `2px solid ${colors.borderPrimary}`,
                 borderTop: 'none'
               }}>
                 {/* Overview Tab */}
@@ -5084,6 +5126,34 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                   placeholder="Describe what this package includes..."
                                   rows={3} disabled={!isEditEnabled}
                                   style={{ ...inputStyle, resize: 'vertical' as const }} />
+                              </div>
+
+                              {/* Row 3.5: Included Photos/Videos & Extra Pricing */}
+                              <div className="mobile-form-grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.25rem' }}>
+                                <div>
+                                  <label style={labelStyle}>Included Photos</label>
+                                  <input type="number" min="0" value={pkg.includedPhotos}
+                                    onChange={(e) => updatePackage(pkg.id, 'includedPhotos', e.target.value)}
+                                    placeholder="e.g., 50" disabled={!isEditEnabled} style={inputStyle} />
+                                </div>
+                                <div>
+                                  <label style={labelStyle}>Included Videos</label>
+                                  <input type="number" min="0" value={pkg.includedVideos}
+                                    onChange={(e) => updatePackage(pkg.id, 'includedVideos', e.target.value)}
+                                    placeholder="e.g., 5" disabled={!isEditEnabled} style={inputStyle} />
+                                </div>
+                                <div>
+                                  <label style={labelStyle}>Extra Photo Price</label>
+                                  <input type="number" min="0" step="0.01" value={pkg.extraPhotoPrice}
+                                    onChange={(e) => updatePackage(pkg.id, 'extraPhotoPrice', e.target.value)}
+                                    placeholder="e.g., 5.00" disabled={!isEditEnabled} style={inputStyle} />
+                                </div>
+                                <div>
+                                  <label style={labelStyle}>Extra Video Price</label>
+                                  <input type="number" min="0" step="0.01" value={pkg.extraVideoPrice}
+                                    onChange={(e) => updatePackage(pkg.id, 'extraVideoPrice', e.target.value)}
+                                    placeholder="e.g., 15.00" disabled={!isEditEnabled} style={inputStyle} />
+                                </div>
                               </div>
 
                               {/* Row 4: Included Features (read-only, determined by package type) */}
