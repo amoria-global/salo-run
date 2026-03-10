@@ -13,6 +13,7 @@ import { useCurrency } from '@/app/context/CurrencyContext';
 
 import { Unlock } from 'lucide-react';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
+import { getApiUrl, normalizeImageUrl } from '@/lib/api';
 
 type PaymentStatus = 'paid' | 'pending' | 'failed' | 'refunded' | 'partially_paid';
 
@@ -31,9 +32,6 @@ interface Payment {
   invoiceNumber: string;
 }
 
-function getApiUrl(): string {
-  return process.env.NEXT_PUBLIC_API_URL!;
-}
 
 // Icons
 const CloseIcon = () => (
@@ -216,7 +214,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   // URL normalization (http → https proxy)
   const normalizeImg = (url: string | undefined | null): string => {
     if (!url || url === 'null' || url.endsWith('/null')) return '';
-    return url;
+    return normalizeImageUrl(url) || '';
   };
 
   // --- Gallery API helpers (role-aware endpoints) ---
@@ -898,7 +896,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   };
 
   const getShareLink = (album: any) => {
-    return `${process.env.NEXT_PUBLIC_LANDING_URL!}/gallery/${album.id}`;
+    return `${process.env.NEXT_PUBLIC_LANDING_URL as string}/gallery/${album.id}`;
   };
 
   const handleCopyLink = (link: string) => {

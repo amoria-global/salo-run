@@ -8,11 +8,7 @@ import Link from 'next/link';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
-
-// API helpers
-function getApiUrl(): string {
-  return process.env.NEXT_PUBLIC_API_URL!;
-}
+import { getApiUrl, normalizeImageUrl } from '@/lib/api';
 
 // Icons
 const SearchIcon = () => (
@@ -403,7 +399,7 @@ export default function Clients() {
         }
       }
 
-      const normalizeImg = (url: string | undefined): string | undefined => url && !url.includes('/null') ? url : undefined;
+      const normalizeImg = (url: string | undefined): string | undefined => normalizeImageUrl(url);
       let clientsMapped: Client[] = [];
 
       // Primary: use /photographer/clients (populated once backend deploys booking-based logic)
@@ -611,7 +607,7 @@ export default function Clients() {
   }, []);
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary, overflow: 'hidden', width: '100%', maxWidth: '100vw' }}>
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
       <style>{`
         @media (max-width: 768px) {
           .mobile-main-content {
