@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams, usePathname } from 'next/navigation';
+import { getApiUrl, getApiKey, normalizeImageUrl } from '@/lib/api';
 
 /**
  * Availability time structure from API
@@ -151,12 +152,6 @@ const AUTH_TOKEN_KEY = 'authToken';
 const AUTH_USER_KEY = 'authUser';
 const REFRESH_TOKEN_KEY = 'refreshToken';
 
-/** Normalize image URLs — filter out null placeholders */
-function normalizeImageUrl(url: string | undefined | null): string | undefined {
-  if (!url || url.includes('/null')) return undefined;
-  return url;
-}
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 /**
@@ -215,20 +210,6 @@ function clearAuthFromStorage(): void {
   } catch (error) {
     console.error('[Dashboard Auth] Failed to clear auth storage:', error);
   }
-}
-
-/**
- * Get API URL
- */
-function getApiUrl(): string {
-  return process.env.NEXT_PUBLIC_API_URL!;
-}
-
-/**
- * Get API key
- */
-function getApiKey(): string {
-  return process.env.NEXT_PUBLIC_API_KEY!;
 }
 
 /**
@@ -447,7 +428,7 @@ async function fetchUserProfile(token: string): Promise<{ user: DashboardUser | 
         }
       }
       if (typeof window !== 'undefined') {
-        const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL!;
+        const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL as string;
         const loginUrl = `${landingUrl}/user/auth/login?session_expired=true`;
         window.location.href = loginUrl;
       }
@@ -677,7 +658,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     setIsLoggingOut(true);
 
     if (typeof window !== 'undefined') {
-      const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL!;
+      const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL as string;
 
       // Notify the landing page via postMessage (works when opened as a popup)
       if (window.opener && !window.opener.closed) {

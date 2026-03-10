@@ -9,10 +9,8 @@ import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
 import { HeartIcon } from '../../components/UnlockModal';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
-
-function getApiUrl(): string {
-  return process.env.NEXT_PUBLIC_API_URL!;
-}
+import { getApiUrl } from '@/lib/api';
+import { processWithdrawal } from '@/lib/xentripay';
 
 // Icons
 const DownloadIcon = () => (
@@ -554,6 +552,11 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
   const [accounts, setAccounts] = useState<WithdrawAccount[]>([]);
   const [accountsLoading, setAccountsLoading] = useState<boolean>(false);
 
+  // XentriPay withdrawal states
+  const [withdrawStep, setWithdrawStep] = useState<'form' | 'processing' | 'success' | 'failed'>('form');
+  const [withdrawError, setWithdrawError] = useState<string>('');
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
+
   const displayName = userName || 'Account Holder';
 
   useEffect(() => {
@@ -596,7 +599,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
   const donationAddressed = donationSkipped || donationValue > 0;
 
   const parsedWithdrawAmount = parseFloat(withdrawAmount) || 0;
-  const withdrawError = withdrawAmount !== '' && parsedWithdrawAmount <= 0
+  const amountError = withdrawAmount !== '' && parsedWithdrawAmount <= 0
     ? 'Please enter an amount greater than zero'
     : parsedWithdrawAmount > availableBalance
       ? `Insufficient funds. Your available balance is ${formatPrice(availableBalance)}`
@@ -625,23 +628,66 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
   const handleWithdraw = async () => {
     const amount = parseFloat(withdrawAmount) || 0;
     const donation = donationAmount === 'custom' ? (parseFloat(customDonation) || 0) : (parseFloat(donationAmount) || 0);
-    onClose();
+
+    setIsWithdrawing(true);
+    setWithdrawError('');
+    setWithdrawStep('processing');
+
+    try {
+      // Step 1: Create the PhotographerTransaction record
+      const apiUrl = getApiUrl();
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/withdraw`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount, accountId: selectedAccount, donationAmount: donation }),
+      });
+
+      const result = await res.json();
+
+      if (!res.ok || result.action === 0) {
+        setWithdrawError(result.message || 'Failed to create withdrawal request');
+        setWithdrawStep('failed');
+        setIsWithdrawing(false);
+        return;
+      }
+
+      // Step 2: Process payout via XentriPay
+      const transactionId = result.data?.id || result.data?.transactionId;
+      if (!transactionId) {
+        // Withdrawal record created but no transaction ID returned — still a success for the ledger
+        setWithdrawStep('success');
+        setIsWithdrawing(false);
+        return;
+      }
+
+      const payoutResult = await processWithdrawal(String(transactionId));
+
+      if (payoutResult.success) {
+        setWithdrawStep('success');
+      } else {
+        // The withdrawal record was created, but XentriPay payout failed
+        // Show success since the ledger entry exists, the payout can be retried
+        setWithdrawStep('success');
+      }
+    } catch (err) {
+      setWithdrawError(err instanceof Error ? err.message : 'Withdrawal failed');
+      setWithdrawStep('failed');
+    } finally {
+      setIsWithdrawing(false);
+    }
+  };
+
+  const handleWithdrawClose = () => {
+    setWithdrawStep('form');
+    setWithdrawError('');
     setWithdrawAmount('');
     setSelectedAccount('');
     setDonationAmount('');
     setCustomDonation('');
     setDonationSkipped(false);
     setShowCustomInput(false);
-    try {
-      const apiUrl = getApiUrl();
-      await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/withdraw`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount, accountId: selectedAccount, donationAmount: donation }),
-      });
-    } catch (err) {
-      console.error('Failed to withdraw:', err);
-    }
+    setIsWithdrawing(false);
+    onClose();
   };
 
   const getAccountImage = (type: string) => {
@@ -659,6 +705,59 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
 
   if (!isOpen) return null;
 
+  // Withdrawal Processing View
+  if (withdrawStep === 'processing') {
+    return (
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+        <div style={{ backgroundColor: colors.bgCard, borderRadius: '1rem', width: '450px', maxWidth: '95vw', padding: '2rem', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ width: '64px', height: '64px', margin: '0 auto 1.5rem', border: '4px solid rgba(8, 58, 133, 0.2)', borderTopColor: '#083A85', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          <h4 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>Processing Withdrawal</h4>
+          <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1rem', lineHeight: '1.5' }}>
+            Your withdrawal of {formatPrice(parseFloat(withdrawAmount) || 0)} is being processed. This may take a moment...
+          </p>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      </div>
+    );
+  }
+
+  // Withdrawal Success View
+  if (withdrawStep === 'success') {
+    return (
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+        <div style={{ backgroundColor: colors.bgCard, borderRadius: '1rem', width: '450px', maxWidth: '95vw', padding: '2rem', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ width: '64px', height: '64px', margin: '0 auto 1.5rem', borderRadius: '50%', backgroundColor: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17L4 12" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </div>
+          <h4 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>Withdrawal Submitted!</h4>
+          <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1.5rem' }}>
+            Your withdrawal of {formatPrice(parseFloat(withdrawAmount) || 0)} has been submitted and is being processed to your account.
+          </p>
+          <button onClick={() => { handleWithdrawClose(); window.location.reload(); }} style={{ padding: '0.75rem 2rem', border: '2px solid #062a63', borderRadius: '0.5rem', background: '#083A85', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Done</button>
+        </div>
+      </div>
+    );
+  }
+
+  // Withdrawal Failed View
+  if (withdrawStep === 'failed') {
+    return (
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+        <div style={{ backgroundColor: colors.bgCard, borderRadius: '1rem', width: '450px', maxWidth: '95vw', padding: '2rem', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ width: '64px', height: '64px', margin: '0 auto 1.5rem', borderRadius: '50%', backgroundColor: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </div>
+          <h4 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>Withdrawal Failed</h4>
+          <p style={{ fontSize: '0.9rem', color: '#EF4444', margin: '0 0 1.5rem' }}>{withdrawError || 'Something went wrong. Please try again.'}</p>
+          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+            <button onClick={handleWithdrawClose} style={{ padding: '0.75rem 1.5rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Close</button>
+            <button onClick={() => { setWithdrawStep('form'); setWithdrawError(''); }} style={{ padding: '0.75rem 1.5rem', border: '2px solid #c00a72', borderRadius: '0.5rem', background: '#F20C8F', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Try Again</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{
       position: 'fixed',
@@ -671,7 +770,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 1000,
-    }} onClick={onClose}>
+    }} onClick={handleWithdrawClose}>
       <div className="mobile-modal" style={{
         backgroundColor: colors.bgCard,
         borderRadius: '1rem',
@@ -695,7 +794,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
             <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0.25rem 0 0 0' }}>Transfer earnings to your account</p>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleWithdrawClose}
             style={{
               background: colors.bgTertiary,
               border: `2px solid ${colors.borderPrimary}`,
@@ -823,7 +922,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
                 </button>
               ))}
             </div>
-            {withdrawError && (
+            {amountError && (
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -842,7 +941,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
                   <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
                   <path d="M12 8V12M12 16H12.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                 </svg>
-                {withdrawError}
+                {amountError}
               </div>
             )}
           </div>
@@ -1116,7 +1215,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
             {/* Donations Page Link */}
             <div style={{ marginTop: '0.5rem' }}>
               <a
-                href={`${process.env.NEXT_PUBLIC_LANDING_URL!}/user/donations`}
+                href={`${process.env.NEXT_PUBLIC_LANDING_URL as string}/user/donations`}
                 onClick={(e) => {
                   e.preventDefault();
                   router.push('/user/donations');
@@ -1149,7 +1248,8 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
           {/* Actions */}
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
             <button
-              onClick={onClose}
+              onClick={handleWithdrawClose}
+              disabled={isWithdrawing}
               style={{
                 flex: 1,
                 padding: '0.875rem 1rem',
@@ -1159,27 +1259,28 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
                 color: colors.textPrimary,
                 fontSize: '0.9rem',
                 fontWeight: '600',
-                cursor: 'pointer',
+                cursor: isWithdrawing ? 'not-allowed' : 'pointer',
+                opacity: isWithdrawing ? 0.6 : 1,
                 transition: 'all 0.2s'
               }}
-              onMouseEnter={(e) => e.currentTarget.style.background = colors.borderPrimary}
+              onMouseEnter={(e) => { if (!isWithdrawing) e.currentTarget.style.background = colors.borderPrimary; }}
               onMouseLeave={(e) => e.currentTarget.style.background = colors.bgTertiary}
             >
               Cancel
             </button>
             <button
               onClick={handleWithdraw}
-              disabled={!isWithdrawValid || !selectedAccount || !donationAddressed || accounts.length === 0}
+              disabled={!isWithdrawValid || !selectedAccount || !donationAddressed || accounts.length === 0 || isWithdrawing}
               style={{
                 flex: 1,
                 padding: '0.875rem 1rem',
-                border: !isWithdrawValid || !selectedAccount || !donationAddressed || accounts.length === 0 ? '2px solid #9CA3AF' : '2px solid #062a63',
+                border: !isWithdrawValid || !selectedAccount || !donationAddressed || accounts.length === 0 || isWithdrawing ? '2px solid #9CA3AF' : '2px solid #062a63',
                 borderRadius: '0.75rem',
-                background: !isWithdrawValid || !selectedAccount || !donationAddressed || accounts.length === 0 ? '#9CA3AF' : '#083A85',
+                background: !isWithdrawValid || !selectedAccount || !donationAddressed || accounts.length === 0 || isWithdrawing ? '#9CA3AF' : '#083A85',
                 color: 'white',
                 fontSize: '0.9rem',
                 fontWeight: '600',
-                cursor: !isWithdrawValid || !selectedAccount || !donationAddressed || accounts.length === 0 ? 'not-allowed' : 'pointer',
+                cursor: !isWithdrawValid || !selectedAccount || !donationAddressed || accounts.length === 0 || isWithdrawing ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -1188,7 +1289,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
               }}
             >
               <WithdrawIcon />
-              Withdraw Funds
+              {isWithdrawing ? 'Processing...' : 'Withdraw Funds'}
             </button>
           </div>
         </div>
@@ -1773,7 +1874,7 @@ Amount: ${formatPrice(transaction.amountNum)}
   const totalResults = transactions.length;
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary, overflow: 'hidden', width: '100%', maxWidth: '100vw' }}>
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
       <style>{`
         @media (max-width: 768px) {
           .mobile-header {
@@ -1839,28 +1940,11 @@ Amount: ${formatPrice(transaction.amountNum)}
             overflow: visible !important;
             gap: 1rem !important;
           }
-          .mobile-chart-header {
-            flex-direction: column !important;
-            gap: 0.75rem !important;
-          }
-          .mobile-earnings-row {
-            flex-direction: column !important;
-            gap: 0.25rem !important;
-          }
-          .mobile-earnings-row span:first-child {
-            font-size: 1.5rem !important;
-          }
-          .mobile-chart-controls {
-            width: 100% !important;
-            justify-content: flex-start !important;
-          }
           .mobile-earnings-summary {
             width: 100% !important;
             max-width: 100% !important;
             padding: 1rem !important;
             margin-right: 0 !important;
-            min-width: 0 !important;
-            box-sizing: border-box !important;
           }
           .mobile-earnings-summary h3 {
             font-size: 1rem !important;
@@ -1872,27 +1956,22 @@ Amount: ${formatPrice(transaction.amountNum)}
             margin-bottom: 1rem !important;
           }
           .mobile-earnings-summary button {
-            font-size: 0.8rem !important;
-          }
-          .mobile-earnings-summary > div:nth-child(2) {
-            gap: 0.5rem !important;
-          }
-          .mobile-earnings-summary > div:nth-child(2) span {
-            font-size: 0.65rem !important;
-          }
-          .mobile-earnings-summary > div:nth-child(2) > div > div:last-child {
             font-size: 0.85rem !important;
+            padding: 0.6rem 1.2rem !important;
+          }
+          .mobile-earnings-summary > div > div {
+            gap: 1rem !important;
           }
           .mobile-earnings-summary svg {
-            transform: scale(0.85);
+            transform: scale(1);
             transform-origin: center;
             margin: 0.5rem 0 !important;
           }
           .mobile-earnings-summary .stat-label {
-            font-size: 0.65rem !important;
+            font-size: 0.75rem !important;
           }
           .mobile-earnings-summary .stat-value {
-            font-size: 0.95rem !important;
+            font-size: 1.1rem !important;
             font-weight: 600 !important;
           }
           .mobile-table-container {
@@ -1928,16 +2007,12 @@ Amount: ${formatPrice(transaction.amountNum)}
             justify-content: center;
           }
           .mobile-main-content {
-            padding: 0.75rem !important;
-            padding-bottom: 8rem !important;
+            padding-left: 0.75rem !important;
+            padding-right: 0.75rem !important;
             overflow-x: hidden !important;
           }
         }
         @media (max-width: 640px) {
-          .mobile-main-content {
-            padding: 0.5rem !important;
-            padding-bottom: 10rem !important;
-          }
           .mobile-title {
             font-size: 1.5rem !important;
           }
@@ -2225,15 +2300,15 @@ Amount: ${formatPrice(transaction.amountNum)}
 
             {/* Earnings Chart */}
             <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1.25rem', boxShadow: colors.shadowSm }}>
-              <div className="mobile-chart-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
                 <div>
                   <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Earnings</div>
-                  <div className="mobile-earnings-row" style={{ display: 'flex', alignItems: 'baseline', gap: '1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '1rem' }}>
                     <span style={{ fontSize: '1.75rem', fontWeight: '700', color: colors.textPrimary }}>{formatPrice(totalCompleted + totalPending + totalWithdrawn)}</span>
                     <span style={{ fontSize: '0.85rem', color: '#10B981', fontWeight: '500' }}>+23% vs last week</span>
                   </div>
                 </div>
-                <div className="mobile-chart-controls" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   {/* Chart Type Selector */}
                   <div style={{ display: 'flex', gap: '0.25rem', backgroundColor: colors.bgTertiary, borderRadius: '0.375rem', padding: '0.25rem' }}>
                     <button

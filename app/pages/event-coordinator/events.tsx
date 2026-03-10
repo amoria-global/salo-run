@@ -9,6 +9,7 @@ import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { StatCard } from '../../components/dashboard/StatCard';
+import { getApiUrl, normalizeImageUrl } from '@/lib/api';
 
 // Configure localforage for event form data
 const eventFormStorage = localforage.createInstance({
@@ -59,10 +60,6 @@ const CURRENCY_FLAG_MAP: Record<string, string> = {
   USD: 'us', RWF: 'rw', EUR: 'eu', KES: 'ke', UGX: 'ug', TZS: 'tz', GBP: 'gb',
 };
 
-// API URL helper
-function getApiUrl(): string {
-  return process.env.NEXT_PUBLIC_API_URL!;
-}
 
 function parseTimeToApiString(timeStr: string): string {
   const [hours, minutes] = timeStr.split(':').map(Number);
@@ -379,7 +376,7 @@ const MyEventsPage = () => {
     // Fetch booked/connected photographers (authenticated — same as inbox new chat)
     const normalizeImg = (url: string | undefined | null): string | undefined => {
       if (!url || url.includes('/null')) return undefined;
-      return url;
+      return normalizeImageUrl(url);
     };
     const fetchBookedPhotographers = async () => {
       try {
@@ -693,7 +690,7 @@ const MyEventsPage = () => {
           const locCity = lp.length >= 4 ? (lp[2] || '') : (lp[1] || '');
           const locCountry = lp.length >= 4 ? (lp[3] || '') : (lp[2] || '');
           const rawPhoto = (evt.eventPhoto as string) || (evt.bannerImage as string) || (evt.coverImage as string) || '';
-          const photo = rawPhoto;
+          const photo = normalizeImageUrl(rawPhoto) || '';
           return {
             id: (evt.id as string) || '',
             title: (evt.title as string) || 'Untitled Event',
@@ -728,7 +725,7 @@ const MyEventsPage = () => {
             photographerName: (evt.photographerName as string) || '',
             photographerImage: (evt.photographerImage as string) || '',
             inviteCode: (evt.inviteCode as string) || (evt.hostId as string) || '',
-            shareLink: `${process.env.NEXT_PUBLIC_LANDING_URL!}/user/event/${evt.id}`,
+            shareLink: `${process.env.NEXT_PUBLIC_LANDING_URL as string}/user/event/${evt.id}`,
             createdAt: (evt.createdAt as string) || '',
           };
         });
@@ -2076,7 +2073,7 @@ const MyEventsPage = () => {
               </button>
               <button
                 onClick={() => {
-                  const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL!;
+                  const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL as string;
                   window.open(`${landingUrl}/user/photographers`, '_blank');
                   setShowFindPhotographerModal(false);
                 }}

@@ -9,10 +9,8 @@ import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { HeartIcon as DonateHeartIcon } from '../../components/UnlockModal';
-
-function getApiUrl(): string {
-  return process.env.NEXT_PUBLIC_API_URL!;
-}
+import { getApiUrl, normalizeImageUrl } from '@/lib/api';
+import { initiateBookingPayment, pollPaymentStatus, getTelecomProvider, getPaymentMethodType } from '@/lib/xentripay';
 
 // Icons
 const SearchIcon = () => (
@@ -359,6 +357,11 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
   const [payShowCustomInput, setPayShowCustomInput] = useState<boolean>(false);
   const [payShowReceipt, setPayShowReceipt] = useState<boolean>(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  // XentriPay states
+  const [paymentPhone, setPaymentPhone] = useState<string>('');
+  const [xentriPayStep, setXentriPayStep] = useState<'select' | 'processing' | 'success' | 'failed'>('select');
+  const [xentriPayError, setXentriPayError] = useState<string>('');
+  const stopPollingRef = React.useRef<(() => void) | null>(null);
   // Donation states for tip payment modal
   const [tipDonationAmount, setTipDonationAmount] = useState<string>('');
   const [tipCustomDonation, setTipCustomDonation] = useState<string>('');
@@ -407,9 +410,9 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
           id: p.id,
           firstName: p.firstName || '',
           lastName: p.lastName || '',
-          profileImage: ((url: string | undefined) => url && !url.includes('/null') ? url : undefined)(p.profileImage || p.profilePicture || undefined),
-          coverImage: ((url: string) => url && !url.includes('/null') ? url : '')(p.coverImage || p.coverPicture || ''),
-          portfolioImages: (p.portfolioImages || (p.projects || []).map((proj: any) => proj.imageUrl || '')).map((url: string) => url || ''),
+          profileImage: normalizeImageUrl(p.profileImage || p.profilePicture || undefined),
+          coverImage: normalizeImageUrl(p.coverImage || p.coverPicture || '') || '',
+          portfolioImages: (p.portfolioImages || (p.projects || []).map((proj: any) => proj.imageUrl || '')).map((url: string) => normalizeImageUrl(url) || ''),
           bio: p.bio || p.about || '',
           specializations: p.specializations || (p.specialties || []).map((s: any) => typeof s === 'string' ? s : s.name || ''),
           experience: p.experience || 0,
@@ -865,7 +868,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
   };
 
   // --- Coordinator: Invite photographer by email ---
-  const inviteLink = `${process.env.NEXT_PUBLIC_LANDING_URL!}/invite/photographer/${user?.id || ''}`;
+  const inviteLink = `https://connekt.app/invite/photographer/${user?.id || ''}`;
 
   const handleInvitePhotographer = async () => {
     if (userRole !== 'event-coordinator' || !inviteEmail.trim()) {
@@ -2680,7 +2683,8 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
         const payDonationValue = payDonationAmount === 'custom' ? (parseFloat(payCustomDonation) || 0) : (parseFloat(payDonationAmount) || 0);
         const payTotalAmount = payAmountDue + payDonationValue;
         const payDonationAddressed = payDonationSkipped || payDonationValue > 0;
-        const payIsEnabled = payDonationAddressed;
+        const payPhoneValid = selectedPaymentMethod === 'card' || paymentPhone.trim().length > 0;
+        const payIsEnabled = payDonationAddressed && payPhoneValid;
         const payMethodMap: Record<string, { label: string; image: string }> = {
           card: { label: 'Credit/Debit Card', image: '/cards.png' },
           mtn: { label: 'MTN Mobile Money', image: '/mtn.png' },
@@ -2694,7 +2698,91 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
         const handlePaySkipDonation = () => {
           setPayDonationSkipped(true); setPayDonationAmount(''); setPayCustomDonation(''); setPayShowCustomInput(false);
         };
-        const handlePayClose = () => { setPayShowReceipt(false); setShowPaymentModal(false); };
+        const handlePayClose = () => {
+          if (stopPollingRef.current) { stopPollingRef.current(); stopPollingRef.current = null; }
+          setPayShowReceipt(false); setShowPaymentModal(false); setXentriPayStep('select'); setXentriPayError(''); setPaymentPhone('');
+        };
+
+        const handlePayNowXentriPay = async () => {
+          const declId = paymentBooking.booking.declarationId || paymentBooking.booking.id;
+          if (!declId) { setXentriPayError('No payment declaration found'); return; }
+          if (selectedPaymentMethod !== 'card' && !paymentPhone.trim()) { setXentriPayError('Please enter your phone number'); return; }
+          setIsProcessingPayment(true); setXentriPayError(''); setXentriPayStep('processing');
+          try {
+            const telecom = getTelecomProvider(selectedPaymentMethod);
+            const methodType = getPaymentMethodType(selectedPaymentMethod);
+            const phone = selectedPaymentMethod === 'card' ? '0000000000' : paymentPhone.trim();
+            const result = await initiateBookingPayment(String(declId), phone, telecom, methodType);
+            if (!result.success || !result.data) {
+              setXentriPayError(result.error || 'Failed to initiate payment'); setXentriPayStep('failed'); setIsProcessingPayment(false); return;
+            }
+            if (selectedPaymentMethod === 'card' && result.data.paymentUrl) window.open(result.data.paymentUrl, '_blank');
+            const stopPolling = pollPaymentStatus(result.data.refid, {
+              onSuccess: () => { setXentriPayStep('success'); setIsProcessingPayment(false); },
+              onFailure: () => { setXentriPayStep('failed'); setXentriPayError('Payment was not completed. Please try again.'); setIsProcessingPayment(false); },
+              onError: (error) => { setXentriPayStep('failed'); setXentriPayError(error); setIsProcessingPayment(false); },
+            });
+            stopPollingRef.current = stopPolling;
+          } catch (error) {
+            setXentriPayError(error instanceof Error ? error.message : 'Payment failed'); setXentriPayStep('failed'); setIsProcessingPayment(false);
+          }
+        };
+
+        // XentriPay Processing View
+        if (xentriPayStep === 'processing') {
+          return (
+            <Modal isOpen={showPaymentModal} onClose={handlePayClose} title="Processing Payment" maxWidth="450px">
+              <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+                <div style={{ width: '64px', height: '64px', margin: '0 auto 1.5rem', border: '4px solid rgba(8, 58, 133, 0.2)', borderTopColor: '#083A85', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                <h4 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>
+                  {selectedPaymentMethod === 'card' ? 'Complete payment in your browser' : 'Check your phone'}
+                </h4>
+                <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1rem', lineHeight: '1.5' }}>
+                  {selectedPaymentMethod === 'card'
+                    ? 'A payment page has been opened. Complete the payment there and we\'ll confirm it here.'
+                    : 'A USSD prompt has been sent to your phone. Please approve the payment on your device.'}
+                </p>
+                <p style={{ fontSize: '0.8rem', color: colors.textSecondary }}>This may take a few moments...</p>
+                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+              </div>
+            </Modal>
+          );
+        }
+
+        // XentriPay Success View
+        if (xentriPayStep === 'success') {
+          return (
+            <Modal isOpen={showPaymentModal} onClose={handlePayClose} title="Payment Successful" maxWidth="450px">
+              <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+                <div style={{ width: '64px', height: '64px', margin: '0 auto 1.5rem', borderRadius: '50%', backgroundColor: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17L4 12" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                </div>
+                <h4 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>Payment Completed!</h4>
+                <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1.5rem' }}>Your payment of {formatPrice(payTotalAmount)} has been received successfully.</p>
+                <button onClick={() => { handlePayClose(); setSuccessMessage('Payment processed successfully'); setTimeout(() => setSuccessMessage(''), 3000); }} style={{ padding: '0.75rem 2rem', border: '2px solid #062a63', borderRadius: '0.5rem', background: '#083A85', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Done</button>
+              </div>
+            </Modal>
+          );
+        }
+
+        // XentriPay Failed View
+        if (xentriPayStep === 'failed') {
+          return (
+            <Modal isOpen={showPaymentModal} onClose={handlePayClose} title="Payment Failed" maxWidth="450px">
+              <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+                <div style={{ width: '64px', height: '64px', margin: '0 auto 1.5rem', borderRadius: '50%', backgroundColor: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                </div>
+                <h4 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>Payment Failed</h4>
+                <p style={{ fontSize: '0.9rem', color: '#EF4444', margin: '0 0 1.5rem' }}>{xentriPayError || 'Something went wrong. Please try again.'}</p>
+                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+                  <button onClick={handlePayClose} style={{ padding: '0.75rem 1.5rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Close</button>
+                  <button onClick={() => { setXentriPayStep('select'); setXentriPayError(''); setPayShowReceipt(false); setIsProcessingPayment(false); }} style={{ padding: '0.75rem 1.5rem', border: '2px solid #c00a72', borderRadius: '0.5rem', background: '#F20C8F', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Try Again</button>
+                </div>
+              </div>
+            </Modal>
+          );
+        }
 
         if (payShowReceipt) {
           const mi = payMethodMap[selectedPaymentMethod] || payMethodMap.card;
@@ -2751,37 +2839,13 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                     <span style={{ fontSize: '1.3rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{formatPrice(payTotalAmount)}</span>
                   </div>
                 </div>
+                {xentriPayError && (
+                  <p style={{ fontSize: '0.85rem', color: '#EF4444', margin: '0 0 0.75rem', textAlign: 'center' }}>{xentriPayError}</p>
+                )}
                 <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                  <button onClick={() => setPayShowReceipt(false)} style={{ flex: 1, padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Cancel</button>
+                  <button onClick={() => { setPayShowReceipt(false); setXentriPayError(''); }} disabled={isProcessingPayment} style={{ flex: 1, padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: isProcessingPayment ? 'not-allowed' : 'pointer', opacity: isProcessingPayment ? 0.6 : 1 }}>Cancel</button>
                   <button
-                    onClick={async () => {
-                      if (isProcessingPayment) return;
-                      setIsProcessingPayment(true);
-                      try {
-                        const apiUrl = getApiUrl();
-                        const declId = paymentBooking.booking.declarationId || paymentBooking.booking.id;
-                        const params = new URLSearchParams({
-                          amount: payTotalAmount.toString(),
-                          method: selectedPaymentMethod,
-                        });
-                        if (payDonationValue > 0) {
-                          params.append('remarks', `Includes donation of ${payDonationValue}`);
-                        }
-                        const res = await dashboardAuthFetch(`${apiUrl}/api/remote/payments/${declId}/pay?${params.toString()}`, {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                        });
-                        if (!res.ok) throw new Error('Payment failed');
-                        setShowPaymentModal(false);
-                        setPayShowReceipt(false);
-                        setSuccessMessage('Payment processed successfully');
-                        setTimeout(() => setSuccessMessage(''), 3000);
-                      } catch (err) {
-                        console.error('Payment failed:', err);
-                      } finally {
-                        setIsProcessingPayment(false);
-                      }
-                    }}
+                    onClick={handlePayNowXentriPay}
                     disabled={isProcessingPayment}
                     style={{ flex: 1, padding: '0.75rem 1rem', border: paymentBooking.booking.paymentStatus === 'failed' ? '2px solid #c00a72' : '2px solid #062a63', borderRadius: '0.5rem', background: isProcessingPayment ? '#9CA3AF' : (paymentBooking.booking.paymentStatus === 'failed' ? '#F20C8F' : '#083A85'), color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: isProcessingPayment ? 'not-allowed' : 'pointer', transition: 'all 0.2s', opacity: isProcessingPayment ? 0.7 : 1 }}>
                     {isProcessingPayment ? 'Processing...' : `${paymentBooking.booking.paymentStatus === 'failed' ? 'Retry' : 'Pay'} ${formatPrice(payTotalAmount)}`}
@@ -2835,6 +2899,22 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                     </div>
                   ))}
                 </div>
+
+                {/* Phone Number Input (for mobile money) */}
+                {(selectedPaymentMethod === 'mtn' || selectedPaymentMethod === 'airtel') && (
+                  <div style={{ marginTop: '0.75rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.375rem' }}>Phone Number</label>
+                    <input type="tel" placeholder="e.g. 078XXXXXXX" value={paymentPhone} onChange={(e) => { setPaymentPhone(e.target.value); setXentriPayError(''); }}
+                      style={{ width: '100%', padding: '0.7rem 0.75rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, backgroundColor: colors.bgCard, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = '#083A85'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(8, 58, 133, 0.1)'; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }}
+                    />
+                    <p style={{ fontSize: '0.78rem', color: colors.textSecondary, margin: '0.25rem 0 0 0' }}>
+                      Enter the {selectedPaymentMethod === 'mtn' ? 'MTN' : 'Airtel'} number to receive the payment prompt
+                    </p>
+                  </div>
+                )}
+
                 <p style={{ fontSize: '0.86rem', color: colors.textSecondary, margin: '0.75rem 0 0 0', textAlign: 'center' }}>
                   <i className="bi bi-info-circle" style={{ marginRight: '0.375rem' }}></i>
                   Manage your payment methods in <span onClick={() => router.push(`/user/${userRole === 'event-coordinator' ? 'event-coordinator' : 'client'}/preferences?tab=payments`)} style={{ color: colors.brandPrimary, fontWeight: '500', cursor: 'pointer', textDecoration: 'underline' }}>Preferences → Payment Accounts</span>
@@ -2894,12 +2974,14 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                   fontSize: '0.875rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center'
                 }}>{payDonationSkipped ? '✓ Donation skipped' : 'No thanks, skip donation'}</button>
                 <div style={{ marginTop: '0.5rem' }}>
-                  <a href={`${process.env.NEXT_PUBLIC_LANDING_URL!}/user/donations`} onClick={(e) => { e.preventDefault(); router.push('/user/donations'); }} style={{ fontSize: '0.81rem', color: '#F20C8F', textDecoration: 'none', fontWeight: '500' }}>Learn more about our donation program →</a>
+                  <a href={`${process.env.NEXT_PUBLIC_LANDING_URL as string}/user/donations`} onClick={(e) => { e.preventDefault(); router.push('/user/donations'); }} style={{ fontSize: '0.81rem', color: '#F20C8F', textDecoration: 'none', fontWeight: '500' }}>Learn more about our donation program →</a>
                 </div>
               </div>
 
-              {!payDonationAddressed && (
-                <p style={{ fontSize: '0.86rem', color: '#EF4444', margin: '0 0 0.75rem 0', textAlign: 'center' }}>Please select a donation amount or skip to continue</p>
+              {(!payDonationAddressed || !payPhoneValid) && (
+                <p style={{ fontSize: '0.86rem', color: '#EF4444', margin: '0 0 0.75rem 0', textAlign: 'center' }}>
+                  {!payPhoneValid ? 'Please enter your phone number' : 'Please select a donation amount or skip to continue'}
+                </p>
               )}
 
               <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
@@ -3302,7 +3384,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                   fontSize: '0.875rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center'
                 }}>{tipDonationSkipped ? '✓ Donation skipped' : 'No thanks, skip donation'}</button>
                 <div style={{ marginTop: '0.5rem' }}>
-                  <a href={`${process.env.NEXT_PUBLIC_LANDING_URL!}/user/donations`} onClick={(e) => { e.preventDefault(); router.push('/user/donations'); }} style={{ fontSize: '0.81rem', color: '#F20C8F', textDecoration: 'none', fontWeight: '500' }}>Learn more about our donation program →</a>
+                  <a href={`${process.env.NEXT_PUBLIC_LANDING_URL as string}/user/donations`} onClick={(e) => { e.preventDefault(); router.push('/user/donations'); }} style={{ fontSize: '0.81rem', color: '#F20C8F', textDecoration: 'none', fontWeight: '500' }}>Learn more about our donation program →</a>
                 </div>
               </div>
 
