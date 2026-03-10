@@ -611,7 +611,7 @@ export default function Clients() {
   }, []);
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary, overflow: 'hidden', width: '100%', maxWidth: '100vw' }}>
       <style>{`
         @media (max-width: 768px) {
           .mobile-main-content {

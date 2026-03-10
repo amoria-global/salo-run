@@ -652,15 +652,14 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
           .mobile-back-button {
             display: flex !important;
             align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 0.75rem;
+            justify-content: center;
+            padding: 0.5rem;
             background: rgba(8, 58, 133, 0.1);
             border: none;
             border-radius: 0.5rem;
             color: #083A85;
-            font-weight: 600;
             cursor: pointer;
-            margin-right: 0.5rem;
+            margin-right: 0.25rem;
             transition: all 0.2s ease;
           }
           .mobile-back-button:active {
@@ -693,6 +692,11 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
           .mobile-message-input-container {
             padding: 0.75rem !important;
             padding-bottom: 7rem !important;
+          }
+        }
+        @media (max-width: 768px) {
+          div:has(.mobile-chat-area.mobile-chat-active) .mobile-menu-button {
+            display: none !important;
           }
         }
         @media (min-width: 769px) {
@@ -950,7 +954,9 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
                       className="mobile-back-button"
                       style={{ display: 'none' }}
                     >
-                      ← Back
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
                     </button>
                     <div style={{ position: 'relative', width: '44px', height: '44px', flexShrink: 0 }}>
                       <div style={{
@@ -991,7 +997,7 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
                     <div>
                       <h2 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>{otherParticipant.name}</h2>
                       <span style={{ fontSize: '0.8rem', color: otherParticipant.isOnline ? '#10B981' : colors.textSecondary }}>
-                        {otherParticipant.isOnline ? 'Online' : `Last seen ${otherParticipant.lastSeen}`}
+                        {otherParticipant.isOnline ? 'Online' : `Last seen ${otherParticipant.lastSeen ? formatTime(otherParticipant.lastSeen) : 'recently'}`}
                       </span>
                     </div>
                   </div>
