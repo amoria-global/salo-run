@@ -12,7 +12,7 @@ import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvid
 import { HeartIcon } from '../../components/UnlockModal';
 
 function getApiUrl(): string {
-  return 'https://backend.connekyt.com';
+  return process.env.NEXT_PUBLIC_API_URL!;
 }
 
 // Icons
@@ -833,7 +833,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
             fontSize: '0.875rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center'
           }}>{donationSkipped ? '✓ Donation skipped' : 'No thanks, skip donation'}</button>
           <div style={{ marginTop: '0.5rem' }}>
-            <a href={`${process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekyt.com'}/user/donations`} onClick={(e) => { e.preventDefault(); router.push('/user/donations'); }} style={{
+            <a href={`${process.env.NEXT_PUBLIC_LANDING_URL!}/user/donations`} onClick={(e) => { e.preventDefault(); router.push('/user/donations'); }} style={{
               fontSize: '0.81rem', color: '#F20C8F', textDecoration: 'none', fontWeight: '500'
             }}>Learn more about our donation program →</a>
           </div>
@@ -1329,7 +1329,7 @@ Amount: ${formatPrice(payment.amountNum)}
     if (!token) return;
     try {
       const apiUrl = getApiUrl();
-      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY!;
       const response = await fetch(
         `${apiUrl}/api/remote/customer/payments/spending-trend?period=${period}`,
         {
@@ -1394,7 +1394,7 @@ Amount: ${formatPrice(payment.amountNum)}
     if (!token) return;
     try {
       const apiUrl = getApiUrl();
-      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY!;
       const response = await fetch(
         `${apiUrl}/api/remote/customer/payments?page=${page - 1}&size=${resultsPerPage}`,
         {
@@ -1447,7 +1447,7 @@ Amount: ${formatPrice(payment.amountNum)}
     if (!token) return;
     try {
       const apiUrl = getApiUrl();
-      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY!;
       const response = await fetch(
         `${apiUrl}/api/remote/customer/payments/balance`,
         {
@@ -1490,7 +1490,7 @@ Amount: ${formatPrice(payment.amountNum)}
     if (!token) return;
     try {
       const apiUrl = getApiUrl();
-      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY!;
       const response = await fetch(
         `${apiUrl}/api/remote/customer/payments/stats`,
         {
@@ -1538,7 +1538,7 @@ Amount: ${formatPrice(payment.amountNum)}
     if (!token) return;
     try {
       const apiUrl = getApiUrl();
-      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY!;
       const response = await fetch(
         `${apiUrl}/api/remote/customer/payments/gift-streams`,
         {
@@ -1653,7 +1653,7 @@ Amount: ${formatPrice(payment.amountNum)}
 
     try {
       const apiUrl = getApiUrl();
-      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY!;
       const params = new URLSearchParams({
         methodType,
         accountName,

@@ -11,7 +11,7 @@ import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvid
 import { StatCard } from '../../components/dashboard/StatCard';
 
 function getApiUrl(): string {
-  return 'https://backend.connekyt.com';
+  return process.env.NEXT_PUBLIC_API_URL!;
 }
 
 function parseTimeToApiString(timeStr: string): string {
@@ -359,7 +359,7 @@ const MyEventsPage = () => {
   useEffect(() => {
     const normalizeImg = (url: string | undefined | null): string | undefined => {
       if (!url || url.includes('/null')) return undefined;
-      return url.replace('http://197.243.24.101', 'https://backend.connekyt.com');
+      return url.replace(process.env.NEXT_PUBLIC_OLD_API_URL!, process.env.NEXT_PUBLIC_API_URL!);
     };
     // Fetch booked/existing photographers (authenticated)
     const fetchBookedPhotographers = async () => {
@@ -691,7 +691,7 @@ const MyEventsPage = () => {
           const locCity = lp.length >= 4 ? (lp[2] || '') : (lp[1] || '');
           const locCountry = lp.length >= 4 ? (lp[3] || '') : (lp[2] || '');
           const rawPhoto = (evt.eventPhoto as string) || (evt.bannerImage as string) || (evt.coverImage as string) || '';
-          const photo = rawPhoto.replace('http://197.243.24.101', 'https://backend.connekyt.com');
+          const photo = rawPhoto.replace(process.env.NEXT_PUBLIC_OLD_API_URL!, process.env.NEXT_PUBLIC_API_URL!);
           return {
             id: (evt.id as string) || '',
             title: (evt.title as string) || 'Untitled Event',
@@ -727,7 +727,7 @@ const MyEventsPage = () => {
             photographerImage: (evt.photographerImage as string) || '',
             inviteCode: (evt.inviteCode as string) || (evt.hostId as string) || '',
             shareLink: (() => {
-              const base = `${process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekyt.com'}/user/event/${evt.id}`;
+              const base = `${process.env.NEXT_PUBLIC_LANDING_URL!}/user/event/${evt.id}`;
               const code = (evt.inviteCode as string) || (evt.hostId as string) || '';
               return code ? `${base}?hostId=${code}` : base;
             })(),
@@ -1299,7 +1299,7 @@ const MyEventsPage = () => {
         hasPhotographer: !!selectedPhotographer,
         photographerName: selectedPhotographer?.name,
         photographerImage: selectedPhotographer?.image,
-        shareLink: `${process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekyt.com'}/user/event/${backendEventId || `evt_${Date.now()}`}`,
+        shareLink: `${process.env.NEXT_PUBLIC_LANDING_URL!}/user/event/${backendEventId || `evt_${Date.now()}`}`,
         createdAt: new Date().toISOString().split('T')[0]
       };
 
@@ -2145,7 +2145,7 @@ const MyEventsPage = () => {
               </button>
               <button
                 onClick={() => {
-                  const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekyt.com';
+                  const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL!;
                   window.open(`${landingUrl}/user/photographers`, '_blank');
                   setShowFindPhotographerModal(false);
                 }}

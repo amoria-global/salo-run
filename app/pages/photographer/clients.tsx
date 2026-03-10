@@ -11,7 +11,7 @@ import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvid
 
 // API helpers
 function getApiUrl(): string {
-  return 'https://backend.connekyt.com';
+  return process.env.NEXT_PUBLIC_API_URL!;
 }
 
 // Icons
@@ -403,7 +403,7 @@ export default function Clients() {
         }
       }
 
-      const normalizeImg = (url: string | undefined): string | undefined => url && !url.includes('/null') ? url.replace('http://197.243.24.101', 'https://backend.connekyt.com') : undefined;
+      const normalizeImg = (url: string | undefined): string | undefined => url && !url.includes('/null') ? url.replace(process.env.NEXT_PUBLIC_OLD_API_URL!, process.env.NEXT_PUBLIC_API_URL!) : undefined;
       let clientsMapped: Client[] = [];
 
       // Primary: use /photographer/clients (populated once backend deploys booking-based logic)
