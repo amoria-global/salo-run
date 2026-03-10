@@ -13,9 +13,9 @@ const normalizeImg = (url: string | undefined | null): string => {
   if (!url || url === 'null' || url.endsWith('/null')) return '';
   let u = url;
   if (!u.includes('/') && !u.startsWith('http')) {
-    u = `https://backend.connekyt.com/uploads/profile/photos/${u}`;
+    u = `${process.env.NEXT_PUBLIC_API_URL!}/uploads/profile/photos/${u}`;
   }
-  return u.replace('http://197.243.24.101', 'https://backend.connekyt.com');
+  return u.replace(process.env.NEXT_PUBLIC_OLD_API_URL!, process.env.NEXT_PUBLIC_API_URL!);
 };
 
 // Icons

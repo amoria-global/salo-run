@@ -11,7 +11,7 @@ import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvid
 import CompleteProfileModal from '../../components/CompleteProfileModal';
 
 function getApiUrl(): string {
-  return 'https://backend.connekyt.com';
+  return process.env.NEXT_PUBLIC_API_URL!;
 }
 import {
   StatCard,
@@ -236,7 +236,7 @@ const PhotographerDashboard = () => {
           dashboardAuthFetch(`${apiUrl}/api/remote/chat/conversations`),
           dashboardAuthFetch(`${apiUrl}/api/remote/photographer/transactions?page=0&size=5`),
         ]);
-        const normalizeImg = (url: string | undefined) => url && !url.includes('/null') ? url.replace('http://197.243.24.101', 'https://backend.connekyt.com') : undefined;
+        const normalizeImg = (url: string | undefined) => url && !url.includes('/null') ? url.replace(process.env.NEXT_PUBLIC_OLD_API_URL!, process.env.NEXT_PUBLIC_API_URL!) : undefined;
 
         if (analyticsRes.status === 'fulfilled' && analyticsRes.value.ok) {
           const data = await analyticsRes.value.json();

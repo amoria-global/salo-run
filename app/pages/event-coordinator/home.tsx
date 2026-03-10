@@ -248,7 +248,7 @@ const EventCoordinatorDashboard = () => {
               id: p.id || '',
               eventName: p.eventTitle || p.eventName || 'Event',
               photographerName: p.photographerName || 'Photographer',
-              photographerImage: ((url: string | undefined) => url && !url.includes('/null') ? url.replace('http://197.243.24.101', 'https://backend.connekyt.com') : undefined)(p.photographerImage || undefined),
+              photographerImage: ((url: string | undefined) => url && !url.includes('/null') ? url.replace(process.env.NEXT_PUBLIC_OLD_API_URL!, process.env.NEXT_PUBLIC_API_URL!) : undefined)(p.photographerImage || undefined),
               amount: p.amount || 0,
               paidAmount: p.paidAmount || 0,
               dueDate: p.dueDate ? p.dueDate.split('T')[0] : '',
@@ -263,7 +263,7 @@ const EventCoordinatorDashboard = () => {
               name: p.photographerName || p.eventTitle || 'Payment',
               type: p.status === 'PARTIAL' ? 'Partially paid' : p.status === 'FAILED' ? 'Failed' : 'Pending',
               amount: formatPrice(p.amount || 0),
-              avatar: ((url: string | undefined) => url && !url.includes('/null') ? url.replace('http://197.243.24.101', 'https://backend.connekyt.com') : undefined)(p.photographerImage || undefined),
+              avatar: ((url: string | undefined) => url && !url.includes('/null') ? url.replace(process.env.NEXT_PUBLIC_OLD_API_URL!, process.env.NEXT_PUBLIC_API_URL!) : undefined)(p.photographerImage || undefined),
             }));
           setRecentPayments(pendingTxns);
         }
@@ -280,7 +280,7 @@ const EventCoordinatorDashboard = () => {
             name: p.firstName && p.lastName ? `${p.firstName} ${p.lastName}` : p.name || 'Photographer',
             event: p.specialties?.[0]?.name || p.specialties?.[0] || p.specializations?.[0] || '',
             status: 'Completed' as const,
-            avatar: ((url: string | undefined) => url && !url.includes('/null') ? url.replace('http://197.243.24.101', 'https://backend.connekyt.com') : undefined)(p.profilePicture || p.profileImage || undefined),
+            avatar: ((url: string | undefined) => url && !url.includes('/null') ? url.replace(process.env.NEXT_PUBLIC_OLD_API_URL!, process.env.NEXT_PUBLIC_API_URL!) : undefined)(p.profilePicture || p.profileImage || undefined),
           }));
           setPhotographers(mapped);
         }

@@ -552,7 +552,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
           {/* Donations Page Link — opens on the public platform */}
           <div style={{ marginTop: '0.5rem' }}>
             <a
-              href={`${process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekyt.com'}/user/donations`}
+              href={`${process.env.NEXT_PUBLIC_LANDING_URL!}/user/donations`}
               target="_blank"
               rel="noopener noreferrer"
               style={{

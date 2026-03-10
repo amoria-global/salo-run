@@ -11,7 +11,7 @@ import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvid
 import { HeartIcon as DonateHeartIcon } from '../../components/UnlockModal';
 
 function getApiUrl(): string {
-  return 'https://backend.connekyt.com';
+  return process.env.NEXT_PUBLIC_API_URL!;
 }
 
 // Icons
@@ -407,9 +407,9 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
           id: p.id,
           firstName: p.firstName || '',
           lastName: p.lastName || '',
-          profileImage: ((url: string | undefined) => url && !url.includes('/null') ? url.replace('http://197.243.24.101', 'https://backend.connekyt.com') : undefined)(p.profileImage || p.profilePicture || undefined),
-          coverImage: ((url: string) => url && !url.includes('/null') ? url.replace('http://197.243.24.101', 'https://backend.connekyt.com') : '')(p.coverImage || p.coverPicture || ''),
-          portfolioImages: (p.portfolioImages || (p.projects || []).map((proj: any) => proj.imageUrl || '')).map((url: string) => url ? url.replace('http://197.243.24.101', 'https://backend.connekyt.com') : ''),
+          profileImage: ((url: string | undefined) => url && !url.includes('/null') ? url.replace(process.env.NEXT_PUBLIC_OLD_API_URL!, process.env.NEXT_PUBLIC_API_URL!) : undefined)(p.profileImage || p.profilePicture || undefined),
+          coverImage: ((url: string) => url && !url.includes('/null') ? url.replace(process.env.NEXT_PUBLIC_OLD_API_URL!, process.env.NEXT_PUBLIC_API_URL!) : '')(p.coverImage || p.coverPicture || ''),
+          portfolioImages: (p.portfolioImages || (p.projects || []).map((proj: any) => proj.imageUrl || '')).map((url: string) => url ? url.replace(process.env.NEXT_PUBLIC_OLD_API_URL!, process.env.NEXT_PUBLIC_API_URL!) : ''),
           bio: p.bio || p.about || '',
           specializations: p.specializations || (p.specialties || []).map((s: any) => typeof s === 'string' ? s : s.name || ''),
           experience: p.experience || 0,
@@ -865,7 +865,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
   };
 
   // --- Coordinator: Invite photographer by email ---
-  const inviteLink = `https://connekt.app/invite/photographer/${user?.id || ''}`;
+  const inviteLink = `${process.env.NEXT_PUBLIC_LANDING_URL!}/invite/photographer/${user?.id || ''}`;
 
   const handleInvitePhotographer = async () => {
     if (userRole !== 'event-coordinator' || !inviteEmail.trim()) {
@@ -2894,7 +2894,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                   fontSize: '0.875rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center'
                 }}>{payDonationSkipped ? '✓ Donation skipped' : 'No thanks, skip donation'}</button>
                 <div style={{ marginTop: '0.5rem' }}>
-                  <a href={`${process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekyt.com'}/user/donations`} onClick={(e) => { e.preventDefault(); router.push('/user/donations'); }} style={{ fontSize: '0.81rem', color: '#F20C8F', textDecoration: 'none', fontWeight: '500' }}>Learn more about our donation program →</a>
+                  <a href={`${process.env.NEXT_PUBLIC_LANDING_URL!}/user/donations`} onClick={(e) => { e.preventDefault(); router.push('/user/donations'); }} style={{ fontSize: '0.81rem', color: '#F20C8F', textDecoration: 'none', fontWeight: '500' }}>Learn more about our donation program →</a>
                 </div>
               </div>
 
@@ -3302,7 +3302,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                   fontSize: '0.875rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center'
                 }}>{tipDonationSkipped ? '✓ Donation skipped' : 'No thanks, skip donation'}</button>
                 <div style={{ marginTop: '0.5rem' }}>
-                  <a href={`${process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekyt.com'}/user/donations`} onClick={(e) => { e.preventDefault(); router.push('/user/donations'); }} style={{ fontSize: '0.81rem', color: '#F20C8F', textDecoration: 'none', fontWeight: '500' }}>Learn more about our donation program →</a>
+                  <a href={`${process.env.NEXT_PUBLIC_LANDING_URL!}/user/donations`} onClick={(e) => { e.preventDefault(); router.push('/user/donations'); }} style={{ fontSize: '0.81rem', color: '#F20C8F', textDecoration: 'none', fontWeight: '500' }}>Learn more about our donation program →</a>
                 </div>
               </div>
 

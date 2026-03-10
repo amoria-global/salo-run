@@ -162,13 +162,12 @@ function normalizeImageUrl(url: string | undefined | null): string | undefined {
   if (url.includes('/null')) return undefined;
   if (typeof window === 'undefined') return url;
 
-  const apiBase = 'https://backend.connekyt.com';
-  // The backend still returns image URLs with the old IP — handle both
-  const OLD_BACKEND_IP = 'http://197.243.24.101';
+  const apiBase = process.env.NEXT_PUBLIC_API_URL!;
+  const oldApiBase = process.env.NEXT_PUBLIC_OLD_API_URL!;
 
   // Rewrite old IP URLs to use the current API base
-  if (url.startsWith(OLD_BACKEND_IP)) {
-    return url.replace(OLD_BACKEND_IP, apiBase);
+  if (url.startsWith(oldApiBase)) {
+    return url.replace(oldApiBase, apiBase);
   }
   return url;
 }
@@ -237,14 +236,14 @@ function clearAuthFromStorage(): void {
  * Get API URL
  */
 function getApiUrl(): string {
-  return 'https://backend.connekyt.com';
+  return process.env.NEXT_PUBLIC_API_URL!;
 }
 
 /**
  * Get API key
  */
 function getApiKey(): string {
-  return process.env.NEXT_PUBLIC_API_KEY || '';
+  return process.env.NEXT_PUBLIC_API_KEY!;
 }
 
 /**
@@ -463,7 +462,7 @@ async function fetchUserProfile(token: string): Promise<{ user: DashboardUser | 
         }
       }
       if (typeof window !== 'undefined') {
-        const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekyt.com';
+        const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL!;
         const loginUrl = `${landingUrl}/user/auth/login?session_expired=true`;
         window.location.href = loginUrl;
       }
@@ -693,7 +692,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     setIsLoggingOut(true);
 
     if (typeof window !== 'undefined') {
-      const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekyt.com';
+      const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL!;
 
       // Notify the landing page via postMessage (works when opened as a popup)
       if (window.opener && !window.opener.closed) {
