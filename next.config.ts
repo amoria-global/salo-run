@@ -1,7 +1,6 @@
 import type { NextConfig } from "next";
 
 const apiUrl = new URL(process.env.NEXT_PUBLIC_API_URL!);
-const oldApiUrl = new URL(process.env.NEXT_PUBLIC_OLD_API_URL!);
 
 const nextConfig: NextConfig = {
   images: {
@@ -21,10 +20,6 @@ const nextConfig: NextConfig = {
       {
         protocol: apiUrl.protocol.replace(':', '') as 'http' | 'https',
         hostname: apiUrl.hostname,
-      },
-      {
-        protocol: oldApiUrl.protocol.replace(':', '') as 'http' | 'https',
-        hostname: oldApiUrl.hostname,
       },
     ],
   },

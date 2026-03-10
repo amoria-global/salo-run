@@ -216,7 +216,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   // URL normalization (http → https proxy)
   const normalizeImg = (url: string | undefined | null): string => {
     if (!url || url === 'null' || url.endsWith('/null')) return '';
-    return url.replace(process.env.NEXT_PUBLIC_OLD_API_URL!, process.env.NEXT_PUBLIC_API_URL!);
+    return url;
   };
 
   // --- Gallery API helpers (role-aware endpoints) ---

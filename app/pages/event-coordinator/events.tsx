@@ -379,7 +379,7 @@ const MyEventsPage = () => {
     // Fetch booked/connected photographers (authenticated — same as inbox new chat)
     const normalizeImg = (url: string | undefined | null): string | undefined => {
       if (!url || url.includes('/null')) return undefined;
-      return url.replace(process.env.NEXT_PUBLIC_OLD_API_URL!, process.env.NEXT_PUBLIC_API_URL!);
+      return url;
     };
     const fetchBookedPhotographers = async () => {
       try {
@@ -693,7 +693,7 @@ const MyEventsPage = () => {
           const locCity = lp.length >= 4 ? (lp[2] || '') : (lp[1] || '');
           const locCountry = lp.length >= 4 ? (lp[3] || '') : (lp[2] || '');
           const rawPhoto = (evt.eventPhoto as string) || (evt.bannerImage as string) || (evt.coverImage as string) || '';
-          const photo = rawPhoto.replace(process.env.NEXT_PUBLIC_OLD_API_URL!, process.env.NEXT_PUBLIC_API_URL!);
+          const photo = rawPhoto;
           return {
             id: (evt.id as string) || '',
             title: (evt.title as string) || 'Untitled Event',
