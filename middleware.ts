@@ -18,7 +18,7 @@ export function middleware(request: NextRequest) {
   const cookieToken = request.cookies.get('authToken')?.value;
 
   // Check localStorage token via a custom header (set by client-side)
-  // Note: localStorage isn't directly accessible in middleware, so we rely on URL token or cookies
+  //Note: localStorage isn't directly accessible in middleware, so we rely on URL token or cookies
 
   const hasToken = !!urlToken || !!cookieToken;
 
