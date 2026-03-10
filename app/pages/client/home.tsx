@@ -8,7 +8,7 @@ import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
-import { getApiUrl } from '@/lib/api';
+import { getApiUrl, normalizeImageUrl } from '@/lib/api';
 import PayNowModal, { Payment } from '../../components/UnlockModal';
 import {
   StatCard,
@@ -279,7 +279,7 @@ const ClientDashboard = () => {
             id: p.id,
             eventName: p.eventTitle || 'Event',
             photographerName: p.photographerName || 'Photographer',
-            photographerImage: ((url: string | undefined) => url && !url.includes('/null') ? url : undefined)(p.photographerImage || undefined),
+            photographerImage: normalizeImageUrl(p.photographerImage || undefined),
             amount: p.amount,
             paidAmount: p.paidAmount || 0,
             dueDate: p.dueDate ? p.dueDate.split('T')[0] : '',
@@ -298,7 +298,7 @@ const ClientDashboard = () => {
             name: p.name,
             event: p.event || 'Event',
             status: (p.status as Photographer['status']) || 'Pending',
-            avatar: ((url: string | undefined) => url && !url.includes('/null') ? url : undefined)(p.avatar || undefined),
+            avatar: normalizeImageUrl(p.avatar || undefined),
           }));
           setPhotographers(mapped);
         }
@@ -327,7 +327,7 @@ const ClientDashboard = () => {
               name: p.photographerName || 'Payment',
               type: p.status === 'PARTIAL' ? 'Partially paid' : p.status === 'FAILED' ? 'Failed' : 'Pending',
               amount: formatPrice(p.amount),
-              avatar: ((url: string | undefined) => url && !url.includes('/null') ? url : undefined)(p.photographerImage || undefined),
+              avatar: normalizeImageUrl(p.photographerImage || undefined),
             }));
           setRecentPayments(pendingTxns);
         }

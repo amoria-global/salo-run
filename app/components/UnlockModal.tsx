@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "../context/ThemeContext";
 import { dashboardAuthFetch } from "../providers/AuthProvider";
 import { useCurrency } from "../context/CurrencyContext";
+import { initiateBookingPayment, pollPaymentStatus, getTelecomProvider, getPaymentMethodType } from '@/lib/xentripay';
 
 // Heart Icon for donate section
 export const HeartIcon = () => (
@@ -124,7 +125,7 @@ const PAYMENT_METHODS: Record<string, { label: string; image: string }> = {
   airtel: { label: 'Airtel Mobile Money', image: '/airtel.png' },
 };
 
-const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) => {
+const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onPaymentSuccess }) => {
   const { colors, actualTheme } = useTheme();
   const router = useRouter();
   const { formatPrice } = useCurrency();
@@ -136,13 +137,21 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
   const [showReceipt, setShowReceipt] = useState<boolean>(false);
   const [paymentLoading, setPaymentLoading] = useState<boolean>(false);
 
+  // XentriPay states
+  const [paymentPhone, setPaymentPhone] = useState<string>('');
+  const [xentriPayStep, setXentriPayStep] = useState<'select' | 'processing' | 'success' | 'failed'>('select');
+  const [xentriPayError, setXentriPayError] = useState<string>('');
+  const [xentriPayRefid, setXentriPayRefid] = useState<string>('');
+  const stopPollingRef = React.useRef<(() => void) | null>(null);
+
   if (!payment) return null;
 
   const amountDue = payment.amountNum - payment.paidAmount;
   const donationValue = donationAmount === 'custom' ? (parseFloat(customDonation) || 0) : (parseFloat(donationAmount) || 0);
   const totalAmount = amountDue + donationValue;
   const donationAddressed = donationSkipped || donationValue > 0;
-  const isPayEnabled = donationAddressed;
+  const phoneValid = selectedPaymentMethod === 'card' || paymentPhone.trim().length > 0;
+  const isPayEnabled = donationAddressed && phoneValid;
 
   const handleSelectDonation = (amount: string) => {
     setDonationSkipped(false);
@@ -164,9 +173,223 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
   };
 
   const handleClose = () => {
+    // Stop polling if active
+    if (stopPollingRef.current) {
+      stopPollingRef.current();
+      stopPollingRef.current = null;
+    }
     setShowReceipt(false);
+    setXentriPayStep('select');
+    setXentriPayError('');
+    setXentriPayRefid('');
+    setPaymentPhone('');
     onClose();
   };
+
+  const handlePayNow = async () => {
+    if (!payment?.declarationId) {
+      setXentriPayError('No payment declaration found');
+      return;
+    }
+
+    // For mobile money, phone is required
+    if (selectedPaymentMethod !== 'card' && !paymentPhone.trim()) {
+      setXentriPayError('Please enter your phone number');
+      return;
+    }
+
+    setPaymentLoading(true);
+    setXentriPayError('');
+    setXentriPayStep('processing');
+
+    try {
+      const telecom = getTelecomProvider(selectedPaymentMethod);
+      const methodType = getPaymentMethodType(selectedPaymentMethod);
+      const phone = selectedPaymentMethod === 'card' ? '0000000000' : paymentPhone.trim();
+
+      const result = await initiateBookingPayment(
+        payment.declarationId,
+        phone,
+        telecom,
+        methodType
+      );
+
+      if (!result.success || !result.data) {
+        setXentriPayError(result.error || 'Failed to initiate payment');
+        setXentriPayStep('failed');
+        setPaymentLoading(false);
+        return;
+      }
+
+      setXentriPayRefid(result.data.refid);
+
+      // For card payments, open the payment URL
+      if (selectedPaymentMethod === 'card' && result.data.paymentUrl) {
+        window.open(result.data.paymentUrl, '_blank');
+      }
+
+      // Start polling for status
+      const stopPolling = pollPaymentStatus(result.data.refid, {
+        onSuccess: () => {
+          setXentriPayStep('success');
+          setPaymentLoading(false);
+        },
+        onFailure: () => {
+          setXentriPayStep('failed');
+          setXentriPayError('Payment was not completed. Please try again.');
+          setPaymentLoading(false);
+        },
+        onError: (error) => {
+          setXentriPayStep('failed');
+          setXentriPayError(error);
+          setPaymentLoading(false);
+        },
+      });
+
+      stopPollingRef.current = stopPolling;
+    } catch (error) {
+      setXentriPayError(error instanceof Error ? error.message : 'Payment failed');
+      setXentriPayStep('failed');
+      setPaymentLoading(false);
+    }
+  };
+
+  const handleRetryPayment = () => {
+    setXentriPayStep('select');
+    setXentriPayError('');
+    setXentriPayRefid('');
+    setShowReceipt(false);
+    setPaymentLoading(false);
+  };
+
+  // XentriPay Processing View
+  if (xentriPayStep === 'processing') {
+    return (
+      <Modal isOpen={isOpen} onClose={handleClose} title="Processing Payment" maxWidth="450px">
+        <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+          <div style={{
+            width: '64px', height: '64px', margin: '0 auto 1.5rem',
+            border: '4px solid rgba(8, 58, 133, 0.2)',
+            borderTopColor: '#083A85',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }} />
+          <h4 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>
+            {selectedPaymentMethod === 'card' ? 'Complete payment in your browser' : 'Check your phone'}
+          </h4>
+          <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1rem', lineHeight: '1.5' }}>
+            {selectedPaymentMethod === 'card'
+              ? 'A payment page has been opened. Complete the payment there and we\'ll confirm it here.'
+              : `A USSD prompt has been sent to your phone. Please approve the payment on your device.`}
+          </p>
+          <p style={{ fontSize: '0.8rem', color: colors.textSecondary }}>
+            This may take a few moments...
+          </p>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      </Modal>
+    );
+  }
+
+  // XentriPay Success View
+  if (xentriPayStep === 'success') {
+    return (
+      <Modal isOpen={isOpen} onClose={handleClose} title="Payment Successful" maxWidth="450px">
+        <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+          <div style={{
+            width: '64px', height: '64px', margin: '0 auto 1.5rem',
+            borderRadius: '50%', backgroundColor: '#10B981',
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+              <path d="M20 6L9 17L4 12" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <h4 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>
+            Payment Completed!
+          </h4>
+          <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1.5rem' }}>
+            Your payment of {formatPrice(totalAmount)} has been received successfully.
+          </p>
+          <button
+            onClick={() => {
+              handleClose();
+              if (onPaymentSuccess) onPaymentSuccess();
+            }}
+            style={{
+              padding: '0.75rem 2rem',
+              border: '2px solid #062a63',
+              borderRadius: '0.5rem',
+              background: '#083A85',
+              color: 'white',
+              fontSize: '0.9rem',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
+          >
+            Done
+          </button>
+        </div>
+      </Modal>
+    );
+  }
+
+  // XentriPay Failed View
+  if (xentriPayStep === 'failed') {
+    return (
+      <Modal isOpen={isOpen} onClose={handleClose} title="Payment Failed" maxWidth="450px">
+        <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+          <div style={{
+            width: '64px', height: '64px', margin: '0 auto 1.5rem',
+            borderRadius: '50%', backgroundColor: '#EF4444',
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+              <path d="M18 6L6 18M6 6L18 18" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <h4 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>
+            Payment Failed
+          </h4>
+          <p style={{ fontSize: '0.9rem', color: '#EF4444', margin: '0 0 1.5rem' }}>
+            {xentriPayError || 'Something went wrong. Please try again.'}
+          </p>
+          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+            <button
+              onClick={handleClose}
+              style={{
+                padding: '0.75rem 1.5rem',
+                border: `2px solid ${colors.borderPrimary}`,
+                borderRadius: '0.5rem',
+                background: colors.bgTertiary,
+                color: colors.textPrimary,
+                fontSize: '0.9rem',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              Close
+            </button>
+            <button
+              onClick={handleRetryPayment}
+              style={{
+                padding: '0.75rem 1.5rem',
+                border: '2px solid #c00a72',
+                borderRadius: '0.5rem',
+                background: '#F20C8F',
+                color: 'white',
+                fontSize: '0.9rem',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
 
   // Receipt View (Phase 2)
   if (showReceipt) {
@@ -252,10 +475,18 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
             </div>
           </div>
 
+          {/* XentriPay Error */}
+          {xentriPayError && (
+            <p style={{ fontSize: '0.85rem', color: '#EF4444', margin: '0 0 0.75rem', textAlign: 'center' }}>
+              {xentriPayError}
+            </p>
+          )}
+
           {/* Actions */}
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
             <button
-              onClick={() => setShowReceipt(false)}
+              onClick={() => { setShowReceipt(false); setXentriPayError(''); }}
+              disabled={paymentLoading}
               style={{
                 flex: 1,
                 padding: '0.75rem 1rem',
@@ -265,12 +496,15 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
                 color: colors.textPrimary,
                 fontSize: '0.9rem',
                 fontWeight: '600',
-                cursor: 'pointer'
+                cursor: paymentLoading ? 'not-allowed' : 'pointer',
+                opacity: paymentLoading ? 0.6 : 1
               }}
             >
               Cancel
             </button>
             <button
+              onClick={handlePayNow}
+              disabled={paymentLoading}
               style={{
                 flex: 1,
                 padding: '0.75rem 1rem',
@@ -280,11 +514,12 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
                 color: 'white',
                 fontSize: '0.9rem',
                 fontWeight: '600',
-                cursor: 'pointer',
+                cursor: paymentLoading ? 'not-allowed' : 'pointer',
+                opacity: paymentLoading ? 0.7 : 1,
                 transition: 'all 0.2s'
               }}
             >
-              {payment.status === 'failed' ? 'Retry' : 'Pay'} {formatPrice(totalAmount)}
+              {paymentLoading ? 'Processing...' : `${payment.status === 'failed' ? 'Retry' : 'Pay'} ${formatPrice(totalAmount)}`}
             </button>
           </div>
         </div>
@@ -396,6 +631,44 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
               }} />
             </div>
           </div>
+
+          {/* Phone Number Input (for mobile money) */}
+          {(selectedPaymentMethod === 'mtn' || selectedPaymentMethod === 'airtel') && (
+            <div style={{ marginTop: '0.75rem' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.375rem' }}>
+                Phone Number
+              </label>
+              <input
+                type="tel"
+                placeholder="e.g. 078XXXXXXX"
+                value={paymentPhone}
+                onChange={(e) => { setPaymentPhone(e.target.value); setXentriPayError(''); }}
+                style={{
+                  width: '100%',
+                  padding: '0.7rem 0.75rem',
+                  border: `2px solid ${colors.borderPrimary}`,
+                  borderRadius: '0.5rem',
+                  fontSize: '0.9rem',
+                  color: colors.textPrimary,
+                  backgroundColor: colors.bgCard,
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  transition: 'border-color 0.2s'
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = '#083A85';
+                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(8, 58, 133, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = colors.borderPrimary;
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              />
+              <p style={{ fontSize: '0.78rem', color: colors.textSecondary, margin: '0.25rem 0 0 0' }}>
+                Enter the {selectedPaymentMethod === 'mtn' ? 'MTN' : 'Airtel'} number to receive the payment prompt
+              </p>
+            </div>
+          )}
 
           {/* Info text about payment accounts */}
           <p style={{
@@ -552,7 +825,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
           {/* Donations Page Link — opens on the public platform */}
           <div style={{ marginTop: '0.5rem' }}>
             <a
-              href={`${process.env.NEXT_PUBLIC_LANDING_URL!}/user/donations`}
+              href={`${process.env.NEXT_PUBLIC_LANDING_URL as string}/user/donations`}
               target="_blank"
               rel="noopener noreferrer"
               style={{
@@ -568,14 +841,14 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
         </div>
 
         {/* Validation Message */}
-        {!donationAddressed && (
+        {(!donationAddressed || !phoneValid) && (
           <p style={{
             fontSize: '0.86rem',
             color: '#EF4444',
             margin: '0 0 0.75rem 0',
             textAlign: 'center'
           }}>
-            Please select a donation amount or skip to continue
+            {!phoneValid ? 'Please enter your phone number' : 'Please select a donation amount or skip to continue'}
           </p>
         )}
 
