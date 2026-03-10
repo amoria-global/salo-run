@@ -32,7 +32,7 @@ interface Payment {
 }
 
 function getApiUrl(): string {
-  return 'https://backend.connekyt.com';
+  return process.env.NEXT_PUBLIC_API_URL!;
 }
 
 // Icons
@@ -216,7 +216,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   // URL normalization (http → https proxy)
   const normalizeImg = (url: string | undefined | null): string => {
     if (!url || url === 'null' || url.endsWith('/null')) return '';
-    return url.replace('http://197.243.24.101', 'https://backend.connekyt.com');
+    return url.replace(process.env.NEXT_PUBLIC_OLD_API_URL!, process.env.NEXT_PUBLIC_API_URL!);
   };
 
   // --- Gallery API helpers (role-aware endpoints) ---
@@ -898,7 +898,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   };
 
   const getShareLink = (album: any) => {
-    return `${process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekyt.com'}/gallery/${album.id}`;
+    return `${process.env.NEXT_PUBLIC_LANDING_URL!}/gallery/${album.id}`;
   };
 
   const handleCopyLink = (link: string) => {

@@ -9,7 +9,7 @@ import { useCurrency } from '@/app/context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 
 function getApiUrl(): string {
-  return 'https://backend.connekyt.com';
+  return process.env.NEXT_PUBLIC_API_URL!;
 }
 
 const CURRENCY_FLAG_MAP: Record<string, string> = {
@@ -572,9 +572,9 @@ const PhotographerEventsPage = () => {
     let u = url;
     // If it's a bare filename (no slashes, no protocol), construct full URL
     if (!u.includes('/') && !u.startsWith('http')) {
-      u = `https://backend.connekyt.com/uploads/profile/photos/${u}`;
+      u = `${process.env.NEXT_PUBLIC_API_URL!}/uploads/profile/photos/${u}`;
     }
-    if (typeof u === 'string') return u.replace('http://197.243.24.101', 'https://backend.connekyt.com');
+    if (typeof u === 'string') return u.replace(process.env.NEXT_PUBLIC_OLD_API_URL!, process.env.NEXT_PUBLIC_API_URL!);
     return undefined;
   };
 
@@ -2346,8 +2346,8 @@ const PhotographerEventsPage = () => {
                     <div style={{ marginBottom: '1rem' }}>
                       <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Find-My-Photos Link</label>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <input readOnly value={`${process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekyt.com'}/user/find-my-photos?code=${selectedAlbum.inviteCode}`} style={{ ...inputStyle, flex: 1, fontSize: '0.8rem' }} />
-                        <button onClick={() => handleCopyLink(`${process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekyt.com'}/user/find-my-photos?code=${selectedAlbum.inviteCode}`)} style={smallActionBtn}>{copiedLink ? 'Copied!' : <><CopyIcon /> Copy</>}</button>
+                        <input readOnly value={`${process.env.NEXT_PUBLIC_LANDING_URL!}/user/find-my-photos?code=${selectedAlbum.inviteCode}`} style={{ ...inputStyle, flex: 1, fontSize: '0.8rem' }} />
+                        <button onClick={() => handleCopyLink(`${process.env.NEXT_PUBLIC_LANDING_URL!}/user/find-my-photos?code=${selectedAlbum.inviteCode}`)} style={smallActionBtn}>{copiedLink ? 'Copied!' : <><CopyIcon /> Copy</>}</button>
                       </div>
                     </div>
                   </>
@@ -2377,8 +2377,8 @@ const PhotographerEventsPage = () => {
                 <div style={{ marginBottom: '1.25rem' }}>
                   <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Find-My-Photos Link</label>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <input readOnly value={`${process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekyt.com'}/user/find-my-photos?code=${selectedAlbum.inviteCode}`} style={{ ...inputStyle, flex: 1, fontSize: '0.8rem' }} />
-                    <button onClick={() => handleCopyLink(`${process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekyt.com'}/user/find-my-photos?code=${selectedAlbum.inviteCode}`)} style={smallActionBtn}>{copiedLink ? 'Copied!' : <><CopyIcon /> Copy</>}</button>
+                    <input readOnly value={`${process.env.NEXT_PUBLIC_LANDING_URL!}/user/find-my-photos?code=${selectedAlbum.inviteCode}`} style={{ ...inputStyle, flex: 1, fontSize: '0.8rem' }} />
+                    <button onClick={() => handleCopyLink(`${process.env.NEXT_PUBLIC_LANDING_URL!}/user/find-my-photos?code=${selectedAlbum.inviteCode}`)} style={smallActionBtn}>{copiedLink ? 'Copied!' : <><CopyIcon /> Copy</>}</button>
                   </div>
                 </div>
                 {/* Price Per Image */}
