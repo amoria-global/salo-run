@@ -8,7 +8,7 @@ import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
-import { getApiUrl } from '@/lib/api';
+import { getApiUrl, normalizeImageUrl } from '@/lib/api';
 import PayNowModal, { Payment } from '../../components/UnlockModal';
 import {
   StatCard,
@@ -248,7 +248,7 @@ const EventCoordinatorDashboard = () => {
               id: p.id || '',
               eventName: p.eventTitle || p.eventName || 'Event',
               photographerName: p.photographerName || 'Photographer',
-              photographerImage: ((url: string | undefined) => url && !url.includes('/null') ? url : undefined)(p.photographerImage || undefined),
+              photographerImage: normalizeImageUrl(p.photographerImage || undefined),
               amount: p.amount || 0,
               paidAmount: p.paidAmount || 0,
               dueDate: p.dueDate ? p.dueDate.split('T')[0] : '',
@@ -263,7 +263,7 @@ const EventCoordinatorDashboard = () => {
               name: p.photographerName || p.eventTitle || 'Payment',
               type: p.status === 'PARTIAL' ? 'Partially paid' : p.status === 'FAILED' ? 'Failed' : 'Pending',
               amount: formatPrice(p.amount || 0),
-              avatar: ((url: string | undefined) => url && !url.includes('/null') ? url : undefined)(p.photographerImage || undefined),
+              avatar: normalizeImageUrl(p.photographerImage || undefined),
             }));
           setRecentPayments(pendingTxns);
         }
@@ -280,7 +280,7 @@ const EventCoordinatorDashboard = () => {
             name: p.firstName && p.lastName ? `${p.firstName} ${p.lastName}` : p.name || 'Photographer',
             event: p.specialties?.[0]?.name || p.specialties?.[0] || p.specializations?.[0] || '',
             status: 'Completed' as const,
-            avatar: ((url: string | undefined) => url && !url.includes('/null') ? url : undefined)(p.profilePicture || p.profileImage || undefined),
+            avatar: normalizeImageUrl(p.profilePicture || p.profileImage || undefined),
           }));
           setPhotographers(mapped);
         }

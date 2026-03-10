@@ -9,10 +9,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import CompleteProfileModal from '../../components/CompleteProfileModal';
-
-function getApiUrl(): string {
-  return process.env.NEXT_PUBLIC_API_URL!;
-}
+import { getApiUrl, normalizeImageUrl } from '@/lib/api';
 import {
   StatCard,
   ActivityItem,
@@ -236,7 +233,7 @@ const PhotographerDashboard = () => {
           dashboardAuthFetch(`${apiUrl}/api/remote/chat/conversations`),
           dashboardAuthFetch(`${apiUrl}/api/remote/photographer/transactions?page=0&size=5`),
         ]);
-        const normalizeImg = (url: string | undefined) => url && !url.includes('/null') ? url : undefined;
+        const normalizeImg = (url: string | undefined) => normalizeImageUrl(url);
 
         if (analyticsRes.status === 'fulfilled' && analyticsRes.value.ok) {
           const data = await analyticsRes.value.json();
@@ -748,9 +745,6 @@ const PhotographerDashboard = () => {
           display: flex;
           height: 100vh;
           background-color: ${colors.bgPrimary};
-          overflow: hidden;
-          width: 100%;
-          max-width: 100vw;
         }
 
         .dashboard-content {
@@ -809,124 +803,51 @@ const PhotographerDashboard = () => {
           gap: 1rem;
         }
 
-        @media (max-width: 1024px) {
-          .stat-cards-grid {
-            grid-template-columns: repeat(3, 1fr) !important;
-          }
-          .main-grid {
-            grid-template-columns: 1fr !important;
-            gap: 1rem !important;
-          }
-        }
-
         /* Mobile responsive styles */
         @media (max-width: 768px) {
           .dashboard-main {
-            padding: 1rem !important;
-            padding-bottom: 8rem !important;
+            padding-left: 0.75rem !important;
+            padding-right: 0.75rem !important;
+            padding-top: 0.75rem !important;
           }
 
           .dashboard-header {
             flex-direction: column !important;
             align-items: flex-start !important;
             gap: 1rem !important;
-            margin-bottom: 1.5rem !important;
-          }
-
-          .dashboard-header h1 {
-            font-size: 1.5rem !important;
           }
 
           .header-stats {
             width: 100% !important;
-            flex-direction: column !important;
-            gap: 0.75rem !important;
-            padding: 1rem !important;
-          }
-
-          .header-stats > div {
-            width: 100% !important;
-            flex-direction: row !important;
-            justify-content: space-between !important;
-            padding: 0.75rem !important;
-            border-bottom: 2px solid ${colors.borderPrimary} !important;
-          }
-
-          .header-stats > div:last-child {
-            border-bottom: none !important;
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+            gap: 1rem !important;
+            overflow-x: auto !important;
+            justify-content: center !important;
           }
 
           .filter-buttons {
             overflow-x: auto !important;
             flex-wrap: nowrap !important;
             width: 100% !important;
-            -webkit-overflow-scrolling: touch;
-            -ms-overflow-style: none !important;
-            scrollbar-width: none !important;
-          }
-
-          .filter-buttons::-webkit-scrollbar {
-            display: none !important;
-          }
-
-          .filter-buttons button {
-            flex-shrink: 0 !important;
-            min-height: 40px !important;
           }
 
           .stat-cards-grid {
-            grid-template-columns: repeat(2, 1fr) !important;
-            gap: 0.75rem !important;
+            grid-template-columns: 1fr !important;
+            gap: 0.5rem !important;
           }
 
           .main-grid {
             grid-template-columns: 1fr !important;
             gap: 0.75rem !important;
           }
-
-          .header-actions {
-            flex-wrap: wrap !important;
-            gap: 0.5rem !important;
-            width: 100% !important;
-          }
-
-          .header-actions button {
-            font-size: 0.8rem !important;
-            padding: 0.4rem 0.75rem !important;
-            min-height: 40px !important;
-          }
-        }
-
-        @media (max-width: 640px) {
-          .dashboard-main {
-            padding: 0.75rem !important;
-            padding-bottom: 10rem !important;
-          }
-
-          .dashboard-header h1 {
-            font-size: 1.3rem !important;
-          }
-
-          .stat-cards-grid {
-            grid-template-columns: 1fr !important;
-          }
-
-          .filter-buttons button {
-            font-size: 0.8rem !important;
-            padding: 0.4rem 0.75rem !important;
-          }
         }
 
         /* Extra small mobile (phones in portrait) */
         @media (max-width: 480px) {
           .dashboard-main {
-            padding: 0.5rem !important;
-            padding-bottom: 10rem !important;
-          }
-
-          .filter-buttons button {
-            font-size: 0.75rem !important;
-            padding: 0.4rem 0.5rem !important;
+            padding-left: 0.5rem !important;
+            padding-right: 0.5rem !important;
           }
         }
       `}</style>
@@ -957,7 +878,7 @@ const PhotographerDashboard = () => {
                 {staticMessage}
               </p>
             </div>
-            <div className="header-actions" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <button
                 onClick={toggleComparisonMode}
                 title={isComparisonMode ? 'Exit comparison mode' : 'Set target goals and compare them against your real stats to track progress'}

@@ -7,10 +7,7 @@ import CountrySelect, { eastAfricanCountries } from '../../components/CountrySel
 import { useTheme } from '../../context/ThemeContext';
 import { useUserProfile } from '../../context/UserProfileContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
-
-function getApiUrl(): string {
-  return process.env.NEXT_PUBLIC_API_URL!;
-}
+import { getApiUrl } from '@/lib/api';
 
 // Camera icon for avatar edit
 const CameraIcon = () => (

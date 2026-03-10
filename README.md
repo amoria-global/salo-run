@@ -159,7 +159,6 @@ NEXT_PUBLIC_API_KEY=<your-api-key>
 8. Periodic re-validation every 5 minutes
 9. Cross-tab logout synchronization
 ```
-<<<<<<< Updated upstream
 
 Unauthenticated users are redirected to the Home app login page.
 
@@ -174,20 +173,3 @@ Themes are persisted per role in localStorage, allowing photographers and client
 | Project | Description |
 |---------|-------------|
 | [home](../home) | Public-facing landing, auth, photographer discovery, and event browsing |
-
-=======
-
-Unauthenticated users are redirected to the Home app login page.
-
-## Theme System
-
-Three modes available: **Light**, **Dark**, and **System** (follows OS preference).
-
-Themes are persisted per role in localStorage, allowing photographers and clients to have independent theme preferences.
-
-## Related Projects
-
-| Project | Description |
-|---------|-------------|
-| [home](../home) | Public-facing landing, auth, photographer discovery, and event browsing |
->>>>>>> Stashed changes
