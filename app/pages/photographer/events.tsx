@@ -574,7 +574,7 @@ const PhotographerEventsPage = () => {
     if (!u.includes('/') && !u.startsWith('http')) {
       u = `${process.env.NEXT_PUBLIC_API_URL!}/uploads/profile/photos/${u}`;
     }
-    if (typeof u === 'string') return u.replace(process.env.NEXT_PUBLIC_OLD_API_URL!, process.env.NEXT_PUBLIC_API_URL!);
+    if (typeof u === 'string') return u;
     return undefined;
   };
 

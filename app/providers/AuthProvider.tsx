@@ -151,24 +151,9 @@ const AUTH_TOKEN_KEY = 'authToken';
 const AUTH_USER_KEY = 'authUser';
 const REFRESH_TOKEN_KEY = 'refreshToken';
 
-/**
- * Normalize image URLs from the API to avoid mixed content issues.
- * In production, rewrites http://backend-ip/... to same-origin paths so images
- * are served through the server's reverse proxy.
- */
+/** Normalize image URLs — filter out null placeholders */
 function normalizeImageUrl(url: string | undefined | null): string | undefined {
-  if (!url) return undefined;
-  // Backend returns http://host/uploads/null when no image is set — treat as no image
-  if (url.includes('/null')) return undefined;
-  if (typeof window === 'undefined') return url;
-
-  const apiBase = process.env.NEXT_PUBLIC_API_URL!;
-  const oldApiBase = process.env.NEXT_PUBLIC_OLD_API_URL!;
-
-  // Rewrite old IP URLs to use the current API base
-  if (url.startsWith(oldApiBase)) {
-    return url.replace(oldApiBase, apiBase);
-  }
+  if (!url || url.includes('/null')) return undefined;
   return url;
 }
 

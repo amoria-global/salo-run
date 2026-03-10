@@ -236,7 +236,7 @@ const PhotographerDashboard = () => {
           dashboardAuthFetch(`${apiUrl}/api/remote/chat/conversations`),
           dashboardAuthFetch(`${apiUrl}/api/remote/photographer/transactions?page=0&size=5`),
         ]);
-        const normalizeImg = (url: string | undefined) => url && !url.includes('/null') ? url.replace(process.env.NEXT_PUBLIC_OLD_API_URL!, process.env.NEXT_PUBLIC_API_URL!) : undefined;
+        const normalizeImg = (url: string | undefined) => url && !url.includes('/null') ? url : undefined;
 
         if (analyticsRes.status === 'fulfilled' && analyticsRes.value.ok) {
           const data = await analyticsRes.value.json();
