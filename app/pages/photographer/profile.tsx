@@ -2035,7 +2035,10 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     <div style={{
       display: 'flex',
       height: '100vh',
-      backgroundColor: colors.bgPrimary
+      backgroundColor: colors.bgPrimary,
+      overflow: 'hidden',
+      width: '100%',
+      maxWidth: '100vw'
     }}>
       <style>{`
         /* Desktop enhancements */

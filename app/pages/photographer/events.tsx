@@ -1287,21 +1287,42 @@ const PhotographerEventsPage = () => {
       <style jsx>{`
         @media (max-width: 768px) {
           .events-page-grid { grid-template-columns: 1fr 1fr !important; }
-          .events-page-stats { grid-template-columns: 1fr 1fr !important; }
-          .events-page-header { flex-direction: column !important; gap: 0.75rem !important; }
-          .events-page-filters { flex-wrap: wrap !important; }
-          .events-page-main { padding: 0.75rem !important; }
+          .events-page-stats { grid-template-columns: 1fr 1fr !important; gap: 0.75rem !important; }
+          .events-page-header { flex-direction: column !important; align-items: flex-start !important; gap: 1rem !important; }
+          .events-page-header h1 { font-size: 1.5rem !important; }
+          .events-page-header p { font-size: 0.85rem !important; }
+          .events-page-filters {
+            flex-wrap: nowrap !important;
+            overflow-x: auto !important;
+            width: 100% !important;
+            -webkit-overflow-scrolling: touch;
+            -ms-overflow-style: none !important;
+            scrollbar-width: none !important;
+          }
+          .events-page-filters::-webkit-scrollbar { display: none !important; }
+          .events-page-filters button { flex-shrink: 0 !important; min-height: 40px !important; }
+          .events-page-search { min-width: 0 !important; width: 100% !important; margin-left: 0 !important; }
+          .events-page-tabs { width: 100% !important; }
+          .events-page-tabs button { flex: 1 !important; font-size: 0.8rem !important; padding: 0.5rem 0.5rem !important; white-space: nowrap !important; }
+          .events-page-main { padding: 1rem !important; padding-bottom: 8rem !important; }
+        }
+        @media (max-width: 640px) {
+          .events-page-grid { grid-template-columns: 1fr !important; }
+          .events-page-header h1 { font-size: 1.3rem !important; }
+          .events-page-header p { font-size: 0.8rem !important; }
+          .events-page-main { padding: 0.75rem !important; padding-bottom: 10rem !important; }
+          .events-page-filters button { font-size: 0.8rem !important; padding: 0.4rem 0.75rem !important; }
+          .events-page-filters { flex-direction: column !important; align-items: stretch !important; }
+          .events-page-search { margin-left: 0 !important; }
         }
         @media (max-width: 480px) {
-          .events-page-grid { grid-template-columns: 1fr !important; }
-          .events-page-stats { grid-template-columns: 1fr 1fr !important; }
-          .events-page-filters { overflow-x: auto !important; flex-wrap: nowrap !important; }
-          .events-page-main { padding: 0.5rem !important; }
+          .events-page-stats { grid-template-columns: 1fr 1fr !important; gap: 0.5rem !important; }
+          .events-page-main { padding: 0.5rem !important; padding-bottom: 10rem !important; }
         }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
       `}</style>
 
-      <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
+      <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary, overflow: 'hidden', width: '100%', maxWidth: '100vw' }}>
         <Sidebar />
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <Topbar userRole="photographer" />
@@ -1317,7 +1338,7 @@ const PhotographerEventsPage = () => {
                     : 'Browse and manage your created photo albums'}
                 </p>
               </div>
-              <div style={{
+              <div className="events-page-tabs" style={{
                 display: 'flex', alignItems: 'center', gap: '0.25rem',
                 backgroundColor: actualTheme === 'dark' ? '#1E293B' : '#E2E8F0',
                 padding: '0.375rem', borderRadius: '0.75rem',
@@ -1360,7 +1381,7 @@ const PhotographerEventsPage = () => {
                       {f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)} {f !== 'all' && <span style={{ marginLeft: '0.25rem', opacity: 0.8 }}>({eventCounts[f]})</span>}
                     </button>
                   ))}
-                  <div style={{ marginLeft: 'auto', position: 'relative', minWidth: '200px' }}>
+                  <div className="events-page-search" style={{ marginLeft: 'auto', position: 'relative', minWidth: '200px' }}>
                     <div style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' }}><SearchIcon /></div>
                     <input placeholder="Search events..." value={eventSearch} onChange={e => setEventSearch(e.target.value)} style={{ ...inputStyle, paddingLeft: '2.5rem', fontSize: '0.85rem', padding: '0.5rem 0.75rem 0.5rem 2.5rem' }} />
                   </div>
@@ -1532,7 +1553,7 @@ const PhotographerEventsPage = () => {
                     <button onClick={() => setAlbumViewMode('list')} style={{ ...smallActionBtn, borderColor: albumViewMode === 'list' ? colors.brandPrimary : colors.borderPrimary }}><ListIcon active={albumViewMode === 'list'} /></button>
                   </div>
                   <button onClick={() => handleOpenCreateAlbum()} style={{ ...primaryBtn, marginLeft: '0.5rem', padding: '0.4rem 0.875rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}><PlusIcon /> New Album</button>
-                  <div style={{ marginLeft: 'auto', position: 'relative', minWidth: '200px' }}>
+                  <div className="events-page-search" style={{ marginLeft: 'auto', position: 'relative', minWidth: '200px' }}>
                     <div style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' }}><SearchIcon /></div>
                     <input placeholder="Search albums..." value={albumSearch} onChange={e => setAlbumSearch(e.target.value)} style={{ ...inputStyle, paddingLeft: '2.5rem', fontSize: '0.85rem', padding: '0.5rem 0.75rem 0.5rem 2.5rem' }} />
                   </div>
