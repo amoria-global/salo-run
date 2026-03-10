@@ -12,7 +12,7 @@ import { HeartIcon } from '../../components/UnlockModal';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 
 function getApiUrl(): string {
-  return 'https://backend.connekyt.com';
+  return process.env.NEXT_PUBLIC_API_URL!;
 }
 
 // Icons
@@ -855,7 +855,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
             fontSize: '0.875rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center'
           }}>{donationSkipped ? '✓ Donation skipped' : 'No thanks, skip donation'}</button>
           <div style={{ marginTop: '0.5rem' }}>
-            <a href={`${process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekyt.com'}/user/donations`} onClick={(e) => { e.preventDefault(); router.push('/user/donations'); }} style={{
+            <a href={`${process.env.NEXT_PUBLIC_LANDING_URL!}/user/donations`} onClick={(e) => { e.preventDefault(); router.push('/user/donations'); }} style={{
               fontSize: '0.81rem', color: '#F20C8F', textDecoration: 'none', fontWeight: '500'
             }}>Learn more about our donation program →</a>
           </div>

@@ -61,7 +61,7 @@ const CURRENCY_FLAG_MAP: Record<string, string> = {
 
 // API URL helper
 function getApiUrl(): string {
-  return 'https://backend.connekyt.com';
+  return process.env.NEXT_PUBLIC_API_URL!;
 }
 
 function parseTimeToApiString(timeStr: string): string {
@@ -379,7 +379,7 @@ const MyEventsPage = () => {
     // Fetch booked/connected photographers (authenticated — same as inbox new chat)
     const normalizeImg = (url: string | undefined | null): string | undefined => {
       if (!url || url.includes('/null')) return undefined;
-      return url.replace('http://197.243.24.101', 'https://backend.connekyt.com');
+      return url.replace(process.env.NEXT_PUBLIC_OLD_API_URL!, process.env.NEXT_PUBLIC_API_URL!);
     };
     const fetchBookedPhotographers = async () => {
       try {
@@ -693,7 +693,7 @@ const MyEventsPage = () => {
           const locCity = lp.length >= 4 ? (lp[2] || '') : (lp[1] || '');
           const locCountry = lp.length >= 4 ? (lp[3] || '') : (lp[2] || '');
           const rawPhoto = (evt.eventPhoto as string) || (evt.bannerImage as string) || (evt.coverImage as string) || '';
-          const photo = rawPhoto.replace('http://197.243.24.101', 'https://backend.connekyt.com');
+          const photo = rawPhoto.replace(process.env.NEXT_PUBLIC_OLD_API_URL!, process.env.NEXT_PUBLIC_API_URL!);
           return {
             id: (evt.id as string) || '',
             title: (evt.title as string) || 'Untitled Event',
@@ -728,7 +728,7 @@ const MyEventsPage = () => {
             photographerName: (evt.photographerName as string) || '',
             photographerImage: (evt.photographerImage as string) || '',
             inviteCode: (evt.inviteCode as string) || (evt.hostId as string) || '',
-            shareLink: `${process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekyt.com'}/user/event/${evt.id}`,
+            shareLink: `${process.env.NEXT_PUBLIC_LANDING_URL!}/user/event/${evt.id}`,
             createdAt: (evt.createdAt as string) || '',
           };
         });
@@ -2076,7 +2076,7 @@ const MyEventsPage = () => {
               </button>
               <button
                 onClick={() => {
-                  const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekyt.com';
+                  const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL!;
                   window.open(`${landingUrl}/user/photographers`, '_blank');
                   setShowFindPhotographerModal(false);
                 }}

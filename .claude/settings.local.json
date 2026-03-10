@@ -225,7 +225,8 @@
       "Bash(node --max-old-space-size=4096 ./node_modules/typescript/bin/tsc --noEmit)",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(f''{c[\"\"id\"\"]} = {c[\"\"abbreviation\"\"]}''\\) for c in d.get\\(''data'',[]\\)]\")",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\)[''data''][0]; print\\(json.dumps\\({k:d[k] for k in [''id'',''title'',''sent'',''inviteCode''] if k in d}, indent=2\\)\\)\")",
-      "Bash(python3 -c \" import sys,json d=json.load\\(sys.stdin\\) data=d[''data''] print\\(f''Photos: {len\\(data[\"\"photos\"\"]\\)}''\\) print\\(f''Event: {data[\"\"eventTitle\"\"]}''\\) print\\(f''Photographer: {data[\"\"photographerName\"\"]}''\\) print\\(f''Pricing: {json.dumps\\(data[\"\"pricing\"\"]\\)}''\\) print\\(f''First photo keys: {list\\(data[\"\"photos\"\"][0].keys\\(\\)\\)}''\\) \")"
+      "Bash(python3 -c \" import sys,json d=json.load\\(sys.stdin\\) data=d[''data''] print\\(f''Photos: {len\\(data[\"\"photos\"\"]\\)}''\\) print\\(f''Event: {data[\"\"eventTitle\"\"]}''\\) print\\(f''Photographer: {data[\"\"photographerName\"\"]}''\\) print\\(f''Pricing: {json.dumps\\(data[\"\"pricing\"\"]\\)}''\\) print\\(f''First photo keys: {list\\(data[\"\"photos\"\"][0].keys\\(\\)\\)}''\\) \")",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb3NlcGgubWFyYW5hdGhhQGFtb3JpYWdsb2JhbC5jb20iLCJpYXQiOjE3NzMxNDE0NjMsImV4cCI6MTc3MzE0NTA2M30.zJcwawpF2CmGplrrFrBgazjsgHMLI0PrP_MvtwbFkNo\")"
     ],
     "deny": [],
     "ask": []

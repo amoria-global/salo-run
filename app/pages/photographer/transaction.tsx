@@ -11,7 +11,7 @@ import { HeartIcon } from '../../components/UnlockModal';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 
 function getApiUrl(): string {
-  return 'https://backend.connekyt.com';
+  return process.env.NEXT_PUBLIC_API_URL!;
 }
 
 // Icons
@@ -1116,7 +1116,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
             {/* Donations Page Link */}
             <div style={{ marginTop: '0.5rem' }}>
               <a
-                href={`${process.env.NEXT_PUBLIC_LANDING_URL || 'https://connekyt.com'}/user/donations`}
+                href={`${process.env.NEXT_PUBLIC_LANDING_URL!}/user/donations`}
                 onClick={(e) => {
                   e.preventDefault();
                   router.push('/user/donations');

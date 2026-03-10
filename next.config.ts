@@ -1,5 +1,8 @@
 import type { NextConfig } from "next";
 
+const apiUrl = new URL(process.env.NEXT_PUBLIC_API_URL!);
+const oldApiUrl = new URL(process.env.NEXT_PUBLIC_OLD_API_URL!);
+
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
@@ -16,13 +19,12 @@ const nextConfig: NextConfig = {
         hostname: 'localhost',
       },
       {
-        protocol: 'https',
-        hostname: 'backend.connekyt.com',
+        protocol: apiUrl.protocol.replace(':', '') as 'http' | 'https',
+        hostname: apiUrl.hostname,
       },
       {
-        // TODO: Remove once DevOps sets base-url=https://backend.connekyt.com in production application.properties
-        protocol: 'http',
-        hostname: '197.243.24.101',
+        protocol: oldApiUrl.protocol.replace(':', '') as 'http' | 'https',
+        hostname: oldApiUrl.hostname,
       },
     ],
   },
