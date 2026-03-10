@@ -1773,7 +1773,7 @@ Amount: ${formatPrice(transaction.amountNum)}
   const totalResults = transactions.length;
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary, overflow: 'hidden', width: '100%', maxWidth: '100vw' }}>
       <style>{`
         @media (max-width: 768px) {
           .mobile-header {
@@ -1839,11 +1839,28 @@ Amount: ${formatPrice(transaction.amountNum)}
             overflow: visible !important;
             gap: 1rem !important;
           }
+          .mobile-chart-header {
+            flex-direction: column !important;
+            gap: 0.75rem !important;
+          }
+          .mobile-earnings-row {
+            flex-direction: column !important;
+            gap: 0.25rem !important;
+          }
+          .mobile-earnings-row span:first-child {
+            font-size: 1.5rem !important;
+          }
+          .mobile-chart-controls {
+            width: 100% !important;
+            justify-content: flex-start !important;
+          }
           .mobile-earnings-summary {
             width: 100% !important;
             max-width: 100% !important;
             padding: 1rem !important;
             margin-right: 0 !important;
+            min-width: 0 !important;
+            box-sizing: border-box !important;
           }
           .mobile-earnings-summary h3 {
             font-size: 1rem !important;
@@ -1855,22 +1872,27 @@ Amount: ${formatPrice(transaction.amountNum)}
             margin-bottom: 1rem !important;
           }
           .mobile-earnings-summary button {
-            font-size: 0.85rem !important;
-            padding: 0.6rem 1.2rem !important;
+            font-size: 0.8rem !important;
           }
-          .mobile-earnings-summary > div > div {
-            gap: 1rem !important;
+          .mobile-earnings-summary > div:nth-child(2) {
+            gap: 0.5rem !important;
+          }
+          .mobile-earnings-summary > div:nth-child(2) span {
+            font-size: 0.65rem !important;
+          }
+          .mobile-earnings-summary > div:nth-child(2) > div > div:last-child {
+            font-size: 0.85rem !important;
           }
           .mobile-earnings-summary svg {
-            transform: scale(1);
+            transform: scale(0.85);
             transform-origin: center;
             margin: 0.5rem 0 !important;
           }
           .mobile-earnings-summary .stat-label {
-            font-size: 0.75rem !important;
+            font-size: 0.65rem !important;
           }
           .mobile-earnings-summary .stat-value {
-            font-size: 1.1rem !important;
+            font-size: 0.95rem !important;
             font-weight: 600 !important;
           }
           .mobile-table-container {
@@ -1906,12 +1928,16 @@ Amount: ${formatPrice(transaction.amountNum)}
             justify-content: center;
           }
           .mobile-main-content {
-            padding-left: 0.75rem !important;
-            padding-right: 0.75rem !important;
+            padding: 0.75rem !important;
+            padding-bottom: 8rem !important;
             overflow-x: hidden !important;
           }
         }
         @media (max-width: 640px) {
+          .mobile-main-content {
+            padding: 0.5rem !important;
+            padding-bottom: 10rem !important;
+          }
           .mobile-title {
             font-size: 1.5rem !important;
           }
@@ -2199,15 +2225,15 @@ Amount: ${formatPrice(transaction.amountNum)}
 
             {/* Earnings Chart */}
             <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1.25rem', boxShadow: colors.shadowSm }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+              <div className="mobile-chart-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
                 <div>
                   <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Earnings</div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '1rem' }}>
+                  <div className="mobile-earnings-row" style={{ display: 'flex', alignItems: 'baseline', gap: '1rem' }}>
                     <span style={{ fontSize: '1.75rem', fontWeight: '700', color: colors.textPrimary }}>{formatPrice(totalCompleted + totalPending + totalWithdrawn)}</span>
                     <span style={{ fontSize: '0.85rem', color: '#10B981', fontWeight: '500' }}>+23% vs last week</span>
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div className="mobile-chart-controls" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   {/* Chart Type Selector */}
                   <div style={{ display: 'flex', gap: '0.25rem', backgroundColor: colors.bgTertiary, borderRadius: '0.375rem', padding: '0.25rem' }}>
                     <button

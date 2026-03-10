@@ -286,6 +286,9 @@ const Notifications = () => {
           display: flex;
           height: 100vh;
           background-color: ${colors.bgPrimary};
+          overflow: hidden;
+          width: 100%;
+          max-width: 100vw;
         }
 
         .notifications-content {
@@ -343,7 +346,8 @@ const Notifications = () => {
         /* Mobile responsive styles */
         @media (max-width: 768px) {
           .notifications-main {
-            padding: 0.75rem !important;
+            padding: 1rem !important;
+            padding-bottom: 8rem !important;
           }
 
           .notifications-header {
@@ -352,33 +356,44 @@ const Notifications = () => {
             gap: 1rem !important;
           }
 
+          .notifications-header h1 {
+            font-size: 1.4rem !important;
+          }
+
+          .notifications-header p {
+            font-size: 0.85rem !important;
+          }
+
           .header-actions {
             width: 100% !important;
-            justify-content: space-between !important;
+          }
+
+          .header-actions button {
+            min-height: 44px !important;
+            font-size: 0.85rem !important;
           }
 
           .stats-grid {
-            grid-template-columns: repeat(4, 1fr) !important;
-            gap: 0.5rem !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.75rem !important;
           }
 
           .stat-card {
-            aspect-ratio: 1 / 1 !important;
             display: flex !important;
             flex-direction: column !important;
             justify-content: center !important;
             align-items: center !important;
             text-align: center !important;
-            padding: 0.75rem !important;
+            padding: 1rem !important;
           }
 
           .stat-card > div:first-child {
-            font-size: 0.7rem !important;
-            margin-bottom: 0.15rem !important;
+            font-size: 0.8rem !important;
+            margin-bottom: 0.25rem !important;
           }
 
           .stat-card > div:last-child {
-            font-size: 1.1rem !important;
+            font-size: 1.3rem !important;
           }
 
           .filters-section {
@@ -391,30 +406,51 @@ const Notifications = () => {
             overflow-x: auto !important;
             flex-wrap: nowrap !important;
             width: 100% !important;
+            -webkit-overflow-scrolling: touch;
+            -ms-overflow-style: none !important;
+            scrollbar-width: none !important;
           }
 
+          .filter-buttons::-webkit-scrollbar {
+            display: none !important;
+          }
+
+          .filter-buttons button {
+            flex-shrink: 0 !important;
+            min-height: 40px !important;
+          }
         }
 
         /* Extra small mobile (phones in portrait) */
         @media (max-width: 480px) {
           .notifications-main {
-            padding: 0.5rem !important;
+            padding: 0.75rem !important;
+            padding-bottom: 10rem !important;
+          }
+
+          .notifications-header h1 {
+            font-size: 1.25rem !important;
           }
 
           .stats-grid {
-            gap: 0.4rem !important;
+            gap: 0.5rem !important;
           }
 
           .stat-card {
-            padding: 0.5rem !important;
+            padding: 0.75rem !important;
           }
 
           .stat-card > div:first-child {
-            font-size: 0.65rem !important;
+            font-size: 0.7rem !important;
           }
 
           .stat-card > div:last-child {
-            font-size: 1rem !important;
+            font-size: 1.1rem !important;
+          }
+
+          .filter-buttons button {
+            font-size: 0.8rem !important;
+            padding: 0.4rem 0.75rem !important;
           }
         }
       `}</style>
