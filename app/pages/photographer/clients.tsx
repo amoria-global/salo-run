@@ -403,7 +403,7 @@ export default function Clients() {
         }
       }
 
-      const normalizeImg = (url: string | undefined): string | undefined => url && !url.includes('/null') ? url.replace(process.env.NEXT_PUBLIC_OLD_API_URL!, process.env.NEXT_PUBLIC_API_URL!) : undefined;
+      const normalizeImg = (url: string | undefined): string | undefined => url && !url.includes('/null') ? url : undefined;
       let clientsMapped: Client[] = [];
 
       // Primary: use /photographer/clients (populated once backend deploys booking-based logic)

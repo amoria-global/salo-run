@@ -15,7 +15,7 @@ const normalizeImg = (url: string | undefined | null): string => {
   if (!u.includes('/') && !u.startsWith('http')) {
     u = `${process.env.NEXT_PUBLIC_API_URL!}/uploads/profile/photos/${u}`;
   }
-  return u.replace(process.env.NEXT_PUBLIC_OLD_API_URL!, process.env.NEXT_PUBLIC_API_URL!);
+  return u;
 };
 
 // Icons

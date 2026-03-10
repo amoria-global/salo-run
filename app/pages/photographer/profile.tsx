@@ -2931,7 +2931,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                               display: 'flex', alignItems: 'center', justifyContent: 'center'
                             }}>
                               {rev.reviewer?.profilePicture ? (
-                                <img src={rev.reviewer.profilePicture.replace(process.env.NEXT_PUBLIC_OLD_API_URL!, process.env.NEXT_PUBLIC_API_URL!)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                <img src={rev.reviewer.profilePicture} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                   onError={(e) => { e.currentTarget.style.display = 'none'; if (e.currentTarget.nextElementSibling) (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex'; }}
                                 />
                               ) : null}
@@ -2981,7 +2981,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                             <div style={{ display: 'flex', gap: '0.375rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
                               {rev.images.map((img, i) => (
                                 <div key={i} style={{ width: '48px', height: '48px', borderRadius: '0.25rem', overflow: 'hidden' }}>
-                                  <img src={img.replace(process.env.NEXT_PUBLIC_OLD_API_URL!, process.env.NEXT_PUBLIC_API_URL!)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                  <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 </div>
                               ))}
                             </div>
