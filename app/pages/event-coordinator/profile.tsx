@@ -771,6 +771,7 @@ const ProfilePage = () => {
                     />
                     <input
                       type="tel"
+                      maxLength={15}
                       value={formData.phoneNumber}
                       onChange={(e) => handlePhoneNumberChange(e.target.value)}
                       disabled={!isEditEnabled}
