@@ -1262,7 +1262,7 @@ const MyEventsPage = () => {
       }
 
       // Also update local state for immediate UI feedback
-      const selectedPhotographer = pastPhotographers.find(p => p.id === createPhotographerId);
+      const selectedPhotographer = pastPhotographers.find(p => p.id === createPhotographerId) || platformPhotographers.find(p => p.id === createPhotographerId);
 
       let calculatedDuration = createDuration || '4 hours';
       if (createTime && createEndTime) {
