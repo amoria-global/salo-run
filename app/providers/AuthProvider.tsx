@@ -659,22 +659,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 
     if (typeof window !== 'undefined') {
       const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL as string;
-
-      // Notify the landing page via postMessage (works when opened as a popup)
-      if (window.opener && !window.opener.closed) {
-        window.opener.postMessage(
-          { type: 'LOGOUT' },
-          landingUrl
-        );
-      }
-
-      // Redirect to the public site's logout route so it can clear its own
-      // auth state (localStorage, cookies) before forwarding to the login page.
-      // This is necessary because postMessage via window.opener only works in
-      // popup flows; in normal navigation window.opener is null.
-      setTimeout(() => {
-        window.location.href = `${landingUrl}/user/auth/logout?logged_out=true`;
-      }, 1500);
+      window.location.href = `${landingUrl}/`;
     }
   }, []);
 

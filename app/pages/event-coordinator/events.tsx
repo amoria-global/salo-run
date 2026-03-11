@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import localforage from 'localforage';
+import { useSearchParams } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
@@ -347,6 +348,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
 const MyEventsPage = () => {
   const { colors, actualTheme } = useTheme();
   const { token, user } = useDashboardAuth();
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'upcoming' | 'published' | 'past' | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -638,6 +640,22 @@ const MyEventsPage = () => {
 
     restoreDraft();
   }, [showCreateModal]);
+
+  // Auto-open create modal pre-filled when redirected from landing with ?photographerId=&packageId=
+  useEffect(() => {
+    const landingPhotographerId = searchParams.get('photographerId');
+    const landingPackageId = searchParams.get('packageId');
+    if (!landingPhotographerId) return;
+    setCreatePhotographerId(landingPhotographerId);
+    if (landingPackageId) setCreatePackageId(landingPackageId);
+    setPhotographerAssignMode('platform');
+    setShowCreateModal(true);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('photographerId');
+    url.searchParams.delete('packageId');
+    window.history.replaceState({}, '', url.pathname + (url.search !== '?' ? url.search : ''));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Clear saved draft from IndexedDB
   const clearFormDraft = useCallback(async () => {

@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useTheme } from "../context/ThemeContext";
 import { useDashboardAuth, dashboardAuthFetch } from "../providers/AuthProvider";
+import { getLandingUrl } from "@/lib/urls";
 
 type UserRole = "photographer" | "client" | "event-coordinator";
 
@@ -330,7 +331,7 @@ export default function Sidebar() {
         paddingBottom: '1.25rem'
       }}>
         {!isCollapsed && (
-          <Link href="/" style={{
+          <Link href={getLandingUrl()} style={{
             display: 'flex',
             alignItems: 'center',
             cursor: 'pointer',

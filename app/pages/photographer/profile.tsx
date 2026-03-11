@@ -34,24 +34,14 @@ interface DayAvailability {
 interface ProfileFormData {
   basicInfo: {
     fullName: string;
-    username: string;
     email: string;
     phoneCode: string;
     phoneNumber: string;
     specialty: 'Photographer' | 'Videographer';
-    country: string;
-    province: string;
-    district: string;
-    sector: string;
+    address: string;
     availability: {
       [key: string]: DayAvailability;
     };
-    // Employment Information (optional)
-    employmentStatus?: '' | 'self-employed' | 'employed';
-    companyName?: string;
-    companyAddress?: string;
-    positionRole?: string;
-    employmentType?: '' | 'full-time' | 'part-time' | 'contract';
   };
   overviewData: {
     about: string;
@@ -175,6 +165,10 @@ interface DeliveryPackage {
   description: string;
   isActive: boolean;
   features: PackageFeature[];
+  includedPhotos: string;
+  includedVideos: string;
+  extraPhotoPrice: string;
+  extraVideoPrice: string;
 }
 
 interface ToastMessage {
@@ -243,8 +237,45 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     'Western Province': ['Karongi', 'Ngororero', 'Nyabihu', 'Nyamasheke', 'Rubavu', 'Rusizi', 'Rutsiro']
   };
 
-  // Available package features for dropdown
-  const availableFeatures = [
+  // Package tier definitions
+  // Essential (tier 1): photographer sets specific photo/video counts, no unlimited
+  // Custom    (tier 2): photographer sets specific photo/video counts, no unlimited
+  // Premium   (tier 3): "Unlimited photos & videos" locked and always included
+  const PACKAGE_TIER: Record<string, number> = { Essential: 1, Custom: 2, Premium: 3 };
+  const TIER_LABELS: Record<string, string> = { Essential: 'Starter', Custom: 'Standard', Premium: 'Premium' };
+  const TIER_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+    Essential: { bg: actualTheme === 'dark' ? '#1C3238' : '#ECFDF5', text: actualTheme === 'dark' ? '#34D399' : '#065F46', border: '#10B981' },
+    Custom:    { bg: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF', text: actualTheme === 'dark' ? '#60A5FA' : '#083A85', border: '#3B82F6' },
+    Premium:   { bg: actualTheme === 'dark' ? '#2D1B69' : '#F5F3FF', text: actualTheme === 'dark' ? '#A78BFA' : '#4C1D95', border: '#8B5CF6' },
+  };
+
+  // Features selectable by photographer (excludes "Unlimited photos & videos" for Essential/Custom)
+  const SELECTABLE_FEATURES: Record<string, string[]> = {
+    Essential: [
+      'Online gallery storage (provided by platform)',
+      'Professional editing',
+      'Printed photo album',
+      'Other preferences',
+    ],
+    Custom: [
+      'Online gallery storage (provided by platform)',
+      'Same-day preview',
+      'Professional editing',
+      'Printed photo album',
+      'Other preferences',
+    ],
+    Premium: [
+      'Online gallery storage (provided by platform)',
+      'Same-day preview',
+      'Professional editing',
+      'Printed photo album',
+      'Live-streaming',
+      'Other preferences',
+    ],
+  };
+
+  // All possible features (used for display of "not included" items)
+  const ALL_FEATURES = [
     'Unlimited photos & videos',
     'Online gallery storage (provided by platform)',
     'Same-day preview',
@@ -254,23 +285,16 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     'Other preferences',
   ];
 
-  // Features restricted by package type
+  // Legacy helper kept for savePackageToAPI — returns features to persist
   const getFeaturesForPackage = (packageName: string) => {
-    if (packageName === 'Essential') {
-      return availableFeatures.filter(f => f !== 'Live-streaming' && f !== 'Same-day preview');
+    if (packageName === 'Premium') {
+      return ['Unlimited photos & videos', ...(SELECTABLE_FEATURES['Premium'] || [])];
     }
-    if (packageName === 'Custom') {
-      return availableFeatures.filter(f => f !== 'Live-streaming');
-    }
-    // Premium: all features
-    return availableFeatures;
+    return SELECTABLE_FEATURES[packageName] || [];
   };
 
-  // Available specialties
-  const availableSpecialties = [
-    'Wedding', 'Birthday', 'Corporate', 'Portrait', 'Family', 'Events',
-    'Concerts', 'Fashion', 'Product', 'Real Estate', 'Sports', 'Documentary'
-  ];
+  // Specialties fetched from API — [{id, name}]
+  const [availableSpecialties, setAvailableSpecialties] = useState<{ id: string; name: string }[]>([]);
 
   // Days and time options
   const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -300,22 +324,12 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   // Basic Information State - initialized empty, loaded from user context
   const [basicInfo, setBasicInfo] = useState({
     fullName: '',
-    username: '',
     email: '',
     phoneCode: '+250',
     phoneNumber: '',
     specialty: 'Photographer' as 'Photographer' | 'Videographer',
-    country: 'Rwanda',
-    province: '',
-    district: '',
-    sector: '',
+    address: '',
     availability: {} as { [key: string]: DayAvailability },
-    // Employment Information
-    employmentStatus: '' as '' | 'self-employed' | 'employed',
-    companyName: '',
-    companyAddress: '',
-    positionRole: '',
-    employmentType: '' as '' | 'full-time' | 'part-time' | 'contract',
   });
 
   // Overview Tab State - initialized empty, loaded from user context
@@ -362,6 +376,10 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       description: '',
       isActive: true,
       features: [],
+      includedPhotos: '',
+      includedVideos: '',
+      extraPhotoPrice: '',
+      extraVideoPrice: '',
     };
     setPackages(prev => [newPackage, ...prev]);
     setExpandedPackageId(newId);
@@ -431,25 +449,51 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       return;
     }
 
+    // Resolve currencyId to UUID
+    const isUUID = (v: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+    const resolvedCurrencyId = isUUID(pkg.currencyId)
+      ? pkg.currencyId
+      : currencies.find(c => c.code === pkg.currencyId || c.name === pkg.currencyId)?.id || null;
+
+    if (!resolvedCurrencyId) {
+      showToast('error', 'Please select a currency');
+      return;
+    }
+
     setSavingPackageId(pkg.id);
     try {
       const apiUrl = getApiUrl();
-      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/packages`, {
-        method: 'POST',
+      const isExisting = isUUID(pkg.id);
+      const url = isExisting
+        ? `${apiUrl}/api/remote/photographer/packages/${pkg.id}`
+        : `${apiUrl}/api/remote/photographer/packages`;
+      const response = await dashboardAuthFetch(url, {
+        method: isExisting ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           packageName: pkg.packageName,
           price: parseFloat(pkg.price) || 0,
-          currencyId: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pkg.currencyId) ? pkg.currencyId : null,
+          currencyId: resolvedCurrencyId,
           priceUnit: pkg.priceUnit,
           durationHours: parseFloat(pkg.durationHours) || 0,
           description: pkg.description,
           isActive: pkg.isActive,
-          features: getFeaturesForPackage(pkg.packageName).map((f, idx) => ({
-            featureName: f,
-            isIncluded: true,
-            displayOrder: idx + 1,
-          })),
+          // Premium is unlimited — send null; Essential/Custom have specific counts
+          includedPhotos: pkg.packageName === 'Premium' ? null : (parseInt(pkg.includedPhotos) || 0),
+          includedVideos: pkg.packageName === 'Premium' ? null : (parseInt(pkg.includedVideos) || 0),
+          extraPhotoPrice: parseFloat(pkg.extraPhotoPrice) || 0,
+          extraVideoPrice: parseFloat(pkg.extraVideoPrice) || 0,
+          // For Premium: lock "Unlimited photos & videos" + photographer's selections
+          // For Essential/Custom: only photographer's selections (no unlimited)
+          features: (() => {
+            const locked = pkg.packageName === 'Premium'
+              ? [{ featureName: 'Unlimited photos & videos', isIncluded: true, displayOrder: 0 }]
+              : [];
+            const selected = pkg.features
+              .filter(f => f.featureName && (SELECTABLE_FEATURES[pkg.packageName] || []).includes(f.featureName))
+              .map((f, idx) => ({ featureName: f.featureName, isIncluded: f.isIncluded, displayOrder: idx + 1 }));
+            return [...locked, ...selected];
+          })(),
         }),
       });
 
@@ -494,6 +538,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
   // Edit mode state - when false, all fields are disabled
   const [isEditEnabled, setIsEditEnabled] = useState(false);
+  const [isPackageEditEnabled, setIsPackageEditEnabled] = useState(false);
   const [isSavingAll, setIsSavingAll] = useState(false);
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [isSavingAvailability, setIsSavingAvailability] = useState(false);
@@ -543,10 +588,17 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     if (!token) return;
     setIsSavingAll(true);
     try {
+      const [firstName, ...rest] = basicInfo.fullName.trim().split(' ');
+      const lastName = rest.join(' ');
       const success = await saveImportantDetailsToAPI({
+        firstName: firstName || '',
+        lastName: lastName || '',
+        phone: basicInfo.phoneCode && basicInfo.phoneNumber
+          ? `${basicInfo.phoneCode}${basicInfo.phoneNumber.replace(/\s/g, '')}`
+          : undefined,
         about: overviewData.about,
-        address: [basicInfo.district, basicInfo.province].filter(Boolean).join(', '),
-        specialties: overviewData.specialties,
+        address: basicInfo.address,
+        specialtyIds: overviewData.specialties,
         professionalPhilosophy: portfolioData.beliefs,
       });
       if (success) {
@@ -655,6 +707,25 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     };
   }, [isRestoringDraft, saveProfileDraft]);
 
+  // Fetch available specialties from API on mount
+  useEffect(() => {
+    const fetchSpecialties = async () => {
+      try {
+        const apiUrl = getApiUrl();
+        const response = await fetch(`${apiUrl}/api/remote/public/specialties`);
+        if (response.ok) {
+          const result = await response.json();
+          if (result.data && Array.isArray(result.data)) {
+            setAvailableSpecialties(result.data.map((s: { id: string; name: string }) => ({ id: s.id, name: s.name })));
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch specialties:', error);
+      }
+    };
+    fetchSpecialties();
+  }, []);
+
   // Fetch currencies on mount
   useEffect(() => {
     const fetchCurrencies = async () => {
@@ -700,19 +771,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           setIsRestoringDraft(true);
 
           if (savedDraft.basicInfo) {
-            // Migrate old format to new format if needed
             const restoredBasicInfo = { ...savedDraft.basicInfo };
             if (!restoredBasicInfo.availability) {
-              // Old format detected - migrate to new availability structure
               restoredBasicInfo.availability = defaultAvailability;
-            }
-            // Ensure employment fields exist
-            if (!restoredBasicInfo.employmentStatus) {
-              restoredBasicInfo.employmentStatus = '';
-              restoredBasicInfo.companyName = '';
-              restoredBasicInfo.companyAddress = '';
-              restoredBasicInfo.positionRole = '';
-              restoredBasicInfo.employmentType = '';
             }
             setBasicInfo(restoredBasicInfo);
           }
@@ -742,6 +803,11 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       let phone = user.phone || '';
       let detectedCode = '+250'; // default
       for (const c of eastAfricanCountries) {
+        if (phone.startsWith(c.code)) {
+          phone = phone.slice(c.code.length);
+          detectedCode = c.code;
+          break;
+        }
         const digits = c.code.replace('+', '');
         if (phone.startsWith(digits)) {
           phone = phone.slice(digits.length);
@@ -758,13 +824,16 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         phoneCode: detectedCode,
         phoneNumber: phone,
         specialty: (user.customerType === 'Videographer' ? 'Videographer' : 'Photographer') as 'Photographer' | 'Videographer',
+        address: user.address || '',
       }));
 
       // Set overview data
       setOverviewData(prev => ({
         ...prev,
         about: user.about || '',
-        specialties: user.specialties || [],
+        // Store specialty IDs for saving; backend returns [{id, name}] but AuthProvider types as string[]
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        specialties: (user.specialties as any[])?.map((s) => typeof s === 'object' ? (s.id || s.name) : s) || [],
         equipments: user.equipments?.map(e => e.name) || [],
       }));
 
@@ -828,9 +897,16 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         const availabilityMap: { [key: string]: DayAvailability } = {};
         user.availabilities.forEach(a => {
           const day = a.dayOfWeek.charAt(0).toUpperCase() + a.dayOfWeek.slice(1).toLowerCase();
-          const formatTime = (time: { hour: number; minute: number }) => {
-            const hour = time.hour;
-            const minute = time.minute;
+          const formatTime = (time: string | { hour: number; minute: number }) => {
+            let hour: number, minute: number;
+            if (typeof time === 'string') {
+              const parts = time.split(':');
+              hour = parseInt(parts[0], 10);
+              minute = parseInt(parts[1], 10);
+            } else {
+              hour = time.hour;
+              minute = time.minute;
+            }
             const period = hour >= 12 ? 'PM' : 'AM';
             const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
             return `${displayHour}:${minute.toString().padStart(2, '0')} ${period}`;
@@ -848,6 +924,31 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           }
         });
         setBasicInfo(prev => ({ ...prev, availability: availabilityMap }));
+      }
+
+      // Set packages from user data
+      if (user.packages && Array.isArray(user.packages) && user.packages.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setPackages(user.packages.map((p: any) => ({
+          id: p.id || String(Date.now() + Math.random()),
+          packageName: p.packageName || '',
+          price: String(p.price ?? ''),
+          currencyId: p.currencyId || p.currencyAbbreviation || 'USD',
+          priceUnit: p.priceUnit || 'per event',
+          durationHours: String(p.durationHours ?? ''),
+          description: p.description || '',
+          isActive: p.isActive ?? true,
+          features: (p.features || []).map((f: any) => ({
+            id: f.id || String(Date.now()),
+            featureName: f.featureName || '',
+            isIncluded: f.isIncluded ?? true,
+            displayOrder: f.displayOrder || 0,
+          })),
+          includedPhotos: String(p.includedPhotos ?? ''),
+          includedVideos: String(p.includedVideos ?? ''),
+          extraPhotoPrice: String(p.extraPhotoPrice ?? ''),
+          extraVideoPrice: String(p.extraVideoPrice ?? ''),
+        })));
       }
 
       // Set images
@@ -886,12 +987,10 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         filled: [
           basicInfo.fullName,
           basicInfo.phoneNumber,
-          basicInfo.country,
-          basicInfo.province,
-          basicInfo.district,
+          basicInfo.address,
           profileImage,
         ].filter(Boolean).length,
-        total: 6
+        total: 4
       },
       // Overview (25%)
       overview: {
@@ -938,7 +1037,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   const getCompletionColor = (percentage: number) => {
     if (percentage < 30) return '#EF4444';
     if (percentage < 60) return '#F59E0B';
-    if (percentage < 90) return '#3B82F6';
+    if (percentage < 85) return '#3B82F6';
     return '#10B981';
   };
 
@@ -1011,15 +1110,13 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     }
   };
 
-  // Specialty toggle — auto-saves to API
   const toggleSpecialty = (specialty: string) => {
-    setOverviewData(prev => {
-      const newSpecialties = prev.specialties.includes(specialty)
+    setOverviewData(prev => ({
+      ...prev,
+      specialties: prev.specialties.includes(specialty)
         ? prev.specialties.filter(s => s !== specialty)
-        : [...prev.specialties, specialty];
-      debouncedSaveImportantDetails({ specialties: newSpecialties });
-      return { ...prev, specialties: newSpecialties };
-    });
+        : [...prev.specialties, specialty],
+    }));
   };
 
   // Equipment handlers
@@ -1304,11 +1401,14 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     }
   };
 
-  // Save important details (about, address, specialties, philosophy) to API
+  // Save important details to API
   const saveImportantDetailsToAPI = async (data: {
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
     about?: string;
     address?: string;
-    specialties?: string[];
+    specialtyIds?: string[];
     professionalPhilosophy?: string;
   }): Promise<boolean> => {
     if (!token) return false;
@@ -1335,9 +1435,12 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
   // Debounced auto-save for important details (2s debounce to batch rapid changes)
   const debouncedSaveImportantDetails = useCallback((data: {
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
     about?: string;
     address?: string;
-    specialties?: string[];
+    specialtyIds?: string[];
     professionalPhilosophy?: string;
   }) => {
     if (importantDetailsTimeoutRef.current) {
@@ -2247,7 +2350,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                   ? { label: 'Account Active', bg: '#03a329', icon: 'bi-check-circle-fill' }
                   : status === 'rejected'
                   ? { label: 'Changes Needed', bg: '#d41919', icon: 'bi-x-circle-fill' }
-                  : profileCompletion < 90
+                  : profileCompletion < 85
                   ? { label: 'Profile Incomplete', bg: '#e68a00', icon: 'bi-pencil-square' }
                   : { label: 'Under Review', bg: '#0066cc', icon: 'bi-hourglass-split' };
                 return (
@@ -2377,7 +2480,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           {/* Account Status Banner */}
           {user?.profileReviewStatus && user.profileReviewStatus.toLowerCase() !== 'accepted' && (() => {
             const status = user.profileReviewStatus.toLowerCase();
-            const isIncomplete = profileCompletion < 90;
+            const isIncomplete = profileCompletion < 85;
             const isRejected = status === 'rejected';
 
             if (isRejected) {
@@ -2434,10 +2537,10 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                         Complete your profile to get started
                       </h4>
                       <p style={{ margin: '0 0 0.5rem', fontSize: '1rem', color: 'rgba(255,255,255,0.9)', lineHeight: '1.7' }}>
-                        Your profile is currently at <strong style={{ color: 'white' }}>{profileCompletion}%</strong>. To submit your profile for approval, you need to fill out at least <strong style={{ color: 'white' }}>90%</strong> of your profile information. This includes your bio, specialties, skills, experience, and portfolio details.
+                        Your profile is currently at <strong style={{ color: 'white' }}>{profileCompletion}%</strong>. To submit your profile for approval, you need to fill out at least <strong style={{ color: 'white' }}>85%</strong> of your profile information. This includes your bio, specialties, skills, experience, and portfolio details.
                       </p>
                       <p style={{ margin: 0, fontSize: '0.95rem', color: 'rgba(255,255,255,0.8)', lineHeight: '1.6', fontStyle: 'italic' }}>
-                        Once your profile reaches 90%, it will be automatically submitted for review by our team.
+                        Once your profile reaches 85%, it will be automatically submitted for review by our team.
                       </p>
                     </div>
                   </div>
@@ -2748,7 +2851,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                     color: '#9CA3AF',
                     marginTop: '0.25rem'
                   }}>
-                    {basicInfo.district}, {basicInfo.province}
+                    {basicInfo.address}
                   </p>
                 </div>
 
@@ -2986,19 +3089,6 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                         )}
                       </div>
                       <div>
-                        <label style={labelStyle}>Username</label>
-                        <input
-                          type="text"
-                          value={basicInfo.username}
-                          onChange={(e) => handleUsernameChange(e.target.value)}
-                          disabled={!isEditEnabled}
-                          style={validationErrors.username ? inputErrorStyle : inputStyle}
-                        />
-                        {validationErrors.username && (
-                          <span style={errorMessageStyle}>{validationErrors.username}</span>
-                        )}
-                      </div>
-                      <div>
                         <label style={labelStyle}>Email</label>
                         <input
                           type="email"
@@ -3024,6 +3114,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           />
                           <input
                             type="tel"
+                            maxLength={15}
                             value={basicInfo.phoneNumber}
                             onChange={(e) => handlePhoneNumberChange(e.target.value)}
                             disabled={!isEditEnabled}
@@ -3047,178 +3138,18 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                         </select>
                       </div>
                       <div>
-                        <label style={labelStyle}>Country</label>
-                        <CountrySelect
-                          countries={eastAfricanCountries}
-                          value={basicInfo.country}
-                          onChange={(val) => {
-                            setBasicInfo(prev => ({ ...prev, country: val }));
-                            if (val !== 'Rwanda') {
-                              setBasicInfo(prev => ({ ...prev, province: '', district: '', sector: '' }));
-                            }
-                          }}
-                          valueKey="name"
-                          displayKey="name"
+                        <label style={labelStyle}>Location / Working Area</label>
+                        <input
+                          type="text"
+                          value={basicInfo.address}
+                          onChange={(e) => setBasicInfo(prev => ({ ...prev, address: e.target.value }))}
+                          placeholder="e.g., Kigali, Rwanda"
                           disabled={!isEditEnabled}
-                          inputStyle={selectStyle}
-                          colors={colors}
-                          actualTheme={actualTheme}
+                          style={inputStyle}
                         />
-                      </div>
-                      <div>
-                        <label style={labelStyle}>Province</label>
-                        {basicInfo.country === 'Rwanda' ? (
-                          <select
-                            value={basicInfo.province}
-                            disabled={!isEditEnabled}
-                            onChange={(e) => {
-                              const districts = rwandaProvinces[e.target.value] || [];
-                              setBasicInfo(prev => ({ ...prev, province: e.target.value, district: districts[0] || '' }));
-                            }}
-                            style={selectStyle}
-                          >
-                            {Object.keys(rwandaProvinces).map((province) => (
-                              <option key={province} value={province}>{province}</option>
-                            ))}
-                          </select>
-                        ) : (
-                          <input
-                            type="text"
-                            value={basicInfo.province}
-                            onChange={(e) => setBasicInfo(prev => ({ ...prev, province: e.target.value }))}
-                            placeholder="Enter province"
-                            disabled={!isEditEnabled}
-                            style={inputStyle}
-                          />
-                        )}
-                      </div>
-                      <div>
-                        <label style={labelStyle}>District</label>
-                        {basicInfo.country === 'Rwanda' && basicInfo.province ? (
-                          <select
-                            value={basicInfo.district}
-                            onChange={(e) => setBasicInfo(prev => ({ ...prev, district: e.target.value }))}
-                            disabled={!isEditEnabled}
-                            style={selectStyle}
-                          >
-                            {(rwandaProvinces[basicInfo.province] || []).map((district) => (
-                              <option key={district} value={district}>{district}</option>
-                            ))}
-                          </select>
-                        ) : (
-                          <input
-                            type="text"
-                            value={basicInfo.district}
-                            onChange={(e) => setBasicInfo(prev => ({ ...prev, district: e.target.value }))}
-                            placeholder="Enter district"
-                            disabled={!isEditEnabled}
-                            style={inputStyle}
-                          />
-                        )}
                       </div>
                     </div>
 
-                    {/* Employment Information Section (Optional) */}
-                    <div style={sectionTitleStyle}>
-                      <span>Employment Information</span>
-                      <span style={{ fontSize: '0.8rem', fontWeight: '400', color: colors.textSecondary, marginLeft: '0.5rem' }}>(Optional)</span>
-                    </div>
-                    <p style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '1rem' }}>
-                      If you work for a photography company or studio, you can add your employment details here
-                    </p>
-                    <div className="mobile-form-grid-2" style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(2, 1fr)',
-                      gap: '1.25rem',
-                      marginBottom: '1.5rem'
-                    }}>
-                      <div>
-                        <label style={labelStyle}>Employment Status</label>
-                        <select
-                          value={basicInfo.employmentStatus}
-                          disabled={!isEditEnabled}
-                          onChange={(e) => setBasicInfo(prev => ({
-                            ...prev,
-                            employmentStatus: e.target.value as '' | 'self-employed' | 'employed',
-                            // Clear company fields if switching to self-employed or empty
-                            ...(e.target.value !== 'employed' ? {
-                              companyName: '',
-                              companyAddress: '',
-                              positionRole: '',
-                              employmentType: ''
-                            } : {})
-                          }))}
-                          style={selectStyle}
-                        >
-                          <option value="">Not specified</option>
-                          <option value="self-employed">Self-Employed / Independent</option>
-                          <option value="employed">Employed by Company</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label style={labelStyle}>Employment Type</label>
-                        <select
-                          value={basicInfo.employmentType}
-                          onChange={(e) => setBasicInfo(prev => ({ ...prev, employmentType: e.target.value as '' | 'full-time' | 'part-time' | 'contract' }))}
-                          disabled={!isEditEnabled || basicInfo.employmentStatus !== 'employed'}
-                          style={{
-                            ...selectStyle,
-                            opacity: (!isEditEnabled || basicInfo.employmentStatus !== 'employed') ? 0.5 : 1,
-                            cursor: (!isEditEnabled || basicInfo.employmentStatus !== 'employed') ? 'not-allowed' : 'pointer'
-                          }}
-                        >
-                          <option value="">Select type</option>
-                          <option value="full-time">Full-Time</option>
-                          <option value="part-time">Part-Time</option>
-                          <option value="contract">Contract / Freelance</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label style={labelStyle}>Company Name</label>
-                        <input
-                          type="text"
-                          value={basicInfo.companyName}
-                          onChange={(e) => setBasicInfo(prev => ({ ...prev, companyName: e.target.value }))}
-                          placeholder="e.g., Elite Photography Studios"
-                          disabled={!isEditEnabled || basicInfo.employmentStatus !== 'employed'}
-                          style={{
-                            ...inputStyle,
-                            opacity: (!isEditEnabled || basicInfo.employmentStatus !== 'employed') ? 0.5 : 1,
-                            cursor: (!isEditEnabled || basicInfo.employmentStatus !== 'employed') ? 'not-allowed' : 'text'
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <label style={labelStyle}>Position / Role</label>
-                        <input
-                          type="text"
-                          value={basicInfo.positionRole}
-                          onChange={(e) => setBasicInfo(prev => ({ ...prev, positionRole: e.target.value }))}
-                          placeholder="e.g., Senior Photographer"
-                          disabled={!isEditEnabled || basicInfo.employmentStatus !== 'employed'}
-                          style={{
-                            ...inputStyle,
-                            opacity: (!isEditEnabled || basicInfo.employmentStatus !== 'employed') ? 0.5 : 1,
-                            cursor: (!isEditEnabled || basicInfo.employmentStatus !== 'employed') ? 'not-allowed' : 'text'
-                          }}
-                        />
-                      </div>
-                      <div style={{ gridColumn: 'span 2' }}>
-                        <label style={labelStyle}>Company Address</label>
-                        <input
-                          type="text"
-                          value={basicInfo.companyAddress}
-                          onChange={(e) => setBasicInfo(prev => ({ ...prev, companyAddress: e.target.value }))}
-                          placeholder="e.g., KN 5 Rd, Kigali, Rwanda"
-                          disabled={!isEditEnabled || basicInfo.employmentStatus !== 'employed'}
-                          style={{
-                            ...inputStyle,
-                            opacity: (!isEditEnabled || basicInfo.employmentStatus !== 'employed') ? 0.5 : 1,
-                            cursor: (!isEditEnabled || basicInfo.employmentStatus !== 'employed') ? 'not-allowed' : 'text'
-                          }}
-                        />
-                      </div>
-                    </div>
 
                     {/* Availability Days Section */}
                     <div style={sectionTitleStyle}>
@@ -3371,7 +3302,17 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       onChange={(e) => {
                         const val = e.target.value;
                         setOverviewData(prev => ({ ...prev, about: val }));
-                        debouncedSaveImportantDetails({ about: val });
+                        const [firstName, ...rest] = basicInfo.fullName.trim().split(' ');
+                        debouncedSaveImportantDetails({
+                          firstName: firstName || '',
+                          lastName: rest.join(' '),
+                          phone: basicInfo.phoneCode && basicInfo.phoneNumber
+                            ? `${basicInfo.phoneCode}${basicInfo.phoneNumber.replace(/\s/g, '')}` : undefined,
+                          about: val,
+                          address: basicInfo.address,
+                          specialtyIds: overviewData.specialties,
+                          professionalPhilosophy: portfolioData.beliefs,
+                        });
                       }}
                       placeholder="Tell clients about yourself, your experience, and what makes you unique..."
                       rows={4}
@@ -3392,12 +3333,12 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       gap: '0.5rem',
                       marginBottom: '2rem'
                     }}>
-                      {availableSpecialties.map((specialty) => {
-                        const isSelected = overviewData.specialties.includes(specialty);
+                      {availableSpecialties.map((s) => {
+                        const isSelected = overviewData.specialties.includes(s.id);
                         return (
                           <button
-                            key={specialty}
-                            onClick={() => isEditEnabled && toggleSpecialty(specialty)}
+                            key={s.id}
+                            onClick={() => isEditEnabled && toggleSpecialty(s.id)}
                             disabled={!isEditEnabled}
                             style={{
                               padding: '0.5rem 1rem',
@@ -3416,7 +3357,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                             }}
                           >
                             {isSelected && <CheckIcon />}
-                            {specialty}
+                            {s.name}
                           </button>
                         );
                       })}
@@ -3621,7 +3562,17 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       onChange={(e) => {
                         const val = e.target.value;
                         setPortfolioData(prev => ({ ...prev, beliefs: val }));
-                        debouncedSaveImportantDetails({ professionalPhilosophy: val });
+                        const [firstName, ...rest] = basicInfo.fullName.trim().split(' ');
+                        debouncedSaveImportantDetails({
+                          firstName: firstName || '',
+                          lastName: rest.join(' '),
+                          phone: basicInfo.phoneCode && basicInfo.phoneNumber
+                            ? `${basicInfo.phoneCode}${basicInfo.phoneNumber.replace(/\s/g, '')}` : undefined,
+                          about: overviewData.about,
+                          address: basicInfo.address,
+                          specialtyIds: overviewData.specialties,
+                          professionalPhilosophy: val,
+                        });
                       }}
                       placeholder="Share your professional philosophy and what you believe makes great photography..."
                       rows={3}
@@ -4775,7 +4726,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
                           gap: '1rem'
                         }}>
-                          {packages.filter(p => p.packageName).map((pkg) => (
+                          {packages.filter(p => p.packageName).sort((a, b) => (PACKAGE_TIER[a.packageName] ?? 99) - (PACKAGE_TIER[b.packageName] ?? 99)).map((pkg) => (
                             <div key={pkg.id} style={{
                               backgroundColor: colors.bgTertiary,
                               borderRadius: '0.75rem',
@@ -4788,46 +4739,53 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                             }}
                             onClick={() => setExpandedPackageId(expandedPackageId === pkg.id ? null : pkg.id)}
                             >
-                              <h4 style={{
-                                fontSize: '1rem',
-                                fontWeight: '600',
-                                color: colors.textPrimary,
-                                margin: '0 0 0.5rem 0',
-                              }}>
-                                {pkg.packageName}
-                              </h4>
+                              {/* Tier badge + name */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                                <h4 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
+                                  {pkg.packageName}
+                                </h4>
+                                {pkg.packageName && TIER_LABELS[pkg.packageName] && (
+                                  <span style={{
+                                    fontSize: '0.65rem', fontWeight: '700', padding: '0.15rem 0.45rem',
+                                    borderRadius: '0.25rem', letterSpacing: '0.04em', textTransform: 'uppercase' as const,
+                                    backgroundColor: TIER_COLORS[pkg.packageName]?.bg,
+                                    color: TIER_COLORS[pkg.packageName]?.text,
+                                    border: `1px solid ${TIER_COLORS[pkg.packageName]?.border}40`,
+                                  }}>
+                                    {TIER_LABELS[pkg.packageName]}
+                                  </span>
+                                )}
+                              </div>
                               {pkg.price && (
                                 <div style={{
-                                  fontSize: '1.5rem',
-                                  fontWeight: '700',
+                                  fontSize: '1.5rem', fontWeight: '700',
                                   color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
                                   marginBottom: '0.25rem'
                                 }}>
-                                  {parseFloat(pkg.price).toLocaleString()} <span style={{ fontSize: '0.85rem', fontWeight: '500' }}>{currencies.find(c => c.id === pkg.currencyId)?.code || pkg.currencyId}</span>
+                                  {parseFloat(pkg.price).toLocaleString()} <span style={{ fontSize: '0.85rem', fontWeight: '500' }}>{currencies.find(c => c.id === pkg.currencyId || c.code === pkg.currencyId)?.code || pkg.currencyId}</span>
                                 </div>
                               )}
-                              <p style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.75rem' }}>
+                              <p style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.5rem' }}>
                                 {pkg.durationHours || '0'}h · {pkg.priceUnit}
                               </p>
-                              {pkg.features.filter(f => f.featureName).length > 0 && (
+                              {/* Media coverage line */}
+                              <p style={{ fontSize: '0.75rem', fontWeight: '600', color: pkg.packageName === 'Premium' ? (actualTheme === 'dark' ? '#A78BFA' : '#7C3AED') : colors.textSecondary, marginBottom: '0.75rem' }}>
+                                {pkg.packageName === 'Premium'
+                                  ? 'Unlimited photos & videos'
+                                  : [pkg.includedPhotos ? `${pkg.includedPhotos} photos` : '', pkg.includedVideos ? `${pkg.includedVideos} videos` : ''].filter(Boolean).join(' · ') || 'Set photo/video count'}
+                              </p>
+                              {pkg.features.filter(f => f.featureName && f.isIncluded).length > 0 && (
                                 <div style={{
                                   borderTop: `2px solid ${colors.borderPrimary}`,
                                   paddingTop: '0.75rem',
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  gap: '0.35rem',
-                                  flex: 1
+                                  display: 'flex', flexDirection: 'column', gap: '0.35rem', flex: 1
                                 }}>
-                                  {pkg.features.filter(f => f.featureName).map((f) => (
-                                    <div key={f.id} style={{
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: '0.4rem',
-                                      fontSize: '0.8rem',
-                                      color: f.isIncluded ? colors.textPrimary : colors.textSecondary,
-                                      textDecoration: f.isIncluded ? 'none' : 'line-through',
+                                  {pkg.features.filter(f => f.featureName && f.isIncluded).map((f, idx) => (
+                                    <div key={`${pkg.id}-feat-${idx}`} style={{
+                                      display: 'flex', alignItems: 'center', gap: '0.4rem',
+                                      fontSize: '0.8rem', color: colors.textPrimary,
                                     }}>
-                                      {f.isIncluded ? <CheckIcon /> : <XIcon />}
+                                      <CheckIcon />
                                       {f.featureName}
                                     </div>
                                   ))}
@@ -4923,7 +4881,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                 </h3>
                                 {pkg.price && (
                                   <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
-                                    {parseFloat(pkg.price).toLocaleString()} {currencies.find(c => c.id === pkg.currencyId)?.code || pkg.currencyId} · {pkg.priceUnit}
+                                    {parseFloat(pkg.price).toLocaleString()} {currencies.find(c => c.id === pkg.currencyId || c.code === pkg.currencyId)?.code || pkg.currencyId} · {pkg.priceUnit}
                                   </span>
                                 )}
                               </div>
@@ -5020,7 +4978,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                     const allOpts = currencies.length > 0
                                       ? currencies.map(c => ({ val: c.id, code: c.code, name: c.name }))
                                       : [{ val: 'USD', code: 'USD', name: '' }, { val: 'RWF', code: 'RWF', name: '' }, { val: 'EUR', code: 'EUR', name: '' }, { val: 'GBP', code: 'GBP', name: '' }, { val: 'KES', code: 'KES', name: '' }];
-                                    const selectedCode = allOpts.find(o => o.val === pkg.currencyId)?.code || '';
+                                    const selectedCode = allOpts.find(o => o.val === pkg.currencyId || o.code === pkg.currencyId)?.code || '';
                                     const isDropdownOpen = openCurrencyPkgId === pkg.id;
                                     return (
                                       <div ref={(el) => { currencyDropdownRefs.current[pkg.id] = el; }} style={{ position: 'relative' }}>
@@ -5036,7 +4994,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                           <div style={{ position: 'absolute', top: 'calc(100% + 0.35rem)', left: 0, backgroundColor: colors.bgSecondary, borderRadius: '0.75rem', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.2)', border: `2px solid ${colors.borderPrimary}`, padding: '0.4rem', minWidth: '200px', zIndex: 100 }}>
                                             {allOpts.map(opt => {
                                               const flag = CURRENCY_FLAG_MAP[opt.code] || '';
-                                              const isSelected = pkg.currencyId === opt.val;
+                                              const isSelected = pkg.currencyId === opt.val || pkg.currencyId === opt.code;
                                               return (
                                                 <button key={opt.val} type="button" onClick={() => { updatePackage(pkg.id, 'currencyId', opt.val); setOpenCurrencyPkgId(null); }}
                                                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0.5rem 0.65rem', borderRadius: '0.5rem', border: 'none', background: isSelected ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : 'transparent', color: colors.textPrimary, fontSize: '0.85rem', fontWeight: isSelected ? '600' : '400', cursor: 'pointer', gap: '0.5rem' }}
@@ -5086,39 +5044,103 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                   style={{ ...inputStyle, resize: 'vertical' as const }} />
                               </div>
 
-                              {/* Row 4: Included Features (read-only, determined by package type) */}
+                              {/* Photo/Video counts — Essential & Custom only */}
+                              {pkg.packageName && pkg.packageName !== 'Premium' && (
+                                <div style={{ marginBottom: '1.25rem' }}>
+                                  <label style={labelStyle}>Included Photos & Videos</label>
+                                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                    <div>
+                                      <label style={{ ...labelStyle, fontSize: '0.8rem', color: colors.textSecondary }}>Photos included</label>
+                                      <input type="number" min="0" value={pkg.includedPhotos}
+                                        onChange={(e) => updatePackage(pkg.id, 'includedPhotos', e.target.value)}
+                                        placeholder="e.g. 100" disabled={!isPackageEditEnabled} style={inputStyle} />
+                                    </div>
+                                    <div>
+                                      <label style={{ ...labelStyle, fontSize: '0.8rem', color: colors.textSecondary }}>Videos included</label>
+                                      <input type="number" min="0" value={pkg.includedVideos}
+                                        onChange={(e) => updatePackage(pkg.id, 'includedVideos', e.target.value)}
+                                        placeholder="e.g. 5" disabled={!isPackageEditEnabled} style={inputStyle} />
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Row 4: Features */}
                               <div style={{ marginBottom: '1.25rem' }}>
                                 <label style={{ ...labelStyle, marginBottom: '0.75rem' }}>Included Features</label>
                                 {pkg.packageName ? (
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                                    {getFeaturesForPackage(pkg.packageName).map((feature) => (
-                                      <div key={feature} style={{
+                                    {/* Premium: "Unlimited photos & videos" locked at top */}
+                                    {pkg.packageName === 'Premium' && (
+                                      <div style={{
                                         display: 'flex', alignItems: 'center', gap: '0.6rem',
                                         padding: '0.5rem 0.75rem',
-                                        backgroundColor: colors.bgTertiary,
+                                        backgroundColor: actualTheme === 'dark' ? '#2D1B69' : '#F5F3FF',
                                         borderRadius: '0.375rem',
-                                        border: `1px solid ${colors.borderPrimary}`,
+                                        border: `1px solid #8B5CF6`,
                                       }}>
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
-                                          <path d="M20 6L9 17L4 12" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                          <path d="M20 6L9 17L4 12" stroke="#8B5CF6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
                                         </svg>
-                                        <span style={{ fontSize: '0.85rem', color: colors.textPrimary }}>{feature}</span>
+                                        <span style={{ fontSize: '0.85rem', color: actualTheme === 'dark' ? '#A78BFA' : '#4C1D95', fontWeight: '600' }}>Unlimited photos & videos</span>
+                                        <span style={{ marginLeft: 'auto', fontSize: '0.7rem', color: actualTheme === 'dark' ? '#A78BFA' : '#7C3AED', backgroundColor: actualTheme === 'dark' ? '#4C1D95' : '#EDE9FE', padding: '0.15rem 0.4rem', borderRadius: '0.25rem', fontWeight: '600' }}>Locked</span>
                                       </div>
-                                    ))}
-                                    {/* Show excluded features grayed out */}
-                                    {availableFeatures.filter(f => !getFeaturesForPackage(pkg.packageName).includes(f)).map((feature) => (
+                                    )}
+                                    {/* Selectable features for this package tier */}
+                                    {(SELECTABLE_FEATURES[pkg.packageName] || []).map((feature) => {
+                                      const isChecked = pkg.features.some(f => f.featureName === feature && f.isIncluded);
+                                      return (
+                                        <div key={feature}
+                                          onClick={() => {
+                                            if (!isPackageEditEnabled) return;
+                                            const existing = pkg.features.find(f => f.featureName === feature);
+                                            if (existing) {
+                                              setPackages(prev => prev.map(p => p.id !== pkg.id ? p : {
+                                                ...p, features: p.features.map(f => f.featureName === feature ? { ...f, isIncluded: !f.isIncluded } : f)
+                                              }));
+                                            } else {
+                                              setPackages(prev => prev.map(p => p.id !== pkg.id ? p : {
+                                                ...p, features: [...p.features, { id: String(Date.now()), featureName: feature, isIncluded: true, displayOrder: p.features.length + 1 }]
+                                              }));
+                                            }
+                                          }}
+                                          style={{
+                                            display: 'flex', alignItems: 'center', gap: '0.6rem',
+                                            padding: '0.5rem 0.75rem',
+                                            backgroundColor: isChecked ? colors.bgTertiary : (actualTheme === 'dark' ? 'rgba(75,85,99,0.2)' : 'rgba(0,0,0,0.03)'),
+                                            borderRadius: '0.375rem',
+                                            border: `1px solid ${isChecked ? colors.borderPrimary : 'transparent'}`,
+                                            cursor: isPackageEditEnabled ? 'pointer' : 'default',
+                                            opacity: isChecked ? 1 : 0.55,
+                                            transition: 'all 0.15s',
+                                          }}>
+                                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+                                            {isChecked
+                                              ? <path d="M20 6L9 17L4 12" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                              : <path d="M18 6L6 18M6 6L18 18" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                            }
+                                          </svg>
+                                          <span style={{ fontSize: '0.85rem', color: isChecked ? colors.textPrimary : colors.textSecondary, textDecoration: isChecked ? 'none' : 'line-through' }}>{feature}</span>
+                                        </div>
+                                      );
+                                    })}
+                                    {/* Features not available at this tier */}
+                                    {ALL_FEATURES.filter(f => {
+                                      if (f === 'Unlimited photos & videos') return pkg.packageName !== 'Premium';
+                                      return !(SELECTABLE_FEATURES[pkg.packageName] || []).includes(f);
+                                    }).map((feature) => (
                                       <div key={feature} style={{
                                         display: 'flex', alignItems: 'center', gap: '0.6rem',
                                         padding: '0.5rem 0.75rem',
-                                        backgroundColor: actualTheme === 'dark' ? 'rgba(75,85,99,0.2)' : 'rgba(0,0,0,0.03)',
+                                        backgroundColor: actualTheme === 'dark' ? 'rgba(75,85,99,0.1)' : 'rgba(0,0,0,0.02)',
                                         borderRadius: '0.375rem',
-                                        border: `1px solid ${colors.borderPrimary}`,
-                                        opacity: 0.5,
+                                        border: `1px solid transparent`,
+                                        opacity: 0.35,
                                       }}>
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
                                           <path d="M18 6L6 18M6 6L18 18" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                         </svg>
-                                        <span style={{ fontSize: '0.85rem', color: colors.textTertiary, textDecoration: 'line-through' }}>{feature}</span>
+                                        <span style={{ fontSize: '0.85rem', color: colors.textSecondary, textDecoration: 'line-through' }}>{feature}</span>
                                       </div>
                                     ))}
                                   </div>
