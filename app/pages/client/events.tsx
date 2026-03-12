@@ -232,11 +232,13 @@ interface Event {
   organizer: string;
   tags: string[];
   hasPhotographer: boolean;
+  bookingStatus?: string;
   photographerId?: string;
   photographerName?: string;
   photographerImage?: string;
   shareLink: string;
   inviteCode?: string;
+  streamInviteToken?: string;
   createdAt: string;
 }
 
@@ -681,6 +683,8 @@ const MyEventsPage = () => {
   const [publishConfirmEvent, setPublishConfirmEvent] = useState<Event | null>(null);
   const [unpublishConfirmEvent, setUnpublishConfirmEvent] = useState<Event | null>(null);
   const [noPhotographerEvent, setNoPhotographerEvent] = useState<Event | null>(null);
+  const [pendingBookingEvent, setPendingBookingEvent] = useState<Event | null>(null);
+  const [noPhotoEvent, setNoPhotoEvent] = useState<Event | null>(null);
 
   // Fetch events using authenticated customer endpoint
   const fetchMyEvents = useCallback(async () => {
@@ -738,10 +742,12 @@ const MyEventsPage = () => {
             organizer: (evt.eventOrganizer as string) || '',
             tags: evt.eventTags ? (evt.eventTags as string).split(',').map((t: string) => t.trim()) : [],
             hasPhotographer: !!(evt.photographerId),
+            bookingStatus: (evt.bookingStatus as string) || undefined,
             photographerId: (evt.photographerId as string) || undefined,
             photographerName: (evt.photographerName as string) || '',
             photographerImage: (evt.photographerImage as string) || '',
             inviteCode: (evt.inviteCode as string) || (evt.hostId as string) || '',
+            streamInviteToken: (evt.streamInviteToken as string) || undefined,
             shareLink: (() => {
               const base = `${process.env.NEXT_PUBLIC_LANDING_URL as string}/user/event/${evt.id}`;
               const code = (evt.inviteCode as string) || (evt.hostId as string) || '';
@@ -1175,7 +1181,16 @@ const MyEventsPage = () => {
 
   // Handle create event
   const handleCreateEvent = async () => {
-    if (!createTitle || !createCategory || !createDate || !createTime) return;
+    const missingFields: string[] = [];
+    if (!createTitle) missingFields.push('Event Title');
+    if (!createCategory) missingFields.push('Category');
+    if (!createDate) missingFields.push('Date');
+    if (!createTime) missingFields.push('Start Time');
+    if (!createBannerImageFile && !createBannerImagePreview) missingFields.push('Banner Image');
+    if (missingFields.length > 0) {
+      setSubmitError(`Please fill in the required fields: ${missingFields.join(', ')}`);
+      return;
+    }
 
     setIsSubmitting(true);
     setSubmitError(null);
@@ -1757,7 +1772,7 @@ const MyEventsPage = () => {
                             {unpublishingEventId === event.id ? 'Unpublishing...' : 'Unpublish'}
                           </button>
                         ) : (
-                          <button onClick={() => event.hasPhotographer ? setPublishConfirmEvent(event) : setNoPhotographerEvent(event)} disabled={publishingEventId === event.id} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.4rem 0.5rem', backgroundColor: '#05a129', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: publishingEventId === event.id ? 'not-allowed' : 'pointer', fontSize: '0.75rem', fontWeight: 600, opacity: publishingEventId === event.id ? 0.7 : 1 }}>
+                          <button onClick={() => !event.coverImage ? setNoPhotoEvent(event) : !event.hasPhotographer ? setNoPhotographerEvent(event) : (event.bookingStatus && event.bookingStatus.toUpperCase() !== 'ACCEPTED' && event.bookingStatus.toUpperCase() !== 'UNASSIGNED') ? setPendingBookingEvent(event) : setPublishConfirmEvent(event)} disabled={publishingEventId === event.id} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.4rem 0.5rem', backgroundColor: '#05a129', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: publishingEventId === event.id ? 'not-allowed' : 'pointer', fontSize: '0.75rem', fontWeight: 600, opacity: publishingEventId === event.id ? 0.7 : 1 }}>
                             {publishingEventId === event.id ? 'Publishing...' : 'Publish'}
                           </button>
                         )}
@@ -1801,9 +1816,9 @@ const MyEventsPage = () => {
               <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Event Image</span>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.375rem' }}>Banner Image (1200x800)</label>
+              <label style={{ display: 'block', fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.375rem' }}>Banner Image (1200x800) <span style={{ color: '#DC2626' }}>*</span></label>
               <div style={{
-                border: `2px dashed ${colors.borderPrimary}`,
+                border: `2px dashed ${submitError && !createBannerImagePreview ? '#DC2626' : colors.borderPrimary}`,
                 borderRadius: '0.5rem',
                 height: '140px',
                 display: 'flex',
@@ -2084,7 +2099,7 @@ const MyEventsPage = () => {
           {/* Action Buttons */}
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', paddingTop: '1rem', borderTop: `2px solid ${colors.borderPrimary}`, marginBottom: '4rem' }}>
             <button onClick={() => { resetCreateForm(); setShowCreateModal(false); }} style={{ padding: '0.75rem 1.25rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Cancel</button>
-            <button onClick={handleCreateEvent} disabled={isSubmitting || !createTitle || !createCategory || !createDate || !createTime} style={{ padding: '0.75rem 1.25rem', border: '2px solid #062a63', borderRadius: '0.5rem', background: (isSubmitting || !createTitle || !createCategory || !createDate || !createTime) ? '#9CA3AF' : '#083A85', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: (isSubmitting || !createTitle || !createCategory || !createDate || !createTime) ? 'not-allowed' : 'pointer', opacity: (isSubmitting || !createTitle || !createCategory || !createDate || !createTime) ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>{isSubmitting ? 'Creating...' : 'Create Event ✓'}</button>
+            <button onClick={handleCreateEvent} disabled={isSubmitting} style={{ padding: '0.75rem 1.25rem', border: '2px solid #062a63', borderRadius: '0.5rem', background: isSubmitting ? '#9CA3AF' : '#083A85', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>{isSubmitting ? 'Creating...' : 'Create Event'}</button>
           </div>
         </div>
       </Modal>
@@ -2530,6 +2545,17 @@ const MyEventsPage = () => {
                 <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{formatDate(shareEvent.date)}</div>
               </div>
             </div>
+            {/* Stream Invite Token */}
+            {shareEvent.streamInviteToken && (
+              <div style={{ marginBottom: '1rem', padding: '0.75rem', backgroundColor: actualTheme === 'dark' ? 'rgba(139,92,246,0.1)' : '#F5F3FF', borderRadius: '0.5rem', border: `1px solid ${actualTheme === 'dark' ? 'rgba(139,92,246,0.3)' : '#DDD6FE'}` }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Viewer Invite Token</label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input readOnly value={shareEvent.streamInviteToken} style={{ flex: 1, padding: '0.5rem 0.75rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', fontSize: '1rem', fontWeight: 700, letterSpacing: '0.1em', textAlign: 'center' as const, color: colors.textPrimary, backgroundColor: colors.bgCard }} />
+                  <button onClick={() => handleCopyLink(shareEvent.streamInviteToken!)} style={{ padding: '0.5rem 0.75rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', backgroundColor: colors.bgCard, color: colors.textPrimary, fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}>{copiedLink ? 'Copied!' : 'Copy'}</button>
+                </div>
+                <p style={{ fontSize: '0.72rem', color: colors.textTertiary, margin: '0.35rem 0 0 0' }}>Share this token with viewers so they can access the live stream on the event page.</p>
+              </div>
+            )}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '1.25rem' }}>
               {[
                 { name: 'WhatsApp', icon: <WhatsAppIcon />, color: '#25D366', getUrl: (link: string, title: string) => `https://wa.me/?text=${encodeURIComponent(`Join ${title} event stream: ${link}`)}` },
@@ -2798,6 +2824,122 @@ const MyEventsPage = () => {
                 <i className="bi bi-camera" style={{ fontSize: '1rem' }}></i>
                 Assign Photographer
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* No Event Photo Warning Modal */}
+      {noPhotoEvent && (
+        <div
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 1100, padding: '1rem'
+          }}
+          onClick={() => setNoPhotoEvent(null)}
+        >
+          <div
+            style={{
+              backgroundColor: colors.bgCard, borderRadius: '1rem',
+              padding: '1.5rem', width: '400px', maxWidth: '90%',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+              <div style={{
+                width: '64px', height: '64px', borderRadius: '50%',
+                backgroundColor: '#fef3c7',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="13" r="4" stroke="#d97706" strokeWidth="2"/></svg>
+              </div>
+            </div>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: colors.textPrimary, margin: 0, marginBottom: '0.75rem', textAlign: 'center' }}>
+              Event Photo Required
+            </h2>
+            <p style={{ fontSize: '0.95rem', color: colors.textSecondary, margin: 0, marginBottom: '0.5rem', textAlign: 'center', lineHeight: '1.5' }}>
+              You cannot publish <strong style={{ color: colors.textPrimary }}>&quot;{noPhotoEvent.title}&quot;</strong> without a banner image.
+            </p>
+            <p style={{ fontSize: '0.85rem', color: '#d97706', margin: 0, marginBottom: '1.5rem', textAlign: 'center', fontWeight: '500' }}>
+              Please edit the event and upload a banner photo before publishing. This image will be the first thing guests see on the public platform.
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                onClick={() => setNoPhotoEvent(null)}
+                style={{
+                  flex: 1, padding: '0.75rem 1rem', borderRadius: '0.5rem',
+                  border: `2px solid ${colors.borderPrimary}`, backgroundColor: colors.bgCard,
+                  color: colors.textPrimary, fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer'
+                }}
+              >Close</button>
+              <button
+                onClick={() => { const evt = noPhotoEvent; setNoPhotoEvent(null); openEditModal(evt); }}
+                style={{
+                  flex: 1, padding: '0.75rem 1rem', borderRadius: '0.5rem',
+                  border: '2px solid #d97706', backgroundColor: '#d97706',
+                  color: 'white', fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                Edit Event
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pending Booking Warning Modal */}
+      {pendingBookingEvent && (
+        <div
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 1100, padding: '1rem'
+          }}
+          onClick={() => setPendingBookingEvent(null)}
+        >
+          <div
+            style={{
+              backgroundColor: colors.bgCard, borderRadius: '1rem',
+              padding: '1.5rem', width: '400px', maxWidth: '90%',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+              <div style={{
+                width: '64px', height: '64px', borderRadius: '50%',
+                backgroundColor: '#fef3c7',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </div>
+            </div>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: colors.textPrimary, margin: 0, marginBottom: '0.75rem', textAlign: 'center' }}>
+              Awaiting Photographer Confirmation
+            </h2>
+            <p style={{ fontSize: '0.95rem', color: colors.textSecondary, margin: 0, marginBottom: '0.5rem', textAlign: 'center', lineHeight: '1.5' }}>
+              You cannot publish <strong style={{ color: colors.textPrimary }}>&quot;{pendingBookingEvent.title}&quot;</strong> because the assigned photographer has not yet accepted the booking.
+            </p>
+            <p style={{ fontSize: '0.85rem', color: '#d97706', margin: 0, marginBottom: '1.5rem', textAlign: 'center', fontWeight: '500' }}>
+              {pendingBookingEvent.bookingStatus?.toUpperCase() === 'REJECTED'
+                ? 'The photographer has rejected this booking. Please assign a different photographer before publishing.'
+                : 'Please wait for the photographer to accept, or assign a different photographer.'}
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                onClick={() => setPendingBookingEvent(null)}
+                style={{
+                  flex: 1, padding: '0.75rem 1rem', borderRadius: '0.5rem',
+                  border: `2px solid ${colors.borderPrimary}`, backgroundColor: colors.bgCard,
+                  color: colors.textPrimary, fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer'
+                }}
+              >Close</button>
             </div>
           </div>
         </div>

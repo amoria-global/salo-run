@@ -8,6 +8,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { getApiUrl, normalizeImageUrl } from '@/lib/api';
+import StreamPreview from '../../components/StreamPreview';
 
 const CURRENCY_FLAG_MAP: Record<string, string> = {
   USD: 'us', RWF: 'rw', EUR: 'eu', KES: 'ke', UGX: 'ug', TZS: 'tz', GBP: 'gb',
@@ -311,13 +312,14 @@ interface AssignedEvent {
 
 interface StreamConfig {
   eventId: string;
-  serverUrl: string;
-  streamKey: string;
+  serverUrl?: string;
+  streamKey?: string;
   connectionStatus: 'idle' | 'waiting_for_encoder' | 'receiving_signal' | 'live';
   streamHealth: 'good' | 'fair' | 'poor';
   uploadSpeed: string;
   viewerCount: number;
   peakViewers: number;
+  inviteToken?: string;
   error?: string;
 }
 
@@ -406,6 +408,7 @@ const PhotographerEventsPage = () => {
   const [selectedEvent, setSelectedEvent] = useState<AssignedEvent | null>(null);
   const [showEventDetailModal, setShowEventDetailModal] = useState(false);
   const [showStreamSetupModal, setShowStreamSetupModal] = useState(false);
+  const [showStreamPreview, setShowStreamPreview] = useState(false);
   const [streamConfigs, setStreamConfigs] = useState<Record<string, StreamConfig>>({});
   const [showStreamKey, setShowStreamKey] = useState(false);
   const [copiedField, setCopiedField] = useState('');
@@ -1453,6 +1456,11 @@ const PhotographerEventsPage = () => {
                                       <BroadcastIcon /> Stream Setup
                                     </button>
                                   )}
+                                  {(event.status === 'upcoming' || event.status === 'ongoing') && (
+                                    <button onClick={() => { setSelectedEvent(event); setShowStreamPreview(true); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0.5rem', fontSize: '0.72rem', fontWeight: 600, backgroundColor: 'rgba(16,185,129,0.85)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
+                                      <PlayIcon /> Test Stream
+                                    </button>
+                                  )}
                                   {(event.status === 'completed' || event.bookingStatus?.toUpperCase() === 'ACCEPTED') && canCreateAlbumForEvent(event.id) && (
                                     <button onClick={() => handleOpenCreateAlbum(event.id)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0.5rem', fontSize: '0.72rem', fontWeight: 600, backgroundColor: '#083A85', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
                                       <PlusIcon /> Create Album
@@ -1599,8 +1607,8 @@ const PhotographerEventsPage = () => {
                               </button>
                             )}
                             {album.faceRecognitionEnabled ? (
-                              <span onClick={() => handleOpenFaceAI(album)} title="Album is live on Find-My-Photos" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0.5rem', backgroundColor: 'rgba(5,150,105,0.85)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600 }}>
-                                <CheckCircleIcon /> Face AI
+                              <span onClick={() => handleOpenFaceAI(album)} title="Album is live on Find-My-Photos" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0.5rem', backgroundColor: 'rgba(139,92,246,0.85)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600 }}>
+                                <CheckCircleIcon /> Published to Face AI
                               </span>
                             ) : (
                               <button onClick={() => handleOpenFaceAI(album)} title="Face AI / Find-My-Photos" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0.5rem', backgroundColor: 'rgba(139,92,246,0.85)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600 }}>
@@ -1669,7 +1677,7 @@ const PhotographerEventsPage = () => {
                               <button onClick={() => { setSelectedAlbum(album); setShowSendModal(true); }} style={{ ...smallActionBtn, backgroundColor: '#083A85', borderColor: '#083A85', color: 'white' }}><SendIcon /> Send</button>
                             )}
                             {album.faceRecognitionEnabled ? (
-                              <span onClick={() => handleOpenFaceAI(album)} style={{ ...smallActionBtn, backgroundColor: '#059669', borderColor: '#059669', color: 'white', cursor: 'pointer', opacity: 0.85 }}><CheckCircleIcon /> Face AI</span>
+                              <span onClick={() => handleOpenFaceAI(album)} style={{ ...smallActionBtn, backgroundColor: '#8B5CF6', borderColor: '#8B5CF6', color: 'white', cursor: 'pointer', opacity: 0.85 }}><CheckCircleIcon /> Published to Face AI</span>
                             ) : (
                               <button onClick={() => handleOpenFaceAI(album)} style={{ ...smallActionBtn, backgroundColor: '#8B5CF6', borderColor: '#8B5CF6', color: 'white' }}><FaceRecognitionIcon /> Face AI</button>
                             )}
@@ -1909,22 +1917,41 @@ const PhotographerEventsPage = () => {
                     </div>
                     {cfg.connectionStatus === 'live' && <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{cfg.viewerCount.toLocaleString()} viewers</span>}
                   </div>
-                  {/* RTMP Config */}
-                  <div style={{ marginBottom: '1rem' }}>
-                    <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Server URL</label>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <input readOnly value={cfg.serverUrl} style={{ ...inputStyle, flex: 1, fontSize: '0.8rem' }} />
-                      <button onClick={() => handleCopyField(cfg.serverUrl, 'serverUrl')} style={smallActionBtn}>{copiedField === 'serverUrl' ? 'Copied!' : <><CopyIcon /> Copy</>}</button>
+                  {/* RTMP Config — only shown after stream/start provides credentials */}
+                  {cfg.serverUrl && cfg.streamKey ? (
+                    <>
+                      <div style={{ marginBottom: '1rem' }}>
+                        <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Server URL</label>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <input readOnly value={cfg.serverUrl} style={{ ...inputStyle, flex: 1, fontSize: '0.8rem' }} />
+                          <button onClick={() => handleCopyField(cfg.serverUrl!, 'serverUrl')} style={smallActionBtn}>{copiedField === 'serverUrl' ? 'Copied!' : <><CopyIcon /> Copy</>}</button>
+                        </div>
+                      </div>
+                      <div style={{ marginBottom: '1rem' }}>
+                        <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Stream Key</label>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <input readOnly value={showStreamKey ? cfg.streamKey : '••••••••••••••••'} style={{ ...inputStyle, flex: 1, fontSize: '0.8rem' }} />
+                          <button onClick={() => setShowStreamKey(!showStreamKey)} style={smallActionBtn}>{showStreamKey ? <EyeOffIcon /> : <EyeIcon />}</button>
+                          <button onClick={() => handleCopyField(cfg.streamKey!, 'streamKey')} style={smallActionBtn}>{copiedField === 'streamKey' ? 'Copied!' : <><CopyIcon /> Copy</>}</button>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{ marginBottom: '1rem', padding: '0.75rem', backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF', borderRadius: '0.5rem', border: `1px solid ${actualTheme === 'dark' ? '#2563EB' : '#BFDBFE'}` }}>
+                      <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: 0 }}>RTMP credentials will appear here after you start the stream.</p>
                     </div>
-                  </div>
-                  <div style={{ marginBottom: '1rem' }}>
-                    <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Stream Key</label>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <input readOnly value={showStreamKey ? cfg.streamKey : '••••••••••••••••'} style={{ ...inputStyle, flex: 1, fontSize: '0.8rem' }} />
-                      <button onClick={() => setShowStreamKey(!showStreamKey)} style={smallActionBtn}>{showStreamKey ? <EyeOffIcon /> : <EyeIcon />}</button>
-                      <button onClick={() => handleCopyField(cfg.streamKey, 'streamKey')} style={smallActionBtn}>{copiedField === 'streamKey' ? 'Copied!' : <><CopyIcon /> Copy</>}</button>
+                  )}
+                  {/* Viewer Invite Token */}
+                  {cfg.inviteToken && (
+                    <div style={{ marginBottom: '1rem' }}>
+                      <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Viewer Invite Token</label>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <input readOnly value={cfg.inviteToken} style={{ ...inputStyle, flex: 1, fontSize: '1rem', fontWeight: 700, letterSpacing: '0.1em', textAlign: 'center' as const }} />
+                        <button onClick={() => handleCopyField(cfg.inviteToken!, 'inviteToken')} style={smallActionBtn}>{copiedField === 'inviteToken' ? 'Copied!' : <><CopyIcon /> Copy</>}</button>
+                      </div>
+                      <p style={{ fontSize: '0.72rem', color: colors.textTertiary, margin: '0.35rem 0 0 0' }}>Share this token with viewers so they can access the live stream.</p>
                     </div>
-                  </div>
+                  )}
                   {/* Stream Health */}
                   {cfg.connectionStatus === 'live' && (
                     <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '0.75rem', marginBottom: '1rem' }}>
@@ -1980,6 +2007,25 @@ const PhotographerEventsPage = () => {
             })()}
           </div>
         </div>
+      )}
+
+      {/* Stream Test & Preview */}
+      {selectedEvent && (
+        <StreamPreview
+          isOpen={showStreamPreview}
+          onClose={() => setShowStreamPreview(false)}
+          eventTitle={selectedEvent.title}
+          serverUrl={streamConfigs[selectedEvent.id]?.serverUrl}
+          streamKey={streamConfigs[selectedEvent.id]?.streamKey}
+          playbackUrl={streamConfigs[selectedEvent.id]?.serverUrl ? streamConfigs[selectedEvent.id]?.serverUrl?.replace('rtmps://', 'https://').replace('/live/', '/') + '/manifest/video.m3u8' : undefined}
+          inviteToken={streamConfigs[selectedEvent.id]?.inviteToken}
+          connectionStatus={streamConfigs[selectedEvent.id]?.connectionStatus || 'idle'}
+          onStartStream={() => handleStartStream(selectedEvent.id)}
+          onGoLive={() => handleGoLive(selectedEvent.id)}
+          onEndStream={() => handleEndStream(selectedEvent.id)}
+          theme={actualTheme as 'light' | 'dark'}
+          colors={colors}
+        />
       )}
 
       {/* Mark Complete Confirmation Modal */}
@@ -2434,13 +2480,12 @@ const PhotographerEventsPage = () => {
                   setSelectedAlbum(updated);
                   setShowFaceRecognitionModal(false);
                   try {
-                    await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${selectedAlbum.id}/send`, {
+                    // Publish with pricing — triggers Rekognition face indexing without notifying client
+                    await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${selectedAlbum.id}/publish`, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ pricePerImage: parseFloat(faceAIPrice), currencyId: faceAICurrency }),
                     });
-                    // Publish triggers Rekognition face indexing so face search works on landing
-                    await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${selectedAlbum.id}/publish`, { method: 'POST' });
                   } catch (err) {
                     console.error('Failed to enable face recognition on album:', err);
                   }
@@ -2578,6 +2623,9 @@ const PhotographerEventsPage = () => {
             <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>Dismiss Album?</h3>
             <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0 0 1.5rem', lineHeight: '1.5' }}>
               <strong style={{ color: colors.textPrimary }}>{albumToDismiss.title}</strong> will be removed from your albums list. The album and its photos will still be accessible to the client.
+              {albumToDismiss.faceRecognitionEnabled && (
+                <><br /><br /><strong style={{ color: '#DC2626' }}>Warning:</strong> This album is published to Find-My-Photos. Dismissing it will unpublish it and album images will no longer be visible to users on the Find-My-Photos page.</>
+              )}
             </p>
             <div style={{ display: 'flex', gap: '0.75rem' }}>
               <button onClick={() => setShowDismissAlbumModal(false)} style={{ flex: 1, padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', backgroundColor: 'transparent', color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '500', cursor: 'pointer' }}>Cancel</button>
