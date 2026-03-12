@@ -3,10 +3,6 @@
     "allow": [
       "Bash(npx eslint:*)",
       "Bash(yarn build)",
-      "Bash(git push:*)",
-      "Bash(git checkout:*)",
-      "Bash(git merge:*)",
-      "Bash(git stash:*)",
       "Bash(npx next build:*)",
       "Bash(find:*)",
       "Bash(del \"c:\\\\Users\\\\JOAST\\\\Documents\\\\connekt-dashboard\\\\app\\\\components\\\\DonateModal.tsx\")",
@@ -252,7 +248,21 @@
       "Bash(__NEW_LINE_aaeccb3b110dbae0__ curl -s \"https://backend.connekyt.com/api/remote/photographer/update-important-details\" -H \"Authorization: Bearer $TOKEN\" -H \"Content-Type: application/json\" -X POST -d \"{\"\"firstName\"\":\"\"Test\"\",\"\"lastName\"\":\"\"Maranatha\"\",\"\"phone\"\":\"\"+250727201300\"\",\"\"about\"\":\"\"Professional photographer with over 5 years of experience.\"\",\"\"address\"\":\"\"Kigali, Rwanda\"\",\"\"specialtyIds\"\":[\"\"87d46cb7-e988-412c-834d-8582029d3894\"\",\"\"1909c846-481e-44f5-bd7a-974698c91473\"\"],\"\"professionalPhilosophy\"\":\"\"I believe every photograph tells a unique story.\"\"}\")",
       "Bash(node --max-old-space-size=4096 node_modules/next/dist/bin/next build)",
       "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtdWd3aWpheDQ1QGdtYWlsLmNvbSIsImlhdCI6MTc3MzE4MjE4NCwiZXhwIjoxNzczMTg1Nzg0fQ.6UUZN7voNIeKqkRImSvfGBG2vzuBjl3astu8VN-5VUk\")",
-      "Bash(__NEW_LINE_0797153691aff322__ curl -s \"https://backend.connekyt.com/api/remote/coordinator/events\" -H \"Authorization: Bearer $TOKEN\")"
+      "Bash(__NEW_LINE_0797153691aff322__ curl -s \"https://backend.connekyt.com/api/remote/coordinator/events\" -H \"Authorization: Bearer $TOKEN\")",
+      "Bash(grep -r \"album.*notification\\\\|notification.*album\" /c/Users/JOAST/Documents/connekt-dashboard/app --include=*.tsx --include=*.ts)",
+      "Bash(grep -r \"find-my-photos\\\\|inviteCode\\\\|faceRecognition\\\\|face.*recognition\" /c/Users/JOAST/Documents/connekt-dashboard/app --include=*.tsx --include=*.ts)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb3NlcGgubWFyYW5hdGhhQGFtb3JpYWdsb2JhbC5jb20iLCJpYXQiOjE3NzMyMzIzODIsImV4cCI6MTc3MzIzNTk4Mn0.A21G2rMftQRIthMibpYBV4hwphif4GNXxHpcEutEcVk\")",
+      "Bash(python3 -c \"import time; print\\(''''current:'''', int\\(time.time\\(\\)\\)\\); print\\(''''exp:'''', 1773235982\\); print\\(''''diff_min:'''', \\(1773235982 - int\\(time.time\\(\\)\\)\\)/60\\)\")",
+      "Bash(xargs grep:*)",
+      "Bash(npm install:*)",
+      "Bash(npm rebuild:*)",
+      "Bash(ls c:/Users/JOAST/Documents/connekt-dashboard/node_modules/lightningcss/*.node)",
+      "Bash(npm ls:*)",
+      "Bash(python -c \"import sys,json; data=json.load\\(sys.stdin\\)[''''data'''']; [print\\(f{c[''''abbreviation'''']}: {c[''''id'''']}\\) for c in data]\")",
+      "Bash(TMPFILE=\"$HOME/create_event.json\")",
+      "Bash(node -e \":*)",
+      "Bash(npx tsx -e \":*)",
+      "Bash(npx tsx:*)"
     ],
     "deny": [],
     "ask": []
