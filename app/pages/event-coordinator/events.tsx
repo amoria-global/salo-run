@@ -370,6 +370,10 @@ const MyEventsPage = () => {
   const [photographerSearchQuery, setPhotographerSearchQuery] = useState('');
   const [photographerAssignMode, setPhotographerAssignMode] = useState<'none' | 'existing' | 'platform' | 'invite'>('none');
   const [invitePhotographerEmail, setInvitePhotographerEmail] = useState('');
+  const [isSendingInvite, setIsSendingInvite] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [showInviteSuccessModal, setShowInviteSuccessModal] = useState(false);
+  const [inviteSuccessMessage, setInviteSuccessMessage] = useState('');
   const [editPhotographerId, setEditPhotographerId] = useState<string>('');
   const [editPhotographerAssignMode, setEditPhotographerAssignMode] = useState<'none' | 'existing' | 'platform'>('none');
   const [editPhotographerSearchQuery, setEditPhotographerSearchQuery] = useState('');
@@ -1531,16 +1535,30 @@ const MyEventsPage = () => {
           ) : eventsError ? (
             <div style={{ textAlign: 'center', padding: '3rem', backgroundColor: colors.bgCard, borderRadius: '0.75rem' }}>
               <p style={{ color: '#DC2626', marginBottom: '0.5rem' }}>{eventsError}</p>
-              <button
-                onClick={() => fetchMyEvents()}
-                style={{
-                  padding: '0.5rem 1.5rem', borderRadius: '0.5rem',
-                  backgroundColor: '#083A85', color: '#fff', border: 'none',
-                  cursor: 'pointer', fontWeight: '600'
-                }}
-              >
-                Retry
-              </button>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', marginTop: '1rem' }}>
+                <button
+                  onClick={() => fetchMyEvents()}
+                  style={{
+                    padding: '0.5rem 1.5rem', borderRadius: '0.5rem',
+                    backgroundColor: '#083A85', color: '#fff', border: 'none',
+                    cursor: 'pointer', fontWeight: '600'
+                  }}
+                >
+                  Retry
+                </button>
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                    padding: '0.5rem 1.5rem', borderRadius: '0.5rem',
+                    backgroundColor: '#083A85', color: '#fff', border: '2px solid #062a63',
+                    cursor: 'pointer', fontWeight: '600'
+                  }}
+                >
+                  <PlusIcon />
+                  Create Event
+                </button>
+              </div>
             </div>
           ) : filteredEvents.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '3rem', backgroundColor: colors.bgCard, borderRadius: '0.75rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)' }}>
@@ -1999,15 +2017,42 @@ const MyEventsPage = () => {
               <div>
                 <p style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.5rem' }}>Send an invitation email to a photographer to join the platform and be assigned to this event.</p>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <input type="email" value={invitePhotographerEmail} onChange={(e) => setInvitePhotographerEmail(e.target.value)} placeholder="photographer@email.com" style={{ flex: 1, padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, backgroundColor: colors.bgCard }} />
-                  <button type="button" onClick={() => {
-                    if (invitePhotographerEmail) {
-                      alert(`Invitation will be sent to ${invitePhotographerEmail} when the event is created.`);
-                      setPhotographerAssignMode('none');
+                  <input type="email" value={invitePhotographerEmail} onChange={(e) => { setInvitePhotographerEmail(e.target.value); setInviteError(null); }} placeholder="photographer@email.com" style={{ flex: 1, padding: '0.625rem', border: `2px solid ${inviteError ? '#EF4444' : colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, backgroundColor: colors.bgCard }} />
+                  <button type="button" onClick={async () => {
+                    if (!invitePhotographerEmail.trim()) {
+                      setInviteError('Please enter a valid email address');
+                      return;
                     }
-                  }} disabled={!invitePhotographerEmail} style={{ padding: '0.625rem 1rem', backgroundColor: invitePhotographerEmail ? '#083A85' : '#9CA3AF', color: 'white', border: '2px solid #062a63', borderRadius: '0.5rem', fontSize: '0.85rem', fontWeight: '600', cursor: invitePhotographerEmail ? 'pointer' : 'not-allowed' }}>Send Invite</button>
+                    setIsSendingInvite(true);
+                    setInviteError(null);
+                    try {
+                      const apiUrl = getApiUrl();
+                      const response = await dashboardAuthFetch(
+                        `${apiUrl}/api/remote/coordinator/photographers/invite?email=${encodeURIComponent(invitePhotographerEmail.trim())}`,
+                        { method: 'POST' }
+                      );
+                      const result = await response.json();
+                      if (!response.ok || result.action === 0) {
+                        throw new Error(result.message || 'Failed to invite photographer');
+                      }
+                      setInvitePhotographerEmail('');
+                      setInviteError(null);
+                      setPhotographerAssignMode('none');
+                      setInviteSuccessMessage('Invitation sent successfully!');
+                      setShowCreateModal(false);
+                      setShowInviteSuccessModal(true);
+                    } catch (err) {
+                      console.error('Invite photographer error:', err);
+                      setInviteError(err instanceof Error ? err.message : 'Failed to send invitation. Please try again.');
+                    } finally {
+                      setIsSendingInvite(false);
+                    }
+                  }} disabled={isSendingInvite || !invitePhotographerEmail.trim()} style={{ padding: '0.625rem 1rem', backgroundColor: (!invitePhotographerEmail.trim() || isSendingInvite) ? '#9CA3AF' : '#083A85', color: 'white', border: '2px solid #062a63', borderRadius: '0.5rem', fontSize: '0.85rem', fontWeight: '600', cursor: (!invitePhotographerEmail.trim() || isSendingInvite) ? 'not-allowed' : 'pointer' }}>{isSendingInvite ? 'Sending...' : 'Send Invite'}</button>
                 </div>
-                <button type="button" onClick={() => { setPhotographerAssignMode('none'); setInvitePhotographerEmail(''); }} style={{ marginTop: '0.5rem', padding: '0.5rem 1rem', border: `1px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', background: 'transparent', color: colors.textSecondary, fontSize: '0.8rem', cursor: 'pointer' }}>Cancel</button>
+                {inviteError && (
+                  <p style={{ color: '#EF4444', fontSize: '0.8rem', marginTop: '0.375rem' }}>{inviteError}</p>
+                )}
+                <button type="button" onClick={() => { setPhotographerAssignMode('none'); setInvitePhotographerEmail(''); setInviteError(null); }} style={{ marginTop: '0.5rem', padding: '0.5rem 1rem', border: `1px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', background: 'transparent', color: colors.textSecondary, fontSize: '0.8rem', cursor: 'pointer' }}>Cancel</button>
               </div>
             )}
 
@@ -3344,6 +3389,50 @@ const MyEventsPage = () => {
           </div>
         )}
       </Modal>
+
+      {/* Invite Success Modal */}
+      {showInviteSuccessModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1100,
+        }} onClick={(e) => { e.stopPropagation(); setShowInviteSuccessModal(false); }}>
+          <div style={{
+            backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1.5rem',
+            maxWidth: '350px', width: '90%',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+          }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
+              <div style={{
+                width: '80px', height: '80px', borderRadius: '50%', backgroundColor: '#D1FAE5',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                margin: '0 auto 1.25rem'
+              }}>
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M20 6L9 17L4 12" stroke="#059669" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+                {inviteSuccessMessage}
+              </h3>
+              <p style={{ fontSize: '0.9rem', color: colors.textSecondary, marginBottom: '1.5rem' }}>
+                The photographer will receive an email invitation to join the platform.
+              </p>
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowInviteSuccessModal(false); }}
+                style={{
+                  padding: '0.75rem 2rem', border: '2px solid #062a63', borderRadius: '0.5rem',
+                  background: '#083A85', color: 'white', fontSize: '0.9rem', fontWeight: '600',
+                  cursor: 'pointer', marginBottom: '4rem'
+                }}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style jsx global>{`
         @keyframes pulse {
