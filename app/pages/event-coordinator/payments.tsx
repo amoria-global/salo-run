@@ -325,6 +325,7 @@ type PaymentStatus = 'paid' | 'pending' | 'failed' | 'refunded' | 'partially_pai
 interface Payment {
   id: number;
   declarationId?: string;
+  eventId?: string;
   date: string;
   eventName: string;
   eventType: string;
@@ -615,9 +616,8 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
   };
 
   const handlePayNowXentriPay = async () => {
-    const declId = payment.declarationId || String(payment.id);
-    if (!declId) {
-      setXentriPayError('No payment declaration found');
+    if (!payment.eventId) {
+      setXentriPayError('No payment found for this event');
       return;
     }
     if (selectedPaymentMethod !== 'card' && !paymentPhone.trim()) {
@@ -633,7 +633,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
       const methodType = getPaymentMethodType(selectedPaymentMethod);
       const phone = selectedPaymentMethod === 'card' ? '0000000000' : paymentPhone.trim();
 
-      const result = await initiateBookingPayment(declId, phone, telecom, methodType);
+      const result = await initiateBookingPayment(payment.eventId, phone, telecom, methodType);
 
       if (!result.success || !result.data) {
         setXentriPayError(result.error || 'Failed to initiate payment');
@@ -1424,6 +1424,7 @@ const PaymentsPage = () => {
           const mapped: Payment[] = data.map((p: any, idx: number) => ({
             id: p.id || idx + 1,
             declarationId: p.declarationId || p.id?.toString(),
+            eventId: p.eventId,
             date: p.date || p.createdAt || '',
             eventName: p.eventName || p.description || '',
             eventType: p.eventType || '',

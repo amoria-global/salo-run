@@ -14,6 +14,7 @@ import { useCurrency } from '@/app/context/CurrencyContext';
 import { Unlock } from 'lucide-react';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { getApiUrl, normalizeImageUrl } from '@/lib/api';
+import { initiatePhotobookExtrasPayment, pollPaymentStatus, getTelecomProvider } from '@/lib/xentripay';
 
 type PaymentStatus = 'paid' | 'pending' | 'failed' | 'refunded' | 'partially_paid';
 
@@ -484,6 +485,17 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
     createdAt: string;
     isSent?: boolean;
     sentAt?: string;
+    status?: string;
+    freePhotosLimit?: number;
+    extraPhotosCount?: number;
+    extraPhotosAmount?: number;
+    paymentRequired?: boolean;
+    paymentDeclarationId?: string;
+    resubmittedAt?: string;
+    photographerName?: string;
+    eventId?: string;
+    pricePerExtraPhoto?: number;
+    currencyId?: string;
   }>>([]);
   const [showThumbnailSelector, setShowThumbnailSelector] = useState(false);
   const MAX_IMAGE_SELECTION = 3;
@@ -566,6 +578,17 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                 createdAt: pb.createdAt || '',
                 isSent: pb.isSent || pb.sent || false,
                 sentAt: pb.sentAt || '',
+                status: pb.status || 'DRAFT',
+                freePhotosLimit: pb.freePhotosLimit,
+                extraPhotosCount: pb.extraPhotosCount || 0,
+                extraPhotosAmount: pb.extraPhotosAmount || 0,
+                paymentRequired: pb.paymentRequired || false,
+                paymentDeclarationId: pb.paymentDeclarationId || '',
+                resubmittedAt: pb.resubmittedAt || '',
+                photographerName: pb.photographerName || '',
+                eventId: pb.eventId || '',
+                pricePerExtraPhoto: pb.pricePerExtraPhoto || 0,
+                currencyId: pb.currencyId || '',
               };
             }));
           }
@@ -936,13 +959,85 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   const [showPhotobookSuccessModal, setShowPhotobookSuccessModal] = useState(false);
   const [photobookSuccessMessage, setPhotobookSuccessMessage] = useState({ title: '', description: '' });
 
+  // Photobook extras payment states
+  const [showPhotobookPaymentModal, setShowPhotobookPaymentModal] = useState(false);
+  const [photobookPaymentStep, setPhotobookPaymentStep] = useState<'select' | 'processing' | 'success' | 'failed'>('select');
+  const [photobookPaymentPhone, setPhotobookPaymentPhone] = useState('');
+  const [photobookPaymentMethod, setPhotobookPaymentMethod] = useState<'mtn' | 'airtel' | null>(null);
+  const [photobookPaymentError, setPhotobookPaymentError] = useState('');
+  const stopPhotobookPollingRef = useRef<(() => void) | null>(null);
+
+  const handlePhotobookExtrasPayment = async () => {
+    if (!selectedPhotobook || !photobookPaymentMethod || !photobookPaymentPhone.trim()) {
+      setPhotobookPaymentError('Please select a payment method and enter your phone number');
+      return;
+    }
+
+    setPhotobookPaymentError('');
+    setPhotobookPaymentStep('processing');
+
+    try {
+      const telecom = getTelecomProvider(photobookPaymentMethod);
+      const phone = photobookPaymentPhone.trim();
+      const currencyId = (selectedPhotobook as any).currencyId || '';
+
+      const result = await initiatePhotobookExtrasPayment(
+        String(selectedPhotobook.id), phone, telecom, currencyId
+      );
+
+      if (!result.success || !result.data) {
+        setPhotobookPaymentError(result.error || 'Failed to initiate payment');
+        setPhotobookPaymentStep('failed');
+        return;
+      }
+
+      const stopPolling = pollPaymentStatus(result.data.refid, {
+        onSuccess: () => {
+          setPhotobookPaymentStep('success');
+          // Update photobook status locally
+          setPhotobooks(prev => prev.map(p =>
+            p.id === selectedPhotobook.id ? { ...p, status: 'RESUBMITTED', paymentRequired: false } : p
+          ));
+          if (selectedPhotobook) {
+            setSelectedPhotobook({ ...selectedPhotobook, status: 'RESUBMITTED', paymentRequired: false });
+          }
+        },
+        onFailure: () => {
+          setPhotobookPaymentStep('failed');
+          setPhotobookPaymentError('Payment was not completed. Please try again.');
+        },
+        onError: (error) => {
+          setPhotobookPaymentStep('failed');
+          setPhotobookPaymentError(error);
+        },
+      });
+      stopPhotobookPollingRef.current = stopPolling;
+    } catch (error) {
+      setPhotobookPaymentError(error instanceof Error ? error.message : 'Payment failed');
+      setPhotobookPaymentStep('failed');
+    }
+  };
+
+  const resetPhotobookPayment = () => {
+    setShowPhotobookPaymentModal(false);
+    setPhotobookPaymentStep('select');
+    setPhotobookPaymentPhone('');
+    setPhotobookPaymentMethod(null);
+    setPhotobookPaymentError('');
+    if (stopPhotobookPollingRef.current) {
+      stopPhotobookPollingRef.current();
+      stopPhotobookPollingRef.current = null;
+    }
+  };
+
   const handleSendPhotobook = async () => {
     if (!photobookToSend) return;
     const pb = photobookToSend;
+
     setShowSendPhotobookModal(false);
     setPhotobookToSend(null);
     // Optimistic update
-    setPhotobooks(prev => prev.map(p => p.id === pb.id ? { ...p, isSent: true, sentAt: new Date().toISOString() } : p));
+    setPhotobooks(prev => prev.map(p => p.id === pb.id ? { ...p, isSent: true, sentAt: new Date().toISOString(), status: 'SENT_TO_PHOTOGRAPHER' } : p));
     try {
       await dashboardAuthFetch(`${apiUrl}/api/remote/${photobookBase}/${pb.id}/send`, { method: 'POST' });
     } catch (err) {
@@ -953,6 +1048,20 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
       description: `"${pb.name}" has been sent to the photographer. They will be notified and can view your selected photos.`,
     });
     setShowPhotobookSuccessModal(true);
+  };
+
+  const handleAcceptPhotobook = async (photobookId: number | string) => {
+    setPhotobooks(prev => prev.map(p => p.id === photobookId ? { ...p, status: 'COMPLETED' } : p));
+    try {
+      await dashboardAuthFetch(`${apiUrl}/api/remote/${photobookBase}/${photobookId}/accept`, { method: 'POST' });
+      setPhotobookSuccessMessage({
+        title: 'Photobook Accepted',
+        description: 'You have accepted the photographer\'s edits. The photobook is now complete.',
+      });
+      setShowPhotobookSuccessModal(true);
+    } catch (err) {
+      console.error('Failed to accept photobook:', err);
+    }
   };
 
   // Setup wizard functions (Select Album → Layout → Images)
@@ -1102,13 +1211,17 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
             }).filter(Boolean)
           : [];
 
-        const postBody = {
+        const postBody: Record<string, any> = {
           name,
           description,
           layout: setupLayout,
           coverImage: setupCoverImage || setupSelectedImages[0] || '',
           ...(selectedMediaIds.length > 0 ? { mediaIds: selectedMediaIds } : {}),
         };
+        // Pass eventId if the album is linked to an event
+        if (setupSelectedAlbum?.eventId) {
+          postBody.eventId = setupSelectedAlbum.eventId;
+        }
         const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${photobookBase}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1119,7 +1232,16 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
           const created = result?.data;
           if (created?.id) {
             setPhotobooks(prev => prev.map(pb =>
-              pb.id === newPhotobook.id ? { ...pb, id: created.id } : pb
+              pb.id === newPhotobook.id ? {
+                ...pb,
+                id: created.id,
+                status: created.status || 'DRAFT',
+                freePhotosLimit: created.freePhotosLimit,
+                extraPhotosCount: created.extraPhotosCount || 0,
+                extraPhotosAmount: created.extraPhotosAmount || 0,
+                paymentRequired: created.paymentRequired || false,
+                eventId: created.eventId || '',
+              } : pb
             ));
           }
         }
@@ -1235,6 +1357,13 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
     setShowMultiSelectView(false);
     setMultiSelectAlbum(null);
     setPageView('photobooks');
+  };
+
+  // Check if an image at a given index is locked (extra photo beyond free limit, unpaid)
+  const isPhotobookImageLocked = (photobook: typeof photobooks[0], index: number): boolean => {
+    if (photobook.status !== 'PENDING_PAYMENT') return false;
+    const freeLimit = photobook.freePhotosLimit ?? photobook.images.length;
+    return index >= freeLimit;
   };
 
   const openPhotobookBrowse = (photobook: typeof photobooks[0]) => {
@@ -2508,7 +2637,19 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                             <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '0.03em', textTransform: 'uppercase', lineHeight: 1.3 }}>
                               {photobook.name}
                             </div>
-                            <span style={{ color: 'white', backgroundColor: '#16A34A', padding: '0.15rem 0.5rem', borderRadius: '1rem', fontSize: '0.65rem', fontWeight: 700, flexShrink: 0 }}>Unlocked</span>
+                            {(() => {
+                              const s = photobook.status || 'DRAFT';
+                              const statusConfig: Record<string, { bg: string; label: string }> = {
+                                DRAFT: { bg: '#6B7280', label: 'Draft' },
+                                PENDING_PAYMENT: { bg: '#D97706', label: 'Payment Required' },
+                                SENT_TO_PHOTOGRAPHER: { bg: '#2563EB', label: 'Sent' },
+                                PHOTOGRAPHER_EDITING: { bg: '#7C3AED', label: 'Editing' },
+                                RESUBMITTED: { bg: '#059669', label: 'Resubmitted' },
+                                COMPLETED: { bg: '#16A34A', label: 'Completed' },
+                              };
+                              const cfg = statusConfig[s] || statusConfig.DRAFT;
+                              return <span style={{ color: 'white', backgroundColor: cfg.bg, padding: '0.15rem 0.5rem', borderRadius: '1rem', fontSize: '0.65rem', fontWeight: 700, flexShrink: 0 }}>{cfg.label}</span>;
+                            })()}
                           </div>
                           {photobook.description && (
                             <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '0.15rem' }}>{photobook.description}</div>
@@ -2525,7 +2666,23 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                               >
                                 <ImageIcon /> Select Album
                               </button>
-                            ) : photobook.isSent ? (
+                            ) : photobook.status === 'RESUBMITTED' ? (
+                              <>
+                                <button
+                                  onClick={() => openPhotobookBrowse(photobook)}
+                                  style={{ flex: 1, padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: 'none', backgroundColor: '#083A85', color: 'white', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
+                                >
+                                  <EyeIcon /> Review
+                                </button>
+                                <button
+                                  onClick={() => handleAcceptPhotobook(photobook.id)}
+                                  style={{ flex: 1, padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: 'none', backgroundColor: '#059669', color: 'white', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
+                                >
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                  Accept
+                                </button>
+                              </>
+                            ) : photobook.status === 'PENDING_PAYMENT' ? (
                               <>
                                 <button
                                   onClick={() => openPhotobookBrowse(photobook)}
@@ -2533,16 +2690,32 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                                 >
                                   <EyeIcon /> View
                                 </button>
-                                <span style={{ flex: 0.8, padding: '0.4rem 0.6rem', borderRadius: '0.375rem', backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#10B981', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
-                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                                  Sent
+                                <button
+                                  onClick={() => openPhotobookBrowse(photobook)}
+                                  style={{ flex: 1.2, padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: 'none', backgroundColor: '#D97706', color: 'white', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', textAlign: 'center' }}
+                                >
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+                                  Pay ${photobook.extraPhotosAmount}
+                                </button>
+                              </>
+                            ) : photobook.isSent || ['SENT_TO_PHOTOGRAPHER', 'PHOTOGRAPHER_EDITING', 'COMPLETED'].includes(photobook.status || '') ? (
+                              <>
+                                <button
+                                  onClick={() => openPhotobookBrowse(photobook)}
+                                  style={{ flex: 1, padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: 'none', backgroundColor: '#083A85', color: 'white', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
+                                >
+                                  <EyeIcon /> View
+                                </button>
+                                <span style={{ flex: 0.8, padding: '0.4rem 0.6rem', borderRadius: '0.375rem', backgroundColor: photobook.status === 'COMPLETED' ? 'rgba(16, 185, 129, 0.15)' : photobook.status === 'PHOTOGRAPHER_EDITING' ? 'rgba(124, 58, 237, 0.15)' : 'rgba(37, 99, 235, 0.15)', color: photobook.status === 'COMPLETED' ? '#10B981' : photobook.status === 'PHOTOGRAPHER_EDITING' ? '#7C3AED' : '#2563EB', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                                  {photobook.status === 'COMPLETED' ? (
+                                    <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Done</>
+                                  ) : photobook.status === 'PHOTOGRAPHER_EDITING' ? 'Editing' : 'Sent'}
                                 </span>
                                 <button
                                   onClick={() => openDeletePhotobookModal(photobook)}
                                   style={{ flex: 0.6, padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: 'none', backgroundColor: '#DC2626', color: 'white', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
                                 >
                                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                                  Delete
                                 </button>
                               </>
                             ) : (
@@ -5807,6 +5980,59 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
             </div>
           )}
 
+          {/* Payment Required Banner */}
+          {selectedPhotobook.status === 'PENDING_PAYMENT' && (selectedPhotobook.extraPhotosCount || 0) > 0 && (
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0.75rem 1.5rem',
+                backgroundColor: 'rgba(217, 119, 6, 0.15)',
+                borderBottom: '1px solid rgba(217, 119, 6, 0.3)',
+                flexWrap: 'wrap',
+                gap: '0.5rem',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                <div>
+                  <span style={{ color: '#FCD34D', fontWeight: 700, fontSize: '0.875rem' }}>
+                    {selectedPhotobook.extraPhotosCount} extra photo{(selectedPhotobook.extraPhotosCount || 0) > 1 ? 's' : ''} locked
+                  </span>
+                  <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem', marginLeft: '0.5rem' }}>
+                    at ${selectedPhotobook.pricePerExtraPhoto || 0}/photo = ${selectedPhotobook.extraPhotosAmount || 0}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setShowPhotobookPaymentModal(true);
+                  setPhotobookPaymentStep('select');
+                  setPhotobookPaymentError('');
+                }}
+                style={{
+                  padding: '0.5rem 1.25rem',
+                  borderRadius: '0.5rem',
+                  border: 'none',
+                  backgroundColor: '#D97706',
+                  color: 'white',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+                Pay Now
+              </button>
+            </div>
+          )}
+
           {/* Image Grid or Empty State */}
           <div
             style={{
@@ -5899,7 +6125,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                   }}
                     onClick={() => {
                       const leftIdx = bookCurrentPage * 2;
-                      if (leftIdx < selectedPhotobook.images.length) {
+                      if (leftIdx < selectedPhotobook.images.length && !isPhotobookImageLocked(selectedPhotobook, leftIdx)) {
                         if (isPhotobookSelectMode) {
                           const img = selectedPhotobook.images[leftIdx];
                           if (photobookSelectedImages.includes(img)) {
@@ -5919,8 +6145,14 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                           src={selectedPhotobook.images[bookCurrentPage * 2]}
                           alt={`Page ${bookCurrentPage * 2 + 1}`}
                           fill
-                          style={{ objectFit: 'cover' }}
+                          style={{ objectFit: 'cover', filter: isPhotobookImageLocked(selectedPhotobook, bookCurrentPage * 2) ? 'blur(20px) brightness(0.4)' : 'none' }}
                         />
+                        {isPhotobookImageLocked(selectedPhotobook, bookCurrentPage * 2) && (
+                          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.3)', pointerEvents: 'none' }}>
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                            <span style={{ color: '#FCD34D', fontSize: '0.8rem', fontWeight: 700, marginTop: '0.35rem' }}>Pay to unlock</span>
+                          </div>
+                        )}
                         {isPhotobookSelectMode && (
                           <div style={{
                             position: 'absolute',
@@ -5997,7 +6229,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                   }}
                     onClick={() => {
                       const rightIdx = bookCurrentPage * 2 + 1;
-                      if (rightIdx < selectedPhotobook.images.length) {
+                      if (rightIdx < selectedPhotobook.images.length && !isPhotobookImageLocked(selectedPhotobook, rightIdx)) {
                         if (isPhotobookSelectMode) {
                           const img = selectedPhotobook.images[rightIdx];
                           if (photobookSelectedImages.includes(img)) {
@@ -6017,8 +6249,14 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                           src={selectedPhotobook.images[bookCurrentPage * 2 + 1]}
                           alt={`Page ${bookCurrentPage * 2 + 2}`}
                           fill
-                          style={{ objectFit: 'cover' }}
+                          style={{ objectFit: 'cover', filter: isPhotobookImageLocked(selectedPhotobook, bookCurrentPage * 2 + 1) ? 'blur(20px) brightness(0.4)' : 'none' }}
                         />
+                        {isPhotobookImageLocked(selectedPhotobook, bookCurrentPage * 2 + 1) && (
+                          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.3)', pointerEvents: 'none' }}>
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                            <span style={{ color: '#FCD34D', fontSize: '0.8rem', fontWeight: 700, marginTop: '0.35rem' }}>Pay to unlock</span>
+                          </div>
+                        )}
                         {isPhotobookSelectMode && (
                           <div style={{
                             position: 'absolute',
@@ -6145,6 +6383,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
               }}>
                 {selectedPhotobook.images.map((image: string, index: number) => {
                   const isHero = index % 5 === 0;
+                  const locked = isPhotobookImageLocked(selectedPhotobook, index);
                   return (
                     <div
                       key={index}
@@ -6154,7 +6393,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                         overflow: 'hidden',
                         gridColumn: isHero ? 'span 2' : 'span 1',
                         gridRow: isHero ? 'span 2' : 'span 1',
-                        cursor: isPhotobookSelectMode ? 'pointer' : 'pointer',
+                        cursor: locked ? 'default' : (isPhotobookSelectMode ? 'pointer' : 'pointer'),
                         border: photobookSelectedImages.includes(image)
                           ? '3px solid #16A34A'
                           : '3px solid transparent',
@@ -6162,6 +6401,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                         boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)'
                       }}
                       onClick={() => {
+                        if (locked) return;
                         if (isPhotobookSelectMode) {
                           if (photobookSelectedImages.includes(image)) {
                             setPhotobookSelectedImages(photobookSelectedImages.filter(img => img !== image));
@@ -6173,7 +6413,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                         }
                       }}
                       onMouseEnter={(e) => {
-                        if (!isPhotobookSelectMode) {
+                        if (!isPhotobookSelectMode && !locked) {
                           (e.currentTarget as HTMLElement).style.transform = 'scale(1.02)';
                           (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.5)';
                         }
@@ -6187,8 +6427,25 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                         src={image}
                         alt={`${selectedPhotobook.name} - Image ${index + 1}`}
                         fill
-                        style={{ objectFit: 'cover' }}
+                        style={{ objectFit: 'cover', filter: locked ? 'blur(20px) brightness(0.4)' : 'none' }}
                       />
+
+                      {/* Locked overlay */}
+                      {locked && (
+                        <div style={{
+                          position: 'absolute',
+                          inset: 0,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                          pointerEvents: 'none',
+                        }}>
+                          <svg width={isHero ? '32' : '24'} height={isHero ? '32' : '24'} viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                          <span style={{ color: '#FCD34D', fontSize: isHero ? '0.75rem' : '0.6rem', fontWeight: 700, marginTop: '0.25rem' }}>Locked</span>
+                        </div>
+                      )}
 
                       {/* Hover Gradient */}
                       <div style={{
@@ -6266,7 +6523,9 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                 borderRadius: '1rem',
                 minHeight: '100%'
               }}>
-                {selectedPhotobook.images.map((image: string, index: number) => (
+                {selectedPhotobook.images.map((image: string, index: number) => {
+                  const locked = isPhotobookImageLocked(selectedPhotobook, index);
+                  return (
                   <div
                     key={index}
                     style={{
@@ -6276,9 +6535,10 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                       gap: '1rem',
                       maxWidth: index % 3 === 0 ? '700px' : index % 3 === 1 ? '500px' : '600px',
                       width: '100%',
-                      cursor: isPhotobookSelectMode ? 'pointer' : 'pointer'
+                      cursor: locked ? 'default' : (isPhotobookSelectMode ? 'pointer' : 'pointer')
                     }}
                     onClick={() => {
+                      if (locked) return;
                       if (isPhotobookSelectMode) {
                         if (photobookSelectedImages.includes(image)) {
                           setPhotobookSelectedImages(photobookSelectedImages.filter(img => img !== image));
@@ -6304,8 +6564,10 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                       transition: 'transform 0.3s ease, box-shadow 0.3s ease'
                     }}
                       onMouseEnter={(e) => {
-                        (e.currentTarget as HTMLElement).style.transform = 'scale(1.01)';
-                        (e.currentTarget as HTMLElement).style.boxShadow = '0 15px 50px rgba(0, 0, 0, 0.9), 0 5px 15px rgba(0, 0, 0, 0.6)';
+                        if (!locked) {
+                          (e.currentTarget as HTMLElement).style.transform = 'scale(1.01)';
+                          (e.currentTarget as HTMLElement).style.boxShadow = '0 15px 50px rgba(0, 0, 0, 0.9), 0 5px 15px rgba(0, 0, 0, 0.6)';
+                        }
                       }}
                       onMouseLeave={(e) => {
                         (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
@@ -6316,8 +6578,25 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                         src={image}
                         alt={`${selectedPhotobook.name} - Image ${index + 1}`}
                         fill
-                        style={{ objectFit: 'cover' }}
+                        style={{ objectFit: 'cover', filter: locked ? 'blur(20px) brightness(0.4)' : 'none' }}
                       />
+
+                      {/* Locked overlay */}
+                      {locked && (
+                        <div style={{
+                          position: 'absolute',
+                          inset: 0,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                          pointerEvents: 'none',
+                        }}>
+                          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                          <span style={{ color: '#FCD34D', fontSize: '0.8rem', fontWeight: 700, marginTop: '0.35rem' }}>Pay to unlock</span>
+                        </div>
+                      )}
 
                       {/* Selection Overlay */}
                       {isPhotobookSelectMode && (
@@ -6367,7 +6646,142 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                       {selectedPhotobook.name} — {index + 1} of {selectedPhotobook.images.length}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Photobook Extras Payment Modal */}
+      {showPhotobookPaymentModal && selectedPhotobook && (
+        <div
+          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0, 0, 0, 0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}
+          onClick={resetPhotobookPayment}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ backgroundColor: '#1a1a2e', borderRadius: '1rem', padding: '2rem', maxWidth: '420px', width: '90%', color: 'white' }}
+          >
+            {photobookPaymentStep === 'select' && (
+              <>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: '0 0 0.5rem' }}>Pay for Extra Photos</h3>
+                <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', margin: '0 0 1.25rem', lineHeight: 1.5 }}>
+                  {selectedPhotobook.extraPhotosCount} extra photo{(selectedPhotobook.extraPhotosCount || 0) > 1 ? 's' : ''} at ${selectedPhotobook.pricePerExtraPhoto}/photo = <strong style={{ color: '#FCD34D' }}>${selectedPhotobook.extraPhotosAmount}</strong>
+                </p>
+
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)', display: 'block', marginBottom: '0.4rem' }}>Payment Method</label>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    {['mtn', 'airtel'].map((method) => (
+                      <button
+                        key={method}
+                        onClick={() => setPhotobookPaymentMethod(method as 'mtn' | 'airtel')}
+                        style={{
+                          flex: 1, padding: '0.6rem', borderRadius: '0.5rem', border: '2px solid',
+                          borderColor: photobookPaymentMethod === method ? '#D97706' : 'rgba(255,255,255,0.2)',
+                          backgroundColor: photobookPaymentMethod === method ? 'rgba(217, 119, 6, 0.15)' : 'transparent',
+                          color: 'white', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', textTransform: 'uppercase',
+                        }}
+                      >
+                        {method === 'mtn' ? 'MTN MoMo' : 'Airtel Money'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)', display: 'block', marginBottom: '0.4rem' }}>Phone Number</label>
+                  <input
+                    type="tel"
+                    value={photobookPaymentPhone}
+                    onChange={(e) => setPhotobookPaymentPhone(e.target.value)}
+                    placeholder="07XXXXXXXX"
+                    style={{
+                      width: '100%', padding: '0.6rem 0.75rem', borderRadius: '0.5rem', border: '1px solid rgba(255,255,255,0.2)',
+                      backgroundColor: 'rgba(255,255,255,0.05)', color: 'white', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+
+                {photobookPaymentError && (
+                  <p style={{ color: '#EF4444', fontSize: '0.8rem', margin: '0 0 0.75rem' }}>{photobookPaymentError}</p>
+                )}
+
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    onClick={resetPhotobookPayment}
+                    style={{ flex: 1, padding: '0.6rem', borderRadius: '0.5rem', border: '1px solid rgba(255,255,255,0.2)', backgroundColor: 'transparent', color: 'white', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handlePhotobookExtrasPayment}
+                    disabled={!photobookPaymentMethod || !photobookPaymentPhone.trim()}
+                    style={{
+                      flex: 1, padding: '0.6rem', borderRadius: '0.5rem', border: 'none',
+                      backgroundColor: (!photobookPaymentMethod || !photobookPaymentPhone.trim()) ? 'rgba(217, 119, 6, 0.4)' : '#D97706',
+                      color: 'white', fontSize: '0.85rem', fontWeight: 700, cursor: (!photobookPaymentMethod || !photobookPaymentPhone.trim()) ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    Pay ${selectedPhotobook.extraPhotosAmount || 0}
+                  </button>
+                </div>
+              </>
+            )}
+
+            {photobookPaymentStep === 'processing' && (
+              <div style={{ textAlign: 'center', padding: '1rem 0' }}>
+                <div style={{ width: '56px', height: '56px', margin: '0 auto 1.25rem', border: '4px solid rgba(217, 119, 6, 0.2)', borderTopColor: '#D97706', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                <h4 style={{ fontSize: '1.05rem', fontWeight: 600, margin: '0 0 0.5rem' }}>Check your phone</h4>
+                <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', margin: 0, lineHeight: 1.5 }}>
+                  A USSD prompt has been sent to your phone. Please approve the payment of ${selectedPhotobook.extraPhotosAmount} on your device.
+                </p>
+              </div>
+            )}
+
+            {photobookPaymentStep === 'success' && (
+              <div style={{ textAlign: 'center', padding: '1rem 0' }}>
+                <div style={{ width: '56px', height: '56px', margin: '0 auto 1.25rem', backgroundColor: 'rgba(5, 150, 105, 0.15)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </div>
+                <h4 style={{ fontSize: '1.05rem', fontWeight: 600, margin: '0 0 0.5rem' }}>Payment Successful!</h4>
+                <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', margin: '0 0 1.25rem', lineHeight: 1.5 }}>
+                  All photos are now unlocked. You can review and accept your photobook.
+                </p>
+                <button
+                  onClick={resetPhotobookPayment}
+                  style={{ padding: '0.6rem 2rem', borderRadius: '0.5rem', border: 'none', backgroundColor: '#059669', color: 'white', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  Done
+                </button>
+              </div>
+            )}
+
+            {photobookPaymentStep === 'failed' && (
+              <div style={{ textAlign: 'center', padding: '1rem 0' }}>
+                <div style={{ width: '56px', height: '56px', margin: '0 auto 1.25rem', backgroundColor: 'rgba(239, 68, 68, 0.15)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </div>
+                <h4 style={{ fontSize: '1.05rem', fontWeight: 600, margin: '0 0 0.5rem' }}>Payment Failed</h4>
+                <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', margin: '0 0 1.25rem', lineHeight: 1.5 }}>
+                  {photobookPaymentError || 'Something went wrong. Please try again.'}
+                </p>
+                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                  <button
+                    onClick={resetPhotobookPayment}
+                    style={{ padding: '0.6rem 1.5rem', borderRadius: '0.5rem', border: '1px solid rgba(255,255,255,0.2)', backgroundColor: 'transparent', color: 'white', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => { setPhotobookPaymentStep('select'); setPhotobookPaymentError(''); }}
+                    style={{ padding: '0.6rem 1.5rem', borderRadius: '0.5rem', border: 'none', backgroundColor: '#D97706', color: 'white', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    Retry
+                  </button>
+                </div>
               </div>
             )}
           </div>

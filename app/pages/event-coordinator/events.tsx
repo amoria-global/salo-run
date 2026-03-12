@@ -39,6 +39,7 @@ interface CreateEventFormData {
   createPrice: string;
   createPriceCurrency: string;
   createMaxGuests: string;
+  createMinPhotos: string;
   createOrganizer: string;
   createTags: string[];
   createPhotographerId: string;
@@ -254,6 +255,7 @@ interface Event {
   status: EventStatus;
   organizer: string;
   tags: string[];
+  minimumPhotos?: number;
   hasPhotographer: boolean;
   bookingStatus?: string;
   photographerId?: string;
@@ -421,7 +423,7 @@ const MyEventsPage = () => {
             id: (p.id as string) || '',
             name: `${(p.firstName as string) || ''} ${(p.lastName as string) || ''}`.trim() || 'Photographer',
             image: normalizeImg((p.profilePicture as string) || null),
-            speciality: Array.isArray(p.specialties) ? (p.specialties as string[]).join(', ') : (p.customerType as string) || 'Photography',
+            speciality: Array.isArray(p.specialties) ? p.specialties.map((s: any) => typeof s === 'string' ? s : s.name).join(', ') : (p.customerType as string) || 'Photography',
             rating: (p.rating as number) || 0,
             eventsWorked: 0,
           }));
@@ -482,6 +484,7 @@ const MyEventsPage = () => {
   const [createBannerImage, setCreateBannerImage] = useState<string | null>(null);
   const [createBannerImagePreview, setCreateBannerImagePreview] = useState<string | null>(null);
   const [createBannerImageFile, setCreateBannerImageFile] = useState<File | null>(null);
+  const [createMinPhotos, setCreateMinPhotos] = useState('');
   const [createPhotographerId, setCreatePhotographerId] = useState<string>('');
   const [createEventVisibility, setCreateEventVisibility] = useState<string>('PUBLIC');
   const [createPackageId, setCreatePackageId] = useState<string>('');
@@ -553,6 +556,7 @@ const MyEventsPage = () => {
       createPrice,
       createPriceCurrency,
       createMaxGuests,
+      createMinPhotos,
       createOrganizer,
       createTags,
       createPhotographerId,
@@ -577,7 +581,7 @@ const MyEventsPage = () => {
   }, [
     createTitle, createDescription, createEventType, createCategory, createStatus,
     createDate, createTime, createEndTime, createDuration, createVenueName,
-    createAddress, createCity, createCountry, createPrice, createPriceCurrency, createMaxGuests,
+    createAddress, createCity, createCountry, createPrice, createPriceCurrency, createMaxGuests, createMinPhotos,
     createOrganizer, createTags, createPhotographerId, createPackageId, createEventVisibility, createBannerImagePreview
   ]);
 
@@ -625,6 +629,7 @@ const MyEventsPage = () => {
             setCreatePrice(savedDraft.createPrice || '');
             setCreatePriceCurrency(savedDraft.createPriceCurrency || 'RWF');
             setCreateMaxGuests(savedDraft.createMaxGuests || '');
+            setCreateMinPhotos(savedDraft.createMinPhotos || '');
             setCreateOrganizer(savedDraft.createOrganizer || '');
             setCreateTags(savedDraft.createTags || []);
             setCreatePhotographerId(savedDraft.createPhotographerId || '');
@@ -747,6 +752,7 @@ const MyEventsPage = () => {
             status: ((evt.eventStatus as string) || (evt.status as string) || 'UPCOMING').toUpperCase() as EventStatus,
             organizer: (evt.eventOrganizer as string) || '',
             tags: evt.eventTags ? (evt.eventTags as string).split(',').map((t: string) => t.trim()) : [],
+            minimumPhotos: (evt.minimumPhotos as number) || 500,
             hasPhotographer: !!(evt.photographerId),
             bookingStatus: (evt.bookingStatus as string) || undefined,
             photographerId: (evt.photographerId as string) || undefined,
@@ -1077,6 +1083,7 @@ const MyEventsPage = () => {
     setCreateBannerImage(null);
     setCreateBannerImagePreview(null);
     setCreateBannerImageFile(null);
+    setCreateMinPhotos('');
     setCreatePhotographerId('');
     setCreatePackageId('');
     setCreateEventVisibility('PUBLIC');
@@ -1221,6 +1228,7 @@ const MyEventsPage = () => {
             return match?.id || undefined;
           })(),
           maxGuests: createMaxGuests ? Number(createMaxGuests.replace(/[^\d]/g, '')) : 0,
+          minimumPhotos: createMinPhotos ? Number(createMinPhotos.replace(/[^\d]/g, '')) : 500,
           notes: '',
         };
 
@@ -1272,7 +1280,7 @@ const MyEventsPage = () => {
           }
         } else {
           const errorData = await res.json().catch(() => ({}));
-          throw new Error(errorData.message || `Failed to create event: ${res.status}`);
+          throw new Error(errorData.message || 'Failed to create event. Please try again.');
         }
       } else {
         throw new Error('Authentication required. Please log in again.');
@@ -1890,6 +1898,19 @@ const MyEventsPage = () => {
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Expected Attendees *</label>
                 <input type="number" value={createMaxGuests} onChange={(e) => setCreateMaxGuests(e.target.value)} placeholder="e.g., 500" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
               </div>
+            </div>
+          </div>
+
+          {/* Section: Minimum Photos */}
+          <div style={{ marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+              <i className="bi bi-camera-fill" style={{ fontSize: '1rem', color: '#083A85' }}></i>
+              <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Photo Requirements</span>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Minimum Photos</label>
+              <input type="number" value={createMinPhotos} onChange={(e) => setCreateMinPhotos(e.target.value)} placeholder="Default: 500" min="1" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
+              <span style={{ fontSize: '0.75rem', color: colors.textSecondary, marginTop: '0.25rem', display: 'block' }}>Minimum number of photos the photographer must deliver. Defaults to 500 if not set.</span>
             </div>
           </div>
 

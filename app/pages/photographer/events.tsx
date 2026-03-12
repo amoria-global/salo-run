@@ -301,6 +301,7 @@ interface AssignedEvent {
   organizerName: string;
   packageName: string;
   packageId: string;
+  minimumPhotos: number;
   hasLiveStream: boolean;
   guestCount: number;
   maxGuests: number;
@@ -469,10 +470,17 @@ const PhotographerEventsPage = () => {
     description: string;
     thumbnail: string;
     images: string[];
+    mediaIds?: string[];
     layout: string;
     createdAt: string;
     sentAt: string;
     senderName: string;
+    status?: string;
+    freePhotosLimit?: number;
+    extraPhotosCount?: number;
+    extraPhotosAmount?: number;
+    photographerName?: string;
+    resubmittedAt?: string;
   }
   const [receivedPhotobooks, setReceivedPhotobooks] = useState<Photobook[]>([]);
   const [photobookSearch, setPhotobookSearch] = useState('');
@@ -497,6 +505,18 @@ const PhotographerEventsPage = () => {
       await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/photobooks/${id}`, { method: 'DELETE' });
     } catch (err) {
       console.error('Failed to delete photobook:', err);
+    }
+  };
+
+  const handleResubmitPhotobook = async (photobook: Photobook) => {
+    if (!photobook) return;
+    setReceivedPhotobooks(prev => prev.map(pb =>
+      pb.id === photobook.id ? { ...pb, status: 'RESUBMITTED', resubmittedAt: new Date().toISOString() } : pb
+    ));
+    try {
+      await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/photobooks/${photobook.id}/resubmit`, { method: 'POST' });
+    } catch (err) {
+      console.error('Failed to resubmit photobook:', err);
     }
   };
 
@@ -621,6 +641,7 @@ const PhotographerEventsPage = () => {
               organizerName: e.organizerName || '',
               packageName: e.packageName || '',
               packageId: e.packageId || '',
+              minimumPhotos: e.minimumPhotos || 500,
               hasLiveStream: e.hasLiveStream || false,
               guestCount: e.guestCount || 0,
               maxGuests: e.maxGuests || 0,
@@ -722,10 +743,16 @@ const PhotographerEventsPage = () => {
                 description: pb.description || '',
                 thumbnail: normalizeImg(pb.coverImage || pb.thumbnail) || '',
                 images: mediaItems.map((img: any) => typeof img === 'string' ? normalizeImg(img) || '' : normalizeImg(img?.fileUrl || img?.url || '') || '').filter(Boolean),
+                mediaIds: mediaItems.map((img: any) => typeof img === 'object' ? img?.id || '' : '').filter(Boolean),
                 layout: pb.layout || '',
                 createdAt: pb.createdAt || '',
                 sentAt: pb.sentAt || '',
                 senderName: pb.senderName || pb.clientName || pb.coordinatorName || '',
+                status: pb.status || 'SENT_TO_PHOTOGRAPHER',
+                freePhotosLimit: pb.freePhotosLimit,
+                extraPhotosCount: pb.extraPhotosCount || 0,
+                extraPhotosAmount: pb.extraPhotosAmount || 0,
+                resubmittedAt: pb.resubmittedAt || '',
               };
             }));
           }
@@ -1193,18 +1220,27 @@ const PhotographerEventsPage = () => {
   };
   const handleToggleFaceRecognition = async (album: Album) => { let inviteCode = album.inviteCode; if (!album.faceRecognitionEnabled && !inviteCode) { try { const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${album.id}/invite-code`, { method: 'POST' }); if (res.ok) { const result = await res.json(); inviteCode = result?.data?.inviteCode || result?.data?.code || (typeof result?.data === 'string' ? result.data : null); } } catch (err) { console.error('Failed to generate invite code:', err); } } const updated = { ...album, faceRecognitionEnabled: !album.faceRecognitionEnabled, inviteCode }; setAlbums(prev => prev.map(a => a.id === album.id ? updated : a)); setSelectedAlbum(updated); };
   const handleSendToClient = async (album: Album) => {
-    setAlbums(prev => prev.map(a => a.id === album.id ? { ...a, sharedWithClient: true, shared: true } : a));
     setShowSendModal(false);
     try {
-      await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${album.id}/send`, { method: 'POST' });
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${album.id}/send`, { method: 'POST' });
+      if (!res.ok) {
+        const errorBody = await res.json().catch(() => null);
+        setAlbumSuccessMessage({
+          title: 'Failed to Send Album',
+          description: errorBody?.message || 'Failed to send album. Please try again.',
+        });
+        setShowAlbumSuccessModal(true);
+        return;
+      }
+      setAlbums(prev => prev.map(a => a.id === album.id ? { ...a, sharedWithClient: true, shared: true } : a));
+      setAlbumSuccessMessage({
+        title: 'Album Sent Successfully',
+        description: `"${album.title}" has been delivered to ${album.clientName}. They can now view and download their photos.`,
+      });
+      setShowAlbumSuccessModal(true);
     } catch (err) {
       console.error('Failed to send album:', err);
     }
-    setAlbumSuccessMessage({
-      title: 'Album Sent Successfully',
-      description: `"${album.title}" has been delivered to ${album.clientName}. They can now view and download their photos.`,
-    });
-    setShowAlbumSuccessModal(true);
   };
   const handleDeleteAlbum = async () => { if (!albumToDelete) return; setAlbums(prev => prev.filter(a => a.id !== albumToDelete.id)); setShowDeleteConfirm(false); const id = albumToDelete.id; setAlbumToDelete(null); try { await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${id}`, { method: 'DELETE' }); } catch (err) { console.error('Failed to delete album:', err); } };
 
@@ -1785,7 +1821,17 @@ const PhotographerEventsPage = () => {
                             <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '0.03em', textTransform: 'uppercase', lineHeight: 1.3 }}>
                               {pb.name}
                             </div>
-                            <span style={{ color: 'white', backgroundColor: '#10B981', padding: '0.15rem 0.5rem', borderRadius: '1rem', fontSize: '0.65rem', fontWeight: 700, flexShrink: 0 }}>Received</span>
+                            {(() => {
+                              const s = pb.status || 'SENT_TO_PHOTOGRAPHER';
+                              const cfg: Record<string, { bg: string; label: string }> = {
+                                SENT_TO_PHOTOGRAPHER: { bg: '#2563EB', label: 'Received' },
+                                PHOTOGRAPHER_EDITING: { bg: '#7C3AED', label: 'Editing' },
+                                RESUBMITTED: { bg: '#059669', label: 'Resubmitted' },
+                                COMPLETED: { bg: '#16A34A', label: 'Completed' },
+                              };
+                              const c = cfg[s] || cfg.SENT_TO_PHOTOGRAPHER;
+                              return <span style={{ color: 'white', backgroundColor: c.bg, padding: '0.15rem 0.5rem', borderRadius: '1rem', fontSize: '0.65rem', fontWeight: 700, flexShrink: 0 }}>{c.label}</span>;
+                            })()}
                           </div>
                           {pb.description && (
                             <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '0.15rem' }}>{pb.description}</div>
@@ -1801,18 +1847,39 @@ const PhotographerEventsPage = () => {
                             >
                               <EyeIcon /> View
                             </button>
-                            <button
-                              onClick={() => downloadAllImages(pb)}
-                              style={{ flex: 1, padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: 'none', backgroundColor: '#059669', color: 'white', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
-                            >
-                              <DownloadIcon /> Download
-                            </button>
+                            {(pb.status === 'SENT_TO_PHOTOGRAPHER' || pb.status === 'PHOTOGRAPHER_EDITING') && (
+                              <button
+                                onClick={() => handleResubmitPhotobook(pb)}
+                                style={{ flex: 1, padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: 'none', backgroundColor: '#059669', color: 'white', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
+                              >
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" /></svg>
+                                Send Back
+                              </button>
+                            )}
+                            {pb.status === 'RESUBMITTED' && (
+                              <span style={{ flex: 1, padding: '0.4rem 0.6rem', borderRadius: '0.375rem', backgroundColor: 'rgba(5, 150, 105, 0.15)', color: '#059669', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                                Awaiting Review
+                              </span>
+                            )}
+                            {pb.status === 'COMPLETED' && (
+                              <span style={{ flex: 1, padding: '0.4rem 0.6rem', borderRadius: '0.375rem', backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#10B981', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                Accepted
+                              </span>
+                            )}
+                            {(!pb.status || !['SENT_TO_PHOTOGRAPHER', 'PHOTOGRAPHER_EDITING', 'RESUBMITTED', 'COMPLETED'].includes(pb.status)) && (
+                              <button
+                                onClick={() => downloadAllImages(pb)}
+                                style={{ flex: 1, padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: 'none', backgroundColor: '#059669', color: 'white', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
+                              >
+                                <DownloadIcon /> Download
+                              </button>
+                            )}
                             <button
                               onClick={() => { setPhotobookToDelete(pb); setShowDeletePhotobookModal(true); }}
-                              style={{ flex: 1, padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: 'none', backgroundColor: '#DC2626', color: 'white', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
+                              style={{ padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: 'none', backgroundColor: '#DC2626', color: 'white', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
                             >
                               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                              Delete
                             </button>
                           </div>
                         </div>
@@ -2323,29 +2390,47 @@ const PhotographerEventsPage = () => {
               </div>
             </div>
 
-            {/* Recipient */}
-            <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.5rem' }}>Recipient</label>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.bgTertiary, borderRadius: '0.625rem', padding: '0.875rem 1rem', border: `1px solid ${colors.borderPrimary}` }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                  <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: 'linear-gradient(135deg, #083A85, #3B82F6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.85rem', fontWeight: 700, overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
-                    {selectedAlbum.clientName.charAt(0)}
-                    {(() => { const img = selectedAlbum.clientImage || events.find(e => e.id === selectedAlbum.eventId)?.clientImage || ''; return img ? <img src={img} alt={selectedAlbum.clientName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} /> : null; })()}
+            {/* Photo Threshold Check */}
+            {(() => {
+              const eventMinPhotos = events.find(e => e.id === selectedAlbum.eventId)?.minimumPhotos || 500;
+              const belowThreshold = selectedAlbum.photoCount < eventMinPhotos;
+              return (
+                <>
+                  {belowThreshold && !selectedAlbum.sharedWithClient && (
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', padding: '0.75rem', backgroundColor: actualTheme === 'dark' ? 'rgba(245,158,11,0.1)' : '#FEF3C7', borderRadius: '0.5rem', marginBottom: '1rem', border: `1px solid ${actualTheme === 'dark' ? 'rgba(245,158,11,0.3)' : '#FCD34D'}` }}>
+                      <span style={{ flexShrink: 0, fontSize: '1rem' }}>&#9888;</span>
+                      <div style={{ fontSize: '0.8rem', color: actualTheme === 'dark' ? '#FBBF24' : '#92400E' }}>
+                        <strong>Below minimum threshold.</strong> This album has {selectedAlbum.photoCount} photos but the client requires at least {eventMinPhotos}. Please upload more photos before sending.
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Recipient */}
+                  <div style={{ marginBottom: '1.25rem' }}>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.5rem' }}>Recipient</label>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.bgTertiary, borderRadius: '0.625rem', padding: '0.875rem 1rem', border: `1px solid ${colors.borderPrimary}` }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                        <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: 'linear-gradient(135deg, #083A85, #3B82F6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.85rem', fontWeight: 700, overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
+                          {selectedAlbum.clientName.charAt(0)}
+                          {(() => { const img = selectedAlbum.clientImage || events.find(e => e.id === selectedAlbum.eventId)?.clientImage || ''; return img ? <img src={img} alt={selectedAlbum.clientName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} /> : null; })()}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.875rem', fontWeight: 600, color: colors.textPrimary }}>{selectedAlbum.clientName}</div>
+                          <div style={{ fontSize: '0.75rem', color: colors.textTertiary }}>Booked client</div>
+                        </div>
+                      </div>
+                      {selectedAlbum.sharedWithClient ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', backgroundColor: actualTheme === 'dark' ? 'rgba(16,185,129,0.15)' : '#D1FAE5', color: actualTheme === 'dark' ? '#34D399' : '#059669', padding: '0.35rem 0.75rem', borderRadius: '2rem', fontSize: '0.78rem', fontWeight: 600 }}>
+                          <CheckCircleIcon /> Delivered
+                        </div>
+                      ) : (
+                        <button onClick={() => handleSendToClient(selectedAlbum)} disabled={belowThreshold} style={{ ...primaryBtn, padding: '0.45rem 1.25rem', fontSize: '0.8rem', borderRadius: '2rem', opacity: belowThreshold ? 0.5 : 1, cursor: belowThreshold ? 'not-allowed' : 'pointer' }}>Send Now</button>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <div style={{ fontSize: '0.875rem', fontWeight: 600, color: colors.textPrimary }}>{selectedAlbum.clientName}</div>
-                    <div style={{ fontSize: '0.75rem', color: colors.textTertiary }}>Booked client</div>
-                  </div>
-                </div>
-                {selectedAlbum.sharedWithClient ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', backgroundColor: actualTheme === 'dark' ? 'rgba(16,185,129,0.15)' : '#D1FAE5', color: actualTheme === 'dark' ? '#34D399' : '#059669', padding: '0.35rem 0.75rem', borderRadius: '2rem', fontSize: '0.78rem', fontWeight: 600 }}>
-                    <CheckCircleIcon /> Delivered
-                  </div>
-                ) : (
-                  <button onClick={() => handleSendToClient(selectedAlbum)} style={{ ...primaryBtn, padding: '0.45rem 1.25rem', fontSize: '0.8rem', borderRadius: '2rem' }}>Send Now</button>
-                )}
-              </div>
-            </div>
+                </>
+              );
+            })()}
 
           </div>
         </div>
