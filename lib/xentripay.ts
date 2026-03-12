@@ -57,10 +57,10 @@ export function getPaymentMethodType(method: string): string {
 // ==================== Collection (Payment) APIs ====================
 
 /**
- * Initiate payment for an existing payment declaration (booking)
+ * Initiate payment for a booking via eventId (server finds declaration internally)
  */
 export async function initiateBookingPayment(
-  declarationId: string,
+  eventId: string,
   phone: string,
   telecomProvider: string,
   paymentMethod: string
@@ -72,7 +72,7 @@ export async function initiateBookingPayment(
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          declarationId,
+          eventId,
           phone,
           telecomProvider,
           paymentMethod,
@@ -190,6 +190,51 @@ export async function initiateStreamingPayment(
     }
 
     return { success: false, error: result.message || 'Failed to initiate streaming payment' };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Network error' };
+  }
+}
+
+/**
+ * Initiate payment for photobook extra photos via XentriPay
+ */
+export async function initiatePhotobookExtrasPayment(
+  photobookId: string,
+  phone: string,
+  telecomProvider: string,
+  currencyId: string
+): Promise<{ success: boolean; data?: XentriPayResponse; error?: string }> {
+  try {
+    const response = await dashboardAuthFetch(
+      `${getApiUrl()}/api/remote/payments/xentripay/initiate-photobook-extras`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          photobookId,
+          phone,
+          telecomProvider,
+          currencyId,
+        }),
+      }
+    );
+
+    const result = await response.json();
+
+    if (result.action === 1 && result.data) {
+      return {
+        success: true,
+        data: {
+          refid: result.data.refid,
+          tid: result.data.tid,
+          paymentUrl: result.data.paymentUrl,
+          status: result.data.status || 'PENDING',
+          message: result.data.message || result.message,
+        },
+      };
+    }
+
+    return { success: false, error: result.message || 'Failed to initiate photobook extras payment' };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : 'Network error' };
   }

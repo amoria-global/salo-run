@@ -326,6 +326,7 @@ type PaymentStatus = 'paid' | 'pending' | 'failed' | 'refunded' | 'partially_pai
 interface Payment {
   id: number;
   declarationId: string;
+  eventId?: string;
   date: string;
   eventName: string;
   eventType: string;
@@ -613,8 +614,8 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
   };
 
   const handlePayNowXentriPay = async () => {
-    if (!payment?.declarationId) {
-      setXentriPayError('No payment declaration found');
+    if (!payment?.eventId) {
+      setXentriPayError('No payment found for this event');
       return;
     }
     if (selectedPaymentMethod !== 'card' && !paymentPhone.trim()) {
@@ -630,7 +631,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
       const methodType = getPaymentMethodType(selectedPaymentMethod);
       const phone = selectedPaymentMethod === 'card' ? '0000000000' : paymentPhone.trim();
 
-      const result = await initiateBookingPayment(payment.declarationId, phone, telecom, methodType);
+      const result = await initiateBookingPayment(payment.eventId, phone, telecom, methodType);
 
       if (!result.success || !result.data) {
         setXentriPayError(result.error || 'Failed to initiate payment');
@@ -1528,6 +1529,7 @@ Amount: ${formatPrice(payment.amountNum)}
       const mapped: Payment[] = content.map((item: any, index: number) => ({
         id: index + 1 + (page - 1) * resultsPerPage,
         declarationId: item.id,
+        eventId: item.eventId,
         date: formatDate(item.createdAt),
         eventName: item.eventTitle || 'Untitled Event',
         eventType: item.paymentType || 'Booking',
