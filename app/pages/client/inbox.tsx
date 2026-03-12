@@ -8,6 +8,7 @@ import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { getApiUrl, normalizeImageUrl } from '@/lib/api';
+import { checkMessageContent } from '@/lib/messageFilter';
 
 const normalizeImg = (url: string | undefined | null): string => {
   if (!url || url === 'null' || url.endsWith('/null')) return '';
@@ -145,6 +146,7 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
   const [editMessageContent, setEditMessageContent] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
+  const [contentWarning, setContentWarning] = useState<string | null>(null);
   // Ref so markAsRead can read current unreadCounts without a stale closure
   const conversationsRef = useRef<Conversation[]>([]);
 
@@ -394,6 +396,12 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
   const sendMessage = async () => {
     if (!messageInput.trim() || !selectedConversation) return;
     if (isSending) return;
+    const filterResult = checkMessageContent(messageInput);
+    if (filterResult.blocked) {
+      setContentWarning(filterResult.reason);
+      return;
+    }
+    setContentWarning(null);
     const content = messageInput;
     setMessageInput('');
     setIsSending(true);
@@ -474,6 +482,12 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
 
   const saveEditedMessage = async () => {
     if (!editingMessageId || !editMessageContent.trim() || !selectedConversation) return;
+    const editFilterResult = checkMessageContent(editMessageContent);
+    if (editFilterResult.blocked) {
+      setContentWarning(editFilterResult.reason);
+      return;
+    }
+    setContentWarning(null);
 
     const msgId = editingMessageId;
     const newContent = editMessageContent;
@@ -1306,6 +1320,24 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
                     </div>
                   )}
 
+                  {contentWarning && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.5rem 0.75rem',
+                      marginBottom: '0.5rem',
+                      backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FFFBEB',
+                      border: `1px solid ${actualTheme === 'dark' ? '#F59E0B' : '#FDE68A'}`,
+                      borderRadius: '0.5rem',
+                      fontSize: '0.82rem',
+                      color: actualTheme === 'dark' ? '#FCD34D' : '#92400E',
+                    }}>
+                      <span>{contentWarning}</span>
+                      <button onClick={() => setContentWarning(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: actualTheme === 'dark' ? '#FCD34D' : '#92400E', fontSize: '1rem', lineHeight: 1, padding: '0 0.25rem' }}>&#x2715;</button>
+                    </div>
+                  )}
+
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <button
                       onClick={() => setShowEmojiPicker(!showEmojiPicker)}
@@ -1329,7 +1361,7 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
                       type="text"
                       placeholder="Type a message..."
                       value={messageInput}
-                      onChange={(e) => setMessageInput(e.target.value)}
+                      onChange={(e) => { setMessageInput(e.target.value); if (contentWarning) setContentWarning(null); }}
                       onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
                       style={{
                         flex: 1,
