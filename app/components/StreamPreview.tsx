@@ -190,17 +190,53 @@ export default function StreamPreview({
       const hls = new Hls({
         enableWorker: true,
         lowLatencyMode: true,
-        backBufferLength: 30,
+        // Minimal buffering — stay as close to live edge as possible
+        liveSyncDurationCount: 1,
+        liveMaxLatencyDurationCount: 3,
+        liveBackBufferLength: 0,
+        backBufferLength: 0,
+        highBufferWatchdogPeriod: 1,
+        // Fast segment loading
+        maxBufferLength: 3,
+        maxMaxBufferLength: 5,
+        maxBufferSize: 0,
+        maxBufferHole: 0.5,
+        // Aggressive loading for live edge
+        manifestLoadingTimeOut: 15000,
+        manifestLoadingMaxRetry: 10,
+        manifestLoadingRetryDelay: 1000,
+        levelLoadingTimeOut: 10000,
+        levelLoadingMaxRetry: 10,
+        levelLoadingRetryDelay: 1000,
+        fragLoadingTimeOut: 10000,
+        fragLoadingMaxRetry: 6,
+        fragLoadingRetryDelay: 500,
       });
       hls.loadSource(playbackUrl);
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        video.muted = true;
         video.play().catch(() => {});
       });
+      // Periodically snap to live edge to prevent drift
+      const liveEdgeInterval = setInterval(() => {
+        if (hls.liveSyncPosition && video.currentTime > 0) {
+          const drift = hls.liveSyncPosition - video.currentTime;
+          if (drift > 4) {
+            // Too far behind — jump to live edge
+            video.currentTime = hls.liveSyncPosition;
+          } else if (drift > 2) {
+            // Slightly behind — speed up playback to catch up
+            video.playbackRate = 1.05;
+          } else {
+            video.playbackRate = 1.0;
+          }
+        }
+      }, 2000);
       hls.on(Hls.Events.ERROR, (_event, data) => {
         if (data.fatal) {
           if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-            hls.startLoad();
+            setTimeout(() => hls.startLoad(), 1000);
           } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
             hls.recoverMediaError();
           } else {
@@ -209,6 +245,8 @@ export default function StreamPreview({
         }
       });
       hlsRef.current = hls;
+      // Store interval for cleanup
+      (hls as unknown as Record<string, unknown>)._liveEdgeInterval = liveEdgeInterval;
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = playbackUrl;
       video.addEventListener('loadedmetadata', () => {
@@ -225,11 +263,13 @@ export default function StreamPreview({
       video.removeEventListener('waiting', handleWaiting);
       video.removeEventListener('playing', handlePlaying);
       if (hlsRef.current) {
+        const interval = (hlsRef.current as unknown as Record<string, unknown>)._liveEdgeInterval as ReturnType<typeof setInterval> | undefined;
+        if (interval) clearInterval(interval);
         hlsRef.current.destroy();
         hlsRef.current = null;
       }
     };
-  }, [playbackUrl]);
+  }, [playbackUrl, currentStep]);
 
   // Reset on open
   useEffect(() => {
@@ -572,6 +612,7 @@ export default function StreamPreview({
               style={{ width: '100%', height: '100%', objectFit: 'contain' }}
               playsInline
               muted
+              autoPlay
               controls
             />
             {/* Buffering overlay */}
