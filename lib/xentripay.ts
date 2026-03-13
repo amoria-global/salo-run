@@ -63,7 +63,8 @@ export async function initiateBookingPayment(
   eventId: string,
   phone: string,
   telecomProvider: string,
-  paymentMethod: string
+  paymentMethod: string,
+  redirectUrl?: string
 ): Promise<{ success: boolean; data?: XentriPayResponse; error?: string }> {
   try {
     const response = await dashboardAuthFetch(
@@ -76,6 +77,7 @@ export async function initiateBookingPayment(
           phone,
           telecomProvider,
           paymentMethod,
+          redirectUrl,
         }),
       }
     );
