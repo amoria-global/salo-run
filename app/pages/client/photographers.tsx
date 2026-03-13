@@ -318,6 +318,10 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
   const [rebookEvents, setRebookEvents] = useState<{id: string; title: string; eventType: string; eventDate: string; startTime: string; endTime: string; location: string; city: string; country: string; address: string}[]>([]);
   const [rebookEventsLoading, setRebookEventsLoading] = useState(false);
   const [selectedRebookEventId, setSelectedRebookEventId] = useState<string>('');
+  const [rebookPackages, setRebookPackages] = useState<any[]>([]);
+  const [rebookPackageId, setRebookPackageId] = useState<string>('');
+  const [rebookPackagesLoading, setRebookPackagesLoading] = useState(false);
+  const [rebookPackagesError, setRebookPackagesError] = useState<string | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewPhotographer, setReviewPhotographer] = useState<BookedPhotographer | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; photographer: BookedPhotographer } | null>(null);
@@ -542,6 +546,32 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
 
     fetchRebookEvents();
   }, [showRebookModal, token]);
+
+  // Fetch photographer packages when rebook modal opens
+  useEffect(() => {
+    if (!showRebookModal || !rebookPhotographer || !token) return;
+
+    const fetchPackages = async () => {
+      setRebookPackagesLoading(true);
+      setRebookPackagesError(null);
+      try {
+        const apiUrl = getApiUrl();
+        const response = await dashboardAuthFetch(`${apiUrl}/api/remote/public/photographers/${rebookPhotographer.id}/packages`);
+        if (!response.ok) throw new Error('Failed to fetch packages');
+        const result = await response.json();
+        const pkgs = result?.data || result || [];
+        setRebookPackages(Array.isArray(pkgs) ? pkgs : []);
+      } catch (err) {
+        console.error('Failed to fetch photographer packages:', err);
+        setRebookPackagesError('Could not load packages');
+        setRebookPackages([]);
+      } finally {
+        setRebookPackagesLoading(false);
+      }
+    };
+
+    fetchPackages();
+  }, [showRebookModal, rebookPhotographer, token]);
 
   const handleRebookEventSelect = (eventId: string) => {
     setSelectedRebookEventId(eventId);
@@ -812,6 +842,11 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
   const handleSendBookingRequest = async () => {
     if (!rebookPhotographer) return;
 
+    if (!rebookPackageId) {
+      setRebookError('Please select a photographer package');
+      return;
+    }
+
     if (!rebookEventType || !rebookDate || !rebookTime || !rebookLocation) {
       setRebookError('Please fill in all required fields');
       return;
@@ -832,6 +867,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
             ? (rebookEvents.find(e => e.id === selectedRebookEventId)?.title || `${rebookEventType} - ${rebookPhotographer.firstName} ${rebookPhotographer.lastName}`.trim())
             : `${rebookEventType} - ${rebookPhotographer.firstName} ${rebookPhotographer.lastName}`.trim(),
           photographerId: rebookPhotographer.id,
+          packageId: rebookPackageId,
           eventType: rebookEventType,
           eventDate: rebookDate,
           startTime: rebookTime,
@@ -856,6 +892,9 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
       setRebookPhotographer(null);
       setSelectedRebookEventId('');
       setRebookEvents([]);
+      setRebookPackages([]);
+      setRebookPackageId('');
+      setRebookPackagesError(null);
 
       setSuccessMessage('Booking request sent successfully!');
       setShowSuccessModal(true);
@@ -2186,6 +2225,58 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
               <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Last booking</div>
               <div style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>{rebookPhotographer.lastEventName}</div>
               <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{rebookPhotographer.lastEventType} • {formatDate(rebookPhotographer.lastBookingDate)}</div>
+            </div>
+
+            {/* Package Selection */}
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+                Select a Package <span style={{ color: '#EF4444' }}>*</span>
+              </label>
+              {rebookPackagesLoading ? (
+                <div style={{ textAlign: 'center', padding: '1rem', color: colors.textSecondary, fontSize: '0.85rem' }}>Loading packages...</div>
+              ) : rebookPackagesError ? (
+                <div style={{ color: '#EF4444', fontSize: '0.85rem', padding: '0.5rem 0.75rem', backgroundColor: '#FEF2F2', borderRadius: '0.375rem' }}>{rebookPackagesError}</div>
+              ) : rebookPackages.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '1rem', color: colors.textSecondary, fontSize: '0.85rem' }}>No packages available</div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem' }}>
+                  {rebookPackages.map((pkg: any) => {
+                    const isSelected = rebookPackageId === pkg.id;
+                    return (
+                      <div
+                        key={pkg.id}
+                        onClick={() => setRebookPackageId(pkg.id)}
+                        style={{
+                          border: `2px solid ${isSelected ? '#F20C8F' : colors.borderPrimary}`,
+                          borderRadius: '0.5rem',
+                          padding: '0.75rem',
+                          cursor: 'pointer',
+                          backgroundColor: isSelected ? (actualTheme === 'dark' ? '#831843' : '#FDF2F8') : colors.bgCard,
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <div style={{ fontWeight: '600', fontSize: '0.9rem', color: colors.textPrimary, marginBottom: '0.25rem' }}>
+                          {pkg.packageName || pkg.name}
+                        </div>
+                        <div style={{ fontWeight: '700', fontSize: '1rem', color: '#F20C8F', marginBottom: '0.25rem' }}>
+                          {pkg.currency?.symbol || pkg.currencySymbol || ''}{pkg.price}
+                          <span style={{ fontWeight: '400', fontSize: '0.8rem', color: colors.textSecondary, marginLeft: '0.25rem' }}>
+                            {pkg.currency?.abbreviation || pkg.currencyAbbreviation || ''}
+                          </span>
+                        </div>
+                        {(pkg.durationHours || pkg.duration) && (
+                          <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{pkg.durationHours || pkg.duration} hours</div>
+                        )}
+                        {pkg.description && (
+                          <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginTop: '0.25rem', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any }}>
+                            {pkg.description}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Assign to existing event */}
