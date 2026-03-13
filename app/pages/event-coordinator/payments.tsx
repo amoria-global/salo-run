@@ -620,7 +620,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
       setXentriPayError('No payment found for this event');
       return;
     }
-    if (selectedPaymentMethod !== 'card' && !paymentPhone.trim()) {
+    if (!paymentPhone.trim()) {
       setXentriPayError('Please enter your phone number');
       return;
     }
@@ -631,9 +631,10 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
     try {
       const telecom = getTelecomProvider(selectedPaymentMethod);
       const methodType = getPaymentMethodType(selectedPaymentMethod);
-      const phone = selectedPaymentMethod === 'card' ? '0000000000' : paymentPhone.trim();
+      const phone = paymentPhone.trim();
+      const redirectUrl = selectedPaymentMethod === 'card' ? window.location.href : undefined;
 
-      const result = await initiateBookingPayment(payment.eventId, phone, telecom, methodType);
+      const result = await initiateBookingPayment(payment.eventId, phone, telecom, methodType, redirectUrl);
 
       if (!result.success || !result.data) {
         setXentriPayError(result.error || 'Failed to initiate payment');
@@ -873,8 +874,8 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
             </div>
           </div>
 
-          {/* Phone Number Input (for mobile money) */}
-          {(selectedPaymentMethod === 'mtn' || selectedPaymentMethod === 'airtel') && (
+          {/* Phone Number Input (for all methods - XentriPay requires it) */}
+          {selectedPaymentMethod && (
             <div style={{ marginTop: '0.75rem' }}>
               <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.375rem' }}>Phone Number</label>
               <input type="tel" placeholder="e.g. 078XXXXXXX" value={paymentPhone} onChange={(e) => { setPaymentPhone(e.target.value); setXentriPayError(''); }}
@@ -883,7 +884,9 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
                 onBlur={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }}
               />
               <p style={{ fontSize: '0.78rem', color: colors.textSecondary, margin: '0.25rem 0 0 0' }}>
-                Enter the {selectedPaymentMethod === 'mtn' ? 'MTN' : 'Airtel'} number to receive the payment prompt
+                {selectedPaymentMethod === 'card'
+                  ? 'Required for payment verification'
+                  : `Enter the ${selectedPaymentMethod === 'mtn' ? 'MTN' : 'Airtel'} number to receive the payment prompt`}
               </p>
             </div>
           )}
