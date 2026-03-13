@@ -191,21 +191,7 @@ const QRCodeIcon = () => (
 );
 
 // Types
-type EventCategory =
-  | 'Sports'
-  | 'Wedding'
-  | 'Academic'
-  | 'Gathering'
-  | 'Concert'
-  | 'Fashion'
-  | 'Religious'
-  | 'Cultural'
-  | 'Corporate'
-  | 'Conference'
-  | 'Entertainment'
-  | 'Birthday'
-  | 'Baby Shower'
-  | 'Graduation';
+type EventCategory = string;
 
 type EventStatus = 'UPCOMING' | 'LIVE' | 'PUBLISHED' | 'upcoming' | 'ongoing' | 'completed' | 'published';
 
@@ -374,7 +360,7 @@ const MyEventsPage = () => {
           const list = (data.data?.content || data.data || []).map((p: Record<string, unknown>) => ({
             id: (p.id as string) || '',
             name: `${(p.firstName as string) || ''} ${(p.lastName as string) || ''}`.trim() || (p.name as string) || 'Photographer',
-            image: normalizeImg((p.profilePicture as string) || (p.image as string) || null),
+            image: normalizeImg((p.profilePicture as string) || (p.profileImage as string) || (p.image as string) || null),
             speciality: (p.speciality as string) || (p.category as string) || 'Photography',
             rating: (p.rating as number) || 0,
             eventsWorked: 0,
@@ -672,12 +658,22 @@ const MyEventsPage = () => {
     }
   }, []);
 
-  // Event categories from prompt
-  const eventCategories: EventCategory[] = [
-    'Sports', 'Wedding', 'Academic', 'Gathering', 'Concert', 'Fashion',
-    'Religious', 'Cultural', 'Corporate', 'Conference', 'Entertainment',
-    'Birthday', 'Baby Shower', 'Graduation'
-  ];
+  const [eventCategories, setEventCategories] = useState<{ id: string; name: string }[]>([]);
+
+  // Fetch event categories from API
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/remote/public/events/categories`);
+        const data = await res.json();
+        if (data.action === 1 && Array.isArray(data.data)) {
+          setEventCategories(data.data);
+        }
+      } catch {
+        // Fallback silently
+      }
+    })();
+  }, []);
 
 
   const [events, setEvents] = useState<Event[]>([]);
@@ -747,11 +743,11 @@ const MyEventsPage = () => {
             organizer: (evt.eventOrganizer as string) || '',
             tags: evt.eventTags ? (evt.eventTags as string).split(',').map((t: string) => t.trim()) : [],
             minimumPhotos: (evt.minimumPhotos as number) || 500,
-            hasPhotographer: !!(evt.photographerId),
+            hasPhotographer: !!(evt.photographerId || (evt.photographer as Record<string, unknown>)?.id),
             bookingStatus: (evt.bookingStatus as string) || undefined,
-            photographerId: (evt.photographerId as string) || undefined,
-            photographerName: (evt.photographerName as string) || '',
-            photographerImage: (evt.photographerImage as string) || '',
+            photographerId: (evt.photographerId as string) || ((evt.photographer as Record<string, unknown>)?.id as string) || undefined,
+            photographerName: (evt.photographerName as string) || `${((evt.photographer as Record<string, unknown>)?.firstName as string) || ''} ${((evt.photographer as Record<string, unknown>)?.lastName as string) || ''}`.trim() || '',
+            photographerImage: (evt.photographerImage as string) || ((evt.photographer as Record<string, unknown>)?.profilePicture as string) || '',
             inviteCode: (evt.inviteCode as string) || (evt.hostId as string) || '',
             streamInviteToken: (evt.streamInviteToken as string) || undefined,
             shareLink: (() => {
@@ -1028,7 +1024,6 @@ const MyEventsPage = () => {
           description: editDescription,
           eventType: editCategory,
           category: editCategory,
-          status: editStatus,
           date: editDate,
           time: timeDisplay,
           endTime: editEndTime,
@@ -1778,7 +1773,7 @@ const MyEventsPage = () => {
                             {unpublishingEventId === event.id ? 'Unpublishing...' : 'Unpublish'}
                           </button>
                         ) : (
-                          <button onClick={() => !event.coverImage ? setNoPhotoEvent(event) : !event.hasPhotographer ? setNoPhotographerEvent(event) : (event.bookingStatus && event.bookingStatus.toUpperCase() !== 'ACCEPTED' && event.bookingStatus.toUpperCase() !== 'UNASSIGNED') ? setPendingBookingEvent(event) : setPublishConfirmEvent(event)} disabled={publishingEventId === event.id} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.4rem 0.5rem', backgroundColor: '#05a129', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: publishingEventId === event.id ? 'not-allowed' : 'pointer', fontSize: '0.75rem', fontWeight: 600, opacity: publishingEventId === event.id ? 0.7 : 1 }}>
+                          <button onClick={() => !event.coverImage ? setNoPhotoEvent(event) : !event.hasPhotographer ? setNoPhotographerEvent(event) : (!event.bookingStatus || event.bookingStatus.toUpperCase() !== 'ACCEPTED') ? setPendingBookingEvent(event) : setPublishConfirmEvent(event)} disabled={publishingEventId === event.id} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.4rem 0.5rem', backgroundColor: '#05a129', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: publishingEventId === event.id ? 'not-allowed' : 'pointer', fontSize: '0.75rem', fontWeight: 600, opacity: publishingEventId === event.id ? 0.7 : 1 }}>
                             {publishingEventId === event.id ? 'Publishing...' : 'Publish'}
                           </button>
                         )}
@@ -1866,7 +1861,7 @@ const MyEventsPage = () => {
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Category *</label>
                 <select value={createCategory} onChange={(e) => setCreateCategory(e.target.value as EventCategory)} style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', backgroundColor: colors.bgCard, color: colors.textPrimary, cursor: 'pointer' }}>
                   <option value="">Select category</option>
-                  {eventCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                  {eventCategories.map(cat => <option key={cat.id} value={cat.name}>{cat.name}</option>)}
                 </select>
               </div>
               <div>
@@ -3211,14 +3206,7 @@ const MyEventsPage = () => {
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Category *</label>
                   <select value={editCategory} onChange={(e) => setEditCategory(e.target.value as EventCategory)} style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', backgroundColor: colors.bgCard, color: colors.textPrimary, cursor: 'pointer' }}>
                     <option value="">Select category</option>
-                    {eventCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Status *</label>
-                  <select value={editStatus} onChange={(e) => setEditStatus(e.target.value as 'UPCOMING' | 'LIVE')} style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', backgroundColor: colors.bgCard, color: colors.textPrimary, cursor: 'pointer' }}>
-                    <option value="UPCOMING">UPCOMING</option>
-                    <option value="LIVE">LIVE</option>
+                    {eventCategories.map(cat => <option key={cat.id} value={cat.name}>{cat.name}</option>)}
                   </select>
                 </div>
               </div>
