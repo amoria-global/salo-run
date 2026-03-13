@@ -92,6 +92,13 @@ const UserIcon = () => (
   </svg>
 );
 
+const TrashIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <polyline points="3,6 5,6 21,6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M19 6V20C19 21.1046 18.1046 22 17 22H7C5.89543 22 5 21.1046 5 20V6M8 6V4C8 2.89543 8.89543 2 10 2H14C15.1046 2 16 2.89543 16 4V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
 const AlertCircleIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
@@ -276,6 +283,8 @@ export default function Clients() {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; client: Client } | null>(null);
   const [showTipsModal, setShowTipsModal] = useState(false);
   const [tipsClient, setTipsClient] = useState<Client | null>(null);
+  const [deleteConfirmClient, setDeleteConfirmClient] = useState<Client | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Page tab state
   const [pageTab, setPageTab] = useState<PageTab>('clients');
@@ -517,6 +526,23 @@ export default function Clients() {
       setClients(prev => prev.map(c =>
         c.id === id ? { ...c, isFavorite: !c.isFavorite } : c
       ));
+    }
+  };
+
+  const deleteClient = async (id: string) => {
+    setDeleting(true);
+    try {
+      const apiUrl = getApiUrl();
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/clients/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setClients(prev => prev.filter(c => c.id !== id));
+        if (selectedClient?.id === id) setSelectedClient(null);
+        setDeleteConfirmClient(null);
+      }
+    } catch (err) {
+      console.error('Failed to delete client:', err);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -1121,21 +1147,42 @@ export default function Clients() {
                         </span>
                       </div>
                     </div>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); toggleFavorite(client.id); }}
-                      style={{
-                        backgroundColor: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: '0.25rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                      title="Add to favorites"
-                    >
-                      <HeartIcon filled={client.isFavorite} />
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.25rem' }}>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleFavorite(client.id); }}
+                        style={{
+                          backgroundColor: 'transparent',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: '0.25rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                        title="Add to favorites"
+                      >
+                        <HeartIcon filled={client.isFavorite} />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setDeleteConfirmClient(client); }}
+                        style={{
+                          backgroundColor: 'transparent',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: '0.25rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#9CA3AF',
+                          transition: 'color 0.2s'
+                        }}
+                        title="Remove client"
+                        onMouseEnter={(e) => { e.currentTarget.style.color = '#EF4444'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.color = '#9CA3AF'; }}
+                      >
+                        <TrashIcon />
+                      </button>
+                    </div>
                   </div>
 
                   {/* Quick Stats Row */}
@@ -1521,6 +1568,25 @@ export default function Clients() {
                     >
                       <i className="bi bi-image"></i>
                     </Link>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setDeleteConfirmClient(client); }}
+                      style={{
+                        padding: '0.375rem 0.625rem',
+                        borderRadius: '0.375rem',
+                        border: '2px solid #FCA5A5',
+                        backgroundColor: actualTheme === 'dark' ? '#7F1D1D' : '#FEF2F2',
+                        color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626',
+                        fontSize: '0.75rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      title="Remove client"
+                    >
+                      <TrashIcon />
+                    </button>
                   </div>
 
                   {/* Tips */}
@@ -2025,6 +2091,31 @@ export default function Clients() {
                 View Gallery
               </Link>
             </div>
+
+            {/* Delete Client */}
+            <button
+              onClick={() => setDeleteConfirmClient(selectedClient)}
+              style={{
+                width: '100%',
+                marginTop: '0.75rem',
+                padding: '0.75rem',
+                borderRadius: '0.5rem',
+                border: `2px solid ${actualTheme === 'dark' ? '#7F1D1D' : '#FCA5A5'}`,
+                backgroundColor: actualTheme === 'dark' ? '#450A0A' : '#FEF2F2',
+                color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626',
+                fontSize: '0.9rem',
+                fontWeight: '500',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem'
+              }}
+            >
+              <TrashIcon />
+              Remove Client
+            </button>
           </div>
         )}
       </Modal>
@@ -2181,6 +2272,94 @@ export default function Clients() {
                 }}
               >
                 Close
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={!!deleteConfirmClient}
+        onClose={() => { if (!deleting) setDeleteConfirmClient(null); }}
+        title="Remove Client"
+        maxWidth="420px"
+      >
+        {deleteConfirmClient && (
+          <div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              marginBottom: '1.25rem',
+              padding: '0.75rem',
+              backgroundColor: actualTheme === 'dark' ? '#450A0A' : '#FEF2F2',
+              borderRadius: '0.5rem',
+              border: `1px solid ${actualTheme === 'dark' ? '#7F1D1D' : '#FECACA'}`
+            }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, position: 'relative', backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                </svg>
+                {deleteConfirmClient.profileImage && (
+                  <img src={deleteConfirmClient.profileImage} alt={deleteConfirmClient.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                )}
+              </div>
+              <div>
+                <p style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
+                  {deleteConfirmClient.firstName} {deleteConfirmClient.lastName}
+                </p>
+                <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0.125rem 0 0' }}>
+                  {deleteConfirmClient.totalBookings} booking{deleteConfirmClient.totalBookings !== 1 ? 's' : ''}
+                </p>
+              </div>
+            </div>
+
+            <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1.25rem', lineHeight: '1.5' }}>
+              Are you sure you want to remove this client from your list? This action cannot be undone.
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                onClick={() => setDeleteConfirmClient(null)}
+                disabled={deleting}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem',
+                  borderRadius: '0.5rem',
+                  border: `2px solid ${colors.borderSecondary}`,
+                  backgroundColor: colors.bgCard,
+                  color: colors.textPrimary,
+                  fontSize: '0.9rem',
+                  fontWeight: '500',
+                  cursor: deleting ? 'not-allowed' : 'pointer',
+                  opacity: deleting ? 0.5 : 1
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => deleteClient(deleteConfirmClient.id)}
+                disabled={deleting}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem',
+                  borderRadius: '0.5rem',
+                  border: '2px solid #B91C1C',
+                  backgroundColor: '#DC2626',
+                  color: 'white',
+                  fontSize: '0.9rem',
+                  fontWeight: '500',
+                  cursor: deleting ? 'not-allowed' : 'pointer',
+                  opacity: deleting ? 0.7 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                {deleting ? 'Removing...' : 'Remove'}
               </button>
             </div>
           </div>

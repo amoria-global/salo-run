@@ -321,6 +321,7 @@ interface StreamConfig {
   viewerCount: number;
   peakViewers: number;
   inviteToken?: string;
+  playbackUrl?: string;
   error?: string;
 }
 
@@ -851,6 +852,28 @@ const PhotographerEventsPage = () => {
         const data = await res.json().catch(() => ({}));
         const msg = data.message || 'Failed to start stream. Please try again.';
         setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'idle', error: msg } }));
+        return;
+      }
+      // Fetch stream config to get RTMP credentials
+      const configRes = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/events/${eventId}/stream/config`);
+      if (configRes.ok) {
+        const configData = await configRes.json();
+        const cfg = configData.data || {};
+        setStreamConfigs(prev => ({
+          ...prev,
+          [eventId]: {
+            ...prev[eventId],
+            eventId,
+            serverUrl: cfg.serverUrl || '',
+            streamKey: cfg.streamKey || '',
+            connectionStatus: 'waiting_for_encoder',
+            streamHealth: cfg.streamHealth || 'unknown',
+            uploadSpeed: cfg.uploadSpeed || '0 Mbps',
+            viewerCount: cfg.viewerCount || 0,
+            peakViewers: cfg.peakViewers || 0,
+            inviteToken: cfg.inviteToken || '',
+          }
+        }));
       }
     } catch (err) {
       setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'idle', error: 'Failed to start stream. Please try again.' } }));
@@ -884,6 +907,56 @@ const PhotographerEventsPage = () => {
       setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'live', error: 'Failed to end stream. Please try again.' } }));
     }
   };
+
+  // Poll stream config every 5s when stream preview or setup modal is open
+  useEffect(() => {
+    if (!selectedEvent) return;
+    const isStreamUIOpen = showStreamPreview || showStreamSetupModal;
+    if (!isStreamUIOpen) return;
+    const eventId = selectedEvent.id;
+    const poll = async () => {
+      try {
+        // Fetch stream config for RTMP credentials + connection status
+        const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/events/${eventId}/stream/config`);
+        if (res.ok) {
+          const data = await res.json();
+          const cfg = data.data;
+          if (cfg) {
+            let uiStatus: string = cfg.connectionStatus || 'idle';
+            if (uiStatus === 'connected') uiStatus = 'live';
+            // Also fetch public event for hlsManifestUrl (playback URL)
+            let hlsUrl = '';
+            try {
+              const pubRes = await fetch(`${apiUrl}/api/remote/public/events/${eventId}`);
+              if (pubRes.ok) {
+                const pubData = await pubRes.json();
+                hlsUrl = pubData.data?.hlsManifestUrl || '';
+              }
+            } catch { /* ignore */ }
+            setStreamConfigs(prev => ({
+              ...prev,
+              [eventId]: {
+                ...prev[eventId],
+                eventId,
+                serverUrl: cfg.serverUrl || prev[eventId]?.serverUrl || '',
+                streamKey: cfg.streamKey || prev[eventId]?.streamKey || '',
+                connectionStatus: uiStatus as 'idle' | 'waiting_for_encoder' | 'receiving_signal' | 'live',
+                streamHealth: cfg.streamHealth || 'unknown',
+                uploadSpeed: cfg.uploadSpeed || '0 Mbps',
+                viewerCount: cfg.viewerCount || 0,
+                peakViewers: cfg.peakViewers || 0,
+                inviteToken: cfg.inviteToken || prev[eventId]?.inviteToken || '',
+                playbackUrl: hlsUrl || prev[eventId]?.playbackUrl || '',
+              }
+            }));
+          }
+        }
+      } catch { /* ignore polling errors */ }
+    };
+    poll(); // Run immediately
+    const interval = setInterval(poll, 5000);
+    return () => clearInterval(interval);
+  }, [selectedEvent, showStreamPreview, showStreamSetupModal, apiUrl]);
 
   const handleMarkCompleted = async (eventId: string) => {
     setMarkingCompletedId(eventId);
@@ -1402,7 +1475,7 @@ const PhotographerEventsPage = () => {
                 </div>
 
                 {/* Event Cards Grid */}
-                <div className="events-page-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                <div className="events-page-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: '1rem' }}>
                   {filteredEvents.map(event => {
                     const badge = getStatusBadge(event.status);
                     const streamCfg = event.hasLiveStream ? streamConfigs[event.id] : null;
@@ -1475,7 +1548,7 @@ const PhotographerEventsPage = () => {
                               </div>
                             </div>
                             {/* Action buttons */}
-                            <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', alignItems: 'center' }}>
                               {event.bookingStatus?.toUpperCase() === 'PENDING' ? (
                                 <>
                                   <button onClick={() => openBookingAction(event, 'accept')} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0', fontSize: '0.72rem', fontWeight: 600, backgroundColor: 'rgba(5,150,105,0.9)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
@@ -1492,7 +1565,7 @@ const PhotographerEventsPage = () => {
                                       <BroadcastIcon /> Stream Setup
                                     </button>
                                   )}
-                                  {(event.status === 'upcoming' || event.status === 'ongoing') && (
+                                  {event.hasLiveStream && (event.status === 'upcoming' || event.status === 'ongoing') && (
                                     <button onClick={() => { setSelectedEvent(event); setShowStreamPreview(true); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0.5rem', fontSize: '0.72rem', fontWeight: 600, backgroundColor: 'rgba(16,185,129,0.85)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
                                       <PlayIcon /> Test Stream
                                     </button>
@@ -2084,7 +2157,7 @@ const PhotographerEventsPage = () => {
           eventTitle={selectedEvent.title}
           serverUrl={streamConfigs[selectedEvent.id]?.serverUrl}
           streamKey={streamConfigs[selectedEvent.id]?.streamKey}
-          playbackUrl={streamConfigs[selectedEvent.id]?.serverUrl ? streamConfigs[selectedEvent.id]?.serverUrl?.replace('rtmps://', 'https://').replace('/live/', '/') + '/manifest/video.m3u8' : undefined}
+          playbackUrl={streamConfigs[selectedEvent.id]?.playbackUrl || undefined}
           inviteToken={streamConfigs[selectedEvent.id]?.inviteToken}
           connectionStatus={streamConfigs[selectedEvent.id]?.connectionStatus || 'idle'}
           onStartStream={() => handleStartStream(selectedEvent.id)}
