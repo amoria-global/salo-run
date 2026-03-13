@@ -634,18 +634,23 @@ const MyEventsPage = () => {
 
   // Auto-open create modal pre-filled when redirected from landing with ?photographerId=&packageId=
   useEffect(() => {
-    const landingPhotographerId = searchParams.get('photographerId');
-    const landingPackageId = searchParams.get('packageId');
-    if (!landingPhotographerId) return;
-    setCreatePhotographerId(landingPhotographerId);
-    if (landingPackageId) setCreatePackageId(landingPackageId);
-    setPhotographerAssignMode('platform');
-    setShowCreateModal(true);
-    // Clean params from URL without reload
-    const url = new URL(window.location.href);
-    url.searchParams.delete('photographerId');
-    url.searchParams.delete('packageId');
-    window.history.replaceState({}, '', url.pathname + (url.search !== '?' ? url.search : ''));
+    // Delay to ensure AuthProvider has processed the token param first
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams(window.location.search);
+      const landingPhotographerId = params.get('photographerId');
+      const landingPackageId = params.get('packageId');
+      if (!landingPhotographerId) return;
+      setCreatePhotographerId(landingPhotographerId);
+      if (landingPackageId) setCreatePackageId(landingPackageId);
+      setPhotographerAssignMode('platform');
+      setShowCreateModal(true);
+      // Clean params from URL without reload
+      const url = new URL(window.location.href);
+      url.searchParams.delete('photographerId');
+      url.searchParams.delete('packageId');
+      window.history.replaceState({}, '', url.pathname + (url.search !== '?' ? url.search : ''));
+    }, 500);
+    return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -801,6 +806,17 @@ const MyEventsPage = () => {
     }
   }, [user, fetchMyEvents]);
 
+  // Auto-refresh events when tab regains focus (e.g. after photographer accepts on their dashboard)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && user) {
+        fetchMyEvents();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [user, fetchMyEvents]);
+
   const handlePublishEvent = async (eventId: string) => {
     if (!token) return;
     setPublishConfirmEvent(null);
@@ -855,6 +871,53 @@ const MyEventsPage = () => {
     }
   };
 
+
+  // Re-fetch a single event from server and run publish pre-checks with fresh data
+  const handlePublishClick = async (event: Event) => {
+    try {
+      const apiUrl = getApiUrl();
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/events/${event.id}`);
+      if (res.ok) {
+        const json = await res.json();
+        const fresh = json.data;
+        if (fresh) {
+          // Update local event state with fresh data
+          const updatedEvent: Event = {
+            ...event,
+            hasPhotographer: !!((fresh.photographerId as string) || (fresh.photographer as any)?.id),
+            bookingStatus: (fresh.bookingStatus as string) || undefined,
+            photographerId: (fresh.photographerId as string) || (fresh.photographer as any)?.id || undefined,
+            coverImage: fresh.eventPhoto || fresh.bannerImage || fresh.coverImage || event.coverImage,
+          };
+          setEvents(prev => prev.map(e => e.id === event.id ? updatedEvent : e));
+
+          // Run publish checks with fresh data
+          if (!updatedEvent.coverImage) {
+            setNoPhotoEvent(updatedEvent);
+          } else if (!updatedEvent.hasPhotographer) {
+            setNoPhotographerEvent(updatedEvent);
+          } else if (updatedEvent.bookingStatus && updatedEvent.bookingStatus.toUpperCase() !== 'ACCEPTED' && updatedEvent.bookingStatus.toUpperCase() !== 'UNASSIGNED') {
+            setPendingBookingEvent(updatedEvent);
+          } else {
+            setPublishConfirmEvent(updatedEvent);
+          }
+          return;
+        }
+      }
+    } catch (err) {
+      console.error('Failed to refresh event before publish:', err);
+    }
+    // Fallback: use stale data if refresh fails
+    if (!event.coverImage) {
+      setNoPhotoEvent(event);
+    } else if (!event.hasPhotographer) {
+      setNoPhotographerEvent(event);
+    } else if (event.bookingStatus && event.bookingStatus.toUpperCase() !== 'ACCEPTED' && event.bookingStatus.toUpperCase() !== 'UNASSIGNED') {
+      setPendingBookingEvent(event);
+    } else {
+      setPublishConfirmEvent(event);
+    }
+  };
 
   const eventTypes = ['Wedding', 'Birthday', 'Corporate', 'Baby Shower', 'Graduation', 'Anniversary', 'Engagement', 'Other'];
 
@@ -1773,7 +1836,7 @@ const MyEventsPage = () => {
                             {unpublishingEventId === event.id ? 'Unpublishing...' : 'Unpublish'}
                           </button>
                         ) : (
-                          <button onClick={() => !event.coverImage ? setNoPhotoEvent(event) : !event.hasPhotographer ? setNoPhotographerEvent(event) : (!event.bookingStatus || event.bookingStatus.toUpperCase() !== 'ACCEPTED') ? setPendingBookingEvent(event) : setPublishConfirmEvent(event)} disabled={publishingEventId === event.id} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.4rem 0.5rem', backgroundColor: '#05a129', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: publishingEventId === event.id ? 'not-allowed' : 'pointer', fontSize: '0.75rem', fontWeight: 600, opacity: publishingEventId === event.id ? 0.7 : 1 }}>
+                          <button onClick={() => handlePublishClick(event)} disabled={publishingEventId === event.id} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.4rem 0.5rem', backgroundColor: '#05a129', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: publishingEventId === event.id ? 'not-allowed' : 'pointer', fontSize: '0.75rem', fontWeight: 600, opacity: publishingEventId === event.id ? 0.7 : 1 }}>
                             {publishingEventId === event.id ? 'Publishing...' : 'Publish'}
                           </button>
                         )}
@@ -2008,7 +2071,7 @@ const MyEventsPage = () => {
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2"/><path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   Assign an existing Photographer you worked with before
                 </button>
-                <button type="button" onClick={() => setPhotographerAssignMode('platform')} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer', textAlign: 'left' }}>
+                <button type="button" onClick={() => setShowFindPhotographerModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer', textAlign: 'left' }}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2"/><path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   Assign a new Photographer from platform
                 </button>
@@ -2100,6 +2163,63 @@ const MyEventsPage = () => {
                 </div>
               ) : null;
             })()}
+
+            {/* Package Selection */}
+            {createPhotographerId && photographerAssignMode === 'none' && (
+              <div style={{ marginTop: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>Select a Package <span style={{ color: '#DC2626' }}>*</span></span>
+                  {packagesLoading && <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Loading...</span>}
+                </div>
+                {packagesError && (
+                  <div style={{ padding: '0.5rem 0.75rem', backgroundColor: '#FEF2F2', color: '#DC2626', borderRadius: '0.375rem', fontSize: '0.8rem', marginBottom: '0.5rem' }}>
+                    {packagesError}
+                  </div>
+                )}
+                {!packagesLoading && photographerPackages.length === 0 && !packagesError && (
+                  <div style={{ padding: '0.75rem', textAlign: 'center', color: colors.textSecondary, fontSize: '0.85rem', border: `1px dashed ${colors.borderPrimary}`, borderRadius: '0.5rem' }}>
+                    No packages available for this photographer
+                  </div>
+                )}
+                {photographerPackages.length > 0 && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.5rem' }}>
+                    {photographerPackages.map((pkg: { id: string; packageName: string; price: number; currencyId: string; description: string; durationHours: number }) => (
+                      <div
+                        key={pkg.id}
+                        onClick={() => setCreatePackageId(pkg.id)}
+                        style={{
+                          padding: '0.75rem',
+                          border: `2px solid ${createPackageId === pkg.id ? '#083A85' : colors.borderPrimary}`,
+                          borderRadius: '0.5rem',
+                          backgroundColor: createPackageId === pkg.id
+                            ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF')
+                            : colors.bgTertiary,
+                          cursor: 'pointer',
+                          transition: 'border-color 0.15s, background-color 0.15s',
+                        }}
+                      >
+                        <div style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.25rem' }}>
+                          {pkg.packageName}
+                        </div>
+                        <div style={{ fontSize: '0.95rem', fontWeight: '700', color: '#083A85', marginBottom: '0.25rem' }}>
+                          {pkg.currencyId} {pkg.price.toLocaleString()}
+                        </div>
+                        {pkg.durationHours > 0 && (
+                          <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>
+                            {pkg.durationHours} hour{pkg.durationHours !== 1 ? 's' : ''}
+                          </div>
+                        )}
+                        {pkg.description && (
+                          <div style={{ fontSize: '0.75rem', color: colors.textSecondary, lineHeight: '1.3' }}>
+                            {pkg.description.length > 80 ? pkg.description.slice(0, 80) + '...' : pkg.description}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Submit Error */}
@@ -3322,7 +3442,7 @@ const MyEventsPage = () => {
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2"/><path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     Assign an existing Photographer you worked with before
                   </button>
-                  <button type="button" onClick={() => setEditPhotographerAssignMode('platform')} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer', textAlign: 'left' }}>
+                  <button type="button" onClick={() => setShowFindPhotographerModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer', textAlign: 'left' }}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2"/><path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     Assign a new Photographer from platform
                   </button>

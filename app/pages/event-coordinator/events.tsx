@@ -12,7 +12,7 @@ import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvid
 import { StatCard } from '../../components/dashboard/StatCard';
 import { getApiUrl, normalizeImageUrl } from '@/lib/api';
 
-// Configure localforage for event form data
+// Configure localforage for event form data 
 const eventFormStorage = localforage.createInstance({
   name: 'connekt-dashboard',
   storeName: 'event_form_draft'
@@ -474,6 +474,9 @@ const MyEventsPage = () => {
   const [createPhotographerId, setCreatePhotographerId] = useState<string>('');
   const [createEventVisibility, setCreateEventVisibility] = useState<string>('PUBLIC');
   const [createPackageId, setCreatePackageId] = useState<string>('');
+  const [photographerPackages, setPhotographerPackages] = useState<{id: string; packageName: string; price: number; currencyId: string; description: string; durationHours: number}[]>([]);
+  const [packagesLoading, setPackagesLoading] = useState(false);
+  const [packagesError, setPackagesError] = useState<string | null>(null);
 
   const [createCurrencyOpen, setCreateCurrencyOpen] = useState(false);
   const [editCurrencyOpen, setEditCurrencyOpen] = useState(false);
@@ -654,6 +657,46 @@ const MyEventsPage = () => {
     window.history.replaceState({}, '', url.pathname + (url.search !== '?' ? url.search : ''));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Fetch packages when photographer changes
+  useEffect(() => {
+    if (!createPhotographerId || !isValidUUID(createPhotographerId)) {
+      setPhotographerPackages([]);
+      setCreatePackageId('');
+      setPackagesError(null);
+      return;
+    }
+    setPackagesLoading(true);
+    setCreatePackageId('');
+    const fetchPackages = async () => {
+      try {
+        const apiUrl = getApiUrl();
+        const response = await fetch(`${apiUrl}/api/remote/public/photographers/${createPhotographerId}/packages`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        if (!response.ok) {
+          setPackagesError('Could not load packages. Please try again.');
+          return;
+        }
+        const data = await response.json();
+        const pkgs = data.action === 1 && Array.isArray(data.data) ? data.data : [];
+        setPhotographerPackages(pkgs.filter((p: Record<string, unknown>) => p.isActive !== false).map((p: Record<string, unknown>) => ({
+          id: (p.id as string) || '',
+          packageName: (p.packageName as string) || 'Package',
+          price: (p.price as number) || 0,
+          currencyId: (p.currencyId as string) || 'RWF',
+          description: (p.description as string) || '',
+          durationHours: (p.durationHours as number) || 0,
+        })));
+      } catch {
+        setPackagesError('Could not load packages. Please try again.');
+      } finally {
+        setPackagesLoading(false);
+      }
+    };
+    fetchPackages();
+  }, [createPhotographerId]);
 
   // Clear saved draft from IndexedDB
   const clearFormDraft = useCallback(async () => {
@@ -1970,7 +2013,7 @@ const MyEventsPage = () => {
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2"/><path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   Assign an existing Photographer you worked with before
                 </button>
-                <button type="button" onClick={() => setPhotographerAssignMode('platform')} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer', textAlign: 'left' }}>
+                <button type="button" onClick={() => setShowFindPhotographerModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer', textAlign: 'left' }}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2"/><path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   Assign a new Photographer from platform
                 </button>
@@ -2089,6 +2132,63 @@ const MyEventsPage = () => {
                 </div>
               ) : null;
             })()}
+
+            {/* Package Selection */}
+            {createPhotographerId && photographerAssignMode === 'none' && (
+              <div style={{ marginTop: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>Select a Package <span style={{ color: '#DC2626' }}>*</span></span>
+                  {packagesLoading && <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Loading...</span>}
+                </div>
+                {packagesError && (
+                  <div style={{ padding: '0.5rem 0.75rem', backgroundColor: '#FEF2F2', color: '#DC2626', borderRadius: '0.375rem', fontSize: '0.8rem', marginBottom: '0.5rem' }}>
+                    {packagesError}
+                  </div>
+                )}
+                {!packagesLoading && photographerPackages.length === 0 && !packagesError && (
+                  <div style={{ padding: '0.75rem', textAlign: 'center', color: colors.textSecondary, fontSize: '0.85rem', border: `1px dashed ${colors.borderPrimary}`, borderRadius: '0.5rem' }}>
+                    No packages available for this photographer
+                  </div>
+                )}
+                {photographerPackages.length > 0 && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.5rem' }}>
+                    {photographerPackages.map((pkg: { id: string; packageName: string; price: number; currencyId: string; description: string; durationHours: number }) => (
+                      <div
+                        key={pkg.id}
+                        onClick={() => setCreatePackageId(pkg.id)}
+                        style={{
+                          padding: '0.75rem',
+                          border: `2px solid ${createPackageId === pkg.id ? '#083A85' : colors.borderPrimary}`,
+                          borderRadius: '0.5rem',
+                          backgroundColor: createPackageId === pkg.id
+                            ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF')
+                            : colors.bgTertiary,
+                          cursor: 'pointer',
+                          transition: 'border-color 0.15s, background-color 0.15s',
+                        }}
+                      >
+                        <div style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.25rem' }}>
+                          {pkg.packageName}
+                        </div>
+                        <div style={{ fontSize: '0.95rem', fontWeight: '700', color: '#083A85', marginBottom: '0.25rem' }}>
+                          {pkg.currencyId} {pkg.price.toLocaleString()}
+                        </div>
+                        {pkg.durationHours > 0 && (
+                          <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>
+                            {pkg.durationHours} hour{pkg.durationHours !== 1 ? 's' : ''}
+                          </div>
+                        )}
+                        {pkg.description && (
+                          <div style={{ fontSize: '0.75rem', color: colors.textSecondary, lineHeight: '1.3' }}>
+                            {pkg.description.length > 80 ? pkg.description.slice(0, 80) + '...' : pkg.description}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
 
@@ -3282,7 +3382,7 @@ const MyEventsPage = () => {
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2"/><path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     Assign an existing Photographer you worked with before
                   </button>
-                  <button type="button" onClick={() => setEditPhotographerAssignMode('platform')} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer', textAlign: 'left' }}>
+                  <button type="button" onClick={() => setShowFindPhotographerModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer', textAlign: 'left' }}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2"/><path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     Assign a new Photographer from platform
                   </button>
