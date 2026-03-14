@@ -16,6 +16,11 @@ interface StreamPreviewProps {
   playbackUrl?: string;
   inviteToken?: string;
   connectionStatus: 'idle' | 'waiting_for_encoder' | 'receiving_signal' | 'live';
+  streamHealth?: string;
+  uploadSpeed?: string;
+  viewerCount?: number;
+  peakViewers?: number;
+  error?: string;
   onStartStream: () => void;
   onGoLive: () => void;
   onEndStream: () => void;
@@ -43,7 +48,7 @@ const CloseIcon = () => (
 );
 
 const CheckIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="20 6 9 17 4 12" />
   </svg>
 );
@@ -66,32 +71,8 @@ const StopIcon = () => (
   </svg>
 );
 
-const MonitorIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" />
-  </svg>
-);
-
-const SettingsIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
-  </svg>
-);
-
-const WifiIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M5 12.55a11 11 0 0114.08 0" /><path d="M1.42 9a16 16 0 0121.16 0" /><path d="M8.53 16.11a6 6 0 016.95 0" /><line x1="12" y1="20" x2="12.01" y2="20" />
-  </svg>
-);
-
-const EyeIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
-  </svg>
-);
-
 const BroadcastIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="2" /><path d="M16.24 7.76a6 6 0 010 8.49" /><path d="M7.76 16.24a6 6 0 010-8.49" /><path d="M19.07 4.93a10 10 0 010 14.14" /><path d="M4.93 19.07a10 10 0 010-14.14" />
   </svg>
 );
@@ -108,38 +89,12 @@ const EyeOnIcon = () => (
   </svg>
 );
 
-// ============================================
-// STEP DEFINITIONS
-// ============================================
-
-const STEPS = [
-  {
-    id: 'setup',
-    label: 'Setup Encoder',
-    icon: SettingsIcon,
-    description: 'Configure OBS or Streamlabs',
-  },
-  {
-    id: 'connect',
-    label: 'Connect',
-    icon: WifiIcon,
-    description: 'Start waiting for signal',
-  },
-  {
-    id: 'preview',
-    label: 'Preview',
-    icon: EyeIcon,
-    description: 'Test your stream quality',
-  },
-  {
-    id: 'golive',
-    label: 'Go Live',
-    icon: BroadcastIcon,
-    description: 'Start broadcasting to viewers',
-  },
-] as const;
-
-type StepId = typeof STEPS[number]['id'];
+const ChevronIcon = ({ open }: { open: boolean }) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+    style={{ transition: 'transform 0.2s', transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+);
 
 // ============================================
 // COMPONENT
@@ -154,6 +109,11 @@ export default function StreamPreview({
   playbackUrl,
   inviteToken,
   connectionStatus,
+  streamHealth,
+  uploadSpeed,
+  viewerCount = 0,
+  peakViewers = 0,
+  error,
   onStartStream,
   onGoLive,
   onEndStream,
@@ -162,22 +122,27 @@ export default function StreamPreview({
 }: StreamPreviewProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
-  const [currentStep, setCurrentStep] = useState<StepId>('setup');
   const [copiedField, setCopiedField] = useState('');
   const [showKey, setShowKey] = useState(false);
   const [videoError, setVideoError] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
 
-  // Determine active step based on connection status
+  const isDark = theme === 'dark';
+  const hasCredentials = !!(serverUrl && streamKey);
+  const isLive = connectionStatus === 'live';
+  const isWaiting = connectionStatus === 'waiting_for_encoder' || connectionStatus === 'receiving_signal';
+  const isIdle = connectionStatus === 'idle';
+
+  // Auto-expand guide when no credentials yet
   useEffect(() => {
-    if (connectionStatus === 'idle') {
-      // Stay on current step (user might be reading setup instructions)
-    } else if (connectionStatus === 'waiting_for_encoder' || connectionStatus === 'receiving_signal') {
-      if (currentStep === 'setup') setCurrentStep('connect');
-    } else if (connectionStatus === 'live') {
-      setCurrentStep('preview');
+    if (isOpen) {
+      setShowGuide(!hasCredentials);
+      setShowKey(false);
+      setCopiedField('');
+      setVideoError(false);
     }
-  }, [connectionStatus]);
+  }, [isOpen]);
 
   // HLS player setup
   useEffect(() => {
@@ -190,18 +155,15 @@ export default function StreamPreview({
       const hls = new Hls({
         enableWorker: true,
         lowLatencyMode: true,
-        // Minimal buffering — stay as close to live edge as possible
         liveSyncDurationCount: 1,
         liveMaxLatencyDurationCount: 3,
         liveBackBufferLength: 0,
         backBufferLength: 0,
         highBufferWatchdogPeriod: 1,
-        // Fast segment loading
         maxBufferLength: 3,
         maxMaxBufferLength: 5,
         maxBufferSize: 0,
         maxBufferHole: 0.5,
-        // Aggressive loading for live edge
         manifestLoadingTimeOut: 15000,
         manifestLoadingMaxRetry: 10,
         manifestLoadingRetryDelay: 1000,
@@ -218,15 +180,12 @@ export default function StreamPreview({
         video.muted = true;
         video.play().catch(() => {});
       });
-      // Periodically snap to live edge to prevent drift
       const liveEdgeInterval = setInterval(() => {
         if (hls.liveSyncPosition && video.currentTime > 0) {
           const drift = hls.liveSyncPosition - video.currentTime;
           if (drift > 4) {
-            // Too far behind — jump to live edge
             video.currentTime = hls.liveSyncPosition;
           } else if (drift > 2) {
-            // Slightly behind — speed up playback to catch up
             video.playbackRate = 1.05;
           } else {
             video.playbackRate = 1.0;
@@ -245,7 +204,6 @@ export default function StreamPreview({
         }
       });
       hlsRef.current = hls;
-      // Store interval for cleanup
       (hls as unknown as Record<string, unknown>)._liveEdgeInterval = liveEdgeInterval;
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = playbackUrl;
@@ -269,23 +227,7 @@ export default function StreamPreview({
         hlsRef.current = null;
       }
     };
-  }, [playbackUrl, currentStep]);
-
-  // Reset on open
-  useEffect(() => {
-    if (isOpen) {
-      if (connectionStatus === 'live') {
-        setCurrentStep('preview');
-      } else if (connectionStatus === 'waiting_for_encoder' || connectionStatus === 'receiving_signal') {
-        setCurrentStep('connect');
-      } else {
-        setCurrentStep('setup');
-      }
-      setShowKey(false);
-      setCopiedField('');
-      setVideoError(false);
-    }
-  }, [isOpen]);
+  }, [playbackUrl]);
 
   const handleCopy = useCallback((text: string, field: string) => {
     navigator.clipboard.writeText(text);
@@ -293,23 +235,11 @@ export default function StreamPreview({
     setTimeout(() => setCopiedField(''), 2000);
   }, []);
 
-  const getStepIndex = (id: StepId) => STEPS.findIndex(s => s.id === id);
-  const currentStepIndex = getStepIndex(currentStep);
-
-  const getStepState = (stepId: StepId) => {
-    const idx = getStepIndex(stepId);
-    if (idx < currentStepIndex) return 'completed';
-    if (idx === currentStepIndex) return 'active';
-    return 'upcoming';
-  };
-
   if (!isOpen) return null;
 
   // ============================================
   // STYLES
   // ============================================
-
-  const isDark = theme === 'dark';
 
   const overlay: React.CSSProperties = {
     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -322,57 +252,51 @@ export default function StreamPreview({
   const modal: React.CSSProperties = {
     backgroundColor: colors.bgCard,
     borderRadius: '1rem',
-    width: '94%',
-    maxWidth: '720px',
-    maxHeight: '92vh',
+    width: '96%',
+    maxWidth: '960px',
+    maxHeight: '94vh',
     overflowY: 'auto',
     boxShadow: isDark
       ? '0 25px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05)'
       : '0 25px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05)',
   };
 
-  const headerGradient: React.CSSProperties = {
-    background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
-    padding: '1.5rem',
-    borderRadius: '1rem 1rem 0 0',
-    position: 'relative',
-    overflow: 'hidden',
-  };
-
   const inputField: React.CSSProperties = {
     flex: 1,
-    padding: '0.6rem 0.75rem',
-    border: `2px solid ${colors.borderPrimary}`,
-    borderRadius: '0.5rem',
+    padding: '0.5rem 0.65rem',
+    border: `1.5px solid ${colors.borderPrimary}`,
+    borderRadius: '0.4rem',
     backgroundColor: colors.bgPrimary,
     color: colors.textPrimary,
-    fontSize: '0.85rem',
+    fontSize: '0.78rem',
     fontFamily: 'monospace',
     boxSizing: 'border-box' as const,
+    minWidth: 0,
   };
 
   const smallBtn: React.CSSProperties = {
-    padding: '0.6rem 0.75rem',
-    border: `2px solid ${colors.borderPrimary}`,
-    borderRadius: '0.5rem',
+    padding: '0.5rem 0.6rem',
+    border: `1.5px solid ${colors.borderPrimary}`,
+    borderRadius: '0.4rem',
     backgroundColor: colors.bgCard,
     color: colors.textSecondary,
-    fontSize: '0.75rem',
+    fontSize: '0.7rem',
     fontWeight: 600,
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
-    gap: '0.3rem',
+    gap: '0.25rem',
     transition: 'all 0.15s',
+    whiteSpace: 'nowrap' as const,
   };
 
   const actionBtn = (bg: string): React.CSSProperties => ({
-    padding: '0.75rem 1.5rem',
-    borderRadius: '0.625rem',
+    padding: '0.65rem 1.25rem',
+    borderRadius: '0.5rem',
     border: 'none',
     backgroundColor: bg,
     color: 'white',
-    fontSize: '0.9rem',
+    fontSize: '0.85rem',
     fontWeight: 700,
     cursor: 'pointer',
     display: 'flex',
@@ -381,219 +305,24 @@ export default function StreamPreview({
     gap: '0.5rem',
     transition: 'all 0.2s',
     width: '100%',
-    letterSpacing: '0.01em',
   });
 
-  // ============================================
-  // STEP CONTENT RENDERERS
-  // ============================================
-
-  const renderSetupStep = () => (
-    <div>
-      {/* Encoder guide card */}
-      <div style={{
-        backgroundColor: isDark ? 'rgba(59,130,246,0.08)' : '#F0F7FF',
-        border: `1px solid ${isDark ? 'rgba(59,130,246,0.2)' : '#BFDBFE'}`,
-        borderRadius: '0.75rem',
-        padding: '1.25rem',
-        marginBottom: '1.25rem',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-          <MonitorIcon />
-          <span style={{ fontSize: '0.9rem', fontWeight: 700, color: colors.textPrimary }}>Encoder Setup Guide</span>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {[
-            { num: '1', title: 'Download & Open', desc: 'Install OBS Studio (free) or Streamlabs Desktop and open it' },
-            { num: '2', title: 'Go to Stream Settings', desc: 'Navigate to Settings → Stream and set the Service to "Custom..."' },
-            { num: '3', title: 'Paste Credentials', desc: 'Copy the Server URL and Stream Key below and paste them into OBS' },
-            { num: '4', title: 'Configure Output', desc: 'Set output resolution to 1080p, bitrate to 4500 kbps, and encoder to x264 or NVENC' },
-          ].map(step => (
-            <div key={step.num} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-              <div style={{
-                width: '28px', height: '28px', borderRadius: '50%', flexShrink: 0,
-                background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
-                color: 'white', fontSize: '0.8rem', fontWeight: 700,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>{step.num}</div>
-              <div>
-                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: colors.textPrimary, marginBottom: '0.15rem' }}>{step.title}</div>
-                <div style={{ fontSize: '0.78rem', color: colors.textSecondary, lineHeight: '1.4' }}>{step.desc}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* RTMP Credentials */}
-      {serverUrl && streamKey ? (
-        <div style={{
-          backgroundColor: isDark ? 'rgba(139,92,246,0.06)' : '#FAF5FF',
-          border: `1px solid ${isDark ? 'rgba(139,92,246,0.2)' : '#E9D5FF'}`,
-          borderRadius: '0.75rem',
-          padding: '1.25rem',
-          marginBottom: '1.25rem',
-        }}>
-          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: colors.textPrimary, marginBottom: '0.75rem' }}>RTMP Credentials</div>
-          <div style={{ marginBottom: '0.75rem' }}>
-            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: colors.textSecondary, display: 'block', marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Server URL</label>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <input readOnly value={serverUrl} style={inputField} />
-              <button onClick={() => handleCopy(serverUrl, 'serverUrl')} style={smallBtn}>
-                {copiedField === 'serverUrl' ? <><CheckIcon /> Copied</> : <><CopyIcon /> Copy</>}
-              </button>
-            </div>
-          </div>
-          <div>
-            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: colors.textSecondary, display: 'block', marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Stream Key</label>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <input readOnly value={showKey ? streamKey : '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022'} style={inputField} />
-              <button onClick={() => setShowKey(!showKey)} style={smallBtn}>{showKey ? <EyeOffIcon /> : <EyeOnIcon />}</button>
-              <button onClick={() => handleCopy(streamKey, 'streamKey')} style={smallBtn}>
-                {copiedField === 'streamKey' ? <><CheckIcon /> Copied</> : <><CopyIcon /> Copy</>}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div style={{
-          backgroundColor: isDark ? 'rgba(245,158,11,0.08)' : '#FFFBEB',
-          border: `1px solid ${isDark ? 'rgba(245,158,11,0.2)' : '#FDE68A'}`,
-          borderRadius: '0.75rem',
-          padding: '1rem',
-          marginBottom: '1.25rem',
-          display: 'flex', alignItems: 'center', gap: '0.75rem',
-        }}>
-          <span style={{ fontSize: '1.25rem' }}>&#x1F512;</span>
-          <div>
-            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: colors.textPrimary }}>Credentials Not Yet Available</div>
-            <div style={{ fontSize: '0.78rem', color: colors.textSecondary, marginTop: '0.15rem' }}>Click "Connect to Stream" below to generate your RTMP credentials.</div>
-          </div>
-        </div>
-      )}
-
-      {/* Action */}
-      <button
-        onClick={() => {
-          if (!serverUrl || !streamKey) {
-            onStartStream();
-          }
-          setCurrentStep('connect');
-        }}
-        style={actionBtn('#8B5CF6')}
-      >
-        {!serverUrl || !streamKey ? (
-          <><WifiIcon /> Connect to Stream</>
-        ) : (
-          <>Next: Connect Encoder &rarr;</>
-        )}
-      </button>
-    </div>
-  );
-
-  const renderConnectStep = () => {
-    const isWaiting = connectionStatus === 'waiting_for_encoder' || connectionStatus === 'receiving_signal';
-    const isConnected = connectionStatus === 'live';
-    const isIdle = connectionStatus === 'idle';
-
-    return (
-      <div>
-        {/* Connection Status Card */}
-        <div style={{
-          backgroundColor: isDark ? 'rgba(0,0,0,0.2)' : '#F9FAFB',
-          border: `2px solid ${isConnected ? '#10B981' : isWaiting ? '#F59E0B' : colors.borderPrimary}`,
-          borderRadius: '0.75rem',
-          padding: '2rem',
-          marginBottom: '1.25rem',
-          textAlign: 'center',
-          transition: 'border-color 0.3s',
-        }}>
-          {/* Animated connection indicator */}
-          <div style={{
-            width: '80px', height: '80px', borderRadius: '50%', margin: '0 auto 1rem',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: isConnected
-              ? 'linear-gradient(135deg, #10B981, #059669)'
-              : isWaiting
-                ? 'linear-gradient(135deg, #F59E0B, #D97706)'
-                : 'linear-gradient(135deg, #6B7280, #4B5563)',
-            boxShadow: isConnected
-              ? '0 0 30px rgba(16,185,129,0.3)'
-              : isWaiting
-                ? '0 0 30px rgba(245,158,11,0.3)'
-                : 'none',
-          }}>
-            {isConnected ? (
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-            ) : isWaiting ? (
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.55a11 11 0 0114.08 0" /><path d="M1.42 9a16 16 0 0121.16 0" /><path d="M8.53 16.11a6 6 0 016.95 0" /><line x1="12" y1="20" x2="12.01" y2="20" /></svg>
-            ) : (
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
-            )}
-          </div>
-
-          <div style={{ fontSize: '1.1rem', fontWeight: 700, color: colors.textPrimary, marginBottom: '0.35rem' }}>
-            {isConnected ? 'Encoder Connected!' : isWaiting ? 'Waiting for Encoder...' : 'Not Connected'}
-          </div>
-          <div style={{ fontSize: '0.85rem', color: colors.textSecondary, lineHeight: '1.5' }}>
-            {isConnected
-              ? 'Your encoder is sending data. You can now preview the stream quality.'
-              : isWaiting
-                ? 'Open OBS Studio and click "Start Streaming". The connection will be detected automatically.'
-                : 'Start the stream connection first, then open your encoder.'}
-          </div>
-        </div>
-
-        {/* Quick reminder */}
-        {isWaiting && (
-          <div style={{
-            backgroundColor: isDark ? 'rgba(59,130,246,0.08)' : '#EFF6FF',
-            border: `1px solid ${isDark ? 'rgba(59,130,246,0.2)' : '#BFDBFE'}`,
-            borderRadius: '0.75rem',
-            padding: '1rem',
-            marginBottom: '1.25rem',
-          }}>
-            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: isDark ? '#60A5FA' : '#2563EB', marginBottom: '0.35rem' }}>Quick Checklist</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-              {[
-                { text: 'RTMP credentials pasted in OBS', done: true },
-                { text: 'Output settings configured', done: true },
-                { text: 'Click "Start Streaming" in OBS', done: false },
-              ].map((item, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: item.done ? '#10B981' : colors.textSecondary }}>
-                  {item.done ? <CheckIcon /> : <div style={{ width: '16px', height: '16px', borderRadius: '50%', border: `2px solid ${colors.borderPrimary}` }} />}
-                  <span style={{ textDecoration: item.done ? 'line-through' : 'none', opacity: item.done ? 0.7 : 1 }}>{item.text}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Action buttons */}
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          {isIdle && (
-            <button onClick={() => { onStartStream(); }} style={actionBtn('#8B5CF6')}>
-              <WifiIcon /> Start Connection
-            </button>
-          )}
-          {isWaiting && (
-            <button disabled style={{ ...actionBtn('#F59E0B'), opacity: 0.7, cursor: 'wait' }}>
-              <div style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-              Waiting for encoder signal...
-            </button>
-          )}
-          {isConnected && (
-            <button onClick={() => setCurrentStep('preview')} style={actionBtn('#10B981')}>
-              <EyeIcon /> Preview Stream &rarr;
-            </button>
-          )}
-        </div>
-      </div>
-    );
+  // Status configuration
+  const statusConfig = {
+    idle: { color: '#6B7280', label: 'Idle', bg: isDark ? 'rgba(107,114,128,0.15)' : '#F3F4F6' },
+    waiting_for_encoder: { color: '#F59E0B', label: 'Waiting for Encoder', bg: isDark ? 'rgba(245,158,11,0.12)' : '#FFFBEB' },
+    receiving_signal: { color: '#3B82F6', label: 'Receiving Signal', bg: isDark ? 'rgba(59,130,246,0.12)' : '#EFF6FF' },
+    live: { color: '#10B981', label: 'Live', bg: isDark ? 'rgba(16,185,129,0.12)' : '#ECFDF5' },
   };
 
-  const renderPreviewStep = () => (
-    <div>
+  const status = statusConfig[connectionStatus];
+
+  // ============================================
+  // RENDER SECTIONS
+  // ============================================
+
+  const renderVideoPanel = () => (
+    <div style={{ flex: '1 1 55%', minWidth: 0 }}>
       {/* Video Player */}
       <div style={{
         position: 'relative',
@@ -602,8 +331,7 @@ export default function StreamPreview({
         backgroundColor: '#000',
         borderRadius: '0.75rem',
         overflow: 'hidden',
-        marginBottom: '1rem',
-        border: connectionStatus === 'live' ? '2px solid #10B981' : `2px solid ${colors.borderPrimary}`,
+        border: isLive ? '2px solid #10B981' : `2px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#E5E7EB'}`,
       }}>
         {playbackUrl && !videoError ? (
           <>
@@ -615,7 +343,6 @@ export default function StreamPreview({
               autoPlay
               controls
             />
-            {/* Buffering overlay */}
             {isBuffering && (
               <div style={{
                 position: 'absolute', inset: 0,
@@ -631,42 +358,36 @@ export default function StreamPreview({
                 }} />
               </div>
             )}
-            {/* LIVE badge */}
-            {connectionStatus === 'live' && (
+            {/* LIVE / PREVIEW badge */}
+            <div style={{
+              position: 'absolute', top: '10px', left: '10px',
+              backgroundColor: isLive ? '#DC2626' : 'rgba(139,92,246,0.9)',
+              color: 'white',
+              padding: '0.2rem 0.55rem',
+              borderRadius: '0.25rem',
+              fontSize: '0.65rem',
+              fontWeight: 800,
+              letterSpacing: '0.1em',
+              display: 'flex', alignItems: 'center', gap: '0.3rem',
+              boxShadow: isLive ? '0 2px 8px rgba(220,38,38,0.4)' : 'none',
+            }}>
+              {isLive && <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'white', animation: 'pulse 2s infinite' }} />}
+              {isLive ? 'LIVE' : 'PREVIEW'}
+            </div>
+            {/* Viewer count */}
+            {isLive && viewerCount > 0 && (
               <div style={{
-                position: 'absolute', top: '12px', left: '12px',
-                backgroundColor: '#DC2626',
+                position: 'absolute', top: '10px', right: '10px',
+                backgroundColor: 'rgba(0,0,0,0.6)',
                 color: 'white',
-                padding: '0.25rem 0.6rem',
+                padding: '0.2rem 0.5rem',
                 borderRadius: '0.25rem',
-                fontSize: '0.7rem',
-                fontWeight: 800,
-                letterSpacing: '0.1em',
-                display: 'flex', alignItems: 'center', gap: '0.35rem',
-                boxShadow: '0 2px 8px rgba(220,38,38,0.4)',
-              }}>
-                <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'white', animation: 'pulse 2s infinite' }} />
-                LIVE
-              </div>
-            )}
-            {/* PREVIEW badge */}
-            {connectionStatus !== 'live' && (
-              <div style={{
-                position: 'absolute', top: '12px', left: '12px',
-                backgroundColor: 'rgba(139,92,246,0.9)',
-                color: 'white',
-                padding: '0.25rem 0.6rem',
-                borderRadius: '0.25rem',
-                fontSize: '0.7rem',
-                fontWeight: 800,
-                letterSpacing: '0.1em',
-              }}>
-                PREVIEW
-              </div>
+                fontSize: '0.65rem',
+                fontWeight: 600,
+              }}>{viewerCount.toLocaleString()} viewers</div>
             )}
           </>
         ) : (
-          /* No stream / waiting state */
           <div style={{
             width: '100%', height: '100%',
             display: 'flex', flexDirection: 'column',
@@ -674,197 +395,220 @@ export default function StreamPreview({
             background: 'linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%)',
           }}>
             <div style={{
-              width: '64px', height: '64px', borderRadius: '50%',
-              background: 'rgba(139,92,246,0.15)',
+              width: '56px', height: '56px', borderRadius: '50%',
+              background: isWaiting ? 'rgba(245,158,11,0.15)' : 'rgba(139,92,246,0.15)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              marginBottom: '1rem',
+              marginBottom: '0.75rem',
             }}>
-              <BroadcastIcon />
+              {isWaiting ? (
+                <div style={{
+                  width: '24px', height: '24px',
+                  border: '3px solid rgba(245,158,11,0.3)',
+                  borderTopColor: '#F59E0B',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite',
+                }} />
+              ) : (
+                <BroadcastIcon />
+              )}
             </div>
-            <div style={{ color: '#94A3B8', fontSize: '0.9rem', fontWeight: 600, marginBottom: '0.35rem' }}>
-              {videoError ? 'Stream playback error' : 'No stream signal detected'}
+            <div style={{ color: '#94A3B8', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+              {videoError ? 'Playback Error' : isWaiting ? 'Waiting for OBS...' : 'No Stream Signal'}
             </div>
-            <div style={{ color: '#64748B', fontSize: '0.78rem', maxWidth: '280px', textAlign: 'center', lineHeight: '1.4' }}>
+            <div style={{ color: '#64748B', fontSize: '0.73rem', maxWidth: '260px', textAlign: 'center', lineHeight: '1.4' }}>
               {videoError
-                ? 'There was an issue playing the stream. Make sure your encoder is sending data.'
-                : 'Start streaming from your encoder to see the preview here. This is exactly what your viewers will see.'}
+                ? 'Check your encoder connection and try again.'
+                : hasCredentials
+                  ? 'Paste the credentials into OBS and click "Start Streaming".'
+                  : 'Click "Start Stream" to generate your RTMP credentials.'}
             </div>
           </div>
         )}
       </div>
 
-      {/* Stream quality info */}
-      {connectionStatus === 'live' && (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '0.75rem',
-          marginBottom: '1rem',
-        }}>
+      {/* Stream stats row — only when live or has playback */}
+      {(isLive || (isWaiting && playbackUrl)) && (
+        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem' }}>
           {[
-            { label: 'Status', value: 'Receiving', color: '#10B981' },
-            { label: 'Latency', value: 'Low', color: '#3B82F6' },
-            { label: 'Quality', value: '1080p', color: '#8B5CF6' },
+            { label: 'Health', value: streamHealth?.toUpperCase() || 'N/A', color: streamHealth === 'good' ? '#10B981' : streamHealth === 'fair' ? '#F59E0B' : '#6B7280' },
+            { label: 'Upload', value: uploadSpeed || 'N/A', color: '#3B82F6' },
+            { label: 'Viewers', value: viewerCount.toLocaleString(), color: '#8B5CF6' },
+            { label: 'Peak', value: peakViewers.toLocaleString(), color: '#6B7280' },
           ].map(stat => (
             <div key={stat.label} style={{
+              flex: 1,
               backgroundColor: isDark ? 'rgba(0,0,0,0.2)' : '#F9FAFB',
               border: `1px solid ${colors.borderPrimary}`,
-              borderRadius: '0.5rem',
-              padding: '0.75rem',
+              borderRadius: '0.4rem',
+              padding: '0.4rem 0.5rem',
               textAlign: 'center',
             }}>
-              <div style={{ fontSize: '0.7rem', color: colors.textTertiary, marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{stat.label}</div>
-              <div style={{ fontSize: '0.9rem', fontWeight: 700, color: stat.color }}>{stat.value}</div>
+              <div style={{ fontSize: '0.6rem', color: colors.textTertiary, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{stat.label}</div>
+              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: stat.color, marginTop: '0.1rem' }}>{stat.value}</div>
             </div>
           ))}
         </div>
       )}
-
-      {/* Viewer perspective note */}
-      <div style={{
-        backgroundColor: isDark ? 'rgba(139,92,246,0.08)' : '#FAF5FF',
-        border: `1px solid ${isDark ? 'rgba(139,92,246,0.2)' : '#E9D5FF'}`,
-        borderRadius: '0.75rem',
-        padding: '1rem',
-        marginBottom: '1.25rem',
-        display: 'flex', gap: '0.75rem', alignItems: 'flex-start',
-      }}>
-        <EyeIcon />
-        <div>
-          <div style={{ fontSize: '0.85rem', fontWeight: 600, color: colors.textPrimary, marginBottom: '0.15rem' }}>Viewer Perspective</div>
-          <div style={{ fontSize: '0.78rem', color: colors.textSecondary, lineHeight: '1.5' }}>
-            This is exactly how your live stream will appear to viewers on the event page. Check your framing, audio levels, and video quality before going live.
-          </div>
-        </div>
-      </div>
-
-      {/* Action */}
-      <div style={{ display: 'flex', gap: '0.5rem' }}>
-        <button
-          onClick={() => setCurrentStep('golive')}
-          style={actionBtn('#10B981')}
-        >
-          <BroadcastIcon /> Ready to Go Live &rarr;
-        </button>
-      </div>
     </div>
   );
 
-  const renderGoLiveStep = () => {
-    const isLive = connectionStatus === 'live';
-
-    return (
-      <div>
-        {/* Final confirmation card */}
-        <div style={{
-          backgroundColor: isDark ? 'rgba(0,0,0,0.2)' : '#F9FAFB',
-          border: `2px solid ${isLive ? '#10B981' : isDark ? 'rgba(139,92,246,0.3)' : '#E9D5FF'}`,
-          borderRadius: '0.75rem',
-          padding: '2rem',
-          marginBottom: '1.25rem',
-          textAlign: 'center',
-        }}>
-          {isLive ? (
-            <>
-              <div style={{
-                width: '72px', height: '72px', borderRadius: '50%', margin: '0 auto 1rem',
-                background: 'linear-gradient(135deg, #10B981, #059669)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 0 40px rgba(16,185,129,0.3)',
-                animation: 'pulse 2s infinite',
-              }}>
-                <BroadcastIcon />
-              </div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#10B981', marginBottom: '0.35rem' }}>You Are Live!</div>
-              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, lineHeight: '1.5' }}>
-                Your stream is now visible to all viewers with the invite token. You can monitor the stream from here or close this window.
-              </div>
-            </>
-          ) : (
-            <>
-              <div style={{
-                width: '72px', height: '72px', borderRadius: '50%', margin: '0 auto 1rem',
-                background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <BroadcastIcon />
-              </div>
-              <div style={{ fontSize: '1.1rem', fontWeight: 700, color: colors.textPrimary, marginBottom: '0.5rem' }}>Ready to Broadcast?</div>
-              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, lineHeight: '1.5', maxWidth: '380px', margin: '0 auto' }}>
-                Once you go live, viewers with the invite token will be able to watch your stream in real time on the event page.
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Invite Token */}
-        {inviteToken && (
+  const renderControlPanel = () => (
+    <div style={{ flex: '1 1 45%', minWidth: '280px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+      {/* Connection Status Bar */}
+      <div style={{
+        backgroundColor: status.bg,
+        borderRadius: '0.5rem',
+        padding: '0.6rem 0.75rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        border: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <div style={{
-            backgroundColor: isDark ? 'rgba(139,92,246,0.08)' : '#FAF5FF',
-            border: `1px solid ${isDark ? 'rgba(139,92,246,0.25)' : '#DDD6FE'}`,
-            borderRadius: '0.75rem',
-            padding: '1rem',
-            marginBottom: '1.25rem',
-          }}>
-            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: colors.textSecondary, display: 'block', marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Viewer Invite Token</label>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <input readOnly value={inviteToken} style={{ ...inputField, textAlign: 'center', fontSize: '1.1rem', fontWeight: 800, letterSpacing: '0.15em' }} />
-              <button onClick={() => handleCopy(inviteToken, 'inviteToken')} style={smallBtn}>
-                {copiedField === 'inviteToken' ? <><CheckIcon /> Copied</> : <><CopyIcon /> Copy</>}
+            width: '8px', height: '8px', borderRadius: '50%',
+            backgroundColor: status.color,
+            animation: isLive ? 'pulse 2s infinite' : isWaiting ? 'pulse 1.5s infinite' : 'none',
+          }} />
+          <span style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary }}>{status.label}</span>
+        </div>
+        {isLive && <span style={{ fontSize: '0.73rem', color: colors.textSecondary }}>{viewerCount} watching</span>}
+      </div>
+
+      {/* RTMP Credentials */}
+      {hasCredentials ? (
+        <div style={{
+          backgroundColor: isDark ? 'rgba(139,92,246,0.05)' : '#FAFAFE',
+          border: `1px solid ${isDark ? 'rgba(139,92,246,0.15)' : '#EDE9FE'}`,
+          borderRadius: '0.5rem',
+          padding: '0.75rem',
+        }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: colors.textPrimary, marginBottom: '0.5rem' }}>RTMP Credentials</div>
+          <div style={{ marginBottom: '0.5rem' }}>
+            <label style={{ fontSize: '0.65rem', fontWeight: 600, color: colors.textTertiary, display: 'block', marginBottom: '0.2rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Server URL</label>
+            <div style={{ display: 'flex', gap: '0.35rem' }}>
+              <input readOnly value={serverUrl} style={inputField} />
+              <button onClick={() => handleCopy(serverUrl!, 'serverUrl')} style={smallBtn}>
+                {copiedField === 'serverUrl' ? <><CheckIcon /> Copied</> : <><CopyIcon /> Copy</>}
               </button>
             </div>
-            <div style={{ fontSize: '0.72rem', color: colors.textTertiary, marginTop: '0.35rem' }}>Share this token with viewers so they can access the live stream.</div>
           </div>
-        )}
-
-        {/* Pre-flight checklist */}
-        {!isLive && (
-          <div style={{
-            backgroundColor: isDark ? 'rgba(245,158,11,0.08)' : '#FFFBEB',
-            border: `1px solid ${isDark ? 'rgba(245,158,11,0.2)' : '#FDE68A'}`,
-            borderRadius: '0.75rem',
-            padding: '1rem',
-            marginBottom: '1.25rem',
-          }}>
-            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: isDark ? '#FBBF24' : '#D97706', marginBottom: '0.5rem' }}>Pre-flight Checklist</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-              {[
-                'Camera framing and angle look good',
-                'Audio is clear and at the right level',
-                'Stream quality is stable in preview',
-                'Invite token shared with viewers',
-              ].map((item, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: colors.textSecondary }}>
-                  <div style={{ width: '16px', height: '16px', borderRadius: '4px', border: `2px solid ${colors.borderPrimary}`, flexShrink: 0 }} />
-                  {item}
-                </div>
-              ))}
+          <div>
+            <label style={{ fontSize: '0.65rem', fontWeight: 600, color: colors.textTertiary, display: 'block', marginBottom: '0.2rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Stream Key</label>
+            <div style={{ display: 'flex', gap: '0.35rem' }}>
+              <input readOnly value={showKey ? streamKey : '\u2022'.repeat(20)} style={inputField} />
+              <button onClick={() => setShowKey(!showKey)} style={smallBtn}>{showKey ? <EyeOffIcon /> : <EyeOnIcon />}</button>
+              <button onClick={() => handleCopy(streamKey!, 'streamKey')} style={smallBtn}>
+                {copiedField === 'streamKey' ? <><CheckIcon /> Copied</> : <><CopyIcon /> Copy</>}
+              </button>
             </div>
           </div>
-        )}
-
-        {/* Action buttons */}
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          {!isLive ? (
-            <button onClick={onGoLive} style={actionBtn('#10B981')}>
-              <BroadcastIcon /> Go Live Now
-            </button>
-          ) : (
-            <button onClick={onEndStream} style={actionBtn('#DC2626')}>
-              <StopIcon /> End Stream
-            </button>
-          )}
         </div>
-      </div>
-    );
-  };
+      ) : (
+        <div style={{
+          backgroundColor: isDark ? 'rgba(245,158,11,0.06)' : '#FFFBEB',
+          border: `1px solid ${isDark ? 'rgba(245,158,11,0.15)' : '#FDE68A'}`,
+          borderRadius: '0.5rem',
+          padding: '0.75rem',
+          display: 'flex', alignItems: 'center', gap: '0.6rem',
+        }}>
+          <span style={{ fontSize: '1.1rem' }}>&#x1F512;</span>
+          <div>
+            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary }}>No Credentials Yet</div>
+            <div style={{ fontSize: '0.72rem', color: colors.textSecondary, marginTop: '0.1rem' }}>Click "Start Stream" to provision RTMP credentials.</div>
+          </div>
+        </div>
+      )}
 
-  const stepRenderers: Record<StepId, () => React.ReactNode> = {
-    setup: renderSetupStep,
-    connect: renderConnectStep,
-    preview: renderPreviewStep,
-    golive: renderGoLiveStep,
-  };
+      {/* Invite Token */}
+      {inviteToken && (
+        <div style={{
+          backgroundColor: isDark ? 'rgba(139,92,246,0.06)' : '#FAF5FF',
+          border: `1px solid ${isDark ? 'rgba(139,92,246,0.2)' : '#DDD6FE'}`,
+          borderRadius: '0.5rem',
+          padding: '0.75rem',
+        }}>
+          <label style={{ fontSize: '0.65rem', fontWeight: 600, color: colors.textTertiary, display: 'block', marginBottom: '0.2rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Viewer Invite Token</label>
+          <div style={{ display: 'flex', gap: '0.35rem' }}>
+            <input readOnly value={inviteToken} style={{ ...inputField, textAlign: 'center', fontSize: '0.95rem', fontWeight: 800, letterSpacing: '0.12em', fontFamily: 'inherit' }} />
+            <button onClick={() => handleCopy(inviteToken, 'inviteToken')} style={smallBtn}>
+              {copiedField === 'inviteToken' ? <><CheckIcon /> Copied</> : <><CopyIcon /> Copy</>}
+            </button>
+          </div>
+          <div style={{ fontSize: '0.65rem', color: colors.textTertiary, marginTop: '0.25rem' }}>Share with viewers to grant stream access.</div>
+        </div>
+      )}
+
+      {/* Encoder Guide (collapsible) */}
+      <div style={{
+        backgroundColor: isDark ? 'rgba(59,130,246,0.05)' : '#F0F7FF',
+        border: `1px solid ${isDark ? 'rgba(59,130,246,0.15)' : '#BFDBFE'}`,
+        borderRadius: '0.5rem',
+        overflow: 'hidden',
+      }}>
+        <button onClick={() => setShowGuide(!showGuide)} style={{
+          width: '100%',
+          padding: '0.6rem 0.75rem',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          background: 'none', border: 'none', cursor: 'pointer',
+          color: isDark ? '#60A5FA' : '#2563EB',
+        }}>
+          <span style={{ fontSize: '0.78rem', fontWeight: 600 }}>Encoder Setup Guide (OBS / Streamlabs)</span>
+          <ChevronIcon open={showGuide} />
+        </button>
+        {showGuide && (
+          <div style={{ padding: '0 0.75rem 0.75rem' }}>
+            <ol style={{ fontSize: '0.72rem', color: colors.textSecondary, margin: 0, paddingLeft: '1.1rem', lineHeight: '1.7' }}>
+              <li>Open OBS Studio and go to <strong>Settings &rarr; Stream</strong></li>
+              <li>Set Service to <strong>"Custom..."</strong></li>
+              <li>Paste the <strong>Server URL</strong> and <strong>Stream Key</strong> above</li>
+              <li>Set output: <strong>1080p, 4500 kbps, x264/NVENC</strong></li>
+              <li>Click <strong>"Start Streaming"</strong> in OBS</li>
+              <li>Come back here and click <strong>"Go Live"</strong></li>
+            </ol>
+          </div>
+        )}
+      </div>
+
+      {/* Error */}
+      {error && (
+        <div style={{
+          backgroundColor: isDark ? 'rgba(220,38,38,0.08)' : '#FEF2F2',
+          border: `1px solid ${isDark ? 'rgba(248,113,113,0.3)' : '#FECACA'}`,
+          borderRadius: '0.5rem',
+          padding: '0.6rem 0.75rem',
+          display: 'flex', alignItems: 'center', gap: '0.5rem',
+        }}>
+          <span style={{ fontSize: '0.9rem', flexShrink: 0 }}>&#x26A0;&#xFE0F;</span>
+          <span style={{ fontSize: '0.78rem', color: isDark ? '#FCA5A5' : '#DC2626' }}>{error}</span>
+        </div>
+      )}
+
+      {/* Action Button */}
+      <div style={{ marginTop: 'auto' }}>
+        {isIdle && !hasCredentials && (
+          <button onClick={onStartStream} style={actionBtn('#8B5CF6')}>
+            <PlayIcon /> Start Stream
+          </button>
+        )}
+        {isIdle && hasCredentials && (
+          <button onClick={onGoLive} style={actionBtn('#10B981')}>
+            <BroadcastIcon /> Resume Stream
+          </button>
+        )}
+        {isWaiting && (
+          <button onClick={onGoLive} style={actionBtn('#10B981')}>
+            <BroadcastIcon /> {hasCredentials ? 'Go Live' : 'Go Live'}
+          </button>
+        )}
+        {isLive && (
+          <button onClick={onEndStream} style={actionBtn('#DC2626')}>
+            <StopIcon /> End Stream
+          </button>
+        )}
+      </div>
+    </div>
+  );
 
   // ============================================
   // RENDER
@@ -876,108 +620,79 @@ export default function StreamPreview({
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .stream-preview-modal { animation: slideUp 0.3s ease-out; }
-        .stream-preview-modal::-webkit-scrollbar { width: 6px; }
-        .stream-preview-modal::-webkit-scrollbar-track { background: transparent; }
-        .stream-preview-modal::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.3); border-radius: 3px; }
-        .step-btn:hover { opacity: 0.85; }
+        .stream-modal { animation: slideUp 0.3s ease-out; }
+        .stream-modal::-webkit-scrollbar { width: 6px; }
+        .stream-modal::-webkit-scrollbar-track { background: transparent; }
+        .stream-modal::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.3); border-radius: 3px; }
       `}</style>
       <div style={overlay} onClick={onClose}>
-        <div className="stream-preview-modal" style={modal} onClick={e => e.stopPropagation()}>
+        <div className="stream-modal" style={modal} onClick={e => e.stopPropagation()}>
           {/* Header */}
-          <div style={headerGradient}>
-            {/* Decorative circles */}
-            <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '120px', height: '120px', borderRadius: '50%', background: 'rgba(139,92,246,0.1)' }} />
-            <div style={{ position: 'absolute', bottom: '-30px', left: '30%', width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(59,130,246,0.08)' }} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', position: 'relative', zIndex: 1 }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+            padding: '1.15rem 1.5rem',
+            borderRadius: '1rem 1rem 0 0',
+            position: 'relative',
+            overflow: 'hidden',
+          }}>
+            <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '100px', height: '100px', borderRadius: '50%', background: 'rgba(139,92,246,0.1)' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{
+                  width: '36px', height: '36px', borderRadius: '0.5rem',
+                  background: isLive
+                    ? 'linear-gradient(135deg, #10B981, #059669)'
+                    : 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: isLive ? '0 0 20px rgba(16,185,129,0.3)' : 'none',
+                }}>
                   <BroadcastIcon />
-                  <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'white', margin: 0 }}>Stream Test &amp; Preview</h2>
                 </div>
-                <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', margin: 0 }}>{eventTitle}</p>
+                <div>
+                  <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'white', margin: 0 }}>
+                    Live Stream Control
+                  </h2>
+                  <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.55)', margin: 0 }}>{eventTitle}</p>
+                </div>
               </div>
-              <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '0.375rem', padding: '0.4rem', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', transition: 'all 0.15s' }}>
-                <CloseIcon />
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                {isLive && (
+                  <div style={{
+                    backgroundColor: '#DC2626',
+                    color: 'white',
+                    padding: '0.2rem 0.6rem',
+                    borderRadius: '0.25rem',
+                    fontSize: '0.65rem',
+                    fontWeight: 800,
+                    letterSpacing: '0.08em',
+                    display: 'flex', alignItems: 'center', gap: '0.3rem',
+                    animation: 'pulse 2s infinite',
+                  }}>
+                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'white' }} />
+                    LIVE
+                  </div>
+                )}
+                <button onClick={onClose} style={{
+                  background: 'rgba(255,255,255,0.1)',
+                  border: 'none', borderRadius: '0.375rem',
+                  padding: '0.35rem', cursor: 'pointer',
+                  color: 'rgba(255,255,255,0.7)',
+                }}>
+                  <CloseIcon />
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Stepper */}
-          <div style={{ padding: '1.25rem 1.5rem 0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1.5rem' }}>
-              {STEPS.map((step, i) => {
-                const state = getStepState(step.id);
-                const StepIcon = step.icon;
-                return (
-                  <React.Fragment key={step.id}>
-                    <button
-                      className="step-btn"
-                      onClick={() => {
-                        // Allow navigating to completed or current steps
-                        if (state !== 'upcoming') setCurrentStep(step.id);
-                      }}
-                      style={{
-                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.35rem',
-                        background: 'none', border: 'none', cursor: state !== 'upcoming' ? 'pointer' : 'default',
-                        padding: '0.25rem',
-                        opacity: state === 'upcoming' ? 0.4 : 1,
-                        transition: 'opacity 0.2s',
-                        minWidth: '60px',
-                      }}
-                    >
-                      <div style={{
-                        width: '36px', height: '36px', borderRadius: '50%',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        background: state === 'completed'
-                          ? 'linear-gradient(135deg, #10B981, #059669)'
-                          : state === 'active'
-                            ? 'linear-gradient(135deg, #8B5CF6, #6D28D9)'
-                            : isDark ? 'rgba(255,255,255,0.05)' : '#F3F4F6',
-                        color: state === 'completed' || state === 'active' ? 'white' : colors.textTertiary,
-                        transition: 'all 0.3s',
-                        boxShadow: state === 'active' ? '0 0 16px rgba(139,92,246,0.3)' : 'none',
-                      }}>
-                        {state === 'completed' ? <CheckIcon /> : <StepIcon />}
-                      </div>
-                      <span style={{
-                        fontSize: '0.68rem', fontWeight: state === 'active' ? 700 : 500,
-                        color: state === 'active' ? '#8B5CF6' : state === 'completed' ? '#10B981' : colors.textTertiary,
-                        whiteSpace: 'nowrap',
-                      }}>
-                        {step.label}
-                      </span>
-                    </button>
-                    {i < STEPS.length - 1 && (
-                      <div style={{
-                        flex: 1, height: '2px', margin: '0 0.25rem',
-                        marginBottom: '1.2rem',
-                        background: getStepState(STEPS[i + 1].id) !== 'upcoming'
-                          ? 'linear-gradient(90deg, #10B981, #8B5CF6)'
-                          : isDark ? 'rgba(255,255,255,0.08)' : '#E5E7EB',
-                        borderRadius: '1px',
-                        transition: 'background 0.3s',
-                      }} />
-                    )}
-                  </React.Fragment>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Step Content */}
-          <div style={{ padding: '0 1.5rem 1.5rem' }}>
-            {/* Step description */}
-            <div style={{ marginBottom: '1rem' }}>
-              <div style={{ fontSize: '1rem', fontWeight: 700, color: colors.textPrimary, marginBottom: '0.15rem' }}>
-                {STEPS[currentStepIndex].label}
-              </div>
-              <div style={{ fontSize: '0.82rem', color: colors.textSecondary }}>
-                {STEPS[currentStepIndex].description}
-              </div>
-            </div>
-
-            {stepRenderers[currentStep]()}
+          {/* Body — Two-panel layout */}
+          <div style={{
+            padding: '1.25rem 1.5rem',
+            display: 'flex',
+            gap: '1.25rem',
+            flexWrap: 'wrap' as const,
+          }}>
+            {renderVideoPanel()}
+            {renderControlPanel()}
           </div>
         </div>
       </div>

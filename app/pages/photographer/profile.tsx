@@ -164,6 +164,7 @@ interface DeliveryPackage {
   durationHours: string;
   description: string;
   isActive: boolean;
+  hasLiveStream: boolean;
   features: PackageFeature[];
   includedPhotos: string;
   includedVideos: string;
@@ -375,6 +376,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       durationHours: '',
       description: '',
       isActive: true,
+      hasLiveStream: false,
       features: [],
       includedPhotos: '',
       includedVideos: '',
@@ -478,6 +480,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           durationHours: parseFloat(pkg.durationHours) || 0,
           description: pkg.description,
           isActive: pkg.isActive,
+          hasLiveStream: pkg.hasLiveStream,
           // Premium is unlimited — send null; Essential/Custom have specific counts
           includedPhotos: pkg.packageName === 'Premium' ? null : (parseInt(pkg.includedPhotos) || 0),
           includedVideos: pkg.packageName === 'Premium' ? null : (parseInt(pkg.includedVideos) || 0),
@@ -938,6 +941,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           durationHours: String(p.durationHours ?? ''),
           description: p.description || '',
           isActive: p.isActive ?? true,
+          hasLiveStream: p.hasLiveStream ?? false,
           features: (p.features || []).map((f: any) => ({
             id: f.id || String(Date.now()),
             featureName: f.featureName || '',
@@ -4944,22 +4948,42 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                       ))}
                                   </select>
                                 </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', paddingBottom: '0.75rem' }}>
-                                  <label style={{ fontSize: '0.875rem', fontWeight: '500', color: colors.textPrimary }}>Active</label>
-                                  <div
-                                    onClick={() => isEditEnabled && updatePackage(pkg.id, 'isActive', !pkg.isActive)}
-                                    style={{
-                                      width: '44px', height: '24px', borderRadius: '12px',
-                                      backgroundColor: pkg.isActive ? '#083A85' : (actualTheme === 'dark' ? '#4B5563' : '#D1D5DB'),
-                                      cursor: isEditEnabled ? 'pointer' : 'not-allowed',
-                                      position: 'relative', transition: 'background-color 0.2s',
-                                    }}
-                                  >
-                                    <div style={{
-                                      width: '20px', height: '20px', borderRadius: '50%',
-                                      backgroundColor: 'white', position: 'absolute', top: '2px',
-                                      left: pkg.isActive ? '22px' : '2px', transition: 'left 0.2s',
-                                    }} />
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', paddingBottom: '0.75rem' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <label style={{ fontSize: '0.875rem', fontWeight: '500', color: colors.textPrimary }}>Active</label>
+                                    <div
+                                      onClick={() => isEditEnabled && updatePackage(pkg.id, 'isActive', !pkg.isActive)}
+                                      style={{
+                                        width: '44px', height: '24px', borderRadius: '12px',
+                                        backgroundColor: pkg.isActive ? '#083A85' : (actualTheme === 'dark' ? '#4B5563' : '#D1D5DB'),
+                                        cursor: isEditEnabled ? 'pointer' : 'not-allowed',
+                                        position: 'relative', transition: 'background-color 0.2s',
+                                      }}
+                                    >
+                                      <div style={{
+                                        width: '20px', height: '20px', borderRadius: '50%',
+                                        backgroundColor: 'white', position: 'absolute', top: '2px',
+                                        left: pkg.isActive ? '22px' : '2px', transition: 'left 0.2s',
+                                      }} />
+                                    </div>
+                                  </div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <label style={{ fontSize: '0.875rem', fontWeight: '500', color: colors.textPrimary }}>Live Stream</label>
+                                    <div
+                                      onClick={() => isEditEnabled && updatePackage(pkg.id, 'hasLiveStream', !pkg.hasLiveStream)}
+                                      style={{
+                                        width: '44px', height: '24px', borderRadius: '12px',
+                                        backgroundColor: pkg.hasLiveStream ? '#10B981' : (actualTheme === 'dark' ? '#4B5563' : '#D1D5DB'),
+                                        cursor: isEditEnabled ? 'pointer' : 'not-allowed',
+                                        position: 'relative', transition: 'background-color 0.2s',
+                                      }}
+                                    >
+                                      <div style={{
+                                        width: '20px', height: '20px', borderRadius: '50%',
+                                        backgroundColor: 'white', position: 'absolute', top: '2px',
+                                        left: pkg.hasLiveStream ? '22px' : '2px', transition: 'left 0.2s',
+                                      }} />
+                                    </div>
                                   </div>
                                 </div>
                               </div>
