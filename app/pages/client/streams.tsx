@@ -6,7 +6,7 @@ import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
-import { getApiUrl } from '@/lib/api';
+import { getApiUrl, normalizeImageUrl } from '@/lib/api';
 
 // Types
 interface ViewerMessage {
@@ -183,6 +183,15 @@ interface StreamsPageProps {
   userRole?: 'client' | 'event-coordinator';
 }
 
+const normalizeImg = (url: string | undefined | null): string => {
+  if (!url || url === 'null' || url.endsWith('/null')) return '';
+  let u = url;
+  if (!u.includes('/') && !u.startsWith('http')) {
+    u = `${getApiUrl()}/uploads/profile/photos/${u}`;
+  }
+  return normalizeImageUrl(u) || '';
+};
+
 const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
   const { colors, actualTheme } = useTheme();
   const { user } = useDashboardAuth();
@@ -198,6 +207,47 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // Fetch streams from API
+  // Fetch chats for a single stream from the dedicated endpoint
+  const fetchChatsForStream = useCallback(async (eventId: string): Promise<{ messages: ViewerMessage[]; videoMessages: ViewerVideo[] }> => {
+    const rolePrefix = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
+    // Coordinator uses /streams/{eventId}/chats, customer uses /events/{eventId}/chats
+    const chatsPath = userRole === 'event-coordinator'
+      ? `${apiUrl}/api/remote/${rolePrefix}/streams/${eventId}/chats`
+      : `${apiUrl}/api/remote/${rolePrefix}/events/${eventId}/chats`;
+    try {
+      const res = await dashboardAuthFetch(chatsPath);
+      if (res.ok) {
+        const chatData = await res.json();
+        const allChats: any[] = chatData.data || chatData || [];
+        const textMessages: ViewerMessage[] = allChats
+          .filter((m: any) => !m.videoUrl)
+          .map((m: any) => ({
+            id: m.id,
+            viewerUsername: m.viewerUsername || '',
+            viewerAvatar: normalizeImg(m.viewerAvatar),
+            message: m.message || '',
+            timestamp: m.timestamp || '',
+            time: m.time || '',
+          }));
+        const videoMessages: ViewerVideo[] = allChats
+          .filter((m: any) => m.videoUrl)
+          .map((v: any) => ({
+            id: v.id,
+            viewerUsername: v.viewerUsername || '',
+            viewerAvatar: normalizeImg(v.viewerAvatar),
+            videoUrl: normalizeImg(v.videoUrl),
+            thumbnailUrl: normalizeImg(v.thumbnailUrl),
+            duration: v.duration || '0:00',
+            timestamp: v.timestamp || '',
+            time: v.time || '',
+            viewed: v.viewed || false,
+          }));
+        return { messages: textMessages, videoMessages };
+      }
+    } catch { /* ignore per-stream chat errors */ }
+    return { messages: [], videoMessages: [] };
+  }, [apiUrl, userRole]);
+
   const fetchStreams = useCallback(async () => {
     try {
       const endpoint = userRole === 'event-coordinator'
@@ -206,99 +256,98 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
       const res = await dashboardAuthFetch(endpoint);
       if (res.ok) {
         const data = await res.json();
-        const loaded: CompletedStream[] = (data.data || []).map((s: any) => ({
-          id: s.id,
-          eventId: s.eventId,
-          eventTitle: s.eventTitle || '',
-          eventType: s.eventType || '',
-          photographerName: s.photographerName || '',
-          photographerImage: s.photographerImage || '',
-          streamTitle: s.streamTitle || '',
-          description: s.description || '',
-          streamDate: s.streamDate || '',
-          streamTime: s.streamTime || '',
-          duration: s.duration || '0:00:00',
-          coverImage: s.coverImage || '',
-          totalViewers: s.totalViewers || 0,
-          peakViewers: s.peakViewers || 0,
-          totalMessages: s.totalMessages || 0,
-          totalVideoMessages: s.totalVideoMessages || 0,
-          replayUrl: s.replayUrl || '',
-          messages: (s.messages || []).map((m: any) => ({
-            id: m.id,
-            viewerUsername: m.viewerUsername || '',
-            viewerAvatar: m.viewerAvatar || '',
-            message: m.message || '',
-            timestamp: m.timestamp || '',
-            time: m.time || '',
-          })),
-          videoMessages: s.videoMessages || [],
-        }));
+        const streamList: any[] = data.data || [];
+
+        // Fetch chats for all streams in parallel
+        const chatResults = await Promise.all(
+          streamList.map((s: any) => fetchChatsForStream(s.eventId))
+        );
+
+        const loaded: CompletedStream[] = streamList.map((s: any, i: number) => {
+          const { messages: inlineText, videoMessages: inlineVideo } = (() => {
+            // Also check for inline messages (in case backend adds them later)
+            const allInline: any[] = s.messages || [];
+            return {
+              messages: allInline.filter((m: any) => !m.videoUrl).map((m: any) => ({
+                id: m.id,
+                viewerUsername: m.viewerUsername || '',
+                viewerAvatar: normalizeImg(m.viewerAvatar),
+                message: m.message || '',
+                timestamp: m.timestamp || '',
+                time: m.time || '',
+              })),
+              videoMessages: allInline.filter((m: any) => m.videoUrl).map((v: any) => ({
+                id: v.id,
+                viewerUsername: v.viewerUsername || '',
+                viewerAvatar: normalizeImg(v.viewerAvatar),
+                videoUrl: normalizeImg(v.videoUrl),
+                thumbnailUrl: normalizeImg(v.thumbnailUrl),
+                duration: v.duration || '0:00',
+                timestamp: v.timestamp || '',
+                time: v.time || '',
+                viewed: v.viewed || false,
+              })),
+            };
+          })();
+
+          // Merge: dedicated endpoint chats + any inline chats (deduplicated by id)
+          const fetchedChats = chatResults[i];
+          const allMessages = [...fetchedChats.messages, ...inlineText];
+          const allVideos = [
+            ...fetchedChats.videoMessages,
+            ...inlineVideo,
+            ...(s.videoMessages || []).map((v: any) => ({
+              id: v.id,
+              viewerUsername: v.viewerUsername || '',
+              viewerAvatar: normalizeImg(v.viewerAvatar),
+              videoUrl: normalizeImg(v.videoUrl),
+              thumbnailUrl: normalizeImg(v.thumbnailUrl),
+              duration: v.duration || '0:00',
+              timestamp: v.timestamp || '',
+              time: v.time || '',
+              viewed: v.viewed || false,
+            })),
+          ];
+          // Deduplicate by id
+          const seenMsgIds = new Set<string>();
+          const uniqueMessages = allMessages.filter(m => { if (seenMsgIds.has(m.id)) return false; seenMsgIds.add(m.id); return true; });
+          const seenVidIds = new Set<string>();
+          const uniqueVideos = allVideos.filter(v => { if (seenVidIds.has(v.id)) return false; seenVidIds.add(v.id); return true; });
+
+          return {
+            id: s.id,
+            eventId: s.eventId,
+            eventTitle: s.eventTitle || '',
+            eventType: s.eventType || '',
+            photographerName: s.photographerName || '',
+            photographerImage: normalizeImg(s.photographerImage),
+            streamTitle: s.streamTitle || '',
+            description: s.description || '',
+            streamDate: s.streamDate || '',
+            streamTime: s.streamTime || '',
+            duration: s.duration || '0:00:00',
+            coverImage: normalizeImg(s.coverImage || s.bannerImage || s.eventImage),
+            totalViewers: s.totalViewers || 0,
+            peakViewers: s.peakViewers || 0,
+            totalMessages: s.totalMessages || uniqueMessages.length,
+            totalVideoMessages: s.totalVideoMessages || uniqueVideos.length,
+            replayUrl: s.replayUrl || '',
+            messages: uniqueMessages,
+            videoMessages: uniqueVideos,
+          };
+        });
         setStreams(loaded);
       }
     } catch (err) {
       console.error('Failed to fetch streams:', err);
     }
-  }, [apiUrl, userRole]);
-
-  // GET /api/remote/coordinator/streams/{eventId}/video — fetch stream video info
-  const fetchStreamVideo = useCallback(async (eventId: string) => {
-    if (userRole !== 'event-coordinator') return [];
-    try {
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/streams/${eventId}/video`);
-      if (res.ok) {
-        const data = await res.json();
-        return data.data || [];
-      }
-    } catch (err) {
-      console.error('Failed to fetch stream video:', err);
-    }
-    return [];
-  }, [apiUrl, userRole]);
+  }, [apiUrl, userRole, fetchChatsForStream]);
 
   useEffect(() => {
     if (user?.id) {
       fetchStreams();
     }
   }, [user?.id, fetchStreams]);
-
-  // --- Coordinator Stream API helpers ---
-
-  // POST /api/remote/coordinator/streams/{eventId}/video/stop
-  const stopStream = useCallback(async (eventId: string) => {
-    if (userRole !== 'event-coordinator') return false;
-    try {
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/streams/${eventId}/video/stop`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      });
-      const data = await res.json();
-      if (!res.ok || data.action !== 1) {
-        console.error('Failed to stop stream:', data.message);
-        return false;
-      }
-      return true;
-    } catch (err) {
-      console.error('Error stopping stream:', err);
-      return false;
-    }
-  }, [apiUrl, userRole]);
-
-  // GET stream chat messages (read-only for both client and coordinator)
-  const fetchStreamChats = useCallback(async (eventId: string) => {
-    const prefix = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
-    try {
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${prefix}/streams/${eventId}/chats`);
-      if (res.ok) {
-        const data = await res.json();
-        return data.data || [];
-      }
-    } catch (err) {
-      console.error('Failed to fetch stream chats:', err);
-    }
-    return [];
-  }, [apiUrl, userRole]);
 
   // Load and play video when selectedVideo changes
   useEffect(() => {
