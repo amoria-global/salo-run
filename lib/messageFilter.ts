@@ -33,6 +33,17 @@ const NUMBER_WORDS: Record<string, string> = {
   oh: '0',
 };
 
+/** Compound number words → digit strings (tens, teens, hundred combos) */
+const COMPOUND_NUMBER_WORDS: Record<string, string> = {
+  ten: '10', eleven: '11', twelve: '12', thirteen: '13', fourteen: '14',
+  fifteen: '15', sixteen: '16', seventeen: '17', eighteen: '18', nineteen: '19',
+  twenty: '20', thirty: '30', forty: '40', fifty: '50',
+  sixty: '60', seventy: '70', eighty: '80', ninety: '90', hundred: '00',
+};
+
+/** All number words (single + compound) for detection */
+const ALL_NUMBER_WORDS: Record<string, string> = { ...NUMBER_WORDS, ...COMPOUND_NUMBER_WORDS };
+
 /**
  * Normalize a message to defeat evasion:
  *   - Strip zero-width chars, invisible separators
@@ -46,11 +57,15 @@ function normalizeForTextCheck(msg: string): string {
     .replace(/[\u200B-\u200F\u2028-\u202F\uFEFF]/g, '')
     // Remove dots/dashes/underscores between single letters: g.m.a.i.l → gmail
     .replace(/\b([a-zA-Z])[.\-_](?=[a-zA-Z]\b)/g, '$1')
-    // Collapse multiple spaces
+    // Normalize newlines and multiple whitespace to single spaces
+    .replace(/[\r\n]+/g, ' ')
     .replace(/\s{2,}/g, ' ')
     .toLowerCase();
 
-  // Replace number words with digits
+  // Replace compound number words first (longer matches), then single
+  for (const [word, digits] of Object.entries(COMPOUND_NUMBER_WORDS)) {
+    s = s.replace(new RegExp(`\\b${word}\\b`, 'gi'), digits);
+  }
   for (const [word, digit] of Object.entries(NUMBER_WORDS)) {
     s = s.replace(new RegExp(`\\b${word}\\b`, 'gi'), digit);
   }
@@ -65,7 +80,11 @@ function normalizeForTextCheck(msg: string): string {
  *   - Return the digit string
  */
 function extractDigits(msg: string): string {
-  let s = msg.toLowerCase();
+  let s = msg.toLowerCase().replace(/[\r\n]+/g, ' ');
+  // Replace compound number words first, then single
+  for (const [word, digits] of Object.entries(COMPOUND_NUMBER_WORDS)) {
+    s = s.replace(new RegExp(`\\b${word}\\b`, 'gi'), digits);
+  }
   for (const [word, digit] of Object.entries(NUMBER_WORDS)) {
     s = s.replace(new RegExp(`\\b${word}\\b`, 'gi'), digit);
   }
@@ -125,8 +144,14 @@ const PHONE_PATTERNS = [
   /(?:call|text|ring|dial)\s+me\s+(?:on\s+)?[\+\d][\d\s\-().]{6,}/i,
 ];
 
-/** Detect number-word phone numbers: "zero seven nine one eight seven six zero six zero" */
-const NUMBER_WORD_PATTERN = /\b(?:zero|one|two|three|four|five|six|seven|eight|nine|oh)(?:\s+(?:zero|one|two|three|four|five|six|seven|eight|nine|oh)){6,}\b/i;
+/** All number word names for regex building */
+const ALL_NUM_WORD_NAMES = 'zero|one|two|three|four|five|six|seven|eight|nine|oh|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred';
+
+/** Detect number-word phone numbers across spaces, newlines, hyphens, commas */
+const NUMBER_WORD_PATTERN = new RegExp(
+  `\\b(?:${ALL_NUM_WORD_NAMES})(?:[\\s,;:\\-\\n\\r]+(?:${ALL_NUM_WORD_NAMES})){6,}\\b`,
+  'i'
+);
 
 // ============================================
 // EXTERNAL LINK DETECTION
@@ -252,20 +277,40 @@ export function checkMessageContent(message: string): FilterResult {
     };
   }
 
-  // Long contiguous sequence of number words: "zero seven nine one..." → "0791..."
-  // Only flag if 7+ number words appear in an unbroken sequence (not scattered across commas/other words)
-  if (/\b(?:zero|one|two|three|four|five|six|seven|eight|nine|oh)\b/i.test(trimmed)) {
-    const numberWordRe = /\b(?:zero|one|two|three|four|five|six|seven|eight|nine|oh)\b/gi;
-    const words = trimmed.toLowerCase().split(/[\s\-,;:]+/);
-    let maxRun = 0, currentRun = 0;
+  // Long contiguous sequence of number words (single or compound): "two fifty seven eight one..."
+  // Split on whitespace, newlines, hyphens, commas — check for runs of 7+ number words
+  // Compound words like "fifty" count as number words too
+  {
+    const allNumWordRe = new RegExp(`^(?:${ALL_NUM_WORD_NAMES})$`, 'i');
+    // Normalize: collapse newlines to spaces, split on separators
+    const flatMessage = trimmed.replace(/[\r\n]+/g, ' ').toLowerCase();
+    const words = flatMessage.split(/[\s\-,;:]+/).filter(w => w.length > 0);
+    let maxRun = 0, currentRun = 0, runDigits = '';
     for (const w of words) {
-      if (numberWordRe.test(w)) {
+      if (allNumWordRe.test(w)) {
         currentRun++;
+        runDigits += ALL_NUMBER_WORDS[w] || '';
         if (currentRun > maxRun) maxRun = currentRun;
       } else {
+        // Check accumulated digits from the run
+        if (runDigits.replace(/\D/g, '').length >= 7) {
+          return {
+            blocked: true,
+            reason: 'Sharing phone numbers is not allowed. Please keep all communication within the platform.',
+            detectedType: 'phone',
+          };
+        }
         currentRun = 0;
+        runDigits = '';
       }
-      numberWordRe.lastIndex = 0; // reset regex state
+    }
+    // Check final run
+    if (maxRun >= 4 && runDigits.replace(/\D/g, '').length >= 7) {
+      return {
+        blocked: true,
+        reason: 'Sharing phone numbers is not allowed. Please keep all communication within the platform.',
+        detectedType: 'phone',
+      };
     }
     if (maxRun >= 7) {
       return {

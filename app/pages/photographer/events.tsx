@@ -409,10 +409,8 @@ const PhotographerEventsPage = () => {
   const [eventSearch, setEventSearch] = useState('');
   const [selectedEvent, setSelectedEvent] = useState<AssignedEvent | null>(null);
   const [showEventDetailModal, setShowEventDetailModal] = useState(false);
-  const [showStreamSetupModal, setShowStreamSetupModal] = useState(false);
   const [showStreamPreview, setShowStreamPreview] = useState(false);
   const [streamConfigs, setStreamConfigs] = useState<Record<string, StreamConfig>>({});
-  const [showStreamKey, setShowStreamKey] = useState(false);
   const [copiedField, setCopiedField] = useState('');
   const [markCompleteTarget, setMarkCompleteTarget] = useState<AssignedEvent | null>(null);
   const [markingCompletedId, setMarkingCompletedId] = useState<string | null>(null);
@@ -629,7 +627,7 @@ const PhotographerEventsPage = () => {
               status: (() => {
                 switch ((e.eventStatus || e.status || '')?.toUpperCase()) {
                   case 'PENDING': case 'PROPOSED': case 'ASSIGNED': return 'pending';
-                  case 'UPCOMING': return 'upcoming';
+                  case 'UPCOMING': case 'PUBLISHED': return 'upcoming';
                   case 'ONGOING': case 'IN_PROGRESS': return 'ongoing';
                   case 'COMPLETED': case 'DONE': return 'completed';
                   case 'CANCELLED': case 'CANCELED': return 'cancelled';
@@ -775,7 +773,16 @@ const PhotographerEventsPage = () => {
           const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/events/${event.id}/stream/config`);
           if (res.ok) {
             const result = await res.json();
-            if (result?.data) configs[event.id] = result.data;
+            if (result?.data) {
+              const cfg = result.data;
+              // Map backend 'connected' based on event status
+              // Only show 'live' if event is actually ONGOING (publicly broadcasting)
+              let uiStatus: string = cfg.connectionStatus || 'idle';
+              if (uiStatus === 'connected') {
+                uiStatus = event.status === 'ongoing' ? 'live' : 'waiting_for_encoder';
+              }
+              configs[event.id] = { ...cfg, connectionStatus: uiStatus as StreamConfig['connectionStatus'] };
+            }
           }
         } catch { /* use default */ }
       }
@@ -854,26 +861,53 @@ const PhotographerEventsPage = () => {
         setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'idle', error: msg } }));
         return;
       }
-      // Fetch stream config to get RTMP credentials
-      const configRes = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/events/${eventId}/stream/config`);
-      if (configRes.ok) {
-        const configData = await configRes.json();
-        const cfg = configData.data || {};
+      // Read credentials directly from /stream/start response
+      const startData = await res.json().catch(() => ({}));
+      const serverUrl = startData.rtmpsUrl || startData.serverUrl || '';
+      const streamKey = startData.rtmpsKey || startData.streamKey || '';
+      const playbackUrl = startData.hlsManifestUrl || '';
+      const inviteToken = startData.inviteToken || '';
+
+      // If we got credentials from start response, use them immediately
+      if (serverUrl && streamKey) {
         setStreamConfigs(prev => ({
           ...prev,
           [eventId]: {
             ...prev[eventId],
             eventId,
-            serverUrl: cfg.serverUrl || '',
-            streamKey: cfg.streamKey || '',
+            serverUrl,
+            streamKey,
             connectionStatus: 'waiting_for_encoder',
-            streamHealth: cfg.streamHealth || 'unknown',
-            uploadSpeed: cfg.uploadSpeed || '0 Mbps',
-            viewerCount: cfg.viewerCount || 0,
-            peakViewers: cfg.peakViewers || 0,
-            inviteToken: cfg.inviteToken || '',
+            streamHealth: 'unknown' as StreamConfig['streamHealth'],
+            uploadSpeed: '0 Mbps',
+            viewerCount: 0,
+            peakViewers: 0,
+            inviteToken,
+            playbackUrl,
           }
         }));
+      } else {
+        // Fallback: fetch from /stream/config
+        const configRes = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/events/${eventId}/stream/config`);
+        if (configRes.ok) {
+          const configData = await configRes.json();
+          const cfg = configData.data || {};
+          setStreamConfigs(prev => ({
+            ...prev,
+            [eventId]: {
+              ...prev[eventId],
+              eventId,
+              serverUrl: cfg.serverUrl || '',
+              streamKey: cfg.streamKey || '',
+              connectionStatus: 'waiting_for_encoder',
+              streamHealth: cfg.streamHealth || 'unknown',
+              uploadSpeed: cfg.uploadSpeed || '0 Mbps',
+              viewerCount: cfg.viewerCount || 0,
+              peakViewers: cfg.peakViewers || 0,
+              inviteToken: cfg.inviteToken || '',
+            }
+          }));
+        }
       }
     } catch (err) {
       setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'idle', error: 'Failed to start stream. Please try again.' } }));
@@ -881,27 +915,39 @@ const PhotographerEventsPage = () => {
   };
 
   const handleGoLive = async (eventId: string) => {
-    setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'live', uploadSpeed: '4.2 Mbps', streamHealth: 'good', error: undefined } }));
+    setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'live', error: undefined } }));
     try {
       const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/events/${eventId}/stream/resume`, { method: 'POST' });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         const msg = data.message || 'Failed to go live. Please try again.';
-        setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'waiting_for_encoder', uploadSpeed: '0 Mbps', error: msg } }));
+        setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'waiting_for_encoder', error: msg } }));
+      } else {
+        // Read inviteToken from response
+        const data = await res.json().catch(() => ({}));
+        if (data.inviteToken) {
+          setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], inviteToken: data.inviteToken } }));
+        }
+        // Refresh event status to ONGOING
+        setEvents(prev => prev.map(e => e.id === eventId ? { ...e, status: 'ongoing' as EventStatus } : e));
       }
     } catch (err) {
-      setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'waiting_for_encoder', uploadSpeed: '0 Mbps', error: 'Failed to go live. Please try again.' } }));
+      setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'waiting_for_encoder', error: 'Failed to go live. Please try again.' } }));
     }
   };
 
   const handleEndStream = async (eventId: string) => {
-    setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'idle', uploadSpeed: '0 Mbps', error: undefined } }));
+    setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'waiting_for_encoder', error: undefined } }));
     try {
       const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/events/${eventId}/stream/stop`, { method: 'POST' });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         const msg = data.message || 'Failed to end stream. Please try again.';
         setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'live', error: msg } }));
+      } else {
+        // Stream stopped — status goes back to PUBLISHED (mapped to 'upcoming')
+        // Credentials are preserved so photographer can re-go-live without reconfiguring OBS
+        setEvents(prev => prev.map(e => e.id === eventId ? { ...e, status: 'upcoming' as EventStatus } : e));
       }
     } catch (err) {
       setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'live', error: 'Failed to end stream. Please try again.' } }));
@@ -911,8 +957,7 @@ const PhotographerEventsPage = () => {
   // Poll stream config every 5s when stream preview or setup modal is open
   useEffect(() => {
     if (!selectedEvent) return;
-    const isStreamUIOpen = showStreamPreview || showStreamSetupModal;
-    if (!isStreamUIOpen) return;
+    if (!showStreamPreview) return;
     const eventId = selectedEvent.id;
     const poll = async () => {
       try {
@@ -923,16 +968,22 @@ const PhotographerEventsPage = () => {
           const cfg = data.data;
           if (cfg) {
             let uiStatus: string = cfg.connectionStatus || 'idle';
-            if (uiStatus === 'connected') uiStatus = 'live';
-            // Also fetch public event for hlsManifestUrl (playback URL)
+            // Also fetch public event for hlsManifestUrl (playback URL) and eventStatus
             let hlsUrl = '';
+            let pubEventStatus = '';
             try {
               const pubRes = await fetch(`${apiUrl}/api/remote/public/events/${eventId}`);
               if (pubRes.ok) {
                 const pubData = await pubRes.json();
                 hlsUrl = pubData.data?.hlsManifestUrl || '';
+                pubEventStatus = pubData.data?.eventStatus || '';
               }
             } catch { /* ignore */ }
+            // Map backend 'connected' based on whether event is actually ONGOING
+            // 'connected' = OBS sending data, but only show as 'live' if publicly broadcasting
+            if (uiStatus === 'connected') {
+              uiStatus = pubEventStatus === 'ONGOING' ? 'live' : 'waiting_for_encoder';
+            }
             setStreamConfigs(prev => ({
               ...prev,
               [eventId]: {
@@ -956,7 +1007,7 @@ const PhotographerEventsPage = () => {
     poll(); // Run immediately
     const interval = setInterval(poll, 5000);
     return () => clearInterval(interval);
-  }, [selectedEvent, showStreamPreview, showStreamSetupModal, apiUrl]);
+  }, [selectedEvent, showStreamPreview, apiUrl]);
 
   const handleMarkCompleted = async (eventId: string) => {
     setMarkingCompletedId(eventId);
@@ -1561,13 +1612,8 @@ const PhotographerEventsPage = () => {
                               ) : (
                                 <>
                                   {event.hasLiveStream && (event.status === 'upcoming' || event.status === 'ongoing') && (
-                                    <button onClick={() => { setSelectedEvent(event); setShowStreamSetupModal(true); setShowStreamKey(false); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0.5rem', fontSize: '0.72rem', fontWeight: 600, backgroundColor: 'rgba(139,92,246,0.85)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
-                                      <BroadcastIcon /> Stream Setup
-                                    </button>
-                                  )}
-                                  {event.hasLiveStream && (event.status === 'upcoming' || event.status === 'ongoing') && (
-                                    <button onClick={() => { setSelectedEvent(event); setShowStreamPreview(true); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0.5rem', fontSize: '0.72rem', fontWeight: 600, backgroundColor: 'rgba(16,185,129,0.85)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
-                                      <PlayIcon /> Test Stream
+                                    <button onClick={() => { setSelectedEvent(event); setShowStreamPreview(true); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0.5rem', fontSize: '0.72rem', fontWeight: 600, backgroundColor: isLive ? 'rgba(220,38,38,0.9)' : 'rgba(139,92,246,0.85)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer', animation: isLive ? 'pulse 2s infinite' : 'none' }}>
+                                      <BroadcastIcon /> {isLive ? 'LIVE' : 'Live Stream'}
                                     </button>
                                   )}
                                   {(event.status === 'completed' || event.bookingStatus?.toUpperCase() === 'ACCEPTED') && canCreateAlbumForEvent(event.id) && (
@@ -2030,126 +2076,7 @@ const PhotographerEventsPage = () => {
         </div>
       )}
 
-      {/* Stream Setup Modal */}
-      {showStreamSetupModal && selectedEvent && selectedEvent.hasLiveStream && (
-        <div style={modalOverlay} onClick={() => setShowStreamSetupModal(false)}>
-          <div style={modalContent('550px')} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <div>
-                <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: colors.textPrimary, margin: 0 }}>Live Stream Setup</h2>
-                <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: '0.25rem 0 0 0' }}>{selectedEvent.title}</p>
-              </div>
-              <button onClick={() => setShowStreamSetupModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.textSecondary }}><CloseIcon /></button>
-            </div>
-            {(() => {
-              const cfg = streamConfigs[selectedEvent.id];
-              if (!cfg) return <p style={{ color: colors.textSecondary }}>No stream configuration available.</p>;
-              const statusColors: Record<string, string> = { idle: '#6B7280', waiting_for_encoder: '#F59E0B', receiving_signal: '#3B82F6', live: '#10B981' };
-              const statusLabels: Record<string, string> = { idle: 'Idle', waiting_for_encoder: 'Waiting for Encoder', receiving_signal: 'Receiving Signal', live: 'Live' };
-              const healthColors: Record<string, string> = { good: '#10B981', fair: '#F59E0B', poor: '#DC2626' };
-              return (
-                <>
-                  {/* Connection Status */}
-                  <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '0.75rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: statusColors[cfg.connectionStatus], animation: cfg.connectionStatus === 'live' ? 'pulse 2s infinite' : 'none' }} />
-                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: colors.textPrimary }}>{statusLabels[cfg.connectionStatus]}</span>
-                    </div>
-                    {cfg.connectionStatus === 'live' && <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{cfg.viewerCount.toLocaleString()} viewers</span>}
-                  </div>
-                  {/* RTMP Config — only shown after stream/start provides credentials */}
-                  {cfg.serverUrl && cfg.streamKey ? (
-                    <>
-                      <div style={{ marginBottom: '1rem' }}>
-                        <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Server URL</label>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <input readOnly value={cfg.serverUrl} style={{ ...inputStyle, flex: 1, fontSize: '0.8rem' }} />
-                          <button onClick={() => handleCopyField(cfg.serverUrl!, 'serverUrl')} style={smallActionBtn}>{copiedField === 'serverUrl' ? 'Copied!' : <><CopyIcon /> Copy</>}</button>
-                        </div>
-                      </div>
-                      <div style={{ marginBottom: '1rem' }}>
-                        <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Stream Key</label>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <input readOnly value={showStreamKey ? cfg.streamKey : '••••••••••••••••'} style={{ ...inputStyle, flex: 1, fontSize: '0.8rem' }} />
-                          <button onClick={() => setShowStreamKey(!showStreamKey)} style={smallActionBtn}>{showStreamKey ? <EyeOffIcon /> : <EyeIcon />}</button>
-                          <button onClick={() => handleCopyField(cfg.streamKey!, 'streamKey')} style={smallActionBtn}>{copiedField === 'streamKey' ? 'Copied!' : <><CopyIcon /> Copy</>}</button>
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <div style={{ marginBottom: '1rem', padding: '0.75rem', backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF', borderRadius: '0.5rem', border: `1px solid ${actualTheme === 'dark' ? '#2563EB' : '#BFDBFE'}` }}>
-                      <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: 0 }}>RTMP credentials will appear here after you start the stream.</p>
-                    </div>
-                  )}
-                  {/* Viewer Invite Token */}
-                  {cfg.inviteToken && (
-                    <div style={{ marginBottom: '1rem' }}>
-                      <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Viewer Invite Token</label>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <input readOnly value={cfg.inviteToken} style={{ ...inputStyle, flex: 1, fontSize: '1rem', fontWeight: 700, letterSpacing: '0.1em', textAlign: 'center' as const }} />
-                        <button onClick={() => handleCopyField(cfg.inviteToken!, 'inviteToken')} style={smallActionBtn}>{copiedField === 'inviteToken' ? 'Copied!' : <><CopyIcon /> Copy</>}</button>
-                      </div>
-                      <p style={{ fontSize: '0.72rem', color: colors.textTertiary, margin: '0.35rem 0 0 0' }}>Share this token with viewers so they can access the live stream.</p>
-                    </div>
-                  )}
-                  {/* Stream Health */}
-                  {cfg.connectionStatus === 'live' && (
-                    <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '0.75rem', marginBottom: '1rem' }}>
-                      <div style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, marginBottom: '0.5rem' }}>Stream Health</div>
-                      <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: colors.textSecondary }}>
-                        <span>Health: <strong style={{ color: healthColors[cfg.streamHealth] }}>{cfg.streamHealth.toUpperCase()}</strong></span>
-                        <span>Upload: <strong>{cfg.uploadSpeed}</strong></span>
-                        <span>Peak: <strong>{cfg.peakViewers.toLocaleString()}</strong></span>
-                      </div>
-                    </div>
-                  )}
-                  {/* Encoder Instructions */}
-                  <div style={{ backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF', borderRadius: '0.5rem', padding: '0.75rem', marginBottom: '1rem', border: `1px solid ${actualTheme === 'dark' ? '#2563EB' : '#BFDBFE'}` }}>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: actualTheme === 'dark' ? '#60A5FA' : '#2563EB', marginBottom: '0.35rem' }}>Encoder Setup (OBS / Streamlabs)</div>
-                    <ol style={{ fontSize: '0.75rem', color: colors.textSecondary, margin: 0, paddingLeft: '1.25rem', lineHeight: '1.6' }}>
-                      <li>Open OBS Studio and go to Settings → Stream</li>
-                      <li>Set Service to "Custom" and paste the Server URL above</li>
-                      <li>Paste the Stream Key in the Stream Key field</li>
-                      <li>Click "Start Streaming" in OBS, then click "Go Live" below</li>
-                    </ol>
-                  </div>
-                  {/* Stream Error */}
-                  {cfg.error && (
-                    <div style={{
-                      backgroundColor: actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2',
-                      border: `1px solid ${actualTheme === 'dark' ? '#F87171' : '#FECACA'}`,
-                      borderRadius: '0.5rem',
-                      padding: '0.75rem 1rem',
-                      marginBottom: '1rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                    }}>
-                      <span style={{ fontSize: '1rem' }}>⚠️</span>
-                      <span style={{ fontSize: '0.85rem', color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626' }}>{cfg.error}</span>
-                    </div>
-                  )}
-                  {/* Action Buttons */}
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    {cfg.connectionStatus === 'idle' && (
-                      <button onClick={() => handleStartStream(selectedEvent.id)} style={{ ...primaryBtn, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: '#8B5CF6', borderColor: '#8B5CF6' }}><PlayIcon /> Start Waiting for Encoder</button>
-                    )}
-                    {cfg.connectionStatus === 'waiting_for_encoder' && (
-                      <button onClick={() => handleGoLive(selectedEvent.id)} style={{ ...primaryBtn, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: '#10B981', borderColor: '#10B981' }}><PlayIcon /> Go Live</button>
-                    )}
-                    {cfg.connectionStatus === 'live' && (
-                      <button onClick={() => handleEndStream(selectedEvent.id)} style={{ ...primaryBtn, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: '#DC2626', borderColor: '#DC2626' }}><StopIcon /> End Stream</button>
-                    )}
-                    <button onClick={() => setShowStreamSetupModal(false)} style={secondaryBtn}>Close</button>
-                  </div>
-                </>
-              );
-            })()}
-          </div>
-        </div>
-      )}
-
-      {/* Stream Test & Preview */}
+      {/* Live Stream Control Modal */}
       {selectedEvent && (
         <StreamPreview
           isOpen={showStreamPreview}
@@ -2160,6 +2087,11 @@ const PhotographerEventsPage = () => {
           playbackUrl={streamConfigs[selectedEvent.id]?.playbackUrl || undefined}
           inviteToken={streamConfigs[selectedEvent.id]?.inviteToken}
           connectionStatus={streamConfigs[selectedEvent.id]?.connectionStatus || 'idle'}
+          streamHealth={streamConfigs[selectedEvent.id]?.streamHealth}
+          uploadSpeed={streamConfigs[selectedEvent.id]?.uploadSpeed}
+          viewerCount={streamConfigs[selectedEvent.id]?.viewerCount || 0}
+          peakViewers={streamConfigs[selectedEvent.id]?.peakViewers || 0}
+          error={streamConfigs[selectedEvent.id]?.error}
           onStartStream={() => handleStartStream(selectedEvent.id)}
           onGoLive={() => handleGoLive(selectedEvent.id)}
           onEndStream={() => handleEndStream(selectedEvent.id)}
