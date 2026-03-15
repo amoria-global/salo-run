@@ -744,7 +744,11 @@ const MyEventsPage = () => {
             price: evt.price ? `${evt.price}` : (evt.isEventFree ? 'Free' : 'Free'),
             guestCount: (evt.guestCount as number) || 0,
             maxGuests: (evt.maxGuests as number) || 0,
-            status: ((evt.eventStatus as string) || (evt.status as string) || 'UPCOMING').toUpperCase() as EventStatus,
+            status: (() => {
+              const raw = ((evt.eventStatus as string) || (evt.status as string) || 'UPCOMING').toUpperCase();
+              if (evt.isPublished === true && (raw === 'UPCOMING' || raw === 'PUBLISHED')) return 'PUBLISHED';
+              return raw;
+            })() as EventStatus,
             organizer: (evt.eventOrganizer as string) || '',
             tags: evt.eventTags ? (evt.eventTags as string).split(',').map((t: string) => t.trim()) : [],
             minimumPhotos: (evt.minimumPhotos as number) || 500,
@@ -771,17 +775,11 @@ const MyEventsPage = () => {
         const apiUrl = getApiUrl();
         for (const evt of mappedEvents) {
           const s = evt.status.toUpperCase();
-          if (s === 'COMPLETED') continue;
+          if (s === 'COMPLETED' || s === 'PUBLISHED') continue;
           if (!evt.date) continue;
           const endTimeStr = evt.endTime || '23:59:59';
           const eventEnd = new Date(`${evt.date}T${endTimeStr}`);
           if (eventEnd < now) {
-            // Unpublish from landing if published
-            if (s === 'PUBLISHED') {
-              dashboardAuthFetch(`${apiUrl}/api/remote/customer/events/${evt.id}/unpublish`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-              }).catch(() => {});
-            }
             // Mark as completed
             dashboardAuthFetch(`${apiUrl}/api/remote/customer/events/${evt.id}/confirm-completion`, {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -836,6 +834,7 @@ const MyEventsPage = () => {
       setEvents(prev => prev.map(evt =>
         evt.id === eventId ? { ...evt, status: 'PUBLISHED' as EventStatus } : evt
       ));
+      if (activeTab === 'upcoming') setActiveTab('all');
     } catch (err) {
       console.error('Publish event error:', err);
       alert(err instanceof Error ? err.message : 'Failed to publish event');
@@ -863,6 +862,7 @@ const MyEventsPage = () => {
       setEvents(prev => prev.map(evt =>
         evt.id === eventId ? { ...evt, status: 'UPCOMING' as EventStatus } : evt
       ));
+      if (activeTab === 'published') setActiveTab('all');
     } catch (err) {
       console.error('Unpublish event error:', err);
       alert(err instanceof Error ? err.message : 'Failed to unpublish event');
@@ -1831,14 +1831,16 @@ const MyEventsPage = () => {
                         <button onClick={() => { setDeleteEvent(event); setShowDeleteModal(true); }} title="Delete" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.4rem 0.5rem', backgroundColor: 'rgba(220,38,38,0.82)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
                           <TrashIcon />
                         </button>
-                        {event.status.toUpperCase() === 'PUBLISHED' ? (
-                          <button onClick={() => setUnpublishConfirmEvent(event)} disabled={unpublishingEventId === event.id} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.4rem 0.5rem', backgroundColor: '#d19d0d', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: unpublishingEventId === event.id ? 'not-allowed' : 'pointer', fontSize: '0.75rem', fontWeight: 600, opacity: unpublishingEventId === event.id ? 0.7 : 1 }}>
-                            {unpublishingEventId === event.id ? 'Unpublishing...' : 'Unpublish'}
-                          </button>
-                        ) : (
-                          <button onClick={() => handlePublishClick(event)} disabled={publishingEventId === event.id} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.4rem 0.5rem', backgroundColor: '#05a129', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: publishingEventId === event.id ? 'not-allowed' : 'pointer', fontSize: '0.75rem', fontWeight: 600, opacity: publishingEventId === event.id ? 0.7 : 1 }}>
-                            {publishingEventId === event.id ? 'Publishing...' : 'Publish'}
-                          </button>
+                        {event.status.toUpperCase() !== 'COMPLETED' && (
+                          event.status.toUpperCase() === 'PUBLISHED' ? (
+                            <button onClick={() => setUnpublishConfirmEvent(event)} disabled={unpublishingEventId === event.id} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.4rem 0.5rem', backgroundColor: '#d19d0d', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: unpublishingEventId === event.id ? 'not-allowed' : 'pointer', fontSize: '0.75rem', fontWeight: 600, opacity: unpublishingEventId === event.id ? 0.7 : 1 }}>
+                              {unpublishingEventId === event.id ? 'Unpublishing...' : 'Unpublish'}
+                            </button>
+                          ) : (
+                            <button onClick={() => handlePublishClick(event)} disabled={publishingEventId === event.id} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.4rem 0.5rem', backgroundColor: '#05a129', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: publishingEventId === event.id ? 'not-allowed' : 'pointer', fontSize: '0.75rem', fontWeight: 600, opacity: publishingEventId === event.id ? 0.7 : 1 }}>
+                              {publishingEventId === event.id ? 'Publishing...' : 'Publish'}
+                            </button>
+                          )
                         )}
                       </div>
                     </div>

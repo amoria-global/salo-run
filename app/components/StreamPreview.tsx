@@ -15,14 +15,15 @@ interface StreamPreviewProps {
   streamKey?: string;
   playbackUrl?: string;
   inviteToken?: string;
-  connectionStatus: 'idle' | 'waiting_for_encoder' | 'receiving_signal' | 'live';
+  connectionStatus: 'disconnected' | 'connected' | 'paused' | 'ended';
   streamHealth?: string;
   uploadSpeed?: string;
   viewerCount?: number;
   peakViewers?: number;
   error?: string;
   onStartStream: () => void;
-  onGoLive: () => void;
+  onResumeStream: () => void;
+  onPauseStream: () => void;
   onEndStream: () => void;
   theme: 'light' | 'dark';
   colors: {
@@ -71,6 +72,13 @@ const StopIcon = () => (
   </svg>
 );
 
+const PauseIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+    <rect x="6" y="4" width="4" height="16" rx="1" />
+    <rect x="14" y="4" width="4" height="16" rx="1" />
+  </svg>
+);
+
 const BroadcastIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="2" /><path d="M16.24 7.76a6 6 0 010 8.49" /><path d="M7.76 16.24a6 6 0 010-8.49" /><path d="M19.07 4.93a10 10 0 010 14.14" /><path d="M4.93 19.07a10 10 0 010-14.14" />
@@ -96,6 +104,13 @@ const ChevronIcon = ({ open }: { open: boolean }) => (
   </svg>
 );
 
+const WarningIcon = () => (
+  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+    <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+  </svg>
+);
+
 // ============================================
 // COMPONENT
 // ============================================
@@ -115,7 +130,8 @@ export default function StreamPreview({
   peakViewers = 0,
   error,
   onStartStream,
-  onGoLive,
+  onResumeStream,
+  onPauseStream,
   onEndStream,
   theme,
   colors,
@@ -124,32 +140,49 @@ export default function StreamPreview({
   const hlsRef = useRef<Hls | null>(null);
   const [copiedField, setCopiedField] = useState('');
   const [showKey, setShowKey] = useState(false);
-  const [videoError, setVideoError] = useState(false);
-  const [isBuffering, setIsBuffering] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  const [showEndConfirm, setShowEndConfirm] = useState(false);
+  const [isBuffering, setIsBuffering] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
 
   const isDark = theme === 'dark';
   const hasCredentials = !!(serverUrl && streamKey);
-  const isLive = connectionStatus === 'live';
-  const isWaiting = connectionStatus === 'waiting_for_encoder' || connectionStatus === 'receiving_signal';
-  const isIdle = connectionStatus === 'idle';
+  const isLive = connectionStatus === 'connected';
+  const isPaused = connectionStatus === 'paused';
+  const isEnded = connectionStatus === 'ended';
+  const isDisconnected = connectionStatus === 'disconnected';
 
-  // Auto-expand guide when no credentials yet
+  // Callback ref to detect when video element mounts/unmounts
+  const videoCallbackRef = useCallback((node: HTMLVideoElement | null) => {
+    videoRef.current = node;
+    setVideoReady(!!node);
+  }, []);
+
+  // Cleanup HLS on unmount or when going non-live
   useEffect(() => {
-    if (isOpen) {
-      setShowGuide(!hasCredentials);
-      setShowKey(false);
-      setCopiedField('');
-      setVideoError(false);
+    if (!isLive || !playbackUrl) {
+      if (hlsRef.current) {
+        const interval = (hlsRef.current as unknown as Record<string, unknown>)._liveEdgeInterval as ReturnType<typeof setInterval> | undefined;
+        if (interval) clearInterval(interval);
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
     }
-  }, [isOpen]);
+  }, [isLive, playbackUrl]);
 
-  // HLS player setup
+  // HLS player setup — triggered when video element is ready AND we're live with a URL
   useEffect(() => {
-    if (!playbackUrl || !videoRef.current) return;
+    if (!playbackUrl || !videoRef.current || !isLive || !videoReady) return;
+
+    // Destroy previous instance if URL changed
+    if (hlsRef.current) {
+      const interval = (hlsRef.current as unknown as Record<string, unknown>)._liveEdgeInterval as ReturnType<typeof setInterval> | undefined;
+      if (interval) clearInterval(interval);
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
 
     const video = videoRef.current;
-    setVideoError(false);
 
     if (Hls.isSupported()) {
       const hls = new Hls({
@@ -198,8 +231,6 @@ export default function StreamPreview({
             setTimeout(() => hls.startLoad(), 1000);
           } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
             hls.recoverMediaError();
-          } else {
-            setVideoError(true);
           }
         }
       });
@@ -220,20 +251,19 @@ export default function StreamPreview({
     return () => {
       video.removeEventListener('waiting', handleWaiting);
       video.removeEventListener('playing', handlePlaying);
-      if (hlsRef.current) {
-        const interval = (hlsRef.current as unknown as Record<string, unknown>)._liveEdgeInterval as ReturnType<typeof setInterval> | undefined;
-        if (interval) clearInterval(interval);
-        hlsRef.current.destroy();
-        hlsRef.current = null;
-      }
     };
-  }, [playbackUrl]);
+  }, [playbackUrl, isLive, videoReady]);
 
   const handleCopy = useCallback((text: string, field: string) => {
     navigator.clipboard.writeText(text);
     setCopiedField(field);
     setTimeout(() => setCopiedField(''), 2000);
   }, []);
+
+  const handleEndConfirm = () => {
+    setShowEndConfirm(false);
+    onEndStream();
+  };
 
   if (!isOpen) return null;
 
@@ -308,14 +338,14 @@ export default function StreamPreview({
   });
 
   // Status configuration
-  const statusConfig = {
-    idle: { color: '#6B7280', label: 'Idle', bg: isDark ? 'rgba(107,114,128,0.15)' : '#F3F4F6' },
-    waiting_for_encoder: { color: '#F59E0B', label: 'Waiting for Encoder', bg: isDark ? 'rgba(245,158,11,0.12)' : '#FFFBEB' },
-    receiving_signal: { color: '#3B82F6', label: 'Receiving Signal', bg: isDark ? 'rgba(59,130,246,0.12)' : '#EFF6FF' },
-    live: { color: '#10B981', label: 'Live', bg: isDark ? 'rgba(16,185,129,0.12)' : '#ECFDF5' },
+  const statusConfig: Record<string, { color: string; label: string; bg: string }> = {
+    disconnected: { color: '#F59E0B', label: 'Waiting for Encoder', bg: isDark ? 'rgba(245,158,11,0.12)' : '#FFFBEB' },
+    connected: { color: '#10B981', label: 'Live', bg: isDark ? 'rgba(16,185,129,0.12)' : '#ECFDF5' },
+    paused: { color: '#F59E0B', label: 'Paused', bg: isDark ? 'rgba(245,158,11,0.12)' : '#FFFBEB' },
+    ended: { color: '#6B7280', label: 'Ended', bg: isDark ? 'rgba(107,114,128,0.15)' : '#F3F4F6' },
   };
 
-  const status = statusConfig[connectionStatus];
+  const status = statusConfig[connectionStatus] || statusConfig.disconnected;
 
   // ============================================
   // RENDER SECTIONS
@@ -323,25 +353,26 @@ export default function StreamPreview({
 
   const renderVideoPanel = () => (
     <div style={{ flex: '1 1 55%', minWidth: 0 }}>
-      {/* Video Player */}
       <div style={{
         position: 'relative',
         width: '100%',
         aspectRatio: '16/9',
-        backgroundColor: '#000',
         borderRadius: '0.75rem',
         overflow: 'hidden',
         border: isLive ? '2px solid #10B981' : `2px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#E5E7EB'}`,
+        backgroundColor: '#000',
       }}>
-        {playbackUrl && !videoError ? (
+        {/* Live: show HLS player */}
+        {isLive && playbackUrl ? (
           <>
             <video
-              ref={videoRef}
+              ref={videoCallbackRef}
               style={{ width: '100%', height: '100%', objectFit: 'contain' }}
               playsInline
               muted
               autoPlay
               controls
+              crossOrigin="anonymous"
             />
             {isBuffering && (
               <div style={{
@@ -358,10 +389,10 @@ export default function StreamPreview({
                 }} />
               </div>
             )}
-            {/* LIVE / PREVIEW badge */}
+            {/* LIVE badge */}
             <div style={{
               position: 'absolute', top: '10px', left: '10px',
-              backgroundColor: isLive ? '#DC2626' : 'rgba(139,92,246,0.9)',
+              backgroundColor: '#DC2626',
               color: 'white',
               padding: '0.2rem 0.55rem',
               borderRadius: '0.25rem',
@@ -369,13 +400,13 @@ export default function StreamPreview({
               fontWeight: 800,
               letterSpacing: '0.1em',
               display: 'flex', alignItems: 'center', gap: '0.3rem',
-              boxShadow: isLive ? '0 2px 8px rgba(220,38,38,0.4)' : 'none',
+              boxShadow: '0 2px 8px rgba(220,38,38,0.4)',
             }}>
-              {isLive && <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'white', animation: 'pulse 2s infinite' }} />}
-              {isLive ? 'LIVE' : 'PREVIEW'}
+              <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'white', animation: 'pulse 2s infinite' }} />
+              LIVE
             </div>
-            {/* Viewer count */}
-            {isLive && viewerCount > 0 && (
+            {/* Viewer count overlay */}
+            {viewerCount > 0 && (
               <div style={{
                 position: 'absolute', top: '10px', right: '10px',
                 backgroundColor: 'rgba(0,0,0,0.6)',
@@ -384,50 +415,96 @@ export default function StreamPreview({
                 borderRadius: '0.25rem',
                 fontSize: '0.65rem',
                 fontWeight: 600,
-              }}>{viewerCount.toLocaleString()} viewers</div>
+              }}>{viewerCount.toLocaleString()} viewer{viewerCount !== 1 ? 's' : ''}</div>
             )}
           </>
         ) : (
+          /* Status placeholder for non-live states */
           <div style={{
             width: '100%', height: '100%',
             display: 'flex', flexDirection: 'column',
             alignItems: 'center', justifyContent: 'center',
             background: 'linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%)',
           }}>
-            <div style={{
-              width: '56px', height: '56px', borderRadius: '50%',
-              background: isWaiting ? 'rgba(245,158,11,0.15)' : 'rgba(139,92,246,0.15)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              marginBottom: '0.75rem',
-            }}>
-              {isWaiting ? (
+            {isEnded ? (
+              <>
                 <div style={{
-                  width: '24px', height: '24px',
-                  border: '3px solid rgba(245,158,11,0.3)',
-                  borderTopColor: '#F59E0B',
-                  borderRadius: '50%',
-                  animation: 'spin 1s linear infinite',
-                }} />
-              ) : (
-                <BroadcastIcon />
-              )}
-            </div>
-            <div style={{ color: '#94A3B8', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem' }}>
-              {videoError ? 'Playback Error' : isWaiting ? 'Waiting for OBS...' : 'No Stream Signal'}
-            </div>
-            <div style={{ color: '#64748B', fontSize: '0.73rem', maxWidth: '260px', textAlign: 'center', lineHeight: '1.4' }}>
-              {videoError
-                ? 'Check your encoder connection and try again.'
-                : hasCredentials
-                  ? 'Paste the credentials into OBS and click "Start Streaming".'
-                  : 'Click "Start Stream" to generate your RTMP credentials.'}
-            </div>
+                  width: '64px', height: '64px', borderRadius: '50%',
+                  background: 'rgba(107,114,128,0.15)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  marginBottom: '0.75rem',
+                }}>
+                  <StopIcon />
+                </div>
+                <div style={{ color: '#6B7280', fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.25rem' }}>
+                  Stream Ended
+                </div>
+                <div style={{ color: '#4B5563', fontSize: '0.73rem', maxWidth: '280px', textAlign: 'center', lineHeight: '1.4' }}>
+                  This stream has ended permanently and cannot be resumed.
+                </div>
+              </>
+            ) : isPaused ? (
+              <>
+                <div style={{
+                  width: '64px', height: '64px', borderRadius: '50%',
+                  background: 'rgba(245,158,11,0.15)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  marginBottom: '0.75rem',
+                }}>
+                  <PauseIcon />
+                </div>
+                <div style={{
+                  backgroundColor: 'rgba(245,158,11,0.9)',
+                  color: 'white',
+                  padding: '0.25rem 0.7rem',
+                  borderRadius: '0.3rem',
+                  fontSize: '0.7rem',
+                  fontWeight: 800,
+                  letterSpacing: '0.1em',
+                  marginBottom: '0.6rem',
+                }}>
+                  PAUSED
+                </div>
+                <div style={{ color: '#64748B', fontSize: '0.73rem', maxWidth: '280px', textAlign: 'center', lineHeight: '1.4' }}>
+                  Stream is paused. Viewers see a paused state. Click Resume to continue.
+                </div>
+              </>
+            ) : isDisconnected ? (
+              <>
+                <div style={{
+                  width: '64px', height: '64px', borderRadius: '50%',
+                  background: hasCredentials ? 'rgba(245,158,11,0.15)' : 'rgba(139,92,246,0.15)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  marginBottom: '0.75rem',
+                }}>
+                  {hasCredentials ? (
+                    <div style={{
+                      width: '28px', height: '28px',
+                      border: '3px solid rgba(245,158,11,0.3)',
+                      borderTopColor: '#F59E0B',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite',
+                    }} />
+                  ) : (
+                    <BroadcastIcon />
+                  )}
+                </div>
+                <div style={{ color: '#94A3B8', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+                  {hasCredentials ? 'Waiting for OBS...' : 'No Stream Signal'}
+                </div>
+                <div style={{ color: '#64748B', fontSize: '0.73rem', maxWidth: '280px', textAlign: 'center', lineHeight: '1.4' }}>
+                  {hasCredentials
+                    ? 'Paste the credentials into OBS and click "Start Streaming".'
+                    : 'Click "Start Stream" to generate your RTMP credentials.'}
+                </div>
+              </>
+            ) : null}
           </div>
         )}
       </div>
 
-      {/* Stream stats row — only when live or has playback */}
-      {(isLive || (isWaiting && playbackUrl)) && (
+      {/* Stream stats row — when live or paused */}
+      {(isLive || isPaused) && (
         <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem' }}>
           {[
             { label: 'Health', value: streamHealth?.toUpperCase() || 'N/A', color: streamHealth === 'good' ? '#10B981' : streamHealth === 'fair' ? '#F59E0B' : '#6B7280' },
@@ -468,15 +545,15 @@ export default function StreamPreview({
           <div style={{
             width: '8px', height: '8px', borderRadius: '50%',
             backgroundColor: status.color,
-            animation: isLive ? 'pulse 2s infinite' : isWaiting ? 'pulse 1.5s infinite' : 'none',
+            animation: isLive ? 'pulse 2s infinite' : isPaused ? 'pulse 3s infinite' : isDisconnected ? 'pulse 1.5s infinite' : 'none',
           }} />
           <span style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary }}>{status.label}</span>
         </div>
         {isLive && <span style={{ fontSize: '0.73rem', color: colors.textSecondary }}>{viewerCount} watching</span>}
       </div>
 
-      {/* RTMP Credentials */}
-      {hasCredentials ? (
+      {/* RTMP Credentials — hide when ended */}
+      {!isEnded && hasCredentials && (
         <div style={{
           backgroundColor: isDark ? 'rgba(139,92,246,0.05)' : '#FAFAFE',
           border: `1px solid ${isDark ? 'rgba(139,92,246,0.15)' : '#EDE9FE'}`,
@@ -504,7 +581,10 @@ export default function StreamPreview({
             </div>
           </div>
         </div>
-      ) : (
+      )}
+
+      {/* No credentials yet prompt */}
+      {!isEnded && !hasCredentials && (
         <div style={{
           backgroundColor: isDark ? 'rgba(245,158,11,0.06)' : '#FFFBEB',
           border: `1px solid ${isDark ? 'rgba(245,158,11,0.15)' : '#FDE68A'}`,
@@ -520,8 +600,8 @@ export default function StreamPreview({
         </div>
       )}
 
-      {/* Invite Token */}
-      {inviteToken && (
+      {/* Invite Token — hide when ended */}
+      {!isEnded && inviteToken && (
         <div style={{
           backgroundColor: isDark ? 'rgba(139,92,246,0.06)' : '#FAF5FF',
           border: `1px solid ${isDark ? 'rgba(139,92,246,0.2)' : '#DDD6FE'}`,
@@ -539,36 +619,38 @@ export default function StreamPreview({
         </div>
       )}
 
-      {/* Encoder Guide (collapsible) */}
-      <div style={{
-        backgroundColor: isDark ? 'rgba(59,130,246,0.05)' : '#F0F7FF',
-        border: `1px solid ${isDark ? 'rgba(59,130,246,0.15)' : '#BFDBFE'}`,
-        borderRadius: '0.5rem',
-        overflow: 'hidden',
-      }}>
-        <button onClick={() => setShowGuide(!showGuide)} style={{
-          width: '100%',
-          padding: '0.6rem 0.75rem',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          background: 'none', border: 'none', cursor: 'pointer',
-          color: isDark ? '#60A5FA' : '#2563EB',
+      {/* Encoder Guide — hide when ended */}
+      {!isEnded && (
+        <div style={{
+          backgroundColor: isDark ? 'rgba(59,130,246,0.05)' : '#F0F7FF',
+          border: `1px solid ${isDark ? 'rgba(59,130,246,0.15)' : '#BFDBFE'}`,
+          borderRadius: '0.5rem',
+          overflow: 'hidden',
         }}>
-          <span style={{ fontSize: '0.78rem', fontWeight: 600 }}>Encoder Setup Guide (OBS / Streamlabs)</span>
-          <ChevronIcon open={showGuide} />
-        </button>
-        {showGuide && (
-          <div style={{ padding: '0 0.75rem 0.75rem' }}>
-            <ol style={{ fontSize: '0.72rem', color: colors.textSecondary, margin: 0, paddingLeft: '1.1rem', lineHeight: '1.7' }}>
-              <li>Open OBS Studio and go to <strong>Settings &rarr; Stream</strong></li>
-              <li>Set Service to <strong>"Custom..."</strong></li>
-              <li>Paste the <strong>Server URL</strong> and <strong>Stream Key</strong> above</li>
-              <li>Set output: <strong>1080p, 4500 kbps, x264/NVENC</strong></li>
-              <li>Click <strong>"Start Streaming"</strong> in OBS</li>
-              <li>Come back here and click <strong>"Go Live"</strong></li>
-            </ol>
-          </div>
-        )}
-      </div>
+          <button onClick={() => setShowGuide(!showGuide)} style={{
+            width: '100%',
+            padding: '0.6rem 0.75rem',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: isDark ? '#60A5FA' : '#2563EB',
+          }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 600 }}>Encoder Setup Guide (OBS / Streamlabs)</span>
+            <ChevronIcon open={showGuide} />
+          </button>
+          {showGuide && (
+            <div style={{ padding: '0 0.75rem 0.75rem' }}>
+              <ol style={{ fontSize: '0.72rem', color: colors.textSecondary, margin: 0, paddingLeft: '1.1rem', lineHeight: '1.7' }}>
+                <li>Open OBS Studio and go to <strong>Settings &rarr; Stream</strong></li>
+                <li>Set Service to <strong>&quot;Custom...&quot;</strong></li>
+                <li>Paste the <strong>Server URL</strong> and <strong>Stream Key</strong> above</li>
+                <li>Set output: <strong>1080p, 4500 kbps, x264/NVENC</strong></li>
+                <li>Click <strong>&quot;Start Streaming&quot;</strong> in OBS</li>
+                <li>Come back here and click <strong>&quot;Go Live&quot;</strong></li>
+              </ol>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Error */}
       {error && (
@@ -584,29 +666,64 @@ export default function StreamPreview({
         </div>
       )}
 
-      {/* Action Button */}
-      <div style={{ marginTop: 'auto' }}>
-        {isIdle && !hasCredentials && (
-          <button onClick={onStartStream} style={actionBtn('#8B5CF6')}>
-            <PlayIcon /> Start Stream
-          </button>
-        )}
-        {isIdle && hasCredentials && (
-          <button onClick={onGoLive} style={actionBtn('#10B981')}>
-            <BroadcastIcon /> Resume Stream
-          </button>
-        )}
-        {isWaiting && (
-          <button onClick={onGoLive} style={actionBtn('#10B981')}>
-            <BroadcastIcon /> {hasCredentials ? 'Go Live' : 'Go Live'}
-          </button>
-        )}
-        {isLive && (
-          <button onClick={onEndStream} style={actionBtn('#DC2626')}>
-            <StopIcon /> End Stream
-          </button>
-        )}
-      </div>
+      {/* Action Buttons */}
+      {!isEnded && (
+        <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          {/* Start Stream — no credentials yet */}
+          {isDisconnected && !hasCredentials && (
+            <button onClick={onStartStream} style={actionBtn('#8B5CF6')}>
+              <PlayIcon /> Start Stream
+            </button>
+          )}
+
+          {/* Go Live — has credentials, waiting for encoder */}
+          {isDisconnected && hasCredentials && (
+            <button onClick={onResumeStream} style={actionBtn('#10B981')}>
+              <BroadcastIcon /> Go Live
+            </button>
+          )}
+
+          {/* Paused — show Resume */}
+          {isPaused && (
+            <button onClick={onResumeStream} style={actionBtn('#10B981')}>
+              <PlayIcon /> Resume Stream
+            </button>
+          )}
+
+          {/* Live — show Pause + End Stream */}
+          {isLive && (
+            <>
+              <button onClick={onPauseStream} style={actionBtn('#F59E0B')}>
+                <PauseIcon /> Pause Stream
+              </button>
+              <button onClick={() => setShowEndConfirm(true)} style={{ ...actionBtn('#DC2626'), backgroundColor: 'transparent', border: '2px solid #DC2626', color: '#DC2626' }}>
+                <StopIcon /> End Stream
+              </button>
+            </>
+          )}
+
+          {/* Paused — also allow End Stream */}
+          {isPaused && (
+            <button onClick={() => setShowEndConfirm(true)} style={{ ...actionBtn('#DC2626'), backgroundColor: 'transparent', border: '2px solid #DC2626', color: '#DC2626' }}>
+              <StopIcon /> End Stream
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Ended state message */}
+      {isEnded && (
+        <div style={{
+          backgroundColor: isDark ? 'rgba(107,114,128,0.1)' : '#F9FAFB',
+          border: `1px solid ${colors.borderPrimary}`,
+          borderRadius: '0.5rem',
+          padding: '1rem',
+          textAlign: 'center',
+        }}>
+          <div style={{ fontSize: '0.85rem', fontWeight: 600, color: colors.textPrimary, marginBottom: '0.25rem' }}>Stream Completed</div>
+          <div style={{ fontSize: '0.73rem', color: colors.textSecondary }}>This stream has ended permanently. You can close this window.</div>
+        </div>
+      )}
     </div>
   );
 
@@ -629,7 +746,9 @@ export default function StreamPreview({
         <div className="stream-modal" style={modal} onClick={e => e.stopPropagation()}>
           {/* Header */}
           <div style={{
-            background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+            background: isEnded
+              ? `linear-gradient(135deg, ${isDark ? '#1f1f1f' : '#374151'} 0%, ${isDark ? '#2d2d2d' : '#4B5563'} 100%)`
+              : 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
             padding: '1.15rem 1.5rem',
             borderRadius: '1rem 1rem 0 0',
             position: 'relative',
@@ -642,7 +761,9 @@ export default function StreamPreview({
                   width: '36px', height: '36px', borderRadius: '0.5rem',
                   background: isLive
                     ? 'linear-gradient(135deg, #10B981, #059669)'
-                    : 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
+                    : isEnded
+                      ? 'linear-gradient(135deg, #6B7280, #4B5563)'
+                      : 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   boxShadow: isLive ? '0 0 20px rgba(16,185,129,0.3)' : 'none',
                 }}>
@@ -650,7 +771,7 @@ export default function StreamPreview({
                 </div>
                 <div>
                   <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'white', margin: 0 }}>
-                    Live Stream Control
+                    {isEnded ? 'Stream Ended' : 'Live Stream Control'}
                   </h2>
                   <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.55)', margin: 0 }}>{eventTitle}</p>
                 </div>
@@ -670,6 +791,19 @@ export default function StreamPreview({
                   }}>
                     <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'white' }} />
                     LIVE
+                  </div>
+                )}
+                {isPaused && (
+                  <div style={{
+                    backgroundColor: '#F59E0B',
+                    color: 'white',
+                    padding: '0.2rem 0.6rem',
+                    borderRadius: '0.25rem',
+                    fontSize: '0.65rem',
+                    fontWeight: 800,
+                    letterSpacing: '0.08em',
+                  }}>
+                    PAUSED
                   </div>
                 )}
                 <button onClick={onClose} style={{
@@ -696,6 +830,73 @@ export default function StreamPreview({
           </div>
         </div>
       </div>
+
+      {/* End Stream Confirmation Modal */}
+      {showEndConfirm && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.7)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1200,
+          backdropFilter: 'blur(4px)',
+        }} onClick={() => setShowEndConfirm(false)}>
+          <div style={{
+            backgroundColor: colors.bgCard,
+            borderRadius: '0.75rem',
+            padding: '1.5rem',
+            maxWidth: '420px',
+            width: '90%',
+            textAlign: 'center',
+            boxShadow: isDark
+              ? '0 25px 60px rgba(0,0,0,0.6)'
+              : '0 25px 60px rgba(0,0,0,0.2)',
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+              <WarningIcon />
+            </div>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
+              End Stream Permanently?
+            </h3>
+            <p style={{ fontSize: '0.82rem', color: colors.textSecondary, lineHeight: '1.5', margin: '0 0 1.25rem 0' }}>
+              This will <strong style={{ color: '#DC2626' }}>permanently end</strong> the live stream for <strong style={{ color: colors.textPrimary }}>{eventTitle}</strong>. All viewers will be disconnected and the stream cannot be resumed or restarted.
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                onClick={() => setShowEndConfirm(false)}
+                style={{
+                  flex: 1,
+                  padding: '0.65rem 1rem',
+                  borderRadius: '0.5rem',
+                  border: `1.5px solid ${colors.borderPrimary}`,
+                  backgroundColor: colors.bgCard,
+                  color: colors.textPrimary,
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEndConfirm}
+                style={{
+                  flex: 1,
+                  padding: '0.65rem 1rem',
+                  borderRadius: '0.5rem',
+                  border: 'none',
+                  backgroundColor: '#DC2626',
+                  color: 'white',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                End Stream
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
