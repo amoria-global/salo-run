@@ -1393,15 +1393,17 @@ const PaymentsPage = () => {
   const [apiPayments, setApiPayments] = useState<Payment[]>([]);
   const [isLoadingPayments, setIsLoadingPayments] = useState(false);
   const [streamFeeEvents, setStreamFeeEvents] = useState<Array<{
-    id: number;
+    id: string;
     eventTitle: string;
+    viewerName: string;
+    viewerEmail: string;
     date: string;
-    platform: string;
-    ticketPrice: number;
-    viewerCount: number;
-    totalRevenue: number;
-    status: 'completed' | 'pending' | 'live';
+    amount: number;
+    currency: string;
+    method: string;
+    status: string;
   }>>([]);
+  const [totalStreamingRevenue, setTotalStreamingRevenue] = useState(0);
 
   useEffect(() => {
     const apiUrl = getApiUrl();
@@ -1450,30 +1452,37 @@ const PaymentsPage = () => {
     }
   }, []);
 
-  // Fetch streams for live stream fee revenue section
+  // Fetch streaming payments from dedicated endpoint
   const fetchStreams = useCallback(async () => {
     try {
       const apiUrl = getApiUrl();
-      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/streams`);
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/payments/streaming`);
       if (response.ok) {
         const result = await response.json();
-        const data = result?.data || [];
+        const data = result?.data?.content || result?.data || [];
+        if (result?.totalStreamingRevenue !== undefined) {
+          setTotalStreamingRevenue(result.totalStreamingRevenue);
+        }
         if (Array.isArray(data) && data.length > 0) {
-          const mapped = data.map((s: any, idx: number) => ({
-            id: s.id || idx + 1,
-            eventTitle: s.eventTitle || s.title || s.name || 'Live Stream',
-            date: s.date || s.createdAt ? new Date(s.date || s.createdAt).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : '',
-            platform: s.platform || 'ConnektLive',
-            ticketPrice: s.ticketPrice || s.price || 0,
-            viewerCount: s.viewerCount || s.viewers || 0,
-            totalRevenue: s.totalRevenue || s.revenue || (s.ticketPrice || 0) * (s.viewerCount || 0),
-            status: (s.status || 'completed').toLowerCase() as 'completed' | 'pending' | 'live',
+          const mapped = data.map((p: any) => ({
+            id: p.id || '',
+            eventTitle: p.eventTitle || p.description || 'Live Stream',
+            viewerName: p.viewerName || 'Unknown Viewer',
+            viewerEmail: p.viewerEmail || '',
+            date: p.createdAt || p.date || '',
+            amount: p.amount || 0,
+            currency: p.currencyAbbreviation || 'RWF',
+            method: p.paymentMethod || p.method || '-',
+            status: (p.status || 'pending').toLowerCase(),
           }));
           setStreamFeeEvents(mapped);
+          if (!result?.totalStreamingRevenue) {
+            setTotalStreamingRevenue(mapped.filter((p: any) => p.status === 'completed').reduce((sum: number, p: any) => sum + p.amount, 0));
+          }
         }
       }
     } catch (err) {
-      console.error('Failed to fetch streams:', err);
+      console.error('Failed to fetch streaming payments:', err);
     }
   }, []);
 
@@ -1547,7 +1556,7 @@ Amount: ${formatPrice(payment.amountNum)}
   const totalPending = payments.filter(p => p.status === 'pending' || p.status === 'partially_paid').reduce((sum, p) => sum + (p.amountNum - p.paidAmount), 0);
   const totalFailed = payments.filter(p => p.status === 'failed').reduce((sum, p) => sum + p.amountNum, 0);
 
-  const totalStreamFees = streamFeeEvents.reduce((sum, event) => sum + event.totalRevenue, 0);
+  const totalStreamFees = totalStreamingRevenue;
 
   // State for stream fee events (no individual payer modal needed)
   const [selectedStreamFeeEvent, setSelectedStreamFeeEvent] = useState<typeof streamFeeEvents[0] | null>(null);
@@ -1911,69 +1920,63 @@ Amount: ${formatPrice(payment.amountNum)}
             </div>
 
             <div style={{ padding: '1rem 1.25rem' }}>
-              <div className="mobile-stream-fees-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
-                {streamFeeEvents.map((event) => (
-                    <div
-                      key={event.id}
-                      style={{
-                        backgroundColor: actualTheme === 'dark' ? '#14532D' : '#F0FDF4',
-                        borderRadius: '0.5rem',
-                        border: `1px solid ${actualTheme === 'dark' ? '#16A34A' : '#BBF7D0'}`,
-                        padding: '0.65rem',
-                        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
-                      }}
-                    >
-                      {/* Header row: Platform badge, date, and amount */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <LiveStreamIcon />
-                          <span style={{
-                            fontSize: '0.65rem',
-                            color: '#16A34A',
-                            backgroundColor: '#DCFCE7',
-                            padding: '0.1rem 0.35rem',
-                            borderRadius: '0.25rem',
-                            fontWeight: '500'
-                          }}>
-                            {event.platform}
-                          </span>
-                          <span style={{ fontSize: '0.7rem', color: colors.textSecondary }}>{event.date}</span>
-                        </div>
-                        <span style={{ fontSize: '1.05rem', fontWeight: '700', color: '#16A34A' }}>{formatPrice(event.totalRevenue)}</span>
-                      </div>
-
-                      {/* Title row */}
-                      <h3 style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.35rem 0', lineHeight: '1.3' }}>
-                        {event.eventTitle}
-                      </h3>
-
-                      {/* Event stats */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.4rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                          <span style={{ color: colors.textSecondary }}><UsersIcon /></span>
-                          <span style={{ fontSize: '0.72rem', color: colors.textSecondary }}>{event.viewerCount} viewers</span>
-                        </div>
-                        <div style={{ fontSize: '0.72rem', color: colors.textSecondary }}>
-                          Ticket: {formatPrice(event.ticketPrice)}
-                        </div>
-                      </div>
-
-                      {/* Status badge */}
-                      <div style={{
-                        display: 'inline-block',
-                        backgroundColor: event.status === 'completed' ? (actualTheme === 'dark' ? '#064E3B' : '#D1FAE5') : (actualTheme === 'dark' ? '#78350F' : '#FEF3C7'),
-                        color: event.status === 'completed' ? (actualTheme === 'dark' ? '#34D399' : '#059669') : (actualTheme === 'dark' ? '#FBBF24' : '#D97706'),
-                        padding: '0.25rem 0.5rem',
-                        borderRadius: '0.25rem',
-                        fontSize: '0.7rem',
-                        fontWeight: '600',
-                        textTransform: 'uppercase'
-                      }}>
-                        {event.status}
-                      </div>
-                    </div>
-                ))}
-              </div>
+              {streamFeeEvents.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '2rem', color: colors.textSecondary, fontSize: '0.85rem' }}>
+                  No streaming payments yet. Entry fee payments from viewers will appear here.
+                </div>
+              ) : (
+                <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
+                      <tr style={{ backgroundColor: actualTheme === 'dark' ? '#14532D' : '#F0FDF4' }}>
+                        <th style={{ textAlign: 'left', padding: '0.6rem 0.75rem', fontSize: '0.72rem', fontWeight: 600, color: colors.textSecondary, textTransform: 'uppercase' }}>Viewer</th>
+                        <th style={{ textAlign: 'left', padding: '0.6rem 0.75rem', fontSize: '0.72rem', fontWeight: 600, color: colors.textSecondary, textTransform: 'uppercase' }}>Event</th>
+                        <th style={{ textAlign: 'left', padding: '0.6rem 0.75rem', fontSize: '0.72rem', fontWeight: 600, color: colors.textSecondary, textTransform: 'uppercase' }}>Method</th>
+                        <th style={{ textAlign: 'left', padding: '0.6rem 0.75rem', fontSize: '0.72rem', fontWeight: 600, color: colors.textSecondary, textTransform: 'uppercase' }}>Amount</th>
+                        <th style={{ textAlign: 'left', padding: '0.6rem 0.75rem', fontSize: '0.72rem', fontWeight: 600, color: colors.textSecondary, textTransform: 'uppercase' }}>Date</th>
+                        <th style={{ textAlign: 'left', padding: '0.6rem 0.75rem', fontSize: '0.72rem', fontWeight: 600, color: colors.textSecondary, textTransform: 'uppercase' }}>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {streamFeeEvents.map((payment) => (
+                        <tr key={payment.id} style={{ borderBottom: `1px solid ${colors.borderPrimary}` }}>
+                          <td style={{ padding: '0.65rem 0.75rem' }}>
+                            <div style={{ fontSize: '0.82rem', fontWeight: 600, color: colors.textPrimary }}>{payment.viewerName}</div>
+                            {payment.viewerEmail && <div style={{ fontSize: '0.7rem', color: colors.textSecondary }}>{payment.viewerEmail}</div>}
+                          </td>
+                          <td style={{ padding: '0.65rem 0.75rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                              <LiveStreamIcon />
+                              <span style={{ fontSize: '0.82rem', color: colors.textPrimary }}>{payment.eventTitle}</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: '0.65rem 0.75rem', fontSize: '0.82rem', color: colors.textSecondary, textTransform: 'capitalize' }}>{payment.method}</td>
+                          <td style={{ padding: '0.65rem 0.75rem', fontSize: '0.85rem', fontWeight: 700, color: '#16A34A' }}>
+                            {formatPrice(payment.amount)} {payment.currency}
+                          </td>
+                          <td style={{ padding: '0.65rem 0.75rem', fontSize: '0.78rem', color: colors.textSecondary }}>
+                            {payment.date ? new Date(payment.date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : '-'}
+                          </td>
+                          <td style={{ padding: '0.65rem 0.75rem' }}>
+                            <span style={{
+                              display: 'inline-block',
+                              backgroundColor: payment.status === 'completed' ? (actualTheme === 'dark' ? '#064E3B' : '#D1FAE5') : payment.status === 'failed' ? (actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2') : (actualTheme === 'dark' ? '#78350F' : '#FEF3C7'),
+                              color: payment.status === 'completed' ? (actualTheme === 'dark' ? '#34D399' : '#059669') : payment.status === 'failed' ? (actualTheme === 'dark' ? '#FCA5A5' : '#DC2626') : (actualTheme === 'dark' ? '#FBBF24' : '#D97706'),
+                              padding: '0.2rem 0.5rem',
+                              borderRadius: '0.25rem',
+                              fontSize: '0.7rem',
+                              fontWeight: 600,
+                              textTransform: 'uppercase',
+                            }}>
+                              {payment.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
 

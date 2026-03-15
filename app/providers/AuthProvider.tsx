@@ -427,10 +427,15 @@ async function fetchUserProfile(token: string): Promise<{ user: DashboardUser | 
           if (user) return { user, reason: 'success' };
         }
       }
+      // For photographers, don't redirect — they may be mid-stream
       if (typeof window !== 'undefined') {
-        const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL as string;
-        const loginUrl = `${landingUrl}/user/auth/login?session_expired=true`;
-        window.location.href = loginUrl;
+        const isPhotographer = window.location.pathname.includes('/photographer') ||
+          document.cookie.includes('userRole=photographer');
+        if (!isPhotographer) {
+          const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL as string;
+          const loginUrl = `${landingUrl}/user/auth/login?session_expired=true`;
+          window.location.href = loginUrl;
+        }
       }
       return { user: null, reason: 'unauthorized' };
     }
@@ -544,12 +549,39 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
   }, [searchParams]);
 
   // Validate token and refresh profile every 5 minutes
+  // For photographers: proactively refresh token before it expires to avoid session interruption during live streams
   useEffect(() => {
     if (!token) return;
 
-    const FIVE_MINUTES = 5 * 60 * 1000;
+    const isPhotographer = typeof window !== 'undefined' && (
+      window.location.pathname.includes('/photographer') ||
+      document.cookie.includes('userRole=photographer')
+    );
+
+    const INTERVAL = isPhotographer ? 3 * 60 * 1000 : 5 * 60 * 1000; // 3min for photographer, 5min for others
 
     const intervalId = setInterval(async () => {
+      // For photographers, try to refresh the token proactively before it expires
+      if (isPhotographer) {
+        const newToken = await attemptDashboardTokenRefresh(token);
+        if (newToken) {
+          setToken(newToken);
+          // Also refresh profile with new token
+          const { user: userProfile } = await fetchUserProfile(newToken);
+          if (userProfile) {
+            setUser(userProfile);
+            if (typeof window !== 'undefined') {
+              localStorage.setItem(AUTH_USER_KEY, JSON.stringify(userProfile));
+              if (userProfile.customerType) {
+                document.cookie = `userRole=${userProfile.customerType.toLowerCase()}; path=/; max-age=${60*60*24*7}; samesite=lax`;
+              }
+            }
+          }
+        }
+        // If refresh fails, keep existing session — never redirect photographer
+        return;
+      }
+
       const { user: userProfile } = await fetchUserProfile(token);
 
       if (!userProfile) {
@@ -570,7 +602,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
           }
         }
       }
-    }, FIVE_MINUTES);
+    }, INTERVAL);
 
     return () => clearInterval(intervalId);
   }, [token]);
