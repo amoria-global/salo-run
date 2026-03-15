@@ -99,6 +99,12 @@ const CloseIcon = () => (
   </svg>
 );
 
+const TrashIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+  </svg>
+);
+
 const SearchIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <circle cx="11" cy="11" r="8" stroke="#9CA3AF" strokeWidth="2"/>
@@ -189,6 +195,8 @@ const normalizeImg = (url: string | undefined | null): string => {
   if (!u.includes('/') && !u.startsWith('http')) {
     u = `${getApiUrl()}/uploads/profile/photos/${u}`;
   }
+  // Fix backend path mismatch: /event/media/ should be /event/photos/
+  u = u.replace('/uploads/event/media/', '/uploads/event/photos/');
   return normalizeImageUrl(u) || '';
 };
 
@@ -204,6 +212,8 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
   const [streams, setStreams] = useState<CompletedStream[]>([]);
   const [filterType, setFilterType] = useState<string>('all');
   const [isVideoLoading, setIsVideoLoading] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<CompletedStream | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // Fetch streams from API
@@ -348,6 +358,31 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
       fetchStreams();
     }
   }, [user?.id, fetchStreams]);
+
+  const handleDeleteStream = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      const rolePrefix = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
+      // Try stream record id first, fallback to eventId
+      const streamId = deleteTarget.id;
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${rolePrefix}/streams/${streamId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setStreams(prev => prev.filter(s => s.id !== deleteTarget.id));
+        setDeleteTarget(null);
+      } else {
+        // If failed with stream id, try with eventId
+        if (deleteTarget.eventId && deleteTarget.eventId !== streamId) {
+          const res2 = await dashboardAuthFetch(`${apiUrl}/api/remote/${rolePrefix}/streams/${deleteTarget.eventId}`, { method: 'DELETE' });
+          if (res2.ok) {
+            setStreams(prev => prev.filter(s => s.id !== deleteTarget.id));
+            setDeleteTarget(null);
+          }
+        }
+      }
+    } catch { /* ignore */ }
+    setIsDeleting(false);
+  };
 
   // Load and play video when selectedVideo changes
   useEffect(() => {
@@ -663,7 +698,7 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
               return (
                 <div
                   key={stream.id ?? index}
-                  style={{ position: 'relative', borderRadius: '1.5rem', overflow: 'hidden', transition: 'transform 0.3s ease', willChange: 'transform' }}
+                  style={{ position: 'relative', height: '450px', borderRadius: '1.5rem', overflow: 'hidden', transition: 'transform 0.3s ease', willChange: 'transform' }}
                   onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.03)'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
                 >
@@ -671,35 +706,45 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
                   <img src={stream.coverImage || '/coverr.jpg'} alt="" style={{ position: 'absolute', inset: '-10px', width: 'calc(100% + 20px)', height: 'calc(100% + 20px)', objectFit: 'cover', filter: 'blur(14px) brightness(0.7)', pointerEvents: 'none' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }} />
                   {/* Inner card */}
                   <div
-                    style={{ position: 'relative', margin: '7px', borderRadius: '1.05rem', overflow: 'hidden', backgroundColor: '#000', cursor: 'pointer', transition: 'filter 0.2s' }}
+                    style={{ position: 'absolute', inset: '7px', borderRadius: '1.05rem', overflow: 'hidden', backgroundColor: '#000', cursor: 'pointer', transition: 'filter 0.2s' }}
                     onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.15)'; }}
                     onMouseLeave={(e) => { e.currentTarget.style.filter = 'brightness(1)'; }}
                   >
-                    {/* Cover image section */}
-                    <div style={{ position: 'relative', height: '180px' }}>
-                      <img src={stream.coverImage || '/coverr.jpg'} alt={stream.streamTitle} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }} />
-                      {/* Gradient overlay */}
-                      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0) 35%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0.55) 100%)', pointerEvents: 'none' }} />
+                    {/* Full-bleed cover image */}
+                    <img src={stream.coverImage || '/coverr.jpg'} alt={stream.streamTitle} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }} />
+                    {/* Gradient overlay */}
+                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0) 35%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0.55) 100%)', pointerEvents: 'none' }} />
 
-                      {/* TOP: event type + duration/unviewed */}
-                      <div style={{ position: 'absolute', top: '0.6rem', left: '0.6rem', right: '0.6rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', pointerEvents: 'none' }}>
-                        <div style={{ backgroundColor: '#083A85', backdropFilter: 'blur(8px)', color: 'white', padding: '0.25rem 0.7rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.02em' }}>
-                          {stream.eventType}
-                        </div>
-                        <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
-                          {unviewedCount > 0 && (
-                            <div style={{ backgroundColor: '#DC2626', backdropFilter: 'blur(8px)', color: 'white', padding: '0.25rem 0.7rem', borderRadius: '1rem', fontSize: '0.65rem', fontWeight: 700 }}>
-                              {unviewedCount} new
-                            </div>
-                          )}
-                          <div style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', color: 'white', padding: '0.25rem 0.7rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.02em', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                            <ClockIcon /> {stream.duration}
-                          </div>
-                        </div>
+                    {/* TOP: event type + duration/unviewed + delete */}
+                    <div style={{ position: 'absolute', top: '0.6rem', left: '0.6rem', right: '0.6rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div style={{ backgroundColor: '#083A85', backdropFilter: 'blur(8px)', color: 'white', padding: '0.25rem 0.7rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.02em', pointerEvents: 'none' }}>
+                        {stream.eventType}
                       </div>
+                      <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
+                        {unviewedCount > 0 && (
+                          <div style={{ backgroundColor: '#DC2626', backdropFilter: 'blur(8px)', color: 'white', padding: '0.25rem 0.7rem', borderRadius: '1rem', fontSize: '0.65rem', fontWeight: 700, pointerEvents: 'none' }}>
+                            {unviewedCount} new
+                          </div>
+                        )}
+                        <div style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', color: 'white', padding: '0.25rem 0.7rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.02em', display: 'flex', alignItems: 'center', gap: '0.25rem', pointerEvents: 'none' }}>
+                          <ClockIcon /> {stream.duration}
+                        </div>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setDeleteTarget(stream); }}
+                          style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', color: 'rgba(255,255,255,0.8)', padding: '0.3rem', borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}
+                          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(220,38,38,0.8)'; e.currentTarget.style.color = 'white'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.55)'; e.currentTarget.style.color = 'rgba(255,255,255,0.8)'; }}
+                          title="Delete stream"
+                        >
+                          <TrashIcon />
+                        </button>
+                      </div>
+                    </div>
 
-                      {/* BOTTOM OF IMAGE: title + date */}
-                      <div style={{ position: 'absolute', bottom: '0.6rem', left: 0, right: 0, padding: '0 0.8rem' }}>
+                    {/* BOTTOM: title, date, photographer, stats, buttons — all overlaid */}
+                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
+                      {/* Title + date over image */}
+                      <div style={{ padding: '0 0.8rem 0.5rem' }}>
                         <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '0.03em', textTransform: 'uppercase', lineHeight: 1.3, marginBottom: '0.15rem' }}>
                           {stream.streamTitle}
                         </div>
@@ -707,48 +752,48 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
                           <CalendarIcon /> {formatDate(stream.streamDate)} at {stream.streamTime}
                         </div>
                       </div>
-                    </div>
 
-                    {/* FOOTER: frosted glass */}
-                    <div style={{ backgroundColor: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)', padding: '0.75rem 1rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                      {/* Photographer + stats row */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem' }}>
-                        <div style={{ width: '36px', height: '36px', borderRadius: '50%', overflow: 'hidden', position: 'relative', background: 'linear-gradient(135deg, #083A85, #3B82F6)', border: '2px solid rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                            <circle cx="12" cy="7" r="4" stroke="white" strokeWidth="2"/>
-                          </svg>
-                          {stream.photographerImage && (
-                            <img src={stream.photographerImage} alt={stream.photographerName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                          )}
+                      {/* FOOTER: frosted glass */}
+                      <div style={{ backgroundColor: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)', padding: '0.75rem 1rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                        {/* Photographer + stats row */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem' }}>
+                          <div style={{ width: '36px', height: '36px', borderRadius: '50%', overflow: 'hidden', position: 'relative', background: 'linear-gradient(135deg, #083A85, #3B82F6)', border: '2px solid rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              <circle cx="12" cy="7" r="4" stroke="white" strokeWidth="2"/>
+                            </svg>
+                            {stream.photographerImage && (
+                              <img src={stream.photographerImage} alt={stream.photographerName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                            )}
+                          </div>
+                          <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.9)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{stream.photographerName}</span>
+                          <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexShrink: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.72rem' }}>
+                              <UsersIcon /> {stream.totalViewers}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.72rem' }}>
+                              <MessageIcon /> {stream.totalMessages}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.72rem' }}>
+                              <VideoIcon /> {stream.totalVideoMessages}
+                            </div>
+                          </div>
                         </div>
-                        <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.9)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{stream.photographerName}</span>
-                        <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexShrink: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.72rem' }}>
-                            <UsersIcon /> {stream.totalViewers}
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.72rem' }}>
-                            <MessageIcon /> {stream.totalMessages}
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.72rem' }}>
-                            <VideoIcon /> {stream.totalVideoMessages}
-                          </div>
+                        {/* Action buttons */}
+                        <div style={{ display: 'flex', gap: '0.4rem' }}>
+                          <button
+                            onClick={() => { setSelectedStream(stream); setShowMessagesModal(true); }}
+                            style={{ flex: 1, padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: 'none', backgroundColor: '#083A85', color: 'white', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
+                          >
+                            <MessageIcon /> View Chats
+                          </button>
+                          <button
+                            onClick={() => { setSelectedStream(stream); setShowVideosModal(true); }}
+                            style={{ flex: 1, padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: 'none', backgroundColor: '#DC2626', color: 'white', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
+                          >
+                            <VideoIcon /> Videos {unviewedCount > 0 && `(${unviewedCount})`}
+                          </button>
                         </div>
-                      </div>
-                      {/* Action buttons */}
-                      <div style={{ display: 'flex', gap: '0.4rem' }}>
-                        <button
-                          onClick={() => { setSelectedStream(stream); setShowMessagesModal(true); }}
-                          style={{ flex: 1, padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: 'none', backgroundColor: '#083A85', color: 'white', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
-                        >
-                          <MessageIcon /> View Chats
-                        </button>
-                        <button
-                          onClick={() => { setSelectedStream(stream); setShowVideosModal(true); }}
-                          style={{ flex: 1, padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: 'none', backgroundColor: '#DC2626', color: 'white', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
-                        >
-                          <VideoIcon /> Videos {unviewedCount > 0 && `(${unviewedCount})`}
-                        </button>
                       </div>
                     </div>
                   </div>
@@ -1096,6 +1141,41 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
           </div>
         )}
       </Modal>
+
+      {/* Delete Confirmation Modal */}
+      {deleteTarget && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, backdropFilter: 'blur(4px)' }} onClick={() => !isDeleting && setDeleteTarget(null)}>
+          <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1.5rem', maxWidth: '400px', width: '90%', boxShadow: actualTheme === 'dark' ? '0 25px 60px rgba(0,0,0,0.6)' : '0 25px 60px rgba(0,0,0,0.2)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: actualTheme === 'dark' ? 'rgba(220,38,38,0.15)' : '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                </svg>
+              </div>
+            </div>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: colors.textPrimary, margin: '0 0 0.5rem', textAlign: 'center' }}>Delete Stream Record?</h3>
+            <p style={{ fontSize: '0.82rem', color: colors.textSecondary, lineHeight: '1.5', margin: '0 0 1.25rem', textAlign: 'center' }}>
+              This will permanently delete the stream record for <strong style={{ color: colors.textPrimary }}>{deleteTarget.streamTitle}</strong>, including all chat messages and video messages.
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                onClick={() => setDeleteTarget(null)}
+                disabled={isDeleting}
+                style={{ flex: 1, padding: '0.6rem 1rem', borderRadius: '0.5rem', border: `1.5px solid ${colors.borderPrimary}`, backgroundColor: colors.bgCard, color: colors.textPrimary, fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', opacity: isDeleting ? 0.5 : 1 }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteStream}
+                disabled={isDeleting}
+                style={{ flex: 1, padding: '0.6rem 1rem', borderRadius: '0.5rem', border: 'none', backgroundColor: '#DC2626', color: 'white', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', opacity: isDeleting ? 0.7 : 1 }}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style jsx global>{`
         @keyframes pulse {
