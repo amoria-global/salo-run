@@ -315,13 +315,14 @@ interface StreamConfig {
   eventId: string;
   serverUrl?: string;
   streamKey?: string;
-  connectionStatus: 'idle' | 'waiting_for_encoder' | 'receiving_signal' | 'live';
+  connectionStatus: 'disconnected' | 'connected' | 'paused' | 'ended';
   streamHealth: 'good' | 'fair' | 'poor';
   uploadSpeed: string;
   viewerCount: number;
   peakViewers: number;
   inviteToken?: string;
   playbackUrl?: string;
+  streamType?: 'entry_fee' | 'invite_token';
   error?: string;
 }
 
@@ -775,13 +776,28 @@ const PhotographerEventsPage = () => {
             const result = await res.json();
             if (result?.data) {
               const cfg = result.data;
-              // Map backend 'connected' based on event status
-              // Only show 'live' if event is actually ONGOING (publicly broadcasting)
-              let uiStatus: string = cfg.connectionStatus || 'idle';
-              if (uiStatus === 'connected') {
-                uiStatus = event.status === 'ongoing' ? 'live' : 'waiting_for_encoder';
-              }
-              configs[event.id] = { ...cfg, connectionStatus: uiStatus as StreamConfig['connectionStatus'] };
+              const connStatus: string = cfg.connectionStatus || 'disconnected';
+              // Also fetch public event for playbackUrl and streamType
+              let hlsUrl = '';
+              let streamType = '';
+              try {
+                const pubRes = await fetch(`${apiUrl}/api/remote/public/events/${event.id}`);
+                if (pubRes.ok) {
+                  const pubData = await pubRes.json();
+                  hlsUrl = pubData.data?.hlsManifestUrl || '';
+                  streamType = pubData.data?.streamType || '';
+                  // Construct HLS URL from liveInputId if hlsManifestUrl is missing
+                  if (!hlsUrl && pubData.data?.liveInputId) {
+                    hlsUrl = `https://customer-ngk2huwatflljurq.cloudflarestream.com/${pubData.data.liveInputId}/manifest/video.m3u8`;
+                  }
+                }
+              } catch { /* ignore */ }
+              configs[event.id] = {
+                ...cfg,
+                connectionStatus: connStatus as StreamConfig['connectionStatus'],
+                playbackUrl: hlsUrl || cfg.hlsManifestUrl || '',
+                streamType: (streamType || '') as StreamConfig['streamType'],
+              };
             }
           }
         } catch { /* use default */ }
@@ -852,23 +868,23 @@ const PhotographerEventsPage = () => {
   const handleCopyInviteCode = (code: string) => { navigator.clipboard.writeText(code); setCopiedInviteCode(true); setTimeout(() => setCopiedInviteCode(false), 2000); };
 
   const handleStartStream = async (eventId: string) => {
-    setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'waiting_for_encoder', error: undefined } }));
+    setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'disconnected', error: undefined } }));
     try {
       const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/events/${eventId}/stream/start`, { method: 'POST' });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         const msg = data.message || 'Failed to start stream. Please try again.';
-        setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'idle', error: msg } }));
+        setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'disconnected', error: msg } }));
         return;
       }
-      // Read credentials directly from /stream/start response
       const startData = await res.json().catch(() => ({}));
-      const serverUrl = startData.rtmpsUrl || startData.serverUrl || '';
-      const streamKey = startData.rtmpsKey || startData.streamKey || '';
-      const playbackUrl = startData.hlsManifestUrl || '';
-      const inviteToken = startData.inviteToken || '';
+      const sData = startData.data || startData;
+      const serverUrl = sData.rtmpsUrl || sData.serverUrl || '';
+      const streamKey = sData.rtmpsKey || sData.streamKey || '';
+      const playbackUrl = sData.hlsManifestUrl || '';
+      const inviteToken = sData.inviteToken || '';
+      const connStatus = sData.connectionStatus || 'disconnected';
 
-      // If we got credentials from start response, use them immediately
       if (serverUrl && streamKey) {
         setStreamConfigs(prev => ({
           ...prev,
@@ -877,7 +893,7 @@ const PhotographerEventsPage = () => {
             eventId,
             serverUrl,
             streamKey,
-            connectionStatus: 'waiting_for_encoder',
+            connectionStatus: connStatus as StreamConfig['connectionStatus'],
             streamHealth: 'unknown' as StreamConfig['streamHealth'],
             uploadSpeed: '0 Mbps',
             viewerCount: 0,
@@ -899,7 +915,7 @@ const PhotographerEventsPage = () => {
               eventId,
               serverUrl: cfg.serverUrl || '',
               streamKey: cfg.streamKey || '',
-              connectionStatus: 'waiting_for_encoder',
+              connectionStatus: (cfg.connectionStatus || 'disconnected') as StreamConfig['connectionStatus'],
               streamHealth: cfg.streamHealth || 'unknown',
               uploadSpeed: cfg.uploadSpeed || '0 Mbps',
               viewerCount: cfg.viewerCount || 0,
@@ -910,47 +926,62 @@ const PhotographerEventsPage = () => {
         }
       }
     } catch (err) {
-      setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'idle', error: 'Failed to start stream. Please try again.' } }));
+      setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'disconnected', error: 'Failed to start stream. Please try again.' } }));
     }
   };
 
-  const handleGoLive = async (eventId: string) => {
-    setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'live', error: undefined } }));
+  const handleResumeStream = async (eventId: string) => {
+    setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'connected', error: undefined } }));
     try {
       const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/events/${eventId}/stream/resume`, { method: 'POST' });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         const msg = data.message || 'Failed to go live. Please try again.';
-        setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'waiting_for_encoder', error: msg } }));
+        setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'disconnected', error: msg } }));
       } else {
-        // Read inviteToken from response
         const data = await res.json().catch(() => ({}));
-        if (data.inviteToken) {
-          setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], inviteToken: data.inviteToken } }));
+        const rData = data.data || data;
+        if (rData.inviteToken) {
+          setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], inviteToken: rData.inviteToken } }));
         }
-        // Refresh event status to ONGOING
         setEvents(prev => prev.map(e => e.id === eventId ? { ...e, status: 'ongoing' as EventStatus } : e));
       }
     } catch (err) {
-      setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'waiting_for_encoder', error: 'Failed to go live. Please try again.' } }));
+      setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'disconnected', error: 'Failed to go live. Please try again.' } }));
+    }
+  };
+
+  const handlePauseStream = async (eventId: string) => {
+    setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], error: undefined } }));
+    try {
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/events/${eventId}/stream/pause`, { method: 'POST' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        const msg = data.message || 'Failed to pause stream. Please try again.';
+        setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], error: msg } }));
+      } else {
+        setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'paused' } }));
+      }
+    } catch (err) {
+      setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], error: 'Failed to pause stream. Please try again.' } }));
     }
   };
 
   const handleEndStream = async (eventId: string) => {
-    setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'waiting_for_encoder', error: undefined } }));
+    setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], error: undefined } }));
     try {
       const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/events/${eventId}/stream/stop`, { method: 'POST' });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         const msg = data.message || 'Failed to end stream. Please try again.';
-        setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'live', error: msg } }));
+        setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], error: msg } }));
       } else {
-        // Stream stopped — status goes back to PUBLISHED (mapped to 'upcoming')
-        // Credentials are preserved so photographer can re-go-live without reconfiguring OBS
-        setEvents(prev => prev.map(e => e.id === eventId ? { ...e, status: 'upcoming' as EventStatus } : e));
+        // Stream permanently ended — credentials cleared by backend
+        setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'ended', serverUrl: undefined, streamKey: undefined } }));
+        setEvents(prev => prev.map(e => e.id === eventId ? { ...e, status: 'completed' as EventStatus } : e));
       }
     } catch (err) {
-      setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'live', error: 'Failed to end stream. Please try again.' } }));
+      setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], error: 'Failed to end stream. Please try again.' } }));
     }
   };
 
@@ -967,23 +998,22 @@ const PhotographerEventsPage = () => {
           const data = await res.json();
           const cfg = data.data;
           if (cfg) {
-            let uiStatus: string = cfg.connectionStatus || 'idle';
-            // Also fetch public event for hlsManifestUrl (playback URL) and eventStatus
+            const connStatus: string = cfg.connectionStatus || 'disconnected';
+            // Fetch public event for hlsManifestUrl and streamType
             let hlsUrl = '';
-            let pubEventStatus = '';
+            let pubStreamType = '';
             try {
               const pubRes = await fetch(`${apiUrl}/api/remote/public/events/${eventId}`);
               if (pubRes.ok) {
                 const pubData = await pubRes.json();
                 hlsUrl = pubData.data?.hlsManifestUrl || '';
-                pubEventStatus = pubData.data?.eventStatus || '';
+                pubStreamType = pubData.data?.streamType || '';
+                // Construct HLS URL from liveInputId if hlsManifestUrl is missing
+                if (!hlsUrl && pubData.data?.liveInputId) {
+                  hlsUrl = `https://customer-ngk2huwatflljurq.cloudflarestream.com/${pubData.data.liveInputId}/manifest/video.m3u8`;
+                }
               }
             } catch { /* ignore */ }
-            // Map backend 'connected' based on whether event is actually ONGOING
-            // 'connected' = OBS sending data, but only show as 'live' if publicly broadcasting
-            if (uiStatus === 'connected') {
-              uiStatus = pubEventStatus === 'ONGOING' ? 'live' : 'waiting_for_encoder';
-            }
             setStreamConfigs(prev => ({
               ...prev,
               [eventId]: {
@@ -991,13 +1021,14 @@ const PhotographerEventsPage = () => {
                 eventId,
                 serverUrl: cfg.serverUrl || prev[eventId]?.serverUrl || '',
                 streamKey: cfg.streamKey || prev[eventId]?.streamKey || '',
-                connectionStatus: uiStatus as 'idle' | 'waiting_for_encoder' | 'receiving_signal' | 'live',
+                connectionStatus: connStatus as StreamConfig['connectionStatus'],
                 streamHealth: cfg.streamHealth || 'unknown',
                 uploadSpeed: cfg.uploadSpeed || '0 Mbps',
                 viewerCount: cfg.viewerCount || 0,
                 peakViewers: cfg.peakViewers || 0,
                 inviteToken: cfg.inviteToken || prev[eventId]?.inviteToken || '',
-                playbackUrl: hlsUrl || prev[eventId]?.playbackUrl || '',
+                playbackUrl: hlsUrl || cfg.hlsManifestUrl || prev[eventId]?.playbackUrl || '',
+                streamType: (pubStreamType || prev[eventId]?.streamType || '') as StreamConfig['streamType'],
               }
             }));
           }
@@ -1530,7 +1561,7 @@ const PhotographerEventsPage = () => {
                   {filteredEvents.map(event => {
                     const badge = getStatusBadge(event.status);
                     const streamCfg = event.hasLiveStream ? streamConfigs[event.id] : null;
-                    const isLive = streamCfg?.connectionStatus === 'live';
+                    const isLive = streamCfg?.connectionStatus === 'connected';
                     return (
                       /* Outer glow wrapper — blurred image border */
                       <div key={event.id} style={{ position: 'relative', height: '450px', borderRadius: '1.25rem', overflow: 'hidden', transition: 'transform 0.3s ease', willChange: 'transform' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.03)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}>
@@ -2085,15 +2116,16 @@ const PhotographerEventsPage = () => {
           serverUrl={streamConfigs[selectedEvent.id]?.serverUrl}
           streamKey={streamConfigs[selectedEvent.id]?.streamKey}
           playbackUrl={streamConfigs[selectedEvent.id]?.playbackUrl || undefined}
-          inviteToken={streamConfigs[selectedEvent.id]?.inviteToken}
-          connectionStatus={streamConfigs[selectedEvent.id]?.connectionStatus || 'idle'}
+          inviteToken={streamConfigs[selectedEvent.id]?.streamType === 'entry_fee' ? undefined : streamConfigs[selectedEvent.id]?.inviteToken}
+          connectionStatus={streamConfigs[selectedEvent.id]?.connectionStatus || 'disconnected'}
           streamHealth={streamConfigs[selectedEvent.id]?.streamHealth}
           uploadSpeed={streamConfigs[selectedEvent.id]?.uploadSpeed}
           viewerCount={streamConfigs[selectedEvent.id]?.viewerCount || 0}
           peakViewers={streamConfigs[selectedEvent.id]?.peakViewers || 0}
           error={streamConfigs[selectedEvent.id]?.error}
           onStartStream={() => handleStartStream(selectedEvent.id)}
-          onGoLive={() => handleGoLive(selectedEvent.id)}
+          onResumeStream={() => handleResumeStream(selectedEvent.id)}
+          onPauseStream={() => handlePauseStream(selectedEvent.id)}
           onEndStream={() => handleEndStream(selectedEvent.id)}
           theme={actualTheme as 'light' | 'dark'}
           colors={colors}
