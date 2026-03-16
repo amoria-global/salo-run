@@ -421,10 +421,11 @@ export default function StreamPreview({
         ) : (
           /* Status placeholder for non-live states */
           <div style={{
-            width: '100%', height: '100%',
+            position: 'absolute', inset: 0,
             display: 'flex', flexDirection: 'column',
             alignItems: 'center', justifyContent: 'center',
             background: 'linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%)',
+            padding: '1.5rem 1rem',
           }}>
             {isEnded ? (
               <>
@@ -492,16 +493,65 @@ export default function StreamPreview({
                 <div style={{ color: '#94A3B8', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem' }}>
                   {hasCredentials ? 'Waiting for OBS...' : 'No Stream Signal'}
                 </div>
-                <div style={{ color: '#64748B', fontSize: '0.73rem', maxWidth: '280px', textAlign: 'center', lineHeight: '1.4' }}>
+                <div style={{ color: '#64748B', fontSize: '0.73rem', maxWidth: '280px', textAlign: 'center', lineHeight: '1.4', marginBottom: '0.75rem' }}>
                   {hasCredentials
                     ? 'Paste the credentials into OBS and click "Start Streaming".'
-                    : 'Click "Start Stream" to generate your RTMP credentials.'}
+                    : 'Click the button below to provision your RTMP credentials.'}
                 </div>
+                {!hasCredentials && (
+                  <button onClick={onStartStream} style={{
+                    padding: '0.6rem 1.5rem',
+                    borderRadius: '0.5rem',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
+                    color: 'white',
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    boxShadow: '0 4px 12px -2px rgba(139,92,246,0.4)',
+                    transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 16px -2px rgba(139,92,246,0.5)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 12px -2px rgba(139,92,246,0.4)'; }}
+                  >
+                    <PlayIcon /> Start Stream
+                  </button>
+                )}
               </>
             ) : null}
           </div>
         )}
       </div>
+
+      {/* Start Stream button — below video when no credentials */}
+      {isDisconnected && !hasCredentials && !isEnded && (
+        <button onClick={onStartStream} style={{
+          marginTop: '0.75rem',
+          padding: '0.75rem 1.25rem',
+          borderRadius: '0.625rem',
+          border: 'none',
+          background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
+          color: 'white',
+          fontSize: '0.9rem',
+          fontWeight: 700,
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.5rem',
+          width: '100%',
+          boxShadow: '0 4px 12px -2px rgba(139,92,246,0.4)',
+          transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 16px -2px rgba(139,92,246,0.5)'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 12px -2px rgba(139,92,246,0.4)'; }}
+        >
+          <PlayIcon /> Start Stream
+        </button>
+      )}
 
       {/* Stream stats row — when live or paused */}
       {(isLive || isPaused) && (
@@ -585,19 +635,34 @@ export default function StreamPreview({
 
       {/* No credentials yet prompt */}
       {!isEnded && !hasCredentials && (
-        <div style={{
-          backgroundColor: isDark ? 'rgba(245,158,11,0.06)' : '#FFFBEB',
-          border: `1px solid ${isDark ? 'rgba(245,158,11,0.15)' : '#FDE68A'}`,
-          borderRadius: '0.5rem',
-          padding: '0.75rem',
-          display: 'flex', alignItems: 'center', gap: '0.6rem',
-        }}>
-          <span style={{ fontSize: '1.1rem' }}>&#x1F512;</span>
-          <div>
-            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary }}>No Credentials Yet</div>
-            <div style={{ fontSize: '0.72rem', color: colors.textSecondary, marginTop: '0.1rem' }}>Click "Start Stream" to provision RTMP credentials.</div>
+        <button onClick={onStartStream} style={{
+          width: '100%',
+          backgroundColor: isDark ? 'rgba(139,92,246,0.1)' : '#F5F3FF',
+          border: `2px solid ${isDark ? 'rgba(139,92,246,0.3)' : '#C4B5FD'}`,
+          borderRadius: '0.625rem',
+          padding: '0.85rem 0.75rem',
+          display: 'flex', alignItems: 'center', gap: '0.75rem',
+          cursor: 'pointer',
+          transition: 'all 0.2s ease',
+          textAlign: 'left' as const,
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = isDark ? 'rgba(139,92,246,0.18)' : '#EDE9FE'; e.currentTarget.style.borderColor = '#8B5CF6'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = isDark ? 'rgba(139,92,246,0.1)' : '#F5F3FF'; e.currentTarget.style.borderColor = isDark ? 'rgba(139,92,246,0.3)' : '#C4B5FD'; }}
+        >
+          <div style={{
+            width: '40px', height: '40px', borderRadius: '50%',
+            background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+            boxShadow: '0 4px 8px -2px rgba(139,92,246,0.4)',
+          }}>
+            <PlayIcon />
           </div>
-        </div>
+          <div>
+            <div style={{ fontSize: '0.85rem', fontWeight: 700, color: isDark ? '#A78BFA' : '#6D28D9' }}>Start Stream</div>
+            <div style={{ fontSize: '0.72rem', color: colors.textSecondary, marginTop: '0.15rem' }}>Provision RTMP credentials for OBS</div>
+          </div>
+        </button>
       )}
 
       {/* Invite Token — hide when ended */}
@@ -669,12 +734,6 @@ export default function StreamPreview({
       {/* Action Buttons */}
       {!isEnded && (
         <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          {/* Start Stream — no credentials yet */}
-          {isDisconnected && !hasCredentials && (
-            <button onClick={onStartStream} style={actionBtn('#8B5CF6')}>
-              <PlayIcon /> Start Stream
-            </button>
-          )}
 
           {/* Go Live — has credentials, waiting for encoder */}
           {isDisconnected && hasCredentials && (
