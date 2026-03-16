@@ -10,7 +10,7 @@ import { useCurrency } from '@/app/context/CurrencyContext';
 import { HeartIcon } from '../../components/UnlockModal';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { getApiUrl } from '@/lib/api';
-import { processWithdrawal } from '@/lib/xentripay';
+import { processWithdrawal, sanitizeErrorMessage } from '@/lib/xentripay';
 
 // Icons
 const DownloadIcon = () => (
@@ -600,9 +600,9 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
 
   const parsedWithdrawAmount = parseFloat(withdrawAmount) || 0;
   const amountError = withdrawAmount !== '' && parsedWithdrawAmount <= 0
-    ? 'Please enter an amount greater than zero'
+    ? 'Please enter a withdrawal amount greater than zero.'
     : parsedWithdrawAmount > availableBalance
-      ? `Insufficient funds. Your available balance is ${formatPrice(availableBalance)}`
+      ? `Insufficient funds. Your available balance is ${formatPrice(availableBalance)}. Please enter a smaller amount or wait for pending payments to clear.`
       : '';
   const isWithdrawValid = parsedWithdrawAmount > 0 && parsedWithdrawAmount <= availableBalance;
 
@@ -645,7 +645,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
       const result = await res.json();
 
       if (!res.ok || result.action === 0) {
-        setWithdrawError(result.message || 'Failed to create withdrawal request');
+        setWithdrawError(sanitizeErrorMessage(result.message, 'Failed to create withdrawal request. Please try again.'));
         setWithdrawStep('failed');
         setIsWithdrawing(false);
         return;
@@ -670,7 +670,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
         setWithdrawStep('success');
       }
     } catch (err) {
-      setWithdrawError(err instanceof Error ? err.message : 'Withdrawal failed');
+      setWithdrawError(sanitizeErrorMessage(err instanceof Error ? err.message : '', 'Withdrawal failed. Please try again.'));
       setWithdrawStep('failed');
     } finally {
       setIsWithdrawing(false);

@@ -257,21 +257,39 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
   const handleNotificationClick = (notification: NotificationItem) => {
     markAsRead(notification.id);
     setIsNotificationsOpen(false);
-    const dest = notification.actionUrl || (() => {
-      const t = notification.type?.toLowerCase();
-      if (userRole === 'photographer') {
-        if (t === 'payment' || t === 'tip' || t === 'bonus') return '/user/photographer/all-transactions';
-      } else if (userRole === 'event-coordinator') {
-        if (t === 'booking' || t === 'event') return '/user/event-coordinator/events';
-        if (t === 'payment' || t === 'streamfee') return '/user/event-coordinator/payments';
-        if (t === 'album' || t === 'media') return '/user/event-coordinator/gallery';
-      } else {
-        if (t === 'booking') return '/user/client/bookings';
-        if (t === 'payment') return '/user/client/payments';
-        if (t === 'album' || t === 'media') return '/user/client/gallery';
+    const t = notification.type?.toLowerCase();
+    let dest: string | null = null;
+
+    if (userRole === 'photographer') {
+      switch (t) {
+        case 'payment': case 'tip': case 'bonus': case 'withdrawal': dest = '/user/photographer/transaction'; break;
+        case 'booking': case 'event': dest = '/user/photographer/events'; break;
+        case 'album': case 'media': dest = '/user/photographer/events'; break;
+        case 'security': dest = '/user/photographer/profile'; break;
+        case 'streaming': dest = '/user/photographer/events'; break;
       }
-      return null;
-    })();
+    } else if (userRole === 'event-coordinator') {
+      switch (t) {
+        case 'booking': case 'event': dest = '/user/event-coordinator/events'; break;
+        case 'payment': case 'streamfee': case 'streaming': dest = '/user/event-coordinator/payments'; break;
+        case 'album': case 'media': dest = '/user/event-coordinator/gallery'; break;
+        case 'photographer': dest = '/user/event-coordinator/home'; break;
+        case 'security': dest = '/user/event-coordinator/profile'; break;
+      }
+    } else {
+      switch (t) {
+        case 'booking': case 'event': dest = '/user/client/events'; break;
+        case 'payment': dest = '/user/client/payments'; break;
+        case 'gift': dest = '/user/client/payments'; break;
+        case 'album': case 'media': dest = '/user/client/gallery'; break;
+        case 'photographer': dest = '/user/client/photographers'; break;
+        case 'security': dest = '/user/client/profile'; break;
+        case 'streaming': dest = '/user/client/streams'; break;
+      }
+    }
+
+    // Fallback to actionUrl from backend if no match
+    dest = dest || notification.actionUrl || null;
     if (dest) router.push(dest);
   };
 
@@ -1071,7 +1089,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
                 </a>
 
                 <button
-                  onClick={() => router.push(`/user/${userRole}/preferences`)}
+                  onClick={() => router.push(userRole === 'photographer' ? '/user/photographer/transaction' : `/user/${userRole}/payments`)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -1094,8 +1112,8 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
                     e.currentTarget.style.backgroundColor = 'transparent';
                   }}
                 >
-                  <PreferencesIcon />
-                  Preferences
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                  Payments
                 </button>
 
                 <button

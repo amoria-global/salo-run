@@ -10,7 +10,7 @@ import { useCurrency } from '../../context/CurrencyContext';
 import { useUserProfile } from '../../context/UserProfileContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { HeartIcon } from '../../components/UnlockModal';
-import { initiateBookingPayment, pollPaymentStatus, getTelecomProvider, getPaymentMethodType } from '@/lib/xentripay';
+import { initiateBookingPayment, pollPaymentStatus, getTelecomProvider, getPaymentMethodType, sanitizeErrorMessage } from '@/lib/xentripay';
 import { getApiUrl } from '@/lib/api';
 
 // Icons
@@ -615,11 +615,11 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
 
   const handlePayNowXentriPay = async () => {
     if (!payment?.eventId) {
-      setXentriPayError('No payment found for this event');
+      setXentriPayError('This payment cannot be processed. The event may have been removed or the booking is no longer active.');
       return;
     }
     if (!paymentPhone.trim()) {
-      setXentriPayError('Please enter your phone number');
+      setXentriPayError(`Please enter your ${selectedPaymentMethod === 'mtn' ? 'MTN' : selectedPaymentMethod === 'airtel' ? 'Airtel' : ''} phone number to receive the payment prompt.`);
       return;
     }
     setIsProcessing(true);
@@ -632,10 +632,10 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
       const phone = paymentPhone.trim();
       const redirectUrl = selectedPaymentMethod === 'card' ? window.location.href : undefined;
 
-      const result = await initiateBookingPayment(payment.eventId, phone, telecom, methodType, redirectUrl);
+      const result = await initiateBookingPayment(payment.eventId, phone, telecom, methodType, redirectUrl, donationValue > 0 ? donationValue : undefined);
 
       if (!result.success || !result.data) {
-        setXentriPayError(result.error || 'Failed to initiate payment');
+        setXentriPayError(result.error || 'Payment could not be initiated. Please check your payment details and try again.');
         setXentriPayStep('failed');
         setIsProcessing(false);
         return;
@@ -647,12 +647,12 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
 
       const stopPolling = pollPaymentStatus(result.data.refid, {
         onSuccess: () => { setXentriPayStep('success'); setIsProcessing(false); },
-        onFailure: () => { setXentriPayStep('failed'); setXentriPayError('Payment was not completed. Please try again.'); setIsProcessing(false); },
-        onError: (error) => { setXentriPayStep('failed'); setXentriPayError(error); setIsProcessing(false); },
+        onFailure: () => { setXentriPayStep('failed'); setXentriPayError('Payment was not completed. If you were charged, the amount will be refunded automatically. Please try again.'); setIsProcessing(false); },
+        onError: (error) => { setXentriPayStep('failed'); setXentriPayError(sanitizeErrorMessage(error, 'Unable to check payment status. Please try again.')); setIsProcessing(false); },
       });
       stopPollingRef.current = stopPolling;
     } catch (error) {
-      setXentriPayError(error instanceof Error ? error.message : 'Payment failed');
+      setXentriPayError(sanitizeErrorMessage(error instanceof Error ? error.message : '', 'Something went wrong while processing your payment. Please check your connection and try again.'));
       setXentriPayStep('failed');
       setIsProcessing(false);
     }
@@ -845,7 +845,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
               backgroundColor: selectedPaymentMethod === 'mtn' ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard, transition: 'all 0.2s'
             }}>
               <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0 }}>
-                <Image src="/mtn.png" alt="MTN Mobile Money" width={48} height={48} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                <Image src="/mtn.png" alt="MTN Mobile Money" width={48} height={48} unoptimized style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>MTN Mobile Money</div>
@@ -1700,6 +1700,25 @@ Amount: ${formatPrice(payment.amountNum)}
   const [showGiftSendersModal, setShowGiftSendersModal] = useState(false);
   const [selectedGiftStream, setSelectedGiftStream] = useState<typeof giftStreams[0] | null>(null);
 
+  // Whether user already has a withdrawal method set
+  const [hasWithdrawalMethod, setHasWithdrawalMethod] = useState(false);
+
+  useEffect(() => {
+    if (!token) return;
+    (async () => {
+      try {
+        const apiUrl = getApiUrl();
+        const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/preferences`);
+        if (res.ok) {
+          const result = await res.json();
+          const prefs = result.data || {};
+          const hasAccounts = Object.keys(prefs).some(k => k.startsWith('payment_method_'));
+          setHasWithdrawalMethod(hasAccounts);
+        }
+      } catch { /* ignore */ }
+    })();
+  }, [token]);
+
   // State for gifts payment method modal
   const [showGiftsPaymentMethodModal, setShowGiftsPaymentMethodModal] = useState(false);
   const [selectedGiftPaymentMethod, setSelectedGiftPaymentMethod] = useState<string | null>(null);
@@ -1760,7 +1779,7 @@ Amount: ${formatPrice(payment.amountNum)}
       bankName = 'Airtel';
     } else if (selectedGiftPaymentMethod === 'card') {
       if (!giftPaymentDetails.cardNumber.trim() || !giftPaymentDetails.cardName.trim()) {
-        setValidationError('Please fill in all card details.');
+        setValidationError('Please fill in your card holder name and card number to save this payment method.');
         return;
       }
       methodType = 'BANK_TRANSFER';
@@ -1796,7 +1815,7 @@ Amount: ${formatPrice(payment.amountNum)}
 
       if (!response.ok) {
         const errResult = await response.json().catch(() => null);
-        setValidationError(errResult?.message || 'Failed to save withdrawal method. Please try again.');
+        setValidationError(sanitizeErrorMessage(errResult?.message, 'Failed to save withdrawal method. Please try again.'));
         return;
       }
 
@@ -1805,6 +1824,7 @@ Amount: ${formatPrice(payment.amountNum)}
       setSelectedGiftPaymentMethod(null);
       setGiftPaymentDetails({ mtnNumber: '', airtelNumber: '', cardNumber: '', cardExpiry: '', cardCvv: '', cardName: '' });
       setValidationError(null);
+      setHasWithdrawalMethod(true);
     } catch (err) {
       console.error('Failed to save withdrawal method:', err);
       setValidationError('Network error. Please check your connection and try again.');
@@ -2174,13 +2194,13 @@ Amount: ${formatPrice(payment.amountNum)}
                 }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.15rem' }}>
-                      Withdraw Your Gift Earnings
+                      {hasWithdrawalMethod ? 'Gift Earnings' : 'Withdraw Your Gift Earnings'}
                     </div>
                     <div style={{ fontSize: '0.82rem', color: colors.textSecondary, lineHeight: '1.35' }}>
-                      Set up your preferred account to receive payments from viewer gifts.
+                      {hasWithdrawalMethod ? 'Your withdrawal method is set up. You can manage it in Preferences > Payment Accounts.' : 'Set up your preferred account to receive payments from viewer gifts.'}
                     </div>
                   </div>
-                  <button
+                  {!hasWithdrawalMethod && <button
                     onClick={() => setShowGiftsPaymentMethodModal(true)}
                     style={{
                       display: 'inline-flex',
@@ -2200,7 +2220,7 @@ Amount: ${formatPrice(payment.amountNum)}
                     }}
                   >
                     Set Up Withdrawal Method
-                  </button>
+                  </button>}
                 </div>
                 <div style={{
                   display: 'flex',
@@ -2754,7 +2774,7 @@ Amount: ${formatPrice(payment.amountNum)}
               }}
             >
               <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0 }}>
-                <Image src="/mtn.png" alt="MTN Mobile Money" width={48} height={48} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                <Image src="/mtn.png" alt="MTN Mobile Money" width={48} height={48} unoptimized style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
