@@ -1044,7 +1044,7 @@ const SpendingChart: React.FC<SpendingChartProps> = ({ data, height = 140, chart
   const points = data.map((item, index) => {
     const x = chartType === 'bar'
       ? paddingLeft + index * (barWidth + barGap) + barWidth / 2
-      : paddingLeft + (index / (data.length - 1)) * (chartWidth - paddingLeft - paddingRight);
+      : paddingLeft + (data.length > 1 ? (index / (data.length - 1)) : 0.5) * (chartWidth - paddingLeft - paddingRight);
     const y = paddingTop + chartHeight - ((item.value - minValue) / range) * chartHeight;
     return { x, y, ...item };
   });

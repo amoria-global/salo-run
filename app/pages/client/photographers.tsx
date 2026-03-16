@@ -906,11 +906,11 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
     }
   };
 
-  // --- Coordinator: Invite photographer by email ---
+  // --- Invite photographer by email (coordinator + client) ---
   const inviteLink = `https://connekt.app/invite/photographer/${user?.id || ''}`;
 
   const handleInvitePhotographer = async () => {
-    if (userRole !== 'event-coordinator' || !inviteEmail.trim()) {
+    if (!inviteEmail.trim()) {
       setInviteError('Please enter a valid email address');
       return;
     }
@@ -920,8 +920,9 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
 
     try {
       const apiUrl = getApiUrl();
+      const rolePrefix = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
       const response = await dashboardAuthFetch(
-        `${apiUrl}/api/remote/coordinator/photographers/invite?email=${encodeURIComponent(inviteEmail.trim())}`,
+        `${apiUrl}/api/remote/${rolePrefix}/photographers/invite?email=${encodeURIComponent(inviteEmail.trim())}`,
         { method: 'POST' }
       );
 
@@ -1132,8 +1133,8 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
               </p>
             </div>
             <div className="mobile-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              {/* Invite Photographer - coordinator only */}
-              {userRole === 'event-coordinator' && (
+              {/* Invite Photographer */}
+              {(userRole === 'event-coordinator' || userRole === 'client') && (
                 <button
                   onClick={() => { setShowInviteModal(true); setInviteEmail(''); setInviteError(null); setInviteCopied(false); }}
                   style={{
@@ -1227,29 +1228,29 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
 
           {/* Stats Cards */}
           <div className="mobile-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #083A85' }}>
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', borderTop: `2px solid ${colors.borderPrimary}`, borderRight: `2px solid ${colors.borderPrimary}`, borderBottom: `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #083A85' }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Photographers</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{photographers.length}</div>
             </div>
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #3B82F6' }}>
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', borderTop: `2px solid ${colors.borderPrimary}`, borderRight: `2px solid ${colors.borderPrimary}`, borderBottom: `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #3B82F6' }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Bookings</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
                 {photographers.reduce((sum, p) => sum + p.totalBookingsWithClient, 0)}
               </div>
             </div>
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #10B981' }}>
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', borderTop: `2px solid ${colors.borderPrimary}`, borderRight: `2px solid ${colors.borderPrimary}`, borderBottom: `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #10B981' }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Spent</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
                 {formatPrice(photographers.reduce((sum, p) => sum + p.totalSpent, 0))}
               </div>
             </div>
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #F20C8F' }}>
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', borderTop: `2px solid ${colors.borderPrimary}`, borderRight: `2px solid ${colors.borderPrimary}`, borderBottom: `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #F20C8F' }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Favorites</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#F20C8F' }}>
                 {photographers.filter(p => p.isFavorite).length}
               </div>
             </div>
-            <div style={{ backgroundColor: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#450A0A' : '#FEF2F2') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: totalPendingAmount > 0 ? `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}` : `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #DC2626' }}>
+            <div style={{ backgroundColor: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#450A0A' : '#FEF2F2') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', borderTop: totalPendingAmount > 0 ? `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}` : `2px solid ${colors.borderPrimary}`, borderRight: totalPendingAmount > 0 ? `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}` : `2px solid ${colors.borderPrimary}`, borderBottom: totalPendingAmount > 0 ? `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}` : `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #DC2626' }}>
               <div style={{ fontSize: '0.85rem', color: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#FCA5A5' : '#B91C1C') : colors.textSecondary, marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 {totalPendingAmount > 0 && <AlertCircleIcon />}
                 Pending Payments
@@ -3498,7 +3499,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
 
 
       {/* Invite Photographer Modal */}
-      {showInviteModal && userRole === 'event-coordinator' && (
+      {showInviteModal && (
         <div
           style={{
             position: 'fixed',
@@ -3662,42 +3663,46 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
         isOpen={showSuccessModal}
         onClose={handleSuccessClose}
         title=""
-        maxWidth="350px"
+        maxWidth="400px"
       >
-        <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
+        <div style={{ textAlign: 'center', padding: '1rem 0.5rem 0.5rem' }}>
           <div style={{
-            width: '80px',
-            height: '80px',
+            width: '88px',
+            height: '88px',
             borderRadius: '50%',
-            backgroundColor: '#D1FAE5',
+            background: 'linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            margin: '0 auto 1.25rem'
+            margin: '0 auto 1.5rem',
+            boxShadow: '0 8px 24px -4px rgba(16, 185, 129, 0.3)',
           }}>
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M20 6L9 17L4 12" stroke="#059669" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+            <svg width="42" height="42" viewBox="0 0 24 24" fill="none">
+              <path d="M20 6L9 17L4 12" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+          <h3 style={{ fontSize: '1.35rem', fontWeight: '700', color: colors.textPrimary, marginBottom: '0.625rem', letterSpacing: '-0.01em' }}>
             {successMessage}
           </h3>
-          <p style={{ fontSize: '0.9rem', color: colors.textSecondary, marginBottom: '1.5rem' }}>
-            Thank you for your feedback!
+          <p style={{ fontSize: '0.9rem', color: colors.textSecondary, marginBottom: '2rem', lineHeight: '1.5' }}>
+            {successMessage.toLowerCase().includes('invit') ? 'The photographer will receive an email invitation to join the platform.' : 'Thank you for your feedback!'}
           </p>
           <button
             onClick={handleSuccessClose}
             style={{
-              padding: '0.75rem 2rem',
-              border: '2px solid #062a63',
-              borderRadius: '0.5rem',
-              background: '#083A85',
+              padding: '0.75rem 2.5rem',
+              border: 'none',
+              borderRadius: '0.625rem',
+              background: 'linear-gradient(135deg, #083A85 0%, #0A4DA6 100%)',
               color: 'white',
               fontSize: '0.9rem',
               fontWeight: '600',
               cursor: 'pointer',
-              marginBottom: '4rem'
+              boxShadow: '0 4px 12px -2px rgba(8, 58, 133, 0.4)',
+              transition: 'transform 0.15s ease, box-shadow 0.15s ease',
             }}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 16px -2px rgba(8, 58, 133, 0.5)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 12px -2px rgba(8, 58, 133, 0.4)'; }}
           >
             Done
           </button>
