@@ -268,10 +268,20 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
         const data = await res.json();
         const streamList: any[] = data.data || [];
 
-        // Fetch chats for all streams in parallel
-        const chatResults = await Promise.all(
-          streamList.map((s: any) => fetchChatsForStream(s.eventId))
-        );
+        // Fetch chats and event data for all streams in parallel
+        const [chatResults, eventResults] = await Promise.all([
+          Promise.all(streamList.map((s: any) => fetchChatsForStream(s.eventId))),
+          Promise.all(streamList.map(async (s: any) => {
+            try {
+              const evtRes = await fetch(`${apiUrl}/api/remote/public/events/${s.eventId}`);
+              if (evtRes.ok) {
+                const evtData = await evtRes.json();
+                return evtData.data || null;
+              }
+            } catch { /* ignore */ }
+            return null;
+          })),
+        ]);
 
         const loaded: CompletedStream[] = streamList.map((s: any, i: number) => {
           const { messages: inlineText, videoMessages: inlineVideo } = (() => {
@@ -324,19 +334,25 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
           const seenVidIds = new Set<string>();
           const uniqueVideos = allVideos.filter(v => { if (seenVidIds.has(v.id)) return false; seenVidIds.add(v.id); return true; });
 
+          // Enrich with event data (cover image, photographer info)
+          const evt = eventResults[i];
+          const evtPhoto = evt?.eventPhoto || evt?.coverImage || '';
+          const evtPhotographerName = evt?.photographerName || (evt?.photographer ? `${evt.photographer.firstName || ''} ${evt.photographer.lastName || ''}`.trim() : '');
+          const evtPhotographerImage = evt?.photographerImage || evt?.photographer?.profilePicture || '';
+
           return {
             id: s.id,
             eventId: s.eventId,
-            eventTitle: s.eventTitle || '',
-            eventType: s.eventType || '',
-            photographerName: s.photographerName || '',
-            photographerImage: normalizeImg(s.photographerImage),
+            eventTitle: s.eventTitle || evt?.title || '',
+            eventType: s.eventType || evt?.eventCategory?.name || '',
+            photographerName: s.photographerName || evtPhotographerName || '',
+            photographerImage: normalizeImg(s.photographerImage || evtPhotographerImage),
             streamTitle: s.streamTitle || '',
-            description: s.description || '',
-            streamDate: s.streamDate || '',
-            streamTime: s.streamTime || '',
+            description: s.description || evt?.description || '',
+            streamDate: s.streamDate || evt?.eventDate || '',
+            streamTime: s.streamTime || evt?.startTime || '',
             duration: s.duration || '0:00:00',
-            coverImage: normalizeImg(s.coverImage || s.bannerImage || s.eventImage),
+            coverImage: normalizeImg(s.coverImage || s.bannerImage || s.eventImage || evtPhoto),
             totalViewers: s.totalViewers || 0,
             peakViewers: s.peakViewers || 0,
             totalMessages: s.totalMessages || uniqueMessages.length,
@@ -763,7 +779,7 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
                               <circle cx="12" cy="7" r="4" stroke="white" strokeWidth="2"/>
                             </svg>
                             {stream.photographerImage && (
-                              <img src={stream.photographerImage} alt={stream.photographerName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                              <img src={stream.photographerImage} alt={stream.photographerName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                             )}
                           </div>
                           <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.9)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{stream.photographerName}</span>

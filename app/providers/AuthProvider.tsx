@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback, Suspense } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams, usePathname } from 'next/navigation';
 import { getApiUrl, getApiKey, normalizeImageUrl } from '@/lib/api';
 
@@ -641,6 +641,43 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
       return () => window.removeEventListener('storage', handleStorageChange);
     }
   }, []);
+
+  // Inactivity timeout for client & coordinator roles (1 hour)
+  const lastActivityRef = useRef(Date.now());
+
+  useEffect(() => {
+    if (!token || !user) return;
+
+    const role = user.customerType?.toUpperCase();
+    // Only apply to client and coordinator — photographers keep sessions indefinitely
+    if (role === 'PHOTOGRAPHER') return;
+
+    const INACTIVITY_LIMIT = 60 * 60 * 1000; // 1 hour
+    const CHECK_INTERVAL = 60 * 1000; // check every minute
+
+    const resetTimer = () => { lastActivityRef.current = Date.now(); };
+
+    const events: (keyof WindowEventMap)[] = ['mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
+    events.forEach(e => window.addEventListener(e, resetTimer, { passive: true }));
+
+    const intervalId = setInterval(() => {
+      if (Date.now() - lastActivityRef.current >= INACTIVITY_LIMIT) {
+        clearInterval(intervalId);
+        events.forEach(e => window.removeEventListener(e, resetTimer));
+        // Redirect to login with session_expired flag
+        clearAuthFromStorage();
+        setUser(null);
+        setToken(null);
+        const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL as string;
+        window.location.href = `${landingUrl}/user/auth/login?session_expired=true`;
+      }
+    }, CHECK_INTERVAL);
+
+    return () => {
+      clearInterval(intervalId);
+      events.forEach(e => window.removeEventListener(e, resetTimer));
+    };
+  }, [token, user]);
 
   /**
    * Refresh the auth token

@@ -214,6 +214,7 @@ interface Event {
   bannerImage?: string;
   price: string;
   hasLiveStream: boolean;
+  isPublished: boolean;
   guestCount: number;
   maxGuests: number;
   status: EventStatus;
@@ -748,6 +749,7 @@ const MyEventsPage = () => {
             bannerImage: photo,
             price: evt.price ? `${evt.price}` : (evt.isEventFree ? 'Free' : 'Free'),
             hasLiveStream: (evt.hasLiveStream as boolean) ?? false,
+            isPublished: evt.isPublished === true,
             guestCount: (evt.guestCount as number) || 0,
             maxGuests: (evt.maxGuests as number) || 0,
             status: (() => {
@@ -766,9 +768,9 @@ const MyEventsPage = () => {
             inviteCode: (evt.inviteCode as string) || (evt.hostId as string) || '',
             streamInviteToken: (evt.streamInviteToken as string) || undefined,
             shareLink: (() => {
-              const base = `${process.env.NEXT_PUBLIC_LANDING_URL as string}/user/event/${evt.id}`;
+              const base = `${process.env.NEXT_PUBLIC_LANDING_URL as string}/user/events/view-event?id=${evt.id}`;
               const code = (evt.inviteCode as string) || (evt.hostId as string) || '';
-              return code ? `${base}?hostId=${code}` : base;
+              return code ? `${base}&hostId=${code}` : base;
             })(),
             createdAt: (evt.createdAt as string) || '',
           };
@@ -838,7 +840,7 @@ const MyEventsPage = () => {
       }
 
       setEvents(prev => prev.map(evt =>
-        evt.id === eventId ? { ...evt, status: 'PUBLISHED' as EventStatus } : evt
+        evt.id === eventId ? { ...evt, status: 'PUBLISHED' as EventStatus, isPublished: true } : evt
       ));
       if (activeTab === 'upcoming') setActiveTab('all');
     } catch (err) {
@@ -866,7 +868,7 @@ const MyEventsPage = () => {
       }
 
       setEvents(prev => prev.map(evt =>
-        evt.id === eventId ? { ...evt, status: 'UPCOMING' as EventStatus } : evt
+        evt.id === eventId ? { ...evt, status: 'UPCOMING' as EventStatus, isPublished: false } : evt
       ));
       if (activeTab === 'published') setActiveTab('all');
     } catch (err) {
@@ -1392,6 +1394,7 @@ const MyEventsPage = () => {
         bannerImage: createBannerImage || '',
         price: createPrice || 'Free',
         hasLiveStream: createStatus === 'LIVE',
+        isPublished: false,
         guestCount: 0,
         maxGuests: parseInt(createMaxGuests) || 100,
         status: createStatus,
@@ -1401,7 +1404,7 @@ const MyEventsPage = () => {
         hasPhotographer: !!selectedPhotographer,
         photographerName: selectedPhotographer?.name,
         photographerImage: selectedPhotographer?.image,
-        shareLink: `${process.env.NEXT_PUBLIC_LANDING_URL as string}/user/event/${backendEventId || `evt_${Date.now()}`}`,
+        shareLink: `${process.env.NEXT_PUBLIC_LANDING_URL as string}/user/events/view-event?id=${backendEventId || `evt_${Date.now()}`}`,
         createdAt: new Date().toISOString().split('T')[0]
       };
 
@@ -1839,7 +1842,7 @@ const MyEventsPage = () => {
                           <TrashIcon />
                         </button>
                         {event.status.toUpperCase() !== 'COMPLETED' && (
-                          event.status.toUpperCase() === 'PUBLISHED' ? (
+                          (event.isPublished || event.status.toUpperCase() === 'PUBLISHED' || event.status.toUpperCase() === 'ONGOING') ? (
                             <button onClick={() => setUnpublishConfirmEvent(event)} disabled={unpublishingEventId === event.id} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.4rem 0.5rem', backgroundColor: '#d19d0d', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: unpublishingEventId === event.id ? 'not-allowed' : 'pointer', fontSize: '0.75rem', fontWeight: 600, opacity: unpublishingEventId === event.id ? 0.7 : 1 }}>
                               {unpublishingEventId === event.id ? 'Unpublishing...' : 'Unpublish'}
                             </button>

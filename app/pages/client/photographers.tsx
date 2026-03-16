@@ -794,11 +794,13 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
       if (eventId && finalTipAmount > 0) {
         try {
           const apiUrl = getApiUrl();
+          const tipDonationValue = tipDonationAmount === 'custom' ? (parseFloat(tipCustomDonation) || 0) : (parseFloat(tipDonationAmount) || 0);
           const params = new URLSearchParams({
             recipientId: pendingReviewPhotographer.id,
             eventId,
             amount: finalTipAmount.toString(),
             ...(currencyId ? { currencyId } : {}),
+            ...(tipDonationValue > 0 ? { donationAmount: tipDonationValue.toString() } : {}),
           });
           const res = await dashboardAuthFetch(
             `${apiUrl}/api/remote/payments/record-tip?${params.toString()}`,
@@ -827,7 +829,13 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
       setTipAmount('');
       setCustomTipAmount('');
       setSelectedTipPaymentMethod('card');
-      setSuccessMessage(tipRecorded ? 'Review and tip submitted successfully!' : 'Review submitted successfully!');
+      if (tipRecorded) {
+        setSuccessMessage('Review and tip submitted successfully!');
+      } else if (finalTipAmount > 0) {
+        setSuccessMessage('Review submitted, but the tip could not be processed. Please try tipping from the photographer\'s profile.');
+      } else {
+        setSuccessMessage('Review submitted successfully!');
+      }
       setShowSuccessModal(true);
       setPendingReviewPhotographer(null);
     }
