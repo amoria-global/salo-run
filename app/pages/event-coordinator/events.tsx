@@ -248,6 +248,7 @@ interface Event {
   photographerId?: string;
   photographerName?: string;
   photographerImage?: string;
+  isPublished: boolean;
   shareLink: string;
   inviteCode?: string;
   streamInviteToken?: string;
@@ -806,9 +807,10 @@ const MyEventsPage = () => {
             photographerId: (evt.photographerId as string) || (evt.photographer && (evt.photographer as Record<string, unknown>).id as string) || undefined,
             photographerName: (evt.photographerName as string) || (evt.photographer ? `${(evt.photographer as Record<string, unknown>).firstName || ''} ${(evt.photographer as Record<string, unknown>).lastName || ''}`.trim() : '') || '',
             photographerImage: (evt.photographerImage as string) || (evt.photographer && (evt.photographer as Record<string, unknown>).profilePicture as string) || '',
+            isPublished: evt.isPublished === true,
             inviteCode: (evt.inviteCode as string) || (evt.hostId as string) || '',
             streamInviteToken: (evt.streamInviteToken as string) || undefined,
-            shareLink: `${process.env.NEXT_PUBLIC_LANDING_URL as string}/user/event/${evt.id}`,
+            shareLink: `${process.env.NEXT_PUBLIC_LANDING_URL as string}/user/events/view-event?id=${evt.id}`,
             createdAt: (evt.createdAt as string) || '',
           };
         });
@@ -860,7 +862,7 @@ const MyEventsPage = () => {
       });
       if (res.ok) {
         setEvents(prev => prev.map(evt =>
-          evt.id === eventId ? { ...evt, status: 'PUBLISHED' as EventStatus } : evt
+          evt.id === eventId ? { ...evt, status: 'PUBLISHED' as EventStatus, isPublished: true } : evt
         ));
         if (activeTab === 'upcoming') setActiveTab('all');
       } else {
@@ -884,7 +886,7 @@ const MyEventsPage = () => {
       });
       if (res.ok) {
         setEvents(prev => prev.map(evt =>
-          evt.id === eventId ? { ...evt, status: 'UPCOMING' as EventStatus } : evt
+          evt.id === eventId ? { ...evt, status: 'UPCOMING' as EventStatus, isPublished: false } : evt
         ));
         if (activeTab === 'published') setActiveTab('all');
       } else {
@@ -1721,7 +1723,7 @@ const MyEventsPage = () => {
                           <TrashIcon />
                         </button>
                         {event.status.toUpperCase() !== 'COMPLETED' && (
-                          event.status.toUpperCase() === 'PUBLISHED' ? (
+                          (event.isPublished || event.status.toUpperCase() === 'PUBLISHED' || event.status.toUpperCase() === 'ONGOING') ? (
                             <button onClick={() => setUnpublishConfirmEvent(event)} disabled={unpublishingEventId === event.id} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.4rem 0.5rem', backgroundColor: '#d19d0d', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: unpublishingEventId === event.id ? 'not-allowed' : 'pointer', fontSize: '0.75rem', fontWeight: 600, opacity: unpublishingEventId === event.id ? 0.7 : 1 }}>
                               {unpublishingEventId === event.id ? 'Unpublishing...' : 'Unpublish'}
                             </button>

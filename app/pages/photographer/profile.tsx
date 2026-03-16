@@ -170,6 +170,7 @@ interface DeliveryPackage {
   includedVideos: string;
   extraPhotoPrice: string;
   extraVideoPrice: string;
+  photobookPhotos: string;
 }
 
 interface ToastMessage {
@@ -181,12 +182,17 @@ interface ToastMessage {
 interface PendingChange {
   id: string;
   fieldName: string;
+  fieldCategory?: string;
+  changeType?: string;
+  payload?: string;
+  imageData?: string;
   oldValue: string;
   newValue: string;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   createdAt: string;
   reviewedAt?: string;
   reviewComment?: string;
+  adminComment?: string;
 }
 
 interface PhotographerProfilePageProps {
@@ -277,7 +283,6 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
   // All possible features (used for display of "not included" items)
   const ALL_FEATURES = [
-    'Unlimited photos & videos',
     'Online gallery storage (provided by platform)',
     'Same-day preview',
     'Professional editing',
@@ -289,7 +294,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   // Legacy helper kept for savePackageToAPI — returns features to persist
   const getFeaturesForPackage = (packageName: string) => {
     if (packageName === 'Premium') {
-      return ['Unlimited photos & videos', ...(SELECTABLE_FEATURES['Premium'] || [])];
+      return SELECTABLE_FEATURES['Premium'] || [];
     }
     return SELECTABLE_FEATURES[packageName] || [];
   };
@@ -356,6 +361,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   });
 
   // Delivery Packages Tab State
+  const [isPackageEditEnabled, setIsPackageEditEnabled] = useState(false);
   const [packages, setPackages] = useState<DeliveryPackage[]>([]);
   const [savingPackageId, setSavingPackageId] = useState<string | null>(null);
   const [expandedPackageId, setExpandedPackageId] = useState<string | null>(null);
@@ -382,6 +388,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       includedVideos: '',
       extraPhotoPrice: '',
       extraVideoPrice: '',
+      photobookPhotos: '',
     };
     setPackages(prev => [newPackage, ...prev]);
     setExpandedPackageId(newId);
@@ -392,10 +399,16 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     setPackages(prev => prev.map(p => {
       if (p.id !== id) return p;
       const updated = { ...p, [field]: value };
-      // When package name changes, remove features not allowed for the new package type
+      // When package name changes, auto-populate features and set hasLiveStream
       if (field === 'packageName' && typeof value === 'string') {
-        const allowed = getFeaturesForPackage(value);
-        updated.features = updated.features.filter(f => allowed.includes(f.featureName));
+        const allowed = SELECTABLE_FEATURES[value] || [];
+        // Auto-populate all features as included; keep existing toggles for features that carry over
+        updated.features = allowed.map((featureName, idx) => {
+          const existing = updated.features.find(f => f.featureName === featureName);
+          return { id: existing?.id || `feat-${idx}`, featureName, isIncluded: existing ? existing.isIncluded : true, displayOrder: idx };
+        });
+        // Only Premium packages have live streaming
+        updated.hasLiveStream = value === 'Premium';
       }
       return updated;
     }));
@@ -486,17 +499,10 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           includedVideos: pkg.packageName === 'Premium' ? null : (parseInt(pkg.includedVideos) || 0),
           extraPhotoPrice: parseFloat(pkg.extraPhotoPrice) || 0,
           extraVideoPrice: parseFloat(pkg.extraVideoPrice) || 0,
-          // For Premium: lock "Unlimited photos & videos" + photographer's selections
-          // For Essential/Custom: only photographer's selections (no unlimited)
-          features: (() => {
-            const locked = pkg.packageName === 'Premium'
-              ? [{ featureName: 'Unlimited photos & videos', isIncluded: true, displayOrder: 0 }]
-              : [];
-            const selected = pkg.features
-              .filter(f => f.featureName && (SELECTABLE_FEATURES[pkg.packageName] || []).includes(f.featureName))
-              .map((f, idx) => ({ featureName: f.featureName, isIncluded: f.isIncluded, displayOrder: idx + 1 }));
-            return [...locked, ...selected];
-          })(),
+          photobookPhotos: pkg.packageName === 'Premium' ? null : (parseInt(pkg.photobookPhotos) || null),
+          features: pkg.features
+            .filter(f => f.featureName && (SELECTABLE_FEATURES[pkg.packageName] || []).includes(f.featureName))
+            .map((f, idx) => ({ featureName: f.featureName, isIncluded: f.isIncluded, displayOrder: idx })),
         }),
       });
 
@@ -541,7 +547,6 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
   // Edit mode state - when false, all fields are disabled
   const [isEditEnabled, setIsEditEnabled] = useState(false);
-  const [isPackageEditEnabled, setIsPackageEditEnabled] = useState(false);
   const [isSavingAll, setIsSavingAll] = useState(false);
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [isSavingAvailability, setIsSavingAvailability] = useState(false);
@@ -567,9 +572,11 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     }
   }, [token, isAccountAccepted]);
 
-  // Helper: check if a field has pending changes
+  // Helper: check if a field has pending changes (matches fieldName or fieldCategory)
   const getFieldPendingChanges = useCallback((fieldName: string) => {
-    return pendingChanges.filter(c => c.fieldName === fieldName);
+    const categoryMap: Record<string, string> = { projects: 'PROJECT', specialties: 'SPECIALTY', equipments: 'EQUIPMENT', professionalSkills: 'SKILL', educationLevels: 'EDUCATION', trainings: 'TRAINING', certifications: 'CERTIFICATION', workExperiences: 'WORK_EXPERIENCE' };
+    const category = categoryMap[fieldName];
+    return pendingChanges.filter(c => c.fieldName === fieldName || (category && c.fieldCategory === category));
   }, [pendingChanges]);
 
   // Helper: check if response indicates change was routed to pending
@@ -941,17 +948,31 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           durationHours: String(p.durationHours ?? ''),
           description: p.description || '',
           isActive: p.isActive ?? true,
-          hasLiveStream: p.hasLiveStream ?? false,
-          features: (p.features || []).map((f: any) => ({
-            id: f.id || String(Date.now()),
-            featureName: f.featureName || '',
-            isIncluded: f.isIncluded ?? true,
-            displayOrder: f.displayOrder || 0,
-          })),
+          hasLiveStream: p.packageName === 'Premium' ? true : (p.hasLiveStream ?? false),
+          features: (() => {
+            const apiFeatures = (p.features || []).map((f: any) => ({
+              id: f.id || String(Date.now()),
+              featureName: f.featureName || '',
+              isIncluded: f.isIncluded ?? true,
+              displayOrder: f.displayOrder || 0,
+            }));
+            // Auto-populate features if empty but package name is set
+            if (apiFeatures.length === 0 && p.packageName) {
+              const allowed = SELECTABLE_FEATURES[p.packageName] || [];
+              return allowed.map((featureName: string, idx: number) => ({
+                id: `feat-${idx}`,
+                featureName,
+                isIncluded: true,
+                displayOrder: idx,
+              }));
+            }
+            return apiFeatures;
+          })(),
           includedPhotos: String(p.includedPhotos ?? ''),
           includedVideos: String(p.includedVideos ?? ''),
           extraPhotoPrice: String(p.extraPhotoPrice ?? ''),
           extraVideoPrice: String(p.extraVideoPrice ?? ''),
+          photobookPhotos: p.photobookPhotos != null ? String(p.photobookPhotos) : '',
         })));
       }
 
@@ -1069,6 +1090,23 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         {changes.length} Pending
       </span>
     );
+  };
+
+  // Helper: get pending ADD items for a field and parse their payloads
+  const getPendingAddItems = useCallback((fieldName: string) => {
+    return getFieldPendingChanges(fieldName)
+      .filter(c => c.changeType === 'ADD' && c.payload)
+      .map(c => {
+        try { return { ...JSON.parse(c.payload || '{}'), _pendingId: c.id, _imageData: c.imageData }; }
+        catch { return { _pendingId: c.id, _imageData: c.imageData }; }
+      });
+  }, [getFieldPendingChanges]);
+
+  // Pending tag style
+  const pendingTagStyle: React.CSSProperties = {
+    fontSize: '0.6rem', fontWeight: 700, padding: '0.12rem 0.4rem',
+    borderRadius: '9999px', backgroundColor: '#e68a00', color: 'white',
+    whiteSpace: 'nowrap',
   };
 
   // Handle image uploads
@@ -2023,6 +2061,18 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   const selectStyle = {
     ...inputStyle,
     cursor: isEditEnabled ? 'pointer' : 'not-allowed'
+  };
+
+  // Package-specific styles (use isPackageEditEnabled)
+  const pkgInputStyle = {
+    ...inputStyle,
+    backgroundColor: isPackageEditEnabled ? colors.bgCard : colors.bgTertiary,
+    cursor: isPackageEditEnabled ? 'text' : 'not-allowed',
+    opacity: isPackageEditEnabled ? 1 : 0.7,
+  };
+  const pkgSelectStyle = {
+    ...pkgInputStyle,
+    cursor: isPackageEditEnabled ? 'pointer' : 'not-allowed',
   };
 
   const errorMessageStyle = {
@@ -3547,6 +3597,17 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           )}
                         </div>
                       ))}
+                      {/* Pending equipment items */}
+                      {getPendingAddItems('equipments').map((item) => (
+                        <div key={item._pendingId} style={{
+                          display: 'flex', alignItems: 'center', gap: '0.5rem',
+                          padding: '0.75rem 1rem', backgroundColor: colors.bgTertiary,
+                          borderRadius: '0.5rem', border: `2px solid ${actualTheme === 'dark' ? '#92400E' : '#FDE68A'}`, opacity: 0.85,
+                        }}>
+                          <span style={{ flex: 1, fontSize: '0.9rem', color: colors.textPrimary }}>{item.name || item.equipment || JSON.stringify(item).replace(/[{}"_]/g, '').slice(0, 50)}</span>
+                          <span style={pendingTagStyle}>Pending</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
@@ -3833,6 +3894,20 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           )}
                         </div>
                       ))}
+                      {/* Pending skills */}
+                      {getPendingAddItems('professionalSkills').map((item) => (
+                        <div key={item._pendingId} style={{
+                          padding: '0.75rem 1rem', backgroundColor: colors.bgTertiary,
+                          borderRadius: '0.5rem', border: `2px solid ${actualTheme === 'dark' ? '#92400E' : '#FDE68A'}`, opacity: 0.85,
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        }}>
+                          <div>
+                            <div style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{item.name || 'Skill'}</div>
+                            {item.level && <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Level: {item.level}%</div>}
+                          </div>
+                          <span style={pendingTagStyle}>Pending</span>
+                        </div>
+                      ))}
                     </div>
 
                     {/* Education */}
@@ -4108,6 +4183,20 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           </div>
                         </div>
                       ))}
+                      {/* Pending education items */}
+                      {getPendingAddItems('educationLevels').map((item) => (
+                        <div key={item._pendingId} style={{
+                          padding: '1rem', backgroundColor: colors.bgTertiary,
+                          borderRadius: '0.5rem', border: `2px solid ${actualTheme === 'dark' ? '#92400E' : '#FDE68A'}`, opacity: 0.85,
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        }}>
+                          <div>
+                            <div style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{item.degree || 'Degree'}</div>
+                            <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{item.institution || ''}{item.fromYear ? ` (${item.fromYear}${item.toYear ? ` - ${item.toYear}` : ''})` : ''}</div>
+                          </div>
+                          <span style={pendingTagStyle}>Pending</span>
+                        </div>
+                      ))}
                     </div>
 
                     {/* Training */}
@@ -4245,6 +4334,20 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                               {savingTraining === training.id ? 'Saving...' : 'Save'}
                             </button>
                           </div>
+                        </div>
+                      ))}
+                      {/* Pending training items */}
+                      {[...getPendingAddItems('trainings'), ...getPendingAddItems('certifications')].map((item) => (
+                        <div key={item._pendingId} style={{
+                          padding: '1rem', backgroundColor: colors.bgTertiary,
+                          borderRadius: '0.5rem', border: `2px solid ${actualTheme === 'dark' ? '#92400E' : '#FDE68A'}`, opacity: 0.85,
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        }}>
+                          <div>
+                            <div style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{item.name || 'Training'}</div>
+                            <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{item.issuer || ''}{item.year ? ` · ${item.year}` : ''}</div>
+                          </div>
+                          <span style={pendingTagStyle}>Pending</span>
                         </div>
                       ))}
                     </div>
@@ -4454,8 +4557,49 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                         </div>
                       ))}
 
+                      {/* Pending projects from admin review */}
+                      {getFieldPendingChanges('projects').filter(c => c.changeType === 'ADD' && c.payload).map((change) => {
+                        const data = (() => { try { return JSON.parse(change.payload || '{}'); } catch { return {}; } })();
+                        const imgUrl = change.imageData ? `https://backend.connekyt.com/uploads/photographer/projects/${change.imageData}` : '';
+                        return (
+                          <div key={change.id} style={{
+                            backgroundColor: colors.bgTertiary,
+                            borderRadius: '0.75rem',
+                            overflow: 'hidden',
+                            border: `2px solid ${actualTheme === 'dark' ? '#92400E' : '#FDE68A'}`,
+                            opacity: 0.85,
+                            position: 'relative',
+                          }}>
+                            <div style={{
+                              height: '160px',
+                              backgroundColor: imgUrl ? 'transparent' : (actualTheme === 'dark' ? '#374151' : '#E5E7EB'),
+                              backgroundImage: imgUrl ? `url(${imgUrl})` : 'none',
+                              backgroundSize: 'cover',
+                              backgroundPosition: 'center',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}>
+                              {!imgUrl && <ImageIcon />}
+                            </div>
+                            <div style={{ padding: '0.75rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                                <h4 style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, margin: 0, flex: 1 }}>{data.title || 'Untitled'}</h4>
+                                <span style={{
+                                  fontSize: '0.65rem', fontWeight: '700', padding: '0.15rem 0.5rem',
+                                  borderRadius: '9999px', backgroundColor: '#e68a00', color: 'white',
+                                  whiteSpace: 'nowrap',
+                                }}>Pending</span>
+                              </div>
+                              {data.year && <p style={{ fontSize: '0.75rem', color: colors.textSecondary, margin: '0 0 0.25rem' }}>{data.year}</p>}
+                              {data.description && <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: 0, lineHeight: '1.4' }}>{data.description.length > 80 ? data.description.slice(0, 80) + '...' : data.description}</p>}
+                            </div>
+                          </div>
+                        );
+                      })}
+
                       {/* Empty state */}
-                      {portfolioData.projects.length === 0 && (
+                      {portfolioData.projects.length === 0 && getFieldPendingChanges('projects').length === 0 && (
                         <div style={{
                           gridColumn: 'span 2',
                           textAlign: 'center',
@@ -4661,7 +4805,23 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                         </div>
                       ))}
 
-                      {experienceData.experiences.length === 0 && (
+                      {/* Pending work experience items */}
+                      {getPendingAddItems('workExperiences').map((item) => (
+                        <div key={item._pendingId} style={{
+                          padding: '1rem', backgroundColor: colors.bgTertiary,
+                          borderRadius: '0.75rem', border: `2px solid ${actualTheme === 'dark' ? '#92400E' : '#FDE68A'}`, opacity: 0.85,
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        }}>
+                          <div>
+                            <div style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{item.position || 'Position'}</div>
+                            <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{item.company || ''}{item.location ? ` · ${item.location}` : ''}</div>
+                            {item.startDate && <div style={{ fontSize: '0.75rem', color: colors.textTertiary }}>{item.startDate}{item.endDate ? ` - ${item.endDate}` : ' - Present'}</div>}
+                          </div>
+                          <span style={pendingTagStyle}>Pending</span>
+                        </div>
+                      ))}
+
+                      {experienceData.experiences.length === 0 && getPendingAddItems('workExperiences').length === 0 && (
                         <div style={{
                           textAlign: 'center',
                           padding: '3rem',
@@ -4701,24 +4861,37 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                 {/* Delivery Packages Tab */}
                 {activeTab === 'packages' && (
                   <div>
-                    {/* Description Section */}
-                    <div style={{
-                      backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF',
-                      borderRadius: '0.75rem',
-                      padding: '1.25rem',
-                      marginBottom: '2rem',
-                      border: `1px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}20`
-                    }}>
-                      <p style={{
-                        fontSize: '0.95rem',
-                        color: colors.textPrimary,
-                        lineHeight: '1.6',
-                        margin: 0
-                      }}>
-                        Create custom delivery packages to present your photography services to clients. Define your own package names, pricing, duration, and features. Each package is saved individually.
+                    {/* Edit Toggle for Packages */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                      <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: 0, flex: 1, lineHeight: '1.5' }}>
+                        Create and manage your delivery packages. Toggle edit mode to make changes.
                       </p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0, marginLeft: '1rem' }}>
+                        <div
+                          onClick={() => setIsPackageEditEnabled(!isPackageEditEnabled)}
+                          style={{
+                            width: '48px', height: '26px', borderRadius: '13px',
+                            backgroundColor: isPackageEditEnabled ? '#083A85' : (actualTheme === 'dark' ? '#4B5563' : '#D1D5DB'),
+                            cursor: 'pointer', position: 'relative', transition: 'background-color 0.2s',
+                          }}
+                        >
+                          <div style={{
+                            width: '22px', height: '22px', borderRadius: '50%',
+                            backgroundColor: 'white', position: 'absolute', top: '2px',
+                            left: isPackageEditEnabled ? '24px' : '2px', transition: 'left 0.2s',
+                          }} />
+                        </div>
+                        <span style={{
+                          fontSize: '0.85rem', fontWeight: '600',
+                          color: isPackageEditEnabled ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : '#6B7280'
+                        }}>
+                          {isPackageEditEnabled ? 'Editing' : 'Edit'}
+                        </span>
+                      </div>
                     </div>
 
+                    <div style={{ position: 'relative', opacity: isPackageEditEnabled ? 1 : 0.6, transition: 'opacity 0.2s' }}>
+                    {!isPackageEditEnabled && <div style={{ position: 'absolute', inset: 0, zIndex: 10, cursor: 'not-allowed' }} />}
                     {/* Your Listed Packages Summary */}
                     {packages.filter(p => p.packageName).length > 0 && (
                       <div style={{ marginBottom: '2rem' }}>
@@ -4857,20 +5030,20 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       <span>Your Packages</span>
                       <button
                         onClick={addPackage}
-                        disabled={!isEditEnabled || packages.length >= 3}
+                        disabled={!isPackageEditEnabled || packages.length >= 3}
                         style={{
-                          backgroundColor: (isEditEnabled && packages.length < 3) ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgTertiary,
-                          color: (isEditEnabled && packages.length < 3) ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.textSecondary,
-                          border: `1px solid ${(isEditEnabled && packages.length < 3) ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.borderPrimary}`,
+                          backgroundColor: (isPackageEditEnabled && packages.length < 3) ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgTertiary,
+                          color: (isPackageEditEnabled && packages.length < 3) ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.textSecondary,
+                          border: `1px solid ${(isPackageEditEnabled && packages.length < 3) ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.borderPrimary}`,
                           borderRadius: '0.375rem',
                           padding: '0.375rem 0.75rem',
                           fontSize: '0.8rem',
                           fontWeight: '500',
-                          cursor: (isEditEnabled && packages.length < 3) ? 'pointer' : 'not-allowed',
+                          cursor: (isPackageEditEnabled && packages.length < 3) ? 'pointer' : 'not-allowed',
                           display: 'flex',
                           alignItems: 'center',
                           gap: '0.25rem',
-                          opacity: (isEditEnabled && packages.length < 3) ? 1 : 0.6
+                          opacity: (isPackageEditEnabled && packages.length < 3) ? 1 : 0.6
                         }}
                       >
                         <PlusIcon /> Add Package {packages.length > 0 ? `(${3 - packages.length} left)` : ''}
@@ -4930,6 +5103,21 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                 width: '8px', height: '8px', borderRadius: '50%',
                                 backgroundColor: pkg.isActive ? '#10B981' : '#EF4444'
                               }} />
+                              {isPackageEditEnabled && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); removePackage(pkg.id); }}
+                                  style={{
+                                    padding: '0.35rem', backgroundColor: 'transparent',
+                                    border: `1.5px solid ${colors.borderPrimary}`, borderRadius: '0.3rem',
+                                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    color: colors.textTertiary, transition: 'all 0.2s',
+                                  }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#FEE2E2'; e.currentTarget.style.borderColor = '#EF4444'; e.currentTarget.style.color = '#EF4444'; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.color = colors.textTertiary; }}
+                                >
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                </button>
+                              )}
                               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
                                 style={{ transform: expandedPackageId === pkg.id ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
                                 <path d="M6 9L12 15L18 9" stroke={colors.textSecondary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -4940,41 +5128,13 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           {/* Expanded Form Content */}
                           {expandedPackageId === pkg.id && (
                             <div style={{ marginTop: '1.5rem', borderTop: `2px solid ${colors.borderPrimary}`, paddingTop: '1.5rem' }}>
-                              {/* Remove Button */}
-                              <button
-                                onClick={() => removePackage(pkg.id)}
-                                style={{
-                                  position: 'absolute', top: '0.75rem', right: '0.75rem',
-                                  padding: '0.5rem', backgroundColor: 'transparent',
-                                  border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.375rem',
-                                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                  color: colors.textTertiary, transition: 'all 0.2s'
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.backgroundColor = '#FEE2E2';
-                                  e.currentTarget.style.borderColor = '#EF4444';
-                                  e.currentTarget.style.color = '#EF4444';
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.backgroundColor = 'transparent';
-                                  e.currentTarget.style.borderColor = colors.borderPrimary;
-                                  e.currentTarget.style.color = colors.textTertiary;
-                                }}
-                                title="Remove package"
-                              >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                  <path d="M3 6H5H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                  <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
-                              </button>
-
                               {/* Row 1: Package Name + Active toggle */}
                               <div className="mobile-form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '1rem', marginBottom: '1rem', alignItems: 'end' }}>
                                 <div>
                                   <label style={labelStyle}>Package Name *</label>
                                   <select value={pkg.packageName}
                                     onChange={(e) => updatePackage(pkg.id, 'packageName', e.target.value)}
-                                    disabled={!isEditEnabled} style={selectStyle}>
+                                    disabled={!isPackageEditEnabled} style={pkgSelectStyle}>
                                     <option value="">Select a package</option>
                                     {['Essential', 'Custom', 'Premium']
                                       .filter(name => name === pkg.packageName || !packages.some(p => p.id !== pkg.id && p.packageName === name))
@@ -4987,11 +5147,11 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                     <label style={{ fontSize: '0.875rem', fontWeight: '500', color: colors.textPrimary }}>Active</label>
                                     <div
-                                      onClick={() => isEditEnabled && updatePackage(pkg.id, 'isActive', !pkg.isActive)}
+                                      onClick={() => isPackageEditEnabled && updatePackage(pkg.id, 'isActive', !pkg.isActive)}
                                       style={{
                                         width: '44px', height: '24px', borderRadius: '12px',
                                         backgroundColor: pkg.isActive ? '#083A85' : (actualTheme === 'dark' ? '#4B5563' : '#D1D5DB'),
-                                        cursor: isEditEnabled ? 'pointer' : 'not-allowed',
+                                        cursor: isPackageEditEnabled ? 'pointer' : 'not-allowed',
                                         position: 'relative', transition: 'background-color 0.2s',
                                       }}
                                     >
@@ -5002,24 +5162,12 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                       }} />
                                     </div>
                                   </div>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <label style={{ fontSize: '0.875rem', fontWeight: '500', color: colors.textPrimary }}>Live Stream</label>
-                                    <div
-                                      onClick={() => isEditEnabled && updatePackage(pkg.id, 'hasLiveStream', !pkg.hasLiveStream)}
-                                      style={{
-                                        width: '44px', height: '24px', borderRadius: '12px',
-                                        backgroundColor: pkg.hasLiveStream ? '#10B981' : (actualTheme === 'dark' ? '#4B5563' : '#D1D5DB'),
-                                        cursor: isEditEnabled ? 'pointer' : 'not-allowed',
-                                        position: 'relative', transition: 'background-color 0.2s',
-                                      }}
-                                    >
-                                      <div style={{
-                                        width: '20px', height: '20px', borderRadius: '50%',
-                                        backgroundColor: 'white', position: 'absolute', top: '2px',
-                                        left: pkg.hasLiveStream ? '22px' : '2px', transition: 'left 0.2s',
-                                      }} />
+                                  {pkg.packageName === 'Premium' && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.5rem', borderRadius: '1rem', backgroundColor: actualTheme === 'dark' ? '#4C1D9520' : '#F5F3FF', border: `1px solid ${actualTheme === 'dark' ? '#A78BFA30' : '#DDD6FE'}` }}>
+                                      <svg width="12" height="12" viewBox="0 0 24 24" fill={actualTheme === 'dark' ? '#A78BFA' : '#7C3AED'}><circle cx="12" cy="12" r="4"/><path d="M4.93 4.93a10 10 0 0 1 14.14 0" stroke={actualTheme === 'dark' ? '#A78BFA' : '#7C3AED'} strokeWidth="2" fill="none" strokeLinecap="round"/><path d="M7.76 7.76a6 6 0 0 1 8.48 0" stroke={actualTheme === 'dark' ? '#A78BFA' : '#7C3AED'} strokeWidth="2" fill="none" strokeLinecap="round"/></svg>
+                                      <span style={{ fontSize: '0.7rem', fontWeight: '600', color: actualTheme === 'dark' ? '#A78BFA' : '#7C3AED' }}>Live Stream</span>
                                     </div>
-                                  </div>
+                                  )}
                                 </div>
                               </div>
 
@@ -5029,7 +5177,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                   <label style={labelStyle}>Price *</label>
                                   <input type="number" min="0" value={pkg.price}
                                     onChange={(e) => updatePackage(pkg.id, 'price', e.target.value)}
-                                    placeholder="Enter price" disabled={!isEditEnabled} style={inputStyle} />
+                                    placeholder="Enter price" disabled={!isPackageEditEnabled} style={pkgInputStyle} />
                                 </div>
                                 <div>
                                   <label style={labelStyle}>Currency *</label>
@@ -5041,8 +5189,8 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                     const isDropdownOpen = openCurrencyPkgId === pkg.id;
                                     return (
                                       <div ref={(el) => { currencyDropdownRefs.current[pkg.id] = el; }} style={{ position: 'relative' }}>
-                                        <button type="button" disabled={!isEditEnabled} onClick={() => isEditEnabled && setOpenCurrencyPkgId(isDropdownOpen ? null : pkg.id)}
-                                          style={{ ...selectStyle, display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: isEditEnabled ? 'pointer' : 'not-allowed', opacity: isEditEnabled ? 1 : 0.6, width: '100%', textAlign: 'left' }}>
+                                        <button type="button" disabled={!isPackageEditEnabled} onClick={() => isPackageEditEnabled && setOpenCurrencyPkgId(isDropdownOpen ? null : pkg.id)}
+                                          style={{ ...pkgSelectStyle, display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: isPackageEditEnabled ? 'pointer' : 'not-allowed', opacity: isPackageEditEnabled ? 1 : 0.6, width: '100%', textAlign: 'left' }}>
                                           {CURRENCY_FLAG_MAP[selectedCode] && <img src={`https://flagcdn.com/w40/${CURRENCY_FLAG_MAP[selectedCode]}.png`} alt="" style={{ width: '18px', height: '14px', objectFit: 'cover', borderRadius: '2px' }} />}
                                           <span style={{ flex: 1 }}>{selectedCode || 'Select'}</span>
                                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
@@ -5079,7 +5227,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                   <label style={labelStyle}>Price Unit *</label>
                                   <select value={pkg.priceUnit}
                                     onChange={(e) => updatePackage(pkg.id, 'priceUnit', e.target.value)}
-                                    disabled={!isEditEnabled} style={selectStyle}>
+                                    disabled={!isPackageEditEnabled} style={pkgSelectStyle}>
                                     <option value="per event">Per Event</option>
                                     <option value="per hour">Per Hour</option>
                                     <option value="per day">Per Day</option>
@@ -5089,7 +5237,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                   <label style={labelStyle}>Duration (hours) *</label>
                                   <input type="number" min="0" value={pkg.durationHours}
                                     onChange={(e) => updatePackage(pkg.id, 'durationHours', e.target.value)}
-                                    placeholder="e.g., 4" disabled={!isEditEnabled} style={inputStyle} />
+                                    placeholder="e.g., 4" disabled={!isPackageEditEnabled} style={pkgInputStyle} />
                                 </div>
                               </div>
 
@@ -5099,28 +5247,75 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                 <textarea value={pkg.description}
                                   onChange={(e) => updatePackage(pkg.id, 'description', e.target.value)}
                                   placeholder="Describe what this package includes..."
-                                  rows={3} disabled={!isEditEnabled}
-                                  style={{ ...inputStyle, resize: 'vertical' as const }} />
+                                  rows={3} disabled={!isPackageEditEnabled}
+                                  style={{ ...pkgInputStyle, resize: 'vertical' as const }} />
                               </div>
 
-                              {/* Photo/Video counts — Essential & Custom only */}
-                              {pkg.packageName && pkg.packageName !== 'Premium' && (
-                                <div style={{ marginBottom: '1.25rem' }}>
-                                  <label style={labelStyle}>Included Photos & Videos</label>
-                                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                              {/* Photobook & Media Section */}
+                              {pkg.packageName && (
+                                <div style={{ marginBottom: '1.25rem', padding: '1rem', backgroundColor: actualTheme === 'dark' ? 'rgba(139,92,246,0.05)' : '#FAFAFE', borderRadius: '0.625rem', border: `1px solid ${actualTheme === 'dark' ? 'rgba(139,92,246,0.15)' : '#EDE9FE'}` }}>
+                                  <label style={{ ...labelStyle, fontSize: '0.9rem', fontWeight: '600', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={actualTheme === 'dark' ? '#A78BFA' : '#7C3AED'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                                    Photobook & Media
+                                  </label>
+
+                                  {/* Included counts — Essential & Custom only */}
+                                  {pkg.packageName !== 'Premium' ? (
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                                      <div>
+                                        <label style={{ ...labelStyle, fontSize: '0.78rem', color: colors.textSecondary }}>Photos included</label>
+                                        <input type="number" min="0" value={pkg.includedPhotos}
+                                          onChange={(e) => updatePackage(pkg.id, 'includedPhotos', e.target.value)}
+                                          placeholder="e.g. 100" disabled={!isPackageEditEnabled} style={pkgInputStyle} />
+                                      </div>
+                                      <div>
+                                        <label style={{ ...labelStyle, fontSize: '0.78rem', color: colors.textSecondary }}>Videos included</label>
+                                        <input type="number" min="0" value={pkg.includedVideos}
+                                          onChange={(e) => updatePackage(pkg.id, 'includedVideos', e.target.value)}
+                                          placeholder="e.g. 5" disabled={!isPackageEditEnabled} style={pkgInputStyle} />
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div style={{ padding: '0.5rem 0.75rem', backgroundColor: actualTheme === 'dark' ? '#4C1D9520' : '#F5F3FF', borderRadius: '0.375rem', marginBottom: '0.75rem', fontSize: '0.82rem', color: actualTheme === 'dark' ? '#A78BFA' : '#7C3AED', fontWeight: '600' }}>
+                                      Unlimited photos & videos included
+                                    </div>
+                                  )}
+
+                                  {/* Printed photobook limit */}
+                                  <div style={{ marginBottom: '0.75rem' }}>
+                                    <label style={{ ...labelStyle, fontSize: '0.78rem', color: colors.textSecondary }}>Printed photobook photos</label>
+                                    {pkg.packageName !== 'Premium' ? (
+                                      <input type="number" min="0" value={pkg.photobookPhotos}
+                                        onChange={(e) => updatePackage(pkg.id, 'photobookPhotos', e.target.value)}
+                                        placeholder="e.g. 20" disabled={!isPackageEditEnabled} style={pkgInputStyle} />
+                                    ) : (
+                                      <div style={{ padding: '0.5rem 0.75rem', backgroundColor: actualTheme === 'dark' ? '#4C1D9520' : '#F5F3FF', borderRadius: '0.375rem', fontSize: '0.82rem', color: actualTheme === 'dark' ? '#A78BFA' : '#7C3AED', fontWeight: '600' }}>
+                                        Unlimited photobook selections
+                                      </div>
+                                    )}
+                                    <span style={{ fontSize: '0.7rem', color: colors.textSecondary, marginTop: '0.25rem', display: 'block' }}>
+                                      Number of photos the client can select for their printed photo album. Extra selections will be charged per photo.
+                                    </span>
+                                  </div>
+
+                                  {/* Extra photo/video pricing */}
+                                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                     <div>
-                                      <label style={{ ...labelStyle, fontSize: '0.8rem', color: colors.textSecondary }}>Photos included</label>
-                                      <input type="number" min="0" value={pkg.includedPhotos}
-                                        onChange={(e) => updatePackage(pkg.id, 'includedPhotos', e.target.value)}
-                                        placeholder="e.g. 100" disabled={!isPackageEditEnabled} style={inputStyle} />
+                                      <label style={{ ...labelStyle, fontSize: '0.78rem', color: colors.textSecondary }}>Price per extra photo</label>
+                                      <input type="number" min="0" value={pkg.extraPhotoPrice}
+                                        onChange={(e) => updatePackage(pkg.id, 'extraPhotoPrice', e.target.value)}
+                                        placeholder="e.g. 500" disabled={!isPackageEditEnabled} style={pkgInputStyle} />
                                     </div>
                                     <div>
-                                      <label style={{ ...labelStyle, fontSize: '0.8rem', color: colors.textSecondary }}>Videos included</label>
-                                      <input type="number" min="0" value={pkg.includedVideos}
-                                        onChange={(e) => updatePackage(pkg.id, 'includedVideos', e.target.value)}
-                                        placeholder="e.g. 5" disabled={!isPackageEditEnabled} style={inputStyle} />
+                                      <label style={{ ...labelStyle, fontSize: '0.78rem', color: colors.textSecondary }}>Price per extra video</label>
+                                      <input type="number" min="0" value={pkg.extraVideoPrice}
+                                        onChange={(e) => updatePackage(pkg.id, 'extraVideoPrice', e.target.value)}
+                                        placeholder="e.g. 1000" disabled={!isPackageEditEnabled} style={pkgInputStyle} />
                                     </div>
                                   </div>
+                                  <span style={{ fontSize: '0.72rem', color: colors.textSecondary, marginTop: '0.4rem', display: 'block' }}>
+                                    Set the price clients pay for each additional photo or video beyond the included amount in their photobook.
+                                  </span>
                                 </div>
                               )}
 
@@ -5129,22 +5324,6 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                 <label style={{ ...labelStyle, marginBottom: '0.75rem' }}>Included Features</label>
                                 {pkg.packageName ? (
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                                    {/* Premium: "Unlimited photos & videos" locked at top */}
-                                    {pkg.packageName === 'Premium' && (
-                                      <div style={{
-                                        display: 'flex', alignItems: 'center', gap: '0.6rem',
-                                        padding: '0.5rem 0.75rem',
-                                        backgroundColor: actualTheme === 'dark' ? '#2D1B69' : '#F5F3FF',
-                                        borderRadius: '0.375rem',
-                                        border: `1px solid #8B5CF6`,
-                                      }}>
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
-                                          <path d="M20 6L9 17L4 12" stroke="#8B5CF6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                        </svg>
-                                        <span style={{ fontSize: '0.85rem', color: actualTheme === 'dark' ? '#A78BFA' : '#4C1D95', fontWeight: '600' }}>Unlimited photos & videos</span>
-                                        <span style={{ marginLeft: 'auto', fontSize: '0.7rem', color: actualTheme === 'dark' ? '#A78BFA' : '#7C3AED', backgroundColor: actualTheme === 'dark' ? '#4C1D95' : '#EDE9FE', padding: '0.15rem 0.4rem', borderRadius: '0.25rem', fontWeight: '600' }}>Locked</span>
-                                      </div>
-                                    )}
                                     {/* Selectable features for this package tier */}
                                     {(SELECTABLE_FEATURES[pkg.packageName] || []).map((feature) => {
                                       const isChecked = pkg.features.some(f => f.featureName === feature && f.isIncluded);
@@ -5185,7 +5364,6 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                     })}
                                     {/* Features not available at this tier */}
                                     {ALL_FEATURES.filter(f => {
-                                      if (f === 'Unlimited photos & videos') return pkg.packageName !== 'Premium';
                                       return !(SELECTABLE_FEATURES[pkg.packageName] || []).includes(f);
                                     }).map((feature) => (
                                       <div key={feature} style={{
@@ -5211,7 +5389,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                               </div>
 
                               {/* Save Button (per package) */}
-                              {isEditEnabled && (
+                              {isPackageEditEnabled && (
                                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                                   <button
                                     onClick={() => savePackageToAPI(pkg)}
@@ -5255,16 +5433,16 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           <p style={{ color: colors.textSecondary, marginBottom: '1rem' }}>
                             No delivery packages created yet
                           </p>
-                          <button onClick={addPackage} disabled={!isEditEnabled}
+                          <button onClick={addPackage} disabled={!isPackageEditEnabled}
                             style={{
-                              backgroundColor: isEditEnabled ? '#083A85' : colors.bgTertiary,
-                              color: isEditEnabled ? 'white' : colors.textSecondary,
-                              border: isEditEnabled ? 'none' : `2px solid ${colors.borderPrimary}`,
+                              backgroundColor: isPackageEditEnabled ? '#083A85' : colors.bgTertiary,
+                              color: isPackageEditEnabled ? 'white' : colors.textSecondary,
+                              border: isPackageEditEnabled ? 'none' : `2px solid ${colors.borderPrimary}`,
                               borderRadius: '0.5rem', padding: '0.75rem 1.5rem',
                               fontSize: '0.9rem', fontWeight: '500',
-                              cursor: isEditEnabled ? 'pointer' : 'not-allowed',
+                              cursor: isPackageEditEnabled ? 'pointer' : 'not-allowed',
                               display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
-                              opacity: isEditEnabled ? 1 : 0.6
+                              opacity: isPackageEditEnabled ? 1 : 0.6
                             }}
                           >
                             <PlusIcon /> Create Your First Package
@@ -5272,6 +5450,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                         </div>
                       )}
                     </div>
+                    </div>{/* end pointer-events wrapper */}
                   </div>
                 )}
               </div>

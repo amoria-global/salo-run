@@ -8,7 +8,7 @@ import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { getApiUrl, normalizeImageUrl } from '@/lib/api';
-import { checkMessageContent } from '@/lib/messageFilter';
+import { checkMessageContent, checkMessageWithHistory } from '@/lib/messageFilter';
 
 const normalizeImg = (url: string | undefined | null): string => {
   if (!url || url === 'null' || url.endsWith('/null')) return '';
@@ -399,7 +399,9 @@ const InboxPage = () => {
     if (!messageInput.trim() || !selectedConversation) return;
 
     if (isSending) return;
-    const filterResult = checkMessageContent(messageInput);
+    const conv = conversations.find(c => c.id === selectedConversation);
+    const recentMsgs = (conv?.messages || []).map(m => ({ content: m.content, senderId: m.senderId }));
+    const filterResult = checkMessageWithHistory(messageInput, recentMsgs, currentUserId);
     if (filterResult.blocked) {
       setContentWarning(filterResult.reason);
       return;
@@ -514,12 +516,9 @@ const InboxPage = () => {
     }));
 
     try {
-      const formData = new FormData();
-      formData.append('senderId', currentUserId);
-      formData.append('content', newContent);
       const res = await dashboardAuthFetch(
         `${apiUrl}/api/remote/chat/messages/${msgId}`,
-        { method: 'PUT', body: formData }
+        { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ senderId: currentUserId, content: newContent }) }
       );
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -563,7 +562,7 @@ const InboxPage = () => {
     }));
 
     try {
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/chat/messages/${messageId}`, { method: 'DELETE' });
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/chat/messages/${messageId}?senderId=${currentUserId}`, { method: 'DELETE' });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         setChatError(data.message || 'Failed to delete message. Please try again.');

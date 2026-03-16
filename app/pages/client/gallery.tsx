@@ -498,7 +498,9 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
     currencyId?: string;
   }>>([]);
   const [showThumbnailSelector, setShowThumbnailSelector] = useState(false);
-  const MAX_IMAGE_SELECTION = 3;
+  // Dynamic limit from the active photobook's package (falls back to 3)
+  const activePhotobook = photobooks.find(pb => pb.id === setupPhotobookId) || photobooks[0];
+  const MAX_IMAGE_SELECTION = activePhotobook?.freePhotosLimit || 3;
 
   // Setup wizard states (Select Album → Layout → Images)
   const [showSetupWizard, setShowSetupWizard] = useState(false);
@@ -512,10 +514,13 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   const [setupCoverImage, setSetupCoverImage] = useState<string>('');
   const [step3ViewMode, setStep3ViewMode] = useState<'album-grid' | 'image-selection'>('album-grid');
   const [setupSelectMode, setSetupSelectMode] = useState(false);
-  const EXTRA_IMAGE_PRICE = 2;
+  // Dynamic price from the active photobook's package (falls back to 1)
+  const EXTRA_IMAGE_PRICE = activePhotobook?.pricePerExtraPhoto || 1;
+  const EXTRA_CURRENCY = activePhotobook?.currencyId || 'RWF';
   const [extraUnlockedImages, setExtraUnlockedImages] = useState<string[]>([]);
   const [showExtraImagePayment, setShowExtraImagePayment] = useState(false);
   const [pendingUnlockImage, setPendingUnlockImage] = useState<string | null>(null);
+  const [pendingUnlockImages, setPendingUnlockImages] = useState<string[]>([]);
   const [extraPaymentMethod, setExtraPaymentMethod] = useState<'card' | 'mtn' | 'airtel' | null>(null);
   const [extraPaymentShowReceipt, setExtraPaymentShowReceipt] = useState(false);
   const [extraDonationAmount, setExtraDonationAmount] = useState<string>('');
@@ -1263,6 +1268,10 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
       if (extraUnlockedImages.includes(image)) {
         setExtraUnlockedImages(extraUnlockedImages.filter(img => img !== image));
       }
+      // If it was a pending extra, remove from pending too
+      if (pendingUnlockImages.includes(image)) {
+        setPendingUnlockImages(pendingUnlockImages.filter(img => img !== image));
+      }
     } else {
       if (setupSelectedImages.length < MAX_IMAGE_SELECTION) {
         const newSelection = [...setupSelectedImages, image];
@@ -1275,16 +1284,21 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
       } else if (extraUnlockedImages.includes(image)) {
         // Already unlocked extra — add it
         setSetupSelectedImages([...setupSelectedImages, image]);
-      } else if (!hasSeenLimitMessage) {
-        // Trying to select a locked image — show the limit message
-        setShowLimitReachedMessage(true);
-        setHasSeenLimitMessage(true);
+      } else {
+        // Beyond the free limit — add as pending extra and select it
+        setPendingUnlockImages(prev => [...prev, image]);
+        setSetupSelectedImages([...setupSelectedImages, image]);
+        // Show limit message on first extra selection
+        if (!hasSeenLimitMessage) {
+          setShowLimitReachedMessage(true);
+          setHasSeenLimitMessage(true);
+        }
       }
     }
   };
 
-  const handleUnlockExtraImage = (image: string) => {
-    setPendingUnlockImage(image);
+  const handleUnlockExtraImage = (image?: string) => {
+    if (image) setPendingUnlockImage(image);
     setExtraPaymentMethod(null);
     setExtraPaymentShowReceipt(false);
     setExtraDonationAmount('');
@@ -1315,7 +1329,9 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
 
   const extraDonationValue = extraDonationAmount === 'custom' ? (parseFloat(extraCustomDonation) || 0) : (parseFloat(extraDonationAmount) || 0);
   const extraDonationAddressed = extraDonationSkipped || extraDonationValue > 0;
-  const extraTotalWithDonation = EXTRA_IMAGE_PRICE + extraDonationValue;
+  const pendingExtrasCount = pendingUnlockImages.length;
+  const pendingExtrasCost = pendingExtrasCount * EXTRA_IMAGE_PRICE;
+  const extraTotalWithDonation = pendingExtrasCost + extraDonationValue;
 
   const handleExtraImagePaymentConfirm = () => {
     if (pendingUnlockImage && extraPaymentMethod && extraDonationAddressed) {
@@ -1324,10 +1340,13 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   };
 
   const handleExtraImagePaymentDone = () => {
-    if (pendingUnlockImage) {
-      setExtraUnlockedImages([...extraUnlockedImages, pendingUnlockImage]);
-      setSetupSelectedImages([...setupSelectedImages, pendingUnlockImage]);
+    // Unlock all pending extras
+    const newUnlocked = [...extraUnlockedImages, ...pendingUnlockImages];
+    if (pendingUnlockImage && !newUnlocked.includes(pendingUnlockImage)) {
+      newUnlocked.push(pendingUnlockImage);
     }
+    setExtraUnlockedImages(newUnlocked);
+    setPendingUnlockImages([]);
     setShowExtraImagePayment(false);
     setPendingUnlockImage(null);
     setExtraPaymentMethod(null);
@@ -1338,7 +1357,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
     setExtraShowCustomInput(false);
   };
 
-  const extraImagesTotalCost = extraUnlockedImages.filter(img => setupSelectedImages.includes(img)).length * EXTRA_IMAGE_PRICE;
+  const extraImagesTotalCost = (extraUnlockedImages.filter(img => setupSelectedImages.includes(img)).length + pendingUnlockImages.length) * EXTRA_IMAGE_PRICE;
 
   const handleAddToPhotobook = () => {
     if (selectedImages.length === 0 || photobooks.length === 0) return;
@@ -4891,7 +4910,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
       )}
 
       {/* Extra Image Payment Modal */}
-      {showExtraImagePayment && pendingUnlockImage && (
+      {showExtraImagePayment && (pendingUnlockImage || pendingUnlockImages.length > 0) && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           backgroundColor: 'rgba(0, 0, 0, 0.6)',
@@ -4911,7 +4930,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
-                {extraPaymentShowReceipt ? 'Payment Summary' : 'Unlock Extra Image'}
+                {extraPaymentShowReceipt ? 'Payment Summary' : `Unlock ${pendingExtrasCount > 1 ? `${pendingExtrasCount} Extra Images` : 'Extra Image'}`}
               </h3>
               <button onClick={() => { setShowExtraImagePayment(false); setPendingUnlockImage(null); setExtraPaymentMethod(null); setExtraPaymentShowReceipt(false); }} style={{
                 background: colors.bgTertiary, border: `2px solid ${colors.borderPrimary}`, cursor: 'pointer',
@@ -4932,12 +4951,21 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                 }}>
                   {/* Image Preview */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                    <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
-                      <Image src={pendingUnlockImage} alt="Extra image" fill style={{ objectFit: 'cover' }} />
+                    <div style={{ display: 'flex', gap: '-0.5rem' }}>
+                      {(pendingUnlockImages.length > 0 ? pendingUnlockImages : (pendingUnlockImage ? [pendingUnlockImage] : [])).slice(0, 3).map((img, i) => (
+                        <div key={i} style={{ width: '40px', height: '40px', borderRadius: '0.5rem', overflow: 'hidden', position: 'relative', flexShrink: 0, marginLeft: i > 0 ? '-8px' : 0, border: `2px solid ${colors.bgCard}`, zIndex: 3 - i }}>
+                          <Image src={img} alt={`Extra image ${i + 1}`} fill style={{ objectFit: 'cover' }} />
+                        </div>
+                      ))}
+                      {pendingExtrasCount > 3 && (
+                        <div style={{ width: '40px', height: '40px', borderRadius: '0.5rem', marginLeft: '-8px', backgroundColor: colors.bgTertiary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: '700', color: colors.textSecondary, border: `2px solid ${colors.bgCard}` }}>
+                          +{pendingExtrasCount - 3}
+                        </div>
+                      )}
                     </div>
                     <div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>Extra Image</div>
-                      <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Additional photobook image</div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{pendingExtrasCount} Extra {pendingExtrasCount === 1 ? 'Image' : 'Images'}</div>
+                      <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>{formatPrice(EXTRA_IMAGE_PRICE)} per image</div>
                     </div>
                   </div>
 
@@ -4952,7 +4980,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                             <Image src="/master.png" alt="Mastercard" width={14} height={20} unoptimized style={{ objectFit: 'contain' }} />
                           </>
                         ) : (
-                          <Image src={extraPaymentMethod === 'mtn' ? '/mtn.png' : '/airtel.png'} alt={extraPaymentMethod === 'mtn' ? 'MTN' : 'Airtel'} width={24} height={24} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                          <Image src={extraPaymentMethod === 'mtn' ? '/mtn.png' : '/airtel.png'} alt={extraPaymentMethod === 'mtn' ? 'MTN' : 'Airtel'} width={24} height={24} unoptimized style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
                         )}
                       </div>
                       <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>
@@ -5041,7 +5069,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                   border: `2px solid ${colors.borderPrimary}`
                 }}>
                   <div style={{ width: '60px', height: '60px', borderRadius: '0.5rem', overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
-                    <Image src={pendingUnlockImage} alt="Extra image" fill style={{ objectFit: 'cover' }} />
+                    {pendingUnlockImage && <Image src={pendingUnlockImage} alt="Extra image" fill style={{ objectFit: 'cover' }} />}
                   </div>
                   <div>
                     <div style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>Unlock This Image</div>
@@ -5100,7 +5128,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                       }}
                     >
                       <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0 }}>
-                        <Image src="/mtn.png" alt="MTN Mobile Money" width={48} height={48} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                        <Image src="/mtn.png" alt="MTN Mobile Money" width={48} height={48} unoptimized style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
                       </div>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>MTN Mobile Money</div>
