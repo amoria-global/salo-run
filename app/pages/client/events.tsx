@@ -213,6 +213,7 @@ interface Event {
   coverImage: string;
   bannerImage?: string;
   price: string;
+  hasLiveStream: boolean;
   guestCount: number;
   maxGuests: number;
   status: EventStatus;
@@ -335,6 +336,9 @@ const MyEventsPage = () => {
   const [photographerSearchQuery, setPhotographerSearchQuery] = useState('');
   const [photographerAssignMode, setPhotographerAssignMode] = useState<'none' | 'existing' | 'platform' | 'invite'>('none');
   const [invitePhotographerEmail, setInvitePhotographerEmail] = useState('');
+  const [isSendingInvite, setIsSendingInvite] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [showInviteSuccessModal, setShowInviteSuccessModal] = useState(false);
   const [editPhotographerId, setEditPhotographerId] = useState<string>('');
   const [editPhotographerAssignMode, setEditPhotographerAssignMode] = useState<'none' | 'existing' | 'platform'>('none');
   const [editPhotographerSearchQuery, setEditPhotographerSearchQuery] = useState('');
@@ -452,7 +456,7 @@ const MyEventsPage = () => {
   const [createPhotographerId, setCreatePhotographerId] = useState<string>('');
   const [createEventVisibility, setCreateEventVisibility] = useState<string>('PUBLIC');
   const [createPackageId, setCreatePackageId] = useState<string>('');
-  const [photographerPackages, setPhotographerPackages] = useState<{id: string; packageName: string; price: number; currencyId: string; description: string; durationHours: number}[]>([]);
+  const [photographerPackages, setPhotographerPackages] = useState<{id: string; packageName: string; price: number; currencyId: string; description: string; durationHours: number; hasLiveStream: boolean}[]>([]);
   const [packagesLoading, setPackagesLoading] = useState(false);
   const [packagesError, setPackagesError] = useState<string | null>(null);
 
@@ -486,6 +490,7 @@ const MyEventsPage = () => {
           currencyId: (p.currencyId as string) || 'RWF',
           description: (p.description as string) || '',
           durationHours: (p.durationHours as number) || 0,
+          hasLiveStream: (p.hasLiveStream as boolean) ?? false,
         })));
       } catch {
         setPackagesError('Could not load packages. Please try again.');
@@ -496,14 +501,14 @@ const MyEventsPage = () => {
     fetchPackages();
   }, [createPhotographerId]);
 
-  // Auto-set status based on selected package: Premium → Live Event, else Upcoming
+  // Auto-set status based on selected package: hasLiveStream → Live Event, else Upcoming
   useEffect(() => {
     if (!createPackageId) {
       setCreateStatus('UPCOMING');
       return;
     }
     const selected = photographerPackages.find(p => p.id === createPackageId);
-    if (selected && selected.packageName.toLowerCase().includes('premium')) {
+    if (selected && selected.hasLiveStream) {
       setCreateStatus('LIVE');
     } else {
       setCreateStatus('UPCOMING');
@@ -742,6 +747,7 @@ const MyEventsPage = () => {
             coverImage: photo,
             bannerImage: photo,
             price: evt.price ? `${evt.price}` : (evt.isEventFree ? 'Free' : 'Free'),
+            hasLiveStream: (evt.hasLiveStream as boolean) ?? false,
             guestCount: (evt.guestCount as number) || 0,
             maxGuests: (evt.maxGuests as number) || 0,
             status: (() => {
@@ -964,7 +970,7 @@ const MyEventsPage = () => {
     setEditDescription(event.description);
     setEditEventType(event.eventType);
     setEditCategory((event.category as EventCategory) || '');
-    setEditStatus(event.status.toLowerCase() === 'live' ? 'LIVE' : 'UPCOMING');
+    setEditStatus(event.hasLiveStream ? 'LIVE' : 'UPCOMING');
     setEditDate(event.date);
     setEditTime(event.time);
     setEditEndTime(event.endTime || '');
@@ -1385,6 +1391,7 @@ const MyEventsPage = () => {
         coverImage: createBannerImage || '',
         bannerImage: createBannerImage || '',
         price: createPrice || 'Free',
+        hasLiveStream: createStatus === 'LIVE',
         guestCount: 0,
         maxGuests: parseInt(createMaxGuests) || 100,
         status: createStatus,
@@ -2135,17 +2142,43 @@ const MyEventsPage = () => {
             {/* Invite photographer by email */}
             {photographerAssignMode === 'invite' && (
               <div>
-                <p style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.5rem' }}>Send an invitation email to a photographer to join the platform and be assigned to this event.</p>
+                <p style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.5rem' }}>Send an invitation email to a photographer to join the platform.</p>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <input type="email" value={invitePhotographerEmail} onChange={(e) => setInvitePhotographerEmail(e.target.value)} placeholder="photographer@email.com" style={{ flex: 1, padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, backgroundColor: colors.bgCard }} />
-                  <button type="button" onClick={() => {
-                    if (invitePhotographerEmail) {
-                      alert(`Invitation will be sent to ${invitePhotographerEmail} when the event is created.`);
-                      setPhotographerAssignMode('none');
+                  <input type="email" value={invitePhotographerEmail} onChange={(e) => { setInvitePhotographerEmail(e.target.value); setInviteError(null); }} placeholder="photographer@email.com" style={{ flex: 1, padding: '0.625rem', border: `2px solid ${inviteError ? '#EF4444' : colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, backgroundColor: colors.bgCard }} />
+                  <button type="button" onClick={async () => {
+                    if (!invitePhotographerEmail.trim()) {
+                      setInviteError('Please enter a valid email address');
+                      return;
                     }
-                  }} disabled={!invitePhotographerEmail} style={{ padding: '0.625rem 1rem', backgroundColor: invitePhotographerEmail ? '#083A85' : '#9CA3AF', color: 'white', border: '2px solid #062a63', borderRadius: '0.5rem', fontSize: '0.85rem', fontWeight: '600', cursor: invitePhotographerEmail ? 'pointer' : 'not-allowed' }}>Send Invite</button>
+                    setIsSendingInvite(true);
+                    setInviteError(null);
+                    try {
+                      const apiUrl = getApiUrl();
+                      const response = await dashboardAuthFetch(
+                        `${apiUrl}/api/remote/customer/photographers/invite?email=${encodeURIComponent(invitePhotographerEmail.trim())}`,
+                        { method: 'POST' }
+                      );
+                      const result = await response.json();
+                      if (!response.ok || result.action === 0) {
+                        throw new Error(result.message || 'Failed to invite photographer');
+                      }
+                      setInvitePhotographerEmail('');
+                      setInviteError(null);
+                      setPhotographerAssignMode('none');
+                      setShowCreateModal(false);
+                      setShowInviteSuccessModal(true);
+                    } catch (err) {
+                      console.error('Invite photographer error:', err);
+                      setInviteError(err instanceof Error ? err.message : 'Failed to send invitation. Please try again.');
+                    } finally {
+                      setIsSendingInvite(false);
+                    }
+                  }} disabled={isSendingInvite || !invitePhotographerEmail.trim()} style={{ padding: '0.625rem 1rem', backgroundColor: (!invitePhotographerEmail.trim() || isSendingInvite) ? '#9CA3AF' : '#083A85', color: 'white', border: '2px solid #062a63', borderRadius: '0.5rem', fontSize: '0.85rem', fontWeight: '600', cursor: (!invitePhotographerEmail.trim() || isSendingInvite) ? 'not-allowed' : 'pointer' }}>{isSendingInvite ? 'Sending...' : 'Send Invite'}</button>
                 </div>
-                <button type="button" onClick={() => { setPhotographerAssignMode('none'); setInvitePhotographerEmail(''); }} style={{ marginTop: '0.5rem', padding: '0.5rem 1rem', border: `1px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', background: 'transparent', color: colors.textSecondary, fontSize: '0.8rem', cursor: 'pointer' }}>Cancel</button>
+                {inviteError && (
+                  <p style={{ color: '#EF4444', fontSize: '0.8rem', marginTop: '0.375rem' }}>{inviteError}</p>
+                )}
+                <button type="button" onClick={() => { setPhotographerAssignMode('none'); setInvitePhotographerEmail(''); setInviteError(null); }} style={{ marginTop: '0.5rem', padding: '0.5rem 1rem', border: `1px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', background: 'transparent', color: colors.textSecondary, fontSize: '0.8rem', cursor: 'pointer' }}>Cancel</button>
               </div>
             )}
 
@@ -3562,10 +3595,83 @@ const MyEventsPage = () => {
         )}
       </Modal>
 
+      {/* Invite Success Modal */}
+      {showInviteSuccessModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.6)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1100,
+          animation: 'fadeIn 0.2s ease-out',
+        }} onClick={(e) => { e.stopPropagation(); setShowInviteSuccessModal(false); }}>
+          <div style={{
+            backgroundColor: colors.bgCard,
+            borderRadius: '1.25rem',
+            padding: '2.5rem 2rem',
+            maxWidth: '400px',
+            width: '90%',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            border: `1px solid ${actualTheme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
+            animation: 'slideUp 0.3s ease-out',
+          }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{
+                width: '88px', height: '88px', borderRadius: '50%',
+                background: 'linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                margin: '0 auto 1.5rem',
+                boxShadow: '0 8px 24px -4px rgba(16, 185, 129, 0.3)',
+              }}>
+                <svg width="42" height="42" viewBox="0 0 24 24" fill="none">
+                  <path d="M20 6L9 17L4 12" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <h3 style={{ fontSize: '1.35rem', fontWeight: '700', color: colors.textPrimary, marginBottom: '0.625rem', letterSpacing: '-0.01em' }}>
+                Invitation Sent
+              </h3>
+              <p style={{ fontSize: '0.9rem', color: colors.textSecondary, marginBottom: '0.5rem', lineHeight: '1.5' }}>
+                The photographer will receive an email invitation to join the platform.
+              </p>
+              <p style={{ fontSize: '0.8rem', color: actualTheme === 'dark' ? '#6B7280' : '#9CA3AF', marginBottom: '2rem', lineHeight: '1.4' }}>
+                Once they accept, you can assign them to your events.
+              </p>
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowInviteSuccessModal(false); }}
+                style={{
+                  padding: '0.75rem 2.5rem',
+                  border: 'none',
+                  borderRadius: '0.625rem',
+                  background: 'linear-gradient(135deg, #083A85 0%, #0A4DA6 100%)',
+                  color: 'white',
+                  fontSize: '0.9rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px -2px rgba(8, 58, 133, 0.4)',
+                  transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 16px -2px rgba(8, 58, 133, 0.5)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 12px -2px rgba(8, 58, 133, 0.4)'; }}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style jsx global>{`
         @keyframes pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.5; }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(16px) scale(0.97); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
         }
       `}</style>
     </div>

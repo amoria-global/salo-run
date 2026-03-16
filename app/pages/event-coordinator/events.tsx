@@ -236,6 +236,7 @@ interface Event {
   coverImage: string;
   bannerImage?: string;
   price: string;
+  groupDiscountPercentage?: number;
   guestCount: number;
   maxGuests: number;
   status: EventStatus;
@@ -438,6 +439,7 @@ const MyEventsPage = () => {
   const [editCountry, setEditCountry] = useState('');
   const [editPrice, setEditPrice] = useState('');
   const [editPriceCurrency, setEditPriceCurrency] = useState('RWF');
+  const [editGroupDiscount, setEditGroupDiscount] = useState('');
   const [editMaxGuests, setEditMaxGuests] = useState('');
   const [editOrganizer, setEditOrganizer] = useState('');
   const [editTags, setEditTags] = useState<string[]>([]);
@@ -463,6 +465,7 @@ const MyEventsPage = () => {
   const [createCountry, setCreateCountry] = useState('Rwanda');
   const [createPrice, setCreatePrice] = useState('');
   const [createPriceCurrency, setCreatePriceCurrency] = useState('RWF');
+  const [createGroupDiscount, setCreateGroupDiscount] = useState('');
   const [createMaxGuests, setCreateMaxGuests] = useState('');
   const [createOrganizer, setCreateOrganizer] = useState('');
   const [createTags, setCreateTags] = useState<string[]>([]);
@@ -787,6 +790,7 @@ const MyEventsPage = () => {
             coverImage: photo,
             bannerImage: photo,
             price: evt.price ? `${evt.price}` : (evt.isEventFree ? 'Free' : 'Free'),
+            groupDiscountPercentage: (evt.groupDiscountPercentage as number) ?? 0,
             guestCount: (evt.guestCount as number) || 0,
             maxGuests: (evt.maxGuests as number) || 0,
             status: (() => {
@@ -954,6 +958,7 @@ const MyEventsPage = () => {
     setEditCity(event.location.city);
     setEditCountry(event.location.country);
     setEditPrice(event.price || '');
+    setEditGroupDiscount(event.groupDiscountPercentage !== undefined && event.groupDiscountPercentage !== null ? String(event.groupDiscountPercentage) : '0');
     setEditMaxGuests(event.maxGuests.toString());
     setEditOrganizer(event.organizer || '');
     setEditTags(event.tags || []);
@@ -1054,6 +1059,7 @@ const MyEventsPage = () => {
           return match?.id || undefined;
         })(),
         maxGuests: editMaxGuests ? Number(editMaxGuests.replace(/[^\d]/g, '')) : 0,
+        groupDiscountPercentage: editGroupDiscount ? Number(editGroupDiscount) : 0,
       };
       const validEditPhotographerId = (editPhotographerId && isValidUUID(editPhotographerId)) ? editPhotographerId : null;
       if (validEditPhotographerId) {
@@ -1115,6 +1121,7 @@ const MyEventsPage = () => {
     setCreateCity('');
     setCreateCountry('Rwanda');
     setCreatePrice('');
+    setCreateGroupDiscount('');
     setCreateMaxGuests('');
     setCreateOrganizer('');
     setCreateTags([]);
@@ -1228,6 +1235,7 @@ const MyEventsPage = () => {
     if (!createTime) missingFields.push('Start Time');
     if (!createBannerImageFile && !createBannerImagePreview) missingFields.push('Banner Image');
     if (!createPrice) missingFields.push('Price');
+    if (createGroupDiscount === '') missingFields.push('Group Stream Discount');
     if (missingFields.length > 0) {
       setSubmitError(`Please fill in the required fields: ${missingFields.join(', ')}`);
       return;
@@ -1268,6 +1276,7 @@ const MyEventsPage = () => {
           })(),
           maxGuests: createMaxGuests ? Number(createMaxGuests.replace(/[^\d]/g, '')) : 0,
           minimumPhotos: createMinPhotos ? Number(createMinPhotos.replace(/[^\d]/g, '')) : 500,
+          groupDiscountPercentage: createGroupDiscount ? Number(createGroupDiscount) : 0,
           notes: '',
         };
 
@@ -1939,6 +1948,55 @@ const MyEventsPage = () => {
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Expected Attendees *</label>
                 <input type="number" value={createMaxGuests} onChange={(e) => setCreateMaxGuests(e.target.value)} placeholder="e.g., 500" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
               </div>
+            </div>
+
+            {/* Group Stream Discount */}
+            <div style={{ marginTop: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Group Stream Discount (%) *</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <input
+                  type="number"
+                  value={createGroupDiscount}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '' || (Number(val) >= 0 && Number(val) <= 50)) setCreateGroupDiscount(val);
+                  }}
+                  placeholder="e.g., 10"
+                  min="0"
+                  max="50"
+                  style={{
+                    width: '120px',
+                    padding: '0.625rem',
+                    border: `2px solid ${colors.borderPrimary}`,
+                    borderRadius: '0.5rem',
+                    fontSize: '0.9rem',
+                    color: colors.textPrimary,
+                    backgroundColor: colors.bgCard
+                  }}
+                  required
+                />
+                <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textSecondary }}>%</span>
+              </div>
+              <span style={{ fontSize: '0.75rem', color: colors.textSecondary, marginTop: '0.375rem', display: 'block' }}>
+                Discount applied when viewers purchase stream access as a group (0 = no group option, max 50%). Set to 0 if you don't want to offer group packages.
+              </span>
+              {createGroupDiscount && Number(createGroupDiscount) > 0 && createPrice && (() => {
+                const fee = Number(createPrice.replace(/[^\d]/g, ''));
+                const disc = Number(createGroupDiscount);
+                if (!fee || !disc) return null;
+                const perPerson = Math.round(fee * (1 - disc / 100));
+                const groupSize = 5;
+                const total = perPerson * groupSize;
+                const saved = fee * groupSize - total;
+                return (
+                  <div style={{ marginTop: '0.5rem', padding: '0.625rem', backgroundColor: actualTheme === 'dark' ? '#1a2e1a' : '#F0FDF4', borderRadius: '0.5rem', border: `1px solid ${actualTheme === 'dark' ? '#2d4a2d' : '#BBF7D0'}` }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: '600', color: actualTheme === 'dark' ? '#86EFAC' : '#166534' }}>Preview (group of 5):</span>
+                    <span style={{ fontSize: '0.78rem', color: actualTheme === 'dark' ? '#A7F3D0' : '#15803D', display: 'block', marginTop: '0.25rem' }}>
+                      5 viewers x {formatNumberWithCommas(String(fee))} {createPriceCurrency} = {formatNumberWithCommas(String(fee * groupSize))} {createPriceCurrency} → {formatNumberWithCommas(String(total))} {createPriceCurrency} (saving {formatNumberWithCommas(String(saved))} {createPriceCurrency})
+                    </span>
+                  </div>
+                );
+              })()}
             </div>
           </div>
 
@@ -3324,6 +3382,55 @@ const MyEventsPage = () => {
                   <input type="number" value={editMaxGuests} onChange={(e) => setEditMaxGuests(e.target.value)} placeholder="e.g., 500" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
                 </div>
               </div>
+
+              {/* Group Stream Discount */}
+              <div style={{ marginTop: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Group Stream Discount (%) *</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <input
+                    type="number"
+                    value={editGroupDiscount}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === '' || (Number(val) >= 0 && Number(val) <= 50)) setEditGroupDiscount(val);
+                    }}
+                    placeholder="e.g., 10"
+                    min="0"
+                    max="50"
+                    style={{
+                      width: '120px',
+                      padding: '0.625rem',
+                      border: `2px solid ${colors.borderPrimary}`,
+                      borderRadius: '0.5rem',
+                      fontSize: '0.9rem',
+                      color: colors.textPrimary,
+                      backgroundColor: colors.bgCard
+                    }}
+                    required
+                  />
+                  <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textSecondary }}>%</span>
+                </div>
+                <span style={{ fontSize: '0.75rem', color: colors.textSecondary, marginTop: '0.375rem', display: 'block' }}>
+                  Discount applied when viewers purchase stream access as a group (0 = no group option, max 50%). Set to 0 if you don't want to offer group packages.
+                </span>
+                {editGroupDiscount && Number(editGroupDiscount) > 0 && editPrice && (() => {
+                  const fee = Number(editPrice.replace(/[^\d]/g, ''));
+                  const disc = Number(editGroupDiscount);
+                  if (!fee || !disc) return null;
+                  const perPerson = Math.round(fee * (1 - disc / 100));
+                  const groupSize = 5;
+                  const total = perPerson * groupSize;
+                  const saved = fee * groupSize - total;
+                  return (
+                    <div style={{ marginTop: '0.5rem', padding: '0.625rem', backgroundColor: actualTheme === 'dark' ? '#1a2e1a' : '#F0FDF4', borderRadius: '0.5rem', border: `1px solid ${actualTheme === 'dark' ? '#2d4a2d' : '#BBF7D0'}` }}>
+                      <span style={{ fontSize: '0.8rem', fontWeight: '600', color: actualTheme === 'dark' ? '#86EFAC' : '#166534' }}>Preview (group of 5):</span>
+                      <span style={{ fontSize: '0.78rem', color: actualTheme === 'dark' ? '#A7F3D0' : '#15803D', display: 'block', marginTop: '0.25rem' }}>
+                        5 viewers x {formatNumberWithCommas(String(fee))} {editPriceCurrency} = {formatNumberWithCommas(String(fee * groupSize))} {editPriceCurrency} → {formatNumberWithCommas(String(total))} {editPriceCurrency} (saving {formatNumberWithCommas(String(saved))} {editPriceCurrency})
+                      </span>
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
 
             {/* Section: Organizer */}
@@ -3506,38 +3613,59 @@ const MyEventsPage = () => {
       {showInviteSuccessModal && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          backgroundColor: 'rgba(0, 0, 0, 0.6)',
+          backdropFilter: 'blur(4px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 1100,
+          animation: 'fadeIn 0.2s ease-out',
         }} onClick={(e) => { e.stopPropagation(); setShowInviteSuccessModal(false); }}>
           <div style={{
-            backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1.5rem',
-            maxWidth: '350px', width: '90%',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            backgroundColor: colors.bgCard,
+            borderRadius: '1.25rem',
+            padding: '2.5rem 2rem',
+            maxWidth: '400px',
+            width: '90%',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            border: `1px solid ${actualTheme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
+            animation: 'slideUp 0.3s ease-out',
           }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
+            <div style={{ textAlign: 'center' }}>
               <div style={{
-                width: '80px', height: '80px', borderRadius: '50%', backgroundColor: '#D1FAE5',
+                width: '88px', height: '88px', borderRadius: '50%',
+                background: 'linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                margin: '0 auto 1.25rem'
+                margin: '0 auto 1.5rem',
+                boxShadow: '0 8px 24px -4px rgba(16, 185, 129, 0.3)',
               }}>
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M20 6L9 17L4 12" stroke="#059669" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+                <svg width="42" height="42" viewBox="0 0 24 24" fill="none">
+                  <path d="M20 6L9 17L4 12" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </div>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                {inviteSuccessMessage}
+              <h3 style={{ fontSize: '1.35rem', fontWeight: '700', color: colors.textPrimary, marginBottom: '0.625rem', letterSpacing: '-0.01em' }}>
+                Invitation Sent
               </h3>
-              <p style={{ fontSize: '0.9rem', color: colors.textSecondary, marginBottom: '1.5rem' }}>
+              <p style={{ fontSize: '0.9rem', color: colors.textSecondary, marginBottom: '0.5rem', lineHeight: '1.5' }}>
                 The photographer will receive an email invitation to join the platform.
+              </p>
+              <p style={{ fontSize: '0.8rem', color: actualTheme === 'dark' ? '#6B7280' : '#9CA3AF', marginBottom: '2rem', lineHeight: '1.4' }}>
+                Once they accept, you can assign them to your events.
               </p>
               <button
                 onClick={(e) => { e.stopPropagation(); setShowInviteSuccessModal(false); }}
                 style={{
-                  padding: '0.75rem 2rem', border: '2px solid #062a63', borderRadius: '0.5rem',
-                  background: '#083A85', color: 'white', fontSize: '0.9rem', fontWeight: '600',
-                  cursor: 'pointer', marginBottom: '4rem'
+                  padding: '0.75rem 2.5rem',
+                  border: 'none',
+                  borderRadius: '0.625rem',
+                  background: 'linear-gradient(135deg, #083A85 0%, #0A4DA6 100%)',
+                  color: 'white',
+                  fontSize: '0.9rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px -2px rgba(8, 58, 133, 0.4)',
+                  transition: 'transform 0.15s ease, box-shadow 0.15s ease',
                 }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 16px -2px rgba(8, 58, 133, 0.5)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 12px -2px rgba(8, 58, 133, 0.4)'; }}
               >
                 Done
               </button>
@@ -3550,6 +3678,14 @@ const MyEventsPage = () => {
         @keyframes pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.5; }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(16px) scale(0.97); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
         }
       `}</style>
     </div>
