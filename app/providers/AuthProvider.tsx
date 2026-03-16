@@ -691,7 +691,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 
     if (typeof window !== 'undefined') {
       const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL as string;
-      window.location.href = `${landingUrl}/`;
+      window.location.href = `${landingUrl}/?logged_out=true`;
     }
   }, []);
 

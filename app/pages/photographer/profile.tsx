@@ -4730,63 +4730,86 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
                           gap: '1rem'
                         }}>
-                          {packages.filter(p => p.packageName).sort((a, b) => (PACKAGE_TIER[a.packageName] ?? 99) - (PACKAGE_TIER[b.packageName] ?? 99)).map((pkg) => (
+                          {packages.filter(p => p.packageName).sort((a, b) => (PACKAGE_TIER[a.packageName] ?? 99) - (PACKAGE_TIER[b.packageName] ?? 99)).map((pkg) => {
+                            const tierColor = TIER_COLORS[pkg.packageName] || { bg: colors.bgTertiary, text: colors.textPrimary, border: colors.borderPrimary };
+                            const currencyCode = currencies.find(c => c.id === pkg.currencyId || c.code === pkg.currencyId)?.code || 'RWF';
+                            const includedFeatures = pkg.features.filter(f => f.featureName && f.isIncluded);
+                            return (
                             <div key={pkg.id} style={{
-                              backgroundColor: colors.bgTertiary,
-                              borderRadius: '0.75rem',
-                              padding: '1.25rem',
-                              border: `2px solid ${colors.borderPrimary}`,
+                              backgroundColor: colors.bgCard,
+                              borderRadius: '1rem',
+                              padding: '0',
+                              border: `1px solid ${actualTheme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
                               display: 'flex',
                               flexDirection: 'column',
                               cursor: 'pointer',
                               transition: 'all 0.2s',
+                              overflow: 'hidden',
+                              boxShadow: '0 2px 8px -2px rgba(0,0,0,0.08)',
                             }}
                             onClick={() => setExpandedPackageId(expandedPackageId === pkg.id ? null : pkg.id)}
+                            onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 8px 24px -4px rgba(0,0,0,0.12)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.boxShadow = '0 2px 8px -2px rgba(0,0,0,0.08)'; e.currentTarget.style.transform = 'translateY(0)'; }}
                             >
-                              {/* Tier badge + name */}
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                                <h4 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
-                                  {pkg.packageName}
-                                </h4>
-                                {pkg.packageName && TIER_LABELS[pkg.packageName] && (
-                                  <span style={{
-                                    fontSize: '0.65rem', fontWeight: '700', padding: '0.15rem 0.45rem',
-                                    borderRadius: '0.25rem', letterSpacing: '0.04em', textTransform: 'uppercase' as const,
-                                    backgroundColor: TIER_COLORS[pkg.packageName]?.bg,
-                                    color: TIER_COLORS[pkg.packageName]?.text,
-                                    border: `1px solid ${TIER_COLORS[pkg.packageName]?.border}40`,
-                                  }}>
-                                    {TIER_LABELS[pkg.packageName]}
-                                  </span>
-                                )}
-                              </div>
-                              {pkg.price && (
-                                <div style={{
-                                  fontSize: '1.5rem', fontWeight: '700',
-                                  color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
-                                  marginBottom: '0.25rem'
-                                }}>
-                                  {parseFloat(pkg.price).toLocaleString()} <span style={{ fontSize: '0.85rem', fontWeight: '500' }}>{currencies.find(c => c.id === pkg.currencyId || c.code === pkg.currencyId)?.code || pkg.currencyId}</span>
+                              {/* Top accent bar */}
+                              <div style={{ height: '4px', background: `linear-gradient(90deg, ${tierColor.border}, ${tierColor.border}80)` }} />
+
+                              <div style={{ padding: '1.25rem 1.25rem 1rem' }}>
+                                {/* Header: name + tier badge */}
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                                  <h4 style={{ fontSize: '1.1rem', fontWeight: '700', color: colors.textPrimary, margin: 0 }}>
+                                    {pkg.packageName}
+                                  </h4>
+                                  {pkg.packageName && TIER_LABELS[pkg.packageName] && (
+                                    <span style={{
+                                      fontSize: '0.65rem', fontWeight: '700', padding: '0.2rem 0.5rem',
+                                      borderRadius: '1rem', letterSpacing: '0.04em', textTransform: 'uppercase' as const,
+                                      backgroundColor: tierColor.bg,
+                                      color: tierColor.text,
+                                      border: `1px solid ${tierColor.border}30`,
+                                    }}>
+                                      {TIER_LABELS[pkg.packageName]}
+                                    </span>
+                                  )}
                                 </div>
-                              )}
-                              <p style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.5rem' }}>
-                                {pkg.durationHours || '0'}h · {pkg.priceUnit}
-                              </p>
-                              {/* Media coverage line */}
-                              <p style={{ fontSize: '0.75rem', fontWeight: '600', color: pkg.packageName === 'Premium' ? (actualTheme === 'dark' ? '#A78BFA' : '#7C3AED') : colors.textSecondary, marginBottom: '0.75rem' }}>
-                                {pkg.packageName === 'Premium'
-                                  ? 'Unlimited photos & videos'
-                                  : [pkg.includedPhotos ? `${pkg.includedPhotos} photos` : '', pkg.includedVideos ? `${pkg.includedVideos} videos` : ''].filter(Boolean).join(' · ') || 'Set photo/video count'}
-                              </p>
-                              {pkg.features.filter(f => f.featureName && f.isIncluded).length > 0 && (
+
+                                {/* Price */}
+                                {pkg.price && (
+                                  <div style={{ marginBottom: '0.75rem' }}>
+                                    <span style={{ fontSize: '2rem', fontWeight: '800', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85', letterSpacing: '-0.02em' }}>
+                                      {parseFloat(pkg.price).toLocaleString()}
+                                    </span>
+                                    <span style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textSecondary, marginLeft: '0.35rem' }}>{currencyCode}</span>
+                                  </div>
+                                )}
+
+                                {/* Duration */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem', color: colors.textSecondary, backgroundColor: actualTheme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', padding: '0.25rem 0.6rem', borderRadius: '1rem' }}>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/><path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                                    {pkg.durationHours || '0'} hours
+                                  </span>
+                                </div>
+
+                                {/* Media coverage */}
+                                <p style={{ fontSize: '0.8rem', fontWeight: '600', color: pkg.packageName === 'Premium' ? (actualTheme === 'dark' ? '#A78BFA' : '#7C3AED') : colors.textSecondary, marginBottom: '0.25rem' }}>
+                                  {pkg.packageName === 'Premium'
+                                    ? 'Unlimited photos & videos'
+                                    : [pkg.includedPhotos ? `${pkg.includedPhotos} photos` : '', pkg.includedVideos ? `${pkg.includedVideos} videos` : ''].filter(Boolean).join(' · ') || 'Set photo/video count'}
+                                </p>
+                              </div>
+
+                              {/* Features */}
+                              {includedFeatures.length > 0 && (
                                 <div style={{
-                                  borderTop: `2px solid ${colors.borderPrimary}`,
-                                  paddingTop: '0.75rem',
-                                  display: 'flex', flexDirection: 'column', gap: '0.35rem', flex: 1
+                                  borderTop: `1px solid ${actualTheme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
+                                  padding: '0.75rem 1.25rem',
+                                  display: 'flex', flexDirection: 'column', gap: '0.4rem', flex: 1,
+                                  backgroundColor: actualTheme === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.015)',
                                 }}>
-                                  {pkg.features.filter(f => f.featureName && f.isIncluded).map((f, idx) => (
+                                  {includedFeatures.map((f, idx) => (
                                     <div key={`${pkg.id}-feat-${idx}`} style={{
-                                      display: 'flex', alignItems: 'center', gap: '0.4rem',
+                                      display: 'flex', alignItems: 'center', gap: '0.5rem',
                                       fontSize: '0.8rem', color: colors.textPrimary,
                                     }}>
                                       <CheckIcon />
@@ -4795,24 +4818,36 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                   ))}
                                 </div>
                               )}
+
+                              {/* Footer: status + live stream badge */}
                               <div style={{
-                                marginTop: '0.75rem',
-                                padding: '0.35rem 0.75rem',
-                                borderRadius: '0.375rem',
-                                backgroundColor: pkg.isActive
-                                  ? (actualTheme === 'dark' ? '#065F46' : '#D1FAE5')
-                                  : (actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2'),
-                                color: pkg.isActive
-                                  ? (actualTheme === 'dark' ? '#6EE7B7' : '#065F46')
-                                  : (actualTheme === 'dark' ? '#FCA5A5' : '#991B1B'),
-                                fontSize: '0.75rem',
-                                fontWeight: '500',
-                                textAlign: 'center'
+                                padding: '0.75rem 1.25rem',
+                                borderTop: `1px solid ${actualTheme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                               }}>
-                                {pkg.isActive ? 'Active' : 'Inactive'}
+                                <span style={{
+                                  fontSize: '0.7rem', fontWeight: '600', padding: '0.2rem 0.6rem',
+                                  borderRadius: '1rem',
+                                  backgroundColor: pkg.isActive ? (actualTheme === 'dark' ? '#065F4620' : '#D1FAE5') : (actualTheme === 'dark' ? '#7F1D1D20' : '#FEE2E2'),
+                                  color: pkg.isActive ? (actualTheme === 'dark' ? '#6EE7B7' : '#065F46') : (actualTheme === 'dark' ? '#FCA5A5' : '#991B1B'),
+                                }}>
+                                  {pkg.isActive ? 'Active' : 'Inactive'}
+                                </span>
+                                {pkg.hasLiveStream && (
+                                  <span style={{
+                                    fontSize: '0.7rem', fontWeight: '600', padding: '0.2rem 0.6rem',
+                                    borderRadius: '1rem',
+                                    backgroundColor: actualTheme === 'dark' ? '#4C1D9520' : '#F5F3FF',
+                                    color: actualTheme === 'dark' ? '#A78BFA' : '#7C3AED',
+                                    display: 'flex', alignItems: 'center', gap: '0.3rem',
+                                  }}>
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="4"/><path d="M4.93 4.93a10 10 0 0 1 14.14 0" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/><path d="M7.76 7.76a6 6 0 0 1 8.48 0" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/></svg>
+                                    Live Stream
+                                  </span>
+                                )}
                               </div>
                             </div>
-                          ))}
+                          );})}
                         </div>
                       </div>
                     )}

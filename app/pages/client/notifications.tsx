@@ -237,40 +237,42 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
   };
 
   const deleteNotification = async (id: string) => {
+    const backup = notifications.find(n => n.id === id);
     setNotifications(prev => prev.filter(n => n.id !== id));
     try {
       const apiUrl = getApiUrl();
       const endpoint = userRole === 'event-coordinator'
         ? `${apiUrl}/api/remote/coordinator/notifications/${id}`
         : `${apiUrl}/api/remote/customer/notifications/${id}`;
-      const res = await dashboardAuthFetch(endpoint, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } });
+      const res = await dashboardAuthFetch(endpoint, { method: 'DELETE' });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        alert(data.message || 'Failed to delete notification. The server did not process the request.');
-        fetchNotifications();
+        alert(data.message || 'Failed to delete notification.');
+        if (backup) setNotifications(prev => [...prev, backup]);
       }
     } catch {
-      alert('Failed to delete notification. The feature may not be available yet.');
-      fetchNotifications();
+      alert('Failed to delete notification.');
+      if (backup) setNotifications(prev => [...prev, backup]);
     }
   };
 
   const deleteAllRead = async () => {
+    const backup = notifications.filter(n => n.read);
     setNotifications(prev => prev.filter(n => !n.read));
     try {
       const apiUrl = getApiUrl();
       const endpoint = userRole === 'event-coordinator'
         ? `${apiUrl}/api/remote/coordinator/notifications/delete-read`
         : `${apiUrl}/api/remote/customer/notifications/delete-read`;
-      const res = await dashboardAuthFetch(endpoint, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } });
+      const res = await dashboardAuthFetch(endpoint, { method: 'DELETE' });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        alert(data.message || 'Failed to clear read notifications. The server did not process the request.');
-        fetchNotifications();
+        alert(data.message || 'Failed to clear read notifications.');
+        setNotifications(prev => [...prev, ...backup]);
       }
     } catch {
-      alert('Failed to clear read notifications. The feature may not be available yet.');
-      fetchNotifications();
+      alert('Failed to clear read notifications.');
+      setNotifications(prev => [...prev, ...backup]);
     }
   };
 
