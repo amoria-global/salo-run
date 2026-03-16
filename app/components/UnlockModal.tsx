@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "../context/ThemeContext";
 import { dashboardAuthFetch } from "../providers/AuthProvider";
 import { useCurrency } from "../context/CurrencyContext";
-import { initiateBookingPayment, pollPaymentStatus, getTelecomProvider, getPaymentMethodType } from '@/lib/xentripay';
+import { initiateBookingPayment, pollPaymentStatus, getTelecomProvider, getPaymentMethodType, sanitizeErrorMessage } from '@/lib/xentripay';
 
 // Heart Icon for donate section
 export const HeartIcon = () => (
@@ -188,13 +188,13 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
 
   const handlePayNow = async () => {
     if (!payment?.declarationId) {
-      setXentriPayError('No payment declaration found');
+      setXentriPayError('This payment cannot be processed right now. The booking may not have been finalized yet. Please contact support if this persists.');
       return;
     }
 
     // For mobile money, phone is required
     if (selectedPaymentMethod !== 'card' && !paymentPhone.trim()) {
-      setXentriPayError('Please enter your phone number');
+      setXentriPayError(`Please enter your ${selectedPaymentMethod === 'mtn' ? 'MTN' : 'Airtel'} phone number to receive the payment prompt.`);
       return;
     }
 
@@ -211,11 +211,13 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
         payment.declarationId,
         phone,
         telecom,
-        methodType
+        methodType,
+        undefined,
+        donationValue > 0 ? donationValue : undefined
       );
 
       if (!result.success || !result.data) {
-        setXentriPayError(result.error || 'Failed to initiate payment');
+        setXentriPayError(result.error || 'Payment could not be initiated. Please check your payment details and try again.');
         setXentriPayStep('failed');
         setPaymentLoading(false);
         return;
@@ -236,19 +238,19 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
         },
         onFailure: () => {
           setXentriPayStep('failed');
-          setXentriPayError('Payment was not completed. Please try again.');
+          setXentriPayError('Payment was not completed. If you were charged, the amount will be refunded automatically. Please try again.');
           setPaymentLoading(false);
         },
         onError: (error) => {
           setXentriPayStep('failed');
-          setXentriPayError(error);
+          setXentriPayError(sanitizeErrorMessage(error, 'Unable to check payment status. Please try again.'));
           setPaymentLoading(false);
         },
       });
 
       stopPollingRef.current = stopPolling;
     } catch (error) {
-      setXentriPayError(error instanceof Error ? error.message : 'Payment failed');
+      setXentriPayError(sanitizeErrorMessage(error instanceof Error ? error.message : '', 'Something went wrong while processing your payment. Please check your connection and try again.'));
       setXentriPayStep('failed');
       setPaymentLoading(false);
     }
@@ -585,7 +587,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
               }}
             >
               <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0 }}>
-                <Image src="/mtn.png" alt="MTN Mobile Money" width={48} height={48} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                <Image src="/mtn.png" alt="MTN Mobile Money" width={48} height={48} unoptimized style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>MTN Mobile Money</div>

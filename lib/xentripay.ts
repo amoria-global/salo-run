@@ -37,6 +37,48 @@ export interface XentriPayAccountValidation {
 // ==================== Helpers ====================
 
 /**
+ * Sanitize backend error messages to be user-friendly.
+ * Filters out technical Java/Spring exceptions and replaces with clear messages.
+ */
+export function sanitizeErrorMessage(msg: string, fallback: string): string {
+  if (!msg) return fallback;
+
+  // Map known backend errors to user-friendly messages
+  const knownErrors: [RegExp, string][] = [
+    [/Withdrawal method not set/i, 'No withdrawal method set. Please go to Preferences > Payment Accounts to add a withdrawal method before withdrawing.'],
+    [/Insufficient.*balance|Insufficient.*funds/i, 'Insufficient balance for this withdrawal. Please check your available balance and try a smaller amount.'],
+    [/No payment found/i, 'No pending payment found for this event. It may have already been paid or cancelled.'],
+    [/Invalid.*currency/i, 'Currency not supported. Please select a valid currency and try again.'],
+    [/event.*not found|event.*deleted/i, 'This event is no longer available. It may have been removed.'],
+    [/Failed to initiate XentriPay|Failed to initiate collection/i, 'Payment gateway is temporarily unavailable. Please try again in a few minutes.'],
+    [/Cannot determine XentriPay provider/i, 'This withdrawal method is not supported for payouts. Please use an MTN or Airtel account in Preferences > Payment Accounts.'],
+    [/Token has expired|session.*expired/i, 'Your session has expired. Please refresh the page and try again.'],
+    [/Missing required parameter/i, 'Some required information is missing. Please fill in all fields and try again.'],
+  ];
+
+  for (const [pattern, friendly] of knownErrors) {
+    if (pattern.test(msg)) return friendly;
+  }
+
+  // Filter technical Java/Spring errors
+  const technical = [
+    'Malformed request body', 'HttpMessageNotReadableException', 'InsufficientAuthenticationException',
+    'NoResourceFoundException', 'NullPointerException', 'SQLException', 'DataIntegrityViolation',
+    'ConstraintViolationException', 'could not execute statement', 'Full authentication is required',
+    'SignatureException', 'jackson', 'deserialize', 'hibernate', 'javax.persistence',
+  ];
+  if (technical.some(t => msg.toLowerCase().includes(t.toLowerCase()))) return fallback;
+
+  // Strip Java class name prefixes like "SomeException: actual message"
+  const colonIdx = msg.indexOf(':');
+  if (colonIdx > 0 && colonIdx < 40 && /Exception|Error/.test(msg.substring(0, colonIdx))) {
+    const cleaned = msg.substring(colonIdx + 1).trim();
+    return cleaned || fallback;
+  }
+  return msg;
+}
+
+/**
  * Map frontend payment method to XentriPay telecom provider
  */
 export function getTelecomProvider(method: string): string {
@@ -64,21 +106,18 @@ export async function initiateBookingPayment(
   phone: string,
   telecomProvider: string,
   paymentMethod: string,
-  redirectUrl?: string
+  redirectUrl?: string,
+  donationAmount?: number
 ): Promise<{ success: boolean; data?: XentriPayResponse; error?: string }> {
   try {
+    const body: Record<string, unknown> = { eventId, phone, telecomProvider, paymentMethod, redirectUrl };
+    if (donationAmount && donationAmount > 0) body.donationAmount = donationAmount;
     const response = await dashboardAuthFetch(
       `${getApiUrl()}/api/remote/payments/xentripay/initiate`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          eventId,
-          phone,
-          telecomProvider,
-          paymentMethod,
-          redirectUrl,
-        }),
+        body: JSON.stringify(body),
       }
     );
 
@@ -97,7 +136,7 @@ export async function initiateBookingPayment(
       };
     }
 
-    return { success: false, error: result.message || 'Failed to initiate payment' };
+    return { success: false, error: sanitizeErrorMessage(result.message, 'Failed to initiate payment. Please try again.') };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : 'Network error' };
   }
@@ -111,21 +150,18 @@ export async function initiateTipPayment(
   amount: number,
   currencyId: string,
   phone: string,
-  telecomProvider: string
+  telecomProvider: string,
+  donationAmount?: number
 ): Promise<{ success: boolean; data?: XentriPayResponse; error?: string }> {
   try {
+    const body: Record<string, unknown> = { eventId, amount, currencyId, phone, telecomProvider };
+    if (donationAmount && donationAmount > 0) body.donationAmount = donationAmount;
     const response = await dashboardAuthFetch(
       `${getApiUrl()}/api/remote/payments/xentripay/initiate-tip`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          eventId,
-          amount,
-          currencyId,
-          phone,
-          telecomProvider,
-        }),
+        body: JSON.stringify(body),
       }
     );
 
@@ -144,7 +180,7 @@ export async function initiateTipPayment(
       };
     }
 
-    return { success: false, error: result.message || 'Failed to initiate tip payment' };
+    return { success: false, error: sanitizeErrorMessage(result.message, 'Failed to initiate tip payment. Please try again.') };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : 'Network error' };
   }
@@ -158,21 +194,18 @@ export async function initiateStreamingPayment(
   amount: number,
   currencyId: string,
   phone: string,
-  telecomProvider: string
+  telecomProvider: string,
+  donationAmount?: number
 ): Promise<{ success: boolean; data?: XentriPayResponse; error?: string }> {
   try {
+    const body: Record<string, unknown> = { eventId, amount, currencyId, phone, telecomProvider };
+    if (donationAmount && donationAmount > 0) body.donationAmount = donationAmount;
     const response = await dashboardAuthFetch(
       `${getApiUrl()}/api/remote/payments/xentripay/initiate-streaming`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          eventId,
-          amount,
-          currencyId,
-          phone,
-          telecomProvider,
-        }),
+        body: JSON.stringify(body),
       }
     );
 
@@ -191,7 +224,7 @@ export async function initiateStreamingPayment(
       };
     }
 
-    return { success: false, error: result.message || 'Failed to initiate streaming payment' };
+    return { success: false, error: sanitizeErrorMessage(result.message, 'Failed to initiate streaming payment. Please try again.') };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : 'Network error' };
   }
@@ -204,20 +237,18 @@ export async function initiatePhotobookExtrasPayment(
   photobookId: string,
   phone: string,
   telecomProvider: string,
-  currencyId: string
+  currencyId: string,
+  donationAmount?: number
 ): Promise<{ success: boolean; data?: XentriPayResponse; error?: string }> {
   try {
+    const body: Record<string, unknown> = { photobookId, phone, telecomProvider, currencyId };
+    if (donationAmount && donationAmount > 0) body.donationAmount = donationAmount;
     const response = await dashboardAuthFetch(
       `${getApiUrl()}/api/remote/payments/xentripay/initiate-photobook-extras`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          photobookId,
-          phone,
-          telecomProvider,
-          currencyId,
-        }),
+        body: JSON.stringify(body),
       }
     );
 
@@ -236,7 +267,7 @@ export async function initiatePhotobookExtrasPayment(
       };
     }
 
-    return { success: false, error: result.message || 'Failed to initiate photobook extras payment' };
+    return { success: false, error: sanitizeErrorMessage(result.message, 'Failed to initiate photobook extras payment. Please try again.') };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : 'Network error' };
   }
@@ -268,7 +299,7 @@ export async function checkPaymentStatus(
       };
     }
 
-    return { success: false, error: result.message || 'Failed to check status' };
+    return { success: false, error: sanitizeErrorMessage(result.message, 'Failed to check payment status. Please try again.') };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : 'Network error' };
   }
@@ -374,7 +405,7 @@ export async function validateWithdrawalAccount(
       };
     }
 
-    return { success: false, error: result.message || 'Failed to validate account' };
+    return { success: false, error: sanitizeErrorMessage(result.message, 'Failed to validate account. Please try again.') };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : 'Network error' };
   }
@@ -408,7 +439,7 @@ export async function processWithdrawal(
       };
     }
 
-    return { success: false, error: result.message || 'Failed to process withdrawal' };
+    return { success: false, error: sanitizeErrorMessage(result.message, 'Failed to process withdrawal. Please try again.') };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : 'Network error' };
   }

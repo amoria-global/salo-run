@@ -358,3 +358,51 @@ export function checkMessageContent(message: string): FilterResult {
 
   return { blocked: false, reason: null, detectedType: null };
 }
+
+/**
+ * Check a message with recent history context.
+ * Combines the new message with the last N messages from the same sender
+ * to detect contact info split across multiple messages (e.g., one number word per message).
+ *
+ * @param newMessage - The message about to be sent
+ * @param recentMessages - Recent messages in the conversation (newest last)
+ * @param senderId - The current user's ID
+ * @param windowSize - How many recent same-sender messages to combine (default 15)
+ */
+export function checkMessageWithHistory(
+  newMessage: string,
+  recentMessages: { content: string; senderId: string }[],
+  senderId: string,
+  windowSize = 15
+): FilterResult {
+  // First check the new message alone
+  const singleResult = checkMessageContent(newMessage);
+  if (singleResult.blocked) return singleResult;
+
+  // Collect the last N messages from the same sender (consecutive or not)
+  const senderMessages = recentMessages
+    .filter(m => m.senderId === senderId)
+    .slice(-windowSize)
+    .map(m => m.content);
+
+  // Add the new message
+  senderMessages.push(newMessage);
+
+  // Only check history if there are multiple messages
+  if (senderMessages.length < 3) return { blocked: false, reason: null, detectedType: null };
+
+  // Combine all recent same-sender messages into one string and check
+  const combined = senderMessages.join(' ');
+  const combinedResult = checkMessageContent(combined);
+  if (combinedResult.blocked) {
+    return {
+      blocked: true,
+      reason: combinedResult.reason
+        ? combinedResult.reason.replace('is not allowed.', 'across multiple messages is not allowed.')
+        : 'Splitting contact information across multiple messages is not allowed.',
+      detectedType: combinedResult.detectedType,
+    };
+  }
+
+  return { blocked: false, reason: null, detectedType: null };
+}
