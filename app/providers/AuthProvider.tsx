@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams, usePathname } from 'next/navigation';
 import { getApiUrl, getApiKey, normalizeImageUrl } from '@/lib/api';
+import { getPlatformConfig } from '@/lib/platformConfig';
 
 /**
  * Availability time structure from API
@@ -652,8 +653,9 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     // Only apply to client and coordinator — photographers keep sessions indefinitely
     if (role === 'PHOTOGRAPHER') return;
 
-    const INACTIVITY_LIMIT = 60 * 60 * 1000; // 1 hour
-    const CHECK_INTERVAL = 60 * 1000; // check every minute
+    const cfg = getPlatformConfig().security;
+    const INACTIVITY_LIMIT = cfg.sessionTimeoutMs;
+    const CHECK_INTERVAL = cfg.sessionCheckIntervalMs;
 
     const resetTimer = () => { lastActivityRef.current = Date.now(); };
 

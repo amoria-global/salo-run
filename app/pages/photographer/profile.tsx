@@ -9,6 +9,7 @@ import ApprovalPendingModal from '../../components/ApprovalPendingModal';
 import { useTheme } from '../../context/ThemeContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { getApiUrl, normalizeImageUrl } from '@/lib/api';
+import { getPlatformConfig } from '@/lib/platformConfig';
 
 // Configure localforage for profile form data
 const profileFormStorage = localforage.createInstance({
@@ -1117,7 +1118,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         alert('Please select an image file');
         return;
       }
-      if (file.size > 5 * 1024 * 1024) {
+      if (file.size > getPlatformConfig().uploads.maxImageSizeMb * 1024 * 1024) {
         alert('Image size should be less than 5MB');
         return;
       }
@@ -1138,7 +1139,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         alert('Please select an image file');
         return;
       }
-      if (file.size > 5 * 1024 * 1024) {
+      if (file.size > getPlatformConfig().uploads.maxImageSizeMb * 1024 * 1024) {
         alert('Image size should be less than 5MB');
         return;
       }
@@ -2014,7 +2015,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         alert('Please select an image file');
         return;
       }
-      if (file.size > 5 * 1024 * 1024) {
+      if (file.size > getPlatformConfig().uploads.maxImageSizeMb * 1024 * 1024) {
         alert('Image size should be less than 5MB');
         return;
       }
