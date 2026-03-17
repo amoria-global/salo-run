@@ -14,6 +14,7 @@ import { useCurrency } from '@/app/context/CurrencyContext';
 import { Unlock } from 'lucide-react';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { getApiUrl, normalizeImageUrl } from '@/lib/api';
+import { fetchPlatformConfig, getPlatformConfig } from '@/lib/platformConfig';
 import { initiatePhotobookExtrasPayment, pollPaymentStatus, getTelecomProvider } from '@/lib/xentripay';
 
 type PaymentStatus = 'paid' | 'pending' | 'failed' | 'refunded' | 'partially_paid';
@@ -220,7 +221,6 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
 
   // --- Gallery API helpers (role-aware endpoints) ---
   const galleryBase = userRole === 'event-coordinator' ? 'coordinator/galleries' : 'customer/albums';
-  const archiveBase = userRole === 'event-coordinator' ? 'coordinator/archives' : 'customer/archives';
 
   // GET gallery detail
   const fetchGalleryDetail = useCallback(async (galleryId: string) => {
@@ -277,10 +277,18 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   // PUT archive a gallery
   const archiveGallery = useCallback(async (archiveId: string) => {
     try {
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${archiveBase}/${archiveId}`, {
+      // Client: PUT /customer/albums/archives with body {albumId}
+      // Coordinator: PUT /coordinator/archives/{id}
+      const url = userRole === 'event-coordinator'
+        ? `${apiUrl}/api/remote/coordinator/archives/${archiveId}`
+        : `${apiUrl}/api/remote/customer/albums/archives`;
+      const body = userRole === 'event-coordinator'
+        ? JSON.stringify({})
+        : JSON.stringify({ albumId: archiveId });
+      const res = await dashboardAuthFetch(url, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        body,
       });
       const data = await res.json();
       if (!res.ok || data.action !== 1) {
@@ -292,13 +300,22 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
       console.error('Error archiving gallery:', err);
       return false;
     }
-  }, [apiUrl, archiveBase]);
+  }, [apiUrl, userRole]);
 
   // DELETE unarchive/remove from archives
   const unarchiveGallery = useCallback(async (archiveId: string) => {
     try {
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${archiveBase}/${archiveId}`, {
+      // Client: DELETE /customer/albums/archives with body {albumId}
+      // Coordinator: DELETE /coordinator/archives/{id}
+      const url = userRole === 'event-coordinator'
+        ? `${apiUrl}/api/remote/coordinator/archives/${archiveId}`
+        : `${apiUrl}/api/remote/customer/albums/archives`;
+      const body = userRole === 'event-coordinator'
+        ? undefined
+        : JSON.stringify({ albumId: archiveId });
+      const res = await dashboardAuthFetch(url, {
         method: 'DELETE',
+        ...(body ? { headers: { 'Content-Type': 'application/json' }, body } : {}),
       });
       const data = await res.json();
       if (!res.ok || data.action !== 1) {
@@ -310,7 +327,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
       console.error('Error unarchiving gallery:', err);
       return false;
     }
-  }, [apiUrl, archiveBase]);
+  }, [apiUrl, userRole]);
 
   // Fetch albums/galleries from API, enriched with photographer profile images
   const fetchAlbums = useCallback(async () => {
@@ -408,27 +425,58 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   }, [user?.id, fetchAlbums]);
 
   // GET archives
+  // Coordinator: GET /coordinator/archives (dedicated endpoint)
+  // Client: GET /customer/archives does not exist — derive from main albums list filtered by isArchived
   const fetchCoordinatorArchives = useCallback(async () => {
+    if (userRole !== 'event-coordinator') {
+      // For client: archived albums are already in the main albums state with isArchived=true
+      setCoordinatorArchives(prev => prev); // no-op; archivedAlbums will be computed from albums below
+      return;
+    }
     try {
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${archiveBase}`);
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/archives`);
       if (res.ok) {
         const data = await res.json();
         const archiveList = Array.isArray(data.data) ? data.data : data.data?.content || [];
-        setCoordinatorArchives(archiveList.map((a: any) => ({
-          id: a.id,
-          title: a.title || '',
-          description: a.description || '',
-          date: a.createdAt || '',
-          thumbnail: a.coverImage || '',
-          photoCount: a.imageCount || 0,
-          images: a.images || [],
-          isArchived: true,
-        })));
+        setCoordinatorArchives(archiveList.map((a: any) => {
+          const rawName = a.photographerName || a.photographer || '';
+          const rawAvatar = a.photographerAvatar || a.photographerImage || '';
+          return {
+            id: a.id,
+            title: a.title || '',
+            description: a.description || '',
+            photographer: rawName,
+            photographerAvatar: normalizeImg(rawAvatar),
+            category: a.category || '',
+            date: a.createdAt || a.date || '',
+            receivedDate: a.receivedDate || a.sentAt || a.createdAt || '',
+            expiresAt: a.expiresAt || '',
+            isArchived: true,
+            isLocked: a.isLocked || true,
+            thumbnail: normalizeImg(a.coverImage || a.thumbnail),
+            photoCount: a.imageCount || a.photoCount || 0,
+            downloadedCount: 0,
+            favoriteCount: 0,
+            images: (a.images || []).map((img: any) => normalizeImg(typeof img === 'string' ? img : img?.fileUrl || img?.url || '') || '').filter(Boolean),
+            mediaIds: (a.images || []).map((img: any) => typeof img === 'object' ? img?.id || '' : '').filter(Boolean),
+            eventId: a.eventId || '',
+            eventTitle: a.eventTitle || '',
+            payment: a.payment ? {
+              amountDue: a.payment.amountDue || 0,
+              status: a.payment.status || 'pending',
+              eventName: a.payment.eventName || '',
+              photographerName: a.payment.photographerName || '',
+            } : undefined,
+          };
+        }));
       }
     } catch (err) {
       console.error('Failed to fetch coordinator archives:', err);
     }
   }, [apiUrl, userRole]);
+
+  // For client role: derive archived albums directly from the main albums state
+  const clientArchivedAlbums = userRole !== 'event-coordinator' ? albums.filter(a => a.isArchived) : [];
 
 
   // Modal states
@@ -647,53 +695,60 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   const [showPricingPlans, setShowPricingPlans] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<'one-time' | 'plus' | 'pro' | null>(null);
 
-  const STORAGE_PLANS = [
-    {
-      id: 'one-time' as const,
-      name: 'One-Time',
-      price: 40,
-      priceLabel: '$40',
-      billing: 'one-time payment',
-      features: [
-        '5 months access',
-        'Renewable after expiry',
-        'All albums unlocked',
-        'No auto-renewal'
-      ]
-    },
-    {
-      id: 'plus' as const,
-      name: 'Archive Plus',
-      price: 14.99,
-      priceLabel: '$14.99',
-      billing: '/month',
-      popular: true,
-      features: [
-        'Monthly auto-renewal',
-        'Cancel after 4 months',
-        'All albums unlocked',
-        'Continuous protection'
-      ]
-    },
-    {
-      id: 'pro' as const,
-      name: 'Archive Pro',
-      price: 139.99,
-      priceLabel: '$139.99',
-      billing: '/year',
-      bestValue: true,
-      features: [
-        'Annual auto-renewal',
-        'Cancel anytime',
-        'All albums unlocked',
-        'Best value — save 22%'
-      ]
-    }
-  ];
+  const STORAGE_PLANS = (() => {
+    const cfg = getPlatformConfig();
+    const plans = cfg.gallery.storagePlans;
+    return [
+      {
+        id: 'one-time' as const,
+        name: plans.find(p => p.id === 'one-time')?.name || 'One-Time',
+        price: plans.find(p => p.id === 'one-time')?.price || 40,
+        priceLabel: `$${plans.find(p => p.id === 'one-time')?.price || 40}`,
+        billing: 'one-time payment',
+        features: [
+          `${plans.find(p => p.id === 'one-time')?.durationMonths || 5} months access`,
+          'Renewable after expiry',
+          'All albums unlocked',
+          'No auto-renewal'
+        ]
+      },
+      {
+        id: 'plus' as const,
+        name: plans.find(p => p.id === 'archive-plus')?.name || 'Archive Plus',
+        price: plans.find(p => p.id === 'archive-plus')?.price || 14.99,
+        priceLabel: `$${plans.find(p => p.id === 'archive-plus')?.price || 14.99}`,
+        billing: '/month',
+        popular: true,
+        features: [
+          'Monthly auto-renewal',
+          `Cancel after ${plans.find(p => p.id === 'archive-plus')?.cancelAfterMonths || 4} months`,
+          'All albums unlocked',
+          'Continuous protection'
+        ]
+      },
+      {
+        id: 'pro' as const,
+        name: plans.find(p => p.id === 'archive-pro')?.name || 'Archive Pro',
+        price: plans.find(p => p.id === 'archive-pro')?.price || 139.99,
+        priceLabel: `$${plans.find(p => p.id === 'archive-pro')?.price || 139.99}`,
+        billing: '/year',
+        bestValue: true,
+        features: [
+          'Annual auto-renewal',
+          'Cancel anytime',
+          'All albums unlocked',
+          `Best value — save ${plans.find(p => p.id === 'archive-pro')?.savingsPercent || 22}%`
+        ]
+      }
+    ];
+  })();
 
-  // --- 1-year auto-archive expiry helpers ---
-  const ARCHIVE_DAYS = 365;
-  const WARNING_DAYS = 30;
+  // --- Auto-archive expiry helpers (from platform config) ---
+  const [archiveDays, setArchiveDays] = useState(365);
+  const [warningDays, setWarningDays] = useState(30);
+  useEffect(() => { fetchPlatformConfig().then(cfg => { setArchiveDays(cfg.gallery.archiveExpiryDays); setWarningDays(cfg.gallery.archiveWarningDays); }); }, []);
+  const ARCHIVE_DAYS = archiveDays;
+  const WARNING_DAYS = warningDays;
 
   const getAlbumExpiry = (album: any) => {
     // Use backend isLocked / expiresAt if available
@@ -731,7 +786,9 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   const totalFavorites = activeAlbums.reduce((sum, a) => sum + a.favoriteCount, 0);
 
   // Stats - Archives
-  const archivedAlbums = coordinatorArchives;
+  // Coordinator: uses dedicated coordinator/archives endpoint
+  // Client: derived from main albums list (customer/archives endpoint doesn't exist)
+  const archivedAlbums = userRole === 'event-coordinator' ? coordinatorArchives : clientArchivedAlbums;
   const archivedPhotos = archivedAlbums.reduce((sum, a) => sum + a.photoCount, 0);
   const archivedAmountDue = archivedAlbums.reduce((sum, a) => sum + (a.payment?.amountDue || 0), 0);
 
@@ -2288,7 +2345,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                       <div style={{ padding: '0.75rem 1rem', backgroundColor: actualTheme === 'dark' ? 'rgba(220,38,38,0.15)' : '#FEF2F2', border: '1px solid', borderColor: actualTheme === 'dark' ? 'rgba(220,38,38,0.3)' : '#FECACA', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                         <span style={{ fontSize: '0.85rem', color: '#DC2626', fontWeight: 600 }}>
-                          {expiredAlbums.length} album{expiredAlbums.length !== 1 ? 's have' : ' has'} exceeded the 1-year free storage period and {expiredAlbums.length !== 1 ? 'are' : 'is'} now archived. Pay to unlock access.
+                          {expiredAlbums.length} album{expiredAlbums.length !== 1 ? 's have' : ' has'} exceeded the {ARCHIVE_DAYS}-day free storage period and {expiredAlbums.length !== 1 ? 'are' : 'is'} now archived. Pay to unlock access.
                         </span>
                       </div>
                     )}
@@ -2296,7 +2353,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                       <div style={{ padding: '0.75rem 1rem', backgroundColor: actualTheme === 'dark' ? 'rgba(234,179,8,0.15)' : '#FFFBEB', border: '1px solid', borderColor: actualTheme === 'dark' ? 'rgba(234,179,8,0.3)' : '#FDE68A', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B45309" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                         <span style={{ fontSize: '0.85rem', color: '#B45309', fontWeight: 600 }}>
-                          {expiringAlbums.length} album{expiringAlbums.length !== 1 ? 's are' : ' is'} expiring within 30 days. Download your photos before they are archived.
+                          {expiringAlbums.length} album{expiringAlbums.length !== 1 ? 's are' : ' is'} expiring within {WARNING_DAYS} days. Download your photos before they are archived.
                         </span>
                       </div>
                     )}
@@ -2839,7 +2896,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                     No Archived Albums
                   </h3>
                   <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: 0, maxWidth: '400px', lineHeight: '1.5' }}>
-                    Albums are automatically archived after 1 year of free storage. Archived albums will appear here.
+                    Albums are automatically archived after {ARCHIVE_DAYS} days of free storage. Archived albums will appear here.
                   </p>
                 </div>
               ) : viewMode === 'grid' ? (
@@ -2848,9 +2905,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                   gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
                   gap: '1.25rem'
                 }}>
-                  {filteredAlbums
-                    .filter(album => album.isArchived)
-                    .map((album) => (
+                  {archivedAlbums.map((album) => (
                       <AlbumCard
                         key={album.id}
                         album={album}
@@ -2887,9 +2942,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                   </div>
 
                   {/* Table Rows */}
-                  {filteredAlbums
-                    .filter(album => album.isArchived)
-                    .map((album) => (
+                  {archivedAlbums.map((album) => (
                       <AlbumCard
                         key={album.id}
                         album={album}
@@ -2935,7 +2988,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                   Choose Your Storage Plan
                 </h3>
                 <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: 0, lineHeight: '1.5' }}>
-                  Keep your albums safe and accessible. Without an active plan, albums are archived after 1 year of free storage.
+                  Keep your albums safe and accessible. Without an active plan, albums are archived after {ARCHIVE_DAYS} days of free storage.
                 </p>
               </div>
               <button onClick={() => setShowPricingPlans(false)} style={{

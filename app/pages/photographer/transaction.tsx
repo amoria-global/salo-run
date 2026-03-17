@@ -11,6 +11,7 @@ import { HeartIcon } from '../../components/UnlockModal';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { getApiUrl } from '@/lib/api';
 import { processWithdrawal, sanitizeErrorMessage } from '@/lib/xentripay';
+import { fetchPlatformConfig, type PlatformConfig, DEFAULT_CONFIG } from '@/lib/platformConfig';
 
 // Icons
 const DownloadIcon = () => (
@@ -1761,6 +1762,8 @@ Amount: ${formatPrice(transaction.amountNum)}
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [earningsData, setEarningsData] = useState<{ date: string; value: number }[]>([]);
   const [tipsData, setTipsData] = useState<{ id: number; clientName: string; amount: number; date: string; eventName: string; message: string }[]>([]);
+  const [platformConfig, setPlatformConfig] = useState<PlatformConfig>(DEFAULT_CONFIG);
+  const [bonusStatus, setBonusStatus] = useState<{ status: string; amount?: number; currencyAbbreviation?: string; threshold?: number; completedEvents?: number; adminComment?: string }>({ status: 'NOT_ELIGIBLE' });
 
   function formatTxDate(dateStr: string): string {
     if (!dateStr) return '';
@@ -1855,6 +1858,22 @@ Amount: ${formatPrice(transaction.amountNum)}
     fetchData(0);
   }, [fetchData]);
 
+  // Fetch platform config + bonus status
+  useEffect(() => {
+    fetchPlatformConfig().then(setPlatformConfig);
+    if (user) {
+      (async () => {
+        try {
+          const res = await dashboardAuthFetch(`${getApiUrl()}/api/remote/photographer/bonus-status`);
+          if (res.ok) {
+            const result = await res.json();
+            if (result.data) setBonusStatus(result.data);
+          }
+        } catch { /* ignore */ }
+      })();
+    }
+  }, [user]);
+
   // Calculate totals from fetched transactions
   const totalCompleted = transactions.filter(t => t.status === 'completed').reduce((sum, t) => sum + t.amountNum, 0);
   const totalPending = transactions.filter(t => t.status === 'pending' || t.status === 'in_progress' || t.status === 'initiated').reduce((sum, t) => sum + t.amountNum, 0);
@@ -1864,10 +1883,14 @@ Amount: ${formatPrice(transaction.amountNum)}
   const totalTips = balance?.totalTips || tipsData.reduce((sum, t) => sum + t.amount, 0);
   const completedEventsCount = analytics?.completedEvents || analytics?.totalCompletedEvents || 0;
   const totalEventsAmount = analytics?.totalEarnings || totalCompleted + totalPending + totalWithdrawn;
-  const bonusEligibleSets = Math.floor(completedEventsCount / 10);
-  const platformBonus = balance?.totalBonuses || 0;
-  const nextBonusAt = (bonusEligibleSets + 1) * 10;
-  const eventsToNextBonus = nextBonusAt - completedEventsCount;
+  const BONUS_THRESHOLD = bonusStatus.threshold || platformConfig.photographer.bonusThreshold;
+  const platformBonus = balance?.totalBonuses || bonusStatus.amount || 0;
+  const bonusApproved = bonusStatus.status === 'APPROVED';
+  const bonusPending = bonusStatus.status === 'PENDING_APPROVAL';
+  const bonusRejected = bonusStatus.status === 'REJECTED';
+  const bonusEarned = bonusApproved;
+  const bonusReached = completedEventsCount >= BONUS_THRESHOLD;
+  const eventsToBonus = Math.max(0, BONUS_THRESHOLD - completedEventsCount);
   const availableBalance = balance?.totalBalance || balance?.balance || 0;
 
   const resultsPerPage = 8;
@@ -2260,36 +2283,57 @@ Amount: ${formatPrice(transaction.amountNum)}
                     </div>
                     <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Platform Bonus</h3>
                   </div>
-                  <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: 0 }}>Earn 10% for every 10 events completed</p>
+                  <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: 0 }}>
+                    {bonusApproved ? 'Bonus earned for completing your first ' + BONUS_THRESHOLD + ' events!'
+                      : bonusPending ? 'Bonus pending admin approval'
+                      : bonusRejected ? 'Bonus request was not approved'
+                      : `Complete your first ${BONUS_THRESHOLD} events to earn ${formatPrice(platformConfig.photographer.bonusAmount)}`}
+                  </p>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>{formatPrice(platformBonus)}</div>
-                  <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>{bonusEligibleSets} bonus{bonusEligibleSets !== 1 ? 'es' : ''} earned</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: bonusApproved ? '#16A34A' : bonusPending ? '#F59E0B' : bonusRejected ? '#DC2626' : colors.textSecondary }}>{bonusApproved ? formatPrice(platformBonus) : formatPrice(platformConfig.photographer.bonusAmount)}</div>
+                  <div style={{ fontSize: '0.75rem', color: bonusPending ? '#F59E0B' : bonusRejected ? '#DC2626' : colors.textSecondary }}>
+                    {bonusApproved ? 'Bonus earned' : bonusPending ? 'Pending approval' : bonusRejected ? 'Not approved' : 'Not yet earned'}
+                  </div>
                 </div>
               </div>
 
-              {/* Progress to Next Bonus */}
+              {/* Progress to Bonus */}
               <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, paddingTop: '1rem' }}>
+                {bonusRejected && bonusStatus.adminComment && (
+                  <div style={{ padding: '0.75rem', backgroundColor: actualTheme === 'dark' ? '#7F1D1D20' : '#FEF2F2', borderRadius: '0.375rem', border: `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}`, marginBottom: '0.75rem' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: '600', color: actualTheme === 'dark' ? '#FCA5A5' : '#991B1B', marginBottom: '0.2rem' }}>Admin Comment</div>
+                    <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{bonusStatus.adminComment}</div>
+                  </div>
+                )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary }}>Progress to Next Bonus</span>
-                  <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#16A34A' }}>{completedEventsCount % 10}/10 events</span>
+                  <span style={{ fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary }}>
+                    {bonusApproved ? 'Bonus Achieved' : bonusPending ? 'Pending Approval' : 'Progress to Bonus'}
+                  </span>
+                  <span style={{ fontSize: '0.8rem', fontWeight: '600', color: bonusApproved ? '#16A34A' : bonusPending ? '#F59E0B' : '#2563EB' }}>
+                    {Math.min(completedEventsCount, BONUS_THRESHOLD)}/{BONUS_THRESHOLD} events
+                  </span>
                 </div>
                 <div style={{ width: '100%', height: '8px', backgroundColor: colors.borderPrimary, borderRadius: '9999px', overflow: 'hidden', marginBottom: '0.75rem' }}>
-                  <div style={{ width: `${(completedEventsCount % 10) * 10}%`, height: '100%', backgroundColor: '#16A34A', borderRadius: '9999px', transition: 'width 0.3s ease' }} />
+                  <div style={{ width: `${Math.min(100, (completedEventsCount / BONUS_THRESHOLD) * 100)}%`, height: '100%', backgroundColor: bonusApproved ? '#16A34A' : bonusPending ? '#F59E0B' : '#2563EB', borderRadius: '9999px', transition: 'width 0.3s ease' }} />
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ padding: '0.5rem 0.75rem', backgroundColor: actualTheme === 'dark' ? '#14532D' : '#F0FDF4', borderRadius: '0.375rem', border: `1px solid ${actualTheme === 'dark' ? '#166534' : '#BBF7D0'}` }}>
                     <div style={{ fontSize: '0.7rem', color: actualTheme === 'dark' ? '#4ADE80' : '#166534', marginBottom: '0.125rem' }}>Completed Events</div>
                     <div style={{ fontSize: '1rem', fontWeight: '700', color: '#16A34A' }}>{completedEventsCount}</div>
                   </div>
-                  <div style={{ padding: '0.5rem 0.75rem', backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF', borderRadius: '0.375rem', border: `1px solid ${actualTheme === 'dark' ? '#1E40AF' : '#BFDBFE'}` }}>
-                    <div style={{ fontSize: '0.7rem', color: actualTheme === 'dark' ? '#60A5FA' : '#1E40AF', marginBottom: '0.125rem' }}>Events to Next Bonus</div>
-                    <div style={{ fontSize: '1rem', fontWeight: '700', color: '#2563EB' }}>{eventsToNextBonus}</div>
-                  </div>
-                  <div style={{ padding: '0.5rem 0.75rem', backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FEF3C7', borderRadius: '0.375rem', border: `1px solid ${actualTheme === 'dark' ? '#92400E' : '#FCD34D'}` }}>
-                    <div style={{ fontSize: '0.7rem', color: actualTheme === 'dark' ? '#FCD34D' : '#92400E', marginBottom: '0.125rem' }}>Next Bonus Amount</div>
-                    <div style={{ fontSize: '1rem', fontWeight: '700', color: '#F59E0B' }}>~${Math.round(totalEventsAmount * 0.10 / bonusEligibleSets || 0)}</div>
-                  </div>
+                  {!bonusReached && (
+                    <div style={{ padding: '0.5rem 0.75rem', backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF', borderRadius: '0.375rem', border: `1px solid ${actualTheme === 'dark' ? '#1E40AF' : '#BFDBFE'}` }}>
+                      <div style={{ fontSize: '0.7rem', color: actualTheme === 'dark' ? '#60A5FA' : '#1E40AF', marginBottom: '0.125rem' }}>Events Remaining</div>
+                      <div style={{ fontSize: '1rem', fontWeight: '700', color: '#2563EB' }}>{eventsToBonus}</div>
+                    </div>
+                  )}
+                  {bonusReached && (
+                    <div style={{ padding: '0.5rem 0.75rem', backgroundColor: bonusApproved ? (actualTheme === 'dark' ? '#14532D' : '#F0FDF4') : bonusPending ? (actualTheme === 'dark' ? '#78350F' : '#FEF3C7') : (actualTheme === 'dark' ? '#7F1D1D' : '#FEF2F2'), borderRadius: '0.375rem', border: `1px solid ${bonusApproved ? (actualTheme === 'dark' ? '#166534' : '#BBF7D0') : bonusPending ? (actualTheme === 'dark' ? '#92400E' : '#FCD34D') : (actualTheme === 'dark' ? '#991B1B' : '#FECACA')}` }}>
+                      <div style={{ fontSize: '0.7rem', color: bonusApproved ? (actualTheme === 'dark' ? '#4ADE80' : '#166534') : bonusPending ? (actualTheme === 'dark' ? '#FCD34D' : '#92400E') : (actualTheme === 'dark' ? '#FCA5A5' : '#991B1B'), marginBottom: '0.125rem' }}>Status</div>
+                      <div style={{ fontSize: '1rem', fontWeight: '700', color: bonusApproved ? '#16A34A' : bonusPending ? '#F59E0B' : '#DC2626' }}>{bonusApproved ? 'Approved' : bonusPending ? 'Pending' : 'Rejected'}</div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

@@ -8,6 +8,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { getApiUrl, normalizeImageUrl } from '@/lib/api';
+import { getPlatformConfig } from '@/lib/platformConfig';
 import StreamPreview from '../../components/StreamPreview';
 
 const CURRENCY_FLAG_MAP: Record<string, string> = {
@@ -1196,7 +1197,7 @@ const PhotographerEventsPage = () => {
   };
 
   // 7-day edit window for sent albums; unsent albums can always be edited
-  const EDIT_WINDOW_DAYS = 7;
+  const EDIT_WINDOW_DAYS = getPlatformConfig().photographer.albumEditWindowDays;
   // Resolve the date the album was sent
   const getAlbumSentMs = (album: Album): number | null => {
     if (album.sentAt) return new Date(album.sentAt).getTime();
