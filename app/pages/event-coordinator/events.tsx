@@ -11,6 +11,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { StatCard } from '../../components/dashboard/StatCard';
 import { getApiUrl, normalizeImageUrl } from '@/lib/api';
+import { getPlatformConfig } from '@/lib/platformConfig';
 
 // Configure localforage for event form data 
 const eventFormStorage = localforage.createInstance({
@@ -1277,7 +1278,7 @@ const MyEventsPage = () => {
             return match?.id || undefined;
           })(),
           maxGuests: createMaxGuests ? Number(createMaxGuests.replace(/[^\d]/g, '')) : 0,
-          minimumPhotos: createMinPhotos ? Number(createMinPhotos.replace(/[^\d]/g, '')) : 500,
+          minimumPhotos: 0,
           groupDiscountPercentage: createGroupDiscount ? Number(createGroupDiscount) : 0,
           notes: '',
         };
@@ -1987,7 +1988,7 @@ const MyEventsPage = () => {
                 const disc = Number(createGroupDiscount);
                 if (!fee || !disc) return null;
                 const perPerson = Math.round(fee * (1 - disc / 100));
-                const groupSize = 5;
+                const groupSize = getPlatformConfig().streaming.groupSize;
                 const total = perPerson * groupSize;
                 const saved = fee * groupSize - total;
                 return (
@@ -1999,19 +2000,6 @@ const MyEventsPage = () => {
                   </div>
                 );
               })()}
-            </div>
-          </div>
-
-          {/* Section: Minimum Photos */}
-          <div style={{ marginBottom: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-              <i className="bi bi-camera-fill" style={{ fontSize: '1rem', color: '#083A85' }}></i>
-              <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Photo Requirements</span>
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Minimum Photos</label>
-              <input type="number" value={createMinPhotos} onChange={(e) => setCreateMinPhotos(e.target.value)} placeholder="Default: 500" min="1" style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary }} />
-              <span style={{ fontSize: '0.75rem', color: colors.textSecondary, marginTop: '0.25rem', display: 'block' }}>Minimum number of photos the photographer must deliver. Defaults to 500 if not set.</span>
             </div>
           </div>
 
@@ -3420,7 +3408,7 @@ const MyEventsPage = () => {
                   const disc = Number(editGroupDiscount);
                   if (!fee || !disc) return null;
                   const perPerson = Math.round(fee * (1 - disc / 100));
-                  const groupSize = 5;
+                  const groupSize = getPlatformConfig().streaming.groupSize;
                   const total = perPerson * groupSize;
                   const saved = fee * groupSize - total;
                   return (
