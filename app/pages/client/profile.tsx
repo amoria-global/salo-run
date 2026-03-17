@@ -8,6 +8,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useUserProfile } from '../../context/UserProfileContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { getApiUrl } from '@/lib/api';
+import { getPlatformConfig } from '@/lib/platformConfig';
 
 // Camera icon for avatar edit
 const CameraIcon = () => (
@@ -188,7 +189,7 @@ const ProfilePage = () => {
         return;
       }
       // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
+      if (file.size > getPlatformConfig().uploads.maxImageSizeMb * 1024 * 1024) {
         alert('Image size should be less than 5MB');
         return;
       }
