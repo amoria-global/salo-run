@@ -97,12 +97,6 @@ const EyeOnIcon = () => (
   </svg>
 );
 
-const ChevronIcon = ({ open }: { open: boolean }) => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-    style={{ transition: 'transform 0.2s', transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}>
-    <polyline points="6 9 12 15 18 9" />
-  </svg>
-);
 
 const WarningIcon = () => (
   <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -140,10 +134,10 @@ export default function StreamPreview({
   const hlsRef = useRef<Hls | null>(null);
   const [copiedField, setCopiedField] = useState('');
   const [showKey, setShowKey] = useState(false);
-  const [showGuide, setShowGuide] = useState(false);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
+  const [encoderDetected, setEncoderDetected] = useState(false);
 
   const isDark = theme === 'dark';
   const hasCredentials = !!(serverUrl && streamKey);
@@ -151,6 +145,31 @@ export default function StreamPreview({
   const isPaused = connectionStatus === 'paused';
   const isEnded = connectionStatus === 'ended';
   const isDisconnected = connectionStatus === 'disconnected';
+  const isTestPreview = isDisconnected && hasCredentials && encoderDetected;
+
+  // Poll HLS manifest to detect OBS encoder connection
+  useEffect(() => {
+    if (!isDisconnected || !hasCredentials || !playbackUrl || isEnded) {
+      setEncoderDetected(false);
+      return;
+    }
+    let cancelled = false;
+    const checkManifest = async () => {
+      try {
+        const res = await fetch(playbackUrl, { method: 'HEAD', mode: 'cors' });
+        if (!cancelled && res.ok) setEncoderDetected(true);
+      } catch {
+        // Also try GET in case HEAD is blocked by CORS
+        try {
+          const res = await fetch(playbackUrl, { mode: 'cors' });
+          if (!cancelled && res.ok) setEncoderDetected(true);
+        } catch { /* not yet available */ }
+      }
+    };
+    checkManifest();
+    const interval = setInterval(checkManifest, 3000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [isDisconnected, hasCredentials, playbackUrl, isEnded]);
 
   // Callback ref to detect when video element mounts/unmounts
   const videoCallbackRef = useCallback((node: HTMLVideoElement | null) => {
@@ -158,9 +177,10 @@ export default function StreamPreview({
     setVideoReady(!!node);
   }, []);
 
-  // Cleanup HLS on unmount or when going non-live
+  // Cleanup HLS on unmount or when going non-live/non-preview
+  const showVideo = isLive || isTestPreview;
   useEffect(() => {
-    if (!isLive || !playbackUrl) {
+    if (!showVideo || !playbackUrl) {
       if (hlsRef.current) {
         const interval = (hlsRef.current as unknown as Record<string, unknown>)._liveEdgeInterval as ReturnType<typeof setInterval> | undefined;
         if (interval) clearInterval(interval);
@@ -168,11 +188,11 @@ export default function StreamPreview({
         hlsRef.current = null;
       }
     }
-  }, [isLive, playbackUrl]);
+  }, [showVideo, playbackUrl]);
 
-  // HLS player setup — triggered when video element is ready AND we're live with a URL
+  // HLS player setup — triggered when video element is ready AND we're live/previewing with a URL
   useEffect(() => {
-    if (!playbackUrl || !videoRef.current || !isLive || !videoReady) return;
+    if (!playbackUrl || !videoRef.current || !showVideo || !videoReady) return;
 
     // Destroy previous instance if URL changed
     if (hlsRef.current) {
@@ -252,7 +272,7 @@ export default function StreamPreview({
       video.removeEventListener('waiting', handleWaiting);
       video.removeEventListener('playing', handlePlaying);
     };
-  }, [playbackUrl, isLive, videoReady]);
+  }, [playbackUrl, showVideo, videoReady]);
 
   const handleCopy = useCallback((text: string, field: string) => {
     navigator.clipboard.writeText(text);
@@ -345,7 +365,9 @@ export default function StreamPreview({
     ended: { color: '#6B7280', label: 'Ended', bg: isDark ? 'rgba(107,114,128,0.15)' : '#F3F4F6' },
   };
 
-  const status = statusConfig[connectionStatus] || statusConfig.disconnected;
+  const status = isTestPreview
+    ? { color: '#3B82F6', label: 'Test Preview', bg: isDark ? 'rgba(59,130,246,0.12)' : '#EFF6FF' }
+    : statusConfig[connectionStatus] || statusConfig.disconnected;
 
   // ============================================
   // RENDER SECTIONS
@@ -356,14 +378,15 @@ export default function StreamPreview({
       <div style={{
         position: 'relative',
         width: '100%',
+        minHeight: '220px',
         aspectRatio: '16/9',
         borderRadius: '0.75rem',
         overflow: 'hidden',
-        border: isLive ? '2px solid #10B981' : `2px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#E5E7EB'}`,
+        border: isLive ? '2px solid #10B981' : isTestPreview ? '2px solid #3B82F6' : `2px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#E5E7EB'}`,
         backgroundColor: '#000',
       }}>
-        {/* Live: show HLS player */}
-        {isLive && playbackUrl ? (
+        {/* Live or Test Preview: show HLS player */}
+        {(isLive || isTestPreview) && playbackUrl ? (
           <>
             <video
               ref={videoCallbackRef}
@@ -389,24 +412,38 @@ export default function StreamPreview({
                 }} />
               </div>
             )}
-            {/* LIVE badge */}
+            {/* Status badge */}
             <div style={{
               position: 'absolute', top: '10px', left: '10px',
-              backgroundColor: '#DC2626',
+              backgroundColor: isTestPreview ? '#3B82F6' : '#DC2626',
               color: 'white',
-              padding: '0.2rem 0.55rem',
-              borderRadius: '0.25rem',
+              padding: isTestPreview ? '0.25rem 0.65rem' : '0.2rem 0.55rem',
+              borderRadius: isTestPreview ? '0.35rem' : '0.25rem',
               fontSize: '0.65rem',
               fontWeight: 800,
               letterSpacing: '0.1em',
-              display: 'flex', alignItems: 'center', gap: '0.3rem',
-              boxShadow: '0 2px 8px rgba(220,38,38,0.4)',
+              display: 'flex', alignItems: 'center', gap: '0.35rem',
+              boxShadow: isTestPreview ? '0 0 8px rgba(59,130,246,0.5)' : '0 2px 8px rgba(220,38,38,0.4)',
+              animation: isTestPreview ? 'twinkle 2s ease-in-out infinite' : 'none',
             }}>
-              <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'white', animation: 'pulse 2s infinite' }} />
-              LIVE
+              {isTestPreview ? (
+                <>
+                  <div style={{ display: 'flex', gap: '0.15rem', alignItems: 'center' }}>
+                    <div style={{ width: '4px', height: '4px', borderRadius: '50%', backgroundColor: 'white', animation: 'twinkleDot 1.2s ease-in-out infinite' }} />
+                    <div style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: 'white', animation: 'twinkleDot 1.2s ease-in-out 0.3s infinite' }} />
+                    <div style={{ width: '4px', height: '4px', borderRadius: '50%', backgroundColor: 'white', animation: 'twinkleDot 1.2s ease-in-out 0.6s infinite' }} />
+                  </div>
+                  TEST PREVIEW
+                </>
+              ) : (
+                <>
+                  <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'white', animation: 'pulse 2s infinite' }} />
+                  LIVE
+                </>
+              )}
             </div>
             {/* Viewer count overlay */}
-            {viewerCount > 0 && (
+            {isLive && viewerCount > 0 && (
               <div style={{
                 position: 'absolute', top: '10px', right: '10px',
                 backgroundColor: 'rgba(0,0,0,0.6)',
@@ -426,6 +463,7 @@ export default function StreamPreview({
             alignItems: 'center', justifyContent: 'center',
             background: 'linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%)',
             padding: '1.5rem 1rem',
+            color: '#CBD5E1',
           }}>
             {isEnded ? (
               <>
@@ -496,28 +534,28 @@ export default function StreamPreview({
                 <div style={{ color: '#64748B', fontSize: '0.73rem', maxWidth: '280px', textAlign: 'center', lineHeight: '1.4', marginBottom: '0.75rem' }}>
                   {hasCredentials
                     ? 'Paste the credentials into OBS and click "Start Streaming".'
-                    : 'Click the button below to provision your RTMP credentials.'}
+                    : 'Get your RTMP credentials to configure your encoder.'}
                 </div>
                 {!hasCredentials && (
                   <button onClick={onStartStream} style={{
                     padding: '0.6rem 1.5rem',
                     borderRadius: '0.5rem',
                     border: 'none',
-                    background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
+                    background: 'linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)',
                     color: 'white',
-                    fontSize: '0.85rem',
+                    fontSize: '0.8rem',
                     fontWeight: 700,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.5rem',
-                    boxShadow: '0 4px 12px -2px rgba(139,92,246,0.4)',
+                    boxShadow: '0 4px 12px -2px rgba(14,165,233,0.4)',
                     transition: 'transform 0.15s ease, box-shadow 0.15s ease',
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 16px -2px rgba(139,92,246,0.5)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 12px -2px rgba(139,92,246,0.4)'; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 16px -2px rgba(14,165,233,0.5)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 12px -2px rgba(14,165,233,0.4)'; }}
                   >
-                    <PlayIcon /> Start Stream
+                    <BroadcastIcon /> Get RTMP Credentials
                   </button>
                 )}
               </>
@@ -525,33 +563,6 @@ export default function StreamPreview({
           </div>
         )}
       </div>
-
-      {/* Start Stream button — below video when no credentials */}
-      {isDisconnected && !hasCredentials && !isEnded && (
-        <button onClick={onStartStream} style={{
-          marginTop: '0.75rem',
-          padding: '0.75rem 1.25rem',
-          borderRadius: '0.625rem',
-          border: 'none',
-          background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
-          color: 'white',
-          fontSize: '0.9rem',
-          fontWeight: 700,
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '0.5rem',
-          width: '100%',
-          boxShadow: '0 4px 12px -2px rgba(139,92,246,0.4)',
-          transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-        }}
-        onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 16px -2px rgba(139,92,246,0.5)'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 12px -2px rgba(139,92,246,0.4)'; }}
-        >
-          <PlayIcon /> Start Stream
-        </button>
-      )}
 
       {/* Stream stats row — when live or paused */}
       {(isLive || isPaused) && (
@@ -633,36 +644,79 @@ export default function StreamPreview({
         </div>
       )}
 
-      {/* No credentials yet prompt */}
+      {/* No credentials yet — setup prompt */}
       {!isEnded && !hasCredentials && (
-        <button onClick={onStartStream} style={{
-          width: '100%',
-          backgroundColor: isDark ? 'rgba(139,92,246,0.1)' : '#F5F3FF',
-          border: `2px solid ${isDark ? 'rgba(139,92,246,0.3)' : '#C4B5FD'}`,
-          borderRadius: '0.625rem',
-          padding: '0.85rem 0.75rem',
-          display: 'flex', alignItems: 'center', gap: '0.75rem',
-          cursor: 'pointer',
-          transition: 'all 0.2s ease',
-          textAlign: 'left' as const,
-        }}
-        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = isDark ? 'rgba(139,92,246,0.18)' : '#EDE9FE'; e.currentTarget.style.borderColor = '#8B5CF6'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = isDark ? 'rgba(139,92,246,0.1)' : '#F5F3FF'; e.currentTarget.style.borderColor = isDark ? 'rgba(139,92,246,0.3)' : '#C4B5FD'; }}
-        >
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem', maxWidth: '480px', margin: '0 auto' }}>
+          {/* Icon */}
           <div style={{
-            width: '40px', height: '40px', borderRadius: '50%',
-            background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
+            width: '72px', height: '72px', borderRadius: '50%',
+            background: isDark
+              ? 'linear-gradient(135deg, rgba(14,165,233,0.15) 0%, rgba(2,132,199,0.1) 100%)'
+              : 'linear-gradient(135deg, #E0F2FE 0%, #BAE6FD 100%)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
-            boxShadow: '0 4px 8px -2px rgba(139,92,246,0.4)',
+            color: '#0EA5E9',
           }}>
-            <PlayIcon />
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="2" /><path d="M16.24 7.76a6 6 0 010 8.49" /><path d="M7.76 16.24a6 6 0 010-8.49" /><path d="M19.07 4.93a10 10 0 010 14.14" /><path d="M4.93 19.07a10 10 0 010-14.14" />
+            </svg>
           </div>
-          <div>
-            <div style={{ fontSize: '0.85rem', fontWeight: 700, color: isDark ? '#A78BFA' : '#6D28D9' }}>Start Stream</div>
-            <div style={{ fontSize: '0.72rem', color: colors.textSecondary, marginTop: '0.15rem' }}>Provision RTMP credentials for OBS</div>
+
+          {/* Title + description */}
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '1.05rem', fontWeight: 700, color: colors.textPrimary, marginBottom: '0.4rem' }}>
+              Set Up Your Live Stream
+            </div>
+            <div style={{ fontSize: '0.8rem', color: colors.textSecondary, lineHeight: '1.5' }}>
+              Get your RTMP credentials, paste them into your encoder (OBS / Streamlabs), and test your stream before going live.
+            </div>
           </div>
-        </button>
+
+          {/* Steps */}
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+            {[
+              { step: '1', text: 'Click below to generate your RTMP server URL and stream key' },
+              { step: '2', text: 'Open OBS, go to Settings > Stream, paste the credentials' },
+              { step: '3', text: 'Start streaming in OBS to preview and test your feed' },
+              { step: '4', text: 'When ready, click Go Live to broadcast to your audience' },
+            ].map(item => (
+              <div key={item.step} style={{
+                display: 'flex', alignItems: 'center', gap: '0.75rem',
+                backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F9FAFB',
+                borderRadius: '0.5rem',
+                padding: '0.6rem 0.75rem',
+                border: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : '#F3F4F6'}`,
+              }}>
+                <div style={{
+                  width: '24px', height: '24px', borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)',
+                  color: 'white', fontSize: '0.7rem', fontWeight: 700,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}>{item.step}</div>
+                <span style={{ fontSize: '0.78rem', color: colors.textSecondary }}>{item.text}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* CTA Button */}
+          <button onClick={onStartStream} style={{
+            width: '100%',
+            background: 'linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)',
+            border: 'none',
+            borderRadius: '0.625rem',
+            padding: '0.85rem 1.25rem',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            gap: '0.5rem',
+            cursor: 'pointer',
+            transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+            boxShadow: '0 4px 14px -3px rgba(14,165,233,0.45)',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px -3px rgba(14,165,233,0.55)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px -3px rgba(14,165,233,0.45)'; }}
+          >
+            <BroadcastIcon />
+            <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'white' }}>Get RTMP Credentials &amp; Test Stream</span>
+          </button>
+        </div>
       )}
 
       {/* Invite Token — hide when ended */}
@@ -684,38 +738,7 @@ export default function StreamPreview({
         </div>
       )}
 
-      {/* Encoder Guide — hide when ended */}
-      {!isEnded && (
-        <div style={{
-          backgroundColor: isDark ? 'rgba(59,130,246,0.05)' : '#F0F7FF',
-          border: `1px solid ${isDark ? 'rgba(59,130,246,0.15)' : '#BFDBFE'}`,
-          borderRadius: '0.5rem',
-          overflow: 'hidden',
-        }}>
-          <button onClick={() => setShowGuide(!showGuide)} style={{
-            width: '100%',
-            padding: '0.6rem 0.75rem',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: isDark ? '#60A5FA' : '#2563EB',
-          }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 600 }}>Encoder Setup Guide (OBS / Streamlabs)</span>
-            <ChevronIcon open={showGuide} />
-          </button>
-          {showGuide && (
-            <div style={{ padding: '0 0.75rem 0.75rem' }}>
-              <ol style={{ fontSize: '0.72rem', color: colors.textSecondary, margin: 0, paddingLeft: '1.1rem', lineHeight: '1.7' }}>
-                <li>Open OBS Studio and go to <strong>Settings &rarr; Stream</strong></li>
-                <li>Set Service to <strong>&quot;Custom...&quot;</strong></li>
-                <li>Paste the <strong>Server URL</strong> and <strong>Stream Key</strong> above</li>
-                <li>Set output: <strong>1080p, 4500 kbps, x264/NVENC</strong></li>
-                <li>Click <strong>&quot;Start Streaming&quot;</strong> in OBS</li>
-                <li>Come back here and click <strong>&quot;Go Live&quot;</strong></li>
-              </ol>
-            </div>
-          )}
-        </div>
-      )}
+      {/* Encoder Guide removed — OBS steps shown inline above Get RTMP button */}
 
       {/* Error */}
       {error && (
@@ -731,13 +754,37 @@ export default function StreamPreview({
         </div>
       )}
 
+      {/* Test Preview info */}
+      {isTestPreview && (
+        <div style={{
+          backgroundColor: isDark ? 'rgba(59,130,246,0.08)' : '#EFF6FF',
+          border: `1px solid ${isDark ? 'rgba(59,130,246,0.2)' : '#BFDBFE'}`,
+          borderRadius: '0.5rem',
+          padding: '0.65rem 0.75rem',
+          display: 'flex', alignItems: 'center', gap: '0.5rem',
+        }}>
+          <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#3B82F6', animation: 'pulse 2s infinite', flexShrink: 0 }} />
+          <div>
+            <div style={{ fontSize: '0.78rem', fontWeight: 600, color: isDark ? '#93C5FD' : '#1D4ED8' }}>Encoder Connected</div>
+            <div style={{ fontSize: '0.68rem', color: colors.textSecondary, marginTop: '0.1rem' }}>Preview your stream above. When ready, click Go Live to broadcast to viewers.</div>
+          </div>
+        </div>
+      )}
+
       {/* Action Buttons */}
       {!isEnded && (
         <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
 
-          {/* Go Live — has credentials, waiting for encoder */}
-          {isDisconnected && hasCredentials && (
+          {/* Go Live — encoder detected, ready to broadcast */}
+          {isTestPreview && (
             <button onClick={onResumeStream} style={actionBtn('#10B981')}>
+              <BroadcastIcon /> Go Live
+            </button>
+          )}
+
+          {/* Go Live — has credentials, still waiting for encoder (fallback) */}
+          {isDisconnected && hasCredentials && !encoderDetected && (
+            <button onClick={onResumeStream} style={{ ...actionBtn('#6B7280'), opacity: 0.7 }}>
               <BroadcastIcon /> Go Live
             </button>
           )}
@@ -796,6 +843,16 @@ export default function StreamPreview({
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes twinkle {
+          0%, 100% { opacity: 1; box-shadow: 0 0 4px rgba(59,130,246,0.4), 0 0 8px rgba(59,130,246,0.2); }
+          25% { opacity: 0.85; box-shadow: 0 0 8px rgba(59,130,246,0.6), 0 0 16px rgba(59,130,246,0.3); }
+          50% { opacity: 1; box-shadow: 0 0 12px rgba(59,130,246,0.8), 0 0 24px rgba(59,130,246,0.4); }
+          75% { opacity: 0.9; box-shadow: 0 0 6px rgba(59,130,246,0.5), 0 0 12px rgba(59,130,246,0.25); }
+        }
+        @keyframes twinkleDot {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.4; transform: scale(0.6); }
+        }
         .stream-modal { animation: slideUp 0.3s ease-out; }
         .stream-modal::-webkit-scrollbar { width: 6px; }
         .stream-modal::-webkit-scrollbar-track { background: transparent; }
@@ -820,22 +877,39 @@ export default function StreamPreview({
                   width: '36px', height: '36px', borderRadius: '0.5rem',
                   background: isLive
                     ? 'linear-gradient(135deg, #10B981, #059669)'
-                    : isEnded
-                      ? 'linear-gradient(135deg, #6B7280, #4B5563)'
-                      : 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
+                    : isTestPreview
+                      ? 'linear-gradient(135deg, #3B82F6, #2563EB)'
+                      : isEnded
+                        ? 'linear-gradient(135deg, #6B7280, #4B5563)'
+                        : 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: isLive ? '0 0 20px rgba(16,185,129,0.3)' : 'none',
+                  boxShadow: isLive ? '0 0 20px rgba(16,185,129,0.3)' : isTestPreview ? '0 0 20px rgba(59,130,246,0.3)' : 'none',
                 }}>
                   <BroadcastIcon />
                 </div>
                 <div>
                   <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'white', margin: 0 }}>
-                    {isEnded ? 'Stream Ended' : 'Live Stream Control'}
+                    {isEnded ? 'Stream Ended' : !hasCredentials ? 'Stream Setup' : isTestPreview ? 'Test Preview' : 'Live Stream Control'}
                   </h2>
                   <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.55)', margin: 0 }}>{eventTitle}</p>
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                {isTestPreview && (
+                  <div style={{
+                    backgroundColor: '#3B82F6',
+                    color: 'white',
+                    padding: '0.2rem 0.6rem',
+                    borderRadius: '0.25rem',
+                    fontSize: '0.65rem',
+                    fontWeight: 800,
+                    letterSpacing: '0.08em',
+                    display: 'flex', alignItems: 'center', gap: '0.3rem',
+                  }}>
+                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'white', animation: 'pulse 2s infinite' }} />
+                    TEST
+                  </div>
+                )}
                 {isLive && (
                   <div style={{
                     backgroundColor: '#DC2626',
@@ -877,16 +951,24 @@ export default function StreamPreview({
             </div>
           </div>
 
-          {/* Body — Two-panel layout */}
-          <div style={{
-            padding: '1.25rem 1.5rem',
-            display: 'flex',
-            gap: '1.25rem',
-            flexWrap: 'wrap' as const,
-          }}>
-            {renderVideoPanel()}
-            {renderControlPanel()}
-          </div>
+          {/* Body */}
+          {!hasCredentials && !isEnded ? (
+            /* Phase 1: Get Credentials — single column, no video */
+            <div style={{ padding: '2rem 1.5rem' }}>
+              {renderControlPanel()}
+            </div>
+          ) : (
+            /* Phase 2+: Two-panel layout with video */
+            <div style={{
+              padding: '1.25rem 1.5rem',
+              display: 'flex',
+              gap: '1.25rem',
+              flexWrap: 'wrap' as const,
+            }}>
+              {renderVideoPanel()}
+              {renderControlPanel()}
+            </div>
+          )}
         </div>
       </div>
 
