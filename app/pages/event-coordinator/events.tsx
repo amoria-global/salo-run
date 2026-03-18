@@ -40,7 +40,6 @@ interface CreateEventFormData {
   createPrice: string;
   createPriceCurrency: string;
   createMaxGuests: string;
-  createMinPhotos: string;
   createOrganizer: string;
   createTags: string[];
   createPhotographerId: string;
@@ -243,7 +242,6 @@ interface Event {
   status: EventStatus;
   organizer: string;
   tags: string[];
-  minimumPhotos?: number;
   hasPhotographer: boolean;
   bookingStatus?: string;
   photographerId?: string;
@@ -475,7 +473,6 @@ const MyEventsPage = () => {
   const [createBannerImage, setCreateBannerImage] = useState<string | null>(null);
   const [createBannerImagePreview, setCreateBannerImagePreview] = useState<string | null>(null);
   const [createBannerImageFile, setCreateBannerImageFile] = useState<File | null>(null);
-  const [createMinPhotos, setCreateMinPhotos] = useState('');
   const [createPhotographerId, setCreatePhotographerId] = useState<string>('');
   const [createEventVisibility, setCreateEventVisibility] = useState<string>('PUBLIC');
   const [createPackageId, setCreatePackageId] = useState<string>('');
@@ -550,7 +547,6 @@ const MyEventsPage = () => {
       createPrice,
       createPriceCurrency,
       createMaxGuests,
-      createMinPhotos,
       createOrganizer,
       createTags,
       createPhotographerId,
@@ -575,7 +571,7 @@ const MyEventsPage = () => {
   }, [
     createTitle, createDescription, createEventType, createCategory, createStatus,
     createDate, createTime, createEndTime, createDuration, createVenueName,
-    createAddress, createCity, createCountry, createPrice, createPriceCurrency, createMaxGuests, createMinPhotos,
+    createAddress, createCity, createCountry, createPrice, createPriceCurrency, createMaxGuests,
     createOrganizer, createTags, createPhotographerId, createPackageId, createEventVisibility, createBannerImagePreview
   ]);
 
@@ -623,7 +619,6 @@ const MyEventsPage = () => {
             setCreatePrice(savedDraft.createPrice || '');
             setCreatePriceCurrency(savedDraft.createPriceCurrency || 'RWF');
             setCreateMaxGuests(savedDraft.createMaxGuests || '');
-            setCreateMinPhotos(savedDraft.createMinPhotos || '');
             setCreateOrganizer(savedDraft.createOrganizer || '');
             setCreateTags(savedDraft.createTags || []);
             setCreatePhotographerId(savedDraft.createPhotographerId || '');
@@ -802,7 +797,6 @@ const MyEventsPage = () => {
             })() as EventStatus,
             organizer: (evt.eventOrganizer as string) || '',
             tags: evt.eventTags ? (evt.eventTags as string).split(',').map((t: string) => t.trim()) : [],
-            minimumPhotos: (evt.minimumPhotos as number) || 500,
             hasPhotographer: !!(evt.photographerId || (evt.photographer && (evt.photographer as Record<string, unknown>).id)),
             bookingStatus: (evt.bookingStatus as string) || undefined,
             photographerId: (evt.photographerId as string) || (evt.photographer && (evt.photographer as Record<string, unknown>).id as string) || undefined,
@@ -1132,7 +1126,6 @@ const MyEventsPage = () => {
     setCreateBannerImage(null);
     setCreateBannerImagePreview(null);
     setCreateBannerImageFile(null);
-    setCreateMinPhotos('');
     setCreatePhotographerId('');
     setCreatePackageId('');
     setCreateEventVisibility('PUBLIC');
@@ -1278,7 +1271,6 @@ const MyEventsPage = () => {
             return match?.id || undefined;
           })(),
           maxGuests: createMaxGuests ? Number(createMaxGuests.replace(/[^\d]/g, '')) : 0,
-          minimumPhotos: 0,
           groupDiscountPercentage: createGroupDiscount ? Number(createGroupDiscount) : 0,
           notes: '',
         };

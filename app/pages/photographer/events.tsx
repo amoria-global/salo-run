@@ -302,8 +302,8 @@ interface AssignedEvent {
   organizerName: string;
   packageName: string;
   packageId: string;
-  minimumPhotos: number;
   hasLiveStream: boolean;
+  isPublished: boolean;
   guestCount: number;
   maxGuests: number;
   bookingId: string;
@@ -412,6 +412,7 @@ const PhotographerEventsPage = () => {
   const [selectedEvent, setSelectedEvent] = useState<AssignedEvent | null>(null);
   const [showEventDetailModal, setShowEventDetailModal] = useState(false);
   const [showStreamPreview, setShowStreamPreview] = useState(false);
+  const [showUnpublishedModal, setShowUnpublishedModal] = useState(false);
   const [streamConfigs, setStreamConfigs] = useState<Record<string, StreamConfig>>({});
   const [copiedField, setCopiedField] = useState('');
   const [markCompleteTarget, setMarkCompleteTarget] = useState<AssignedEvent | null>(null);
@@ -642,8 +643,8 @@ const PhotographerEventsPage = () => {
               organizerName: e.organizerName || '',
               packageName: e.packageName || '',
               packageId: e.packageId || '',
-              minimumPhotos: e.minimumPhotos || 500,
               hasLiveStream: e.hasLiveStream || false,
+              isPublished: e.isPublished || false,
               guestCount: e.guestCount || 0,
               maxGuests: e.maxGuests || 0,
               bookingId: e.bookingId || e.id,
@@ -1644,7 +1645,14 @@ const PhotographerEventsPage = () => {
                               ) : (
                                 <>
                                   {event.hasLiveStream && (event.status === 'upcoming' || event.status === 'ongoing') && (
-                                    <button onClick={() => { setSelectedEvent(event); setShowStreamPreview(true); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0.5rem', fontSize: '0.72rem', fontWeight: 600, backgroundColor: isLive ? 'rgba(220,38,38,0.9)' : 'rgba(139,92,246,0.85)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer', animation: isLive ? 'pulse 2s infinite' : 'none' }}>
+                                    <button onClick={() => {
+                                      setSelectedEvent(event);
+                                      if (!event.isPublished) {
+                                        setShowUnpublishedModal(true);
+                                      } else {
+                                        setShowStreamPreview(true);
+                                      }
+                                    }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0.5rem', fontSize: '0.72rem', fontWeight: 600, backgroundColor: isLive ? 'rgba(220,38,38,0.9)' : 'rgba(139,92,246,0.85)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer', animation: isLive ? 'pulse 2s infinite' : 'none' }}>
                                       <BroadcastIcon /> {isLive ? 'LIVE' : 'Live Stream'}
                                     </button>
                                   )}
@@ -2108,6 +2116,33 @@ const PhotographerEventsPage = () => {
         </div>
       )}
 
+      {/* Unpublished Event Modal */}
+      {showUnpublishedModal && selectedEvent && (
+        <div style={modalOverlay} onClick={() => setShowUnpublishedModal(false)}>
+          <div style={modalContent('440px')} onClick={e => e.stopPropagation()}>
+            <div style={{ textAlign: 'center', padding: '0.5rem 0' }}>
+              <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: actualTheme === 'dark' ? 'rgba(234,179,8,0.15)' : '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+              </div>
+              <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>Event Not Published</h2>
+              <p style={{ fontSize: '0.85rem', color: colors.textSecondary, lineHeight: '1.5', margin: '0 0 0.75rem 0' }}>
+                Live stream features are only available for published events.
+              </p>
+              <p style={{ fontSize: '0.82rem', color: colors.textSecondary, lineHeight: '1.5', margin: '0 0 1.25rem 0' }}>
+                Please ask the event creator to publish <strong style={{ color: colors.textPrimary }}>{selectedEvent.title}</strong> first, then you can access streaming controls.
+              </p>
+              <button onClick={() => setShowUnpublishedModal(false)} style={{ ...primaryBtn, width: '100%', padding: '0.6rem', justifyContent: 'center' }}>
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Live Stream Control Modal */}
       {selectedEvent && (
         <StreamPreview
@@ -2428,47 +2463,29 @@ const PhotographerEventsPage = () => {
               </div>
             </div>
 
-            {/* Photo Threshold Check */}
-            {(() => {
-              const eventMinPhotos = events.find(e => e.id === selectedAlbum.eventId)?.minimumPhotos || 500;
-              const belowThreshold = selectedAlbum.photoCount < eventMinPhotos;
-              return (
-                <>
-                  {belowThreshold && !selectedAlbum.sharedWithClient && (
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', padding: '0.75rem', backgroundColor: actualTheme === 'dark' ? 'rgba(245,158,11,0.1)' : '#FEF3C7', borderRadius: '0.5rem', marginBottom: '1rem', border: `1px solid ${actualTheme === 'dark' ? 'rgba(245,158,11,0.3)' : '#FCD34D'}` }}>
-                      <span style={{ flexShrink: 0, fontSize: '1rem' }}>&#9888;</span>
-                      <div style={{ fontSize: '0.8rem', color: actualTheme === 'dark' ? '#FBBF24' : '#92400E' }}>
-                        <strong>Below minimum threshold.</strong> This album has {selectedAlbum.photoCount} photos but the client requires at least {eventMinPhotos}. Please upload more photos before sending.
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Recipient */}
-                  <div style={{ marginBottom: '1.25rem' }}>
-                    <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.5rem' }}>Recipient</label>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.bgTertiary, borderRadius: '0.625rem', padding: '0.875rem 1rem', border: `1px solid ${colors.borderPrimary}` }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                        <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: 'linear-gradient(135deg, #083A85, #3B82F6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.85rem', fontWeight: 700, overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
-                          {selectedAlbum.clientName.charAt(0)}
-                          {(() => { const img = selectedAlbum.clientImage || events.find(e => e.id === selectedAlbum.eventId)?.clientImage || ''; return img ? <img src={img} alt={selectedAlbum.clientName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} /> : null; })()}
-                        </div>
-                        <div>
-                          <div style={{ fontSize: '0.875rem', fontWeight: 600, color: colors.textPrimary }}>{selectedAlbum.clientName}</div>
-                          <div style={{ fontSize: '0.75rem', color: colors.textTertiary }}>Booked client</div>
-                        </div>
-                      </div>
-                      {selectedAlbum.sharedWithClient ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', backgroundColor: actualTheme === 'dark' ? 'rgba(16,185,129,0.15)' : '#D1FAE5', color: actualTheme === 'dark' ? '#34D399' : '#059669', padding: '0.35rem 0.75rem', borderRadius: '2rem', fontSize: '0.78rem', fontWeight: 600 }}>
-                          <CheckCircleIcon /> Delivered
-                        </div>
-                      ) : (
-                        <button onClick={() => handleSendToClient(selectedAlbum)} disabled={belowThreshold} style={{ ...primaryBtn, padding: '0.45rem 1.25rem', fontSize: '0.8rem', borderRadius: '2rem', opacity: belowThreshold ? 0.5 : 1, cursor: belowThreshold ? 'not-allowed' : 'pointer' }}>Send Now</button>
-                      )}
-                    </div>
+            {/* Recipient */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.5rem' }}>Recipient</label>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.bgTertiary, borderRadius: '0.625rem', padding: '0.875rem 1rem', border: `1px solid ${colors.borderPrimary}` }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                  <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: 'linear-gradient(135deg, #083A85, #3B82F6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.85rem', fontWeight: 700, overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
+                    {selectedAlbum.clientName.charAt(0)}
+                    {(() => { const img = selectedAlbum.clientImage || events.find(e => e.id === selectedAlbum.eventId)?.clientImage || ''; return img ? <img src={img} alt={selectedAlbum.clientName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} /> : null; })()}
                   </div>
-                </>
-              );
-            })()}
+                  <div>
+                    <div style={{ fontSize: '0.875rem', fontWeight: 600, color: colors.textPrimary }}>{selectedAlbum.clientName}</div>
+                    <div style={{ fontSize: '0.75rem', color: colors.textTertiary }}>Booked client</div>
+                  </div>
+                </div>
+                {selectedAlbum.sharedWithClient ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', backgroundColor: actualTheme === 'dark' ? 'rgba(16,185,129,0.15)' : '#D1FAE5', color: actualTheme === 'dark' ? '#34D399' : '#059669', padding: '0.35rem 0.75rem', borderRadius: '2rem', fontSize: '0.78rem', fontWeight: 600 }}>
+                    <CheckCircleIcon /> Delivered
+                  </div>
+                ) : (
+                  <button onClick={() => handleSendToClient(selectedAlbum)} style={{ ...primaryBtn, padding: '0.45rem 1.25rem', fontSize: '0.8rem', borderRadius: '2rem' }}>Send Now</button>
+                )}
+              </div>
+            </div>
 
           </div>
         </div>
