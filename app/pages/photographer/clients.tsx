@@ -583,7 +583,7 @@ export default function Clients() {
   const totalCompletedEvents = clients.reduce((sum, c) => sum + c.bookings.filter((b: any) => b.status === 'completed').length, 0);
   const bonusEligibleSets = Math.floor(totalCompletedEvents / 10);
   const platformBonus = balance?.totalBonuses || 0;
-  const totalBalance = balance?.totalBalance || balance?.balance || 0;
+  const totalBalance = balance?.availableBalance || 0;
 
   // Filter clients based on search query and active filter
   const filteredClients = clients.filter(client => {
