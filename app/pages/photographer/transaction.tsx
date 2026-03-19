@@ -533,7 +533,7 @@ interface WithdrawModalProps {
 
 interface WithdrawAccount {
   id: string;
-  type: 'mobile' | 'card' | 'mtn' | 'airtel';
+  type: 'mtn' | 'airtel' | 'bank';
   label: string;
   accountNumber: string;
   accountName: string;
@@ -564,30 +564,29 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
     if (!isOpen) return;
     setAccountsLoading(true);
     const apiUrl = getApiUrl();
-    dashboardAuthFetch(`${apiUrl}/api/remote/photographer/preferences`)
+    dashboardAuthFetch(`${apiUrl}/api/remote/photographer/withdrawal-methods`)
       .then(res => res.json())
       .then(result => {
-        const prefs = result?.data || {};
-        const paymentKeys = Object.keys(prefs).filter((k: string) => k.startsWith('payment_method_'));
-        const loaded: WithdrawAccount[] = paymentKeys.map((k: string) => {
-          try {
-            const pm = JSON.parse(prefs[k]);
-            const isAirtel = (pm.name as string)?.toLowerCase().includes('airtel');
-            const type: WithdrawAccount['type'] = pm.type === 'card' ? 'card' : isAirtel ? 'airtel' : 'mtn';
-            return {
-              id: pm.id as string,
-              type,
-              label: pm.name as string,
-              accountNumber: pm.details as string,
-              accountName: displayName,
-              color: type === 'airtel' ? '#ED1C24' : type === 'card' ? '#8B5CF6' : '#F59E0B',
-            };
-          } catch { return null; }
-        }).filter(Boolean) as WithdrawAccount[];
+        const methods = result?.data || [];
+        const loaded: WithdrawAccount[] = methods.map((m: any) => {
+          const methodType = (m.methodType || '').toUpperCase();
+          const bankName = (m.bankName || '').toLowerCase();
+          const isAirtel = bankName.includes('airtel');
+          const type: WithdrawAccount['type'] = methodType === 'BANK_TRANSFER' ? 'bank'
+            : isAirtel ? 'airtel' : 'mtn';
+          return {
+            id: m.id as string,
+            type,
+            label: methodType === 'BANK_TRANSFER' ? (m.bankName || 'Bank Transfer') : (m.bankName || (isAirtel ? 'Airtel Money' : 'MTN Mobile Money')),
+            accountNumber: m.accountNumber as string,
+            accountName: m.accountName as string,
+            color: type === 'bank' ? '#3B82F6' : type === 'airtel' ? '#ED1C24' : '#F59E0B',
+          };
+        });
         setAccounts(loaded);
-        const defaultId = prefs.default_payment_method as string | undefined;
-        if (defaultId && loaded.find(a => a.id === defaultId)) {
-          setSelectedAccount(defaultId);
+        const defaultMethod = methods.find((m: any) => m.isDefault);
+        if (defaultMethod) {
+          setSelectedAccount(defaultMethod.id);
         } else if (loaded.length > 0) {
           setSelectedAccount(loaded[0].id);
         }
@@ -640,7 +639,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
       const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/withdraw`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount, accountId: selectedAccount, donationAmount: donation }),
+        body: JSON.stringify({ amount, withdrawalMethodId: selectedAccount, donationAmount: donation }),
       });
 
       const result = await res.json();
@@ -666,9 +665,8 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
       if (payoutResult.success) {
         setWithdrawStep('success');
       } else {
-        // The withdrawal record was created, but XentriPay payout failed
-        // Show success since the ledger entry exists, the payout can be retried
-        setWithdrawStep('success');
+        setWithdrawError(payoutResult.error || 'Failed to process withdrawal. Please try again.');
+        setWithdrawStep('failed');
       }
     } catch (err) {
       setWithdrawError(sanitizeErrorMessage(err instanceof Error ? err.message : '', 'Withdrawal failed. Please try again.'));
@@ -697,10 +695,8 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
         return '/mtn.png';
       case 'airtel':
         return '/airtel.png';
-      case 'card':
-        return '/cards.png';
       default:
-        return '/cards.png';
+        return null;
     }
   };
 
@@ -1003,20 +999,21 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
                     justifyContent: 'center',
                     gap: '2px'
                   }}>
-                    {account.type === 'card' ? (
-                      <>
-                        <Image src="/visa.png" alt="Visa" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
-                        <Image src="/master.png" alt="Mastercard" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
-                      </>
-                    ) : (
+                    {account.type === 'bank' ? (
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 21H21M3 10H21M5 6L12 3L19 6M4 10V21M20 10V21M8 14V17M12 14V17M16 14V17" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    ) : getAccountImage(account.type) ? (
                       <Image
-                        src={getAccountImage(account.type)}
+                        src={getAccountImage(account.type)!}
                         alt={account.label}
                         width={48}
                         height={48}
                         unoptimized
                         style={{ objectFit: 'cover', width: '100%', height: '100%' }}
                       />
+                    ) : (
+                      <MobileMoneyIcon />
                     )}
                   </div>
 
@@ -1715,11 +1712,11 @@ const TransactionsPage = () => {
 
   useEffect(() => {
     const apiUrl = getApiUrl();
-    dashboardAuthFetch(`${apiUrl}/api/remote/photographer/preferences`)
+    dashboardAuthFetch(`${apiUrl}/api/remote/photographer/withdrawal-methods`)
       .then(res => res.json())
       .then(result => {
-        const prefs = result?.data || {};
-        setHasPaymentAccount(Object.keys(prefs).some(k => k.startsWith('payment_method_')));
+        const methods = result?.data || [];
+        setHasPaymentAccount(methods.length > 0);
       })
       .catch(() => setHasPaymentAccount(null));
   }, []);
@@ -1891,7 +1888,7 @@ Amount: ${formatPrice(transaction.amountNum)}
   const bonusEarned = bonusApproved;
   const bonusReached = completedEventsCount >= BONUS_THRESHOLD;
   const eventsToBonus = Math.max(0, BONUS_THRESHOLD - completedEventsCount);
-  const availableBalance = balance?.totalBalance || balance?.balance || 0;
+  const availableBalance = balance?.availableBalance || 0;
 
   const resultsPerPage = 8;
   const totalResults = transactions.length;

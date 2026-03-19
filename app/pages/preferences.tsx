@@ -8,6 +8,7 @@ import Topbar from '../components/topbar';
 import { useTheme, ThemeMode } from '../context/ThemeContext';
 import { dashboardAuthFetch } from '../providers/AuthProvider';
 import { getApiUrl } from '@/lib/api';
+import { validateAccountDetails } from '@/lib/xentripay';
 
 // API response type
 interface ApiResponse<T = unknown> {
@@ -24,13 +25,13 @@ interface PreferencePayload {
 
 interface PaymentMethod {
   id: string;
-  type: 'card' | 'mobile';
+  type: 'mobile' | 'bank';
+  methodType: string;
   name: string;
   details: string;
   isDefault: boolean;
-  icon: string;
-  lastFour?: string;
-  expiryDate?: string;
+  bankName?: string;
+  accountName?: string;
 }
 
 interface PreferencesPageProps {
@@ -152,20 +153,27 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
   const [showEditPaymentModal, setShowEditPaymentModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod | null>(null);
-  const [paymentType, setPaymentType] = useState<'card' | 'mtn' | 'airtel'>('card');
+  const [paymentType, setPaymentType] = useState<'mtn' | 'airtel' | 'bank'>('mtn');
 
   // Form states
-  const [cardNumber, setCardNumber] = useState('');
-  const [cardName, setCardName] = useState('');
-  const [expiryDate, setExpiryDate] = useState('');
-  const [cvv, setCvv] = useState('');
-
-  const [mobileProvider, setMobileProvider] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
+  const [accountHolderName, setAccountHolderName] = useState('');
   const [countryCode, setCountryCode] = useState('+250');
   const [countryFlag, setCountryFlag] = useState('🇷🇼');
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const [countrySearch, setCountrySearch] = useState('');
+
+  // Bank transfer states
+  const [bankAccountNumber, setBankAccountNumber] = useState('');
+  const [bankAccountName, setBankAccountName] = useState('');
+  const [selectedBank, setSelectedBank] = useState('');
+  const [bankProviders, setBankProviders] = useState<{ id: string; name: string }[]>([]);
+  const [mobileProviders, setMobileProviders] = useState<{ id: string; name: string }[]>([]);
+
+  // Account validation states
+  const [isValidating, setIsValidating] = useState(false);
+  const [validatedName, setValidatedName] = useState('');
+  const [validationError, setValidationError] = useState('');
 
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
 
@@ -205,12 +213,35 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
           setTheme(prefs.theme as ThemeMode);
         }
 
-        // Apply default payment method if saved
-        if (prefs.default_payment_method) {
-          setPaymentMethods(prev => prev.map(pm => ({
-            ...pm,
-            isDefault: pm.id === prefs.default_payment_method,
-          })));
+        // Load withdrawal methods from API
+        const wmBasePath = userType === 'event-coordinator'
+          ? '/api/remote/customer/withdrawal-methods'
+          : userType === 'photographer'
+            ? '/api/remote/photographer/withdrawal-methods'
+            : '/api/remote/customer/withdrawal-methods';
+        try {
+          const wmRes = await dashboardAuthFetch(`${apiUrl}${wmBasePath}`);
+          if (wmRes.ok) {
+            const wmResult = await wmRes.json();
+            const methods = (wmResult?.data || []).map((m: any) => {
+              const mt = (m.methodType || '').toUpperCase();
+              const bn = (m.bankName || '').toLowerCase();
+              const isAirtel = bn.includes('airtel');
+              return {
+                id: m.id,
+                type: mt === 'BANK_TRANSFER' ? 'bank' : 'mobile',
+                methodType: m.methodType,
+                name: mt === 'BANK_TRANSFER' ? (m.bankName || 'Bank Transfer') : (isAirtel ? 'Airtel Money' : 'MTN Mobile Money'),
+                details: m.accountNumber || '',
+                isDefault: m.isDefault || false,
+                bankName: m.bankName,
+                accountName: m.accountName,
+              } as PaymentMethod;
+            });
+            setPaymentMethods(methods);
+          }
+        } catch (e) {
+          console.error('Failed to load withdrawal methods:', e);
         }
 
         // Load notification preferences
@@ -224,16 +255,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
         if (prefs.gift_notifications !== undefined) setGiftNotifications(prefs.gift_notifications === 'true');
         if (prefs.stream_fee_notifications !== undefined) setStreamFeeNotifications(prefs.stream_fee_notifications === 'true');
 
-        // Load saved payment methods
-        const paymentKeys = Object.keys(prefs).filter(k => k.startsWith('payment_method_'));
-        if (paymentKeys.length > 0) {
-          const loaded: PaymentMethod[] = paymentKeys.map(k => {
-            try { return JSON.parse(prefs[k]); } catch { return null; }
-          }).filter(Boolean);
-          if (loaded.length > 0) {
-            setPaymentMethods(loaded);
-          }
-        }
+        // (payment methods are loaded from withdrawal-methods API above)
       } catch (err) {
         console.error('Failed to load preferences:', err);
       }
@@ -275,11 +297,19 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
     }
   }, [userType, preferencesBasePath]);
 
-  // Ensure photographer modal defaults to 'mtn' (not 'card' which is not shown for photographers)
+  // Load bank providers when modal opens
   useEffect(() => {
-    if (showAddPaymentModal && userType === 'photographer' && paymentType === 'card') {
-      setPaymentType('mtn');
-    }
+    if (!showAddPaymentModal) return;
+    const apiUrl = getApiUrl();
+    dashboardAuthFetch(`${apiUrl}/api/remote/withdrawals/xentripay/providers`)
+      .then(res => res.json())
+      .then(result => {
+        const banks = result?.data?.banks || [];
+        const mobile = result?.data?.mobileMoney || [];
+        setBankProviders(banks);
+        setMobileProviders(mobile);
+      })
+      .catch(() => setBankProviders([]));
   }, [showAddPaymentModal]);
 
   const themeOptions: { mode: ThemeMode; label: string; icon: React.ReactNode; description: string }[] = [
@@ -288,118 +318,167 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
     { mode: 'system', label: 'System', icon: <SystemIcon />, description: 'Automatically match your device settings' }
   ];
 
+  const withdrawalMethodBasePath = userType === 'event-coordinator'
+    ? '/api/remote/customer/withdrawal-methods'
+    : userType === 'photographer'
+      ? '/api/remote/photographer/withdrawal-methods'
+      : '/api/remote/customer/withdrawal-methods';
+
   const handleSetDefault = async (id: string) => {
-    setPaymentMethods(methods =>
-      methods.map(m => ({ ...m, isDefault: m.id === id }))
-    );
-    // Persist the default payment preference
-    await savePreference('default_payment_method', id);
+    const method = paymentMethods.find(m => m.id === id);
+    if (!method) return;
+    try {
+      const apiUrl = getApiUrl();
+      await dashboardAuthFetch(`${apiUrl}${withdrawalMethodBasePath}/${id}?methodType=${encodeURIComponent(method.methodType)}&accountName=${encodeURIComponent(method.accountName || method.name)}&accountNumber=${encodeURIComponent(method.details)}&bankName=${encodeURIComponent(method.bankName || '')}&isDefault=true`, {
+        method: 'PUT',
+      });
+      setPaymentMethods(methods =>
+        methods.map(m => ({ ...m, isDefault: m.id === id }))
+      );
+    } catch (err) {
+      console.error('Failed to set default method:', err);
+    }
   };
 
   const handleDeletePayment = async () => {
     if (selectedPayment) {
-      setPaymentMethods(methods => methods.filter(m => m.id !== selectedPayment.id));
-      // Delete the payment method preference from the API
-      await deletePreference(`payment_method_${selectedPayment.id}`);
+      try {
+        const apiUrl = getApiUrl();
+        await dashboardAuthFetch(`${apiUrl}${withdrawalMethodBasePath}/${selectedPayment.id}`, {
+          method: 'DELETE',
+        });
+        setPaymentMethods(methods => methods.filter(m => m.id !== selectedPayment.id));
+      } catch (err) {
+        console.error('Failed to delete withdrawal method:', err);
+      }
       setShowDeleteModal(false);
       setSelectedPayment(null);
     }
   };
 
   const resetForm = () => {
-    setCardNumber('');
-    setCardName('');
-    setExpiryDate('');
-    setCvv('');
-    setMobileProvider('');
     setMobileNumber('');
+    setAccountHolderName('');
     setCountryCode('+250');
     setCountryFlag('🇷🇼');
     setShowCountryDropdown(false);
     setCountrySearch('');
-    setPaymentType('card');
+    setBankAccountNumber('');
+    setBankAccountName('');
+    setSelectedBank('');
+    setPaymentType('mtn');
+    setValidatedName('');
+    setValidationError('');
   };
 
   const handleAddPayment = async () => {
     setIsSavingPreference(true);
-    let newPayment: PaymentMethod;
+    setValidationError('');
+    try {
+      const apiUrl = getApiUrl();
+      let methodType: string;
+      let accountName: string;
+      let accountNumber: string;
+      let bankName: string;
+      let bankId: string;
 
-    if (paymentType === 'card') {
-      const lastFour = cardNumber.replace(/\s/g, '').slice(-4);
-      newPayment = {
-        id: Date.now().toString(),
-        type: 'card',
-        name: cardName || 'Card',
-        details: `Card ending in ${lastFour}`,
-        lastFour,
-        expiryDate,
-        isDefault: paymentMethods.length === 0,
-        icon: 'bi-credit-card-2-front'
-      };
-    } else if (paymentType === 'mtn') {
-      const fullNumber = mobileNumber ? `${countryCode} ${mobileNumber}` : '';
-      const lastFour = mobileNumber.slice(-3);
-      newPayment = {
-        id: Date.now().toString(),
-        type: 'mobile',
-        name: 'MTN Mobile Money',
-        details: fullNumber || 'MTN Mobile Money',
-        lastFour,
-        isDefault: paymentMethods.length === 0,
-        icon: 'bi-phone'
-      };
-    } else {
-      // Airtel
-      const fullNumber = mobileNumber ? `${countryCode} ${mobileNumber}` : '';
-      const lastFour = mobileNumber.slice(-3);
-      newPayment = {
-        id: Date.now().toString(),
-        type: 'mobile',
-        name: 'Airtel Money',
-        details: fullNumber || 'Airtel Money',
-        lastFour,
-        isDefault: paymentMethods.length === 0,
-        icon: 'bi-phone'
-      };
+      if (paymentType === 'bank') {
+        methodType = 'BANK_TRANSFER';
+        accountName = bankAccountName;
+        accountNumber = bankAccountNumber;
+        bankName = selectedBank;
+        const provider = bankProviders.find(b => b.name === selectedBank);
+        bankId = provider?.id || '';
+      } else if (paymentType === 'mtn') {
+        methodType = 'MOBILE_MONEY';
+        accountName = accountHolderName || 'MTN Mobile Money';
+        accountNumber = mobileNumber ? `${countryCode}${mobileNumber.replace(/\s/g, '')}` : '';
+        bankName = 'MTN Mobile Money';
+        const provider = mobileProviders.find(p => p.name.toLowerCase().includes('mtn'));
+        bankId = provider?.id || '63510';
+      } else {
+        methodType = 'MOBILE_MONEY';
+        accountName = accountHolderName || 'Airtel Money';
+        accountNumber = mobileNumber ? `${countryCode}${mobileNumber.replace(/\s/g, '')}` : '';
+        bankName = 'Airtel Rwanda';
+        const provider = mobileProviders.find(p => p.name.toLowerCase().includes('airtel'));
+        bankId = provider?.id || '63514';
+      }
+
+      if (!accountNumber) {
+        setValidationError('Please enter an account number.');
+        setIsSavingPreference(false);
+        return;
+      }
+
+      // Validate account with XentriPay before saving
+      setIsValidating(true);
+      const validation = await validateAccountDetails(accountNumber, bankId);
+      setIsValidating(false);
+
+      if (!validation.valid) {
+        setValidationError(validation.error || 'Account validation failed. Please check the account number.');
+        setIsSavingPreference(false);
+        return;
+      }
+
+      // Use the registered name from XentriPay as the account name
+      const registeredName = validation.registeredName || accountName;
+      setValidatedName(registeredName);
+
+      const isDefault = paymentMethods.length === 0;
+      const params = new URLSearchParams({
+        methodType,
+        accountName: registeredName,
+        accountNumber,
+        bankName,
+        isDefault: String(isDefault),
+      });
+
+      const res = await dashboardAuthFetch(`${apiUrl}${withdrawalMethodBasePath}?${params.toString()}`, {
+        method: 'POST',
+      });
+      const result = await res.json();
+
+      if (res.ok && result.action === 1) {
+        const m = result.data;
+        const bn = (m.bankName || '').toLowerCase();
+        const isAirtel = bn.includes('airtel');
+        const newMethod: PaymentMethod = {
+          id: m.id,
+          type: methodType === 'BANK_TRANSFER' ? 'bank' : 'mobile',
+          methodType: m.methodType,
+          name: methodType === 'BANK_TRANSFER' ? (m.bankName || 'Bank Transfer') : (isAirtel ? 'Airtel Money' : 'MTN Mobile Money'),
+          details: m.accountNumber || '',
+          isDefault: m.isDefault || false,
+          bankName: m.bankName,
+          accountName: m.accountName,
+        };
+        setPaymentMethods([...paymentMethods, newMethod]);
+      }
+    } catch (err) {
+      console.error('Failed to add withdrawal method:', err);
+      setValidationError('Something went wrong. Please try again.');
     }
-
-    // Persist the payment method via the API
-    await savePreference(`payment_method_${newPayment.id}`, JSON.stringify(newPayment));
-
-    setPaymentMethods([...paymentMethods, newPayment]);
     setShowAddPaymentModal(false);
     setIsSavingPreference(false);
     resetForm();
   };
 
-  const formatCardNumber = (value: string) => {
-    const cleaned = value.replace(/\D/g, '');
-    const groups = cleaned.match(/.{1,4}/g);
-    return groups ? groups.join(' ').slice(0, 19) : '';
-  };
-
-  const formatExpiryDate = (value: string) => {
-    const cleaned = value.replace(/\D/g, '');
-    if (cleaned.length >= 2) {
-      return cleaned.slice(0, 2) + '/' + cleaned.slice(2, 4);
-    }
-    return cleaned;
-  };
-
-  const getPaymentIcon = (type: 'card' | 'mobile') => {
+  const getPaymentIcon = (type: 'mobile' | 'bank') => {
     switch (type) {
-      case 'card': return <CreditCardIcon />;
+      case 'bank': return <CreditCardIcon />;
       case 'mobile': return <MobileIcon />;
     }
   };
 
-  const getPaymentImage = (type: 'card' | 'mobile', provider?: string) => {
+  const getPaymentImage = (type: 'mobile' | 'bank', provider?: string) => {
     if (type === 'mobile') {
       if (provider?.toLowerCase().includes('mtn')) return '/mtn.png';
       if (provider?.toLowerCase().includes('airtel')) return '/airtel.png';
-      return '/mtn.png'; // default
+      return '/mtn.png';
     }
-    return '/cards.png';
+    return null; // bank uses icon, not image
   };
 
   return (
@@ -844,7 +923,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                       No payment accounts saved
                     </p>
                     <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: 0 }}>
-                      {userType === 'photographer' ? 'Add a mobile money account to get started' : 'Add a card or mobile money to get started'}
+                      Add a mobile money or bank account to get started
                     </p>
                   </div>
                 ) : (
@@ -874,20 +953,21 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                             justifyContent: 'center',
                             gap: '2px'
                           }}>
-                            {method.type === 'card' ? (
-                              <>
-                                <Image src="/visa.png" alt="Visa" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
-                                <Image src="/master.png" alt="Mastercard" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
-                              </>
-                            ) : (
+                            {method.type === 'bank' ? (
+                              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3 21H21M3 10H21M5 6L12 3L19 6M4 10V21M20 10V21M8 14V17M12 14V17M16 14V17" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            ) : getPaymentImage(method.type, method.name) ? (
                               <Image
-                                src={getPaymentImage(method.type, method.name)}
+                                src={getPaymentImage(method.type, method.name)!}
                                 alt={method.name}
                                 width={48}
                                 height={48}
                                 unoptimized
                                 style={{ objectFit: 'cover', width: '100%', height: '100%' }}
                               />
+                            ) : (
+                              <MobileIcon />
                             )}
                           </div>
                           <div>
@@ -910,7 +990,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                             </div>
                             <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0.125rem 0 0 0' }}>
                               {method.details}
-                              {method.expiryDate && ` • Expires ${method.expiryDate}`}
+                              {method.accountName && ` • ${method.accountName}`}
                             </p>
                           </div>
                         </div>
@@ -1500,13 +1580,10 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
               gap: '0.5rem',
               marginBottom: '1.25rem'
             }}>
-              {(userType === 'photographer' ? [
-                { type: 'mtn' as const, label: 'MTN Mobile Money', description: 'Pay and receive via MTN Mobile Money', image: '/mtn.png' },
-                { type: 'airtel' as const, label: 'Airtel Money', description: 'Pay and receive via Airtel Money', image: '/airtel.png' }
-              ] : [
-                { type: 'card' as const, label: 'Credit/Debit Card', description: 'Pay and receive with Visa, Mastercard, etc.', image: '' },
-                { type: 'mtn' as const, label: 'MTN Mobile Money', description: 'Pay and receive via MTN Mobile Money', image: '/mtn.png' },
-                { type: 'airtel' as const, label: 'Airtel Money', description: 'Pay and receive via Airtel Money', image: '/airtel.png' }
+              {([
+                { type: 'mtn' as const, label: 'MTN Mobile Money', description: 'Withdraw via MTN Mobile Money', image: '/mtn.png' },
+                { type: 'airtel' as const, label: 'Airtel Money', description: 'Withdraw via Airtel Money', image: '/airtel.png' },
+                { type: 'bank' as const, label: 'Bank Transfer', description: 'Withdraw to a Rwandan bank account', image: '' }
               ]).map((option) => (
                 <div
                   key={option.type}
@@ -1535,11 +1612,10 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                     justifyContent: 'center',
                     gap: '2px'
                   }}>
-                    {option.type === 'card' ? (
-                      <>
-                        <Image src="/visa.png" alt="Visa" width={20} height={32} unoptimized style={{ objectFit: 'contain' }} />
-                        <Image src="/master.png" alt="Mastercard" width={20} height={32} unoptimized style={{ objectFit: 'contain' }} />
-                      </>
+                    {option.type === 'bank' ? (
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 21H21M3 10H21M5 6L12 3L19 6M4 10V21M20 10V21M8 14V17M12 14V17M16 14V17" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
                     ) : (
                       <Image
                         src={option.image}
@@ -1571,19 +1647,44 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
               ))}
             </div>
 
-            {/* Card Form */}
-            {paymentType === 'card' && (
+            {/* Bank Transfer Form */}
+            {paymentType === 'bank' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>
-                    Card Number
+                    Select Bank
+                  </label>
+                  <select
+                    value={selectedBank}
+                    onChange={(e) => setSelectedBank(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      border: `2px solid ${colors.borderSecondary}`,
+                      borderRadius: '0.5rem',
+                      fontSize: '0.9rem',
+                      backgroundColor: colors.bgInput,
+                      color: colors.textPrimary,
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="">Choose a bank...</option>
+                    {bankProviders.map((bank) => (
+                      <option key={bank.id} value={bank.name}>{bank.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>
+                    Account Number
                   </label>
                   <input
                     type="text"
-                    placeholder="1234 5678 9012 3456"
-                    value={cardNumber}
-                    onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
-                    maxLength={19}
+                    placeholder="Enter your bank account number"
+                    value={bankAccountNumber}
+                    onChange={(e) => setBankAccountNumber(e.target.value)}
                     style={{
                       width: '100%',
                       padding: '0.75rem',
@@ -1599,13 +1700,13 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>
-                    Cardholder Name
+                    Account Holder Name
                   </label>
                   <input
                     type="text"
-                    placeholder="John Doe"
-                    value={cardName}
-                    onChange={(e) => setCardName(e.target.value)}
+                    placeholder="Name as it appears on your bank account"
+                    value={bankAccountName}
+                    onChange={(e) => setBankAccountName(e.target.value)}
                     style={{
                       width: '100%',
                       padding: '0.75rem',
@@ -1618,54 +1719,6 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                       boxSizing: 'border-box'
                     }}
                   />
-                </div>
-                <div className="mobile-modal-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>
-                      Expiry Date
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="MM/YY"
-                      value={expiryDate}
-                      onChange={(e) => setExpiryDate(formatExpiryDate(e.target.value))}
-                      maxLength={5}
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        border: `2px solid ${colors.borderSecondary}`,
-                        borderRadius: '0.5rem',
-                        fontSize: '0.9rem',
-                        backgroundColor: colors.bgInput,
-                        color: colors.textPrimary,
-                        outline: 'none',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>
-                      CVV
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="123"
-                      value={cvv}
-                      onChange={(e) => setCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                      maxLength={4}
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        border: `2px solid ${colors.borderSecondary}`,
-                        borderRadius: '0.5rem',
-                        fontSize: '0.9rem',
-                        backgroundColor: colors.bgInput,
-                        color: colors.textPrimary,
-                        outline: 'none',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
                 </div>
               </div>
             )}
@@ -1812,6 +1865,42 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                     />
                   </div>
                 </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>
+                    Account Holder Name
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Name registered on your mobile money"
+                    value={accountHolderName}
+                    onChange={(e) => setAccountHolderName(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      border: `2px solid ${colors.borderSecondary}`,
+                      borderRadius: '0.5rem',
+                      fontSize: '0.9rem',
+                      backgroundColor: colors.bgInput,
+                      color: colors.textPrimary,
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Validation Feedback */}
+            {validationError && (
+              <div style={{
+                marginTop: '1rem',
+                padding: '0.75rem',
+                borderRadius: '0.5rem',
+                backgroundColor: '#fee2e2',
+                color: '#dc2626',
+                fontSize: '0.85rem',
+              }}>
+                {validationError}
               </div>
             )}
 
@@ -1819,6 +1908,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
             <div className="mobile-modal-footer" style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', alignItems: 'center' }}>
               <button
                 onClick={() => { setShowAddPaymentModal(false); resetForm(); }}
+                disabled={isValidating || isSavingPreference}
                 style={{
                   flex: 1,
                   padding: '0.75rem',
@@ -1828,13 +1918,15 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                   color: colors.textPrimary,
                   fontSize: '0.9rem',
                   fontWeight: '600',
-                  cursor: 'pointer'
+                  cursor: isValidating || isSavingPreference ? 'not-allowed' : 'pointer',
+                  opacity: isValidating || isSavingPreference ? 0.5 : 1,
                 }}
               >
                 Cancel
               </button>
               <button
                 onClick={handleAddPayment}
+                disabled={isValidating || isSavingPreference}
                 style={{
                   flex: 1,
                   padding: '0.75rem',
@@ -1844,10 +1936,11 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                   color: 'white',
                   fontSize: '0.9rem',
                   fontWeight: '600',
-                  cursor: 'pointer'
+                  cursor: isValidating || isSavingPreference ? 'not-allowed' : 'pointer',
+                  opacity: isValidating || isSavingPreference ? 0.7 : 1,
                 }}
               >
-                Add Payment Account
+                {isValidating ? 'Validating...' : isSavingPreference ? 'Saving...' : 'Add Payment Account'}
               </button>
             </div>
           </div>
@@ -2045,20 +2138,21 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                   justifyContent: 'center',
                   gap: '2px'
                 }}>
-                  {selectedPayment.type === 'card' ? (
-                    <>
-                      <Image src="/visa.png" alt="Visa" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
-                      <Image src="/master.png" alt="Mastercard" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
-                    </>
-                  ) : (
+                  {selectedPayment.type === 'bank' ? (
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M3 21H21M3 10H21M5 6L12 3L19 6M4 10V21M20 10V21M8 14V17M12 14V17M16 14V17" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  ) : getPaymentImage(selectedPayment.type, selectedPayment.name) ? (
                     <Image
-                      src={getPaymentImage(selectedPayment.type, selectedPayment.name)}
+                      src={getPaymentImage(selectedPayment.type, selectedPayment.name)!}
                       alt={selectedPayment.name}
                       width={48}
                       height={48}
                       unoptimized
                       style={{ objectFit: 'cover', width: '100%', height: '100%' }}
                     />
+                  ) : (
+                    <MobileIcon />
                   )}
                 </div>
                 <div>

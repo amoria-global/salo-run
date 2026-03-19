@@ -1510,9 +1510,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   }, []);
 
   // Helper to convert time string to API format
-  const parseTimeToAPI = (timeStr: string) => {
+  const parseTimeToAPI = (timeStr: string): string => {
     const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
-    if (!match) return { hour: 0, minute: 0, second: 0, nano: 0 };
+    if (!match) return "00:00:00";
 
     let hour = parseInt(match[1]);
     const minute = parseInt(match[2]);
@@ -1521,7 +1521,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     if (period === 'PM' && hour !== 12) hour += 12;
     if (period === 'AM' && hour === 12) hour = 0;
 
-    return { hour, minute, second: 0, nano: 0 };
+    return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00`;
   };
 
   // Add availability to API
@@ -2376,7 +2376,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         flexDirection: 'column',
         overflow: 'hidden'
       }}>
-        <Topbar userRole="photographer" tipsAmount={balance?.totalTips || 0} bonusAmount={balance?.totalBonuses || 0} balanceAmount={balance?.totalBalance || balance?.balance || 0} />
+        <Topbar userRole="photographer" tipsAmount={balance?.totalTips || 0} bonusAmount={balance?.totalBonuses || 0} balanceAmount={balance?.availableBalance || 0} />
 
         <div className="mobile-main-content" style={{
           flex: 1,
