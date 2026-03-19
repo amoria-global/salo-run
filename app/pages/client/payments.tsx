@@ -1562,6 +1562,7 @@ Amount: ${formatPrice(payment.amountNum)}
   const [totalPaid, setTotalPaid] = useState(0);
   const [totalPending, setTotalPending] = useState(0);
   const [totalFailed, setTotalFailed] = useState(0);
+  const [streamingEarnings, setStreamingEarnings] = useState(0);
 
   const fetchBalance = useCallback(async () => {
     if (!token) return;
@@ -1584,6 +1585,7 @@ Amount: ${formatPrice(payment.amountNum)}
       if (data) {
         setTotalPaid(Number(data.totalPaid) || 0);
         setTotalPending(Number(data.totalPending) || 0);
+        if (data.totalEarnings != null) setStreamingEarnings(Number(data.totalEarnings) || 0);
       }
     } catch (err) {
       console.error('Failed to fetch balance:', err);
@@ -1724,24 +1726,31 @@ Amount: ${formatPrice(payment.amountNum)}
   const [selectedGiftPaymentMethod, setSelectedGiftPaymentMethod] = useState<string | null>(null);
   const [giftPaymentDetails, setGiftPaymentDetails] = useState({
     mtnNumber: '',
-
-    
     airtelNumber: '',
-    cardNumber: '',
-    cardExpiry: '',
-    cardCvv: '',
-    cardName: ''
+    bankAccountNumber: '',
+    bankAccountName: '',
+    selectedBank: '',
   });
+  const [bankProviders, setBankProviders] = useState<{ id: string; name: string }[]>([]);
   const [validationError, setValidationError] = useState<string | null>(null);
 
-  // Check if Rwanda requires mobile money selection
-  const isRwanda = profile.country === 'Rwanda';
-  const hasMobileMoneySelected = selectedGiftPaymentMethod === 'mtn' || selectedGiftPaymentMethod === 'airtel';
+  // Load bank providers when modal opens
+  useEffect(() => {
+    if (!showGiftsPaymentMethodModal) return;
+    const apiUrl = getApiUrl();
+    const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+    fetch(`${apiUrl}/api/remote/withdrawals/xentripay/providers`, {
+      headers: { 'Authorization': `Bearer ${token}`, 'api-token': apiKey },
+    })
+      .then(res => res.json())
+      .then(result => setBankProviders(result?.data?.banks || []))
+      .catch(() => setBankProviders([]));
+  }, [showGiftsPaymentMethodModal, token]);
 
-  // Validate that Rwanda users have selected a mobile money option
+  // Validate payment method selection
   const validateGiftPaymentMethod = (): boolean => {
-    if (isRwanda && !hasMobileMoneySelected) {
-      setValidationError('For users in Rwanda, you must select either MTN or Airtel Mobile Money as a payment method.');
+    if (!selectedGiftPaymentMethod) {
+      setValidationError('Please select a payment method.');
       return false;
     }
     setValidationError(null);
@@ -1777,14 +1786,15 @@ Amount: ${formatPrice(payment.amountNum)}
       accountName = 'Airtel Money';
       accountNumber = giftPaymentDetails.airtelNumber.trim();
       bankName = 'Airtel';
-    } else if (selectedGiftPaymentMethod === 'card') {
-      if (!giftPaymentDetails.cardNumber.trim() || !giftPaymentDetails.cardName.trim()) {
-        setValidationError('Please fill in your card holder name and card number to save this payment method.');
+    } else if (selectedGiftPaymentMethod === 'bank') {
+      if (!giftPaymentDetails.bankAccountNumber.trim() || !giftPaymentDetails.bankAccountName.trim() || !giftPaymentDetails.selectedBank) {
+        setValidationError('Please fill in your bank, account number, and account holder name.');
         return;
       }
       methodType = 'BANK_TRANSFER';
-      accountName = giftPaymentDetails.cardName.trim();
-      accountNumber = giftPaymentDetails.cardNumber.trim();
+      accountName = giftPaymentDetails.bankAccountName.trim();
+      accountNumber = giftPaymentDetails.bankAccountNumber.trim();
+      bankName = giftPaymentDetails.selectedBank;
     }
 
     setSavingWithdrawal(true);
@@ -1822,7 +1832,7 @@ Amount: ${formatPrice(payment.amountNum)}
       // Success - close modal and reset
       setShowGiftsPaymentMethodModal(false);
       setSelectedGiftPaymentMethod(null);
-      setGiftPaymentDetails({ mtnNumber: '', airtelNumber: '', cardNumber: '', cardExpiry: '', cardCvv: '', cardName: '' });
+      setGiftPaymentDetails({ mtnNumber: '', airtelNumber: '', bankAccountNumber: '', bankAccountName: '', selectedBank: '' });
       setValidationError(null);
       setHasWithdrawalMethod(true);
     } catch (err) {
@@ -2712,25 +2722,6 @@ Amount: ${formatPrice(payment.amountNum)}
             </div>
           </div>
 
-          {/* Rwanda Mobile Money Requirement Notice */}
-          {isRwanda && (
-            <div style={{
-              backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF',
-              border: `1px solid ${actualTheme === 'dark' ? '#3B82F6' : '#BFDBFE'}`,
-              borderRadius: '0.5rem',
-              padding: '0.75rem 1rem',
-              marginBottom: '1rem',
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: '0.5rem'
-            }}>
-              <span style={{ fontSize: '1rem' }}>ℹ️</span>
-              <div style={{ fontSize: '0.85rem', color: actualTheme === 'dark' ? '#93C5FD' : '#1E40AF' }}>
-                <strong>Required for Rwanda:</strong> You must select either MTN or Airtel Mobile Money as a payment method. You can also add other methods optionally.
-              </div>
-            </div>
-          )}
-
           {/* Validation Error */}
           {validationError && (
             <div style={{
@@ -2766,7 +2757,7 @@ Amount: ${formatPrice(payment.amountNum)}
                 alignItems: 'center',
                 gap: '1rem',
                 padding: '1rem',
-                border: selectedGiftPaymentMethod === 'mtn' ? '2px solid #16A34A' : (isRwanda && !hasMobileMoneySelected ? `2px solid #F59E0B` : `2px solid ${colors.borderPrimary}`),
+                border: selectedGiftPaymentMethod === 'mtn' ? '2px solid #16A34A' : (`2px solid ${colors.borderPrimary}`),
                 borderRadius: '0.75rem',
                 cursor: 'pointer',
                 backgroundColor: selectedGiftPaymentMethod === 'mtn' ? (actualTheme === 'dark' ? '#14532D' : '#F0FDF4') : colors.bgCard,
@@ -2777,20 +2768,7 @@ Amount: ${formatPrice(payment.amountNum)}
                 <Image src="/mtn.png" alt="MTN Mobile Money" width={48} height={48} unoptimized style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>MTN Mobile Money</span>
-                  {isRwanda && (
-                    <span style={{
-                      fontSize: '0.65rem',
-                      fontWeight: '600',
-                      color: '#F59E0B',
-                      backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FEF3C7',
-                      padding: '0.15rem 0.4rem',
-                      borderRadius: '0.25rem',
-                      textTransform: 'uppercase'
-                    }}>Required</span>
-                  )}
-                </div>
+                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>MTN Mobile Money</div>
                 <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Receive gifts via MTN MoMo</div>
               </div>
               <div style={{
@@ -2813,7 +2791,7 @@ Amount: ${formatPrice(payment.amountNum)}
                 alignItems: 'center',
                 gap: '1rem',
                 padding: '1rem',
-                border: selectedGiftPaymentMethod === 'airtel' ? '2px solid #16A34A' : (isRwanda && !hasMobileMoneySelected ? `2px solid #F59E0B` : `2px solid ${colors.borderPrimary}`),
+                border: selectedGiftPaymentMethod === 'airtel' ? '2px solid #16A34A' : (`2px solid ${colors.borderPrimary}`),
                 borderRadius: '0.75rem',
                 cursor: 'pointer',
                 backgroundColor: selectedGiftPaymentMethod === 'airtel' ? (actualTheme === 'dark' ? '#14532D' : '#F0FDF4') : colors.bgCard,
@@ -2824,20 +2802,7 @@ Amount: ${formatPrice(payment.amountNum)}
                 <Image src="/airtel.png" alt="Airtel Mobile Money" width={48} height={48} style={{ objectFit: 'cover', width: '100%', height: '100%' }} unoptimized />
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Airtel Mobile Money</span>
-                  {isRwanda && (
-                    <span style={{
-                      fontSize: '0.65rem',
-                      fontWeight: '600',
-                      color: '#F59E0B',
-                      backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FEF3C7',
-                      padding: '0.15rem 0.4rem',
-                      borderRadius: '0.25rem',
-                      textTransform: 'uppercase'
-                    }}>Required</span>
-                  )}
-                </div>
+                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Airtel Mobile Money</div>
                 <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Receive gifts via Airtel Money</div>
               </div>
               <div style={{
@@ -2849,34 +2814,35 @@ Amount: ${formatPrice(payment.amountNum)}
               }} />
             </div>
 
-            {/* VISA/Debit/Credit Cards */}
+            {/* Bank Transfer */}
             <div
-              onClick={() => setSelectedGiftPaymentMethod('card')}
+              onClick={() => setSelectedGiftPaymentMethod('bank')}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '1rem',
                 padding: '1rem',
-                border: selectedGiftPaymentMethod === 'card' ? '2px solid #16A34A' : `2px solid ${colors.borderPrimary}`,
+                border: selectedGiftPaymentMethod === 'bank' ? '2px solid #16A34A' : `2px solid ${colors.borderPrimary}`,
                 borderRadius: '0.75rem',
                 cursor: 'pointer',
-                backgroundColor: selectedGiftPaymentMethod === 'card' ? (actualTheme === 'dark' ? '#14532D' : '#F0FDF4') : colors.bgCard,
+                backgroundColor: selectedGiftPaymentMethod === 'bank' ? (actualTheme === 'dark' ? '#14532D' : '#F0FDF4') : colors.bgCard,
                 transition: 'all 0.2s'
               }}
             >
-              <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
-                <Image src="/visa.png" alt="Visa" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
-                <Image src="/master.png" alt="Mastercard" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
+              <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M3 21H21M3 10H21M5 6L12 3L19 6M4 10V21M20 10V21M8 14V17M12 14V17M16 14V17" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Debit/Credit Cards</div>
-                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Receive gifts to your card</div>
+                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Bank Transfer</div>
+                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Receive gifts to your bank account</div>
               </div>
               <div style={{
                 width: '20px',
                 height: '20px',
                 borderRadius: '50%',
-                border: selectedGiftPaymentMethod === 'card' ? '6px solid #16A34A' : `2px solid ${colors.borderPrimary}`,
+                border: selectedGiftPaymentMethod === 'bank' ? '6px solid #16A34A' : `2px solid ${colors.borderPrimary}`,
                 backgroundColor: colors.bgCard
               }} />
             </div>
@@ -2894,7 +2860,7 @@ Amount: ${formatPrice(payment.amountNum)}
               <h4 style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 1rem 0' }}>
                 {selectedGiftPaymentMethod === 'mtn' && 'MTN Mobile Money Details'}
                 {selectedGiftPaymentMethod === 'airtel' && 'Airtel Mobile Money Details'}
-                {selectedGiftPaymentMethod === 'card' && 'Card Details'}
+                {selectedGiftPaymentMethod === 'bank' && 'Bank Account Details'}
               </h4>
 
               {/* MTN Fields */}
@@ -2947,18 +2913,43 @@ Amount: ${formatPrice(payment.amountNum)}
                 </div>
               )}
 
-              {/* Card Fields */}
-              {selectedGiftPaymentMethod === 'card' && (
+              {/* Bank Transfer Fields */}
+              {selectedGiftPaymentMethod === 'bank' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                      Card Number
+                      Select Bank
+                    </label>
+                    <select
+                      value={giftPaymentDetails.selectedBank}
+                      onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, selectedBank: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        border: `2px solid ${colors.borderPrimary}`,
+                        borderRadius: '0.5rem',
+                        fontSize: '0.9rem',
+                        backgroundColor: colors.bgCard,
+                        color: colors.textPrimary,
+                        boxSizing: 'border-box',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <option value="">Choose a bank...</option>
+                      {bankProviders.map((bank) => (
+                        <option key={bank.id} value={bank.name}>{bank.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+                      Account Number
                     </label>
                     <input
                       type="text"
-                      placeholder="1234 5678 9012 3456"
-                      value={giftPaymentDetails.cardNumber}
-                      onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, cardNumber: e.target.value })}
+                      placeholder="Enter your bank account number"
+                      value={giftPaymentDetails.bankAccountNumber}
+                      onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, bankAccountNumber: e.target.value })}
                       style={{
                         width: '100%',
                         padding: '0.75rem',
@@ -2973,13 +2964,13 @@ Amount: ${formatPrice(payment.amountNum)}
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                      Name on Card
+                      Account Holder Name
                     </label>
                     <input
                       type="text"
-                      placeholder="John Doe"
-                      value={giftPaymentDetails.cardName}
-                      onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, cardName: e.target.value })}
+                      placeholder="Name as it appears on your bank account"
+                      value={giftPaymentDetails.bankAccountName}
+                      onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, bankAccountName: e.target.value })}
                       style={{
                         width: '100%',
                         padding: '0.75rem',
@@ -2991,50 +2982,6 @@ Amount: ${formatPrice(payment.amountNum)}
                         boxSizing: 'border-box'
                       }}
                     />
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                        Expiry Date
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="MM/YY"
-                        value={giftPaymentDetails.cardExpiry}
-                        onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, cardExpiry: e.target.value })}
-                        style={{
-                          width: '100%',
-                          padding: '0.75rem',
-                          border: `2px solid ${colors.borderPrimary}`,
-                          borderRadius: '0.5rem',
-                          fontSize: '0.9rem',
-                          backgroundColor: colors.bgCard,
-                          color: colors.textPrimary,
-                          boxSizing: 'border-box'
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                        CVV
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="123"
-                        value={giftPaymentDetails.cardCvv}
-                        onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, cardCvv: e.target.value })}
-                        style={{
-                          width: '100%',
-                          padding: '0.75rem',
-                          border: `2px solid ${colors.borderPrimary}`,
-                          borderRadius: '0.5rem',
-                          fontSize: '0.9rem',
-                          backgroundColor: colors.bgCard,
-                          color: colors.textPrimary,
-                          boxSizing: 'border-box'
-                        }}
-                      />
-                    </div>
                   </div>
                 </div>
               )}

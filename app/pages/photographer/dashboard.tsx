@@ -856,7 +856,7 @@ const PhotographerDashboard = () => {
         <Sidebar />
 
         <div className="dashboard-content">
-          <Topbar userRole="photographer" tipsAmount={balance?.totalTips || 0} bonusAmount={balance?.totalBonuses || analytics?.bonuses || 0} balanceAmount={balance?.totalBalance || balance?.balance || 0} />
+          <Topbar userRole="photographer" tipsAmount={balance?.totalTips || 0} bonusAmount={balance?.totalBonuses || analytics?.bonuses || 0} balanceAmount={balance?.availableBalance || 0} />
 
           <div className="dashboard-main">
             <header className="dashboard-header">

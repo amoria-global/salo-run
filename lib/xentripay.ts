@@ -51,7 +51,7 @@ export function sanitizeErrorMessage(msg: string, fallback: string): string {
     [/Invalid.*currency/i, 'Currency not supported. Please select a valid currency and try again.'],
     [/event.*not found|event.*deleted/i, 'This event is no longer available. It may have been removed.'],
     [/Failed to initiate XentriPay|Failed to initiate collection/i, 'Payment gateway is temporarily unavailable. Please try again in a few minutes.'],
-    [/Cannot determine XentriPay provider/i, 'This withdrawal method is not supported for payouts. Please use an MTN or Airtel account in Preferences > Payment Accounts.'],
+    [/Cannot determine XentriPay provider/i, 'Could not identify the payment provider for this account. Please remove and re-add your withdrawal method in Preferences > Payment Accounts.'],
     [/Token has expired|session.*expired/i, 'Your session has expired. Please refresh the page and try again.'],
     [/Missing required parameter/i, 'Some required information is missing. Please fill in all fields and try again.'],
   ];
@@ -110,7 +110,9 @@ export async function initiateBookingPayment(
   donationAmount?: number
 ): Promise<{ success: boolean; data?: XentriPayResponse; error?: string }> {
   try {
-    const body: Record<string, unknown> = { eventId, phone, telecomProvider, paymentMethod, redirectUrl };
+    const body: Record<string, unknown> = { eventId, paymentMethod, redirectUrl };
+    if (phone) body.phone = phone;
+    if (telecomProvider) body.telecomProvider = telecomProvider;
     if (donationAmount && donationAmount > 0) body.donationAmount = donationAmount;
     const response = await dashboardAuthFetch(
       `${getApiUrl()}/api/remote/payments/xentripay/initiate`,
@@ -408,6 +410,36 @@ export async function validateWithdrawalAccount(
     return { success: false, error: sanitizeErrorMessage(result.message, 'Failed to validate account. Please try again.') };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : 'Network error' };
+  }
+}
+
+/**
+ * Validate account details before adding a withdrawal method
+ * Calls XentriPay validate-name API with raw account number + provider ID
+ */
+export async function validateAccountDetails(
+  accountNumber: string,
+  bankId: string
+): Promise<{ valid: boolean; registeredName?: string; error?: string }> {
+  try {
+    const params = new URLSearchParams({ accountNumber, bankId });
+    const response = await dashboardAuthFetch(
+      `${getApiUrl()}/api/remote/withdrawals/xentripay/validate-account-details?${params.toString()}`,
+      { method: 'POST' }
+    );
+
+    const result = await response.json();
+
+    if (result.action === 1 && result.data) {
+      return {
+        valid: true,
+        registeredName: result.data.registeredName,
+      };
+    }
+
+    return { valid: false, error: sanitizeErrorMessage(result.message, 'Account validation failed. Please check the account number.') };
+  } catch (error) {
+    return { valid: false, error: error instanceof Error ? error.message : 'Network error during validation' };
   }
 }
 

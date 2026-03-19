@@ -205,7 +205,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
     try {
       const telecom = getTelecomProvider(selectedPaymentMethod);
       const methodType = getPaymentMethodType(selectedPaymentMethod);
-      const phone = selectedPaymentMethod === 'card' ? '0000000000' : paymentPhone.trim();
+      const phone = selectedPaymentMethod === 'card' ? '' : paymentPhone.trim();
 
       const result = await initiateBookingPayment(
         payment.declarationId,

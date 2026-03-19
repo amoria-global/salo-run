@@ -2811,7 +2811,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
           try {
             const telecom = getTelecomProvider(selectedPaymentMethod);
             const methodType = getPaymentMethodType(selectedPaymentMethod);
-            const phone = selectedPaymentMethod === 'card' ? '0000000000' : paymentPhone.trim();
+            const phone = selectedPaymentMethod === 'card' ? '' : paymentPhone.trim();
             const result = await initiateBookingPayment(String(declId), phone, telecom, methodType);
             if (!result.success || !result.data) {
               setXentriPayError(result.error || 'Failed to initiate payment'); setXentriPayStep('failed'); setIsProcessingPayment(false); return;
