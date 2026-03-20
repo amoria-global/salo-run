@@ -276,6 +276,25 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
     }
   };
 
+  const deleteAllNotifications = async () => {
+    if (!confirm('Delete all notifications? This cannot be undone.')) return;
+    const backup = [...notifications];
+    setNotifications([]);
+    try {
+      const apiUrl = getApiUrl();
+      const base = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${base}/notifications/all`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.message || 'Failed to delete all notifications.');
+        setNotifications(backup);
+      }
+    } catch {
+      alert('Failed to delete all notifications.');
+      setNotifications(backup);
+    }
+  };
+
   const filteredNotifications = activeFilter === 'all'
     ? notifications
     : notifications.filter(n => n.type === activeFilter);
@@ -627,28 +646,52 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
               ))}
             </div>
 
-            {notifications.some(n => n.read) && (
-              <button
-                onClick={deleteAllRead}
-                style={{
-                  padding: '0.5rem 1rem',
-                  backgroundColor: actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2',
-                  border: `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.85rem',
-                  fontWeight: '500',
-                  color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.375rem',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <TrashIcon />
-                Clear read
-              </button>
-            )}
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              {notifications.some(n => n.read) && (
+                <button
+                  onClick={deleteAllRead}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    backgroundColor: actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2',
+                    border: `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}`,
+                    borderRadius: '0.5rem',
+                    fontSize: '0.85rem',
+                    fontWeight: '500',
+                    color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.375rem',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <TrashIcon />
+                  Clear read
+                </button>
+              )}
+              {notifications.length > 0 && (
+                <button
+                  onClick={deleteAllNotifications}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    backgroundColor: actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2',
+                    border: `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}`,
+                    borderRadius: '0.5rem',
+                    fontSize: '0.85rem',
+                    fontWeight: '500',
+                    color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.375rem',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <TrashIcon />
+                  Delete all
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Results Count */}

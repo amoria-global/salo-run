@@ -264,6 +264,24 @@ const Notifications = () => {
     }
   };
 
+  const deleteAllNotifications = async () => {
+    if (!confirm('Delete all notifications? This cannot be undone.')) return;
+    const backup = [...notifications];
+    setNotifications([]);
+    try {
+      const apiUrl = getApiUrl();
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/notifications/all`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.message || 'Failed to delete all notifications.');
+        setNotifications(backup);
+      }
+    } catch {
+      alert('Failed to delete all notifications.');
+      setNotifications(backup);
+    }
+  };
+
   const filteredNotifications = activeFilter === 'all'
     ? notifications
     : notifications.filter(n => n.type === activeFilter);
@@ -571,28 +589,52 @@ const Notifications = () => {
               ))}
             </div>
 
-            {notifications.some(n => n.read) && (
-              <button
-                onClick={deleteAllRead}
-                style={{
-                  padding: '0.5rem 1rem',
-                  backgroundColor: '#FEE2E2',
-                  border: '1px solid #FECACA',
-                  borderRadius: '0.5rem',
-                  fontSize: '0.85rem',
-                  fontWeight: '500',
-                  color: '#DC2626',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.375rem',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <TrashIcon />
-                Clear read
-              </button>
-            )}
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              {notifications.some(n => n.read) && (
+                <button
+                  onClick={deleteAllRead}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    backgroundColor: '#FEE2E2',
+                    border: '1px solid #FECACA',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.85rem',
+                    fontWeight: '500',
+                    color: '#DC2626',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.375rem',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <TrashIcon />
+                  Clear read
+                </button>
+              )}
+              {notifications.length > 0 && (
+                <button
+                  onClick={deleteAllNotifications}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    backgroundColor: '#FEE2E2',
+                    border: '1px solid #FECACA',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.85rem',
+                    fontWeight: '500',
+                    color: '#DC2626',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.375rem',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <TrashIcon />
+                  Delete all
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Results Count */}

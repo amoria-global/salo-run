@@ -1657,7 +1657,14 @@ const PhotographerEventsPage = () => {
                                     </button>
                                   )}
                                   {(event.status === 'completed' || event.bookingStatus?.toUpperCase() === 'ACCEPTED') && canCreateAlbumForEvent(event.id) && (
-                                    <button onClick={() => handleOpenCreateAlbum(event.id)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0.5rem', fontSize: '0.72rem', fontWeight: 600, backgroundColor: '#083A85', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
+                                    <button onClick={() => {
+                                      if (!event.isPublished) {
+                                        setSelectedEvent(event);
+                                        setShowUnpublishedModal(true);
+                                      } else {
+                                        handleOpenCreateAlbum(event.id);
+                                      }
+                                    }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0.5rem', fontSize: '0.72rem', fontWeight: 600, backgroundColor: '#083A85', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
                                       <PlusIcon /> Create Album
                                     </button>
                                   )}
@@ -1738,7 +1745,7 @@ const PhotographerEventsPage = () => {
                 </div>
 
                 {/* Album Cards */}
-                <div className="events-page-grid" style={{ display: 'grid', gridTemplateColumns: albumViewMode === 'grid' ? 'repeat(3, 1fr)' : '1fr', gap: '1rem' }}>
+                <div className="events-page-grid" style={{ display: 'grid', gridTemplateColumns: albumViewMode === 'grid' ? 'repeat(auto-fill, minmax(380px, 1fr))' : '1fr', gap: '1rem' }}>
                   {filteredAlbums.map(album => {
                     const matchedEvent = events.find(e => e.id === album.eventId);
                     const displayDate = album.eventDate || matchedEvent?.date || album.createdAt;
@@ -1791,7 +1798,7 @@ const PhotographerEventsPage = () => {
                             <span style={{ fontSize: '0.74rem', color: 'rgba(255,255,255,0.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{album.clientName}</span>
                           </div>
                           {/* Action buttons + photo count pill */}
-                          <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
+                          <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center', flexWrap: 'wrap' }} onClick={(e) => e.stopPropagation()}>
                             {album.sharedWithClient ? (
                               <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.38rem 0.5rem', fontSize: '0.72rem', fontWeight: 600, backgroundColor: 'rgba(5,150,105,0.85)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem' }}>
                                 <CheckCircleIcon /> Sent
@@ -2130,10 +2137,10 @@ const PhotographerEventsPage = () => {
               </div>
               <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>Event Not Published</h2>
               <p style={{ fontSize: '0.85rem', color: colors.textSecondary, lineHeight: '1.5', margin: '0 0 0.75rem 0' }}>
-                Live stream features are only available for published events.
+                Live streaming and album creation are only available for published events.
               </p>
               <p style={{ fontSize: '0.82rem', color: colors.textSecondary, lineHeight: '1.5', margin: '0 0 1.25rem 0' }}>
-                Please ask the event creator to publish <strong style={{ color: colors.textPrimary }}>{selectedEvent.title}</strong> first, then you can access streaming controls.
+                Please ask the event creator to publish <strong style={{ color: colors.textPrimary }}>{selectedEvent.title}</strong> first, then you can access these features.
               </p>
               <button onClick={() => setShowUnpublishedModal(false)} style={{ ...primaryBtn, width: '100%', padding: '0.6rem', justifyContent: 'center' }}>
                 Got it

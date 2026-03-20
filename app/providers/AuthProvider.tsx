@@ -467,9 +467,18 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
       // Check for token in URL params (primary method)
       const urlToken = searchParams.get('token');
       const urlRefreshToken = searchParams.get('refreshToken');
+
+      // CRITICAL: When a new URL token arrives (new login), clear the previous session
+      // entirely to prevent stale user data from a prior login being shown.
+      if (urlToken) {
+        clearAuthFromStorage();
+        setUser(null);
+        setToken(null);
+      }
+
       // Check for token in cookie
       const cookieToken = getCookieToken();
-      // Check localStorage
+      // Check localStorage (will be empty if we just cleared above)
       const storedToken = typeof window !== 'undefined' ? localStorage.getItem(AUTH_TOKEN_KEY) : null;
       const storedUserStr = typeof window !== 'undefined' ? localStorage.getItem(AUTH_USER_KEY) : null;
 
@@ -510,21 +519,20 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
             window.history.replaceState({}, '', url.pathname + url.search);
           }
         } else if (reason === 'server_error' || reason === 'network_error') {
-          // Backend is down or returning 500 — keep the token and use cached data if available
-          // Do NOT clear auth — the token may still be valid, the backend is just broken
-          if (storedUserStr) {
+          // Backend is down or returning 500 — keep the token
+          // Only use cached data if this is NOT a fresh login (no urlToken) and cache exists
+          if (!urlToken && storedUserStr) {
             try {
               const storedUser = JSON.parse(storedUserStr);
               setToken(activeToken);
               setUser(storedUser);
               saveTokenToStorage(activeToken);
             } catch {
-              // Invalid JSON but still keep the token — don't clear auth
               setToken(activeToken);
               saveTokenToStorage(activeToken);
             }
           } else {
-            // No cached data and backend is down — keep token, user stays null but auth isn't cleared
+            // Fresh login with backend down, or no cache — keep token but don't use stale data
             setToken(activeToken);
             saveTokenToStorage(activeToken);
           }
