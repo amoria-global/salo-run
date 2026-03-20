@@ -16,11 +16,15 @@ export async function GET(request: NextRequest) {
   }
 
   // Route to the correct dashboard based on user type
-  const customerType = request.nextUrl.searchParams.get('type') || '';
+  // Normalize: backend sends "Coordinator", "event_coordinator", "event-coordinator" etc.
+  const raw = (request.nextUrl.searchParams.get('type') || '').toLowerCase();
+  const customerType = (raw === 'coordinator' || raw === 'event_coordinator')
+    ? 'event-coordinator'
+    : raw;
   let route = '/'; // default to role selection
-  if (customerType.toLowerCase() === 'photographer') route = '/user/photographer/dashboard';
-  else if (customerType.toLowerCase() === 'client') route = '/user/client/home';
-  else if (customerType.toLowerCase() === 'event-coordinator') route = '/user/event-coordinator/home';
+  if (customerType === 'photographer') route = '/user/photographer/dashboard';
+  else if (customerType === 'client') route = '/user/client/home';
+  else if (customerType === 'event-coordinator') route = '/user/event-coordinator/home';
   const dashboardUrl = new URL(route, request.url);
   const response = NextResponse.redirect(dashboardUrl);
 
