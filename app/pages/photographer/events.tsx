@@ -351,6 +351,10 @@ interface Album {
   clientImage: string;
   sentAt: string;
   expiresAt: string;
+  albumType?: 'event' | 'standalone';
+  isStandalone?: boolean;
+  location?: string;
+  albumDate?: string;
 }
 
 // ============================================
@@ -426,7 +430,10 @@ const PhotographerEventsPage = () => {
   const [albumSearch, setAlbumSearch] = useState('');
   const [albumViewMode, setAlbumViewMode] = useState<'grid' | 'list'>('grid');
   const [showCreateAlbumModal, setShowCreateAlbumModal] = useState(false);
+  const [createAlbumMode, setCreateAlbumMode] = useState<'event' | 'standalone'>('event');
   const [createAlbumEventId, setCreateAlbumEventId] = useState('');
+  const [standaloneLocation, setStandaloneLocation] = useState('');
+  const [standaloneDate, setStandaloneDate] = useState('');
   const [albumTitle, setAlbumTitle] = useState('');
   const [albumDescription, setAlbumDescription] = useState('');
   const [albumCategory, setAlbumCategory] = useState('');
@@ -712,6 +719,10 @@ const PhotographerEventsPage = () => {
               clientImage: normalizeImg(a.clientImage) || '',
               sentAt: a.sentAt || a.deliveredAt || '',
               expiresAt: a.expiresAt || '',
+              albumType: a.albumType || (a.isStandalone ? 'standalone' : 'event'),
+              isStandalone: a.isStandalone || a.albumType === 'standalone' || false,
+              location: a.location || '',
+              albumDate: a.albumDate || '',
             }));
             setAlbums(mapped);
           } else {
@@ -1244,6 +1255,7 @@ const PhotographerEventsPage = () => {
       setCreateAlbumEventId(''); setAlbumTitle(''); setAlbumCategory(''); setAlbumDescription('');
       setUploadedImagePreviews([]);
     }
+    setCreateAlbumMode('event'); setStandaloneLocation(''); setStandaloneDate('');
     setSelectedFiles(null); setSelectedCoverIndex(0); setShowCreateAlbumModal(true);
   };
 
@@ -1269,22 +1281,32 @@ const PhotographerEventsPage = () => {
   };
 
   const handleCreateAlbum = async () => {
-    const event = events.find(e => e.id === createAlbumEventId); if (!event || !albumTitle) return;
+    const isStandalone = createAlbumMode === 'standalone';
+    const event = isStandalone ? null : events.find(e => e.id === createAlbumEventId);
+    if (!isStandalone && (!event || !albumTitle)) return;
+    if (isStandalone && !albumTitle) return;
     setIsUploadingAlbum(true);
 
     // 1. Create album on backend first
     let backendAlbumId = '';
+    let backendInviteCode = '';
     try {
       setUploadProgress('Creating album...');
       const formData = new FormData();
       formData.append('title', albumTitle);
       if (albumDescription) formData.append('description', albumDescription);
-      formData.append('eventId', event.id);
       if (albumCategory) formData.append('category', albumCategory);
+      if (isStandalone) {
+        if (standaloneLocation) formData.append('location', standaloneLocation);
+        if (standaloneDate) formData.append('date', standaloneDate);
+      } else {
+        formData.append('eventId', event!.id);
+      }
       const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums`, { method: 'POST', body: formData });
       if (res.ok) {
         const result = await res.json();
         backendAlbumId = result?.data?.id || '';
+        backendInviteCode = result?.data?.inviteCode || '';
       }
     } catch (err) { console.error('Failed to create album:', err); }
 
@@ -1295,8 +1317,8 @@ const PhotographerEventsPage = () => {
     }
 
     // 2. Upload images to the album
-    let albumImages: string[] = [event.coverImage];
-    let albumCover = event.coverImage;
+    let albumImages: string[] = isStandalone ? [] : [event!.coverImage];
+    let albumCover = isStandalone ? '' : event!.coverImage;
 
     if (selectedFiles && selectedFiles.length > 0) {
       const uploadedUrls: string[] = [];
@@ -1317,7 +1339,19 @@ const PhotographerEventsPage = () => {
       }
     }
 
-    const newAlbum: Album = { id: backendAlbumId, title: albumTitle, description: albumDescription, category: albumCategory, eventId: event.id, eventTitle: event.title, clientId: event.bookingId, clientName: event.clientName, coverImage: albumCover, images: albumImages, photoCount: albumImages.length, views: 0, likes: 0, downloads: 0, shared: false, sharedWithClient: false, faceRecognitionEnabled: false, inviteCode: null, createdAt: new Date().toISOString().split('T')[0], eventDate: event.date, clientImage: event.clientImage, sentAt: '', expiresAt: '' };
+    const newAlbum: Album = {
+      id: backendAlbumId, title: albumTitle, description: albumDescription, category: albumCategory,
+      eventId: isStandalone ? '' : event!.id, eventTitle: isStandalone ? '' : event!.title,
+      clientId: isStandalone ? '' : event!.bookingId, clientName: isStandalone ? '' : event!.clientName,
+      coverImage: albumCover, images: albumImages, photoCount: albumImages.length,
+      views: 0, likes: 0, downloads: 0, shared: false, sharedWithClient: false,
+      faceRecognitionEnabled: false, inviteCode: backendInviteCode || null,
+      createdAt: new Date().toISOString().split('T')[0],
+      eventDate: isStandalone ? standaloneDate : event!.date,
+      clientImage: isStandalone ? '' : event!.clientImage, sentAt: '', expiresAt: '',
+      albumType: isStandalone ? 'standalone' : 'event', isStandalone,
+      location: isStandalone ? standaloneLocation : '', albumDate: isStandalone ? standaloneDate : '',
+    };
     setAlbums(prev => [newAlbum, ...prev]); setShowCreateAlbumModal(false); setActiveTab('albums');
     setIsUploadingAlbum(false); setUploadProgress('');
   };
@@ -1779,7 +1813,7 @@ const PhotographerEventsPage = () => {
 
                         {/* MIDDLE-BOTTOM: title content over image */}
                         <div style={{ position: 'absolute', bottom: '5.8rem', left: 0, right: 0, padding: '0 0.8rem' }}>
-                          <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: '0.15rem' }}>{album.eventTitle}</div>
+                          <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: '0.15rem' }}>{album.isStandalone ? (album.location || 'Personal Album') : album.eventTitle}</div>
                           <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '0.03em', textTransform: 'uppercase', lineHeight: 1.3 }}>
                             {album.title}
                           </div>
@@ -1787,19 +1821,30 @@ const PhotographerEventsPage = () => {
 
                         {/* FOOTER BAR: frosted glass over blurred cover image */}
                         <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)', padding: '0.6rem 0.8rem', borderTop: '1px solid rgba(255,255,255,0.1)', borderRadius: '0 0 1.05rem 1.05rem' }}>
-                          {/* Client avatar + name */}
+                          {/* Client avatar + name (or Personal badge for standalone) */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', minWidth: 0, marginBottom: '0.5rem' }}>
-                            {clientImg ? (
-                              <img src={clientImg} alt={album.clientName} style={{ width: '24px', height: '24px', borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', objectFit: 'cover', flexShrink: 0 }} onError={(e) => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement)?.style.setProperty('display', 'flex'); }} />
-                            ) : null}
-                            <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'linear-gradient(135deg, #083A85, #3B82F6)', border: '2px solid rgba(255,255,255,0.3)', display: clientImg ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.65rem', fontWeight: 700, flexShrink: 0 }}>
-                              {album.clientName.charAt(0).toUpperCase()}
-                            </div>
-                            <span style={{ fontSize: '0.74rem', color: 'rgba(255,255,255,0.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{album.clientName}</span>
+                            {album.isStandalone ? (
+                              <>
+                                <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'linear-gradient(135deg, #8B5CF6, #A78BFA)', border: '2px solid rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.6rem', fontWeight: 700, flexShrink: 0 }}>
+                                  <ImageIcon />
+                                </div>
+                                <span style={{ fontSize: '0.74rem', color: 'rgba(255,255,255,0.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Personal Album</span>
+                              </>
+                            ) : (
+                              <>
+                                {clientImg ? (
+                                  <img src={clientImg} alt={album.clientName} style={{ width: '24px', height: '24px', borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', objectFit: 'cover', flexShrink: 0 }} onError={(e) => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement)?.style.setProperty('display', 'flex'); }} />
+                                ) : null}
+                                <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'linear-gradient(135deg, #083A85, #3B82F6)', border: '2px solid rgba(255,255,255,0.3)', display: clientImg ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.65rem', fontWeight: 700, flexShrink: 0 }}>
+                                  {album.clientName.charAt(0).toUpperCase()}
+                                </div>
+                                <span style={{ fontSize: '0.74rem', color: 'rgba(255,255,255,0.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{album.clientName}</span>
+                              </>
+                            )}
                           </div>
                           {/* Action buttons + photo count pill */}
                           <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center', flexWrap: 'wrap' }} onClick={(e) => e.stopPropagation()}>
-                            {album.sharedWithClient ? (
+                            {!album.isStandalone && (album.sharedWithClient ? (
                               <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.38rem 0.5rem', fontSize: '0.72rem', fontWeight: 600, backgroundColor: 'rgba(5,150,105,0.85)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem' }}>
                                 <CheckCircleIcon /> Sent
                               </span>
@@ -1807,7 +1852,7 @@ const PhotographerEventsPage = () => {
                               <button onClick={() => { setSelectedAlbum(album); setShowSendModal(true); }} title="Send to Client" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0.5rem', backgroundColor: 'rgba(8,58,133,0.9)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600 }}>
                                 <SendIcon /> Send
                               </button>
-                            )}
+                            ))}
                             {album.faceRecognitionEnabled ? (
                               <span onClick={() => handleOpenFaceAI(album)} title="Album is live on Find-My-Photos" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0.5rem', backgroundColor: 'rgba(139,92,246,0.85)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600 }}>
                                 <CheckCircleIcon /> Published to Face AI
@@ -1873,11 +1918,11 @@ const PhotographerEventsPage = () => {
                           </div>
                           <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
                             <button onClick={() => { setSelectedAlbum(album); setViewerAlbum(album); setCurrentImageIndex(0); setShowAlbumBrowseModal(true); }} style={{ ...smallActionBtn, backgroundColor: '#083A85', borderColor: '#083A85', color: 'white' }}><EyeIcon /> Browse</button>
-                            {album.sharedWithClient ? (
+                            {!album.isStandalone && (album.sharedWithClient ? (
                               <span style={{ ...smallActionBtn, backgroundColor: '#059669', borderColor: '#059669', color: 'white', cursor: 'default', opacity: 0.85 }}><CheckCircleIcon /> Sent</span>
                             ) : (
                               <button onClick={() => { setSelectedAlbum(album); setShowSendModal(true); }} style={{ ...smallActionBtn, backgroundColor: '#083A85', borderColor: '#083A85', color: 'white' }}><SendIcon /> Send</button>
-                            )}
+                            ))}
                             {album.faceRecognitionEnabled ? (
                               <span onClick={() => handleOpenFaceAI(album)} style={{ ...smallActionBtn, backgroundColor: '#8B5CF6', borderColor: '#8B5CF6', color: 'white', cursor: 'pointer', opacity: 0.85 }}><CheckCircleIcon /> Published to Face AI</span>
                             ) : (
@@ -1900,7 +1945,7 @@ const PhotographerEventsPage = () => {
                 </div>
                 {filteredAlbums.length === 0 && (
                   <div style={{ textAlign: 'center', padding: '3rem', color: colors.textTertiary }}>
-                    <ImageIcon /><p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>No albums found. Create one from a completed event!</p>
+                    <ImageIcon /><p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>No albums found. Create one from an event or start a personal album!</p>
                   </div>
                 )}
               </>
@@ -2277,15 +2322,31 @@ const PhotographerEventsPage = () => {
               <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: colors.textPrimary, margin: 0 }}>Create Album</h2>
               <button onClick={() => setShowCreateAlbumModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.textSecondary }}><CloseIcon /></button>
             </div>
-            {/* Select Event */}
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Select Event *</label>
-              <select value={createAlbumEventId} onChange={e => handleEventSelectForAlbum(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
-                <option value="">Choose an event...</option>
-                {events.filter(e => (e.bookingStatus?.toUpperCase() === 'ACCEPTED' || e.status === 'completed') && canCreateAlbumForEvent(e.id)).map(e => <option key={e.id} value={e.id}>{e.title} - {formatDate(e.date)}</option>)}
-              </select>
+            {/* Album Type Toggle */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+              <button onClick={() => { setCreateAlbumMode('event'); setCreateAlbumEventId(''); setAlbumTitle(''); setAlbumDescription(''); setAlbumCategory(''); setUploadedImagePreviews([]); setSelectedFiles(null); }} style={{ flex: 1, padding: '0.6rem', borderRadius: '0.5rem', border: `2px solid ${createAlbumMode === 'event' ? '#083A85' : colors.borderPrimary}`, backgroundColor: createAlbumMode === 'event' ? 'rgba(8,58,133,0.08)' : 'transparent', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, color: createAlbumMode === 'event' ? '#083A85' : colors.textSecondary, transition: 'all 0.2s' }}>
+                Event Album
+              </button>
+              <button onClick={() => { setCreateAlbumMode('standalone'); setCreateAlbumEventId(''); setAlbumTitle(''); setAlbumDescription(''); setAlbumCategory(''); setStandaloneLocation(''); setStandaloneDate(''); setUploadedImagePreviews([]); setSelectedFiles(null); }} style={{ flex: 1, padding: '0.6rem', borderRadius: '0.5rem', border: `2px solid ${createAlbumMode === 'standalone' ? '#8B5CF6' : colors.borderPrimary}`, backgroundColor: createAlbumMode === 'standalone' ? 'rgba(139,92,246,0.08)' : 'transparent', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, color: createAlbumMode === 'standalone' ? '#8B5CF6' : colors.textSecondary, transition: 'all 0.2s' }}>
+                Personal Album
+              </button>
             </div>
-            {createAlbumEventId && (
+            {createAlbumMode === 'standalone' && (
+              <div style={{ backgroundColor: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.15)', borderRadius: '0.5rem', padding: '0.6rem 0.75rem', marginBottom: '1rem', fontSize: '0.75rem', color: colors.textSecondary }}>
+                Personal albums are shared via Find My Photos. No event or client required.
+              </div>
+            )}
+            {/* Select Event (event mode only) */}
+            {createAlbumMode === 'event' && (
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Select Event *</label>
+                <select value={createAlbumEventId} onChange={e => handleEventSelectForAlbum(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
+                  <option value="">Choose an event...</option>
+                  {events.filter(e => (e.bookingStatus?.toUpperCase() === 'ACCEPTED' || e.status === 'completed') && canCreateAlbumForEvent(e.id)).map(e => <option key={e.id} value={e.id}>{e.title} - {formatDate(e.date)}</option>)}
+                </select>
+              </div>
+            )}
+            {(createAlbumMode === 'standalone' || createAlbumEventId) && (
               <>
                 <div style={{ marginBottom: '1rem' }}>
                   <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Album Title *</label>
@@ -2294,13 +2355,26 @@ const PhotographerEventsPage = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
                   <div>
                     <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Category</label>
-                    <input value={albumCategory} onChange={e => setAlbumCategory(e.target.value)} style={inputStyle} />
+                    <input value={albumCategory} onChange={e => setAlbumCategory(e.target.value)} style={inputStyle} placeholder={createAlbumMode === 'standalone' ? 'e.g. Wedding, Portrait' : ''} />
                   </div>
-                  <div>
-                    <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Client</label>
-                    <input readOnly value={events.find(e => e.id === createAlbumEventId)?.clientName || ''} style={{ ...inputStyle, opacity: 0.7 }} />
-                  </div>
+                  {createAlbumMode === 'event' ? (
+                    <div>
+                      <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Client</label>
+                      <input readOnly value={events.find(e => e.id === createAlbumEventId)?.clientName || ''} style={{ ...inputStyle, opacity: 0.7 }} />
+                    </div>
+                  ) : (
+                    <div>
+                      <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Date</label>
+                      <input type="date" value={standaloneDate} onChange={e => setStandaloneDate(e.target.value)} style={inputStyle} />
+                    </div>
+                  )}
                 </div>
+                {createAlbumMode === 'standalone' && (
+                  <div style={{ marginBottom: '1rem' }}>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Location</label>
+                    <input value={standaloneLocation} onChange={e => setStandaloneLocation(e.target.value)} style={inputStyle} placeholder="e.g. Kigali, Rwanda" />
+                  </div>
+                )}
                 <div style={{ marginBottom: '1rem' }}>
                   <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Description</label>
                   <textarea value={albumDescription} onChange={e => setAlbumDescription(e.target.value)} style={{ ...inputStyle, minHeight: '70px', resize: 'vertical' }} />
@@ -2327,7 +2401,7 @@ const PhotographerEventsPage = () => {
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
                   <button onClick={() => setShowCreateAlbumModal(false)} style={secondaryBtn}>Cancel</button>
-                  <button onClick={handleCreateAlbum} disabled={!albumTitle || !createAlbumEventId || isUploadingAlbum} style={{ ...primaryBtn, opacity: (!albumTitle || !createAlbumEventId || isUploadingAlbum) ? 0.5 : 1 }}>{isUploadingAlbum ? (uploadProgress || 'Uploading...') : 'Create Album'}</button>
+                  <button onClick={handleCreateAlbum} disabled={!albumTitle || (createAlbumMode === 'event' && !createAlbumEventId) || isUploadingAlbum} style={{ ...primaryBtn, opacity: (!albumTitle || (createAlbumMode === 'event' && !createAlbumEventId) || isUploadingAlbum) ? 0.5 : 1 }}>{isUploadingAlbum ? (uploadProgress || 'Uploading...') : 'Create Album'}</button>
                 </div>
               </>
             )}
@@ -2572,8 +2646,8 @@ const PhotographerEventsPage = () => {
                 </div>
                 {/* Price Per Image */}
                 <div style={{ marginBottom: '1.25rem' }}>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Price Per Image *</label>
-                  <p style={{ fontSize: '0.75rem', color: colors.textTertiary, margin: '0 0 0.5rem 0' }}>Set the price users will pay to download each photo on Find-My-Photos.</p>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Price Per Image {selectedAlbum.isStandalone ? '(optional)' : '*'}</label>
+                  <p style={{ fontSize: '0.75rem', color: colors.textTertiary, margin: '0 0 0.5rem 0' }}>{selectedAlbum.isStandalone ? 'Optionally set a price per photo. Leave empty for free downloads.' : 'Set the price users will pay to download each photo on Find-My-Photos.'}</p>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <div ref={faceAICurrencyRef} style={{ position: 'relative', minWidth: '120px' }}>
                       <button type="button" onClick={() => setShowFaceAICurrencyDropdown(!showFaceAICurrencyDropdown)}
@@ -2614,9 +2688,9 @@ const PhotographerEventsPage = () => {
                         </div>
                       )}
                     </div>
-                    <input type="number" min="1" step="0.01" value={faceAIPrice} onChange={e => setFaceAIPrice(e.target.value)} placeholder="Min 1.00" style={{ ...inputStyle, flex: 1 }} />
+                    <input type="number" min={selectedAlbum.isStandalone ? 0 : 1} step="0.01" value={faceAIPrice} onChange={e => setFaceAIPrice(e.target.value)} placeholder={selectedAlbum.isStandalone ? 'Free if empty' : 'Min 1.00'} style={{ ...inputStyle, flex: 1 }} />
                   </div>
-                  {faceAIPrice && parseFloat(faceAIPrice) < 1 && (
+                  {faceAIPrice && parseFloat(faceAIPrice) < 1 && !selectedAlbum.isStandalone && (
                     <p style={{ fontSize: '0.75rem', color: '#EF4444', margin: '0.35rem 0 0 0' }}>Minimum price is 1.00</p>
                   )}
                 </div>
@@ -2628,10 +2702,15 @@ const PhotographerEventsPage = () => {
                   setShowFaceRecognitionModal(false);
                   try {
                     // Publish with pricing — triggers Rekognition face indexing without notifying client
+                    const publishBody: Record<string, unknown> = {};
+                    if (faceAIPrice && parseFloat(faceAIPrice) > 0) {
+                      publishBody.pricePerImage = parseFloat(faceAIPrice);
+                      publishBody.currencyId = faceAICurrency;
+                    }
                     await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${selectedAlbum.id}/publish`, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ pricePerImage: parseFloat(faceAIPrice), currencyId: faceAICurrency }),
+                      body: JSON.stringify(publishBody),
                     });
                   } catch (err) {
                     console.error('Failed to enable face recognition on album:', err);
@@ -2641,7 +2720,26 @@ const PhotographerEventsPage = () => {
                     description: `"${selectedAlbum.title}" is now live. Share the invite code with event attendees so they can find their photos using face recognition.`,
                   });
                   setShowAlbumSuccessModal(true);
-                }} disabled={!selectedAlbum.inviteCode || !faceAIPrice || parseFloat(faceAIPrice) < 1 || !faceAICurrency} style={{ ...primaryBtn, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: (!selectedAlbum.inviteCode || !faceAIPrice || parseFloat(faceAIPrice) < 1 || !faceAICurrency) ? (actualTheme === 'dark' ? '#374151' : '#D1D5DB') : '#8B5CF6', borderColor: (!selectedAlbum.inviteCode || !faceAIPrice || parseFloat(faceAIPrice) < 1 || !faceAICurrency) ? (actualTheme === 'dark' ? '#374151' : '#D1D5DB') : '#8B5CF6', cursor: (!selectedAlbum.inviteCode || !faceAIPrice || parseFloat(faceAIPrice) < 1 || !faceAICurrency) ? 'not-allowed' : 'pointer', opacity: (!selectedAlbum.inviteCode || !faceAIPrice || parseFloat(faceAIPrice) < 1 || !faceAICurrency) ? 0.6 : 1 }}>
+                }} disabled={(() => {
+                  if (!selectedAlbum.inviteCode) return true;
+                  if (selectedAlbum.isStandalone) {
+                    // Standalone: price optional, but if provided must be valid
+                    if (faceAIPrice && parseFloat(faceAIPrice) > 0 && !faceAICurrency) return true;
+                    return false;
+                  }
+                  // Event album: price + currency required
+                  return !faceAIPrice || parseFloat(faceAIPrice) < 1 || !faceAICurrency;
+                })()} style={(() => {
+                  const isDisabled = (() => {
+                    if (!selectedAlbum.inviteCode) return true;
+                    if (selectedAlbum.isStandalone) {
+                      if (faceAIPrice && parseFloat(faceAIPrice) > 0 && !faceAICurrency) return true;
+                      return false;
+                    }
+                    return !faceAIPrice || parseFloat(faceAIPrice) < 1 || !faceAICurrency;
+                  })();
+                  return { ...primaryBtn, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: isDisabled ? (actualTheme === 'dark' ? '#374151' : '#D1D5DB') : '#8B5CF6', borderColor: isDisabled ? (actualTheme === 'dark' ? '#374151' : '#D1D5DB') : '#8B5CF6', cursor: isDisabled ? 'not-allowed' : 'pointer', opacity: isDisabled ? 0.6 : 1 };
+                })()}>
                   <FaceRecognitionIcon /> Upload to Find-My-Photos
                 </button>
               </>
