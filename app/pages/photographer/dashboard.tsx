@@ -1327,7 +1327,7 @@ const PhotographerDashboard = () => {
         />
         <StatCard
           title="Ratings"
-          value={analytics?.averageRating ? `${analytics.averageRating.toFixed(1)}/5` : '0/5'}
+          value={analytics?.averageRating ? `${analytics.averageRating.toFixed(1)}/5` : '5.0/5'}
           percentage={statTrends.rating.percentage}
           timeframe={periodLabel}
           icon={<StarIcon />}
