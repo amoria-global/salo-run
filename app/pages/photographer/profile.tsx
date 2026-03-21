@@ -2919,7 +2919,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                   borderBottom: `2px solid ${colors.borderPrimary}`
                 }}>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{user?.rating?.toFixed(1) || '0.0'}</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{user?.rating?.toFixed(1) || '5.0'}</div>
                     <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Rating</div>
                   </div>
                   <div style={{ textAlign: 'center' }}>
@@ -2984,12 +2984,12 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       borderRadius: '0.5rem'
                     }}>
                       <div style={{ fontSize: '2rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
-                        {user.rating?.toFixed(1) || '0.0'}
+                        {user.rating?.toFixed(1) || '5.0'}
                       </div>
                       <div>
                         <div style={{ display: 'flex', gap: '2px', marginBottom: '0.15rem' }}>
                           {[1, 2, 3, 4, 5].map(star => (
-                            <svg key={star} width="16" height="16" viewBox="0 0 24 24" fill={star <= Math.round(user.rating || 0) ? '#F59E0B' : 'none'} stroke={star <= Math.round(user.rating || 0) ? '#F59E0B' : '#D1D5DB'} strokeWidth="2">
+                            <svg key={star} width="16" height="16" viewBox="0 0 24 24" fill={star <= Math.round(user.rating || 5) ? '#F59E0B' : 'none'} stroke={star <= Math.round(user.rating || 5) ? '#F59E0B' : '#D1D5DB'} strokeWidth="2">
                               <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
                             </svg>
                           ))}
