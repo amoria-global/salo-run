@@ -421,7 +421,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
           specializations: p.specializations || (p.specialties || []).map((s: any) => typeof s === 'string' ? s : s.name || ''),
           experience: p.experience || 0,
           location: p.location || (p.address ? { city: p.address, country: '' } : { city: '', country: '' }),
-          rating: p.rating || 0,
+          rating: p.rating || 5,
           reviewCount: p.reviewCount || (p.reviews || []).length || 0,
           completedBookings: p.completedBookings || 0,
           verified: p.isVerified || p.profileReviewStatus === 'ACCEPTED' || false,
