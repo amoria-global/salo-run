@@ -227,6 +227,7 @@ interface Event {
   shareLink: string;
   inviteCode?: string;
   streamInviteToken?: string;
+  completionStatus?: string;
   createdAt: string;
 }
 
@@ -457,6 +458,13 @@ const MyEventsPage = () => {
   const [photographerPackages, setPhotographerPackages] = useState<{id: string; packageName: string; price: number; currencyId: string; description: string; durationHours: number; hasLiveStream: boolean}[]>([]);
   const [packagesLoading, setPackagesLoading] = useState(false);
   const [packagesError, setPackagesError] = useState<string | null>(null);
+  const [createEscrowPercentage, setCreateEscrowPercentage] = useState<number>(50);
+
+  // Completion confirmation modal
+  const [completionModalEvent, setCompletionModalEvent] = useState<Event | null>(null);
+  const [completionFeedbackStatus, setCompletionFeedbackStatus] = useState<'COMPLETED' | 'REQUIRE_CHANGES'>('COMPLETED');
+  const [completionComment, setCompletionComment] = useState('');
+  const [completionSubmitting, setCompletionSubmitting] = useState(false);
 
   // Fetch packages when photographer changes
   useEffect(() => {
@@ -766,32 +774,12 @@ const MyEventsPage = () => {
               const code = (evt.inviteCode as string) || (evt.hostId as string) || '';
               return code ? `${base}&hostId=${code}` : base;
             })(),
+            completionStatus: (evt.completionStatus as string) || undefined,
             createdAt: (evt.createdAt as string) || '',
           };
         });
 
         setEvents(mappedEvents);
-
-        // Auto-complete events whose date+endTime have passed
-        const now = new Date();
-        const apiUrl = getApiUrl();
-        for (const evt of mappedEvents) {
-          const s = evt.status.toUpperCase();
-          if (s === 'COMPLETED' || s === 'PUBLISHED') continue;
-          if (!evt.date) continue;
-          const endTimeStr = evt.endTime || '23:59:59';
-          const eventEnd = new Date(`${evt.date}T${endTimeStr}`);
-          if (eventEnd < now) {
-            // Mark as completed
-            dashboardAuthFetch(`${apiUrl}/api/remote/customer/events/${evt.id}/confirm-completion`, {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
-            }).then(res => {
-              if (res.ok) {
-                setEvents(prev => prev.map(e => e.id === evt.id ? { ...e, status: 'COMPLETED' as EventStatus } : e));
-              }
-            }).catch(() => {});
-          }
-        }
       }
     } catch (err) {
       setEventsError(err instanceof Error ? err.message : 'Failed to fetch events');
@@ -1151,6 +1139,7 @@ const MyEventsPage = () => {
     setCreatePhotographerId('');
     setCreatePackageId('');
     setPhotographerPackages([]);
+    setCreateEscrowPercentage(50);
     setCreateEventVisibility('PUBLIC');
     setShowFindPhotographerModal(false);
     setPhotographerSearchQuery('');
@@ -1297,6 +1286,10 @@ const MyEventsPage = () => {
 
         if (createPackageId && isValidUUID(createPackageId)) {
           payload.packageId = createPackageId;
+        }
+
+        if (validPhotographerId && createPackageId) {
+          payload.escrowPercentage = createEscrowPercentage;
         }
 
         // Strip any undefined/null values to prevent backend "id must not be null" errors
@@ -1843,6 +1836,11 @@ const MyEventsPage = () => {
                             </button>
                           )
                         )}
+                        {event.completionStatus === 'PENDING_CUSTOMER_CONFIRMATION' && (
+                          <button onClick={() => { setCompletionModalEvent(event); setCompletionFeedbackStatus('COMPLETED'); setCompletionComment(''); }} style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.4rem 0.5rem', backgroundColor: '#7C3AED', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}>
+                            Confirm Completion
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1852,6 +1850,99 @@ const MyEventsPage = () => {
           )}
         </div>
       </div>
+
+      {/* Completion Confirmation Modal */}
+      <Modal isOpen={!!completionModalEvent} onClose={() => setCompletionModalEvent(null)} title="Confirm Event Completion" maxWidth="480px">
+        {completionModalEvent && (
+          <div>
+            <p style={{ fontSize: '0.9rem', color: colors.textSecondary, marginBottom: '1rem', lineHeight: 1.5 }}>
+              The photographer has marked <strong>{completionModalEvent.title}</strong> as complete. Was everything submitted satisfactorily?
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+              <div
+                onClick={() => setCompletionFeedbackStatus('COMPLETED')}
+                style={{
+                  flex: 1, padding: '0.75rem', borderRadius: '0.5rem', cursor: 'pointer', textAlign: 'center',
+                  border: `2px solid ${completionFeedbackStatus === 'COMPLETED' ? '#10B981' : colors.borderPrimary}`,
+                  backgroundColor: completionFeedbackStatus === 'COMPLETED' ? (actualTheme === 'dark' ? '#064E3B' : '#ECFDF5') : colors.bgTertiary,
+                }}
+              >
+                <div style={{ fontSize: '1.2rem', marginBottom: '0.25rem' }}>&#10003;</div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: completionFeedbackStatus === 'COMPLETED' ? '#10B981' : colors.textPrimary }}>Completed</div>
+                <div style={{ fontSize: '0.7rem', color: colors.textSecondary, marginTop: '0.15rem' }}>Everything looks good</div>
+              </div>
+              <div
+                onClick={() => setCompletionFeedbackStatus('REQUIRE_CHANGES')}
+                style={{
+                  flex: 1, padding: '0.75rem', borderRadius: '0.5rem', cursor: 'pointer', textAlign: 'center',
+                  border: `2px solid ${completionFeedbackStatus === 'REQUIRE_CHANGES' ? '#F59E0B' : colors.borderPrimary}`,
+                  backgroundColor: completionFeedbackStatus === 'REQUIRE_CHANGES' ? (actualTheme === 'dark' ? '#78350F' : '#FFFBEB') : colors.bgTertiary,
+                }}
+              >
+                <div style={{ fontSize: '1.2rem', marginBottom: '0.25rem' }}>&#9998;</div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: completionFeedbackStatus === 'REQUIRE_CHANGES' ? '#F59E0B' : colors.textPrimary }}>Require Changes</div>
+                <div style={{ fontSize: '0.7rem', color: colors.textSecondary, marginTop: '0.15rem' }}>Something needs to be fixed</div>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 500, color: colors.textSecondary, marginBottom: '0.25rem', display: 'block' }}>
+                Comment {completionFeedbackStatus === 'COMPLETED' ? '(optional)' : ''}
+              </label>
+              <textarea
+                value={completionComment}
+                onChange={e => setCompletionComment(e.target.value)}
+                placeholder={completionFeedbackStatus === 'REQUIRE_CHANGES' ? 'Describe what needs to be changed...' : 'Any additional feedback...'}
+                rows={3}
+                style={{ width: '100%', padding: '0.625rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.85rem', color: colors.textPrimary, backgroundColor: colors.bgCard, resize: 'vertical' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button onClick={() => setCompletionModalEvent(null)} style={{ padding: '0.6rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+              <button
+                disabled={completionSubmitting}
+                onClick={async () => {
+                  setCompletionSubmitting(true);
+                  try {
+                    const apiUrl = getApiUrl();
+                    const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/events/${completionModalEvent.id}/confirm-completion`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ status: completionFeedbackStatus, comment: completionComment || null }),
+                    });
+                    if (res.ok) {
+                      if (completionFeedbackStatus === 'COMPLETED') {
+                        setEvents(prev => prev.map(e => e.id === completionModalEvent.id ? { ...e, status: 'COMPLETED' as EventStatus, completionStatus: 'COMPLETED' } : e));
+                      } else {
+                        setEvents(prev => prev.map(e => e.id === completionModalEvent.id ? { ...e, completionStatus: 'PENDING_CUSTOMER_CONFIRMATION' } : e));
+                      }
+                      setCompletionModalEvent(null);
+                    } else {
+                      const err = await res.json().catch(() => null);
+                      alert(err?.message || 'Failed to submit feedback');
+                    }
+                  } catch {
+                    alert('Network error. Please try again.');
+                  } finally {
+                    setCompletionSubmitting(false);
+                  }
+                }}
+                style={{
+                  padding: '0.6rem 1rem', border: 'none', borderRadius: '0.5rem',
+                  background: completionFeedbackStatus === 'COMPLETED' ? '#10B981' : '#F59E0B',
+                  color: 'white', fontSize: '0.85rem', fontWeight: 600,
+                  cursor: completionSubmitting ? 'not-allowed' : 'pointer',
+                  opacity: completionSubmitting ? 0.7 : 1,
+                }}
+              >
+                {completionSubmitting ? 'Submitting...' : (completionFeedbackStatus === 'COMPLETED' ? 'Confirm Completion' : 'Request Changes')}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* Create Event Modal */}
       <Modal isOpen={showCreateModal} onClose={() => { resetCreateForm(false); setShowCreateModal(false); }} title="Create New Event" maxWidth="700px">
@@ -2237,6 +2328,45 @@ const MyEventsPage = () => {
               </div>
             )}
           </div>
+
+          {/* Escrow / Payment Milestone Selector — shown when photographer + package selected */}
+          {createPhotographerId && createPackageId && (
+            <div style={{ marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Payment Terms</span>
+              </div>
+              <p style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.75rem', lineHeight: 1.4 }}>
+                Choose how much to pay upfront. All funds are held in escrow and released upon event completion.
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
+                {([50, 75, 100] as const).map(pct => (
+                  <div
+                    key={pct}
+                    onClick={() => setCreateEscrowPercentage(pct)}
+                    style={{
+                      padding: '0.75rem 0.5rem',
+                      border: `2px solid ${createEscrowPercentage === pct ? '#083A85' : colors.borderPrimary}`,
+                      borderRadius: '0.5rem',
+                      backgroundColor: createEscrowPercentage === pct
+                        ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF')
+                        : colors.bgTertiary,
+                      cursor: 'pointer',
+                      textAlign: 'center',
+                      transition: 'border-color 0.15s, background-color 0.15s',
+                    }}
+                  >
+                    <div style={{ fontSize: '1.1rem', fontWeight: '700', color: createEscrowPercentage === pct ? '#083A85' : colors.textPrimary, marginBottom: '0.25rem' }}>
+                      {pct}%
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: colors.textSecondary, lineHeight: 1.3 }}>
+                      {pct === 100 ? 'Full upfront' : `${pct}% upfront + ${100 - pct}% on completion`}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Submit Error */}
           {submitError && (

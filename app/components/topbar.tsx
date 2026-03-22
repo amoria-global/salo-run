@@ -138,6 +138,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
   const [selfBalanceAmount, setSelfBalanceAmount] = useState(0);
   const [selfTipsAmount, setSelfTipsAmount] = useState(0);
   const [selfBonusAmount, setSelfBonusAmount] = useState(0);
+  const [pendingPaymentWarning, setPendingPaymentWarning] = useState<{count: number; totalAmount: number; firstEvent: string} | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const currencyRef = useRef<HTMLDivElement>(null);
@@ -210,6 +211,26 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
             if (data.action === 1 && data.data) {
               setGiftAmount(data.data.gifts ?? 0);
             }
+          }
+        }
+      }
+
+      // Fetch pending payments for client and coordinator roles
+      if (userRole === 'client' || userRole === 'event-coordinator') {
+        const pendingBase = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
+        const pendingRes = await dashboardAuthFetch(`${apiUrl}/api/remote/${pendingBase}/payments/pending`, { method: 'GET' });
+        if (pendingRes.ok) {
+          const pendingData = await pendingRes.json();
+          if (pendingData.action === 1 && Array.isArray(pendingData.data) && pendingData.data.length > 0) {
+            const payments = pendingData.data;
+            const total = payments.reduce((sum: number, p: any) => sum + ((p.amountInUsd ?? p.amount ?? 0) - (p.paidAmountInUsd ?? p.paidAmount ?? 0)), 0);
+            setPendingPaymentWarning({
+              count: payments.length,
+              totalAmount: total,
+              firstEvent: payments[0]?.eventTitle ?? 'Unknown Event'
+            });
+          } else {
+            setPendingPaymentWarning(null);
           }
         }
       }
@@ -1152,6 +1173,48 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
         </div>
       </div>
     </div>
+
+    {/* Payment Warning Banner */}
+    {pendingPaymentWarning && (userRole === 'client' || userRole === 'event-coordinator') && (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FFFBEB',
+        borderLeft: '4px solid #F59E0B',
+        marginLeft: '1.5rem',
+        marginRight: '1.5rem',
+        marginBottom: '0.5rem',
+        padding: '0.6rem 1rem',
+        borderRadius: '0.5rem',
+        fontSize: '0.85rem',
+        color: actualTheme === 'dark' ? '#FDE68A' : '#92400E',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
+          <span style={{ fontSize: '1.1rem' }}>&#9888;</span>
+          <span style={{ fontWeight: 600 }}>
+            Payment Required: {formatPrice(pendingPaymentWarning.totalAmount)} for {pendingPaymentWarning.firstEvent}
+            {pendingPaymentWarning.count > 1 ? ` (+${pendingPaymentWarning.count - 1} more)` : ''}
+          </span>
+        </div>
+        <button
+          onClick={() => router.push(userRole === 'event-coordinator' ? '/event-coordinator/payments' : '/client/payments')}
+          style={{
+            backgroundColor: '#F59E0B',
+            color: '#78350F',
+            border: 'none',
+            padding: '0.35rem 0.85rem',
+            borderRadius: '0.375rem',
+            fontSize: '0.8rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Pay Now
+        </button>
+      </div>
+    )}
 
     {/* Logout Confirmation Modal */}
     {showLogoutModal && (

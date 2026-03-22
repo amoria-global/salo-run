@@ -856,7 +856,7 @@ const PhotographerDashboard = () => {
         <Sidebar />
 
         <div className="dashboard-content">
-          <Topbar userRole="photographer" tipsAmount={balance?.totalTips || 0} bonusAmount={balance?.totalBonuses || analytics?.bonuses || 0} balanceAmount={balance?.availableBalance || 0} />
+          <Topbar userRole="photographer" tipsAmount={balance?.totalTips || 0} bonusAmount={balance?.totalBonuses || analytics?.bonuses || 0} balanceAmount={balance?.withdrawableBalance ?? balance?.availableBalance ?? 0} />
 
           <div className="dashboard-main">
             <header className="dashboard-header">
@@ -1167,6 +1167,27 @@ const PhotographerDashboard = () => {
                   color: colors.textPrimary
                 }}>{analytics?.accuracy ? `${analytics.accuracy}%` : '0%'}</span>
               </div>
+              {balance?.heldForDelivery > 0 && (
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center'
+              }}>
+                <span style={{
+                  fontSize: '1rem',
+                  lineHeight: '1rem',
+                  fontWeight: '600',
+                  marginBottom: '0.25rem',
+                  color: '#F59E0B'
+                }}>Held for Delivery</span>
+                <span style={{
+                  fontSize: '1.25rem',
+                  lineHeight: '1.75rem',
+                  fontWeight: '700',
+                  color: colors.textPrimary
+                }}>{formatPrice(balance.heldForDelivery)}</span>
+              </div>
+              )}
             </div>
             </div>
           </header>

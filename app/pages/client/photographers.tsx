@@ -2812,7 +2812,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
             const telecom = getTelecomProvider(selectedPaymentMethod);
             const methodType = getPaymentMethodType(selectedPaymentMethod);
             const phone = selectedPaymentMethod === 'card' ? '' : paymentPhone.trim();
-            const result = await initiateBookingPayment(String(declId), phone, telecom, methodType);
+            const result = await initiateBookingPayment(String(declId), phone, telecom, methodType, undefined, undefined, currencyId);
             if (!result.success || !result.data) {
               setXentriPayError(result.error || 'Failed to initiate payment'); setXentriPayStep('failed'); setIsProcessingPayment(false); return;
             }
