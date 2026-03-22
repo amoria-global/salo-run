@@ -70,6 +70,7 @@ interface NotificationItem {
   time: string;
   read: boolean;
   actionUrl?: string;
+  referenceId?: string;
 }
 
 function formatTimeAgo(dateStr: string): string {
@@ -138,7 +139,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
   const [selfBalanceAmount, setSelfBalanceAmount] = useState(0);
   const [selfTipsAmount, setSelfTipsAmount] = useState(0);
   const [selfBonusAmount, setSelfBonusAmount] = useState(0);
-  const [pendingPaymentWarning, setPendingPaymentWarning] = useState<{count: number; totalAmount: number; firstEvent: string} | null>(null);
+  const [pendingPaymentWarning, setPendingPaymentWarning] = useState<{count: number; totalAmount: number; firstEvent: string; firstEventId?: string; firstPaymentId?: string} | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const currencyRef = useRef<HTMLDivElement>(null);
@@ -165,6 +166,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
             time: n.createdAt ? formatTimeAgo(n.createdAt) : '',
             read: n.isRead ?? true,
             actionUrl: n.link || undefined,
+            referenceId: n.referenceId || undefined,
           })));
         }
       }
@@ -197,7 +199,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
           if (res.ok) {
             const data = await res.json();
             if (data.action === 1 && data.data) {
-              if (balanceAmount === undefined) setSelfBalanceAmount(data.data.availableBalance ?? data.data.totalPaid ?? 0);
+              if (balanceAmount === undefined) setSelfBalanceAmount(Math.max(0, data.data.withdrawableBalance ?? data.data.availableBalance ?? data.data.totalPaid ?? 0));
               if (tipsAmount === undefined) setSelfTipsAmount(data.data.totalTips ?? 0);
               if (bonusAmount === undefined) setSelfBonusAmount(data.data.totalBonuses ?? data.data.bonus ?? 0);
             }
@@ -227,7 +229,9 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
             setPendingPaymentWarning({
               count: payments.length,
               totalAmount: total,
-              firstEvent: payments[0]?.eventTitle ?? 'Unknown Event'
+              firstEvent: payments[0]?.eventTitle ?? 'Unknown Event',
+              firstEventId: payments[0]?.eventId ?? undefined,
+              firstPaymentId: payments[0]?.id ?? undefined,
             });
           } else {
             setPendingPaymentWarning(null);
@@ -279,33 +283,49 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
     markAsRead(notification.id);
     setIsNotificationsOpen(false);
     const t = notification.type?.toLowerCase();
+    const refId = notification.referenceId;
     let dest: string | null = null;
 
     if (userRole === 'photographer') {
       switch (t) {
         case 'payment': case 'tip': case 'bonus': case 'withdrawal': dest = '/user/photographer/transaction'; break;
-        case 'booking': case 'event': dest = '/user/photographer/events'; break;
-        case 'album': case 'media': dest = '/user/photographer/events'; break;
+        case 'booking': case 'event':
+          dest = refId ? `/user/photographer/events/${refId}` : '/user/photographer/events'; break;
+        case 'album': case 'media':
+          dest = refId ? `/user/photographer/events/${refId}` : '/user/photographer/events'; break;
         case 'security': dest = '/user/photographer/profile'; break;
-        case 'streaming': dest = '/user/photographer/events'; break;
+        case 'streaming':
+          dest = refId ? `/user/photographer/events/${refId}` : '/user/photographer/events'; break;
+        case 'photobook':
+          dest = refId ? `/user/photographer/events/${refId}` : '/user/photographer/events'; break;
       }
     } else if (userRole === 'event-coordinator') {
       switch (t) {
-        case 'booking': case 'event': dest = '/user/event-coordinator/events'; break;
-        case 'payment': case 'streamfee': case 'streaming': dest = '/user/event-coordinator/payments'; break;
-        case 'album': case 'media': dest = '/user/event-coordinator/gallery'; break;
+        case 'booking': case 'event':
+          dest = refId ? `/user/event-coordinator/events/${refId}` : '/user/event-coordinator/events'; break;
+        case 'payment': case 'streamfee': case 'streaming':
+          dest = refId ? `/user/event-coordinator/payments/${refId}` : '/user/event-coordinator/payments'; break;
+        case 'album': case 'media':
+          dest = refId ? `/user/event-coordinator/gallery` : '/user/event-coordinator/gallery'; break;
         case 'photographer': dest = '/user/event-coordinator/home'; break;
         case 'security': dest = '/user/event-coordinator/profile'; break;
+        case 'photobook':
+          dest = refId ? `/user/event-coordinator/events/${refId}` : '/user/event-coordinator/events'; break;
       }
     } else {
       switch (t) {
-        case 'booking': case 'event': dest = '/user/client/events'; break;
-        case 'payment': dest = '/user/client/payments'; break;
+        case 'booking': case 'event':
+          dest = refId ? `/user/client/events/${refId}` : '/user/client/events'; break;
+        case 'payment':
+          dest = refId ? `/user/client/payments/${refId}` : '/user/client/payments'; break;
         case 'gift': dest = '/user/client/payments'; break;
-        case 'album': case 'media': dest = '/user/client/gallery'; break;
+        case 'album': case 'media':
+          dest = refId ? `/user/client/gallery` : '/user/client/gallery'; break;
         case 'photographer': dest = '/user/client/photographers'; break;
         case 'security': dest = '/user/client/profile'; break;
         case 'streaming': dest = '/user/client/streams'; break;
+        case 'photobook':
+          dest = refId ? `/user/client/events/${refId}` : '/user/client/events'; break;
       }
     }
 
@@ -908,7 +928,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
               lineHeight: '1.5rem',
               fontWeight: '700',
               color: (balanceAmount ?? selfBalanceAmount) > 0 ? colors.brandPrimary : colors.textSecondary
-            }}>{formatPrice(balanceAmount ?? selfBalanceAmount)}</span>
+            }}>${(balanceAmount ?? selfBalanceAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
         )}
 
@@ -930,7 +950,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
               lineHeight: '1.5rem',
               fontWeight: '600',
               color: (tipsAmount ?? selfTipsAmount) > 0 ? '#F59E0B' : colors.textSecondary
-            }}>{formatPrice(tipsAmount ?? selfTipsAmount)}</span>
+            }}>${(tipsAmount ?? selfTipsAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
         )}
 
@@ -955,11 +975,11 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
               : userRole === 'event-coordinator'
                 ? ((liveStreamFeeAmount ?? selfLiveStreamFee) > 0 ? colors.statusSuccess : colors.brandPrimary)
                 : ((bonusAmount ?? selfBonusAmount) > 0 ? colors.statusSuccess : colors.brandPrimary)
-          }}>{formatPrice(userRole === 'client'
+          }}>${(userRole === 'client'
             ? giftAmount
             : userRole === 'event-coordinator'
               ? (liveStreamFeeAmount ?? selfLiveStreamFee)
-              : (bonusAmount ?? selfBonusAmount))}</span>
+              : (bonusAmount ?? selfBonusAmount)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
         </div>
 
         {/* Profile with Dropdown */}
@@ -1198,7 +1218,11 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
           </span>
         </div>
         <button
-          onClick={() => router.push(userRole === 'event-coordinator' ? '/event-coordinator/payments' : '/client/payments')}
+          onClick={() => {
+            const base = userRole === 'event-coordinator' ? '/user/event-coordinator' : '/user/client';
+            const eventId = pendingPaymentWarning?.firstEventId;
+            router.push(eventId ? `${base}/events/${eventId}` : `${base}/payments`);
+          }}
           style={{
             backgroundColor: '#F59E0B',
             color: '#78350F',

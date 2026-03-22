@@ -555,15 +555,24 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
   // Escrow states — auto-skip if already set at booking time
-  const [escrowStep, setEscrowStep] = useState<'options' | 'method'>(() =>
-    payment?.escrowPercentage ? 'method' : 'options'
-  );
-  const [selectedEscrowOption, setSelectedEscrowOption] = useState<number | null>(() =>
-    payment?.escrowPercentage ?? null
-  );
+  const [escrowStep, setEscrowStep] = useState<'options' | 'method'>('options');
+  const [selectedEscrowOption, setSelectedEscrowOption] = useState<number | null>(null);
   const [surveyCompleted, setSurveyCompleted] = useState<boolean>(false);
   const [checkingSurvey, setCheckingSurvey] = useState<boolean>(false);
   const [showSurveyModal, setShowSurveyModal] = useState<boolean>(false);
+
+  // Sync escrow state when modal opens or payment changes
+  useEffect(() => {
+    if (isOpen && payment) {
+      if (payment.escrowPercentage) {
+        setEscrowStep('method');
+        setSelectedEscrowOption(payment.escrowPercentage);
+      } else {
+        setEscrowStep('options');
+        setSelectedEscrowOption(null);
+      }
+    }
+  }, [isOpen, payment]);
 
   // XentriPay states
   const [paymentPhone, setPaymentPhone] = useState<string>('');
@@ -612,9 +621,10 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
     );
   }
 
-  // For escrow payments, the amount due is the escrow percentage of the remaining balance
+  // For escrow payments, the amount due is the remaining balance.
+  // When payment.escrowPercentage is already set, declaration amount IS the milestone amount — don't re-apply %.
   const fullAmountDue = payment.amountNum - payment.paidAmount;
-  const amountDue = (selectedEscrowOption && selectedEscrowOption < 100)
+  const amountDue = (selectedEscrowOption && selectedEscrowOption < 100 && !payment.escrowPercentage)
     ? fullAmountDue * selectedEscrowOption / 100
     : fullAmountDue;
   const donationValue = donationAmount === 'custom' ? (parseFloat(customDonation) || 0) : (parseFloat(donationAmount) || 0);
@@ -651,8 +661,6 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
     setXentriPayStep('select');
     setXentriPayError('');
     setPaymentPhone('');
-    setEscrowStep('options');
-    setSelectedEscrowOption(null);
     setSurveyCompleted(false);
     setShowSurveyModal(false);
     onClose();
@@ -675,9 +683,13 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
       const telecom = getTelecomProvider(selectedPaymentMethod);
       const methodType = getPaymentMethodType(selectedPaymentMethod);
       const phone = paymentPhone.trim();
-      const redirectUrl = selectedPaymentMethod === 'card' ? window.location.href : undefined;
+      // Use production URL for http (localhost), keep current URL for https (production)
+      const currentUrl = window.location.href;
+      const redirectUrl = selectedPaymentMethod === 'card'
+        ? (currentUrl.startsWith('http://') ? 'https://connekyt.com/user/client/payments' : currentUrl)
+        : undefined;
 
-      const escrowPct = selectedEscrowOption === 50 || selectedEscrowOption === 75 ? selectedEscrowOption : undefined;
+      const escrowPct = (!payment.escrowPercentage && (selectedEscrowOption === 50 || selectedEscrowOption === 70)) ? selectedEscrowOption : undefined;
       const result = await initiateBookingPayment(payment.declarationId, phone, telecom, methodType, redirectUrl, donationValue > 0 ? donationValue : undefined, currencyId, escrowPct);
 
       if (!result.success || !result.data) {
@@ -788,7 +800,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
     const fullAmountDue = payment.amountNum - payment.paidAmount;
     const options = [
       { pct: 50, label: '50% Now', amount: fullAmountDue * 0.5, desc: 'Held securely until service confirmed. Pay the rest later.' },
-      { pct: 75, label: '75% Now', amount: fullAmountDue * 0.75, desc: 'Held securely until service confirmed. Pay the rest later.' },
+      { pct: 70, label: '70% Now', amount: fullAmountDue * 0.70, desc: 'Held securely until service confirmed. Pay the rest later.' },
       { pct: 100, label: '100% After Completion', amount: fullAmountDue, desc: 'Pay the full amount after the photographer completes the job.' },
     ];
 
@@ -1164,7 +1176,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
         )}
 
         {/* Escrow info banner */}
-        {selectedEscrowOption && selectedEscrowOption < 100 && (
+        {selectedEscrowOption && selectedEscrowOption < 100 && !payment.escrowPercentage && (
           <div style={{
             marginBottom: '1rem', padding: '0.75rem 1rem', borderRadius: '0.75rem',
             backgroundColor: actualTheme === 'dark' ? 'rgba(251, 191, 36, 0.1)' : 'rgba(251, 191, 36, 0.08)',
@@ -1177,10 +1189,12 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
         )}
 
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-          <button onClick={() => setEscrowStep('options')} style={{
-            flex: 1, padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem',
-            background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer'
-          }}>Back</button>
+          {!payment.escrowPercentage && (
+            <button onClick={() => setEscrowStep('options')} style={{
+              flex: 1, padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem',
+              background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer'
+            }}>Back</button>
+          )}
           <button disabled={!isPayEnabled} onClick={() => setShowReceipt(true)} style={{
             flex: 1, padding: '0.75rem 1rem',
             border: !isPayEnabled ? '2px solid #9CA3AF' : '2px solid #062a63',
