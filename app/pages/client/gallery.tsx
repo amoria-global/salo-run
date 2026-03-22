@@ -6,7 +6,6 @@ import Topbar from '../../components/topbar';
 import Image from 'next/image';
 import { useTheme } from '../../context/ThemeContext';
 import AlbumCard from '@/app/components/Cards';
-import UnlockModal from '@/app/components/UnlockModal';
 import PayNowModal from '@/app/components/UnlockModal';
 import { useUserProfile } from '@/app/context/UserProfileContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
@@ -21,6 +20,8 @@ type PaymentStatus = 'paid' | 'pending' | 'failed' | 'refunded' | 'partially_pai
 
 interface Payment {
   id: number;
+  declarationId?: string;
+  eventId?: string;
   date: string;
   eventName: string;
   eventType: string;
@@ -441,26 +442,29 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
         setCoordinatorArchives(archiveList.map((a: any) => {
           const rawName = a.photographerName || a.photographer || '';
           const rawAvatar = a.photographerAvatar || a.photographerImage || '';
+          // Archive entity has 'event' (full object) not flat 'eventId'
+          const resolvedEventId = a.eventId || a.event?.id || '';
+          const resolvedEventTitle = a.eventTitle || a.event?.title || '';
           return {
             id: a.id,
             title: a.title || '',
             description: a.description || '',
             photographer: rawName,
             photographerAvatar: normalizeImg(rawAvatar),
-            category: a.category || '',
+            category: a.archiveType || a.category || '',
             date: a.createdAt || a.date || '',
             receivedDate: a.receivedDate || a.sentAt || a.createdAt || '',
             expiresAt: a.expiresAt || '',
             isArchived: true,
-            isLocked: a.isLocked || true,
-            thumbnail: normalizeImg(a.coverImage || a.thumbnail),
+            isLocked: true,
+            thumbnail: normalizeImg(a.coverImage || a.fileUrl || a.thumbnail),
             photoCount: a.imageCount || a.photoCount || 0,
             downloadedCount: 0,
             favoriteCount: 0,
             images: (a.images || []).map((img: any) => normalizeImg(typeof img === 'string' ? img : img?.fileUrl || img?.url || '') || '').filter(Boolean),
             mediaIds: (a.images || []).map((img: any) => typeof img === 'object' ? img?.id || '' : '').filter(Boolean),
-            eventId: a.eventId || '',
-            eventTitle: a.eventTitle || '',
+            eventId: resolvedEventId,
+            eventTitle: resolvedEventTitle,
             payment: a.payment ? {
               amountDue: a.payment.amountDue || 0,
               status: a.payment.status || 'pending',
@@ -546,9 +550,6 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
     currencyId?: string;
   }>>([]);
   const [showThumbnailSelector, setShowThumbnailSelector] = useState(false);
-  // Dynamic limit from the active photobook's package (falls back to 3)
-  const activePhotobook = photobooks.find(pb => pb.id === setupPhotobookId) || photobooks[0];
-  const MAX_IMAGE_SELECTION = activePhotobook?.freePhotosLimit || 3;
 
   // Setup wizard states (Select Album → Layout → Images)
   const [showSetupWizard, setShowSetupWizard] = useState(false);
@@ -557,6 +558,9 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   const [setupLayout, setSetupLayout] = useState<'book-flip' | 'mosaic' | 'gallery-wall'>('book-flip');
   const [setupSelectedImages, setSetupSelectedImages] = useState<string[]>([]);
   const [setupPhotobookId, setSetupPhotobookId] = useState<number | string | null>(null);
+  // Dynamic limit from the active photobook's package (falls back to 3)
+  const activePhotobook = photobooks.find(pb => pb.id === setupPhotobookId) || photobooks[0];
+  const MAX_IMAGE_SELECTION = activePhotobook?.freePhotosLimit || 3;
   const [setupCurrentImageIndex, setSetupCurrentImageIndex] = useState(0);
   const [showCoverPicker, setShowCoverPicker] = useState(false);
   const [setupCoverImage, setSetupCoverImage] = useState<string>('');
@@ -2342,10 +2346,15 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                 return (
                   <div style={{ marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     {expiredAlbums.length > 0 && (
-                      <div style={{ padding: '0.75rem 1rem', backgroundColor: actualTheme === 'dark' ? 'rgba(220,38,38,0.15)' : '#FEF2F2', border: '1px solid', borderColor: actualTheme === 'dark' ? 'rgba(220,38,38,0.3)' : '#FECACA', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div
+                        onClick={() => setPageView('archives')}
+                        style={{ padding: '0.75rem 1rem', backgroundColor: actualTheme === 'dark' ? 'rgba(220,38,38,0.15)' : '#FEF2F2', border: '1px solid', borderColor: actualTheme === 'dark' ? 'rgba(220,38,38,0.3)' : '#FECACA', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                        <span style={{ fontSize: '0.85rem', color: '#DC2626', fontWeight: 600 }}>
-                          {expiredAlbums.length} album{expiredAlbums.length !== 1 ? 's have' : ' has'} exceeded the {ARCHIVE_DAYS}-day free storage period and {expiredAlbums.length !== 1 ? 'are' : 'is'} now archived. Pay to unlock access.
+                        <span style={{ fontSize: '0.85rem', color: '#DC2626', fontWeight: 600, flex: 1 }}>
+                          {expiredAlbums.length} album{expiredAlbums.length !== 1 ? 's have' : ' has'} exceeded the {ARCHIVE_DAYS}-day free storage period and {expiredAlbums.length !== 1 ? 'are' : 'is'} now archived.
+                        </span>
+                        <span style={{ fontSize: '0.8rem', color: '#DC2626', fontWeight: 700, textDecoration: 'underline', whiteSpace: 'nowrap' }}>
+                          Unlock Now &rarr;
                         </span>
                       </div>
                     )}
@@ -2447,10 +2456,12 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
 
                         {/* Expired lock overlay */}
                         {getAlbumExpiry(album)?.isExpired && (
-                          <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 5, borderRadius: '1.05rem' }}>
+                          <div
+                            onClick={(e) => { e.stopPropagation(); setPageView('archives'); }}
+                            style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 5, borderRadius: '1.05rem', cursor: 'pointer' }}>
                             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
                             <span style={{ color: 'white', fontSize: '0.8rem', fontWeight: 700, marginTop: '0.5rem' }}>Storage Expired</span>
-                            <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.7rem', marginTop: '0.2rem' }}>Pay to unlock access</span>
+                            <span style={{ color: '#FCD34D', fontSize: '0.75rem', fontWeight: 600, marginTop: '0.3rem', textDecoration: 'underline' }}>Go to Archives to Unlock</span>
                           </div>
                         )}
 
@@ -3117,6 +3128,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                       setSelectedPlan(plan.id);
                       const paymentData: Payment = {
                         id: 0,
+                        eventId: archivedAlbums[0]?.eventId || '',
                         date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
                         eventName: `${plan.name} — Unlock All Archived Albums (${archivedAlbums.length})`,
                         eventType: 'Archive Unlock',
@@ -3164,6 +3176,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
         isOpen={showPayNowModal}
         onClose={() => setShowPayNowModal(false)}
         payment={payNowPayment}
+        onPaymentSuccess={() => { fetchAlbums(); fetchCoordinatorArchives(); }}
       />
 
       {/* Album View Modal */}

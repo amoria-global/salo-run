@@ -10,8 +10,9 @@ import { useCurrency } from '../../context/CurrencyContext';
 import { useUserProfile } from '../../context/UserProfileContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { HeartIcon } from '../../components/UnlockModal';
-import { initiateBookingPayment, pollPaymentStatus, getTelecomProvider, getPaymentMethodType, sanitizeErrorMessage } from '@/lib/xentripay';
+import { initiateBookingPayment, pollPaymentStatus, getTelecomProvider, getPaymentMethodType, sanitizeErrorMessage, releaseEscrowFunds, isSurveyCompleted } from '@/lib/xentripay';
 import { getApiUrl } from '@/lib/api';
+import SatisfactionSurveyModal from '../../components/SatisfactionSurveyModal';
 
 // Icons
 const DownloadIcon = () => (
@@ -338,6 +339,11 @@ interface Payment {
   paidAmount: number;
   status: PaymentStatus;
   invoiceNumber: string;
+  escrowStatus?: string;
+  escrowPercentage?: number;
+  heldAmount?: number;
+  releasedAmount?: number;
+  eventCompletionStatus?: string;
 }
 
 interface PaymentDetailsModalProps {
@@ -538,7 +544,7 @@ const PAYMENT_METHODS: Record<string, { label: string; image: string }> = {
 
 const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) => {
   const { colors, actualTheme } = useTheme();
-  const { formatPrice } = useCurrency();
+  const { formatPrice, currencyId } = useCurrency();
   const router = useRouter();
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('card');
   const [donationAmount, setDonationAmount] = useState<string>('');
@@ -547,6 +553,17 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
   const [showCustomInput, setShowCustomInput] = useState<boolean>(false);
   const [showReceipt, setShowReceipt] = useState<boolean>(false);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+
+  // Escrow states — auto-skip if already set at booking time
+  const [escrowStep, setEscrowStep] = useState<'options' | 'method'>(() =>
+    payment?.escrowPercentage ? 'method' : 'options'
+  );
+  const [selectedEscrowOption, setSelectedEscrowOption] = useState<number | null>(() =>
+    payment?.escrowPercentage ?? null
+  );
+  const [surveyCompleted, setSurveyCompleted] = useState<boolean>(false);
+  const [checkingSurvey, setCheckingSurvey] = useState<boolean>(false);
+  const [showSurveyModal, setShowSurveyModal] = useState<boolean>(false);
 
   // XentriPay states
   const [paymentPhone, setPaymentPhone] = useState<string>('');
@@ -575,7 +592,31 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
 
   if (!payment) return null;
 
-  const amountDue = payment.amountNum - payment.paidAmount;
+  // Survey modal for 100% payment option
+  if (showSurveyModal && payment.eventId) {
+    return (
+      <SatisfactionSurveyModal
+        isOpen={isOpen}
+        onClose={() => setShowSurveyModal(false)}
+        eventId={payment.eventId}
+        eventName={payment.eventName}
+        photographerName={payment.photographerName}
+        onSurveyComplete={(disputeFlagged) => {
+          setSurveyCompleted(true);
+          setShowSurveyModal(false);
+          if (!disputeFlagged) {
+            setEscrowStep('method');
+          }
+        }}
+      />
+    );
+  }
+
+  // For escrow payments, the amount due is the escrow percentage of the remaining balance
+  const fullAmountDue = payment.amountNum - payment.paidAmount;
+  const amountDue = (selectedEscrowOption && selectedEscrowOption < 100)
+    ? fullAmountDue * selectedEscrowOption / 100
+    : fullAmountDue;
   const donationValue = donationAmount === 'custom' ? (parseFloat(customDonation) || 0) : (parseFloat(donationAmount) || 0);
   const totalAmount = amountDue + donationValue;
   const donationAddressed = donationSkipped || donationValue > 0;
@@ -610,11 +651,15 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
     setXentriPayStep('select');
     setXentriPayError('');
     setPaymentPhone('');
+    setEscrowStep('options');
+    setSelectedEscrowOption(null);
+    setSurveyCompleted(false);
+    setShowSurveyModal(false);
     onClose();
   };
 
   const handlePayNowXentriPay = async () => {
-    if (!payment?.eventId) {
+    if (!payment?.declarationId) {
       setXentriPayError('This payment cannot be processed. The event may have been removed or the booking is no longer active.');
       return;
     }
@@ -632,7 +677,8 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
       const phone = paymentPhone.trim();
       const redirectUrl = selectedPaymentMethod === 'card' ? window.location.href : undefined;
 
-      const result = await initiateBookingPayment(payment.eventId, phone, telecom, methodType, redirectUrl, donationValue > 0 ? donationValue : undefined);
+      const escrowPct = selectedEscrowOption === 50 || selectedEscrowOption === 75 ? selectedEscrowOption : undefined;
+      const result = await initiateBookingPayment(payment.declarationId, phone, telecom, methodType, redirectUrl, donationValue > 0 ? donationValue : undefined, currencyId, escrowPct);
 
       if (!result.success || !result.data) {
         setXentriPayError(result.error || 'Payment could not be initiated. Please check your payment details and try again.');
@@ -664,6 +710,22 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
     setShowReceipt(false);
     setIsProcessing(false);
   };
+
+  // Check survey status when 100% option is selected
+  const handleSelectEscrowOption = async (option: number) => {
+    setSelectedEscrowOption(option);
+    if (option === 100 && payment?.eventId) {
+      setCheckingSurvey(true);
+      const result = await isSurveyCompleted(payment.eventId);
+      setSurveyCompleted(result.completed);
+      setCheckingSurvey(false);
+    }
+  };
+
+  const isEventCompleted = payment?.eventCompletionStatus === 'COMPLETED';
+  const escrowAmountDue = selectedEscrowOption && selectedEscrowOption < 100
+    ? (payment?.amountNum || 0) * selectedEscrowOption / 100
+    : (payment?.amountNum || 0);
 
   // XentriPay Processing View
   if (xentriPayStep === 'processing') {
@@ -721,6 +783,135 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
     );
   }
 
+  // Escrow Options View — choose payment percentage
+  if (escrowStep === 'options' && xentriPayStep === 'select' && !showReceipt) {
+    const fullAmountDue = payment.amountNum - payment.paidAmount;
+    const options = [
+      { pct: 50, label: '50% Now', amount: fullAmountDue * 0.5, desc: 'Held securely until service confirmed. Pay the rest later.' },
+      { pct: 75, label: '75% Now', amount: fullAmountDue * 0.75, desc: 'Held securely until service confirmed. Pay the rest later.' },
+      { pct: 100, label: '100% After Completion', amount: fullAmountDue, desc: 'Pay the full amount after the photographer completes the job.' },
+    ];
+
+    return (
+      <Modal isOpen={isOpen} onClose={handleClose} title="Choose Payment Option" maxWidth="450px">
+        <div>
+          <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1rem', lineHeight: '1.5' }}>
+            How would you like to pay for <strong>{payment.eventName}</strong>?
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.25rem' }}>
+            {options.map((opt) => {
+              const isSelected = selectedEscrowOption === opt.pct;
+              const isDisabled = opt.pct === 100 && !isEventCompleted;
+
+              return (
+                <div
+                  key={opt.pct}
+                  onClick={() => !isDisabled && handleSelectEscrowOption(opt.pct)}
+                  style={{
+                    display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '1rem',
+                    border: isSelected ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                    borderRadius: '0.75rem',
+                    cursor: isDisabled ? 'not-allowed' : 'pointer',
+                    opacity: isDisabled ? 0.5 : 1,
+                    backgroundColor: isSelected
+                      ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF')
+                      : colors.bgCard,
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  <div style={{
+                    width: '20px', height: '20px', borderRadius: '50%', flexShrink: 0, marginTop: '2px',
+                    border: isSelected ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                    backgroundColor: colors.bgCard,
+                  }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                      <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>{opt.label}</span>
+                      <span style={{ fontSize: '0.95rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
+                        {formatPrice(opt.amount)}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '0.82rem', color: colors.textSecondary, margin: 0, lineHeight: '1.4' }}>
+                      {opt.desc}
+                    </p>
+                    {opt.pct < 100 && (
+                      <div style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
+                        marginTop: '0.5rem', padding: '0.2rem 0.5rem',
+                        backgroundColor: actualTheme === 'dark' ? 'rgba(251, 191, 36, 0.15)' : 'rgba(251, 191, 36, 0.1)',
+                        borderRadius: '0.375rem', fontSize: '0.75rem', color: '#D97706', fontWeight: '500',
+                      }}>
+                        Escrow protected
+                      </div>
+                    )}
+                    {opt.pct === 100 && !isEventCompleted && (
+                      <p style={{ fontSize: '0.78rem', color: '#EF4444', margin: '0.375rem 0 0', fontWeight: '500' }}>
+                        Available after event is completed
+                      </p>
+                    )}
+                    {opt.pct === 100 && isEventCompleted && (
+                      <div style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
+                        marginTop: '0.5rem', padding: '0.2rem 0.5rem',
+                        backgroundColor: actualTheme === 'dark' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.1)',
+                        borderRadius: '0.375rem', fontSize: '0.75rem', color: '#059669', fontWeight: '500',
+                      }}>
+                        Requires satisfaction survey
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {selectedEscrowOption === 100 && isEventCompleted && !surveyCompleted && !checkingSurvey && (
+            <p style={{ fontSize: '0.85rem', color: '#D97706', margin: '0 0 0.75rem', textAlign: 'center', lineHeight: '1.4' }}>
+              You need to complete a satisfaction survey before making the full payment. The survey will appear in the next step.
+            </p>
+          )}
+
+          {checkingSurvey && (
+            <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0 0 0.75rem', textAlign: 'center' }}>
+              Checking survey status...
+            </p>
+          )}
+
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <button onClick={handleClose} style={{
+              flex: 1, padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem',
+              background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer',
+            }}>Cancel</button>
+            <button
+              disabled={selectedEscrowOption === null || checkingSurvey || (selectedEscrowOption === 100 && !isEventCompleted)}
+              onClick={() => {
+                if (selectedEscrowOption === 100 && isEventCompleted && !surveyCompleted) {
+                  setShowSurveyModal(true);
+                } else {
+                  setEscrowStep('method');
+                }
+              }}
+              style={{
+                flex: 1, padding: '0.75rem 1rem',
+                border: '2px solid #062a63', borderRadius: '0.5rem',
+                background: (selectedEscrowOption === null || checkingSurvey || (selectedEscrowOption === 100 && !isEventCompleted)) ? '#9CA3AF' : '#083A85',
+                color: 'white', fontSize: '0.9rem', fontWeight: '600',
+                cursor: (selectedEscrowOption === null || checkingSurvey || (selectedEscrowOption === 100 && !isEventCompleted)) ? 'not-allowed' : 'pointer',
+                opacity: (selectedEscrowOption === null || checkingSurvey || (selectedEscrowOption === 100 && !isEventCompleted)) ? 0.7 : 1,
+                transition: 'all 0.2s',
+              }}
+            >
+              {selectedEscrowOption === 100 && isEventCompleted && !surveyCompleted
+                ? 'Complete Survey First'
+                : 'Continue'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
+
   // Receipt View (Phase 2)
   if (showReceipt) {
     const methodInfo = PAYMENT_METHODS[selectedPaymentMethod] || PAYMENT_METHODS.card;
@@ -766,9 +957,17 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
             </div>
             <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, margin: '0.75rem 0' }} />
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-              <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>Amount Due</span>
+              <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>
+                {selectedEscrowOption && selectedEscrowOption < 100 ? `Amount (${selectedEscrowOption}% Escrow)` : 'Amount Due'}
+              </span>
               <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(amountDue)}</span>
             </div>
+            {selectedEscrowOption && selectedEscrowOption < 100 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: '500', color: '#D97706' }}>Remaining ({100 - selectedEscrowOption}%)</span>
+                <span style={{ fontSize: '0.82rem', fontWeight: '500', color: '#D97706' }}>{formatPrice(fullAmountDue - amountDue)} (later)</span>
+              </div>
+            )}
             {donationValue > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
@@ -964,11 +1163,24 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
           </p>
         )}
 
+        {/* Escrow info banner */}
+        {selectedEscrowOption && selectedEscrowOption < 100 && (
+          <div style={{
+            marginBottom: '1rem', padding: '0.75rem 1rem', borderRadius: '0.75rem',
+            backgroundColor: actualTheme === 'dark' ? 'rgba(251, 191, 36, 0.1)' : 'rgba(251, 191, 36, 0.08)',
+            border: '1px solid rgba(251, 191, 36, 0.3)',
+          }}>
+            <p style={{ fontSize: '0.82rem', color: '#D97706', margin: 0, lineHeight: '1.4', fontWeight: '500' }}>
+              You are paying {selectedEscrowOption}% ({formatPrice(amountDue)}) upfront. Funds will be held securely and released after you confirm service satisfaction.
+            </p>
+          </div>
+        )}
+
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-          <button onClick={handleClose} style={{
+          <button onClick={() => setEscrowStep('options')} style={{
             flex: 1, padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem',
             background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer'
-          }}>Cancel</button>
+          }}>Back</button>
           <button disabled={!isPayEnabled} onClick={() => setShowReceipt(true)} style={{
             flex: 1, padding: '0.75rem 1rem',
             border: !isPayEnabled ? '2px solid #9CA3AF' : '2px solid #062a63',
@@ -1383,21 +1595,9 @@ const PaymentsPage = () => {
   const [showReportModal, setShowReportModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showPayNowModal, setShowPayNowModal] = useState(false);
-  const [showSetupModal, setShowSetupModal] = useState(false);
-  const [hasPaymentAccount, setHasPaymentAccount] = useState<boolean | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [payNowPayment, setPayNowPayment] = useState<Payment | null>(null);
 
-  useEffect(() => {
-    const apiUrl = getApiUrl();
-    dashboardAuthFetch(`${apiUrl}/api/remote/customer/preferences`)
-      .then(res => res.json())
-      .then(result => {
-        const prefs = result?.data || {};
-        setHasPaymentAccount(Object.keys(prefs).some(k => k.startsWith('payment_method_')));
-      })
-      .catch(() => setHasPaymentAccount(null));
-  }, []);
 
   const handleViewPayment = (payment: Payment) => {
     setSelectedPayment(payment);
@@ -1405,10 +1605,6 @@ const PaymentsPage = () => {
   };
 
   const handlePayNow = (payment: Payment) => {
-    if (hasPaymentAccount === false) {
-      setShowSetupModal(true);
-      return;
-    }
     setPayNowPayment(payment);
     setShowPayNowModal(true);
   };
@@ -1540,10 +1736,15 @@ Amount: ${formatPrice(payment.amountNum)}
         photographerImage: item.photographerImage || undefined,
         method: '-',
         amount: `${item.currencyAbbreviation || '$'}${item.amount}`,
-        amountNum: Number(item.amount) || 0,
-        paidAmount: Number(item.paidAmount) || 0,
+        amountNum: Number(item.amountInUsd ?? item.amount) || 0,
+        paidAmount: Number(item.paidAmountInUsd ?? item.paidAmount) || 0,
         status: mapStatus(item.status),
         invoiceNumber: `INV-${String(item.id).substring(0, 8).toUpperCase()}`,
+        escrowStatus: item.escrowStatus || 'NONE',
+        escrowPercentage: item.escrowPercentage || null,
+        heldAmount: Number(item.heldAmount) || 0,
+        releasedAmount: Number(item.releasedAmount) || 0,
+        eventCompletionStatus: item.eventCompletionStatus || 'NOT_COMPLETED',
       }));
 
       setPayments(mapped);
@@ -2035,6 +2236,36 @@ Amount: ${formatPrice(payment.amountNum)}
             </p>
           </header>
 
+          {/* Pending Payment Warning */}
+          {totalPending > 0 && (
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem',
+              padding: '0.875rem 1.25rem', marginBottom: '1rem', borderRadius: '0.75rem',
+              backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FFFBEB',
+              border: `1px solid ${actualTheme === 'dark' ? '#92400E' : '#F59E0B'}`,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1 }}>
+                <div style={{
+                  width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  backgroundColor: actualTheme === 'dark' ? 'rgba(251,191,36,0.2)' : 'rgba(245,158,11,0.15)',
+                  flexShrink: 0,
+                }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke={actualTheme === 'dark' ? '#FDE68A' : '#D97706'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <div>
+                  <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: '600', color: actualTheme === 'dark' ? '#FDE68A' : '#92400E' }}>
+                    You have {formatPrice(totalPending)} in pending payments
+                  </p>
+                  <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: actualTheme === 'dark' ? '#FCD34D' : '#B45309', opacity: 0.85 }}>
+                    Please complete your outstanding payments to avoid booking cancellations.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Top Row - Spending Chart and Payment Summary */}
           <div className="mobile-top-row" style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '1rem', marginBottom: '1rem' }}>
 
@@ -2396,7 +2627,29 @@ Amount: ${formatPrice(payment.amountNum)}
                     </td>
                     <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.85rem', color: colors.textSecondary }}>{payment.method}</td>
                     <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(payment.amountNum)}</td>
-                    <td style={{ padding: '0.875rem 1.25rem' }}><StatusBadge status={payment.status} /></td>
+                    <td style={{ padding: '0.875rem 1.25rem' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                        <StatusBadge status={payment.status} />
+                        {payment.escrowStatus === 'HELD' && (
+                          <span style={{
+                            display: 'inline-flex', alignItems: 'center', padding: '0.15rem 0.5rem',
+                            borderRadius: '9999px', fontSize: '0.7rem', fontWeight: '600',
+                            backgroundColor: 'rgba(251, 191, 36, 0.15)', color: '#D97706',
+                          }}>
+                            {payment.escrowPercentage}% held
+                          </span>
+                        )}
+                        {payment.escrowStatus === 'RELEASED' && (
+                          <span style={{
+                            display: 'inline-flex', alignItems: 'center', padding: '0.15rem 0.5rem',
+                            borderRadius: '9999px', fontSize: '0.7rem', fontWeight: '600',
+                            backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#059669',
+                          }}>
+                            Released
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td style={{ padding: '0.875rem 1.25rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>{payment.invoiceNumber}</span>
@@ -2404,8 +2657,8 @@ Amount: ${formatPrice(payment.amountNum)}
                       </div>
                     </td>
                     <td style={{ padding: '0.875rem 1.25rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        {(payment.status === 'pending' || payment.status === 'partially_paid') && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        {(payment.status === 'pending' || payment.status === 'partially_paid') && payment.escrowStatus !== 'HELD' && (
                           <button
                             onClick={() => handlePayNow(payment)}
                             style={{
@@ -2425,6 +2678,31 @@ Amount: ${formatPrice(payment.amountNum)}
                             <CreditCardIcon />
                             Pay Now
                           </button>
+                        )}
+                        {payment.escrowStatus === 'HELD' && payment.eventCompletionStatus === 'COMPLETED' && (
+                          <button
+                            onClick={() => handlePayNow(payment)}
+                            style={{
+                              backgroundColor: '#059669',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '0.375rem',
+                              padding: '0.375rem 0.75rem',
+                              fontSize: '0.75rem',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.25rem'
+                            }}
+                          >
+                            Release Funds
+                          </button>
+                        )}
+                        {payment.escrowStatus === 'HELD' && payment.eventCompletionStatus !== 'COMPLETED' && (
+                          <span style={{ fontSize: '0.75rem', color: '#D97706', fontWeight: '500' }}>
+                            Awaiting completion
+                          </span>
                         )}
                         {payment.status === 'failed' && (
                           <button
@@ -2491,45 +2769,6 @@ Amount: ${formatPrice(payment.amountNum)}
         onClose={() => setShowPaymentModal(false)}
         payment={selectedPayment}
       />
-      {/* Payment Account Setup Required Modal */}
-      {showSetupModal && (
-        <div
-          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
-          onClick={() => setShowSetupModal(false)}
-        >
-          <div
-            style={{ backgroundColor: colors.bgCard, borderRadius: '1rem', padding: '2rem', maxWidth: '380px', width: '90%', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem auto' }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="1" y="6" width="22" height="15" rx="2" stroke="#083A85" strokeWidth="2"/>
-                <path d="M1 10H23" stroke="#083A85" strokeWidth="2"/>
-                <circle cx="6" cy="15" r="1.5" fill="#083A85"/>
-              </svg>
-            </div>
-            <h3 style={{ fontSize: '1.125rem', fontWeight: '700', color: colors.textPrimary, margin: '0 0 0.75rem 0' }}>
-              Payment Account Required
-            </h3>
-            <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1.5rem 0', lineHeight: '1.6' }}>
-              You need to set up a payment account before making payments. Add one in Preferences → Payment Accounts.
-            </p>
-            <button
-              onClick={() => { setShowSetupModal(false); router.push('/user/client/preferences?tab=payments'); }}
-              style={{ width: '100%', padding: '0.75rem', backgroundColor: '#083A85', color: 'white', border: 'none', borderRadius: '0.75rem', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer', marginBottom: '0.75rem' }}
-            >
-              Set Up Payment Account
-            </button>
-            <button
-              onClick={() => setShowSetupModal(false)}
-              style={{ width: '100%', padding: '0.75rem', backgroundColor: 'transparent', color: colors.textSecondary, border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.75rem', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}
-            >
-              Maybe Later
-            </button>
-          </div>
-        </div>
-      )}
-
       <PayNowModal
         isOpen={showPayNowModal}
         onClose={() => setShowPayNowModal(false)}

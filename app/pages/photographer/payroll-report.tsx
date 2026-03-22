@@ -57,7 +57,7 @@ const PayrollReport = () => {
                 date: t.date || '',
                 description: t.description || '',
                 type: t.type || 'Service Payment',
-                amount: parseFloat(t.amount) || 0,
+                amount: parseFloat(t.amountInUsd ?? t.amount) || 0,
                 status: t.status || 'Pending',
               })),
             });
