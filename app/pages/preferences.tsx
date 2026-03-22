@@ -477,38 +477,53 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
         return;
       }
 
-      // Validate account with XentriPay before saving
-      setIsValidating(true);
-      const validation = await validateAccountDetails(accountNumber, bankId);
-      setIsValidating(false);
-
-      if (!validation.valid) {
-        setValidationError(validation.error || 'Account validation failed. Please check the account number.');
-        setIsSavingPreference(false);
-        return;
-      }
-
-      const registeredName = validation.registeredName || '';
-
-      // Compare entered name with XentriPay registered name
-      const enteredNorm = accountName.trim().toLowerCase();
-      const xentriNorm = registeredName.trim().toLowerCase();
+      // Determine if this is mobile money (needs validation) or bank (skip validation)
+      const isMobileMoney = methodType === 'MOBILE_MONEY';
 
       let nameToSave: string;
-      if (!registeredName) {
-        // XentriPay didn't return a name — use user-entered name
-        nameToSave = accountName;
-      } else if (!accountName.trim() || enteredNorm === xentriNorm) {
-        // Names match or user didn't enter a name — use registered name
-        nameToSave = registeredName;
+
+      if (!isMobileMoney) {
+        // Bank transfer - skip validation, use entered name
+        console.log('Skipping validation for bank transfer');
+        nameToSave = accountName || bankAccountName || '';
+
+        if (!nameToSave.trim()) {
+          setValidationError('Please enter the account holder name.');
+          setIsSavingPreference(false);
+          return;
+        }
       } else {
-        // Names don't match — show confirmation dialog
-        setXentriPayName(registeredName);
-        setEnteredNameForMismatch(accountName);
-        setShowNameMismatch(true);
-        setPendingSaveData({ methodType, accountName: registeredName, accountNumber, bankName });
-        setIsSavingPreference(false);
-        return;
+        // Mobile money - validate with XentriPay
+        console.log('Validating mobile money account');
+        setIsValidating(true);
+        const validation = await validateAccountDetails(accountNumber, bankId);
+        setIsValidating(false);
+
+        if (!validation.valid) {
+          setValidationError(validation.error || 'Account validation failed. Please check the account number.');
+          setIsSavingPreference(false);
+          return;
+        }
+
+        const registeredName = validation.registeredName || '';
+
+        // Compare entered name with XentriPay registered name
+        const enteredNorm = accountName.trim().toLowerCase();
+        const xentriNorm = registeredName.trim().toLowerCase();
+
+        if (!registeredName) {
+          nameToSave = accountName;
+        } else if (!accountName.trim() || enteredNorm === xentriNorm) {
+          nameToSave = registeredName;
+        } else {
+          // Names don't match — show confirmation dialog
+          setXentriPayName(registeredName);
+          setEnteredNameForMismatch(accountName);
+          setShowNameMismatch(true);
+          setPendingSaveData({ methodType, accountName: registeredName, accountNumber, bankName });
+          setIsSavingPreference(false);
+          return;
+        }
       }
 
       setValidatedName(nameToSave);
