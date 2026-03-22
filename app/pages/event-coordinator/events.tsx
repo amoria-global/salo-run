@@ -216,7 +216,7 @@ const QRCodeIcon = () => (
 // Types
 type EventCategory = string;
 
-type EventStatus = 'UPCOMING' | 'LIVE' | 'PUBLISHED' | 'upcoming' | 'ongoing' | 'completed' | 'published';
+type EventStatus = 'UPCOMING' | 'LIVE' | 'PUBLISHED' | 'PAUSED' | 'upcoming' | 'ongoing' | 'completed' | 'published' | 'paused';
 
 interface Event {
   id: string;
@@ -349,6 +349,10 @@ const MyEventsPage = () => {
   const [shareEvent, setShareEvent] = useState<Event | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteEvent, setDeleteEvent] = useState<Event | null>(null);
+  const [showPauseModal, setShowPauseModal] = useState(false);
+  const [pauseEvent, setPauseEvent] = useState<Event | null>(null);
+  const [pausingEventId, setPausingEventId] = useState<string | null>(null);
+  const [resumingEventId, setResumingEventId] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editEvent, setEditEvent] = useState<Event | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -800,6 +804,7 @@ const MyEventsPage = () => {
             maxGuests: (evt.maxGuests as number) || 0,
             status: (() => {
               const raw = ((evt.eventStatus as string) || (evt.status as string) || 'UPCOMING').toUpperCase();
+              if (raw === 'PAUSED') return 'PAUSED';
               if (evt.isPublished === true && (raw === 'UPCOMING' || raw === 'PUBLISHED')) return 'PUBLISHED';
               return raw;
             })() as EventStatus,
@@ -917,6 +922,75 @@ const MyEventsPage = () => {
       alert(err instanceof Error ? err.message : 'Failed to delete event');
       // Refetch to sync state with backend
       fetchMyEvents();
+    }
+  };
+
+  const isEventDeletable = (event: Event): boolean => {
+    if (event.status.toUpperCase() === 'COMPLETED') return false;
+    if (event.completionStatus && event.completionStatus !== 'NOT_COMPLETED') return false;
+    if (event.bookingStatus?.toUpperCase() === 'ACCEPTED') return false;
+    if (event.status.toUpperCase() === 'PAUSED') return false;
+    return true;
+  };
+
+  const isEventPausable = (event: Event): boolean => {
+    if (event.bookingStatus?.toUpperCase() !== 'ACCEPTED') return false;
+    if (event.status.toUpperCase() === 'COMPLETED') return false;
+    if (event.status.toUpperCase() === 'PAUSED') return false;
+    return true;
+  };
+
+  const isEventResumable = (event: Event): boolean => {
+    return event.status.toUpperCase() === 'PAUSED';
+  };
+
+  const handlePauseEvent = async () => {
+    if (!pauseEvent) return;
+    const eventId = pauseEvent.id;
+    setPauseEvent(null);
+    setShowPauseModal(false);
+    setPausingEventId(eventId);
+    try {
+      const apiUrl = getApiUrl();
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/events/${eventId}/pause`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || `Failed to pause event (${res.status})`);
+      }
+      setEvents(prev => prev.map(e => e.id === eventId ? { ...e, status: 'PAUSED' as EventStatus, isPublished: false } : e));
+    } catch (err) {
+      console.error('Pause event error:', err);
+      alert(err instanceof Error ? err.message : 'Failed to pause event');
+      fetchMyEvents();
+    } finally {
+      setPausingEventId(null);
+    }
+  };
+
+  const handleResumeEvent = async (eventId: string) => {
+    setResumingEventId(eventId);
+    try {
+      const apiUrl = getApiUrl();
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/events/${eventId}/resume`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || `Failed to resume event (${res.status})`);
+      }
+      const data = await res.json();
+      const newStatus = data.data?.eventStatus?.toUpperCase() || 'UPCOMING';
+      setEvents(prev => prev.map(e => e.id === eventId ? { ...e, status: newStatus as EventStatus } : e));
+    } catch (err) {
+      console.error('Resume event error:', err);
+      alert(err instanceof Error ? err.message : 'Failed to resume event');
+      fetchMyEvents();
+    } finally {
+      setResumingEventId(null);
     }
   };
 
@@ -1350,6 +1424,8 @@ const MyEventsPage = () => {
         return { backgroundColor: '#D1FAE5', color: '#059669' };
       case 'completed':
         return { backgroundColor: '#DC2626', color: '#FFFFFF' };
+      case 'paused':
+        return { backgroundColor: '#F59E0B', color: '#FFFFFF' };
       default:
         return { backgroundColor: colors.bgTertiary, color: colors.textSecondary };
     }
@@ -1362,7 +1438,7 @@ const MyEventsPage = () => {
 
     const statusLower = event.status.toLowerCase();
     if (activeTab === 'upcoming') {
-      return matchesSearch && (statusLower === 'upcoming' || statusLower === 'ongoing' || statusLower === 'live');
+      return matchesSearch && (statusLower === 'upcoming' || statusLower === 'ongoing' || statusLower === 'live' || statusLower === 'paused');
     } else if (activeTab === 'published') {
       return matchesSearch && statusLower === 'published';
     } else if (activeTab === 'past') {
@@ -1373,7 +1449,7 @@ const MyEventsPage = () => {
 
   const upcomingCount = events.filter(e => {
     const s = e.status.toLowerCase();
-    return s === 'upcoming' || s === 'ongoing' || s === 'live';
+    return s === 'upcoming' || s === 'ongoing' || s === 'live' || s === 'paused';
   }).length;
   const publishedCount = events.filter(e => e.status.toLowerCase() === 'published').length;
   const completedCount = events.filter(e => e.status.toLowerCase() === 'completed').length;
@@ -1705,9 +1781,21 @@ const MyEventsPage = () => {
                         <button onClick={() => openEditModal(event)} title="Edit" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.4rem 0.5rem', backgroundColor: 'rgba(255,255,255,0.12)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
                           <EditIcon />
                         </button>
-                        <button onClick={() => { setDeleteEvent(event); setShowDeleteModal(true); }} title="Delete" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.4rem 0.5rem', backgroundColor: 'rgba(220,38,38,0.82)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
-                          <TrashIcon />
-                        </button>
+                        {isEventDeletable(event) && (
+                          <button onClick={() => { setDeleteEvent(event); setShowDeleteModal(true); }} title="Delete" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.4rem 0.5rem', backgroundColor: 'rgba(220,38,38,0.82)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
+                            <TrashIcon />
+                          </button>
+                        )}
+                        {isEventPausable(event) && (
+                          <button onClick={() => { setPauseEvent(event); setShowPauseModal(true); }} title="Pause" disabled={pausingEventId === event.id} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.4rem 0.5rem', backgroundColor: '#F59E0B', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: pausingEventId === event.id ? 'not-allowed' : 'pointer', opacity: pausingEventId === event.id ? 0.7 : 1 }}>
+                            {pausingEventId === event.id ? '...' : <i className="bi bi-pause-fill" style={{ fontSize: '1rem' }}></i>}
+                          </button>
+                        )}
+                        {isEventResumable(event) && (
+                          <button onClick={() => handleResumeEvent(event.id)} title="Resume" disabled={resumingEventId === event.id} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.4rem 0.5rem', backgroundColor: '#10B981', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: resumingEventId === event.id ? 'not-allowed' : 'pointer', opacity: resumingEventId === event.id ? 0.7 : 1 }}>
+                            {resumingEventId === event.id ? '...' : <i className="bi bi-play-fill" style={{ fontSize: '1rem' }}></i>}
+                          </button>
+                        )}
                         {event.status.toUpperCase() !== 'COMPLETED' && (
                           (event.isPublished || event.status.toUpperCase() === 'PUBLISHED' || event.status.toUpperCase() === 'ONGOING') ? (
                             <button onClick={() => setUnpublishConfirmEvent(event)} disabled={unpublishingEventId === event.id} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.4rem 0.5rem', backgroundColor: '#d19d0d', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: unpublishingEventId === event.id ? 'not-allowed' : 'pointer', fontSize: '0.75rem', fontWeight: 600, opacity: unpublishingEventId === event.id ? 0.7 : 1 }}>
@@ -2336,7 +2424,7 @@ const MyEventsPage = () => {
                 Choose how much to pay upfront. All funds are held in escrow and released upon event completion.
               </p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
-                {([50, 75, 100] as const).map(pct => (
+                {([50, 70, 100] as const).map(pct => (
                   <div
                     key={pct}
                     onClick={() => setCreateEscrowPercentage(pct)}
@@ -2715,26 +2803,72 @@ const MyEventsPage = () => {
                     <EditIcon />
                     Edit Event
                   </button>
-                  <button
-                    onClick={() => { setShowEventDetails(null); setDeleteEvent(showEventDetails); setShowDeleteModal(true); }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.5rem',
-                      backgroundColor: '#FEF2F2',
-                      color: '#DC2626',
-                      border: '2px solid #FECACA',
-                      borderRadius: '0.5rem',
-                      padding: '0.75rem 1rem',
-                      fontSize: '0.9rem',
-                      fontWeight: '600',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <TrashIcon />
-                    Delete
-                  </button>
+                  {showEventDetails && isEventDeletable(showEventDetails) && (
+                    <button
+                      onClick={() => { setShowEventDetails(null); setDeleteEvent(showEventDetails); setShowDeleteModal(true); }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.5rem',
+                        backgroundColor: '#FEF2F2',
+                        color: '#DC2626',
+                        border: '2px solid #FECACA',
+                        borderRadius: '0.5rem',
+                        padding: '0.75rem 1rem',
+                        fontSize: '0.9rem',
+                        fontWeight: '600',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <TrashIcon />
+                      Delete
+                    </button>
+                  )}
+                  {showEventDetails && isEventPausable(showEventDetails) && (
+                    <button
+                      onClick={() => { setShowEventDetails(null); setPauseEvent(showEventDetails); setShowPauseModal(true); }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.5rem',
+                        backgroundColor: '#FEF3C7',
+                        color: '#D97706',
+                        border: '2px solid #FDE68A',
+                        borderRadius: '0.5rem',
+                        padding: '0.75rem 1rem',
+                        fontSize: '0.9rem',
+                        fontWeight: '600',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <i className="bi bi-pause-fill" style={{ fontSize: '1rem' }}></i>
+                      Pause Event
+                    </button>
+                  )}
+                  {showEventDetails && isEventResumable(showEventDetails) && (
+                    <button
+                      onClick={() => { handleResumeEvent(showEventDetails.id); setShowEventDetails(null); }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.5rem',
+                        backgroundColor: '#D1FAE5',
+                        color: '#059669',
+                        border: '2px solid #A7F3D0',
+                        borderRadius: '0.5rem',
+                        padding: '0.75rem 1rem',
+                        fontSize: '0.9rem',
+                        fontWeight: '600',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <i className="bi bi-play-fill" style={{ fontSize: '1rem' }}></i>
+                      Resume Event
+                    </button>
+                  )}
                 </>
               )}
               {showEventDetails.status === 'completed' && (
@@ -3315,6 +3449,66 @@ const MyEventsPage = () => {
               >
                 <i className="bi bi-trash" style={{ fontSize: '1rem' }}></i>
                 Delete Event
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pause Event Modal */}
+      {showPauseModal && pauseEvent && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1100,
+            padding: '1rem'
+          }}
+          onClick={() => setShowPauseModal(false)}
+        >
+          <div
+            style={{
+              backgroundColor: colors.bgCard,
+              borderRadius: '1rem',
+              padding: '1.5rem',
+              width: '400px',
+              maxWidth: '90%',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+              <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <i className="bi bi-pause-circle-fill" style={{ fontSize: '2rem', color: '#F59E0B' }}></i>
+              </div>
+            </div>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: colors.textPrimary, margin: 0, marginBottom: '0.75rem', textAlign: 'center' }}>Pause Event</h2>
+            <p style={{ fontSize: '0.95rem', color: colors.textSecondary, margin: 0, marginBottom: '0.5rem', textAlign: 'center', lineHeight: '1.5' }}>
+              Are you sure you want to pause <strong style={{ color: colors.textPrimary }}>&quot;{pauseEvent.title}&quot;</strong>?
+            </p>
+            <p style={{ fontSize: '0.85rem', color: '#F59E0B', margin: 0, marginBottom: '1.5rem', textAlign: 'center', fontWeight: '500' }}>
+              The event will be put on hold. The photographer will be notified. You can resume it at any time.
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '4rem' }}>
+              <button
+                onClick={() => setShowPauseModal(false)}
+                style={{ flex: 1, padding: '0.75rem 1rem', borderRadius: '0.5rem', border: `2px solid ${colors.borderPrimary}`, backgroundColor: colors.bgCard, color: colors.textPrimary, fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handlePauseEvent}
+                style={{ flex: 1, padding: '0.75rem 1rem', borderRadius: '0.5rem', border: '2px solid #F59E0B', backgroundColor: '#F59E0B', color: 'white', fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+              >
+                <i className="bi bi-pause-fill" style={{ fontSize: '1rem' }}></i>
+                Pause Event
               </button>
             </div>
           </div>

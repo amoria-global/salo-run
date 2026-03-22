@@ -33,6 +33,7 @@ function mapBackendType(backendType: string, role: string = 'client'): Notificat
     case 'BOOKING': return 'booking';
     case 'EVENT': return 'booking';
     case 'SYSTEM': case 'SECURITY': return 'security';
+    case 'PHOTOBOOK': case 'PHOTOBOOK_RECEIVED': return 'photobook';
     default: return 'booking';
   }
 }
@@ -108,7 +109,7 @@ const TrashIcon = () => (
 );
 
 // Notification types specific to clients and event coordinators
-type NotificationType = 'album' | 'gift' | 'security' | 'booking' | 'photographer' | 'streamfee';
+type NotificationType = 'album' | 'gift' | 'security' | 'booking' | 'photographer' | 'streamfee' | 'photobook';
 
 interface Notification {
   id: string;
@@ -121,6 +122,7 @@ interface Notification {
   albumPreview?: string;
   amount?: number;
   actionUrl?: string;
+  referenceId?: string;
 }
 
 
@@ -147,7 +149,7 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
       if (!response.ok) throw new Error('Failed to fetch notifications');
       const result = await response.json();
       const data = result?.data?.content || result?.data || [];
-      const mapped: Notification[] = data.map((n: { id: string; title: string; message: string; type: string; isRead: boolean; link?: string; createdAt: string }) => ({
+      const mapped: Notification[] = data.map((n: { id: string; title: string; message: string; type: string; isRead: boolean; link?: string; createdAt: string; referenceId?: string }) => ({
         id: n.id,
         type: mapBackendType(n.type, userRole),
         title: n.title,
@@ -155,6 +157,7 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
         timestamp: formatRelativeTime(n.createdAt),
         read: n.isRead,
         actionUrl: n.link || undefined,
+        referenceId: n.referenceId || undefined,
       }));
       setNotifications(mapped);
     } catch (err) {
@@ -208,15 +211,21 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
   };
 
   const getNotificationDest = (notification: Notification): string | null => {
-    // Ignore backend actionUrl — use role-aware routing instead
     const base = userRole === 'event-coordinator' ? '/user/event-coordinator' : '/user/client';
+    const refId = notification.referenceId;
     switch (notification.type) {
-      case 'booking': return `${base}/events`;
-      case 'gift': return '/user/client/payments';
-      case 'photographer': return userRole === 'event-coordinator' ? '/user/event-coordinator/home' : '/user/client/photographers';
-      case 'album': return userRole === 'event-coordinator' ? '/user/event-coordinator/gallery' : '/user/client/gallery';
-      case 'streamfee': return '/user/event-coordinator/payments';
-      case 'security': return `${base}/profile`;
+      case 'booking': case 'photobook':
+        return refId ? `${base}/events/${refId}` : `${base}/events`;
+      case 'gift':
+        return refId ? `/user/client/payments/${refId}` : '/user/client/payments';
+      case 'streamfee':
+        return refId ? `/user/event-coordinator/payments/${refId}` : '/user/event-coordinator/payments';
+      case 'photographer':
+        return userRole === 'event-coordinator' ? '/user/event-coordinator/home' : '/user/client/photographers';
+      case 'album':
+        return userRole === 'event-coordinator' ? '/user/event-coordinator/gallery' : '/user/client/gallery';
+      case 'security':
+        return `${base}/profile`;
       default: return null;
     }
   };

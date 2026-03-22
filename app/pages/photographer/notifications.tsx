@@ -108,6 +108,7 @@ interface Notification {
   avatar?: string;
   amount?: number;
   actionUrl?: string;
+  referenceId?: string;
 }
 
 
@@ -143,6 +144,7 @@ const Notifications = () => {
             avatar: n.avatar || undefined,
             amount: n.amount || undefined,
             actionUrl: n.link || undefined,
+            referenceId: n.referenceId || undefined,
           })));
         }
       }
@@ -205,13 +207,18 @@ const Notifications = () => {
   };
 
   const getNotificationDest = (notification: Notification): string | null => {
-    // Ignore backend actionUrl — use role-aware routing instead
+    const refId = notification.referenceId;
     switch (notification.type) {
-      case 'payment': case 'tip': case 'bonus': return '/user/photographer/all-transactions';
-      case 'security': return '/user/photographer/profile';
-      case 'album': case 'event': return '/user/photographer/events';
-      case 'photobook': return '/user/photographer/events?tab=photobooks';
-      case 'review': return '/user/photographer/clients';
+      case 'payment': case 'tip': case 'bonus':
+        return '/user/photographer/all-transactions';
+      case 'security':
+        return '/user/photographer/profile';
+      case 'album': case 'event':
+        return refId ? `/user/photographer/events/${refId}` : '/user/photographer/events';
+      case 'photobook':
+        return refId ? `/user/photographer/events/${refId}` : '/user/photographer/events';
+      case 'review':
+        return '/user/photographer/clients';
       default: return null;
     }
   };
