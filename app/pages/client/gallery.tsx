@@ -6,7 +6,6 @@ import Topbar from '../../components/topbar';
 import Image from 'next/image';
 import { useTheme } from '../../context/ThemeContext';
 import AlbumCard from '@/app/components/Cards';
-import UnlockModal from '@/app/components/UnlockModal';
 import PayNowModal from '@/app/components/UnlockModal';
 import { useUserProfile } from '@/app/context/UserProfileContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
@@ -21,6 +20,8 @@ type PaymentStatus = 'paid' | 'pending' | 'failed' | 'refunded' | 'partially_pai
 
 interface Payment {
   id: number;
+  declarationId?: string;
+  eventId?: string;
   date: string;
   eventName: string;
   eventType: string;
@@ -546,9 +547,6 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
     currencyId?: string;
   }>>([]);
   const [showThumbnailSelector, setShowThumbnailSelector] = useState(false);
-  // Dynamic limit from the active photobook's package (falls back to 3)
-  const activePhotobook = photobooks.find(pb => pb.id === setupPhotobookId) || photobooks[0];
-  const MAX_IMAGE_SELECTION = activePhotobook?.freePhotosLimit || 3;
 
   // Setup wizard states (Select Album → Layout → Images)
   const [showSetupWizard, setShowSetupWizard] = useState(false);
@@ -557,6 +555,9 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   const [setupLayout, setSetupLayout] = useState<'book-flip' | 'mosaic' | 'gallery-wall'>('book-flip');
   const [setupSelectedImages, setSetupSelectedImages] = useState<string[]>([]);
   const [setupPhotobookId, setSetupPhotobookId] = useState<number | string | null>(null);
+  // Dynamic limit from the active photobook's package (falls back to 3)
+  const activePhotobook = photobooks.find(pb => pb.id === setupPhotobookId) || photobooks[0];
+  const MAX_IMAGE_SELECTION = activePhotobook?.freePhotosLimit || 3;
   const [setupCurrentImageIndex, setSetupCurrentImageIndex] = useState(0);
   const [showCoverPicker, setShowCoverPicker] = useState(false);
   const [setupCoverImage, setSetupCoverImage] = useState<string>('');
@@ -3117,6 +3118,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                       setSelectedPlan(plan.id);
                       const paymentData: Payment = {
                         id: 0,
+                        eventId: archivedAlbums[0]?.eventId || '',
                         date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
                         eventName: `${plan.name} — Unlock All Archived Albums (${archivedAlbums.length})`,
                         eventType: 'Archive Unlock',
@@ -3164,6 +3166,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
         isOpen={showPayNowModal}
         onClose={() => setShowPayNowModal(false)}
         payment={payNowPayment}
+        onPaymentSuccess={() => { fetchAlbums(); fetchCoordinatorArchives(); }}
       />
 
       {/* Album View Modal */}

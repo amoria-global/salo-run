@@ -183,7 +183,6 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
   );
 };
 
-// Mock data removed - streams are now loaded from API
 
 interface StreamsPageProps {
   userRole?: 'client' | 'event-coordinator';

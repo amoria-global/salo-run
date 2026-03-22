@@ -174,6 +174,12 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
   const [isValidating, setIsValidating] = useState(false);
   const [validatedName, setValidatedName] = useState('');
   const [validationError, setValidationError] = useState('');
+  const [showNameMismatch, setShowNameMismatch] = useState(false);
+  const [xentriPayName, setXentriPayName] = useState('');
+  const [enteredNameForMismatch, setEnteredNameForMismatch] = useState('');
+  const [pendingSaveData, setPendingSaveData] = useState<{
+    methodType: string; accountName: string; accountNumber: string; bankName: string;
+  } | null>(null);
 
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
 
@@ -369,13 +375,73 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
     setPaymentType('mtn');
     setValidatedName('');
     setValidationError('');
+    setShowNameMismatch(false);
+    setXentriPayName('');
+    setEnteredNameForMismatch('');
+    setPendingSaveData(null);
+  };
+
+  const saveWithdrawalMethod = async (methodType: string, accountName: string, accountNumber: string, bankName: string) => {
+    const apiUrl = getApiUrl();
+    const isDefault = paymentMethods.length === 0;
+    const params = new URLSearchParams({
+      methodType,
+      accountName,
+      accountNumber,
+      bankName,
+      isDefault: String(isDefault),
+    });
+
+    const res = await dashboardAuthFetch(`${apiUrl}${withdrawalMethodBasePath}?${params.toString()}`, {
+      method: 'POST',
+    });
+    const result = await res.json();
+
+    if (res.ok && result.action === 1) {
+      const m = result.data;
+      const bn = (m.bankName || '').toLowerCase();
+      const isAirtel = bn.includes('airtel');
+      const newMethod: PaymentMethod = {
+        id: m.id,
+        type: methodType === 'BANK_TRANSFER' ? 'bank' : 'mobile',
+        methodType: m.methodType,
+        name: methodType === 'BANK_TRANSFER' ? (m.bankName || 'Bank Transfer') : (isAirtel ? 'Airtel Money' : 'MTN Mobile Money'),
+        details: m.accountNumber || '',
+        isDefault: m.isDefault || false,
+        bankName: m.bankName,
+        accountName: m.accountName,
+      };
+      setPaymentMethods([...paymentMethods, newMethod]);
+    }
+  };
+
+  const handleConfirmMismatchName = async () => {
+    if (!pendingSaveData) return;
+    setIsSavingPreference(true);
+    setShowNameMismatch(false);
+    try {
+      await saveWithdrawalMethod(pendingSaveData.methodType, pendingSaveData.accountName, pendingSaveData.accountNumber, pendingSaveData.bankName);
+    } catch (err) {
+      console.error('Failed to save withdrawal method:', err);
+      setValidationError('Something went wrong. Please try again.');
+    }
+    setShowAddPaymentModal(false);
+    setIsSavingPreference(false);
+    setPendingSaveData(null);
+    resetForm();
+  };
+
+  const handleCancelMismatch = () => {
+    setShowNameMismatch(false);
+    setPendingSaveData(null);
+    setIsSavingPreference(false);
   };
 
   const handleAddPayment = async () => {
     setIsSavingPreference(true);
     setValidationError('');
+    setShowNameMismatch(false);
     try {
-      const apiUrl = getApiUrl();
       let methodType: string;
       let accountName: string;
       let accountNumber: string;
@@ -422,40 +488,31 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
         return;
       }
 
-      // Use the registered name from XentriPay as the account name
-      const registeredName = validation.registeredName || accountName;
-      setValidatedName(registeredName);
+      const registeredName = validation.registeredName || '';
 
-      const isDefault = paymentMethods.length === 0;
-      const params = new URLSearchParams({
-        methodType,
-        accountName: registeredName,
-        accountNumber,
-        bankName,
-        isDefault: String(isDefault),
-      });
+      // Compare entered name with XentriPay registered name
+      const enteredNorm = accountName.trim().toLowerCase();
+      const xentriNorm = registeredName.trim().toLowerCase();
 
-      const res = await dashboardAuthFetch(`${apiUrl}${withdrawalMethodBasePath}?${params.toString()}`, {
-        method: 'POST',
-      });
-      const result = await res.json();
-
-      if (res.ok && result.action === 1) {
-        const m = result.data;
-        const bn = (m.bankName || '').toLowerCase();
-        const isAirtel = bn.includes('airtel');
-        const newMethod: PaymentMethod = {
-          id: m.id,
-          type: methodType === 'BANK_TRANSFER' ? 'bank' : 'mobile',
-          methodType: m.methodType,
-          name: methodType === 'BANK_TRANSFER' ? (m.bankName || 'Bank Transfer') : (isAirtel ? 'Airtel Money' : 'MTN Mobile Money'),
-          details: m.accountNumber || '',
-          isDefault: m.isDefault || false,
-          bankName: m.bankName,
-          accountName: m.accountName,
-        };
-        setPaymentMethods([...paymentMethods, newMethod]);
+      let nameToSave: string;
+      if (!registeredName) {
+        // XentriPay didn't return a name — use user-entered name
+        nameToSave = accountName;
+      } else if (!accountName.trim() || enteredNorm === xentriNorm) {
+        // Names match or user didn't enter a name — use registered name
+        nameToSave = registeredName;
+      } else {
+        // Names don't match — show confirmation dialog
+        setXentriPayName(registeredName);
+        setEnteredNameForMismatch(accountName);
+        setShowNameMismatch(true);
+        setPendingSaveData({ methodType, accountName: registeredName, accountNumber, bankName });
+        setIsSavingPreference(false);
+        return;
       }
+
+      setValidatedName(nameToSave);
+      await saveWithdrawalMethod(methodType, nameToSave, accountNumber, bankName);
     } catch (err) {
       console.error('Failed to add withdrawal method:', err);
       setValidationError('Something went wrong. Please try again.');
@@ -1904,7 +1961,67 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
               </div>
             )}
 
+            {/* Name Mismatch Confirmation */}
+            {showNameMismatch && (
+              <div style={{
+                marginTop: '1rem',
+                padding: '1rem',
+                borderRadius: '0.5rem',
+                backgroundColor: actualTheme === 'dark' ? '#2D2006' : '#FEF3C7',
+                border: `1px solid ${actualTheme === 'dark' ? '#92400E' : '#F59E0B'}`,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, marginTop: '1px' }}>
+                    <path d="M12 9V13M12 17H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <div>
+                    <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: '600', color: actualTheme === 'dark' ? '#FBBF24' : '#92400E' }}>
+                      Name mismatch
+                    </p>
+                    <p style={{ margin: '0.375rem 0 0', fontSize: '0.825rem', color: actualTheme === 'dark' ? '#FDE68A' : '#78350F', lineHeight: '1.4' }}>
+                      You entered <strong>{enteredNameForMismatch}</strong>, but this account is registered as <strong>{xentriPayName}</strong>.
+                    </p>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    onClick={handleCancelMismatch}
+                    style={{
+                      flex: 1,
+                      padding: '0.5rem',
+                      border: `1px solid ${actualTheme === 'dark' ? '#92400E' : '#D97706'}`,
+                      borderRadius: '0.375rem',
+                      backgroundColor: 'transparent',
+                      color: actualTheme === 'dark' ? '#FBBF24' : '#92400E',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Go Back
+                  </button>
+                  <button
+                    onClick={handleConfirmMismatchName}
+                    style={{
+                      flex: 1,
+                      padding: '0.5rem',
+                      border: 'none',
+                      borderRadius: '0.375rem',
+                      backgroundColor: actualTheme === 'dark' ? '#92400E' : '#D97706',
+                      color: 'white',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Use "{xentriPayName}"
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Action Buttons */}
+            {!showNameMismatch && (
             <div className="mobile-modal-footer" style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', alignItems: 'center' }}>
               <button
                 onClick={() => { setShowAddPaymentModal(false); resetForm(); }}
@@ -1943,6 +2060,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                 {isValidating ? 'Validating...' : isSavingPreference ? 'Saving...' : 'Add Payment Account'}
               </button>
             </div>
+            )}
           </div>
         </div>
       )}

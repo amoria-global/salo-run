@@ -18,6 +18,10 @@ const nextConfig: NextConfig = {
         hostname: 'localhost',
       },
       {
+        protocol: 'https',
+        hostname: 'backend.connekyt.com',
+      },
+      {
         protocol: apiUrl.protocol.replace(':', '') as 'http' | 'https',
         hostname: apiUrl.hostname,
       },
