@@ -542,7 +542,11 @@ interface WithdrawAccount {
 
 const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availableBalance, userName }) => {
   const { colors, actualTheme } = useTheme();
-  const { formatPrice } = useCurrency();
+  const { formatPrice, currencies } = useCurrency();
+
+  // Withdrawals are always in RWF — convert USD balance to RWF
+  const rwfRate = currencies.find(c => c.code === 'RWF')?.rate || 1460;
+  const availableBalanceRwf = Math.floor(availableBalance * rwfRate);
   const router = useRouter();
   const [withdrawAmount, setWithdrawAmount] = useState<string>('');
   const [selectedAccount, setSelectedAccount] = useState<string>('');
@@ -601,10 +605,10 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
   const parsedWithdrawAmount = parseFloat(withdrawAmount) || 0;
   const amountError = withdrawAmount !== '' && parsedWithdrawAmount <= 0
     ? 'Please enter a withdrawal amount greater than zero.'
-    : parsedWithdrawAmount > availableBalance
-      ? `Insufficient funds. Your available balance is ${formatPrice(availableBalance)}. Please enter a smaller amount or wait for pending payments to clear.`
+    : parsedWithdrawAmount > availableBalanceRwf
+      ? `Insufficient funds. Your available balance is RF ${availableBalanceRwf.toLocaleString()}. Please enter a smaller amount or wait for pending payments to clear.`
       : '';
-  const isWithdrawValid = parsedWithdrawAmount > 0 && parsedWithdrawAmount <= availableBalance;
+  const isWithdrawValid = parsedWithdrawAmount > 0 && parsedWithdrawAmount <= availableBalanceRwf;
 
   const handleSelectDonation = (amount: string) => {
     setDonationSkipped(false);
@@ -710,7 +714,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
           <div style={{ width: '64px', height: '64px', margin: '0 auto 1.5rem', border: '4px solid rgba(8, 58, 133, 0.2)', borderTopColor: '#083A85', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
           <h4 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>Processing Withdrawal</h4>
           <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1rem', lineHeight: '1.5' }}>
-            Your withdrawal of {formatPrice(parseFloat(withdrawAmount) || 0)} is being processed. This may take a moment...
+            Your withdrawal of RF {(parseFloat(withdrawAmount) || 0).toLocaleString()} is being processed. This may take a moment...
           </p>
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
@@ -728,7 +732,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
           </div>
           <h4 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>Withdrawal Submitted!</h4>
           <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1.5rem' }}>
-            Your withdrawal of {formatPrice(parseFloat(withdrawAmount) || 0)} has been submitted and is being processed to your account.
+            Your withdrawal of RF {(parseFloat(withdrawAmount) || 0).toLocaleString()} has been submitted and is being processed to your account.
           </p>
           <button onClick={() => { handleWithdrawClose(); window.location.reload(); }} style={{ padding: '0.75rem 2rem', border: '2px solid #062a63', borderRadius: '0.5rem', background: '#083A85', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Done</button>
         </div>
@@ -841,10 +845,10 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
 
             <div style={{ position: 'relative', zIndex: 1 }}>
               <div className="mobile-balance-display-text" style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.8)', marginBottom: '0.5rem', fontWeight: '500' }}>
-                Available Balance
+                Available Balance (RWF)
               </div>
               <div className="mobile-balance-display-amount" style={{ fontSize: '2rem', fontWeight: '700', color: 'white', letterSpacing: '-0.02em' }}>
-                {formatPrice(availableBalance)}
+                RF {availableBalanceRwf.toLocaleString()}
               </div>
             </div>
           </div>
@@ -869,7 +873,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
                 fontSize: '1.1rem',
                 fontWeight: '600',
                 color: colors.textSecondary
-              }}>$</span>
+              }}>RF</span>
               <input
                 type="text"
                 placeholder="0.00"
@@ -877,7 +881,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
                 onChange={(e) => setWithdrawAmount(e.target.value)}
                 style={{
                   width: '100%',
-                  padding: '0.875rem 1rem 0.875rem 2rem',
+                  padding: '0.875rem 1rem 0.875rem 2.5rem',
                   border: '2px solid #E5E7EB',
                   borderRadius: '0.75rem',
                   fontSize: '1.1rem',
@@ -899,7 +903,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
             </div>
             {/* Quick amount buttons */}
             <div className="mobile-quick-amounts" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', marginTop: '0.75rem' }}>
-              {['100', '250', '500', '1000'].map((amount) => (
+              {['5000', '10000', '25000', '50000'].map((amount) => (
                 <button
                   key={amount}
                   onClick={() => setWithdrawAmount(amount)}
@@ -915,7 +919,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
                     transition: 'all 0.2s'
                   }}
                 >
-                  ${amount}
+                  RF {parseInt(amount).toLocaleString()}
                 </button>
               ))}
             </div>
@@ -1102,7 +1106,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
               <>
                 {/* Quick Amount Buttons */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                  {['5', '10', '25', '50'].map((amount) => (
+                  {['500', '1000', '2500', '5000'].map((amount) => (
                     <button
                       key={amount}
                       onClick={() => handleSelectDonation(amount)}
@@ -1122,7 +1126,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
                         minWidth: '0'
                       }}
                     >
-                      ${amount}
+                      RF {parseInt(amount).toLocaleString()}
                     </button>
                   ))}
                   <button
@@ -1802,7 +1806,7 @@ Amount: ${formatPrice(transaction.amountNum)}
             serviceType: t.serviceType || t.eventType || t.paymentType || 'Service',
             method: t.paymentMethod || t.method || '-',
             amount: `$${t.amount || 0}`,
-            amountNum: t.amount || 0,
+            amountNum: t.amountInUsd ?? t.amount ?? 0,
             status: mapStatus(t.status || ''),
             transactionId: t.transactionId || t.reference || `${String(t.id).slice(0, 4)}****`,
             requestId: t.requestId || t.reference || t.invoiceNumber || `AM${t.id || i}`,
@@ -1888,7 +1892,7 @@ Amount: ${formatPrice(transaction.amountNum)}
   const bonusEarned = bonusApproved;
   const bonusReached = completedEventsCount >= BONUS_THRESHOLD;
   const eventsToBonus = Math.max(0, BONUS_THRESHOLD - completedEventsCount);
-  const availableBalance = balance?.availableBalance || 0;
+  const availableBalance = balance?.withdrawableBalance ?? balance?.availableBalance ?? 0;
 
   const resultsPerPage = 8;
   const totalResults = transactions.length;

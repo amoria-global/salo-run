@@ -123,7 +123,6 @@ interface Notification {
   actionUrl?: string;
 }
 
-// Mock data removed - notifications are now fetched from the backend API
 
 interface NotificationsPageProps {
   userRole?: 'client' | 'event-coordinator';

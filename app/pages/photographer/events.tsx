@@ -308,6 +308,7 @@ interface AssignedEvent {
   maxGuests: number;
   bookingId: string;
   bookingStatus?: string;
+  escrowPercentage?: number;
   totalAmount: number;
   createdAt: string;
 }
@@ -357,9 +358,6 @@ interface Album {
   albumDate?: string;
 }
 
-// ============================================
-// EMPTY DEFAULTS (API data only — no mock data)
-// ============================================
 
 // View Toggle Icons
 const EventsViewIcon = ({ active }: { active: boolean }) => (
@@ -656,6 +654,7 @@ const PhotographerEventsPage = () => {
               maxGuests: e.maxGuests || 0,
               bookingId: e.bookingId || e.id,
               bookingStatus: e.bookingStatus || '',
+              escrowPercentage: e.escrowPercentage || 50,
               totalAmount: e.totalAmount || 0,
               createdAt: e.createdAt || '',
             }));
@@ -2258,6 +2257,22 @@ const PhotographerEventsPage = () => {
                 {bookingActionTarget.totalAmount > 0 && <div><strong style={{ color: colors.textPrimary }}>Amount:</strong> {formatPrice(bookingActionTarget.totalAmount)}</div>}
               </div>
             </div>
+
+            {/* Payment Terms Info — only show on accept */}
+            {bookingActionType === 'accept' && bookingActionTarget.escrowPercentage && (
+              <div style={{
+                backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF',
+                border: `1px solid ${actualTheme === 'dark' ? '#2563EB' : '#BFDBFE'}`,
+                borderRadius: '0.5rem', padding: '0.75rem 1rem', marginBottom: '1rem',
+              }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: 600, color: actualTheme === 'dark' ? '#93C5FD' : '#1D4ED8', marginBottom: '0.3rem' }}>Payment Terms</div>
+                <div style={{ fontSize: '0.82rem', color: colors.textSecondary, lineHeight: 1.5 }}>
+                  {bookingActionTarget.escrowPercentage === 100
+                    ? '100% paid upfront by the client, held in escrow and released upon event completion.'
+                    : `${bookingActionTarget.escrowPercentage}% paid upfront (held in escrow) + ${100 - bookingActionTarget.escrowPercentage}% upon event completion.`}
+                </div>
+              </div>
+            )}
 
             {bookingActionType === 'accept' ? (
               <p style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '1.25rem', lineHeight: '1.5' }}>

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "../context/ThemeContext";
 import { dashboardAuthFetch } from "../providers/AuthProvider";
 import { useCurrency } from "../context/CurrencyContext";
-import { initiateBookingPayment, pollPaymentStatus, getTelecomProvider, getPaymentMethodType, sanitizeErrorMessage } from '@/lib/xentripay';
+import { initiateBookingPayment, initiateArchivePayment, pollPaymentStatus, getTelecomProvider, getPaymentMethodType, sanitizeErrorMessage } from '@/lib/xentripay';
 
 // Heart Icon for donate section
 export const HeartIcon = () => (
@@ -52,6 +52,7 @@ type PaymentStatus = 'paid' | 'pending' | 'failed' | 'refunded' | 'partially_pai
 export interface Payment {
   id: number;
   declarationId?: string;
+  eventId?: string;
   date: string;
   eventName: string;
   eventType: string;
@@ -128,7 +129,7 @@ const PAYMENT_METHODS: Record<string, { label: string; image: string }> = {
 const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onPaymentSuccess }) => {
   const { colors, actualTheme } = useTheme();
   const router = useRouter();
-  const { formatPrice } = useCurrency();
+  const { formatPrice, currencyId } = useCurrency();
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('card');
   const [donationAmount, setDonationAmount] = useState<string>('');
   const [customDonation, setCustomDonation] = useState<string>('');
@@ -187,8 +188,15 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
   };
 
   const handlePayNow = async () => {
-    if (!payment?.declarationId) {
+    const isArchive = payment?.eventType === 'Archive Unlock';
+
+    if (!isArchive && !payment?.declarationId) {
       setXentriPayError('This payment cannot be processed right now. The booking may not have been finalized yet. Please contact support if this persists.');
+      return;
+    }
+
+    if (isArchive && !payment?.eventId) {
+      setXentriPayError('No archived album event found. Please try again or contact support.');
       return;
     }
 
@@ -207,14 +215,29 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
       const methodType = getPaymentMethodType(selectedPaymentMethod);
       const phone = selectedPaymentMethod === 'card' ? '' : paymentPhone.trim();
 
-      const result = await initiateBookingPayment(
-        payment.declarationId,
-        phone,
-        telecom,
-        methodType,
-        undefined,
-        donationValue > 0 ? donationValue : undefined
-      );
+      let result;
+      if (isArchive && payment?.eventId) {
+        result = await initiateArchivePayment(
+          payment.eventId,
+          payment.amountNum,
+          currencyId || 'RWF',
+          phone,
+          telecom,
+          methodType,
+          undefined,
+          donationValue > 0 ? donationValue : undefined
+        );
+      } else {
+        result = await initiateBookingPayment(
+          payment!.declarationId!,
+          phone,
+          telecom,
+          methodType,
+          undefined,
+          donationValue > 0 ? donationValue : undefined,
+          currencyId
+        );
+      }
 
       if (!result.success || !result.data) {
         setXentriPayError(result.error || 'Payment could not be initiated. Please check your payment details and try again.');
@@ -235,6 +258,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
         onSuccess: () => {
           setXentriPayStep('success');
           setPaymentLoading(false);
+          onPaymentSuccess?.();
         },
         onFailure: () => {
           setXentriPayStep('failed');

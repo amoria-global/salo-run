@@ -102,18 +102,22 @@ export function getPaymentMethodType(method: string): string {
  * Initiate payment for a booking via eventId (server finds declaration internally)
  */
 export async function initiateBookingPayment(
-  eventId: string,
+  declarationId: string,
   phone: string,
   telecomProvider: string,
   paymentMethod: string,
   redirectUrl?: string,
-  donationAmount?: number
+  donationAmount?: number,
+  currencyId?: string,
+  escrowPercentage?: number
 ): Promise<{ success: boolean; data?: XentriPayResponse; error?: string }> {
   try {
-    const body: Record<string, unknown> = { eventId, paymentMethod, redirectUrl };
+    const body: Record<string, unknown> = { declarationId, paymentMethod, redirectUrl };
     if (phone) body.phone = phone;
     if (telecomProvider) body.telecomProvider = telecomProvider;
     if (donationAmount && donationAmount > 0) body.donationAmount = donationAmount;
+    if (currencyId) body.currencyId = currencyId;
+    if (escrowPercentage) body.escrowPercentage = escrowPercentage;
     const response = await dashboardAuthFetch(
       `${getApiUrl()}/api/remote/payments/xentripay/initiate`,
       {
@@ -139,6 +143,55 @@ export async function initiateBookingPayment(
     }
 
     return { success: false, error: sanitizeErrorMessage(result.message, 'Failed to initiate payment. Please try again.') };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Network error' };
+  }
+}
+
+/**
+ * Initiate archive unlock payment via XentriPay
+ */
+export async function initiateArchivePayment(
+  eventId: string,
+  amount: number,
+  currencyId: string,
+  phone: string,
+  telecomProvider: string,
+  paymentMethod: string,
+  redirectUrl?: string,
+  donationAmount?: number
+): Promise<{ success: boolean; data?: XentriPayResponse; error?: string }> {
+  try {
+    const body: Record<string, unknown> = { eventId, amount, currencyId, paymentMethod };
+    if (phone) body.phone = phone;
+    if (telecomProvider) body.telecomProvider = telecomProvider;
+    if (redirectUrl) body.redirectUrl = redirectUrl;
+    if (donationAmount && donationAmount > 0) body.donationAmount = donationAmount;
+    const response = await dashboardAuthFetch(
+      `${getApiUrl()}/api/remote/payments/xentripay/initiate-archive`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }
+    );
+
+    const result = await response.json();
+
+    if (result.action === 1 && result.data) {
+      return {
+        success: true,
+        data: {
+          refid: result.data.refid,
+          tid: result.data.tid,
+          paymentUrl: result.data.paymentUrl,
+          status: result.data.status || 'PENDING',
+          message: result.data.message || result.message,
+        },
+      };
+    }
+
+    return { success: false, error: sanitizeErrorMessage(result.message, 'Failed to initiate archive payment. Please try again.') };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : 'Network error' };
   }
@@ -375,6 +428,117 @@ export function pollPaymentStatus(
   setTimeout(poll, intervalMs);
 
   return () => { stopped = true; };
+}
+
+// ==================== Escrow Release APIs ====================
+
+/**
+ * Release escrow funds — collects remaining balance after survey completion
+ */
+export async function releaseEscrowFunds(
+  declarationId: string,
+  phone: string,
+  telecomProvider: string,
+  paymentMethod: string,
+  redirectUrl?: string
+): Promise<{ success: boolean; data?: XentriPayResponse; error?: string }> {
+  try {
+    const body: Record<string, unknown> = { declarationId, phone, paymentMethod };
+    if (telecomProvider) body.telecomProvider = telecomProvider;
+    if (redirectUrl) body.redirectUrl = redirectUrl;
+    const response = await dashboardAuthFetch(
+      `${getApiUrl()}/api/remote/payments/xentripay/release-escrow`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }
+    );
+
+    const result = await response.json();
+
+    if (result.action === 1 && result.data) {
+      return {
+        success: true,
+        data: {
+          refid: result.data.refid,
+          tid: result.data.tid,
+          paymentUrl: result.data.paymentUrl,
+          status: result.data.status || 'PENDING',
+          message: result.data.message || result.message,
+        },
+      };
+    }
+
+    return { success: false, error: sanitizeErrorMessage(result.message, 'Failed to release escrow funds. Please try again.') };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Network error' };
+  }
+}
+
+// ==================== Survey APIs ====================
+
+/**
+ * Submit client satisfaction survey
+ */
+export async function submitSurvey(
+  eventId: string,
+  data: {
+    attendedEvent: boolean;
+    serviceDelivery: string;
+    satisfactionLevel: string;
+    deliverablesReceived: boolean;
+    issuesDescription?: string;
+    wouldBookAgain: boolean;
+  }
+): Promise<{ success: boolean; surveyId?: string; disputeFlagged?: boolean; error?: string }> {
+  try {
+    const response = await dashboardAuthFetch(
+      `${getApiUrl()}/api/remote/client/surveys`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId, ...data }),
+      }
+    );
+
+    const result = await response.json();
+
+    if (result.action === 1 && result.data) {
+      return {
+        success: true,
+        surveyId: result.data.surveyId,
+        disputeFlagged: result.data.disputeFlagged,
+      };
+    }
+
+    return { success: false, error: result.message || 'Failed to submit survey' };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Network error' };
+  }
+}
+
+/**
+ * Check if survey is completed for an event
+ */
+export async function isSurveyCompleted(
+  eventId: string
+): Promise<{ completed: boolean; error?: string }> {
+  try {
+    const response = await dashboardAuthFetch(
+      `${getApiUrl()}/api/remote/client/surveys/${eventId}/completed`
+    );
+
+    const result = await response.json();
+
+    if (result.action === 1 && result.data) {
+      return { completed: result.data.completed };
+    }
+
+    return { completed: false };
+  } catch {
+    return { completed: false, error: 'Failed to check survey status' };
+  }
 }
 
 // ==================== Withdrawal (Payout) APIs ====================
