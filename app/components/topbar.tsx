@@ -8,6 +8,7 @@ import { useDashboardAuth, dashboardAuthFetch } from "../providers/AuthProvider"
 import { useCurrency } from "../context/CurrencyContext";
 
 import { getApiUrl } from '@/lib/api';
+import WithdrawModal from './WithdrawModal';
 
 // Icons for dropdown menu
 const ProfileIcon = () => (
@@ -129,6 +130,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
     }
   };
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -1130,7 +1132,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
                 </a>
 
                 <button
-                  onClick={() => router.push(userRole === 'photographer' ? '/user/photographer/transaction' : `/user/${userRole}/payments`)}
+                  onClick={() => { setIsDropdownOpen(false); setShowWithdrawModal(true); }}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -1153,8 +1155,8 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
                     e.currentTarget.style.backgroundColor = 'transparent';
                   }}
                 >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-                  Payments
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+                  Withdraw
                 </button>
 
                 <button
@@ -1241,6 +1243,15 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
     )}
 
     {/* Logout Confirmation Modal */}
+    {/* Withdraw Modal */}
+    <WithdrawModal
+      isOpen={showWithdrawModal}
+      onClose={() => setShowWithdrawModal(false)}
+      role={userRole === 'photographer' ? 'photographer' : userRole === 'event-coordinator' ? 'event-coordinator' : 'client'}
+      colors={colors}
+      actualTheme={actualTheme}
+    />
+
     {showLogoutModal && (
       <div
         onClick={() => setShowLogoutModal(false)}
