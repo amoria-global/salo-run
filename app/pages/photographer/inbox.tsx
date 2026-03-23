@@ -16,7 +16,7 @@ const normalizeImg = (url: string | undefined | null): string => {
   if (!u.includes('/') && !u.startsWith('http')) {
     u = `${getApiUrl()}/uploads/profile/photos/${u}`;
   }
-  return normalizeImageUrl(u) || '';
+  return normalizeImageUrl(u) || ''; 
 };
 
 // Icons
