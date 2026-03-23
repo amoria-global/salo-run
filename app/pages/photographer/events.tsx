@@ -649,7 +649,7 @@ const PhotographerEventsPage = () => {
               packageName: e.packageName || '',
               packageId: e.packageId || '',
               hasLiveStream: e.hasLiveStream || false,
-              isPublished: e.isPublished || false,
+              isPublished: e.isPublished === true || e.eventStatus === 'PUBLISHED' || e.isEventPublished === true || false,
               guestCount: e.guestCount || 0,
               maxGuests: e.maxGuests || 0,
               bookingId: e.bookingId || e.id,
@@ -658,6 +658,16 @@ const PhotographerEventsPage = () => {
               totalAmount: e.totalAmount || 0,
               createdAt: e.createdAt || '',
             }));
+            // Enrich isPublished from public events (photographer DTO may omit it)
+            try {
+              const pubRes = await fetch(`${apiUrl}/api/remote/public/events/list?size=100`);
+              if (pubRes.ok) {
+                const pubResult = await pubRes.json();
+                const pubEvents = pubResult?.data?.content || pubResult?.data || [];
+                const publishedIds = new Set(pubEvents.filter((pe: any) => pe.isPublished).map((pe: any) => pe.id));
+                mapped.forEach(ev => { if (publishedIds.has(ev.id)) ev.isPublished = true; });
+              }
+            } catch { /* ignore */ }
             setEvents(mapped);
           } else {
             setEvents([]);
