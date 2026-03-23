@@ -9,6 +9,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useUserProfile } from '../../context/UserProfileContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
 import { HeartIcon } from '../../components/UnlockModal';
+import WithdrawModal from '../../components/WithdrawModal';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { initiateBookingPayment, pollPaymentStatus, getTelecomProvider, getPaymentMethodType, sanitizeErrorMessage, releaseEscrowFunds, isSurveyCompleted } from '@/lib/xentripay';
 import { getApiUrl } from '@/lib/api';
@@ -1775,6 +1776,7 @@ Amount: ${formatPrice(payment.amountNum)}
 
   // Whether user already has a withdrawal method set
   const [hasWithdrawalMethod, setHasWithdrawalMethod] = useState(false);
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -2154,30 +2156,34 @@ Amount: ${formatPrice(payment.amountNum)}
                       {hasWithdrawalMethod ? 'Stream Fee Earnings' : 'Withdraw Your Stream Fee Earnings'}
                     </div>
                     <div style={{ fontSize: '0.82rem', color: colors.textSecondary, lineHeight: '1.35' }}>
-                      {hasWithdrawalMethod ? 'Your withdrawal method is set up. You can manage it in Preferences > Payment Accounts.' : 'Set up your preferred account to receive payments from stream ticket sales.'}
+                      {hasWithdrawalMethod ? 'Withdraw your stream fee earnings to your saved payment account.' : 'Set up your preferred account to receive payments from stream ticket sales.'}
                     </div>
                   </div>
-                  {!hasWithdrawalMethod && <button
-                    onClick={() => setShowStreamFeeWithdrawModal(true)}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.35rem',
-                      backgroundColor: '#16A34A',
-                      color: 'white',
-                      border: '2px solid #15803D',
-                      borderRadius: '0.375rem',
-                      padding: '0.45rem 0.85rem',
-                      fontSize: '0.85rem',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap',
-                      flexShrink: 0
-                    }}
-                  >
-                    Set Up Withdrawal Method
-                  </button>}
+                  {hasWithdrawalMethod ? (
+                    <button
+                      onClick={() => setShowWithdrawModal(true)}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem',
+                        backgroundColor: '#083A85', color: 'white', border: '2px solid #062a63',
+                        borderRadius: '0.375rem', padding: '0.45rem 0.85rem', fontSize: '0.85rem',
+                        fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0
+                      }}
+                    >
+                      Withdraw
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setShowStreamFeeWithdrawModal(true)}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem',
+                        backgroundColor: '#16A34A', color: 'white', border: '2px solid #15803D',
+                        borderRadius: '0.375rem', padding: '0.45rem 0.85rem', fontSize: '0.85rem',
+                        fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0
+                      }}
+                    >
+                      Set Up Withdrawal Method
+                    </button>
+                  )}
                 </div>
                 <div style={{
                   display: 'flex',
@@ -2399,6 +2405,15 @@ Amount: ${formatPrice(payment.amountNum)}
         onClose={() => setShowPayNowModal(false)}
         payment={payNowPayment}
         onPaymentSuccess={fetchPayments}
+      />
+
+      {/* Withdraw Modal */}
+      <WithdrawModal
+        isOpen={showWithdrawModal}
+        onClose={() => setShowWithdrawModal(false)}
+        role="event-coordinator"
+        colors={colors}
+        actualTheme={actualTheme}
       />
 
       {/* Stream Fee Withdrawal Modal */}
