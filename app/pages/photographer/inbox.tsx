@@ -12,7 +12,7 @@ import { checkMessageContent, checkMessageWithHistory } from '@/lib/messageFilte
 
 const normalizeImg = (url: string | undefined | null): string => {
   if (!url || url === 'null' || url.endsWith('/null')) return '';
-  let u = url;
+  let u = url; 
   if (!u.includes('/') && !u.startsWith('http')) {
     u = `${getApiUrl()}/uploads/profile/photos/${u}`;
   }
