@@ -3639,12 +3639,32 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
 
               {/* Add to Photobook Action */}
               {selectedImages.length > 0 && (
-                <div className="mobile-bulk-actions" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                <div className="mobile-bulk-actions" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
                   {selectedImages.length >= MAX_IMAGE_SELECTION && (
                     <span style={{ fontSize: '0.8rem', color: '#F59E0B', fontWeight: '500' }}>
                       Max {MAX_IMAGE_SELECTION} images reached
                     </span>
                   )}
+                  <button
+                    onClick={handleBulkDownload}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      borderRadius: '0.5rem',
+                      border: 'none',
+                      backgroundColor: '#16A34A',
+                      color: 'white',
+                      fontSize: '0.875rem',
+                      fontWeight: '500',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <DownloadIcon />
+                    Download ({selectedImages.length})
+                  </button>
                   <button
                     onClick={handleAddToPhotobook}
                     disabled={photobooks.length === 0}
@@ -3876,6 +3896,18 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
                 {(viewerAlbum && photobooks[0]?.images.includes(viewerAlbum.images[currentImageIndex])) ? 'Added' : 'Photobook'}
+              </button>
+              <button
+                onClick={handleDownloadCurrentImage}
+                title="Download image"
+                style={{
+                  width: '36px', height: '36px', borderRadius: '50%',
+                  backgroundColor: 'rgba(255,255,255,0.12)', border: 'none',
+                  color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <DownloadIcon />
               </button>
               <button
                 onClick={closeImageViewer}
