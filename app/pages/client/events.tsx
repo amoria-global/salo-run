@@ -228,6 +228,7 @@ interface Event {
   inviteCode?: string;
   streamInviteToken?: string;
   completionStatus?: string;
+  albumDelivered?: boolean;
   createdAt: string;
 }
 
@@ -1924,10 +1925,15 @@ const MyEventsPage = () => {
                             </button>
                           )
                         )}
-                        {event.completionStatus === 'PENDING_CUSTOMER_CONFIRMATION' && (
+                        {event.completionStatus === 'PENDING_CUSTOMER_CONFIRMATION' && event.albumDelivered && (
                           <button onClick={() => { setCompletionModalEvent(event); setCompletionFeedbackStatus('COMPLETED'); setCompletionComment(''); }} style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.4rem 0.5rem', backgroundColor: '#7C3AED', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}>
                             Confirm Completion
                           </button>
+                        )}
+                        {event.completionStatus === 'PENDING_CUSTOMER_CONFIRMATION' && !event.albumDelivered && (
+                          <div style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.4rem 0.5rem', backgroundColor: 'rgba(245, 158, 11, 0.2)', color: '#F59E0B', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '0.375rem', fontSize: '0.65rem', fontWeight: 500, textAlign: 'center', lineHeight: '1.2' }}>
+                            Waiting for album delivery
+                          </div>
                         )}
                       </div>
                     </div>
