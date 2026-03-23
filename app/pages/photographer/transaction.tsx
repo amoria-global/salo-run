@@ -556,6 +556,15 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
   const [showCustomInput, setShowCustomInput] = useState<boolean>(false);
   const [accounts, setAccounts] = useState<WithdrawAccount[]>([]);
   const [accountsLoading, setAccountsLoading] = useState<boolean>(false);
+  const [withdrawableSources, setWithdrawableSources] = useState<{
+    balance: number;
+    tips: number;
+    bonus: number;
+    gifts: number;
+    streamFees: number;
+    total: number;
+  } | null>(null);
+  const [selectedSource, setSelectedSource] = useState<'balance' | 'tips' | 'bonus' | 'gifts' | 'streamFees'>('balance');
 
   // XentriPay withdrawal states
   const [withdrawStep, setWithdrawStep] = useState<'form' | 'processing' | 'success' | 'failed'>('form');
@@ -568,6 +577,8 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
     if (!isOpen) return;
     setAccountsLoading(true);
     const apiUrl = getApiUrl();
+
+    // Fetch withdrawal methods
     dashboardAuthFetch(`${apiUrl}/api/remote/photographer/withdrawal-methods`)
       .then(res => res.json())
       .then(result => {
@@ -597,18 +608,31 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
       })
       .catch(() => setAccounts([]))
       .finally(() => setAccountsLoading(false));
+
+    // Fetch withdrawable sources
+    dashboardAuthFetch(`${apiUrl}/api/remote/photographer/withdrawable-sources`)
+      .then(res => res.json())
+      .then(result => {
+        if (result.action === 1 && result.data) {
+          setWithdrawableSources(result.data);
+        }
+      })
+      .catch(err => console.error('Failed to fetch withdrawable sources:', err));
   }, [isOpen]);
 
   const donationValue = donationAmount === 'custom' ? (parseFloat(customDonation) || 0) : (parseFloat(donationAmount) || 0);
   const donationAddressed = donationSkipped || donationValue > 0;
 
+  const selectedSourceAmount = withdrawableSources?.[selectedSource] || 0;
+  const selectedSourceAmountRwf = Math.floor(selectedSourceAmount * rwfRate);
+
   const parsedWithdrawAmount = parseFloat(withdrawAmount) || 0;
   const amountError = withdrawAmount !== '' && parsedWithdrawAmount <= 0
     ? 'Please enter a withdrawal amount greater than zero.'
-    : parsedWithdrawAmount > availableBalanceRwf
-      ? `Insufficient funds. Your available balance is RF ${availableBalanceRwf.toLocaleString()}. Please enter a smaller amount or wait for pending payments to clear.`
+    : parsedWithdrawAmount > selectedSourceAmountRwf
+      ? `Insufficient ${selectedSource} balance. Available: RF ${selectedSourceAmountRwf.toLocaleString()}`
       : '';
-  const isWithdrawValid = parsedWithdrawAmount > 0 && parsedWithdrawAmount <= availableBalanceRwf;
+  const isWithdrawValid = parsedWithdrawAmount > 0 && parsedWithdrawAmount <= selectedSourceAmountRwf;
 
   const handleSelectDonation = (amount: string) => {
     setDonationSkipped(false);
@@ -643,7 +667,12 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
       const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/withdraw`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount, withdrawalMethodId: selectedAccount, donationAmount: donation }),
+        body: JSON.stringify({
+          amount,
+          withdrawalMethodId: selectedAccount,
+          donationAmount: donation,
+          source: selectedSource.toUpperCase()
+        }),
       });
 
       const result = await res.json();
@@ -945,6 +974,68 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
                 {amountError}
               </div>
             )}
+          </div>
+
+          {/* Withdrawal Source Selection */}
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label style={{
+              display: 'block',
+              marginBottom: '0.75rem',
+              fontSize: '0.875rem',
+              fontWeight: '600',
+              color: colors.text
+            }}>
+              Withdraw From
+            </label>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+              gap: '0.75rem'
+            }}>
+              {[
+                { key: 'balance', label: 'Balance', amount: withdrawableSources?.balance || 0 },
+                { key: 'tips', label: 'Tips', amount: withdrawableSources?.tips || 0 },
+                { key: 'bonus', label: 'Bonus', amount: withdrawableSources?.bonus || 0 },
+                { key: 'gifts', label: 'Gifts', amount: withdrawableSources?.gifts || 0 },
+                { key: 'streamFees', label: 'Stream Fees', amount: withdrawableSources?.streamFees || 0 },
+              ].map(source => {
+                const isSelected = selectedSource === source.key;
+                const isDisabled = source.amount <= 0;
+                return (
+                  <button
+                    key={source.key}
+                    onClick={() => !isDisabled && setSelectedSource(source.key as any)}
+                    disabled={isDisabled}
+                    style={{
+                      padding: '0.75rem',
+                      border: isSelected ? `2px solid ${colors.primary}` : `1px solid ${colors.borderPrimary}`,
+                      borderRadius: '0.5rem',
+                      background: isDisabled ? colors.disabled : isSelected ? `${colors.primary}15` : colors.cardBg,
+                      opacity: isDisabled ? 0.5 : 1,
+                      cursor: isDisabled ? 'not-allowed' : 'pointer',
+                      textAlign: 'left',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    <div style={{
+                      fontSize: '0.75rem',
+                      color: colors.textSecondary,
+                      marginBottom: '0.25rem',
+                      fontWeight: '500',
+                    }}>
+                      {source.label}
+                    </div>
+                    <div style={{
+                      fontSize: '0.9rem',
+                      fontWeight: '600',
+                      color: isDisabled ? colors.textSecondary : colors.text
+                    }}>
+                      RF {Math.floor(source.amount * rwfRate).toLocaleString()}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Account Selection */}
