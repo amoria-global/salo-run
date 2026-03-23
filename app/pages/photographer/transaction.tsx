@@ -983,7 +983,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
               marginBottom: '0.75rem',
               fontSize: '0.875rem',
               fontWeight: '600',
-              color: colors.text
+              color: colors.textPrimary
             }}>
               Withdraw From
             </label>
@@ -1008,9 +1008,9 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
                     disabled={isDisabled}
                     style={{
                       padding: '0.75rem',
-                      border: isSelected ? `2px solid ${colors.primary}` : `1px solid ${colors.borderPrimary}`,
+                      border: isSelected ? `2px solid #083A85` : `1px solid ${colors.borderPrimary}`,
                       borderRadius: '0.5rem',
-                      background: isDisabled ? colors.disabled : isSelected ? `${colors.primary}15` : colors.cardBg,
+                      background: isDisabled ? colors.bgTertiary : isSelected ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
                       opacity: isDisabled ? 0.5 : 1,
                       cursor: isDisabled ? 'not-allowed' : 'pointer',
                       textAlign: 'left',
@@ -1028,7 +1028,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
                     <div style={{
                       fontSize: '0.9rem',
                       fontWeight: '600',
-                      color: isDisabled ? colors.textSecondary : colors.text
+                      color: isDisabled ? colors.textSecondary : colors.textPrimary
                     }}>
                       RF {Math.floor(source.amount * rwfRate).toLocaleString()}
                     </div>
