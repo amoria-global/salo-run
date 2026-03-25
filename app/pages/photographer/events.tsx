@@ -10,6 +10,10 @@ import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvid
 import { getApiUrl, normalizeImageUrl } from '@/lib/api';
 import { getPlatformConfig } from '@/lib/platformConfig';
 import StreamPreview from '../../components/StreamPreview';
+import AlbumTypeSelector, { type AlbumType } from '../../components/AlbumTypeSelector';
+import PaidAlbumForm from '../../components/PaidAlbumForm';
+import FreeAlbumForm from '../../components/FreeAlbumForm';
+import SendFreeInvitationModal from '../../components/SendFreeInvitationModal';
 
 const CURRENCY_FLAG_MAP: Record<string, string> = {
   USD: 'us', RWF: 'rw', EUR: 'eu', KES: 'ke', UGX: 'ug', TZS: 'tz', GBP: 'gb',
@@ -467,6 +471,13 @@ const PhotographerEventsPage = () => {
   const [editImages, setEditImages] = useState<string[]>([]);
   const [editCoverIndex, setEditCoverIndex] = useState(0);
   const [isUploadingAlbum, setIsUploadingAlbum] = useState(false);
+  // PAID/FREE standalone album states
+  const [standaloneAlbumType, setStandaloneAlbumType] = useState<AlbumType>('PAID');
+  const [paidAlbumPrice, setPaidAlbumPrice] = useState('');
+  const [paidAlbumCurrencyId, setPaidAlbumCurrencyId] = useState('');
+  const [freeAlbumEmail, setFreeAlbumEmail] = useState('');
+  const [showSendFreeInvitationModal, setShowSendFreeInvitationModal] = useState(false);
+  const [freeAlbumToSend, setFreeAlbumToSend] = useState<{ albumId: string; title: string; email: string; accessCode: string } | null>(null);
   const [uploadProgress, setUploadProgress] = useState('');
   const [mediaIdMap, setMediaIdMap] = useState<Record<string, string>>({});
 
@@ -1294,28 +1305,63 @@ const PhotographerEventsPage = () => {
     const event = isStandalone ? null : events.find(e => e.id === createAlbumEventId);
     if (!isStandalone && (!event || !albumTitle)) return;
     if (isStandalone && !albumTitle) return;
+
+    // Validate PAID/FREE album fields
+    if (isStandalone && standaloneAlbumType === 'PAID' && (!paidAlbumPrice || !paidAlbumCurrencyId)) {
+      alert('Please fill in price and currency for PAID album');
+      return;
+    }
+    if (isStandalone && standaloneAlbumType === 'FREE' && !freeAlbumEmail) {
+      alert('Please enter recipient email for FREE album');
+      return;
+    }
+
     setIsUploadingAlbum(true);
 
     // 1. Create album on backend first
     let backendAlbumId = '';
     let backendInviteCode = '';
+    let backendAccessCode = '';
     try {
       setUploadProgress('Creating album...');
       const formData = new FormData();
       formData.append('title', albumTitle);
       if (albumDescription) formData.append('description', albumDescription);
       if (albumCategory) formData.append('category', albumCategory);
+
+      // Determine endpoint based on album mode and type
+      let endpoint = `${apiUrl}/api/remote/photographer/albums`;
       if (isStandalone) {
+        if (standaloneAlbumType === 'PAID') {
+          endpoint = `${apiUrl}/api/remote/photographer/albums/paid`;
+          formData.append('pricePerImage', paidAlbumPrice);
+          formData.append('currencyId', paidAlbumCurrencyId);
+        } else {
+          endpoint = `${apiUrl}/api/remote/photographer/albums/free`;
+          formData.append('recipientEmail', freeAlbumEmail);
+        }
         if (standaloneLocation) formData.append('location', standaloneLocation);
         if (standaloneDate) formData.append('date', standaloneDate);
       } else {
         formData.append('eventId', event!.id);
       }
-      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums`, { method: 'POST', body: formData });
+
+      const res = await dashboardAuthFetch(endpoint, { method: 'POST', body: formData });
       if (res.ok) {
         const result = await res.json();
         backendAlbumId = result?.data?.id || '';
         backendInviteCode = result?.data?.inviteCode || '';
+        backendAccessCode = result?.data?.accessCode || '';
+
+        // Show FREE album invitation modal if FREE album was created
+        if (isStandalone && standaloneAlbumType === 'FREE' && backendAccessCode) {
+          setFreeAlbumToSend({
+            albumId: backendAlbumId,
+            title: albumTitle,
+            email: freeAlbumEmail,
+            accessCode: backendAccessCode,
+          });
+        }
       }
     } catch (err) { console.error('Failed to create album:', err); }
 
@@ -1361,8 +1407,28 @@ const PhotographerEventsPage = () => {
       albumType: isStandalone ? 'standalone' : 'event', isStandalone,
       location: isStandalone ? standaloneLocation : '', albumDate: isStandalone ? standaloneDate : '',
     };
-    setAlbums(prev => [newAlbum, ...prev]); setShowCreateAlbumModal(false); setActiveTab('albums');
-    setIsUploadingAlbum(false); setUploadProgress('');
+    setAlbums(prev => [newAlbum, ...prev]);
+    setShowCreateAlbumModal(false);
+    setActiveTab('albums');
+    setIsUploadingAlbum(false);
+    setUploadProgress('');
+
+    // Show FREE invitation modal if FREE album was created
+    if (isStandalone && standaloneAlbumType === 'FREE' && freeAlbumToSend) {
+      setShowSendFreeInvitationModal(true);
+    }
+
+    // Reset form fields
+    setAlbumTitle('');
+    setAlbumDescription('');
+    setAlbumCategory('');
+    setStandaloneLocation('');
+    setStandaloneDate('');
+    setPaidAlbumPrice('');
+    setPaidAlbumCurrencyId('');
+    setFreeAlbumEmail('');
+    setUploadedImagePreviews([]);
+    setSelectedFiles(null);
   };
 
   const handleOpenEdit = (album: Album) => { setSelectedAlbum(album); setEditTitle(album.title); setEditDescription(album.description); setEditCategory(album.category); setEditImages([...album.images]); setEditCoverIndex(album.images.indexOf(album.coverImage) >= 0 ? album.images.indexOf(album.coverImage) : 0); setShowAlbumEditModal(true); };
@@ -2357,9 +2423,16 @@ const PhotographerEventsPage = () => {
               </button>
             </div>
             {createAlbumMode === 'standalone' && (
-              <div style={{ backgroundColor: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.15)', borderRadius: '0.5rem', padding: '0.6rem 0.75rem', marginBottom: '1rem', fontSize: '0.75rem', color: colors.textSecondary }}>
-                Personal albums are shared via Find My Photos. No event or client required.
-              </div>
+              <>
+                <div style={{ backgroundColor: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.15)', borderRadius: '0.5rem', padding: '0.6rem 0.75rem', marginBottom: '1rem', fontSize: '0.75rem', color: colors.textSecondary }}>
+                  Personal albums can be PAID (facial recognition enabled) or FREE (private email access).
+                </div>
+                {/* Album Type Selector */}
+                <AlbumTypeSelector
+                  selectedType={standaloneAlbumType}
+                  onChange={setStandaloneAlbumType}
+                />
+              </>
             )}
             {/* Select Event (event mode only) */}
             {createAlbumMode === 'event' && (
@@ -2404,6 +2477,27 @@ const PhotographerEventsPage = () => {
                   <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Description</label>
                   <textarea value={albumDescription} onChange={e => setAlbumDescription(e.target.value)} style={{ ...inputStyle, minHeight: '70px', resize: 'vertical' }} />
                 </div>
+                {/* PAID/FREE Album Forms */}
+                {createAlbumMode === 'standalone' && (
+                  <>
+                    {standaloneAlbumType === 'PAID' ? (
+                      <PaidAlbumForm
+                        pricePerImage={paidAlbumPrice}
+                        onPriceChange={setPaidAlbumPrice}
+                        currencyId={paidAlbumCurrencyId}
+                        onCurrencyChange={setPaidAlbumCurrencyId}
+                        currencies={currencies}
+                        colors={{ textPrimary: colors.textPrimary, textSecondary: colors.textSecondary, border: colors.borderPrimary, background: colors.bgTertiary }}
+                      />
+                    ) : (
+                      <FreeAlbumForm
+                        recipientEmail={freeAlbumEmail}
+                        onEmailChange={setFreeAlbumEmail}
+                        colors={{ textPrimary: colors.textPrimary, textSecondary: colors.textSecondary, border: colors.borderPrimary, background: colors.bgTertiary }}
+                      />
+                    )}
+                  </>
+                )}
                 {/* Image Upload */}
                 <div style={{ marginBottom: '1rem' }}>
                   <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Upload Photos</label>
@@ -2426,12 +2520,60 @@ const PhotographerEventsPage = () => {
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
                   <button onClick={() => setShowCreateAlbumModal(false)} style={secondaryBtn}>Cancel</button>
-                  <button onClick={handleCreateAlbum} disabled={!albumTitle || (createAlbumMode === 'event' && !createAlbumEventId) || isUploadingAlbum} style={{ ...primaryBtn, opacity: (!albumTitle || (createAlbumMode === 'event' && !createAlbumEventId) || isUploadingAlbum) ? 0.5 : 1 }}>{isUploadingAlbum ? (uploadProgress || 'Uploading...') : 'Create Album'}</button>
+                  <button
+                    onClick={handleCreateAlbum}
+                    disabled={
+                      !albumTitle ||
+                      (createAlbumMode === 'event' && !createAlbumEventId) ||
+                      (createAlbumMode === 'standalone' && standaloneAlbumType === 'PAID' && (!paidAlbumPrice || !paidAlbumCurrencyId)) ||
+                      (createAlbumMode === 'standalone' && standaloneAlbumType === 'FREE' && !freeAlbumEmail) ||
+                      isUploadingAlbum
+                    }
+                    style={{
+                      ...primaryBtn,
+                      opacity: (
+                        !albumTitle ||
+                        (createAlbumMode === 'event' && !createAlbumEventId) ||
+                        (createAlbumMode === 'standalone' && standaloneAlbumType === 'PAID' && (!paidAlbumPrice || !paidAlbumCurrencyId)) ||
+                        (createAlbumMode === 'standalone' && standaloneAlbumType === 'FREE' && !freeAlbumEmail) ||
+                        isUploadingAlbum
+                      ) ? 0.5 : 1
+                    }}
+                  >
+                    {isUploadingAlbum ? (uploadProgress || 'Uploading...') : 'Create Album'}
+                  </button>
                 </div>
               </>
             )}
           </div>
         </div>
+      )}
+
+      {/* Send FREE Album Invitation Modal */}
+      {showSendFreeInvitationModal && freeAlbumToSend && (
+        <SendFreeInvitationModal
+          albumTitle={freeAlbumToSend.title}
+          recipientEmail={freeAlbumToSend.email}
+          accessCode={freeAlbumToSend.accessCode}
+          onClose={() => {
+            setShowSendFreeInvitationModal(false);
+            setFreeAlbumToSend(null);
+          }}
+          onSend={async () => {
+            // Send invitation via API
+            try {
+              const res = await dashboardAuthFetch(
+                `${apiUrl}/api/remote/photographer/albums/${freeAlbumToSend.albumId}/send-free`,
+                { method: 'POST' }
+              );
+              if (!res.ok) {
+                throw new Error('Failed to send invitation');
+              }
+            } catch (err) {
+              throw err;
+            }
+          }}
+        />
       )}
 
       {/* Album Browse / Image Viewer Modal */}
