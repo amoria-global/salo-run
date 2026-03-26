@@ -63,10 +63,10 @@ const AlbumTypeSelector: React.FC<AlbumTypeSelectorProps> = ({
               )}
             </div>
             <div>
-              <div style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+              <div style={{ fontSize: '0.875rem', fontWeight: 700, marginBottom: '0.25rem', color: selectedType === 'PAID' ? '#1e40af' : '#1f2937' }}>
                 PAID Album
               </div>
-              <div style={{ fontSize: '0.75rem', color: '#6b7280', lineHeight: 1.4 }}>
+              <div style={{ fontSize: '0.75rem', color: '#4b5563', lineHeight: 1.4 }}>
                 • Publicly searchable via facial recognition<br />
                 • 30% platform commission<br />
                 • Set price per image
@@ -117,10 +117,10 @@ const AlbumTypeSelector: React.FC<AlbumTypeSelectorProps> = ({
               )}
             </div>
             <div>
-              <div style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+              <div style={{ fontSize: '0.875rem', fontWeight: 700, marginBottom: '0.25rem', color: selectedType === 'FREE' ? '#065f46' : '#1f2937' }}>
                 FREE Album
               </div>
-              <div style={{ fontSize: '0.75rem', color: '#6b7280', lineHeight: 1.4 }}>
+              <div style={{ fontSize: '0.75rem', color: '#4b5563', lineHeight: 1.4 }}>
                 • Private link with email verification<br />
                 • 0% commission (100% free)<br />
                 • Single recipient access
