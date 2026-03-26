@@ -478,6 +478,7 @@ const PhotographerEventsPage = () => {
   const [freeAlbumEmail, setFreeAlbumEmail] = useState('');
   const [showSendFreeInvitationModal, setShowSendFreeInvitationModal] = useState(false);
   const [freeAlbumToSend, setFreeAlbumToSend] = useState<{ albumId: string; title: string; email: string; accessCode: string } | null>(null);
+  const [albumSuccessModal, setAlbumSuccessModal] = useState<{ type: 'paid' | 'free'; title: string; inviteCode?: string; email?: string; accessCode?: string; photoCount: number } | null>(null);
   const [uploadProgress, setUploadProgress] = useState('');
   const [mediaIdMap, setMediaIdMap] = useState<Record<string, string>>({});
 
@@ -1353,9 +1354,10 @@ const PhotographerEventsPage = () => {
         backendInviteCode = result?.data?.inviteCode || '';
         backendAccessCode = result?.data?.accessCode || '';
 
-        // For FREE albums, fetch access code via send-free endpoint
+        // For FREE albums, send invitation email automatically
         if (isStandalone && standaloneAlbumType === 'FREE' && backendAlbumId) {
           try {
+            setUploadProgress('Sending invitation...');
             const sendRes = await dashboardAuthFetch(
               `${apiUrl}/api/remote/photographer/albums/${backendAlbumId}/send-free`,
               { method: 'POST' }
@@ -1363,16 +1365,9 @@ const PhotographerEventsPage = () => {
             if (sendRes.ok) {
               const sendResult = await sendRes.json();
               backendAccessCode = sendResult?.data?.accessCode || '';
+              backendInviteCode = backendAccessCode || backendInviteCode;
             }
           } catch { /* ignore */ }
-          if (backendAccessCode) {
-            setFreeAlbumToSend({
-              albumId: backendAlbumId,
-              title: albumTitle,
-              email: freeAlbumEmail,
-              accessCode: backendAccessCode,
-            });
-          }
         }
       }
     } catch (err) { console.error('Failed to create album:', err); }
@@ -1406,13 +1401,41 @@ const PhotographerEventsPage = () => {
       }
     }
 
+    // 3. Auto-publish PAID standalone albums to Face AI
+    let publishedToFaceAI = false;
+    if (isStandalone && standaloneAlbumType === 'PAID' && backendAlbumId) {
+      try {
+        setUploadProgress('Publishing to Face AI...');
+        const pubRes = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${backendAlbumId}/publish`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pricePerImage: parseFloat(paidAlbumPrice), currencyId: paidAlbumCurrencyId }),
+        });
+        if (pubRes.ok) {
+          const pubResult = await pubRes.json();
+          backendInviteCode = pubResult?.data?.inviteCode || backendInviteCode;
+          publishedToFaceAI = true;
+          // If publish didn't return an invite code, generate one
+          if (!backendInviteCode) {
+            try {
+              const codeRes = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums/${backendAlbumId}/invite-code`, { method: 'POST' });
+              if (codeRes.ok) {
+                const codeResult = await codeRes.json();
+                backendInviteCode = codeResult?.data?.inviteCode || codeResult?.data?.code || '';
+              }
+            } catch { /* ignore */ }
+          }
+        }
+      } catch { /* ignore */ }
+    }
+
     const newAlbum: Album = {
       id: backendAlbumId, title: albumTitle, description: albumDescription, category: albumCategory,
       eventId: isStandalone ? '' : event!.id, eventTitle: isStandalone ? '' : event!.title,
       clientId: isStandalone ? '' : event!.bookingId, clientName: isStandalone ? '' : event!.clientName,
       coverImage: albumCover, images: albumImages, photoCount: albumImages.length,
       views: 0, likes: 0, downloads: 0, shared: false, sharedWithClient: false,
-      faceRecognitionEnabled: false, inviteCode: backendInviteCode || null,
+      faceRecognitionEnabled: publishedToFaceAI, inviteCode: backendInviteCode || null,
       createdAt: new Date().toISOString().split('T')[0],
       eventDate: isStandalone ? standaloneDate : event!.date,
       clientImage: isStandalone ? '' : event!.clientImage, sentAt: '', expiresAt: '',
@@ -1425,9 +1448,16 @@ const PhotographerEventsPage = () => {
     setIsUploadingAlbum(false);
     setUploadProgress('');
 
-    // Show FREE invitation modal if FREE album was created
-    if (isStandalone && standaloneAlbumType === 'FREE' && freeAlbumToSend) {
-      setShowSendFreeInvitationModal(true);
+    // Show success modal for standalone albums
+    if (isStandalone) {
+      setAlbumSuccessModal({
+        type: standaloneAlbumType === 'PAID' ? 'paid' : 'free',
+        title: albumTitle,
+        inviteCode: backendInviteCode || undefined,
+        email: standaloneAlbumType === 'FREE' ? freeAlbumEmail : undefined,
+        accessCode: backendAccessCode || undefined,
+        photoCount: albumImages.length,
+      });
     }
 
     // Reset form fields
@@ -1940,14 +1970,16 @@ const PhotographerEventsPage = () => {
                                 <SendIcon /> Send
                               </button>
                             ))}
-                            {album.faceRecognitionEnabled ? (
-                              <span onClick={() => handleOpenFaceAI(album)} title="Album is live on Find-My-Photos" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0.5rem', backgroundColor: 'rgba(139,92,246,0.85)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600 }}>
-                                <CheckCircleIcon /> Published to Face AI
-                              </span>
-                            ) : (
-                              <button onClick={() => handleOpenFaceAI(album)} title="Face AI / Find-My-Photos" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0.5rem', backgroundColor: 'rgba(139,92,246,0.85)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600 }}>
-                                <FaceRecognitionIcon /> Face AI
-                              </button>
+                            {!(album.isStandalone && album.albumType === 'standalone' && !album.faceRecognitionEnabled && !album.inviteCode) && (
+                              album.faceRecognitionEnabled ? (
+                                <span onClick={() => handleOpenFaceAI(album)} title="Album is live on Find-My-Photos" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0.5rem', backgroundColor: 'rgba(139,92,246,0.85)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600 }}>
+                                  <CheckCircleIcon /> Published to Face AI
+                                </span>
+                              ) : !album.isStandalone ? (
+                                <button onClick={() => handleOpenFaceAI(album)} title="Face AI / Find-My-Photos" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.38rem 0.5rem', backgroundColor: 'rgba(139,92,246,0.85)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 600 }}>
+                                  <FaceRecognitionIcon /> Face AI
+                                </button>
+                              ) : null
                             )}
                             {canEditAlbum(album) && (
                               <button onClick={() => handleOpenEdit(album)} title={album.sharedWithClient ? `Edit (${getEditDaysRemaining(album)} days left)` : 'Edit Album'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.38rem 0.5rem', backgroundColor: 'rgba(255,255,255,0.12)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer' }}>
@@ -2010,10 +2042,12 @@ const PhotographerEventsPage = () => {
                             ) : (
                               <button onClick={() => { setSelectedAlbum(album); setShowSendModal(true); }} style={{ ...smallActionBtn, backgroundColor: '#083A85', borderColor: '#083A85', color: 'white' }}><SendIcon /> Send</button>
                             ))}
-                            {album.faceRecognitionEnabled ? (
-                              <span onClick={() => handleOpenFaceAI(album)} style={{ ...smallActionBtn, backgroundColor: '#8B5CF6', borderColor: '#8B5CF6', color: 'white', cursor: 'pointer', opacity: 0.85 }}><CheckCircleIcon /> Published to Face AI</span>
-                            ) : (
-                              <button onClick={() => handleOpenFaceAI(album)} style={{ ...smallActionBtn, backgroundColor: '#8B5CF6', borderColor: '#8B5CF6', color: 'white' }}><FaceRecognitionIcon /> Face AI</button>
+                            {!(album.isStandalone && !album.faceRecognitionEnabled && !album.inviteCode) && (
+                              album.faceRecognitionEnabled ? (
+                                <span onClick={() => handleOpenFaceAI(album)} style={{ ...smallActionBtn, backgroundColor: '#8B5CF6', borderColor: '#8B5CF6', color: 'white', cursor: 'pointer', opacity: 0.85 }}><CheckCircleIcon /> Published to Face AI</span>
+                              ) : !album.isStandalone ? (
+                                <button onClick={() => handleOpenFaceAI(album)} style={{ ...smallActionBtn, backgroundColor: '#8B5CF6', borderColor: '#8B5CF6', color: 'white' }}><FaceRecognitionIcon /> Face AI</button>
+                              ) : null
                             )}
                             {canEditAlbum(album) && (
                               <button onClick={() => handleOpenEdit(album)} style={{ ...smallActionBtn, backgroundColor: colors.bgTertiary, color: colors.textPrimary }}><EditIcon /> Edit{album.sharedWithClient ? ` (${getEditDaysRemaining(album)}d)` : ''}</button>
@@ -2465,7 +2499,16 @@ const PhotographerEventsPage = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
                   <div>
                     <label style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textPrimary, display: 'block', marginBottom: '0.35rem' }}>Category</label>
-                    <input value={albumCategory} onChange={e => setAlbumCategory(e.target.value)} style={inputStyle} placeholder={createAlbumMode === 'standalone' ? 'e.g. Wedding, Portrait' : ''} />
+                    {createAlbumMode === 'standalone' ? (
+                      <select value={albumCategory} onChange={e => setAlbumCategory(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
+                        <option value="">Select category...</option>
+                        {['Wedding', 'Portrait', 'Corporate', 'Birthday', 'Concert', 'Sports', 'Fashion', 'Conference', 'Graduation', 'Festival', 'Religious', 'Cultural', 'Entertainment', 'Other'].map(cat => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input value={albumCategory} onChange={e => setAlbumCategory(e.target.value)} style={inputStyle} />
+                    )}
                   </div>
                   {createAlbumMode === 'event' ? (
                     <div>
@@ -2552,7 +2595,7 @@ const PhotographerEventsPage = () => {
                       ) ? 0.5 : 1
                     }}
                   >
-                    {isUploadingAlbum ? (uploadProgress || 'Uploading...') : 'Create Album'}
+                    {isUploadingAlbum ? (uploadProgress || 'Uploading...') : (createAlbumMode === 'standalone' && standaloneAlbumType === 'PAID' ? 'Publish to Face AI' : createAlbumMode === 'standalone' && standaloneAlbumType === 'FREE' ? 'Create & Send Invitation' : 'Create Album')}
                   </button>
                 </div>
               </>
@@ -2586,6 +2629,77 @@ const PhotographerEventsPage = () => {
             }
           }}
         />
+      )}
+
+      {/* Album Success Modal */}
+      {albumSuccessModal && (
+        <div style={modalOverlay} onClick={() => setAlbumSuccessModal(null)}>
+          <div style={{ ...modalContent('480px'), textAlign: 'center' as const }} onClick={e => e.stopPropagation()}>
+            {/* Success icon */}
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: albumSuccessModal.type === 'paid' ? 'rgba(59,130,246,0.1)' : 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                <path d="M5 13l4 4L19 7" stroke={albumSuccessModal.type === 'paid' ? '#3B82F6' : '#10B981'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+
+            <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: colors.textPrimary, margin: '0 0 0.35rem' }}>
+              {albumSuccessModal.type === 'paid' ? 'Published to Face AI' : 'Album Created & Invitation Sent'}
+            </h2>
+            <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0 0 1.25rem' }}>
+              {albumSuccessModal.type === 'paid'
+                ? `"${albumSuccessModal.title}" is now live on Find My Photos with ${albumSuccessModal.photoCount} photos.`
+                : `"${albumSuccessModal.title}" has been created and an invitation has been sent.`}
+            </p>
+
+            {/* Details card */}
+            <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '1rem', marginBottom: '1.25rem', textAlign: 'left' as const }}>
+              {albumSuccessModal.type === 'paid' && albumSuccessModal.inviteCode && (
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <div style={{ fontSize: '0.7rem', color: colors.textTertiary, marginBottom: '0.2rem' }}>Invite Code</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#3B82F6', letterSpacing: '0.1em' }}>{albumSuccessModal.inviteCode}</div>
+                </div>
+              )}
+              {albumSuccessModal.type === 'paid' && albumSuccessModal.inviteCode && (
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <div style={{ fontSize: '0.7rem', color: colors.textTertiary, marginBottom: '0.2rem' }}>Find My Photos Link</div>
+                  <div style={{ fontSize: '0.78rem', color: colors.textPrimary, wordBreak: 'break-all' }}>{`${process.env.NEXT_PUBLIC_LANDING_URL as string}/user/find-my-photos?code=${albumSuccessModal.inviteCode}`}</div>
+                </div>
+              )}
+              {albumSuccessModal.type === 'free' && albumSuccessModal.email && (
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <div style={{ fontSize: '0.7rem', color: colors.textTertiary, marginBottom: '0.2rem' }}>Invitation Sent To</div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: colors.textPrimary }}>{albumSuccessModal.email}</div>
+                </div>
+              )}
+              {albumSuccessModal.type === 'free' && albumSuccessModal.accessCode && (
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <div style={{ fontSize: '0.7rem', color: colors.textTertiary, marginBottom: '0.2rem' }}>Access Code</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#10B981', letterSpacing: '0.15em' }}>{albumSuccessModal.accessCode}</div>
+                </div>
+              )}
+              <div>
+                <div style={{ fontSize: '0.7rem', color: colors.textTertiary, marginBottom: '0.2rem' }}>Photos</div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: colors.textPrimary }}>{albumSuccessModal.photoCount} uploaded</div>
+              </div>
+            </div>
+
+            {/* Copy + Done buttons */}
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+              {(albumSuccessModal.inviteCode || albumSuccessModal.accessCode) && (
+                <button
+                  onClick={() => {
+                    const code = albumSuccessModal.type === 'paid' ? albumSuccessModal.inviteCode : albumSuccessModal.accessCode;
+                    if (code) { navigator.clipboard.writeText(code); }
+                  }}
+                  style={secondaryBtn}
+                >
+                  Copy {albumSuccessModal.type === 'paid' ? 'Invite Code' : 'Access Code'}
+                </button>
+              )}
+              <button onClick={() => setAlbumSuccessModal(null)} style={primaryBtn}>Done</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Album Browse / Image Viewer Modal */}
@@ -2766,8 +2880,8 @@ const PhotographerEventsPage = () => {
               </div>
               <div>
                 <div style={{ fontSize: '0.9rem', fontWeight: 600, color: colors.textPrimary }}>{selectedAlbum.title}</div>
-                <div style={{ fontSize: '0.78rem', color: colors.textSecondary, marginTop: '0.15rem' }}>{selectedAlbum.photoCount} photos &middot; {selectedAlbum.clientName}</div>
-                <div style={{ fontSize: '0.75rem', color: colors.textTertiary, marginTop: '0.15rem' }}>From: {selectedAlbum.eventTitle}</div>
+                <div style={{ fontSize: '0.78rem', color: colors.textSecondary, marginTop: '0.15rem' }}>{selectedAlbum.photoCount} photos{selectedAlbum.clientName ? ` · ${selectedAlbum.clientName}` : ''}</div>
+                <div style={{ fontSize: '0.75rem', color: colors.textTertiary, marginTop: '0.15rem' }}>From: {selectedAlbum.isStandalone ? (selectedAlbum.location || 'Personal Album') : selectedAlbum.eventTitle}</div>
               </div>
             </div>
             {selectedAlbum.faceRecognitionEnabled ? (

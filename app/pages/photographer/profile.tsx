@@ -172,6 +172,7 @@ interface DeliveryPackage {
   extraPhotoPrice: string;
   extraVideoPrice: string;
   photobookPhotos: string;
+  deliveryDays: string;
 }
 
 interface ToastMessage {
@@ -267,14 +268,12 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     ],
     Custom: [
       'Online gallery storage (provided by platform)',
-      'Same-day preview',
       'Professional editing',
       'Printed photo album',
       'Other preferences',
     ],
     Premium: [
       'Online gallery storage (provided by platform)',
-      'Same-day preview',
       'Professional editing',
       'Printed photo album',
       'Live-streaming',
@@ -285,7 +284,6 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   // All possible features (used for display of "not included" items)
   const ALL_FEATURES = [
     'Online gallery storage (provided by platform)',
-    'Same-day preview',
     'Professional editing',
     'Printed photo album',
     'Live-streaming',
@@ -390,6 +388,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       extraPhotoPrice: '',
       extraVideoPrice: '',
       photobookPhotos: '',
+      deliveryDays: '',
     };
     setPackages(prev => [newPackage, ...prev]);
     setExpandedPackageId(newId);
@@ -465,6 +464,62 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       return;
     }
 
+    // Validate delivery days order: Premium < Custom < Essential
+    const days = parseInt(pkg.deliveryDays) || 0;
+    if (days > 0) {
+      const premiumPkg = packages.find(p => p.packageName === 'Premium' && p.id !== pkg.id);
+      const customPkg = packages.find(p => p.packageName === 'Custom' && p.id !== pkg.id);
+      const essentialPkg = packages.find(p => p.packageName === 'Essential' && p.id !== pkg.id);
+      const premiumDays = parseInt(premiumPkg?.deliveryDays || '0') || 0;
+      const customDays = parseInt(customPkg?.deliveryDays || '0') || 0;
+      const essentialDays = parseInt(essentialPkg?.deliveryDays || '0') || 0;
+
+      if (pkg.packageName === 'Premium') {
+        if (customDays > 0 && days >= customDays) { showToast('error', `Premium delivery (${days}d) must be faster than Custom (${customDays}d)`); return; }
+        if (essentialDays > 0 && days >= essentialDays) { showToast('error', `Premium delivery (${days}d) must be faster than Essential (${essentialDays}d)`); return; }
+      }
+      if (pkg.packageName === 'Custom') {
+        if (premiumDays > 0 && days <= premiumDays) { showToast('error', `Custom delivery (${days}d) must be slower than Premium (${premiumDays}d)`); return; }
+        if (essentialDays > 0 && days >= essentialDays) { showToast('error', `Custom delivery (${days}d) must be faster than Essential (${essentialDays}d)`); return; }
+      }
+      if (pkg.packageName === 'Essential') {
+        if (customDays > 0 && days <= customDays) { showToast('error', `Essential delivery (${days}d) must be slower than Custom (${customDays}d)`); return; }
+        if (premiumDays > 0 && days <= premiumDays) { showToast('error', `Essential delivery (${days}d) must be slower than Premium (${premiumDays}d)`); return; }
+      }
+    }
+
+    // Validate photo/video counts: Premium > Custom > Essential
+    const photos = parseInt(pkg.includedPhotos) || 0;
+    const videos = parseInt(pkg.includedVideos) || 0;
+    if (photos > 0 || videos > 0) {
+      const premiumPkg = packages.find(p => p.packageName === 'Premium' && p.id !== pkg.id);
+      const customPkg = packages.find(p => p.packageName === 'Custom' && p.id !== pkg.id);
+      const essentialPkg = packages.find(p => p.packageName === 'Essential' && p.id !== pkg.id);
+      const pPhotos = parseInt(premiumPkg?.includedPhotos || '0') || 0;
+      const cPhotos = parseInt(customPkg?.includedPhotos || '0') || 0;
+      const ePhotos = parseInt(essentialPkg?.includedPhotos || '0') || 0;
+      const pVideos = parseInt(premiumPkg?.includedVideos || '0') || 0;
+      const cVideos = parseInt(customPkg?.includedVideos || '0') || 0;
+      const eVideos = parseInt(essentialPkg?.includedVideos || '0') || 0;
+
+      if (pkg.packageName === 'Premium') {
+        if (photos > 0 && cPhotos > 0 && photos <= cPhotos) { showToast('error', `Premium photos (${photos}) must be more than Custom (${cPhotos})`); return; }
+        if (photos > 0 && ePhotos > 0 && photos <= ePhotos) { showToast('error', `Premium photos (${photos}) must be more than Essential (${ePhotos})`); return; }
+        if (videos > 0 && cVideos > 0 && videos <= cVideos) { showToast('error', `Premium videos (${videos}) must be more than Custom (${cVideos})`); return; }
+        if (videos > 0 && eVideos > 0 && videos <= eVideos) { showToast('error', `Premium videos (${videos}) must be more than Essential (${eVideos})`); return; }
+      }
+      if (pkg.packageName === 'Custom') {
+        if (photos > 0 && pPhotos > 0 && photos >= pPhotos) { showToast('error', `Custom photos (${photos}) must be less than Premium (${pPhotos})`); return; }
+        if (photos > 0 && ePhotos > 0 && photos <= ePhotos) { showToast('error', `Custom photos (${photos}) must be more than Essential (${ePhotos})`); return; }
+        if (videos > 0 && pVideos > 0 && videos >= pVideos) { showToast('error', `Custom videos (${videos}) must be less than Premium (${pVideos})`); return; }
+        if (videos > 0 && eVideos > 0 && videos <= eVideos) { showToast('error', `Custom videos (${videos}) must be more than Essential (${eVideos})`); return; }
+      }
+      if (pkg.packageName === 'Essential') {
+        if (photos > 0 && cPhotos > 0 && photos >= cPhotos) { showToast('error', `Essential photos (${photos}) must be less than Custom (${cPhotos})`); return; }
+        if (videos > 0 && cVideos > 0 && videos >= cVideos) { showToast('error', `Essential videos (${videos}) must be less than Custom (${cVideos})`); return; }
+      }
+    }
+
     // Resolve currencyId to UUID
     const isUUID = (v: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
     const resolvedCurrencyId = isUUID(pkg.currencyId)
@@ -495,14 +550,14 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           description: pkg.description,
           isActive: pkg.isActive,
           hasLiveStream: pkg.hasLiveStream,
-          // Premium is unlimited — send null; Essential/Custom have specific counts
-          includedPhotos: pkg.packageName === 'Premium' ? null : (parseInt(pkg.includedPhotos) || 0),
-          includedVideos: pkg.packageName === 'Premium' ? null : (parseInt(pkg.includedVideos) || 0),
+          includedPhotos: parseInt(pkg.includedPhotos) || 0,
+          includedVideos: parseInt(pkg.includedVideos) || 0,
           extraPhotoPrice: parseFloat(pkg.extraPhotoPrice) || 0,
           extraVideoPrice: parseFloat(pkg.extraVideoPrice) || 0,
-          photobookPhotos: pkg.packageName === 'Premium' ? null : (parseInt(pkg.photobookPhotos) || null),
+          photobookPhotos: parseInt(pkg.photobookPhotos) || null,
+          deliveryDays: parseInt(pkg.deliveryDays) || 0,
           features: pkg.features
-            .filter(f => f.featureName && (SELECTABLE_FEATURES[pkg.packageName] || []).includes(f.featureName))
+            .filter(f => f.featureName && f.featureName !== 'Same-day preview' && (SELECTABLE_FEATURES[pkg.packageName] || []).includes(f.featureName))
             .map((f, idx) => ({ featureName: f.featureName, isIncluded: f.isIncluded, displayOrder: idx })),
         }),
       });
@@ -974,6 +1029,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           extraPhotoPrice: String(p.extraPhotoPrice ?? ''),
           extraVideoPrice: String(p.extraVideoPrice ?? ''),
           photobookPhotos: p.photobookPhotos != null ? String(p.photobookPhotos) : '',
+          deliveryDays: String(p.deliveryDays ?? ''),
         })));
       }
 
@@ -4561,7 +4617,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       {/* Pending projects from admin review */}
                       {getFieldPendingChanges('projects').filter(c => c.changeType === 'ADD' && c.payload).map((change) => {
                         const data = (() => { try { return JSON.parse(change.payload || '{}'); } catch { return {}; } })();
-                        const imgUrl = change.imageData ? `https://backend.connekyt.com/uploads/photographer/projects/${change.imageData}` : '';
+                        const imgUrl = change.imageData ? `https://backend.connekyt.com/uploads/photographer/projects/images/${change.imageData}` : '';
                         return (
                           <div key={change.id} style={{
                             backgroundColor: colors.bgTertiary,
@@ -4907,7 +4963,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           {packages.filter(p => p.packageName).sort((a, b) => (PACKAGE_TIER[a.packageName] ?? 99) - (PACKAGE_TIER[b.packageName] ?? 99)).map((pkg) => {
                             const tierColor = TIER_COLORS[pkg.packageName] || { bg: colors.bgTertiary, text: colors.textPrimary, border: colors.borderPrimary };
                             const currencyCode = currencies.find(c => c.id === pkg.currencyId || c.code === pkg.currencyId)?.code || 'RWF';
-                            const includedFeatures = pkg.features.filter(f => f.featureName && f.isIncluded);
+                            const includedFeatures = pkg.features.filter(f => f.featureName && f.isIncluded && f.featureName !== 'Same-day preview');
                             return (
                             <div key={pkg.id} style={{
                               backgroundColor: colors.bgCard,
@@ -4963,13 +5019,17 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/><path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
                                     {pkg.durationHours || '0'} hours
                                   </span>
+                                  {pkg.deliveryDays && parseInt(pkg.deliveryDays) > 0 && (
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem', color: colors.textSecondary, backgroundColor: actualTheme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', padding: '0.25rem 0.6rem', borderRadius: '1rem' }}>
+                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                      {pkg.deliveryDays}-day delivery
+                                    </span>
+                                  )}
                                 </div>
 
                                 {/* Media coverage */}
                                 <p style={{ fontSize: '0.8rem', fontWeight: '600', color: pkg.packageName === 'Premium' ? (actualTheme === 'dark' ? '#A78BFA' : '#7C3AED') : colors.textSecondary, marginBottom: '0.25rem' }}>
-                                  {pkg.packageName === 'Premium'
-                                    ? 'Unlimited photos & videos'
-                                    : [pkg.includedPhotos ? `${pkg.includedPhotos} photos` : '', pkg.includedVideos ? `${pkg.includedVideos} videos` : ''].filter(Boolean).join(' · ') || 'Set photo/video count'}
+                                  {[pkg.includedPhotos ? `${pkg.includedPhotos} photos` : '', pkg.includedVideos ? `${pkg.includedVideos} videos` : ''].filter(Boolean).join(' · ') || 'Set photo/video count'}
                                 </p>
                               </div>
 
@@ -5242,6 +5302,46 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                 </div>
                               </div>
 
+                              {/* Time Delivery */}
+                              <div style={{ marginBottom: '1.25rem' }}>
+                                <label style={labelStyle}>Time Delivery (days) *</label>
+                                <p style={{ fontSize: '0.75rem', color: colors.textTertiary, margin: '0 0 0.5rem 0' }}>
+                                  {pkg.packageName === 'Premium' ? 'Premium should have the fastest delivery time.' : pkg.packageName === 'Custom' ? 'Must be faster than Essential but slower than Premium.' : pkg.packageName === 'Essential' ? 'Essential has the longest delivery time.' : 'Set the number of days for photo delivery.'}
+                                </p>
+                                <input type="number" min="1" value={pkg.deliveryDays}
+                                  onChange={(e) => {
+                                    const newVal = e.target.value;
+                                    updatePackage(pkg.id, 'deliveryDays', newVal);
+                                  }}
+                                  placeholder={pkg.packageName === 'Premium' ? 'e.g., 3' : pkg.packageName === 'Custom' ? 'e.g., 7' : pkg.packageName === 'Essential' ? 'e.g., 14' : 'e.g., 7'}
+                                  disabled={!isPackageEditEnabled} style={pkgInputStyle} />
+                                {/* Validation warning */}
+                                {(() => {
+                                  const days = parseInt(pkg.deliveryDays) || 0;
+                                  if (days <= 0) return null;
+                                  const premiumPkg = packages.find(p => p.packageName === 'Premium');
+                                  const customPkg = packages.find(p => p.packageName === 'Custom');
+                                  const essentialPkg = packages.find(p => p.packageName === 'Essential');
+                                  const premiumDays = parseInt(premiumPkg?.deliveryDays || '0') || 0;
+                                  const customDays = parseInt(customPkg?.deliveryDays || '0') || 0;
+                                  const essentialDays = parseInt(essentialPkg?.deliveryDays || '0') || 0;
+
+                                  if (pkg.packageName === 'Premium') {
+                                    if (customDays > 0 && days >= customDays) return <p style={{ fontSize: '0.75rem', color: '#EF4444', margin: '0.35rem 0 0 0' }}>Premium delivery must be faster (fewer days) than Custom ({customDays} days)</p>;
+                                    if (essentialDays > 0 && days >= essentialDays) return <p style={{ fontSize: '0.75rem', color: '#EF4444', margin: '0.35rem 0 0 0' }}>Premium delivery must be faster (fewer days) than Essential ({essentialDays} days)</p>;
+                                  }
+                                  if (pkg.packageName === 'Custom') {
+                                    if (premiumDays > 0 && days <= premiumDays) return <p style={{ fontSize: '0.75rem', color: '#EF4444', margin: '0.35rem 0 0 0' }}>Custom delivery must be slower (more days) than Premium ({premiumDays} days)</p>;
+                                    if (essentialDays > 0 && days >= essentialDays) return <p style={{ fontSize: '0.75rem', color: '#EF4444', margin: '0.35rem 0 0 0' }}>Custom delivery must be faster (fewer days) than Essential ({essentialDays} days)</p>;
+                                  }
+                                  if (pkg.packageName === 'Essential') {
+                                    if (customDays > 0 && days <= customDays) return <p style={{ fontSize: '0.75rem', color: '#EF4444', margin: '0.35rem 0 0 0' }}>Essential delivery must be slower (more days) than Custom ({customDays} days)</p>;
+                                    if (premiumDays > 0 && days <= premiumDays) return <p style={{ fontSize: '0.75rem', color: '#EF4444', margin: '0.35rem 0 0 0' }}>Essential delivery must be slower (more days) than Premium ({premiumDays} days)</p>;
+                                  }
+                                  return null;
+                                })()}
+                              </div>
+
                               {/* Row 3: Description */}
                               <div style={{ marginBottom: '1.25rem' }}>
                                 <label style={labelStyle}>Description</label>
@@ -5260,40 +5360,61 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                     Photobook & Media
                                   </label>
 
-                                  {/* Included counts — Essential & Custom only */}
-                                  {pkg.packageName !== 'Premium' ? (
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                                      <div>
-                                        <label style={{ ...labelStyle, fontSize: '0.78rem', color: colors.textSecondary }}>Photos included</label>
-                                        <input type="number" min="0" value={pkg.includedPhotos}
-                                          onChange={(e) => updatePackage(pkg.id, 'includedPhotos', e.target.value)}
-                                          placeholder="e.g. 100" disabled={!isPackageEditEnabled} style={pkgInputStyle} />
-                                      </div>
-                                      <div>
-                                        <label style={{ ...labelStyle, fontSize: '0.78rem', color: colors.textSecondary }}>Videos included</label>
-                                        <input type="number" min="0" value={pkg.includedVideos}
-                                          onChange={(e) => updatePackage(pkg.id, 'includedVideos', e.target.value)}
-                                          placeholder="e.g. 5" disabled={!isPackageEditEnabled} style={pkgInputStyle} />
-                                      </div>
+                                  {/* Included counts — all packages */}
+                                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                                    <div>
+                                      <label style={{ ...labelStyle, fontSize: '0.78rem', color: colors.textSecondary }}>Photos included</label>
+                                      <input type="number" min="0" value={pkg.includedPhotos}
+                                        onChange={(e) => updatePackage(pkg.id, 'includedPhotos', e.target.value)}
+                                        placeholder={pkg.packageName === 'Premium' ? 'e.g. 500' : 'e.g. 100'} disabled={!isPackageEditEnabled} style={pkgInputStyle} />
                                     </div>
-                                  ) : (
-                                    <div style={{ padding: '0.5rem 0.75rem', backgroundColor: actualTheme === 'dark' ? '#4C1D9520' : '#F5F3FF', borderRadius: '0.375rem', marginBottom: '0.75rem', fontSize: '0.82rem', color: actualTheme === 'dark' ? '#A78BFA' : '#7C3AED', fontWeight: '600' }}>
-                                      Unlimited photos & videos included
+                                    <div>
+                                      <label style={{ ...labelStyle, fontSize: '0.78rem', color: colors.textSecondary }}>Videos included</label>
+                                      <input type="number" min="0" value={pkg.includedVideos}
+                                        onChange={(e) => updatePackage(pkg.id, 'includedVideos', e.target.value)}
+                                        placeholder={pkg.packageName === 'Premium' ? 'e.g. 20' : 'e.g. 5'} disabled={!isPackageEditEnabled} style={pkgInputStyle} />
                                     </div>
-                                  )}
+                                  </div>
+                                  {/* Validation: Premium must have more than other packages */}
+                                  {pkg.packageName === 'Premium' && (() => {
+                                    const premPhotos = parseInt(pkg.includedPhotos) || 0;
+                                    const premVideos = parseInt(pkg.includedVideos) || 0;
+                                    const customPkg = packages.find(p => p.packageName === 'Custom');
+                                    const essentialPkg = packages.find(p => p.packageName === 'Essential');
+                                    const customPhotos = parseInt(customPkg?.includedPhotos || '0') || 0;
+                                    const essentialPhotos = parseInt(essentialPkg?.includedPhotos || '0') || 0;
+                                    const customVideos = parseInt(customPkg?.includedVideos || '0') || 0;
+                                    const essentialVideos = parseInt(essentialPkg?.includedVideos || '0') || 0;
+                                    const warnings: string[] = [];
+                                    if (premPhotos > 0 && customPhotos > 0 && premPhotos <= customPhotos) warnings.push(`Premium photos (${premPhotos}) must be more than Custom (${customPhotos})`);
+                                    if (premPhotos > 0 && essentialPhotos > 0 && premPhotos <= essentialPhotos) warnings.push(`Premium photos (${premPhotos}) must be more than Essential (${essentialPhotos})`);
+                                    if (premVideos > 0 && customVideos > 0 && premVideos <= customVideos) warnings.push(`Premium videos (${premVideos}) must be more than Custom (${customVideos})`);
+                                    if (premVideos > 0 && essentialVideos > 0 && premVideos <= essentialVideos) warnings.push(`Premium videos (${premVideos}) must be more than Essential (${essentialVideos})`);
+                                    return warnings.length > 0 ? <div style={{ marginBottom: '0.5rem' }}>{warnings.map((w, i) => <p key={i} style={{ fontSize: '0.75rem', color: '#EF4444', margin: '0.2rem 0 0 0' }}>{w}</p>)}</div> : null;
+                                  })()}
+                                  {pkg.packageName === 'Custom' && (() => {
+                                    const photos = parseInt(pkg.includedPhotos) || 0;
+                                    const videos = parseInt(pkg.includedVideos) || 0;
+                                    const premiumPkg = packages.find(p => p.packageName === 'Premium');
+                                    const essentialPkg = packages.find(p => p.packageName === 'Essential');
+                                    const premPhotos = parseInt(premiumPkg?.includedPhotos || '0') || 0;
+                                    const essentialPhotos = parseInt(essentialPkg?.includedPhotos || '0') || 0;
+                                    const premVideos = parseInt(premiumPkg?.includedVideos || '0') || 0;
+                                    const essentialVideos = parseInt(essentialPkg?.includedVideos || '0') || 0;
+                                    const warnings: string[] = [];
+                                    if (photos > 0 && premPhotos > 0 && photos >= premPhotos) warnings.push(`Custom photos (${photos}) must be less than Premium (${premPhotos})`);
+                                    if (photos > 0 && essentialPhotos > 0 && photos <= essentialPhotos) warnings.push(`Custom photos (${photos}) must be more than Essential (${essentialPhotos})`);
+                                    if (videos > 0 && premVideos > 0 && videos >= premVideos) warnings.push(`Custom videos (${videos}) must be less than Premium (${premVideos})`);
+                                    if (videos > 0 && essentialVideos > 0 && videos <= essentialVideos) warnings.push(`Custom videos (${videos}) must be more than Essential (${essentialVideos})`);
+                                    return warnings.length > 0 ? <div style={{ marginBottom: '0.5rem' }}>{warnings.map((w, i) => <p key={i} style={{ fontSize: '0.75rem', color: '#EF4444', margin: '0.2rem 0 0 0' }}>{w}</p>)}</div> : null;
+                                  })()}
 
                                   {/* Printed photobook limit */}
                                   <div style={{ marginBottom: '0.75rem' }}>
                                     <label style={{ ...labelStyle, fontSize: '0.78rem', color: colors.textSecondary }}>Printed photobook photos</label>
-                                    {pkg.packageName !== 'Premium' ? (
-                                      <input type="number" min="0" value={pkg.photobookPhotos}
-                                        onChange={(e) => updatePackage(pkg.id, 'photobookPhotos', e.target.value)}
-                                        placeholder="e.g. 20" disabled={!isPackageEditEnabled} style={pkgInputStyle} />
-                                    ) : (
-                                      <div style={{ padding: '0.5rem 0.75rem', backgroundColor: actualTheme === 'dark' ? '#4C1D9520' : '#F5F3FF', borderRadius: '0.375rem', fontSize: '0.82rem', color: actualTheme === 'dark' ? '#A78BFA' : '#7C3AED', fontWeight: '600' }}>
-                                        Unlimited photobook selections
-                                      </div>
-                                    )}
+                                    <input type="number" min="0" value={pkg.photobookPhotos}
+                                      onChange={(e) => updatePackage(pkg.id, 'photobookPhotos', e.target.value)}
+                                      placeholder={pkg.packageName === 'Premium' ? 'e.g. 50' : 'e.g. 20'} disabled={!isPackageEditEnabled} style={pkgInputStyle} />
                                     <span style={{ fontSize: '0.7rem', color: colors.textSecondary, marginTop: '0.25rem', display: 'block' }}>
                                       Number of photos the client can select for their printed photo album. Extra selections will be charged per photo.
                                     </span>

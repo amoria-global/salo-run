@@ -428,14 +428,14 @@ async function fetchUserProfile(token: string): Promise<{ user: DashboardUser | 
           if (user) return { user, reason: 'success' };
         }
       }
-      // For photographers, don't redirect — they may be mid-stream
+      // Token refresh failed — redirect photographer to login to prevent stale data
       if (typeof window !== 'undefined') {
         const isPhotographer = window.location.pathname.includes('/photographer') ||
           document.cookie.includes('userRole=photographer');
-        if (!isPhotographer) {
+        if (isPhotographer) {
+          clearAuthFromStorage();
           const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL as string;
-          const loginUrl = `${landingUrl}/user/auth/login?session_expired=true`;
-          window.location.href = loginUrl;
+          window.location.href = `${landingUrl}/user/auth/login?session_expired=true`;
         }
       }
       return { user: null, reason: 'unauthorized' };
@@ -586,12 +586,19 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
               }
             }
           }
+        } else {
+          // Refresh failed — clear auth and redirect to login
+          console.warn('[Dashboard Auth] Photographer token refresh failed — redirecting to login');
+          clearAuthFromStorage();
+          setUser(null);
+          setToken(null);
+          const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL as string;
+          window.location.href = `${landingUrl}/user/auth/login?session_expired=true`;
         }
-        // If refresh fails, keep existing session — never redirect photographer
         return;
       }
 
-      const { user: userProfile } = await fetchUserProfile(token);
+      const { user: userProfile, reason } = await fetchUserProfile(token);
 
       if (!userProfile) {
         // Don't clear state on server errors — keep existing user data
@@ -911,6 +918,19 @@ export async function dashboardAuthFetch(
 
   if (response.status === 401) {
     const newToken = await attemptDashboardTokenRefresh(currentToken);
+    if (!newToken) {
+      // Refresh failed — for photographers, redirect to login to prevent stale data
+      if (typeof window !== 'undefined') {
+        const isPhotographer = window.location.pathname.includes('/photographer') ||
+          document.cookie.includes('userRole=photographer');
+        if (isPhotographer) {
+          clearAuthFromStorage();
+          const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL as string;
+          window.location.href = `${landingUrl}/user/auth/login?session_expired=true`;
+        }
+      }
+      return response;
+    }
     if (newToken) {
       headers['Authorization'] = `Bearer ${newToken}`;
       // ReadableStream bodies are consumed after the first fetch and cannot be retried.

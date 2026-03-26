@@ -1,6 +1,12 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+
+const CURRENCY_FLAG_MAP: Record<string, string> = {
+  USD: 'us', RWF: 'rw', EUR: 'eu', KES: 'ke', UGX: 'ug', TZS: 'tz', GBP: 'gb',
+  NGN: 'ng', ZAR: 'za', GHS: 'gh', XAF: 'cm', XOF: 'sn', ETB: 'et', MAD: 'ma',
+  EGP: 'eg', BIF: 'bi', CDF: 'cd', MWK: 'mw', ZMW: 'zm', BWP: 'bw', MZN: 'mz',
+};
 
 interface CurrencyInfo {
   code: string;
@@ -8,6 +14,7 @@ interface CurrencyInfo {
   symbol: string;
   flag: string;
   rate: number;
+  id?: string;
 }
 
 interface PaidAlbumFormProps {
@@ -39,6 +46,23 @@ const PaidAlbumForm: React.FC<PaidAlbumFormProps> = ({
     background: '#ffffff',
   },
 }) => {
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const selectedCurrency = currencies.find(c => c.code === currencyId || (c.id || c.code) === currencyId);
+  const selectedCode = selectedCurrency?.code || '';
+  const selectedFlag = CURRENCY_FLAG_MAP[selectedCode] || '';
+
   return (
     <div style={{ marginBottom: '1rem' }}>
       <div style={{
@@ -49,7 +73,7 @@ const PaidAlbumForm: React.FC<PaidAlbumFormProps> = ({
         marginBottom: '1rem',
       }}>
         <div style={{ fontSize: '0.75rem', color: '#3b82f6', fontWeight: 600, marginBottom: '0.25rem' }}>
-          ℹ️ PAID Album Details
+          PAID Album Details
         </div>
         <div style={{ fontSize: '0.7rem', color: '#6b7280', lineHeight: 1.4 }}>
           • Photos will be indexed for facial recognition search<br />
@@ -58,10 +82,9 @@ const PaidAlbumForm: React.FC<PaidAlbumFormProps> = ({
         </div>
       </div>
 
-      {/* Price Per Image */}
+      {/* Price Per Image + Currency (side by side) */}
       <div style={{ marginBottom: '1rem' }}>
         <label
-          htmlFor="pricePerImage"
           style={{
             fontSize: '0.8rem',
             fontWeight: 600,
@@ -72,74 +95,130 @@ const PaidAlbumForm: React.FC<PaidAlbumFormProps> = ({
         >
           Price Per Image *
         </label>
-        <input
-          id="pricePerImage"
-          type="number"
-          min="0"
-          step="0.01"
-          value={pricePerImage}
-          onChange={(e) => onPriceChange(e.target.value)}
-          placeholder="Enter price (e.g., 10.00)"
-          disabled={disabled}
-          style={{
-            width: '100%',
-            padding: '0.6rem 0.75rem',
-            fontSize: '0.85rem',
-            border: `1px solid ${colors.border}`,
-            borderRadius: '0.4rem',
-            background: colors.background,
-            color: colors.textPrimary,
-            outline: 'none',
-            transition: 'border-color 0.2s',
-          }}
-          onFocus={(e) => (e.target.style.borderColor = '#3b82f6')}
-          onBlur={(e) => (e.target.style.borderColor = colors.border)}
-          required
-        />
-      </div>
-
-      {/* Currency Selection */}
-      <div>
-        <label
-          htmlFor="currency"
-          style={{
-            fontSize: '0.8rem',
-            fontWeight: 600,
-            color: colors.textPrimary,
-            display: 'block',
-            marginBottom: '0.35rem',
-          }}
-        >
-          Currency *
-        </label>
-        <select
-          id="currency"
-          value={currencyId}
-          onChange={(e) => onCurrencyChange(e.target.value)}
-          disabled={disabled}
-          style={{
-            width: '100%',
-            padding: '0.6rem 0.75rem',
-            fontSize: '0.85rem',
-            border: `1px solid ${colors.border}`,
-            borderRadius: '0.4rem',
-            background: colors.background,
-            color: colors.textPrimary,
-            outline: 'none',
-            cursor: 'pointer',
-            transition: 'border-color 0.2s',
-          }}
-          onFocus={(e) => (e.target.style.borderColor = '#3b82f6')}
-          onBlur={(e) => (e.target.style.borderColor = colors.border)}
-          required
-        >
-          <option value="">Select currency</option>
-          {currencies.map((currency) => (
-            <option key={currency.code} value={currency.code}>
-              {currency.code} ({currency.symbol}) - {currency.name}
-            </option>
-          ))}
-        </select>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          {/* Custom currency dropdown with flag images */}
+          <div ref={dropdownRef} style={{ position: 'relative', minWidth: '120px' }}>
+            <button
+              type="button"
+              onClick={() => !disabled && setShowDropdown(!showDropdown)}
+              disabled={disabled}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                cursor: disabled ? 'not-allowed' : 'pointer',
+                width: '100%',
+                textAlign: 'left' as const,
+                padding: '0.6rem 0.75rem',
+                fontSize: '0.85rem',
+                border: `1px solid ${colors.border}`,
+                borderRadius: '0.4rem',
+                background: colors.background,
+                color: colors.textPrimary,
+                outline: 'none',
+                transition: 'border-color 0.2s',
+              }}
+            >
+              {selectedFlag && (
+                <img
+                  src={`https://flagcdn.com/w40/${selectedFlag}.png`}
+                  alt=""
+                  style={{ width: '18px', height: '14px', objectFit: 'cover', borderRadius: '2px' }}
+                />
+              )}
+              <span style={{ flex: 1, fontSize: '0.85rem' }}>{selectedCode || 'Currency'}</span>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ transform: showDropdown ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
+                <path d="M6 9L12 15L18 9" stroke={colors.textSecondary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+            {showDropdown && (
+              <div style={{
+                position: 'absolute',
+                top: 'calc(100% + 0.35rem)',
+                left: 0,
+                backgroundColor: colors.background,
+                borderRadius: '0.75rem',
+                boxShadow: '0 10px 25px -5px rgba(0,0,0,0.2)',
+                border: `2px solid ${colors.border}`,
+                padding: '0.4rem',
+                minWidth: '200px',
+                zIndex: 100,
+                maxHeight: '220px',
+                overflowY: 'auto',
+              }}>
+                {(currencies.length > 0 ? currencies : [
+                  { code: 'USD', name: 'US Dollar', symbol: '$', flag: '', rate: 1 },
+                  { code: 'RWF', name: 'Rwandan Franc', symbol: 'RF', flag: '', rate: 1 },
+                  { code: 'EUR', name: 'Euro', symbol: '€', flag: '', rate: 1 },
+                  { code: 'GBP', name: 'British Pound', symbol: '£', flag: '', rate: 1 },
+                  { code: 'KES', name: 'Kenyan Shilling', symbol: 'KSh', flag: '', rate: 1 },
+                ]).map((c) => {
+                  const flag = CURRENCY_FLAG_MAP[c.code] || '';
+                  const isSelected = currencyId === c.code || currencyId === (c as CurrencyInfo & { id?: string }).id;
+                  return (
+                    <button
+                      key={c.code}
+                      type="button"
+                      onClick={() => { onCurrencyChange(c.code); setShowDropdown(false); }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        width: '100%',
+                        padding: '0.5rem 0.65rem',
+                        borderRadius: '0.5rem',
+                        border: 'none',
+                        background: isSelected ? '#EFF6FF' : 'transparent',
+                        color: colors.textPrimary,
+                        fontSize: '0.85rem',
+                        fontWeight: isSelected ? 600 : 400,
+                        cursor: 'pointer',
+                        gap: '0.5rem',
+                      }}
+                      onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = '#F3F4F6'; }}
+                      onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        {flag && <img src={`https://flagcdn.com/w40/${flag}.png`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px' }} />}
+                        <span style={{ fontWeight: 600 }}>{c.code}</span>
+                        {c.name && <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{c.name}</span>}
+                      </div>
+                      {isSelected && (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                          <path d="M20 6L9 17L4 12" stroke="#083A85" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          <input
+            id="pricePerImage"
+            type="number"
+            min="0"
+            step="0.01"
+            value={pricePerImage}
+            onChange={(e) => onPriceChange(e.target.value)}
+            placeholder="Enter price (e.g., 10.00)"
+            disabled={disabled}
+            style={{
+              flex: 1,
+              padding: '0.6rem 0.75rem',
+              fontSize: '0.85rem',
+              border: `1px solid ${colors.border}`,
+              borderRadius: '0.4rem',
+              background: colors.background,
+              color: colors.textPrimary,
+              outline: 'none',
+              transition: 'border-color 0.2s',
+            }}
+            onFocus={(e) => (e.target.style.borderColor = '#3b82f6')}
+            onBlur={(e) => (e.target.style.borderColor = colors.border)}
+            required
+          />
+        </div>
       </div>
 
       {/* Commission Notice */}
@@ -157,9 +236,9 @@ const PaidAlbumForm: React.FC<PaidAlbumFormProps> = ({
           {pricePerImage && !isNaN(parseFloat(pricePerImage)) && (
             <>
               <br />
-              <strong>Example:</strong> {currencies.find(c => c.code === currencyId)?.symbol || '$'}
+              <strong>Example:</strong> {selectedCurrency?.symbol || '$'}
               {parseFloat(pricePerImage).toFixed(2)} per photo → You earn{' '}
-              {currencies.find(c => c.code === currencyId)?.symbol || '$'}
+              {selectedCurrency?.symbol || '$'}
               {(parseFloat(pricePerImage) * 0.7).toFixed(2)}
             </>
           )}
