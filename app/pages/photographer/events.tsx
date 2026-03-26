@@ -1353,14 +1353,26 @@ const PhotographerEventsPage = () => {
         backendInviteCode = result?.data?.inviteCode || '';
         backendAccessCode = result?.data?.accessCode || '';
 
-        // Show FREE album invitation modal if FREE album was created
-        if (isStandalone && standaloneAlbumType === 'FREE' && backendAccessCode) {
-          setFreeAlbumToSend({
-            albumId: backendAlbumId,
-            title: albumTitle,
-            email: freeAlbumEmail,
-            accessCode: backendAccessCode,
-          });
+        // For FREE albums, fetch access code via send-free endpoint
+        if (isStandalone && standaloneAlbumType === 'FREE' && backendAlbumId) {
+          try {
+            const sendRes = await dashboardAuthFetch(
+              `${apiUrl}/api/remote/photographer/albums/${backendAlbumId}/send-free`,
+              { method: 'POST' }
+            );
+            if (sendRes.ok) {
+              const sendResult = await sendRes.json();
+              backendAccessCode = sendResult?.data?.accessCode || '';
+            }
+          } catch { /* ignore */ }
+          if (backendAccessCode) {
+            setFreeAlbumToSend({
+              albumId: backendAlbumId,
+              title: albumTitle,
+              email: freeAlbumEmail,
+              accessCode: backendAccessCode,
+            });
+          }
         }
       }
     } catch (err) { console.error('Failed to create album:', err); }
