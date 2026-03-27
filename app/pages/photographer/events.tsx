@@ -479,6 +479,7 @@ const PhotographerEventsPage = () => {
   const [showSendFreeInvitationModal, setShowSendFreeInvitationModal] = useState(false);
   const [freeAlbumToSend, setFreeAlbumToSend] = useState<{ albumId: string; title: string; email: string; accessCode: string } | null>(null);
   const [albumSuccessModal, setAlbumSuccessModal] = useState<{ type: 'paid' | 'free'; title: string; inviteCode?: string; email?: string; accessCode?: string; photoCount: number } | null>(null);
+  const [codeCopied, setCodeCopied] = useState(false);
   const [uploadProgress, setUploadProgress] = useState('');
   const [mediaIdMap, setMediaIdMap] = useState<Record<string, string>>({});
 
@@ -856,7 +857,12 @@ const PhotographerEventsPage = () => {
     return () => document.removeEventListener('mousedown', handler);
   }, [showFaceAICurrencyDropdown]);
 
-  const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '-';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '-';
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
   const formatTime = (time: string) => { const [h, m] = time.split(':'); const hour = parseInt(h); return `${hour % 12 || 12}:${m} ${hour >= 12 ? 'PM' : 'AM'}`; };
 
   const getStatusBadge = (status: EventStatus) => {
@@ -2652,34 +2658,34 @@ const PhotographerEventsPage = () => {
             </p>
 
             {/* Details card */}
-            <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '1rem', marginBottom: '1.25rem', textAlign: 'left' as const }}>
+            <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.75rem', padding: '1.5rem 1.25rem', marginBottom: '1.25rem', textAlign: 'center' as const }}>
               {albumSuccessModal.type === 'paid' && albumSuccessModal.inviteCode && (
-                <div style={{ marginBottom: '0.75rem' }}>
-                  <div style={{ fontSize: '0.7rem', color: colors.textTertiary, marginBottom: '0.2rem' }}>Invite Code</div>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#3B82F6', letterSpacing: '0.1em' }}>{albumSuccessModal.inviteCode}</div>
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <div style={{ fontSize: '0.7rem', color: colors.textTertiary, marginBottom: '0.5rem', textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>Invite Code</div>
+                  <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#3B82F6', letterSpacing: '0.2em', fontFamily: 'monospace' }}>{albumSuccessModal.inviteCode}</div>
                 </div>
               )}
               {albumSuccessModal.type === 'paid' && albumSuccessModal.inviteCode && (
-                <div style={{ marginBottom: '0.75rem' }}>
-                  <div style={{ fontSize: '0.7rem', color: colors.textTertiary, marginBottom: '0.2rem' }}>Find My Photos Link</div>
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <div style={{ fontSize: '0.7rem', color: colors.textTertiary, marginBottom: '0.3rem', textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>Find My Photos Link</div>
                   <div style={{ fontSize: '0.78rem', color: colors.textPrimary, wordBreak: 'break-all' }}>{`${process.env.NEXT_PUBLIC_LANDING_URL as string}/user/find-my-photos?code=${albumSuccessModal.inviteCode}`}</div>
                 </div>
               )}
               {albumSuccessModal.type === 'free' && albumSuccessModal.email && (
-                <div style={{ marginBottom: '0.75rem' }}>
-                  <div style={{ fontSize: '0.7rem', color: colors.textTertiary, marginBottom: '0.2rem' }}>Invitation Sent To</div>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: colors.textPrimary }}>{albumSuccessModal.email}</div>
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <div style={{ fontSize: '0.7rem', color: colors.textTertiary, marginBottom: '0.3rem', textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>Invitation Sent To</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 600, color: colors.textPrimary }}>{albumSuccessModal.email}</div>
                 </div>
               )}
               {albumSuccessModal.type === 'free' && albumSuccessModal.accessCode && (
-                <div style={{ marginBottom: '0.75rem' }}>
-                  <div style={{ fontSize: '0.7rem', color: colors.textTertiary, marginBottom: '0.2rem' }}>Access Code</div>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#10B981', letterSpacing: '0.15em' }}>{albumSuccessModal.accessCode}</div>
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <div style={{ fontSize: '0.7rem', color: colors.textTertiary, marginBottom: '0.5rem', textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>Access Code</div>
+                  <div style={{ fontSize: '2rem', fontWeight: 800, color: '#10B981', letterSpacing: '0.3em', fontFamily: 'monospace' }}>{albumSuccessModal.accessCode}</div>
                 </div>
               )}
               <div>
-                <div style={{ fontSize: '0.7rem', color: colors.textTertiary, marginBottom: '0.2rem' }}>Photos</div>
-                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: colors.textPrimary }}>{albumSuccessModal.photoCount} uploaded</div>
+                <div style={{ fontSize: '0.7rem', color: colors.textTertiary, marginBottom: '0.3rem', textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>Photos</div>
+                <div style={{ fontSize: '0.95rem', fontWeight: 700, color: colors.textPrimary }}>{albumSuccessModal.photoCount} uploaded</div>
               </div>
             </div>
 
@@ -2689,11 +2695,46 @@ const PhotographerEventsPage = () => {
                 <button
                   onClick={() => {
                     const code = albumSuccessModal.type === 'paid' ? albumSuccessModal.inviteCode : albumSuccessModal.accessCode;
-                    if (code) { navigator.clipboard.writeText(code); }
+                    if (!code) return;
+                    try {
+                      if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(code).then(() => {
+                          setCodeCopied(true);
+                          setTimeout(() => setCodeCopied(false), 2000);
+                        }).catch(() => {
+                          // Fallback for clipboard API failure
+                          const ta = document.createElement('textarea');
+                          ta.value = code;
+                          ta.style.position = 'fixed';
+                          ta.style.opacity = '0';
+                          document.body.appendChild(ta);
+                          ta.select();
+                          document.execCommand('copy');
+                          document.body.removeChild(ta);
+                          setCodeCopied(true);
+                          setTimeout(() => setCodeCopied(false), 2000);
+                        });
+                      } else {
+                        // Fallback for browsers without clipboard API
+                        const ta = document.createElement('textarea');
+                        ta.value = code;
+                        ta.style.position = 'fixed';
+                        ta.style.opacity = '0';
+                        document.body.appendChild(ta);
+                        ta.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(ta);
+                        setCodeCopied(true);
+                        setTimeout(() => setCodeCopied(false), 2000);
+                      }
+                    } catch {
+                      // Last resort fallback
+                      window.prompt('Copy this code:', code);
+                    }
                   }}
-                  style={secondaryBtn}
+                  style={{ ...secondaryBtn, minWidth: '160px' }}
                 >
-                  Copy {albumSuccessModal.type === 'paid' ? 'Invite Code' : 'Access Code'}
+                  {codeCopied ? 'Copied!' : `Copy ${albumSuccessModal.type === 'paid' ? 'Invite Code' : 'Access Code'}`}
                 </button>
               )}
               <button onClick={() => setAlbumSuccessModal(null)} style={primaryBtn}>Done</button>
