@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useTheme } from '../../context/ThemeContext';
-import DonateModal, { DonateButton, DonatePromptModal } from '../../components/DonateModal';
+import { useCurrency } from '@/app/context/CurrencyContext';
+import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
+import { getApiUrl, normalizeImageUrl } from '@/lib/api';
 
 // Icons
 const SearchIcon = () => (
@@ -90,6 +92,13 @@ const UserIcon = () => (
   </svg>
 );
 
+const TrashIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <polyline points="3,6 5,6 21,6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M19 6V20C19 21.1046 18.1046 22 17 22H7C5.89543 22 5 21.1046 5 20V6M8 6V4C8 2.89543 8.89543 2 10 2H14C15.1046 2 16 2.89543 16 4V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
 const AlertCircleIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
@@ -144,7 +153,7 @@ interface Client {
   lastName: string;
   email: string;
   phone: string;
-  profileImage: string;
+  profileImage?: string;
   coverImage: string;
   location: {
     city: string;
@@ -167,6 +176,34 @@ interface Client {
 
 type FilterType = 'all' | 'active' | 'inactive' | 'favorites' | 'pending_payments';
 type ViewMode = 'grid' | 'list';
+type PageTab = 'clients' | 'bookings';
+type BookingsFilter = 'all' | 'pending' | 'accepted' | 'rejected';
+
+// API Booking interface — flexible to handle various response shapes
+interface APIBooking {
+  id: string;
+  status?: string;
+  bookingStatus?: string;
+  clientName?: string;
+  clientEmail?: string;
+  clientPhone?: string;
+  customerName?: string;
+  customerEmail?: string;
+  eventType?: string;
+  eventDate?: string;
+  eventTime?: string;
+  location?: string;
+  address?: string;
+  packageName?: string;
+  totalAmount?: number;
+  amount?: number;
+  price?: number;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
+}
 
 // Modal Component
 interface ModalProps {
@@ -232,12 +269,10 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
   );
 };
 
-interface ClientsProps {
-  userType?: 'photographer' | 'freelancer';
-}
-
-export default function Clients({ userType = 'photographer' }: ClientsProps) {
+export default function Clients() {
   const { colors, actualTheme } = useTheme();
+  const { formatPrice } = useCurrency();
+  const { token, user } = useDashboardAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -248,356 +283,274 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; client: Client } | null>(null);
   const [showTipsModal, setShowTipsModal] = useState(false);
   const [tipsClient, setTipsClient] = useState<Client | null>(null);
-  const [showTipsDonateModal, setShowTipsDonateModal] = useState(false);
-  const [showTipsDonatePromptModal, setShowTipsDonatePromptModal] = useState(false);
+  const [deleteConfirmClient, setDeleteConfirmClient] = useState<Client | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
-  // Sample clients data with real images
-  const [clients, setClients] = useState<Client[]>([
-    {
-      id: '1',
-      firstName: 'Sarah',
-      lastName: 'Johnson',
-      email: 'sarah.j@email.com',
-      phone: '+1 234 567 8900',
-      profileImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
-      coverImage: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800',
-      location: { city: 'New York', country: 'USA' },
-      totalBookings: 12,
-      totalSpent: 5400,
-      joinDate: '2024-01-15',
-      lastActive: '2 hours ago',
-      lastBookingDate: '2024-11-15',
-      lastEventType: 'Wedding',
-      lastEventName: 'Sarah & James Wedding',
-      status: 'active',
-      isFavorite: true,
-      verified: true,
-      review: {
-        rating: 5,
-        reviewText: 'Amazing photographer! Captured every special moment of our wedding perfectly. Highly recommend!',
-        reviewDate: '2024-11-20'
-      },
-      bookings: [
-        {
-          id: 'BK-001',
-          eventName: 'Sarah & James Wedding',
-          eventType: 'Wedding',
-          eventDate: '2024-11-15',
-          eventTime: '14:00',
-          duration: '8 hours',
-          location: 'Central Park, NYC',
-          packageName: 'Premium Wedding',
-          totalAmount: 1500,
-          paidAmount: 1500,
-          paymentStatus: 'paid',
-          status: 'completed'
-        },
-        {
-          id: 'BK-008',
-          eventName: 'Anniversary Photos',
-          eventType: 'Portrait',
-          eventDate: '2025-01-20',
-          eventTime: '16:00',
-          duration: '2 hours',
-          location: 'Studio, NYC',
-          packageName: 'Portrait Session',
-          totalAmount: 300,
-          paidAmount: 150,
-          paymentStatus: 'partially_paid',
-          status: 'upcoming'
-        }
-      ],
-      tipsAndBonuses: [
-        {
-          id: 'TB-001',
-          amount: 150,
-          type: 'tip',
-          eventName: 'Sarah & James Wedding',
-          date: '2024-11-15',
-          message: 'Thank you for the amazing photos! You made our day so special.'
-        },
-        {
-          id: 'TB-002',
-          amount: 50,
-          type: 'bonus',
-          eventName: 'Sarah & James Wedding',
-          date: '2024-11-20',
-          message: 'Extra bonus for quick delivery of photos!'
-        }
-      ]
-    },
-    {
-      id: '2',
-      firstName: 'Michael',
-      lastName: 'Chen',
-      email: 'mchen@email.com',
-      phone: '+1 234 567 8901',
-      profileImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg',
-      coverImage: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=800',
-      location: { city: 'San Francisco', country: 'USA' },
-      totalBookings: 8,
-      totalSpent: 3200,
-      joinDate: '2024-02-20',
-      lastActive: '1 day ago',
-      lastBookingDate: '2024-10-28',
-      lastEventType: 'Birthday',
-      lastEventName: 'Michael\'s 30th Birthday',
-      status: 'active',
-      isFavorite: false,
-      verified: true,
-      review: {
-        rating: 4,
-        reviewText: 'Great work on my birthday party! The photos came out fantastic.',
-        reviewDate: '2024-11-02'
-      },
-      bookings: [
-        {
-          id: 'BK-002',
-          eventName: 'Michael\'s 30th Birthday',
-          eventType: 'Birthday',
-          eventDate: '2024-10-28',
-          eventTime: '18:00',
-          duration: '4 hours',
-          location: 'Private Venue, SF',
-          packageName: 'Event Coverage',
-          totalAmount: 600,
-          paidAmount: 600,
-          paymentStatus: 'paid',
-          status: 'completed'
-        }
-      ],
-      tipsAndBonuses: [
-        {
-          id: 'TB-003',
-          amount: 75,
-          type: 'tip',
-          eventName: 'Michael\'s 30th Birthday',
-          date: '2024-10-28',
-          message: 'Great job capturing the party moments!'
-        }
-      ]
-    },
-    {
-      id: '3',
-      firstName: 'Emily',
-      lastName: 'Rodriguez',
-      email: 'emily.r@email.com',
-      phone: '+1 234 567 8902',
-      profileImage: 'https://i.pinimg.com/1200x/09/23/45/092345eac1919407e0c49f67e285b831.jpg',
-      coverImage: 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=800',
-      location: { city: 'Miami', country: 'USA' },
-      totalBookings: 15,
-      totalSpent: 7800,
-      joinDate: '2023-11-10',
-      lastActive: '2 weeks ago',
-      lastBookingDate: '2024-09-20',
-      lastEventType: 'Concert',
-      lastEventName: 'Summer Music Festival',
-      status: 'inactive',
-      isFavorite: true,
-      verified: false,
-      // No review left by this client
-      bookings: [
-        {
-          id: 'BK-003',
-          eventName: 'Summer Music Festival',
-          eventType: 'Concert',
-          eventDate: '2024-09-20',
-          eventTime: '16:00',
-          duration: '6 hours',
-          location: 'Bayfront Park, Miami',
-          packageName: 'Festival Coverage',
-          totalAmount: 800,
-          paidAmount: 800,
-          paymentStatus: 'paid',
-          status: 'completed'
-        }
-      ],
-      tipsAndBonuses: [] // No tips or bonuses from this client
-    },
-    {
-      id: '4',
-      firstName: 'David',
-      lastName: 'Park',
-      email: 'dpark@email.com',
-      phone: '+1 234 567 8903',
-      profileImage: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg',
-      coverImage: 'https://images.unsplash.com/photo-1560439514-4e9645039924?w=800',
-      location: { city: 'Seattle', country: 'USA' },
-      totalBookings: 6,
-      totalSpent: 2100,
-      joinDate: '2024-03-05',
-      lastActive: '5 hours ago',
-      lastBookingDate: '2024-11-01',
-      lastEventType: 'Corporate',
-      lastEventName: 'Tech Company Headshots',
-      status: 'active',
-      isFavorite: false,
-      verified: true,
-      // No review left by this client yet
-      bookings: [
-        {
-          id: 'BK-004',
-          eventName: 'Tech Company Headshots',
-          eventType: 'Corporate',
-          eventDate: '2024-11-01',
-          eventTime: '09:00',
-          duration: '4 hours',
-          location: 'Tech Hub, Seattle',
-          packageName: 'Corporate Package',
-          totalAmount: 500,
-          paidAmount: 500,
-          paymentStatus: 'paid',
-          status: 'completed'
-        },
-        {
-          id: 'BK-010',
-          eventName: 'Team Building Event',
-          eventType: 'Corporate',
-          eventDate: '2025-01-15',
-          eventTime: '10:00',
-          duration: '3 hours',
-          location: 'Company HQ',
-          packageName: 'Event Coverage',
-          totalAmount: 450,
-          paidAmount: 0,
-          paymentStatus: 'pending',
-          status: 'upcoming'
-        }
-      ],
-      tipsAndBonuses: [
-        {
-          id: 'TB-004',
-          amount: 100,
-          type: 'bonus',
-          eventName: 'Tech Company Headshots',
-          date: '2024-11-05',
-          message: 'Professional work as always. Bonus for exceeding expectations!'
-        }
-      ]
-    },
-    {
-      id: '5',
-      firstName: 'Lisa',
-      lastName: 'Thompson',
-      email: 'lisa.t@email.com',
-      phone: '+1 234 567 8904',
-      profileImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg',
-      coverImage: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=800',
-      location: { city: 'Austin', country: 'USA' },
-      totalBookings: 20,
-      totalSpent: 12500,
-      joinDate: '2023-09-01',
-      lastActive: '30 mins ago',
-      lastBookingDate: '2024-08-15',
-      lastEventType: 'Fashion',
-      lastEventName: 'Summer Fashion Shoot',
-      status: 'active',
-      isFavorite: true,
-      verified: true,
-      review: {
-        rating: 5,
-        reviewText: 'Absolutely professional! The fashion shots exceeded all my expectations. Will definitely book again.',
-        reviewDate: '2024-08-20'
-      },
-      bookings: [
-        {
-          id: 'BK-005',
-          eventName: 'Summer Fashion Shoot',
-          eventType: 'Fashion',
-          eventDate: '2024-08-15',
-          eventTime: '14:00',
-          duration: '5 hours',
-          location: 'Studio, Austin',
-          packageName: 'Fashion Editorial',
-          totalAmount: 1200,
-          paidAmount: 1200,
-          paymentStatus: 'paid',
-          status: 'completed'
-        }
-      ],
-      tipsAndBonuses: [
-        {
-          id: 'TB-005',
-          amount: 200,
-          type: 'tip',
-          eventName: 'Summer Fashion Shoot',
-          date: '2024-08-15',
-          message: 'Incredible work! These photos are going straight to my portfolio.'
-        },
-        {
-          id: 'TB-006',
-          amount: 100,
-          type: 'bonus',
-          eventName: 'Summer Fashion Shoot',
-          date: '2024-08-18',
-          message: 'Bonus for the extra editing work!'
-        }
-      ]
-    },
-    {
-      id: '6',
-      firstName: 'James',
-      lastName: 'Wilson',
-      email: 'jwilson@email.com',
-      phone: '+1 234 567 8905',
-      profileImage: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg',
-      coverImage: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800',
-      location: { city: 'Boston', country: 'USA' },
-      totalBookings: 4,
-      totalSpent: 1800,
-      joinDate: '2024-04-12',
-      lastActive: '1 month ago',
-      lastBookingDate: '2024-06-20',
-      lastEventType: 'Wedding',
-      lastEventName: 'James & Maria Wedding',
-      status: 'inactive',
-      isFavorite: false,
-      verified: false,
-      review: {
-        rating: 4,
-        reviewText: 'Beautiful wedding photos. Thank you for making our day special!',
-        reviewDate: '2024-06-25'
-      },
-      bookings: [
-        {
-          id: 'BK-006',
-          eventName: 'James & Maria Wedding',
-          eventType: 'Wedding',
-          eventDate: '2024-06-20',
-          eventTime: '15:00',
-          duration: '6 hours',
-          location: 'Harbor View, Boston',
-          packageName: 'Wedding Basic',
-          totalAmount: 900,
-          paidAmount: 900,
-          paymentStatus: 'paid',
-          status: 'completed'
-        }
-      ],
-      tipsAndBonuses: [
-        {
-          id: 'TB-007',
-          amount: 50,
-          type: 'tip',
-          eventName: 'James & Maria Wedding',
-          date: '2024-06-20',
-          message: 'Thank you for the beautiful photos!'
-        }
-      ]
+  // Page tab state
+  const [pageTab, setPageTab] = useState<PageTab>('clients');
+
+  // Bookings state
+  const [bookings, setBookings] = useState<APIBooking[]>([]);
+  const [bookingsLoading, setBookingsLoading] = useState(false);
+  const [bookingsFilter, setBookingsFilter] = useState<BookingsFilter>('all');
+  const [processingBookingId, setProcessingBookingId] = useState<string | null>(null);
+
+  // Fetch bookings from API
+  const fetchBookings = useCallback(async () => {
+    if (!token) return;
+    setBookingsLoading(true);
+    try {
+      const response = await dashboardAuthFetch(`${getApiUrl()}/api/remote/photographer/bookings`);
+      const result = await response.json();
+      if (result.action === 1 && Array.isArray(result.data)) {
+        setBookings(result.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch bookings:', error);
+    } finally {
+      setBookingsLoading(false);
     }
-  ]);
+  }, [token]);
+
+  // Fetch bookings on mount
+  useEffect(() => {
+    if (token) fetchBookings();
+  }, [token, fetchBookings]);
+
+  // Accept a booking
+  const acceptBooking = async (bookingId: string) => {
+    if (!token) return;
+    setProcessingBookingId(bookingId);
+    try {
+      const response = await dashboardAuthFetch(
+        `${getApiUrl()}/api/remote/photographer/bookings/${bookingId}/accept`,
+        { method: 'POST' }
+      );
+      const result = await response.json();
+      if (result.action === 1) {
+        await fetchBookings();
+      }
+    } catch (error) {
+      console.error('Failed to accept booking:', error);
+    } finally {
+      setProcessingBookingId(null);
+    }
+  };
+
+  // Reject a booking
+  const rejectBooking = async (bookingId: string) => {
+    if (!token) return;
+    setProcessingBookingId(bookingId);
+    try {
+      const response = await dashboardAuthFetch(
+        `${getApiUrl()}/api/remote/photographer/bookings/${bookingId}/reject`,
+        { method: 'POST' }
+      );
+      const result = await response.json();
+      if (result.action === 1) {
+        await fetchBookings();
+      }
+    } catch (error) {
+      console.error('Failed to reject booking:', error);
+    } finally {
+      setProcessingBookingId(null);
+    }
+  };
+
+  // Helper to get booking status
+  const getBookingStatus = (booking: APIBooking): string => {
+    return (booking.status || booking.bookingStatus || 'pending').toLowerCase();
+  };
+
+  // Helper to get client display name from booking
+  const getBookingClientName = (booking: APIBooking): string => {
+    return booking.clientName || booking.customerName || 'Unknown Client';
+  };
+
+  // Helper to get booking amount
+  const getBookingAmount = (booking: APIBooking): number => {
+    return booking.totalAmount || booking.amount || booking.price || 0;
+  };
+
+  // Filter bookings
+  const filteredBookings = bookings.filter(b => {
+    if (bookingsFilter === 'all') return true;
+    const status = getBookingStatus(b);
+    if (bookingsFilter === 'pending') return status === 'pending';
+    if (bookingsFilter === 'accepted') return status === 'accepted' || status === 'confirmed';
+    if (bookingsFilter === 'rejected') return status === 'rejected' || status === 'cancelled';
+    return true;
+  });
+
+  // Booking counts
+  const pendingCount = bookings.filter(b => getBookingStatus(b) === 'pending').length;
+  const acceptedCount = bookings.filter(b => ['accepted', 'confirmed'].includes(getBookingStatus(b))).length;
+  const rejectedCount = bookings.filter(b => ['rejected', 'cancelled'].includes(getBookingStatus(b))).length;
+
+  // Clients data - fetched from API
+  const [clientsLoading, setClientsLoading] = useState(true);
+  const [balance, setBalance] = useState<any>(null);
+
+  const fetchClients = useCallback(async () => {
+    try {
+      const apiUrl = getApiUrl();
+      const [clientsRes, convRes, favRes] = await Promise.allSettled([
+        dashboardAuthFetch(`${apiUrl}/api/remote/photographer/clients`),
+        dashboardAuthFetch(`${apiUrl}/api/remote/chat/conversations`),
+        dashboardAuthFetch(`${apiUrl}/api/remote/photographer/favorite-clients`),
+      ]);
+
+      let favoriteIds: string[] = [];
+      if (favRes.status === 'fulfilled' && favRes.value.ok) {
+        const favData = await favRes.value.json();
+        if (favData.action === 1 && favData.data) {
+          favoriteIds = favData.data.map((id: any) => String(id));
+        }
+      }
+
+      const normalizeImg = (url: string | undefined): string | undefined => normalizeImageUrl(url);
+      let clientsMapped: Client[] = [];
+
+      // Primary: use /photographer/clients (populated once backend deploys booking-based logic)
+      if (clientsRes.status === 'fulfilled' && clientsRes.value.ok) {
+        const data = await clientsRes.value.json().catch(() => null);
+        if (data?.data) {
+          const clientList = Array.isArray(data.data) ? data.data : data.data.content || [];
+          clientsMapped = clientList.map((c: any) => ({
+            id: c.id || '',
+            firstName: c.firstName || c.name?.split(' ')[0] || '',
+            lastName: c.lastName || c.name?.split(' ').slice(1).join(' ') || '',
+            email: c.email || '',
+            phone: c.phone || c.phoneNumber || '',
+            profileImage: normalizeImg(c.profilePicture || c.profileImage || undefined),
+            coverImage: normalizeImg(c.coverImage || undefined) || 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800',
+            location: {
+              city: c.city || c.location?.city || '',
+              country: c.country || c.location?.country || '',
+            },
+            totalBookings: c.totalBookings || 0,
+            totalSpent: c.totalSpent || 0,
+            joinDate: c.firstContactedAt || c.joinDate || c.createdAt || '',
+            lastActive: c.firstContactedAt || c.lastActive || c.lastSeen || '',
+            lastBookingDate: c.lastBookingDate || '',
+            lastEventType: c.lastEventType || '',
+            lastEventName: c.lastEventName || '',
+            status: c.status === 'inactive' ? 'inactive' : 'active' as Client['status'],
+            isFavorite: favoriteIds.includes(String(c.id)),
+            verified: c.verified || c.isVerified || false,
+            review: c.review || undefined,
+            bookings: c.bookings || [],
+            tipsAndBonuses: c.tipsAndBonuses || [],
+          }));
+        }
+      }
+
+      // Fallback: derive from chat conversations until backend deploys new /clients endpoint
+      if (clientsMapped.length === 0 && convRes.status === 'fulfilled' && convRes.value.ok) {
+        const convData = await convRes.value.json().catch(() => null);
+        const convList = convData?.data || convData || [];
+        if (Array.isArray(convList)) {
+          const currentId = user?.id || '';
+          clientsMapped = convList.map((conv: any) => {
+            const partner = conv.participants?.find((p: any) => p.id !== currentId) || {};
+            const pName = partner.name || conv.partnerName || conv.name || 'Client';
+            const nameParts = pName.split(' ');
+            return {
+              id: partner.id || conv.partnerId || conv.id || '',
+              firstName: nameParts[0] || '',
+              lastName: nameParts.slice(1).join(' ') || '',
+              email: '',
+              phone: '',
+              profileImage: normalizeImg(partner.image || conv.partnerImage || conv.image || undefined),
+              coverImage: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800',
+              location: { city: '', country: '' },
+              totalBookings: 0,
+              totalSpent: 0,
+              joinDate: '',
+              lastActive: conv.lastMessage?.createdAt || '',
+              lastBookingDate: '',
+              lastEventType: '',
+              lastEventName: '',
+              status: 'active' as Client['status'],
+              isFavorite: favoriteIds.includes(String(partner.id || conv.partnerId || conv.id)),
+              verified: false,
+              review: undefined,
+              bookings: [],
+              tipsAndBonuses: [],
+            };
+          });
+        }
+      }
+
+      setClients(clientsMapped);
+    } catch (err) {
+      console.error('Failed to fetch clients:', err);
+    } finally {
+      setClientsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchClients();
+    const fetchBalance = async () => {
+      try {
+        const apiUrl = getApiUrl();
+        const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/balance`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.action === 1 && data.data) setBalance(data.data);
+        }
+      } catch (err) { console.error('Failed to fetch balance:', err); }
+    };
+    fetchBalance();
+  }, [fetchClients]);
+
+  const [clients, setClients] = useState<Client[]>([]);
 
   const eventTypes = ['Wedding', 'Birthday', 'Corporate', 'Portrait', 'Fashion', 'Concert'];
 
-  const toggleFavorite = (id: string) => {
+  const toggleFavorite = async (id: string) => {
     setClients(prev => prev.map(c =>
       c.id === id ? { ...c, isFavorite: !c.isFavorite } : c
     ));
+    try {
+      const apiUrl = getApiUrl();
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/favorite-clients/${id}`, { method: 'POST' });
+      if (!res.ok) {
+        // Rollback on failure
+        setClients(prev => prev.map(c =>
+          c.id === id ? { ...c, isFavorite: !c.isFavorite } : c
+        ));
+      }
+    } catch {
+      setClients(prev => prev.map(c =>
+        c.id === id ? { ...c, isFavorite: !c.isFavorite } : c
+      ));
+    }
+  };
+
+  const deleteClient = async (id: string) => {
+    setDeleting(true);
+    try {
+      const apiUrl = getApiUrl();
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/clients/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setClients(prev => prev.filter(c => c.id !== id));
+        if (selectedClient?.id === id) setSelectedClient(null);
+        setDeleteConfirmClient(null);
+      }
+    } catch (err) {
+      console.error('Failed to delete client:', err);
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    if (!dateStr) return 'N/A';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return 'N/A';
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   const getPaymentStatusColor = (status: string) => {
@@ -625,30 +578,12 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
     }, 0);
   }, 0);
 
-  // Calculate total tips from all clients (tips are from viewers/clients)
-  const totalTips = 275; // Consistent tips amount across all pages
-
-  // Calculate total completed events for bonus calculation
-  const totalCompletedEvents = clients.reduce((sum, c) => {
-    return sum + c.bookings.filter(b => b.status === 'completed').length;
-  }, 0);
-
-  // Platform bonus: consistent amount across all pages
+  // Balance values from API
+  const totalTips = balance?.totalTips || 0;
+  const totalCompletedEvents = clients.reduce((sum, c) => sum + c.bookings.filter((b: any) => b.status === 'completed').length, 0);
   const bonusEligibleSets = Math.floor(totalCompletedEvents / 10);
-  const platformBonus = 725; // Consistent bonus amount across all pages
-
-  // Calculate total paid (unwithdrawn) amount from all bookings
-  const totalPaidAmount = clients.reduce((sum, c) => {
-    return sum + c.bookings.reduce((bookingSum, b) => {
-      if (b.paymentStatus === 'paid') {
-        return bookingSum + b.paidAmount;
-      }
-      return bookingSum;
-    }, 0);
-  }, 0);
-
-  // Total balance = consistent amount across all pages
-  const totalBalance = 4975; // Consistent balance amount across all pages
+  const platformBonus = balance?.totalBonuses || 0;
+  const totalBalance = balance?.availableBalance || 0;
 
   // Filter clients based on search query and active filter
   const filteredClients = clients.filter(client => {
@@ -821,6 +756,10 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
             padding-bottom: 7rem !important;
           }
         }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
       `}</style>
       <Sidebar />
 
@@ -831,7 +770,7 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
         flexDirection: 'column',
         overflow: 'hidden'
       }}>
-        <Topbar tipsAmount={totalTips} bonusAmount={platformBonus} balanceAmount={totalBalance} userRole={userType} />
+        <Topbar tipsAmount={totalTips} bonusAmount={platformBonus} balanceAmount={totalBalance} userRole="photographer" />
 
         <div className="mobile-main-content" style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
           {/* Header */}
@@ -855,7 +794,7 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                   style={{
                     appearance: 'none',
                     backgroundColor: colors.bgCard,
-                    border: `1px solid ${colors.borderPrimary}`,
+                    border: `2px solid ${colors.borderPrimary}`,
                     borderRadius: '0.5rem',
                     padding: '0.5rem 2rem 0.5rem 0.75rem',
                     fontSize: '0.9rem',
@@ -912,57 +851,108 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
             </div>
           </header>
 
+          {/* Page Tabs: Clients | Bookings */}
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+            {[
+              { key: 'clients' as PageTab, label: 'Clients', count: clients.length },
+              { key: 'bookings' as PageTab, label: 'Bookings', count: bookings.length, pendingCount },
+            ].map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setPageTab(tab.key)}
+                style={{
+                  padding: '0.625rem 1.25rem',
+                  border: pageTab === tab.key ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                  borderRadius: '0.5rem',
+                  backgroundColor: pageTab === tab.key ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
+                  color: pageTab === tab.key ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.textSecondary,
+                  fontSize: '0.9rem',
+                  fontWeight: pageTab === tab.key ? '600' : '500',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  transition: 'all 0.2s',
+                }}
+              >
+                {tab.label}
+                <span style={{
+                  backgroundColor: pageTab === tab.key ? 'rgba(8, 58, 133, 0.15)' : colors.bgTertiary,
+                  padding: '0.125rem 0.5rem',
+                  borderRadius: '9999px',
+                  fontSize: '0.8rem',
+                }}>
+                  {tab.count}
+                </span>
+                {tab.key === 'bookings' && pendingCount > 0 && (
+                  <span style={{
+                    backgroundColor: '#FEF3C7',
+                    color: '#B45309',
+                    padding: '0.125rem 0.5rem',
+                    borderRadius: '9999px',
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                  }}>
+                    {pendingCount} pending
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* Clients Tab Content */}
+          {pageTab === 'clients' && (<>
           {/* Stats Cards */}
           <div className="mobile-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-            <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
+            <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #083A85' }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Clients</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.brandPrimary }}>{clients.length}</div>
             </div>
-            <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
+            <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #3B82F6' }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Bookings</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.brandPrimary }}>
                 {clients.reduce((sum, c) => sum + c.totalBookings, 0)}
               </div>
             </div>
-            <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
+            <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #10B981' }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Earned</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.brandPrimary }}>
-                ${clients.reduce((sum, c) => sum + c.totalSpent, 0).toLocaleString()}
+                {formatPrice(clients.reduce((sum, c) => sum + c.totalSpent, 0))}
               </div>
             </div>
-            <div className="mobile-stats-card" style={{ backgroundColor: totalTips > 0 ? (actualTheme === 'dark' ? '#78350F' : '#FFFBEB') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: totalTips > 0 ? `1px solid ${actualTheme === 'dark' ? '#92400E' : '#FCD34D'}` : `1px solid ${colors.borderPrimary}` }}>
+            <div className="mobile-stats-card" style={{ backgroundColor: totalTips > 0 ? (actualTheme === 'dark' ? '#78350F' : '#FFFBEB') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', borderTop: totalTips > 0 ? `1px solid ${actualTheme === 'dark' ? '#92400E' : '#FCD34D'}` : `2px solid ${colors.borderPrimary}`, borderRight: totalTips > 0 ? `1px solid ${actualTheme === 'dark' ? '#92400E' : '#FCD34D'}` : `2px solid ${colors.borderPrimary}`, borderBottom: totalTips > 0 ? `1px solid ${actualTheme === 'dark' ? '#92400E' : '#FCD34D'}` : `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #F59E0B' }}>
               <div style={{ fontSize: '0.85rem', color: totalTips > 0 ? (actualTheme === 'dark' ? '#FCD34D' : '#92400E') : colors.textSecondary, marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 <GiftIcon />
                 Tips
               </div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: totalTips > 0 ? (actualTheme === 'dark' ? '#FCD34D' : '#F59E0B') : colors.textSecondary }}>
-                ${totalTips.toLocaleString()}
+                {formatPrice(totalTips)}
               </div>
               <div style={{ fontSize: '0.7rem', color: colors.textSecondary, marginTop: '0.25rem' }}>From clients</div>
             </div>
-            <div className="mobile-stats-card" style={{ backgroundColor: platformBonus > 0 ? (actualTheme === 'dark' ? '#14532D' : '#F0FDF4') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: platformBonus > 0 ? `1px solid ${actualTheme === 'dark' ? '#166534' : '#BBF7D0'}` : `1px solid ${colors.borderPrimary}` }}>
+            <div className="mobile-stats-card" style={{ backgroundColor: platformBonus > 0 ? (actualTheme === 'dark' ? '#14532D' : '#F0FDF4') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: platformBonus > 0 ? `1px solid ${actualTheme === 'dark' ? '#166534' : '#BBF7D0'}` : `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #16A34A' }}>
               <div style={{ fontSize: '0.85rem', color: platformBonus > 0 ? (actualTheme === 'dark' ? '#4ADE80' : '#166534') : colors.textSecondary, marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 <GiftIcon />
                 Bonus
               </div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: platformBonus > 0 ? (actualTheme === 'dark' ? '#4ADE80' : '#16A34A') : colors.textSecondary }}>
-                ${platformBonus.toLocaleString()}
+                {formatPrice(platformBonus)}
               </div>
               <div style={{ fontSize: '0.7rem', color: colors.textSecondary, marginTop: '0.25rem' }}>{totalCompletedEvents}/10 events ({bonusEligibleSets > 0 ? '10%' : '0%'})</div>
             </div>
-            <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
+            <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #F20C8F' }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Favorites</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#F20C8F' }}>
                 {clients.filter(c => c.isFavorite).length}
               </div>
             </div>
-            <div className="mobile-stats-card" style={{ backgroundColor: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#7F1D1D' : '#FEF2F2') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: totalPendingAmount > 0 ? `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}` : `1px solid ${colors.borderPrimary}` }}>
+            <div className="mobile-stats-card" style={{ backgroundColor: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#7F1D1D' : '#FEF2F2') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: totalPendingAmount > 0 ? `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}` : `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #DC2626' }}>
               <div style={{ fontSize: '0.85rem', color: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#FCA5A5' : '#B91C1C') : colors.textSecondary, marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 {totalPendingAmount > 0 && <AlertCircleIcon />}
                 Pending Payments
               </div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#FCA5A5' : '#DC2626') : colors.textSecondary }}>
-                ${totalPendingAmount.toLocaleString()}
+                {formatPrice(totalPendingAmount)}
               </div>
             </div>
           </div>
@@ -1025,7 +1015,7 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                 style={{
                   width: '100%',
                   padding: '0.75rem 1rem 0.75rem 2.75rem',
-                  border: `1px solid ${colors.borderPrimary}`,
+                  border: `2px solid ${colors.borderPrimary}`,
                   borderRadius: '0.5rem',
                   fontSize: '0.95rem',
                   fontWeight: '500',
@@ -1044,7 +1034,7 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                 gap: '0.5rem',
                 backgroundColor: showFilters ? '#083A85' : colors.bgCard,
                 color: showFilters ? 'white' : colors.textSecondary,
-                border: `1px solid ${colors.borderPrimary}`,
+                border: `2px solid ${colors.borderPrimary}`,
                 borderRadius: '0.5rem',
                 padding: '0.75rem 1rem',
                 fontSize: '0.9rem',
@@ -1064,8 +1054,12 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
           </div>
 
           {/* Clients Grid/List */}
-          {filteredClients.length === 0 ? (
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '3rem', textAlign: 'center', border: `1px solid ${colors.borderPrimary}` }}>
+          {clientsLoading ? (
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '3rem', textAlign: 'center', border: `2px solid ${colors.borderPrimary}` }}>
+              <div style={{ fontSize: '1rem', color: colors.textSecondary }}>Loading clients...</div>
+            </div>
+          ) : filteredClients.length === 0 ? (
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '3rem', textAlign: 'center', border: `2px solid ${colors.borderPrimary}` }}>
               <UserIcon />
               <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, marginTop: '1rem' }}>No clients found</h3>
               <p style={{ fontSize: '0.9rem', color: colors.textSecondary, marginTop: '0.5rem' }}>
@@ -1074,9 +1068,9 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
             </div>
           ) : viewMode === 'grid' ? (
             <div className="mobile-clients-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem' }}>
-              {filteredClients.map((client) => (
+              {filteredClients.map((client, idx) => (
                 <div
-                  key={client.id}
+                  key={`${client.id}-${idx}`}
                   className="mobile-client-card"
                   style={{
                     backgroundColor: colors.bgCard,
@@ -1103,25 +1097,14 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                 >
                   {/* Header Row - Profile Image, Name, Actions */}
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', marginBottom: '0.625rem' }}>
-                    <div style={{
-                      width: '50px',
-                      height: '50px',
-                      borderRadius: '50%',
-                      overflow: 'hidden',
-                      flexShrink: 0,
-                      position: 'relative'
-                    }}>
-                      <Image
-                        src={client.profileImage}
-                        alt={client.firstName}
-                        width={50}
-                        height={50}
-                        style={{
-                          objectFit: 'cover',
-                          width: '100%',
-                          height: '100%'
-                        }}
-                      />
+                    <div style={{ width: '50px', height: '50px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, position: 'relative', backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                      </svg>
+                      {client.profileImage && (
+                        <img src={client.profileImage} alt={client.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                      )}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
@@ -1164,32 +1147,53 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                         </span>
                       </div>
                     </div>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); toggleFavorite(client.id); }}
-                      style={{
-                        backgroundColor: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: '0.25rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                      title="Add to favorites"
-                    >
-                      <HeartIcon filled={client.isFavorite} />
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.25rem' }}>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleFavorite(client.id); }}
+                        style={{
+                          backgroundColor: 'transparent',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: '0.25rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                        title="Add to favorites"
+                      >
+                        <HeartIcon filled={client.isFavorite} />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setDeleteConfirmClient(client); }}
+                        style={{
+                          backgroundColor: 'transparent',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: '0.25rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#9CA3AF',
+                          transition: 'color 0.2s'
+                        }}
+                        title="Remove client"
+                        onMouseEnter={(e) => { e.currentTarget.style.color = '#EF4444'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.color = '#9CA3AF'; }}
+                      >
+                        <TrashIcon />
+                      </button>
+                    </div>
                   </div>
 
                   {/* Quick Stats Row */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', backgroundColor: colors.bgTertiary, borderRadius: '0.375rem', marginBottom: '0.5rem' }}>
                     <div>
-                      <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Last: {client.lastEventType}</div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>{formatDate(client.lastBookingDate)}</div>
+                      <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{client.lastEventType ? `Last: ${client.lastEventType}` : 'First Contact'}</div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>{formatDate(client.lastBookingDate || client.joinDate)}</div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Total Spent</div>
-                      <div style={{ fontSize: '1rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>${client.totalSpent.toLocaleString()}</div>
+                      <div style={{ fontSize: '1rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{formatPrice(client.totalSpent)}</div>
                     </div>
                   </div>
 
@@ -1270,7 +1274,7 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                                   </span>
                                 </div>
                                 <div style={{ fontSize: '0.9rem', fontWeight: '600', color: textColor }}>
-                                  {isPaid ? `$${booking.totalAmount}` : `$${amountDue} due`}
+                                  {isPaid ? formatPrice(booking.totalAmount) : `${formatPrice(amountDue)} due`}
                                 </div>
                               </div>
                             </div>
@@ -1305,7 +1309,7 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                         Message
                       </Link>
                       <Link
-                        href="/user/photographer/gallery"
+                        href="/user/photographer/events"
                         onClick={(e) => e.stopPropagation()}
                         style={{
                           flex: 1,
@@ -1334,7 +1338,7 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                       onClick={(e) => {
                         e.stopPropagation();
                         setTipsClient(client);
-                        setShowTipsDonatePromptModal(true);
+                        setShowTipsModal(true);
                       }}
                       style={{
                         width: '100%',
@@ -1356,7 +1360,7 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                     >
                       <GiftIcon />
                       Tips: {client.tipsAndBonuses.filter(t => t.type === 'tip').length > 0
-                        ? `$${client.tipsAndBonuses.filter(t => t.type === 'tip').reduce((sum, t) => sum + t.amount, 0)}`
+                        ? formatPrice(client.tipsAndBonuses.filter(t => t.type === 'tip').reduce((sum, t) => sum + t.amount, 0))
                         : 'None'
                       }
                     </button>
@@ -1366,9 +1370,9 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
           ) : (
             /* List View */
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {filteredClients.map((client) => (
+              {filteredClients.map((client, idx) => (
                 <div
-                  key={client.id}
+                  key={`${client.id}-${idx}`}
                   onClick={() => setSelectedClient(client)}
                   style={{
                     backgroundColor: colors.bgCard,
@@ -1394,21 +1398,14 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                   }}
                 >
                   {/* Avatar */}
-                  <div style={{
-                    width: '56px',
-                    height: '56px',
-                    borderRadius: '50%',
-                    overflow: 'hidden',
-                    flexShrink: 0,
-                    position: 'relative'
-                  }}>
-                    <Image
-                      src={client.profileImage}
-                      alt={client.firstName}
-                      width={56}
-                      height={56}
-                      style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                    />
+                  <div style={{ width: '56px', height: '56px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, position: 'relative', backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                    </svg>
+                    {client.profileImage && (
+                      <img src={client.profileImage} alt={client.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                    )}
                   </div>
 
                   {/* Name & Location */}
@@ -1445,7 +1442,7 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                       {client.lastEventName}
                     </p>
                     <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: 0 }}>
-                      {client.lastEventType} • {formatDate(client.lastBookingDate)}
+                      {client.lastEventType ? `${client.lastEventType} • ` : ''}{formatDate(client.lastBookingDate || client.joinDate)}
                     </p>
                   </div>
 
@@ -1459,7 +1456,7 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
 
                   <div style={{ flex: '0 0 100px', textAlign: 'center' }}>
                     <p style={{ fontSize: '1rem', fontWeight: '700', color: colors.textPrimary, margin: 0, marginBottom: '0.125rem' }}>
-                      ${client.totalSpent.toLocaleString()}
+                      {formatPrice(client.totalSpent)}
                     </p>
                     <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: 0 }}>Total Spent</p>
                   </div>
@@ -1552,7 +1549,7 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                       <i className="bi bi-chat-dots"></i>
                     </Link>
                     <Link
-                      href="/user/photographer/gallery"
+                      href="/user/photographer/events"
                       onClick={(e) => e.stopPropagation()}
                       style={{
                         padding: '0.375rem 0.625rem',
@@ -1571,6 +1568,25 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                     >
                       <i className="bi bi-image"></i>
                     </Link>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setDeleteConfirmClient(client); }}
+                      style={{
+                        padding: '0.375rem 0.625rem',
+                        borderRadius: '0.375rem',
+                        border: '2px solid #FCA5A5',
+                        backgroundColor: actualTheme === 'dark' ? '#7F1D1D' : '#FEF2F2',
+                        color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626',
+                        fontSize: '0.75rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      title="Remove client"
+                    >
+                      <TrashIcon />
+                    </button>
                   </div>
 
                   {/* Tips */}
@@ -1579,7 +1595,7 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                       onClick={(e) => {
                         e.stopPropagation();
                         setTipsClient(client);
-                        setShowTipsDonatePromptModal(true);
+                        setShowTipsModal(true);
                       }}
                       style={{
                         padding: '0.25rem 0.5rem',
@@ -1598,13 +1614,222 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                     >
                       <GiftIcon />
                       Tips: {client.tipsAndBonuses.filter(t => t.type === 'tip').length > 0
-                        ? `$${client.tipsAndBonuses.filter(t => t.type === 'tip').reduce((sum, t) => sum + t.amount, 0)}`
+                        ? formatPrice(client.tipsAndBonuses.filter(t => t.type === 'tip').reduce((sum, t) => sum + t.amount, 0))
                         : 'None'
                       }
                     </button>
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+          </>)}
+
+          {/* Bookings Tab Content */}
+          {pageTab === 'bookings' && (
+            <div>
+              {/* Bookings Filter Tabs */}
+              <div className="mobile-tabs" style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                {([
+                  { key: 'all' as BookingsFilter, label: 'All', count: bookings.length },
+                  { key: 'pending' as BookingsFilter, label: 'Pending', count: pendingCount },
+                  { key: 'accepted' as BookingsFilter, label: 'Accepted', count: acceptedCount },
+                  { key: 'rejected' as BookingsFilter, label: 'Rejected', count: rejectedCount },
+                ]).map(tab => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setBookingsFilter(tab.key)}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      border: bookingsFilter === tab.key ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                      borderRadius: '2rem',
+                      backgroundColor: bookingsFilter === tab.key ? '#083A85' : colors.bgCard,
+                      color: bookingsFilter === tab.key ? 'white' : colors.textSecondary,
+                      fontSize: '0.85rem',
+                      fontWeight: bookingsFilter === tab.key ? '600' : '500',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.375rem',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    {tab.label}
+                    <span style={{
+                      backgroundColor: bookingsFilter === tab.key ? 'rgba(255,255,255,0.2)' : colors.bgTertiary,
+                      padding: '0.125rem 0.5rem',
+                      borderRadius: '9999px',
+                      fontSize: '0.8rem',
+                    }}>
+                      {tab.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Bookings List */}
+              {bookingsLoading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {[1, 2, 3].map(i => (
+                    <div key={i} style={{
+                      backgroundColor: colors.bgCard,
+                      borderRadius: '0.75rem',
+                      padding: '1.25rem',
+                      border: `2px solid ${colors.borderPrimary}`,
+                      animation: 'pulse 1.5s ease-in-out infinite',
+                    }}>
+                      <div style={{ height: '1rem', width: '40%', backgroundColor: colors.bgTertiary, borderRadius: '0.25rem', marginBottom: '0.75rem' }} />
+                      <div style={{ height: '0.875rem', width: '60%', backgroundColor: colors.bgTertiary, borderRadius: '0.25rem', marginBottom: '0.5rem' }} />
+                      <div style={{ height: '0.875rem', width: '30%', backgroundColor: colors.bgTertiary, borderRadius: '0.25rem' }} />
+                    </div>
+                  ))}
+                </div>
+              ) : filteredBookings.length === 0 ? (
+                <div style={{
+                  backgroundColor: colors.bgCard,
+                  borderRadius: '0.75rem',
+                  padding: '3rem',
+                  textAlign: 'center',
+                  border: `2px solid ${colors.borderPrimary}`,
+                }}>
+                  <CalendarIcon />
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, marginTop: '1rem' }}>
+                    No bookings found
+                  </h3>
+                  <p style={{ fontSize: '0.9rem', color: colors.textSecondary, marginTop: '0.5rem' }}>
+                    {bookingsFilter === 'pending'
+                      ? 'No pending bookings to review.'
+                      : bookingsFilter === 'accepted'
+                      ? 'No accepted bookings yet.'
+                      : bookingsFilter === 'rejected'
+                      ? 'No rejected bookings.'
+                      : 'You don\'t have any bookings yet. They will appear here when clients book your services.'}
+                  </p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {filteredBookings.map(booking => {
+                    const status = getBookingStatus(booking);
+                    const isPending = status === 'pending';
+                    const isProcessing = processingBookingId === booking.id;
+                    const statusColors: Record<string, { bg: string; text: string }> = {
+                      pending: { bg: '#FEF3C7', text: '#B45309' },
+                      accepted: { bg: '#DCFCE7', text: '#15803D' },
+                      confirmed: { bg: '#DCFCE7', text: '#15803D' },
+                      rejected: { bg: '#FEE2E2', text: '#DC2626' },
+                      cancelled: { bg: '#FEE2E2', text: '#DC2626' },
+                    };
+                    const sc = statusColors[status] || { bg: '#F3F4F6', text: '#6B7280' };
+
+                    return (
+                      <div key={booking.id} style={{
+                        backgroundColor: colors.bgCard,
+                        borderRadius: '0.75rem',
+                        padding: '1.25rem',
+                        border: `1px solid ${isPending ? '#FCD34D' : colors.borderPrimary}`,
+                        transition: 'all 0.2s',
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                          <div>
+                            <h4 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
+                              {getBookingClientName(booking)}
+                            </h4>
+                            {(booking.eventType || booking.packageName) && (
+                              <p style={{ fontSize: '0.85rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
+                                {[booking.eventType, booking.packageName].filter(Boolean).join(' - ')}
+                              </p>
+                            )}
+                          </div>
+                          <span style={{
+                            backgroundColor: sc.bg,
+                            color: sc.text,
+                            padding: '0.25rem 0.75rem',
+                            borderRadius: '9999px',
+                            fontSize: '0.8rem',
+                            fontWeight: '600',
+                            textTransform: 'capitalize',
+                          }}>
+                            {status}
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.75rem' }}>
+                          {booking.eventDate && (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                              <CalendarIcon /> {new Date(booking.eventDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              {booking.eventTime && ` at ${booking.eventTime}`}
+                            </span>
+                          )}
+                          {(booking.location || booking.address) && (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                              <LocationIcon /> {booking.location || booking.address}
+                            </span>
+                          )}
+                          {getBookingAmount(booking) > 0 && (
+                            <span style={{ fontWeight: '600', color: colors.textPrimary }}>
+                              {formatPrice(getBookingAmount(booking))}
+                            </span>
+                          )}
+                        </div>
+
+                        {booking.notes && (
+                          <p style={{ fontSize: '0.85rem', color: colors.textTertiary, marginBottom: '0.75rem', fontStyle: 'italic' }}>
+                            &ldquo;{booking.notes}&rdquo;
+                          </p>
+                        )}
+
+                        {booking.createdAt && (
+                          <p style={{ fontSize: '0.75rem', color: colors.textTertiary, marginBottom: isPending ? '0.75rem' : 0 }}>
+                            Booked {new Date(booking.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </p>
+                        )}
+
+                        {isPending && (
+                          <div style={{ display: 'flex', gap: '0.75rem', paddingTop: '0.75rem', borderTop: `2px solid ${colors.borderPrimary}` }}>
+                            <button
+                              onClick={() => acceptBooking(booking.id)}
+                              disabled={isProcessing}
+                              style={{
+                                flex: 1,
+                                padding: '0.625rem 1rem',
+                                backgroundColor: isProcessing ? '#9CA3AF' : '#15803D',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '0.5rem',
+                                fontSize: '0.85rem',
+                                fontWeight: '600',
+                                cursor: isProcessing ? 'not-allowed' : 'pointer',
+                                transition: 'all 0.2s',
+                              }}
+                            >
+                              {isProcessing ? 'Processing...' : 'Accept'}
+                            </button>
+                            <button
+                              onClick={() => rejectBooking(booking.id)}
+                              disabled={isProcessing}
+                              style={{
+                                flex: 1,
+                                padding: '0.625rem 1rem',
+                                backgroundColor: 'transparent',
+                                color: '#DC2626',
+                                border: '2px solid #DC2626',
+                                borderRadius: '0.5rem',
+                                fontSize: '0.85rem',
+                                fontWeight: '600',
+                                cursor: isProcessing ? 'not-allowed' : 'pointer',
+                                transition: 'all 0.2s',
+                                opacity: isProcessing ? 0.5 : 1,
+                              }}
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -1621,21 +1846,14 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
           <div>
             {/* Client Header */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-              <div style={{
-                width: '80px',
-                height: '80px',
-                borderRadius: '50%',
-                overflow: 'hidden',
-                flexShrink: 0,
-                position: 'relative'
-              }}>
-                <Image
-                  src={selectedClient.profileImage}
-                  alt={selectedClient.firstName}
-                  width={80}
-                  height={80}
-                  style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                />
+              <div style={{ width: '80px', height: '80px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, position: 'relative', backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                </svg>
+                {selectedClient.profileImage && (
+                  <img src={selectedClient.profileImage} alt={selectedClient.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                )}
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -1685,15 +1903,15 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
               </div>
               <div style={{ backgroundColor: colors.bgTertiary, padding: '0.75rem', borderRadius: '0.5rem', textAlign: 'center' }}>
                 <p style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85', margin: 0, marginBottom: '0.25rem' }}>
-                  ${selectedClient.totalSpent.toLocaleString()}
+                  {formatPrice(selectedClient.totalSpent)}
                 </p>
                 <p style={{ fontSize: '0.75rem', color: colors.textSecondary, margin: 0 }}>Total Spent</p>
               </div>
               <div style={{ backgroundColor: colors.bgTertiary, padding: '0.75rem', borderRadius: '0.5rem', textAlign: 'center' }}>
                 <p style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, margin: 0, marginBottom: '0.25rem' }}>
-                  {formatDate(selectedClient.joinDate)}
+                  {formatDate(selectedClient.lastBookingDate || selectedClient.joinDate)}
                 </p>
-                <p style={{ fontSize: '0.75rem', color: colors.textSecondary, margin: 0 }}>Joined</p>
+                <p style={{ fontSize: '0.75rem', color: colors.textSecondary, margin: 0 }}>{selectedClient.lastBookingDate ? 'Last Booking' : 'First Contact'}</p>
               </div>
             </div>
 
@@ -1804,7 +2022,7 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                       </div>
                       <div style={{ textAlign: 'right' }}>
                         <p style={{ fontSize: '0.9rem', fontWeight: '600', color: textColor, margin: 0 }}>
-                          {isPaid ? `$${booking.totalAmount}` : `$${amountDue} due`}
+                          {isPaid ? formatPrice(booking.totalAmount) : `${formatPrice(amountDue)} due`}
                         </p>
                         <span style={{
                           backgroundColor: paymentColor.bg,
@@ -1850,7 +2068,7 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                 Send Message
               </Link>
               <Link
-                href="/user/photographer/gallery"
+                href="/user/photographer/events"
                 style={{
                   flex: 1,
                   padding: '0.75rem',
@@ -1873,6 +2091,31 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                 View Gallery
               </Link>
             </div>
+
+            {/* Delete Client */}
+            <button
+              onClick={() => setDeleteConfirmClient(selectedClient)}
+              style={{
+                width: '100%',
+                marginTop: '0.75rem',
+                padding: '0.75rem',
+                borderRadius: '0.5rem',
+                border: `2px solid ${actualTheme === 'dark' ? '#7F1D1D' : '#FCA5A5'}`,
+                backgroundColor: actualTheme === 'dark' ? '#450A0A' : '#FEF2F2',
+                color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626',
+                fontSize: '0.9rem',
+                fontWeight: '500',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem'
+              }}
+            >
+              <TrashIcon />
+              Remove Client
+            </button>
           </div>
         )}
       </Modal>
@@ -1899,21 +2142,14 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
               backgroundColor: colors.bgTertiary,
               borderRadius: '0.5rem'
             }}>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '50%',
-                overflow: 'hidden',
-                flexShrink: 0,
-                position: 'relative'
-              }}>
-                <Image
-                  src={tipsClient.profileImage}
-                  alt={tipsClient.firstName}
-                  width={48}
-                  height={48}
-                  style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                />
+              <div style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, position: 'relative', backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                </svg>
+                {tipsClient.profileImage && (
+                  <img src={tipsClient.profileImage} alt={tipsClient.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                )}
               </div>
               <div>
                 <div style={{ fontWeight: '600', color: colors.textPrimary, fontSize: '0.95rem' }}>
@@ -2004,7 +2240,7 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
                   textAlign: 'center',
                   backgroundColor: colors.bgTertiary,
                   borderRadius: '0.5rem',
-                  border: `1px solid ${colors.borderPrimary}`
+                  border: `2px solid ${colors.borderPrimary}`
                 }}>
                   <div style={{ color: '#9CA3AF', marginBottom: '0.5rem' }}>
                     <GiftIcon />
@@ -2042,22 +2278,94 @@ export default function Clients({ userType = 'photographer' }: ClientsProps) {
         )}
       </Modal>
 
-      {/* Tips Donate Prompt Modal - Shows before tips modal */}
-      <DonatePromptModal
-        isOpen={showTipsDonatePromptModal}
-        onClose={() => setShowTipsDonatePromptModal(false)}
-        onNo={() => {
-          setShowTipsDonatePromptModal(false);
-          setShowTipsModal(true);
-        }}
-        onYes={() => {
-          setShowTipsDonatePromptModal(false);
-          setShowTipsDonateModal(true);
-        }}
-      />
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={!!deleteConfirmClient}
+        onClose={() => { if (!deleting) setDeleteConfirmClient(null); }}
+        title="Remove Client"
+        maxWidth="420px"
+      >
+        {deleteConfirmClient && (
+          <div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              marginBottom: '1.25rem',
+              padding: '0.75rem',
+              backgroundColor: actualTheme === 'dark' ? '#450A0A' : '#FEF2F2',
+              borderRadius: '0.5rem',
+              border: `1px solid ${actualTheme === 'dark' ? '#7F1D1D' : '#FECACA'}`
+            }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, position: 'relative', backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                </svg>
+                {deleteConfirmClient.profileImage && (
+                  <img src={deleteConfirmClient.profileImage} alt={deleteConfirmClient.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                )}
+              </div>
+              <div>
+                <p style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
+                  {deleteConfirmClient.firstName} {deleteConfirmClient.lastName}
+                </p>
+                <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0.125rem 0 0' }}>
+                  {deleteConfirmClient.totalBookings} booking{deleteConfirmClient.totalBookings !== 1 ? 's' : ''}
+                </p>
+              </div>
+            </div>
 
-      {/* Tips Donate Modal */}
-      <DonateModal isOpen={showTipsDonateModal} onClose={() => setShowTipsDonateModal(false)} />
+            <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1.25rem', lineHeight: '1.5' }}>
+              Are you sure you want to remove this client from your list? This action cannot be undone.
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                onClick={() => setDeleteConfirmClient(null)}
+                disabled={deleting}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem',
+                  borderRadius: '0.5rem',
+                  border: `2px solid ${colors.borderSecondary}`,
+                  backgroundColor: colors.bgCard,
+                  color: colors.textPrimary,
+                  fontSize: '0.9rem',
+                  fontWeight: '500',
+                  cursor: deleting ? 'not-allowed' : 'pointer',
+                  opacity: deleting ? 0.5 : 1
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => deleteClient(deleteConfirmClient.id)}
+                disabled={deleting}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem',
+                  borderRadius: '0.5rem',
+                  border: '2px solid #B91C1C',
+                  backgroundColor: '#DC2626',
+                  color: 'white',
+                  fontSize: '0.9rem',
+                  fontWeight: '500',
+                  cursor: deleting ? 'not-allowed' : 'pointer',
+                  opacity: deleting ? 0.7 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                {deleting ? 'Removing...' : 'Remove'}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
     </div>
   );
 }

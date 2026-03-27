@@ -1,0 +1,143 @@
+import { NextRequest, NextResponse } from 'next/server';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL as string;
+
+type RouteContext = {
+  params: Promise<{ path: string[] }>;
+};
+
+export async function GET(request: NextRequest, context: RouteContext) {
+  const { path } = await context.params;
+  return proxyRequest(request, path, 'GET');
+}
+
+export async function POST(request: NextRequest, context: RouteContext) {
+  const { path } = await context.params;
+  return proxyRequest(request, path, 'POST');
+}
+
+export async function PUT(request: NextRequest, context: RouteContext) {
+  const { path } = await context.params;
+  return proxyRequest(request, path, 'PUT');
+}
+
+export async function PATCH(request: NextRequest, context: RouteContext) {
+  const { path } = await context.params;
+  return proxyRequest(request, path, 'PATCH');
+}
+
+export async function DELETE(request: NextRequest, context: RouteContext) {
+  const { path } = await context.params;
+  return proxyRequest(request, path, 'DELETE');
+}
+
+async function proxyRequest(
+  request: NextRequest,
+  pathSegments: string[],
+  method: string
+) {
+  try {
+    const path = pathSegments.join('/');
+    const baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL : `${API_BASE_URL}/`;
+    const url = new URL(path, baseUrl);
+
+    // Forward query params
+    request.nextUrl.searchParams.forEach((value, key) => {
+      url.searchParams.append(key, value);
+    });
+
+    // Build headers (forward relevant ones)
+    const headers: HeadersInit = {};
+
+    // Forward authorization header if present
+    const authHeader = request.headers.get('authorization');
+    if (authHeader) {
+      headers['Authorization'] = authHeader;
+    }
+
+    // Forward api-token header if present
+    const apiToken = request.headers.get('api-token');
+    if (apiToken) {
+      headers['api-token'] = apiToken;
+    }
+
+    // Build fetch options
+    const fetchOptions: RequestInit = {
+      method,
+      headers,
+    };
+
+    // Add body for non-GET requests, preserving the original Content-Type
+    if (method !== 'GET' && method !== 'DELETE') {
+      const bodyContentType = request.headers.get('content-type') || '';
+      if (bodyContentType.includes('application/json')) {
+        // JSON body — parse and re-serialize
+        try {
+          const body = await request.json();
+          fetchOptions.body = JSON.stringify(body);
+          headers['Content-Type'] = 'application/json';
+        } catch {
+          // No JSON body - continue without body
+        }
+      } else if (bodyContentType) {
+        // FormData, URLEncoded, binary — forward raw bytes with original Content-Type
+        // This handles POST /chat/send (FormData) and other multipart requests
+        const rawBody = await request.arrayBuffer();
+        if (rawBody.byteLength > 0) {
+          fetchOptions.body = rawBody;
+          headers['Content-Type'] = bodyContentType;
+        }
+      }
+    }
+
+    // Make the request to the actual API
+    const response = await fetch(url.toString(), fetchOptions);
+
+    const corsHeaders = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, api-token',
+    };
+
+    // Check if the response is an image or binary content
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.startsWith('image/') || contentType.startsWith('application/octet-stream')) {
+      const buffer = await response.arrayBuffer();
+      return new NextResponse(buffer, {
+        status: response.status,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': contentType,
+          'Cache-Control': 'public, max-age=86400',
+        },
+      });
+    }
+
+    // Get response data as JSON
+    const data = await response.json().catch(() => ({}));
+
+    // Return the response
+    return NextResponse.json(data, {
+      status: response.status,
+      headers: corsHeaders,
+    });
+  } catch (error) {
+    console.error('Proxy error:', error);
+    return NextResponse.json(
+      { error: 'Proxy request failed', message: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
+  }
+}
+
+// Handle CORS preflight
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, api-token',
+    },
+  });
+}

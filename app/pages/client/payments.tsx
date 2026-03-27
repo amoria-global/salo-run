@@ -1,13 +1,19 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
+import { useCurrency } from '../../context/CurrencyContext';
 import { useUserProfile } from '../../context/UserProfileContext';
-import DonateModal, { DonateButton, DonatePromptModal } from '../../components/DonateModal';
+import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
+import { HeartIcon } from '../../components/UnlockModal';
+import WithdrawModal from '../../components/WithdrawModal';
+import { initiateBookingPayment, pollPaymentStatus, getTelecomProvider, getPaymentMethodType, sanitizeErrorMessage, releaseEscrowFunds, isSurveyCompleted } from '@/lib/xentripay';
+import { getApiUrl } from '@/lib/api';
+import SatisfactionSurveyModal from '../../components/SatisfactionSurveyModal';
 
 // Icons
 const DownloadIcon = () => (
@@ -161,20 +167,21 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
 interface ViewReportModalProps {
   isOpen: boolean;
   onClose: () => void;
+  reportData: {
+    period: string;
+    totalPaid: number;
+    pending: number;
+    failed: number;
+    totalTransactions: number;
+    completedTransactions: number;
+    pendingTransactions: number;
+    failedTransactions: number;
+  };
 }
 
-const ViewReportModal: React.FC<ViewReportModalProps> = ({ isOpen, onClose }) => {
+const ViewReportModal: React.FC<ViewReportModalProps> = ({ isOpen, onClose, reportData }) => {
   const { colors, actualTheme } = useTheme();
-  const reportData = {
-    period: '13 - 18 July 2025',
-    totalPaid: 1200.13,
-    pending: 350.13,
-    failed: 200.00,
-    totalTransactions: 45,
-    completedTransactions: 32,
-    pendingTransactions: 8,
-    failedTransactions: 5,
-  };
+  const { formatPrice } = useCurrency();
 
   const handlePrint = () => {
     window.print();
@@ -187,10 +194,10 @@ Period: ${reportData.period}
 Generated: ${new Date().toLocaleDateString()}
 
 Financial Summary:
-- Total Paid: $${reportData.totalPaid.toFixed(2)}
-- Pending Amount: $${reportData.pending.toFixed(2)}
-- Failed: $${reportData.failed.toFixed(2)}
-- Total: $${(reportData.totalPaid + reportData.pending + reportData.failed).toFixed(2)}
+- Total Paid: ${formatPrice(reportData.totalPaid)}
+- Pending Amount: ${formatPrice(reportData.pending)}
+- Failed: ${formatPrice(reportData.failed)}
+- Total: ${formatPrice(reportData.totalPaid + reportData.pending + reportData.failed)}
 
 Transaction Summary:
 - Total Transactions: ${reportData.totalTransactions}
@@ -225,25 +232,25 @@ Transaction Summary:
                   <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981' }} />
                   <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Paid</span>
                 </div>
-                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>${reportData.totalPaid.toFixed(2)}</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(reportData.totalPaid)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                   <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#FBBF24' }} />
                   <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Pending</span>
                 </div>
-                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>${reportData.pending.toFixed(2)}</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(reportData.pending)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                   <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#EF4444' }} />
                   <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Failed</span>
                 </div>
-                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>${reportData.failed.toFixed(2)}</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(reportData.failed)}</span>
               </div>
-              <div style={{ borderTop: `1px solid ${colors.borderPrimary}`, marginTop: '0.35rem', paddingTop: '0.35rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, marginTop: '0.35rem', paddingTop: '0.35rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.75rem', fontWeight: '500', color: colors.textSecondary }}>Total</span>
-                <span style={{ fontSize: '0.95rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>${(reportData.totalPaid + reportData.pending + reportData.failed).toFixed(2)}</span>
+                <span style={{ fontSize: '0.95rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{formatPrice(reportData.totalPaid + reportData.pending + reportData.failed)}</span>
               </div>
             </div>
           </div>
@@ -320,6 +327,8 @@ type PaymentStatus = 'paid' | 'pending' | 'failed' | 'refunded' | 'partially_pai
 
 interface Payment {
   id: number;
+  declarationId: string;
+  eventId?: string;
   date: string;
   eventName: string;
   eventType: string;
@@ -331,6 +340,11 @@ interface Payment {
   paidAmount: number;
   status: PaymentStatus;
   invoiceNumber: string;
+  escrowStatus?: string;
+  escrowPercentage?: number;
+  heldAmount?: number;
+  releasedAmount?: number;
+  eventCompletionStatus?: string;
 }
 
 interface PaymentDetailsModalProps {
@@ -341,6 +355,7 @@ interface PaymentDetailsModalProps {
 
 const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({ isOpen, onClose, payment }) => {
   const { colors } = useTheme();
+  const { formatPrice } = useCurrency();
   if (!payment) return null;
 
   const handlePrintReceipt = () => {
@@ -361,7 +376,7 @@ Event: ${payment.eventName}
 Photographer: ${payment.photographerName}
 Payment Method: ${payment.method}
 
-Amount: ${payment.amount}
+Amount: ${formatPrice(payment.amountNum)}
 
 =====================================
     Thank you for using Connekt
@@ -419,15 +434,21 @@ Amount: ${payment.amount}
           {payment.status.replace('_', ' ')}
         </span>
         <span style={{ fontSize: '1.75rem', fontWeight: '700', color: colors.textPrimary, marginTop: '0.5rem' }}>
-          {payment.amount}
+          {formatPrice(payment.amountNum)}
         </span>
       </div>
 
       {/* Payment Info */}
       <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '1rem', marginBottom: '1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: `1px solid ${colors.borderPrimary}` }}>
-          <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
-            <Image src={payment.photographerImage} alt={payment.photographerName} width={40} height={40} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: `2px solid ${colors.borderPrimary}` }}>
+          <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+            </svg>
+            {payment.photographerImage && (
+              <img src={payment.photographerImage} alt={payment.photographerName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+            )}
           </div>
           <div>
             <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>{payment.photographerName}</div>
@@ -516,119 +537,541 @@ interface PayNowModalProps {
   payment: Payment | null;
 }
 
+const PAYMENT_METHODS: Record<string, { label: string; image: string }> = {
+  card: { label: 'Credit/Debit Card', image: '/cards.png' },
+  mtn: { label: 'MTN Mobile Money', image: '/mtn.png' },
+  airtel: { label: 'Airtel Mobile Money', image: '/airtel.png' },
+};
+
 const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) => {
   const { colors, actualTheme } = useTheme();
+  const { formatPrice, currencyId } = useCurrency();
   const router = useRouter();
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('card');
+  const [donationAmount, setDonationAmount] = useState<string>('');
+  const [customDonation, setCustomDonation] = useState<string>('');
+  const [donationSkipped, setDonationSkipped] = useState<boolean>(false);
+  const [showCustomInput, setShowCustomInput] = useState<boolean>(false);
+  const [showReceipt, setShowReceipt] = useState<boolean>(false);
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+
+  // Escrow states — auto-skip if already set at booking time
+  const [escrowStep, setEscrowStep] = useState<'options' | 'method'>('options');
+  const [selectedEscrowOption, setSelectedEscrowOption] = useState<number | null>(null);
+  const [surveyCompleted, setSurveyCompleted] = useState<boolean>(false);
+  const [checkingSurvey, setCheckingSurvey] = useState<boolean>(false);
+  const [showSurveyModal, setShowSurveyModal] = useState<boolean>(false);
+
+  // Sync escrow state when modal opens or payment changes
+  useEffect(() => {
+    if (isOpen && payment) {
+      if (payment.escrowPercentage) {
+        setEscrowStep('method');
+        setSelectedEscrowOption(payment.escrowPercentage);
+      } else {
+        setEscrowStep('options');
+        setSelectedEscrowOption(null);
+      }
+    }
+  }, [isOpen, payment]);
+
+  // XentriPay states
+  const [paymentPhone, setPaymentPhone] = useState<string>('');
+  const [xentriPayStep, setXentriPayStep] = useState<'select' | 'processing' | 'success' | 'failed'>('select');
+  const [xentriPayError, setXentriPayError] = useState<string>('');
+  const stopPollingRef = React.useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const apiUrl = getApiUrl();
+    dashboardAuthFetch(`${apiUrl}/api/remote/customer/preferences`)
+      .then(res => res.json())
+      .then(result => {
+        const prefs = result?.data || {};
+        const defaultId = prefs.default_payment_method as string | undefined;
+        if (!defaultId) return;
+        const raw = prefs[`payment_method_${defaultId}`];
+        if (!raw) return;
+        const pm = JSON.parse(raw);
+        const isAirtel = (pm.name as string)?.toLowerCase().includes('airtel');
+        const methodKey = pm.type === 'card' ? 'card' : isAirtel ? 'airtel' : 'mtn';
+        setSelectedPaymentMethod(methodKey);
+      })
+      .catch(() => { /* keep default 'card' */ });
+  }, [isOpen]);
 
   if (!payment) return null;
 
-  const amountDue = payment.amountNum - payment.paidAmount;
+  // Survey modal for 100% payment option
+  if (showSurveyModal && payment.eventId) {
+    return (
+      <SatisfactionSurveyModal
+        isOpen={isOpen}
+        onClose={() => setShowSurveyModal(false)}
+        eventId={payment.eventId}
+        eventName={payment.eventName}
+        photographerName={payment.photographerName}
+        onSurveyComplete={(disputeFlagged) => {
+          setSurveyCompleted(true);
+          setShowSurveyModal(false);
+          if (!disputeFlagged) {
+            setEscrowStep('method');
+          }
+        }}
+      />
+    );
+  }
 
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} title={payment.status === 'failed' ? 'Retry Payment' : 'Complete Payment'} maxWidth="450px">
-      <div>
-        {/* Amount Summary */}
-        <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '1rem', marginBottom: '1.25rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-            <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Event</span>
-            <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>{payment.eventName}</span>
+  // For escrow payments, the amount due is the remaining balance.
+  // When payment.escrowPercentage is already set, declaration amount IS the milestone amount — don't re-apply %.
+  const fullAmountDue = payment.amountNum - payment.paidAmount;
+  const amountDue = (selectedEscrowOption && selectedEscrowOption < 100 && !payment.escrowPercentage)
+    ? fullAmountDue * selectedEscrowOption / 100
+    : fullAmountDue;
+  const donationValue = donationAmount === 'custom' ? (parseFloat(customDonation) || 0) : (parseFloat(donationAmount) || 0);
+  const totalAmount = amountDue + donationValue;
+  const donationAddressed = donationSkipped || donationValue > 0;
+  const phoneValid = selectedPaymentMethod === 'card' || paymentPhone.trim().length > 0;
+  const isPayEnabled = donationAddressed && phoneValid;
+
+  const handleSelectDonation = (amount: string) => {
+    setDonationSkipped(false);
+    if (amount === 'custom') {
+      setDonationAmount('custom');
+      setShowCustomInput(true);
+    } else {
+      setDonationAmount(amount);
+      setShowCustomInput(false);
+      setCustomDonation('');
+    }
+  };
+
+  const handleSkipDonation = () => {
+    setDonationSkipped(true);
+    setDonationAmount('');
+    setCustomDonation('');
+    setShowCustomInput(false);
+  };
+
+  const handleClose = () => {
+    if (stopPollingRef.current) {
+      stopPollingRef.current();
+      stopPollingRef.current = null;
+    }
+    setShowReceipt(false);
+    setXentriPayStep('select');
+    setXentriPayError('');
+    setPaymentPhone('');
+    setSurveyCompleted(false);
+    setShowSurveyModal(false);
+    onClose();
+  };
+
+  const handlePayNowXentriPay = async () => {
+    if (!payment?.declarationId) {
+      setXentriPayError('This payment cannot be processed. The event may have been removed or the booking is no longer active.');
+      return;
+    }
+    if (!paymentPhone.trim()) {
+      setXentriPayError(`Please enter your ${selectedPaymentMethod === 'mtn' ? 'MTN' : selectedPaymentMethod === 'airtel' ? 'Airtel' : ''} phone number to receive the payment prompt.`);
+      return;
+    }
+    setIsProcessing(true);
+    setXentriPayError('');
+    setXentriPayStep('processing');
+
+    try {
+      const telecom = getTelecomProvider(selectedPaymentMethod);
+      const methodType = getPaymentMethodType(selectedPaymentMethod);
+      const phone = paymentPhone.trim();
+      // Use production URL for http (localhost), keep current URL for https (production)
+      const currentUrl = window.location.href;
+      const redirectUrl = selectedPaymentMethod === 'card'
+        ? (currentUrl.startsWith('http://') ? 'https://connekyt.com/user/client/payments' : currentUrl)
+        : undefined;
+
+      const escrowPct = (!payment.escrowPercentage && (selectedEscrowOption === 50 || selectedEscrowOption === 70)) ? selectedEscrowOption : undefined;
+      const result = await initiateBookingPayment(payment.declarationId, phone, telecom, methodType, redirectUrl, donationValue > 0 ? donationValue : undefined, currencyId, escrowPct);
+
+      if (!result.success || !result.data) {
+        setXentriPayError(result.error || 'Payment could not be initiated. Please check your payment details and try again.');
+        setXentriPayStep('failed');
+        setIsProcessing(false);
+        return;
+      }
+
+      if (selectedPaymentMethod === 'card' && result.data.paymentUrl) {
+        window.open(result.data.paymentUrl, '_blank');
+      }
+
+      const stopPolling = pollPaymentStatus(result.data.refid, {
+        onSuccess: () => { setXentriPayStep('success'); setIsProcessing(false); },
+        onFailure: () => { setXentriPayStep('failed'); setXentriPayError('Payment was not completed. If you were charged, the amount will be refunded automatically. Please try again.'); setIsProcessing(false); },
+        onError: (error) => { setXentriPayStep('failed'); setXentriPayError(sanitizeErrorMessage(error, 'Unable to check payment status. Please try again.')); setIsProcessing(false); },
+      });
+      stopPollingRef.current = stopPolling;
+    } catch (error) {
+      setXentriPayError(sanitizeErrorMessage(error instanceof Error ? error.message : '', 'Something went wrong while processing your payment. Please check your connection and try again.'));
+      setXentriPayStep('failed');
+      setIsProcessing(false);
+    }
+  };
+
+  const handleRetryPayment = () => {
+    setXentriPayStep('select');
+    setXentriPayError('');
+    setShowReceipt(false);
+    setIsProcessing(false);
+  };
+
+  // Check survey status when 100% option is selected
+  const handleSelectEscrowOption = async (option: number) => {
+    setSelectedEscrowOption(option);
+    if (option === 100 && payment?.eventId) {
+      setCheckingSurvey(true);
+      const result = await isSurveyCompleted(payment.eventId);
+      setSurveyCompleted(result.completed);
+      setCheckingSurvey(false);
+    }
+  };
+
+  const isEventCompleted = payment?.eventCompletionStatus === 'COMPLETED';
+  const escrowAmountDue = selectedEscrowOption && selectedEscrowOption < 100
+    ? (payment?.amountNum || 0) * selectedEscrowOption / 100
+    : (payment?.amountNum || 0);
+
+  // XentriPay Processing View
+  if (xentriPayStep === 'processing') {
+    return (
+      <Modal isOpen={isOpen} onClose={handleClose} title="Processing Payment" maxWidth="450px">
+        <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+          <div style={{ width: '64px', height: '64px', margin: '0 auto 1.5rem', border: '4px solid rgba(8, 58, 133, 0.2)', borderTopColor: '#083A85', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          <h4 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>
+            {selectedPaymentMethod === 'card' ? 'Complete payment in your browser' : 'Check your phone'}
+          </h4>
+          <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1rem', lineHeight: '1.5' }}>
+            {selectedPaymentMethod === 'card'
+              ? 'A payment page has been opened. Complete the payment there and we\'ll confirm it here.'
+              : 'A USSD prompt has been sent to your phone. Please approve the payment on your device.'}
+          </p>
+          <p style={{ fontSize: '0.8rem', color: colors.textSecondary }}>This may take a few moments...</p>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      </Modal>
+    );
+  }
+
+  // XentriPay Success View
+  if (xentriPayStep === 'success') {
+    return (
+      <Modal isOpen={isOpen} onClose={handleClose} title="Payment Successful" maxWidth="450px">
+        <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+          <div style={{ width: '64px', height: '64px', margin: '0 auto 1.5rem', borderRadius: '50%', backgroundColor: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17L4 12" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-            <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Photographer</span>
-            <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>{payment.photographerName}</span>
+          <h4 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>Payment Completed!</h4>
+          <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1.5rem' }}>Your payment of {formatPrice(totalAmount)} has been received successfully.</p>
+          <button onClick={() => { handleClose(); window.location.reload(); }} style={{ padding: '0.75rem 2rem', border: '2px solid #062a63', borderRadius: '0.5rem', background: '#083A85', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Done</button>
+        </div>
+      </Modal>
+    );
+  }
+
+  // XentriPay Failed View
+  if (xentriPayStep === 'failed') {
+    return (
+      <Modal isOpen={isOpen} onClose={handleClose} title="Payment Failed" maxWidth="450px">
+        <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+          <div style={{ width: '64px', height: '64px', margin: '0 auto 1.5rem', borderRadius: '50%', backgroundColor: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: `1px solid ${colors.borderPrimary}` }}>
-            <span style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>Amount Due</span>
-            <span style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
-              ${amountDue.toLocaleString()}
-            </span>
+          <h4 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>Payment Failed</h4>
+          <p style={{ fontSize: '0.9rem', color: '#EF4444', margin: '0 0 1.5rem' }}>{xentriPayError || 'Something went wrong. Please try again.'}</p>
+          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+            <button onClick={handleClose} style={{ padding: '0.75rem 1.5rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Close</button>
+            <button onClick={handleRetryPayment} style={{ padding: '0.75rem 1.5rem', border: '2px solid #c00a72', borderRadius: '0.5rem', background: '#F20C8F', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Try Again</button>
           </div>
         </div>
+      </Modal>
+    );
+  }
 
+  // Escrow Options View — choose payment percentage
+  if (escrowStep === 'options' && xentriPayStep === 'select' && !showReceipt) {
+    const fullAmountDue = payment.amountNum - payment.paidAmount;
+    const options = [
+      { pct: 50, label: '50% Now', amount: fullAmountDue * 0.5, desc: 'Held securely until service confirmed. Pay the rest later.' },
+      { pct: 70, label: '70% Now', amount: fullAmountDue * 0.70, desc: 'Held securely until service confirmed. Pay the rest later.' },
+      { pct: 100, label: '100% After Completion', amount: fullAmountDue, desc: 'Pay the full amount after the photographer completes the job.' },
+    ];
+
+    return (
+      <Modal isOpen={isOpen} onClose={handleClose} title="Choose Payment Option" maxWidth="450px">
+        <div>
+          <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1rem', lineHeight: '1.5' }}>
+            How would you like to pay for <strong>{payment.eventName}</strong>?
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.25rem' }}>
+            {options.map((opt) => {
+              const isSelected = selectedEscrowOption === opt.pct;
+              const isDisabled = opt.pct === 100 && !isEventCompleted;
+
+              return (
+                <div
+                  key={opt.pct}
+                  onClick={() => !isDisabled && handleSelectEscrowOption(opt.pct)}
+                  style={{
+                    display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '1rem',
+                    border: isSelected ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                    borderRadius: '0.75rem',
+                    cursor: isDisabled ? 'not-allowed' : 'pointer',
+                    opacity: isDisabled ? 0.5 : 1,
+                    backgroundColor: isSelected
+                      ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF')
+                      : colors.bgCard,
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  <div style={{
+                    width: '20px', height: '20px', borderRadius: '50%', flexShrink: 0, marginTop: '2px',
+                    border: isSelected ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                    backgroundColor: colors.bgCard,
+                  }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                      <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>{opt.label}</span>
+                      <span style={{ fontSize: '0.95rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
+                        {formatPrice(opt.amount)}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '0.82rem', color: colors.textSecondary, margin: 0, lineHeight: '1.4' }}>
+                      {opt.desc}
+                    </p>
+                    {opt.pct < 100 && (
+                      <div style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
+                        marginTop: '0.5rem', padding: '0.2rem 0.5rem',
+                        backgroundColor: actualTheme === 'dark' ? 'rgba(251, 191, 36, 0.15)' : 'rgba(251, 191, 36, 0.1)',
+                        borderRadius: '0.375rem', fontSize: '0.75rem', color: '#D97706', fontWeight: '500',
+                      }}>
+                        Escrow protected
+                      </div>
+                    )}
+                    {opt.pct === 100 && !isEventCompleted && (
+                      <p style={{ fontSize: '0.78rem', color: '#EF4444', margin: '0.375rem 0 0', fontWeight: '500' }}>
+                        Available after event is completed
+                      </p>
+                    )}
+                    {opt.pct === 100 && isEventCompleted && (
+                      <div style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
+                        marginTop: '0.5rem', padding: '0.2rem 0.5rem',
+                        backgroundColor: actualTheme === 'dark' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.1)',
+                        borderRadius: '0.375rem', fontSize: '0.75rem', color: '#059669', fontWeight: '500',
+                      }}>
+                        Requires satisfaction survey
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {selectedEscrowOption === 100 && isEventCompleted && !surveyCompleted && !checkingSurvey && (
+            <p style={{ fontSize: '0.85rem', color: '#D97706', margin: '0 0 0.75rem', textAlign: 'center', lineHeight: '1.4' }}>
+              You need to complete a satisfaction survey before making the full payment. The survey will appear in the next step.
+            </p>
+          )}
+
+          {checkingSurvey && (
+            <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0 0 0.75rem', textAlign: 'center' }}>
+              Checking survey status...
+            </p>
+          )}
+
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <button onClick={handleClose} style={{
+              flex: 1, padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem',
+              background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer',
+            }}>Cancel</button>
+            <button
+              disabled={selectedEscrowOption === null || checkingSurvey || (selectedEscrowOption === 100 && !isEventCompleted)}
+              onClick={() => {
+                if (selectedEscrowOption === 100 && isEventCompleted && !surveyCompleted) {
+                  setShowSurveyModal(true);
+                } else {
+                  setEscrowStep('method');
+                }
+              }}
+              style={{
+                flex: 1, padding: '0.75rem 1rem',
+                border: '2px solid #062a63', borderRadius: '0.5rem',
+                background: (selectedEscrowOption === null || checkingSurvey || (selectedEscrowOption === 100 && !isEventCompleted)) ? '#9CA3AF' : '#083A85',
+                color: 'white', fontSize: '0.9rem', fontWeight: '600',
+                cursor: (selectedEscrowOption === null || checkingSurvey || (selectedEscrowOption === 100 && !isEventCompleted)) ? 'not-allowed' : 'pointer',
+                opacity: (selectedEscrowOption === null || checkingSurvey || (selectedEscrowOption === 100 && !isEventCompleted)) ? 0.7 : 1,
+                transition: 'all 0.2s',
+              }}
+            >
+              {selectedEscrowOption === 100 && isEventCompleted && !surveyCompleted
+                ? 'Complete Survey First'
+                : 'Continue'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
+
+  // Receipt View (Phase 2)
+  if (showReceipt) {
+    const methodInfo = PAYMENT_METHODS[selectedPaymentMethod] || PAYMENT_METHODS.card;
+
+    return (
+      <Modal isOpen={isOpen} onClose={handleClose} title="Payment Summary" maxWidth="450px">
+        <div>
+          <div style={{
+            backgroundColor: colors.bgTertiary, borderRadius: '0.75rem', padding: '1.25rem',
+            marginBottom: '1.25rem', border: `2px solid ${colors.borderPrimary}`
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+              <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Event</span>
+              <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, textAlign: 'right', maxWidth: '60%' }}>{payment.eventName}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+              <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Photographer</span>
+              <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{payment.photographerName}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+              <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Date</span>
+              <span style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>{payment.date}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+              <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Invoice</span>
+              <span style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>{payment.invoiceNumber}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+              <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Payment Method</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ width: '24px', height: '24px', borderRadius: '0.25rem', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1px' }}>
+                  {selectedPaymentMethod === 'card' ? (
+                    <>
+                      <Image src="/visa.png" alt="Visa" width={14} height={20} unoptimized style={{ objectFit: 'contain' }} />
+                      <Image src="/master.png" alt="Mastercard" width={14} height={20} unoptimized style={{ objectFit: 'contain' }} />
+                    </>
+                  ) : (
+                    <Image src={methodInfo.image} alt={methodInfo.label} width={24} height={24} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                  )}
+                </div>
+                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{methodInfo.label}</span>
+              </div>
+            </div>
+            <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, margin: '0.75rem 0' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+              <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>
+                {selectedEscrowOption && selectedEscrowOption < 100 ? `Amount (${selectedEscrowOption}% Escrow)` : 'Amount Due'}
+              </span>
+              <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(amountDue)}</span>
+            </div>
+            {selectedEscrowOption && selectedEscrowOption < 100 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: '500', color: '#D97706' }}>Remaining ({100 - selectedEscrowOption}%)</span>
+                <span style={{ fontSize: '0.82rem', fontWeight: '500', color: '#D97706' }}>{formatPrice(fullAmountDue - amountDue)} (later)</span>
+              </div>
+            )}
+            {donationValue > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                  <HeartIcon />
+                  <span style={{ fontSize: '0.9rem', fontWeight: '500', color: '#F20C8F' }}>Donation</span>
+                </div>
+                <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#F20C8F' }}>{formatPrice(donationValue)}</span>
+              </div>
+            )}
+            <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, margin: '0.75rem 0' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '1.05rem', fontWeight: '700', color: colors.textPrimary }}>Total</span>
+              <span style={{ fontSize: '1.3rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
+                {formatPrice(totalAmount)}
+              </span>
+            </div>
+          </div>
+
+          {xentriPayError && (
+            <p style={{ fontSize: '0.85rem', color: '#EF4444', margin: '0 0 0.75rem', textAlign: 'center' }}>{xentriPayError}</p>
+          )}
+
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <button onClick={() => { setShowReceipt(false); setXentriPayError(''); }} disabled={isProcessing} style={{
+              flex: 1, padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem',
+              background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600',
+              cursor: isProcessing ? 'not-allowed' : 'pointer', opacity: isProcessing ? 0.6 : 1
+            }}>Cancel</button>
+            <button disabled={isProcessing} onClick={handlePayNowXentriPay} style={{
+              flex: 1, padding: '0.75rem 1rem',
+              border: payment.status === 'failed' ? '2px solid #c00a72' : '2px solid #062a63',
+              borderRadius: '0.5rem', background: isProcessing ? '#9CA3AF' : (payment.status === 'failed' ? '#F20C8F' : '#083A85'),
+              color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: isProcessing ? 'not-allowed' : 'pointer', transition: 'all 0.2s'
+            }}>
+              {isProcessing ? 'Processing...' : `${payment.status === 'failed' ? 'Retry' : 'Pay'} ${formatPrice(totalAmount)}`}
+            </button>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
+
+  // Selection View (Phase 1)
+  return (
+    <Modal isOpen={isOpen} onClose={handleClose} title={payment.status === 'failed' ? 'Retry Payment' : 'Complete Payment'} maxWidth="450px">
+      <div>
         {/* Payment Method Selection */}
         <div style={{ marginBottom: '1.25rem' }}>
           <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>
             Select Payment Method
           </label>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {/* Credit/Debit Card */}
-            <div
-              onClick={() => setSelectedPaymentMethod('card')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem',
-                padding: '1rem',
-                border: selectedPaymentMethod === 'card' ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                borderRadius: '0.75rem',
-                cursor: 'pointer',
-                backgroundColor: selectedPaymentMethod === 'card' ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
-                transition: 'all 0.2s'
-              }}
-            >
-              <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0 }}>
-                <Image src="/cards.png" alt="Credit/Debit Card" width={48} height={48} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+            <div onClick={() => setSelectedPaymentMethod('card')} style={{
+              display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem',
+              border: selectedPaymentMethod === 'card' ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+              borderRadius: '0.75rem', cursor: 'pointer',
+              backgroundColor: selectedPaymentMethod === 'card' ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard, transition: 'all 0.2s'
+            }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
+                <Image src="/visa.png" alt="Visa" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
+                <Image src="/master.png" alt="Mastercard" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Credit/Debit Card</div>
                 <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Pay with Visa, Mastercard, etc.</div>
               </div>
-              <div style={{
-                width: '20px',
-                height: '20px',
-                borderRadius: '50%',
-                border: selectedPaymentMethod === 'card' ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                backgroundColor: colors.bgCard
-              }} />
+              <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: selectedPaymentMethod === 'card' ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`, backgroundColor: colors.bgCard }} />
             </div>
 
-            {/* MTN Mobile Money */}
-            <div
-              onClick={() => setSelectedPaymentMethod('mtn')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem',
-                padding: '1rem',
-                border: selectedPaymentMethod === 'mtn' ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                borderRadius: '0.75rem',
-                cursor: 'pointer',
-                backgroundColor: selectedPaymentMethod === 'mtn' ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
-                transition: 'all 0.2s'
-              }}
-            >
+            <div onClick={() => setSelectedPaymentMethod('mtn')} style={{
+              display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem',
+              border: selectedPaymentMethod === 'mtn' ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+              borderRadius: '0.75rem', cursor: 'pointer',
+              backgroundColor: selectedPaymentMethod === 'mtn' ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard, transition: 'all 0.2s'
+            }}>
               <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0 }}>
-                <Image src="/mtn.png" alt="MTN Mobile Money" width={48} height={48} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                <Image src="/mtn.png" alt="MTN Mobile Money" width={48} height={48} unoptimized style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>MTN Mobile Money</div>
                 <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Pay via MTN MoMo</div>
               </div>
-              <div style={{
-                width: '20px',
-                height: '20px',
-                borderRadius: '50%',
-                border: selectedPaymentMethod === 'mtn' ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                backgroundColor: colors.bgCard
-              }} />
+              <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: selectedPaymentMethod === 'mtn' ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`, backgroundColor: colors.bgCard }} />
             </div>
 
-            {/* Airtel Mobile Money */}
-            <div
-              onClick={() => setSelectedPaymentMethod('airtel')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem',
-                padding: '1rem',
-                border: selectedPaymentMethod === 'airtel' ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                borderRadius: '0.75rem',
-                cursor: 'pointer',
-                backgroundColor: selectedPaymentMethod === 'airtel' ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
-                transition: 'all 0.2s'
-              }}
-            >
+            <div onClick={() => setSelectedPaymentMethod('airtel')} style={{
+              display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem',
+              border: selectedPaymentMethod === 'airtel' ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+              borderRadius: '0.75rem', cursor: 'pointer',
+              backgroundColor: selectedPaymentMethod === 'airtel' ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard, transition: 'all 0.2s'
+            }}>
               <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0 }}>
                 <Image src="/airtel.png" alt="Airtel Mobile Money" width={48} height={48} unoptimized style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
               </div>
@@ -636,54 +1079,28 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
                 <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Airtel Mobile Money</div>
                 <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Pay via Airtel Money</div>
               </div>
-              <div style={{
-                width: '20px',
-                height: '20px',
-                borderRadius: '50%',
-                border: selectedPaymentMethod === 'airtel' ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                backgroundColor: colors.bgCard
-              }} />
-            </div>
-
-            {/* Bank Transfer */}
-            <div
-              onClick={() => setSelectedPaymentMethod('bank')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem',
-                padding: '1rem',
-                border: selectedPaymentMethod === 'bank' ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                borderRadius: '0.75rem',
-                cursor: 'pointer',
-                backgroundColor: selectedPaymentMethod === 'bank' ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
-                transition: 'all 0.2s'
-              }}
-            >
-              <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0 }}>
-                <Image src="/bank.png" alt="Bank Transfer" width={48} height={48} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Bank Transfer</div>
-                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Pay via bank account</div>
-              </div>
-              <div style={{
-                width: '20px',
-                height: '20px',
-                borderRadius: '50%',
-                border: selectedPaymentMethod === 'bank' ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                backgroundColor: colors.bgCard
-              }} />
+              <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: selectedPaymentMethod === 'airtel' ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`, backgroundColor: colors.bgCard }} />
             </div>
           </div>
 
-          {/* Info text about payment accounts */}
-          <p style={{
-            fontSize: '0.8rem',
-            color: colors.textSecondary,
-            margin: '0.75rem 0 1.25rem 0',
-            textAlign: 'center'
-          }}>
+          {/* Phone Number Input (for all methods - XentriPay requires it) */}
+          {selectedPaymentMethod && (
+            <div style={{ marginTop: '0.75rem' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.375rem' }}>Phone Number</label>
+              <input type="tel" placeholder="e.g. 078XXXXXXX" value={paymentPhone} onChange={(e) => { setPaymentPhone(e.target.value); setXentriPayError(''); }}
+                style={{ width: '100%', padding: '0.7rem 0.75rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, backgroundColor: colors.bgCard, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = '#083A85'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(8, 58, 133, 0.1)'; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }}
+              />
+              <p style={{ fontSize: '0.78rem', color: colors.textSecondary, margin: '0.25rem 0 0 0' }}>
+                {selectedPaymentMethod === 'card'
+                  ? 'Required for payment verification'
+                  : `Enter the ${selectedPaymentMethod === 'mtn' ? 'MTN' : 'Airtel'} number to receive the payment prompt`}
+              </p>
+            </div>
+          )}
+
+          <p style={{ fontSize: '0.86rem', color: colors.textSecondary, margin: '0.75rem 0 0 0', textAlign: 'center' }}>
             <i className="bi bi-info-circle" style={{ marginRight: '0.375rem' }}></i>
             Manage your payment methods in <span
               onClick={() => router.push('/user/client/preferences?tab=payments')}
@@ -692,39 +1109,100 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
           </p>
         </div>
 
-        {/* Actions */}
+        {/* Donation Section */}
+        <div style={{
+          marginBottom: '1.25rem', padding: '1rem', borderRadius: '0.75rem',
+          border: `2px solid ${donationSkipped ? colors.borderPrimary : (donationValue > 0 ? '#F20C8F' : 'rgba(242, 12, 143, 0.3)')}`,
+          background: actualTheme === 'dark'
+            ? 'linear-gradient(135deg, rgba(242, 12, 143, 0.08) 0%, rgba(255, 107, 157, 0.03) 100%)'
+            : 'linear-gradient(135deg, rgba(242, 12, 143, 0.05) 0%, rgba(255, 107, 157, 0.02) 100%)',
+          transition: 'all 0.2s'
+        }}>
+          <div style={{ marginBottom: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <HeartIcon />
+              <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>Support a Cause</span>
+              <span style={{ fontSize: '0.81rem', color: colors.textSecondary, marginLeft: 'auto' }}>Optional</span>
+            </div>
+            <p style={{ fontSize: '0.84rem', color: colors.textSecondary, margin: '0.35rem 0 0 0', lineHeight: '1.4' }}>
+              Add a small donation to help fund community projects and initiatives
+            </p>
+          </div>
+          {!donationSkipped && (
+            <>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                {['5', '10', '25', '50'].map((amount) => (
+                  <button key={amount} onClick={() => handleSelectDonation(amount)} style={{
+                    padding: '0.4rem 0.75rem', border: donationAmount === amount ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`,
+                    borderRadius: '0.5rem', background: donationAmount === amount ? (actualTheme === 'dark' ? 'rgba(242, 12, 143, 0.15)' : 'rgba(242, 12, 143, 0.08)') : colors.bgCard,
+                    color: donationAmount === amount ? '#F20C8F' : colors.textSecondary, fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', flex: '1', minWidth: '0'
+                  }}>{formatPrice(Number(amount))}</button>
+                ))}
+                <button onClick={() => handleSelectDonation('custom')} style={{
+                  padding: '0.4rem 0.75rem', border: donationAmount === 'custom' ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`,
+                  borderRadius: '0.5rem', background: donationAmount === 'custom' ? (actualTheme === 'dark' ? 'rgba(242, 12, 143, 0.15)' : 'rgba(242, 12, 143, 0.08)') : colors.bgCard,
+                  color: donationAmount === 'custom' ? '#F20C8F' : colors.textSecondary, fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', flex: '1', minWidth: '0'
+                }}>Custom</button>
+              </div>
+              {showCustomInput && (
+                <div style={{ position: 'relative', marginBottom: '0.75rem' }}>
+                  <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontSize: '0.9rem', fontWeight: '600', color: colors.textSecondary }}>$</span>
+                  <input type="number" placeholder="Enter amount" value={customDonation} onChange={(e) => setCustomDonation(e.target.value)} style={{
+                    width: '100%', padding: '0.6rem 0.75rem 0.6rem 1.75rem', border: `2px solid ${customDonation ? '#F20C8F' : colors.borderPrimary}`,
+                    borderRadius: '0.5rem', fontSize: '0.85rem', color: colors.textPrimary, backgroundColor: colors.bgCard, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s'
+                  }} onFocus={(e) => { e.currentTarget.style.borderColor = '#F20C8F'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(242, 12, 143, 0.1)'; }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = customDonation ? '#F20C8F' : colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }} />
+                </div>
+              )}
+            </>
+          )}
+          <button onClick={handleSkipDonation} style={{
+            width: '100%', padding: '0.5rem 1rem', borderRadius: '9999px',
+            border: donationSkipped ? '2px solid #F20C8F' : '2px solid #6B7280',
+            background: donationSkipped ? '#F20C8F' : colors.bgTertiary,
+            color: donationSkipped ? 'white' : '#374151',
+            fontSize: '0.875rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center'
+          }}>{donationSkipped ? '✓ Donation skipped' : 'No thanks, skip donation'}</button>
+          <div style={{ marginTop: '0.5rem' }}>
+            <a href={`${process.env.NEXT_PUBLIC_LANDING_URL as string}/user/donations`} onClick={(e) => { e.preventDefault(); router.push('/user/donations'); }} style={{
+              fontSize: '0.81rem', color: '#F20C8F', textDecoration: 'none', fontWeight: '500'
+            }}>Learn more about our donation program →</a>
+          </div>
+        </div>
+
+        {(!donationAddressed || !phoneValid) && (
+          <p style={{ fontSize: '0.86rem', color: '#EF4444', margin: '0 0 0.75rem 0', textAlign: 'center' }}>
+            {!phoneValid ? 'Please enter your phone number' : 'Please select a donation amount or skip to continue'}
+          </p>
+        )}
+
+        {/* Escrow info banner */}
+        {selectedEscrowOption && selectedEscrowOption < 100 && !payment.escrowPercentage && (
+          <div style={{
+            marginBottom: '1rem', padding: '0.75rem 1rem', borderRadius: '0.75rem',
+            backgroundColor: actualTheme === 'dark' ? 'rgba(251, 191, 36, 0.1)' : 'rgba(251, 191, 36, 0.08)',
+            border: '1px solid rgba(251, 191, 36, 0.3)',
+          }}>
+            <p style={{ fontSize: '0.82rem', color: '#D97706', margin: 0, lineHeight: '1.4', fontWeight: '500' }}>
+              You are paying {selectedEscrowOption}% ({formatPrice(amountDue)}) upfront. Funds will be held securely and released after you confirm service satisfaction.
+            </p>
+          </div>
+        )}
+
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-          <button
-            onClick={onClose}
-            style={{
-              flex: 1,
-              padding: '0.75rem 1rem',
-              border: `2px solid ${colors.borderPrimary}`,
-              borderRadius: '0.5rem',
-              background: colors.bgTertiary,
-              color: colors.textPrimary,
-              fontSize: '0.9rem',
-              fontWeight: '600',
-              cursor: 'pointer'
-            }}
-          >
-            Cancel
-          </button>
-          <button
-            style={{
-              flex: 1,
-              padding: '0.75rem 1rem',
-              border: payment.status === 'failed' ? '2px solid #c00a72' : '2px solid #062a63',
-              borderRadius: '0.5rem',
-              background: payment.status === 'failed' ? '#F20C8F' : '#083A85',
-              color: 'white',
-              fontSize: '0.9rem',
-              fontWeight: '600',
-              cursor: 'pointer'
-            }}
-          >
-            {payment.status === 'failed' ? 'Retry Payment' : 'Pay'} ${amountDue.toLocaleString()}
-          </button>
+          {!payment.escrowPercentage && (
+            <button onClick={() => setEscrowStep('options')} style={{
+              flex: 1, padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem',
+              background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer'
+            }}>Back</button>
+          )}
+          <button disabled={!isPayEnabled} onClick={() => setShowReceipt(true)} style={{
+            flex: 1, padding: '0.75rem 1rem',
+            border: !isPayEnabled ? '2px solid #9CA3AF' : '2px solid #062a63',
+            borderRadius: '0.5rem', background: !isPayEnabled ? '#9CA3AF' : '#083A85',
+            color: 'white', fontSize: '0.9rem', fontWeight: '600',
+            cursor: !isPayEnabled ? 'not-allowed' : 'pointer', opacity: !isPayEnabled ? 0.7 : 1, transition: 'all 0.2s'
+          }}>Proceed to Payment</button>
         </div>
       </div>
     </Modal>
@@ -767,7 +1245,17 @@ interface SpendingChartProps {
 
 const SpendingChart: React.FC<SpendingChartProps> = ({ data, height = 140, chartType }) => {
   const { colors } = useTheme();
+  const { formatPrice } = useCurrency();
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+
+  if (data.length === 0) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height, color: colors.textSecondary, fontSize: '0.85rem' }}>
+        No spending data available
+      </div>
+    );
+  }
+
   const maxValue = Math.max(...data.map(d => d.value));
   const minValue = Math.min(...data.map(d => d.value));
   const range = maxValue - minValue || 1;
@@ -783,7 +1271,7 @@ const SpendingChart: React.FC<SpendingChartProps> = ({ data, height = 140, chart
   const points = data.map((item, index) => {
     const x = chartType === 'bar'
       ? paddingLeft + index * (barWidth + barGap) + barWidth / 2
-      : paddingLeft + (index / (data.length - 1)) * (chartWidth - paddingLeft - paddingRight);
+      : paddingLeft + (data.length > 1 ? (index / (data.length - 1)) : 0.5) * (chartWidth - paddingLeft - paddingRight);
     const y = paddingTop + chartHeight - ((item.value - minValue) / range) * chartHeight;
     return { x, y, ...item };
   });
@@ -984,7 +1472,7 @@ const SpendingChart: React.FC<SpendingChartProps> = ({ data, height = 140, chart
               </div>
               <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Spending</span>
               <span style={{ fontSize: '0.95rem', fontWeight: '700', color: colors.textPrimary }}>
-                ${points[hoveredIndex].value.toLocaleString()}
+                {formatPrice(points[hoveredIndex].value)}
               </span>
             </div>
           </div>
@@ -1112,17 +1600,19 @@ const EventTypeBadge: React.FC<EventTypeBadgeProps> = ({ type }) => {
 
 const PaymentsPage = () => {
   const { colors, actualTheme } = useTheme();
+  const { formatPrice } = useCurrency();
   const { profile } = useUserProfile();
+  const { token } = useDashboardAuth();
+  const router = useRouter();
   const [activeTimeFilter, setActiveTimeFilter] = useState<'1W' | '1M' | '3M' | '6M' | '1Y'>('1W');
   const [currentPage, setCurrentPage] = useState(1);
   const [chartType, setChartType] = useState<ChartType>('line');
   const [showReportModal, setShowReportModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showPayNowModal, setShowPayNowModal] = useState(false);
-  const [showPayNowDonatePromptModal, setShowPayNowDonatePromptModal] = useState(false);
-  const [showPayNowDonateModal, setShowPayNowDonateModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [payNowPayment, setPayNowPayment] = useState<Payment | null>(null);
+
 
   const handleViewPayment = (payment: Payment) => {
     setSelectedPayment(payment);
@@ -1131,7 +1621,7 @@ const PaymentsPage = () => {
 
   const handlePayNow = (payment: Payment) => {
     setPayNowPayment(payment);
-    setShowPayNowDonatePromptModal(true);
+    setShowPayNowModal(true);
   };
 
   const handleDownloadReceipt = (payment: Payment) => {
@@ -1148,7 +1638,7 @@ Event: ${payment.eventName}
 Photographer: ${payment.photographerName}
 Payment Method: ${payment.method}
 
-Amount: ${payment.amount}
+Amount: ${formatPrice(payment.amountNum)}
 
 =====================================
     Thank you for using Connekt
@@ -1163,79 +1653,264 @@ Amount: ${payment.amount}
     URL.revokeObjectURL(url);
   };
 
-  const spendingData = [
-    { date: 'Nov 13', value: 450 },
-    { date: 'Nov 14', value: 300 },
-    { date: 'Nov 15', value: 500 },
-    { date: 'Nov 16', value: 350 },
-    { date: 'Nov 17', value: 200 },
-    { date: 'Nov 18', value: 400 },
-    { date: 'Nov 19', value: 150 }
-  ];
+  const [spendingData, setSpendingData] = useState<{ date: string; value: number }[]>([]);
 
-  const payments: Payment[] = [
-    { id: 1, date: 'Nov, 20 14:05 PM', eventName: 'Sarah & James Wedding', eventType: 'Wedding', photographerName: 'John Studio', photographerImage: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg', method: 'Credit Card', amount: '$450.0', amountNum: 450, paidAmount: 450, status: 'paid', invoiceNumber: 'INV-2024-001' },
-    { id: 2, date: 'Nov, 18 10:30 AM', eventName: 'Emily\'s 5th Birthday', eventType: 'Birthday', photographerName: 'Mary Shots', photographerImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', method: 'Mobile Money', amount: '$300.0', amountNum: 300, paidAmount: 150, status: 'partially_paid', invoiceNumber: 'INV-2024-002' },
-    { id: 3, date: 'Nov, 25 09:00 AM', eventName: 'MTN Annual Conference', eventType: 'Corporate', photographerName: 'Elite Photography', photographerImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', method: '-', amount: '$500.0', amountNum: 500, paidAmount: 0, status: 'pending', invoiceNumber: 'INV-2024-003' },
-    { id: 4, date: 'Sep, 15 16:00 PM', eventName: 'Nyege Nyege Festival', eventType: 'Festival', photographerName: 'Alex Frames', photographerImage: 'https://i.pinimg.com/1200x/09/23/45/092345eac1919407e0c49f67e285b831.jpg', method: 'Bank Transfer', amount: '$350.0', amountNum: 350, paidAmount: 350, status: 'paid', invoiceNumber: 'INV-2024-004' },
-    { id: 5, date: 'Nov, 25 14:00 PM', eventName: 'Personal Photoshoot', eventType: 'Portrait', photographerName: 'Sarah Lens', photographerImage: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg', method: 'Credit Card', amount: '$200.0', amountNum: 200, paidAmount: 0, status: 'failed', invoiceNumber: 'INV-2024-005' },
-    { id: 6, date: 'Oct, 01 11:00 AM', eventName: 'Product Launch Event', eventType: 'Corporate', photographerName: 'Elite Photography', photographerImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', method: 'Credit Card', amount: '$400.0', amountNum: 400, paidAmount: 400, status: 'refunded', invoiceNumber: 'INV-2024-006' },
-    { id: 7, date: 'Nov, 12 15:30 PM', eventName: 'Baby Shower', eventType: 'Birthday', photographerName: 'Mary Shots', photographerImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', method: 'Mobile Money', amount: '$250.0', amountNum: 250, paidAmount: 250, status: 'paid', invoiceNumber: 'INV-2024-007' },
-    { id: 8, date: 'Nov, 28 10:00 AM', eventName: 'Team Headshots', eventType: 'Corporate', photographerName: 'Elite Photography', photographerImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', method: '-', amount: '$350.0', amountNum: 350, paidAmount: 0, status: 'pending', invoiceNumber: 'INV-2024-008' },
-  ];
+  const fetchSpendingTrend = useCallback(async (period: string) => {
+    if (!token) return;
+    try {
+      const apiUrl = getApiUrl();
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+      const response = await fetch(
+        `${apiUrl}/api/remote/customer/payments/spending-trend?period=${period}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'api-token': apiKey,
+          },
+        }
+      );
+      if (!response.ok) return;
+      const result = await response.json();
+      const data = result.data;
+      if (Array.isArray(data) && data.length > 0) {
+        setSpendingData(data.map((item: any) => ({
+          date: item.date,
+          value: Number(item.value) || 0
+        })));
+      }
+    } catch (err) {
+      console.error('Failed to fetch spending trend:', err);
+    }
+  }, [token]);
 
-  // Calculate totals
-  const totalPaid = payments.filter(p => p.status === 'paid').reduce((sum, p) => sum + p.amountNum, 0);
-  const totalPending = payments.filter(p => p.status === 'pending' || p.status === 'partially_paid').reduce((sum, p) => sum + (p.amountNum - p.paidAmount), 0);
-  const totalFailed = payments.filter(p => p.status === 'failed').reduce((sum, p) => sum + p.amountNum, 0);
+  useEffect(() => {
+    fetchSpendingTrend(activeTimeFilter);
+  }, [activeTimeFilter, fetchSpendingTrend]);
+
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [totalPages, setTotalPages] = useState(5);
+  const [totalResults, setTotalResults] = useState(0);
+  const resultsPerPage = 8;
+
+  // Map API status to frontend PaymentStatus
+  const mapStatus = (apiStatus: string): PaymentStatus => {
+    switch (apiStatus?.toUpperCase()) {
+      case 'COMPLETED': return 'paid';
+      case 'PENDING': return 'pending';
+      case 'PARTIAL': return 'partially_paid';
+      case 'FAILED': return 'failed';
+      case 'REFUNDED': return 'refunded';
+      default: return 'pending';
+    }
+  };
+
+  // Format date from API LocalDateTime
+  const formatDate = (dateStr: string): string => {
+    if (!dateStr) return '-';
+    const date = new Date(dateStr);
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const month = months[date.getMonth()];
+    const day = date.getDate().toString().padStart(2, '0');
+    const hours = date.getHours();
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const displayHour = hours % 12 || 12;
+    return `${month}, ${day} ${displayHour}:${minutes} ${ampm}`;
+  };
+
+  // Fetch payment history from API
+  const fetchPayments = useCallback(async (page: number) => {
+    if (!token) return;
+    try {
+      const apiUrl = getApiUrl();
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+      const response = await fetch(
+        `${apiUrl}/api/remote/customer/payments?page=${page - 1}&size=${resultsPerPage}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'api-token': apiKey,
+          },
+        }
+      );
+      if (!response.ok) return;
+      const result = await response.json();
+      const pageData = result.data;
+      const content = pageData?.content || [];
+
+      const mapped: Payment[] = content.map((item: any, index: number) => ({
+        id: index + 1 + (page - 1) * resultsPerPage,
+        declarationId: item.id,
+        eventId: item.eventId,
+        date: formatDate(item.createdAt),
+        eventName: item.eventTitle || 'Untitled Event',
+        eventType: item.paymentType || 'Booking',
+        photographerName: item.photographerName || 'Unknown',
+        photographerImage: item.photographerImage || undefined,
+        method: '-',
+        amount: `${item.currencyAbbreviation || '$'}${item.amount}`,
+        amountNum: Number(item.amountInUsd ?? item.amount) || 0,
+        paidAmount: Number(item.paidAmountInUsd ?? item.paidAmount) || 0,
+        status: mapStatus(item.status),
+        invoiceNumber: `INV-${String(item.id).substring(0, 8).toUpperCase()}`,
+        escrowStatus: item.escrowStatus || 'NONE',
+        escrowPercentage: item.escrowPercentage || null,
+        heldAmount: Number(item.heldAmount) || 0,
+        releasedAmount: Number(item.releasedAmount) || 0,
+        eventCompletionStatus: item.eventCompletionStatus || 'NOT_COMPLETED',
+      }));
+
+      setPayments(mapped);
+      setTotalPages(pageData?.totalPages || 1);
+      setTotalResults(pageData?.totalElements || 0);
+    } catch (err) {
+      console.error('Failed to fetch payments:', err);
+    }
+  }, [token, resultsPerPage]);
+
+  useEffect(() => {
+    fetchPayments(currentPage);
+  }, [currentPage, fetchPayments]);
+
+  // Balance totals from API
+  const [totalPaid, setTotalPaid] = useState(0);
+  const [totalPending, setTotalPending] = useState(0);
+  const [totalFailed, setTotalFailed] = useState(0);
+  const [streamingEarnings, setStreamingEarnings] = useState(0);
+
+  const fetchBalance = useCallback(async () => {
+    if (!token) return;
+    try {
+      const apiUrl = getApiUrl();
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+      const response = await fetch(
+        `${apiUrl}/api/remote/customer/payments/balance`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'api-token': apiKey,
+          },
+        }
+      );
+      if (!response.ok) return;
+      const result = await response.json();
+      const data = result.data;
+      if (data) {
+        setTotalPaid(Number(data.totalPaid) || 0);
+        setTotalPending(Number(data.totalPending) || 0);
+        if (data.totalEarnings != null) setStreamingEarnings(Number(data.totalEarnings) || 0);
+      }
+    } catch (err) {
+      console.error('Failed to fetch balance:', err);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    fetchBalance();
+  }, [fetchBalance]);
+
+  // Report/stats data
+  const [reportData, setReportData] = useState({
+    period: '13 - 18 July 2025',
+    totalPaid: 1200.13,
+    pending: 350.13,
+    failed: 200.00,
+    totalTransactions: 45,
+    completedTransactions: 32,
+    pendingTransactions: 8,
+    failedTransactions: 5,
+  });
+
+  const fetchStats = useCallback(async () => {
+    if (!token) return;
+    try {
+      const apiUrl = getApiUrl();
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+      const response = await fetch(
+        `${apiUrl}/api/remote/customer/payments/stats`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'api-token': apiKey,
+          },
+        }
+      );
+      if (!response.ok) return;
+      const result = await response.json();
+      const data = result.data;
+      if (data) {
+        setReportData({
+          period: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+          totalPaid: Number(data.totalPaid) || 0,
+          pending: Number(data.pending) || 0,
+          failed: Number(data.failed) || 0,
+          totalTransactions: Number(data.totalTransactions) || 0,
+          completedTransactions: Number(data.completedTransactions) || 0,
+          pendingTransactions: Number(data.pendingTransactions) || 0,
+          failedTransactions: Number(data.failedTransactions) || 0,
+        });
+      }
+    } catch (err) {
+      console.error('Failed to fetch stats:', err);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
 
   // Gifts data - organized by stream/event with gifters list
-  const giftStreams = [
-    {
-      id: 1,
-      streamTitle: 'Behind the Lens: Wedding Shoot',
-      date: 'Dec 08, 2024',
-      platform: 'ConnektLive',
-      gifters: [
-        { name: 'Michael K.', amount: 25.00, message: 'Amazing work! Love your style!' },
-        { name: 'Anonymous', amount: 10.00, message: '' },
-        { name: 'David W.', amount: 15.00, message: 'Great content, keep it up!' },
-        { name: 'Lisa P.', amount: 5.00, message: 'Thanks for the tips!' },
-      ]
-    },
-    {
-      id: 2,
-      streamTitle: 'Live Q&A: Photography Tips',
-      date: 'Dec 07, 2024',
-      platform: 'ConnektLive',
-      gifters: [
-        { name: 'Sarah M.', amount: 15.00, message: 'Very informative session!' },
-        { name: 'Emily R.', amount: 30.00, message: 'You answered my question perfectly. Thank you so much!' },
-        { name: 'John D.', amount: 20.00, message: '' },
-      ]
-    },
-    {
-      id: 3,
-      streamTitle: 'Editing Session: Portrait Retouch',
-      date: 'Dec 05, 2024',
-      platform: 'ConnektLive',
-      gifters: [
-        { name: 'James L.', amount: 50.00, message: 'Mind-blowing editing skills! I learned so much today.' },
-        { name: 'Maria G.', amount: 25.00, message: 'Best tutorial ever!' },
-      ]
-    },
-    {
-      id: 4,
-      streamTitle: 'Studio Tour & Equipment Review',
-      date: 'Dec 01, 2024',
-      platform: 'ConnektLive',
-      gifters: [
-        { name: 'Alex T.', amount: 10.00, message: 'Love your setup!' },
-        { name: 'Chris B.', amount: 8.00, message: '' },
-        { name: 'Anonymous', amount: 12.00, message: 'Great review, very helpful!' },
-      ]
-    },
-  ];
+  const [giftStreams, setGiftStreams] = useState<{
+    id: number;
+    streamTitle: string;
+    date: string;
+    platform: string;
+    gifters: { name: string; amount: number; message: string }[];
+  }[]>([]);
+
+  const fetchGiftStreams = useCallback(async () => {
+    if (!token) return;
+    try {
+      const apiUrl = getApiUrl();
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+      const response = await fetch(
+        `${apiUrl}/api/remote/customer/payments/gift-streams`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'api-token': apiKey,
+          },
+        }
+      );
+      if (!response.ok) return;
+      const result = await response.json();
+      const data = result.data;
+      if (Array.isArray(data)) {
+        setGiftStreams(data.map((item: any, index: number) => ({
+          id: index + 1,
+          streamTitle: item.streamTitle || 'Untitled Stream',
+          date: item.date || '',
+          platform: item.platform || 'ConnektLive',
+          gifters: (item.gifters || []).map((g: any) => ({
+            name: g.name || 'Anonymous',
+            amount: Number(g.amount) || 0,
+            message: g.message || ''
+          }))
+        })));
+      }
+    } catch (err) {
+      console.error('Failed to fetch gift streams:', err);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    fetchGiftStreams();
+  }, [fetchGiftStreams]);
 
   const totalGifts = giftStreams.reduce((sum, stream) => sum + stream.gifters.reduce((s, g) => s + g.amount, 0), 0);
 
@@ -1243,36 +1918,146 @@ Amount: ${payment.amount}
   const [showGiftSendersModal, setShowGiftSendersModal] = useState(false);
   const [selectedGiftStream, setSelectedGiftStream] = useState<typeof giftStreams[0] | null>(null);
 
+  // Whether user already has a withdrawal method set
+  const [hasWithdrawalMethod, setHasWithdrawalMethod] = useState(false);
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+
+  useEffect(() => {
+    if (!token) return;
+    (async () => {
+      try {
+        const apiUrl = getApiUrl();
+        const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/preferences`);
+        if (res.ok) {
+          const result = await res.json();
+          const prefs = result.data || {};
+          const hasAccounts = Object.keys(prefs).some(k => k.startsWith('payment_method_'));
+          setHasWithdrawalMethod(hasAccounts);
+        }
+      } catch { /* ignore */ }
+    })();
+  }, [token]);
+
   // State for gifts payment method modal
   const [showGiftsPaymentMethodModal, setShowGiftsPaymentMethodModal] = useState(false);
-  const [showGiftsDonateModal, setShowGiftsDonateModal] = useState(false);
-  const [showGiftsDonatePromptModal, setShowGiftsDonatePromptModal] = useState(false);
   const [selectedGiftPaymentMethod, setSelectedGiftPaymentMethod] = useState<string | null>(null);
   const [giftPaymentDetails, setGiftPaymentDetails] = useState({
     mtnNumber: '',
     airtelNumber: '',
-    bankName: '',
-    accountNumber: '',
-    accountName: '',
-    cardNumber: '',
-    cardExpiry: '',
-    cardCvv: '',
-    cardName: ''
+    bankAccountNumber: '',
+    bankAccountName: '',
+    selectedBank: '',
   });
+  const [bankProviders, setBankProviders] = useState<{ id: string; name: string }[]>([]);
   const [validationError, setValidationError] = useState<string | null>(null);
 
-  // Check if Rwanda requires mobile money selection
-  const isRwanda = profile.country === 'Rwanda';
-  const hasMobileMoneySelected = selectedGiftPaymentMethod === 'mtn' || selectedGiftPaymentMethod === 'airtel';
+  // Load bank providers when modal opens
+  useEffect(() => {
+    if (!showGiftsPaymentMethodModal) return;
+    const apiUrl = getApiUrl();
+    const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+    fetch(`${apiUrl}/api/remote/withdrawals/xentripay/providers`, {
+      headers: { 'Authorization': `Bearer ${token}`, 'api-token': apiKey },
+    })
+      .then(res => res.json())
+      .then(result => setBankProviders(result?.data?.banks || []))
+      .catch(() => setBankProviders([]));
+  }, [showGiftsPaymentMethodModal, token]);
 
-  // Validate that Rwanda users have selected a mobile money option
+  // Validate payment method selection
   const validateGiftPaymentMethod = (): boolean => {
-    if (isRwanda && !hasMobileMoneySelected) {
-      setValidationError('For users in Rwanda, you must select either MTN or Airtel Mobile Money as a payment method.');
+    if (!selectedGiftPaymentMethod) {
+      setValidationError('Please select a payment method.');
       return false;
     }
     setValidationError(null);
     return true;
+  };
+
+  const [savingWithdrawal, setSavingWithdrawal] = useState(false);
+
+  const saveWithdrawalMethod = async () => {
+    if (!validateGiftPaymentMethod()) return;
+    if (!selectedGiftPaymentMethod || !token) return;
+
+    let methodType = '';
+    let accountName = '';
+    let accountNumber = '';
+    let bankName = '';
+
+    if (selectedGiftPaymentMethod === 'mtn') {
+      if (!giftPaymentDetails.mtnNumber.trim()) {
+        setValidationError('Please enter your MTN phone number.');
+        return;
+      }
+      methodType = 'MOBILE_MONEY';
+      accountName = 'MTN Mobile Money';
+      accountNumber = giftPaymentDetails.mtnNumber.trim();
+      bankName = 'MTN';
+    } else if (selectedGiftPaymentMethod === 'airtel') {
+      if (!giftPaymentDetails.airtelNumber.trim()) {
+        setValidationError('Please enter your Airtel phone number.');
+        return;
+      }
+      methodType = 'MOBILE_MONEY';
+      accountName = 'Airtel Money';
+      accountNumber = giftPaymentDetails.airtelNumber.trim();
+      bankName = 'Airtel';
+    } else if (selectedGiftPaymentMethod === 'bank') {
+      if (!giftPaymentDetails.bankAccountNumber.trim() || !giftPaymentDetails.bankAccountName.trim() || !giftPaymentDetails.selectedBank) {
+        setValidationError('Please fill in your bank, account number, and account holder name.');
+        return;
+      }
+      methodType = 'BANK_TRANSFER';
+      accountName = giftPaymentDetails.bankAccountName.trim();
+      accountNumber = giftPaymentDetails.bankAccountNumber.trim();
+      bankName = giftPaymentDetails.selectedBank;
+    }
+
+    setSavingWithdrawal(true);
+    setValidationError(null);
+
+    try {
+      const apiUrl = getApiUrl();
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
+      const params = new URLSearchParams({
+        methodType,
+        accountName,
+        accountNumber,
+        isDefault: 'true',
+      });
+      if (bankName) params.append('bankName', bankName);
+
+      const response = await fetch(
+        `${apiUrl}/api/remote/customer/withdrawal-methods?${params.toString()}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'api-token': apiKey,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errResult = await response.json().catch(() => null);
+        setValidationError(sanitizeErrorMessage(errResult?.message, 'Failed to save withdrawal method. Please try again.'));
+        return;
+      }
+
+      // Success - close modal and reset
+      setShowGiftsPaymentMethodModal(false);
+      setSelectedGiftPaymentMethod(null);
+      setGiftPaymentDetails({ mtnNumber: '', airtelNumber: '', bankAccountNumber: '', bankAccountName: '', selectedBank: '' });
+      setValidationError(null);
+      setHasWithdrawalMethod(true);
+    } catch (err) {
+      console.error('Failed to save withdrawal method:', err);
+      setValidationError('Network error. Please check your connection and try again.');
+    } finally {
+      setSavingWithdrawal(false);
+    }
   };
 
   const handleViewGiftSenders = (stream: typeof giftStreams[0]) => {
@@ -1280,12 +2065,8 @@ Amount: ${payment.amount}
     setShowGiftSendersModal(true);
   };
 
-  const totalPages = 5;
-  const resultsPerPage = 8;
-  const totalResults = payments.length;
-
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary, overflow: 'hidden', width: '100%', maxWidth: '100vw' }}>
       <style>{`
         @media (max-width: 768px) {
           .mobile-header {
@@ -1308,6 +2089,14 @@ Amount: ${payment.amount}
             align-items: flex-start !important;
             gap: 1rem !important;
           }
+          .mobile-summary-stats {
+            flex-wrap: wrap !important;
+            gap: 0.75rem !important;
+          }
+          .mobile-summary-stats > div {
+            flex: 1 !important;
+            min-width: 60px !important;
+          }
           .mobile-stats-grid {
             grid-template-columns: repeat(2, 1fr) !important;
             gap: 0.75rem !important;
@@ -1322,12 +2111,65 @@ Amount: ${payment.amount}
             font-size: 1.2rem !important;
           }
           .mobile-tabs {
-            flex-wrap: wrap !important;
-            gap: 0.5rem !important;
+            overflow-x: auto !important;
+            flex-wrap: nowrap !important;
+            width: 100% !important;
+            -webkit-overflow-scrolling: touch;
+            -ms-overflow-style: none !important;
+            scrollbar-width: none !important;
+            padding-bottom: 0.25rem !important;
+          }
+          .mobile-tabs::-webkit-scrollbar {
+            display: none !important;
+          }
+          .mobile-tabs button {
+            flex-shrink: 0 !important;
+            white-space: nowrap !important;
+            min-height: 40px !important;
           }
           .mobile-filters {
             flex-direction: column !important;
             gap: 0.75rem !important;
+          }
+          .mobile-filters input {
+            min-height: 44px !important;
+          }
+          .mobile-gifts-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 0.75rem !important;
+          }
+          .mobile-gifts-actions {
+            flex-direction: column !important;
+            width: 100% !important;
+            gap: 0.75rem !important;
+          }
+          .mobile-gifts-actions > div {
+            max-width: 100% !important;
+            width: 100% !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+          .mobile-gifts-actions button {
+            width: 100% !important;
+            min-height: 44px !important;
+            white-space: normal !important;
+            flex-shrink: 1 !important;
+          }
+          .mobile-table-scroll {
+            -webkit-overflow-scrolling: touch !important;
+          }
+          .mobile-table-scroll::-webkit-scrollbar {
+            display: none !important;
+          }
+          .mobile-table-scroll {
+            -ms-overflow-style: none !important;
+            scrollbar-width: none !important;
+          }
+          .mobile-pagination {
+            flex-direction: column !important;
+            gap: 0.75rem !important;
+            align-items: center !important;
           }
           .mobile-payments-grid {
             grid-template-columns: 1fr !important;
@@ -1338,8 +2180,9 @@ Amount: ${payment.amount}
             gap: 1rem !important;
           }
           .mobile-main-content {
-            padding: 0.75rem !important;
+            padding: 1rem !important;
             padding-bottom: 8rem !important;
+            overflow-x: hidden !important;
           }
         }
         @media (max-width: 640px) {
@@ -1361,9 +2204,38 @@ Amount: ${payment.amount}
           .mobile-stats-grid > div > div:last-child {
             font-size: 1.1rem !important;
           }
+          .mobile-tabs button {
+            font-size: 0.8rem !important;
+            padding: 0.4rem 0.75rem !important;
+          }
+          .mobile-main-content {
+            padding: 0.75rem !important;
+            padding-bottom: 10rem !important;
+          }
+        }
+        @media (max-width: 375px) {
           .mobile-main-content {
             padding: 0.5rem !important;
-            padding-bottom: 10rem !important;
+            padding-bottom: 8rem !important;
+          }
+          .mobile-title {
+            font-size: 1.2rem !important;
+          }
+          .mobile-subtitle {
+            font-size: 0.75rem !important;
+          }
+          .mobile-tabs button {
+            font-size: 0.75rem !important;
+            padding: 0.35rem 0.5rem !important;
+          }
+          .mobile-stats-grid > div {
+            padding: 0.5rem !important;
+          }
+          .mobile-stats-grid > div > div:first-child {
+            font-size: 0.65rem !important;
+          }
+          .mobile-stats-grid > div > div:last-child {
+            font-size: 1rem !important;
           }
         }
       `}</style>
@@ -1380,6 +2252,36 @@ Amount: ${payment.amount}
             </p>
           </header>
 
+          {/* Pending Payment Warning */}
+          {totalPending > 0 && (
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem',
+              padding: '0.875rem 1.25rem', marginBottom: '1rem', borderRadius: '0.75rem',
+              backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FFFBEB',
+              border: `1px solid ${actualTheme === 'dark' ? '#92400E' : '#F59E0B'}`,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1 }}>
+                <div style={{
+                  width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  backgroundColor: actualTheme === 'dark' ? 'rgba(251,191,36,0.2)' : 'rgba(245,158,11,0.15)',
+                  flexShrink: 0,
+                }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke={actualTheme === 'dark' ? '#FDE68A' : '#D97706'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <div>
+                  <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: '600', color: actualTheme === 'dark' ? '#FDE68A' : '#92400E' }}>
+                    You have {formatPrice(totalPending)} in pending payments
+                  </p>
+                  <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: actualTheme === 'dark' ? '#FCD34D' : '#B45309', opacity: 0.85 }}>
+                    Please complete your outstanding payments to avoid booking cancellations.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Top Row - Spending Chart and Payment Summary */}
           <div className="mobile-top-row" style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '1rem', marginBottom: '1rem' }}>
 
@@ -1389,7 +2291,7 @@ Amount: ${payment.amount}
                 <div>
                   <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Spending</div>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '1rem' }}>
-                    <span style={{ fontSize: '1.75rem', fontWeight: '700', color: colors.textPrimary }}>${(totalPaid + totalPending + totalFailed).toLocaleString()}</span>
+                    <span style={{ fontSize: '1.75rem', fontWeight: '700', color: colors.textPrimary }}>{formatPrice(totalPaid + totalPending + totalFailed)}</span>
                     <span style={{ fontSize: '0.85rem', color: colors.textSecondary, fontWeight: '500' }}>This period</span>
                   </div>
                 </div>
@@ -1487,27 +2389,27 @@ Amount: ${payment.amount}
                 </div>
                 <button onClick={() => setShowReportModal(true)} style={{ fontSize: '0.85rem', color: '#2563EB', textDecoration: 'none', fontWeight: '500', background: 'none', border: 'none', cursor: 'pointer' }}>View report</button>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+              <div className="mobile-summary-stats" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10B981' }} />
                     <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Paid</span>
                   </div>
-                  <div style={{ fontSize: '1rem', fontWeight: '700', color: colors.textPrimary }}>${totalPaid.toLocaleString()}</div>
+                  <div style={{ fontSize: '1rem', fontWeight: '700', color: colors.textPrimary }}>{formatPrice(totalPaid)}</div>
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#FBBF24' }} />
                     <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Pending</span>
                   </div>
-                  <div style={{ fontSize: '1rem', fontWeight: '700', color: colors.textPrimary }}>${totalPending.toLocaleString()}</div>
+                  <div style={{ fontSize: '1rem', fontWeight: '700', color: colors.textPrimary }}>{formatPrice(totalPending)}</div>
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#EF4444' }} />
                     <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Failed</span>
                   </div>
-                  <div style={{ fontSize: '1rem', fontWeight: '700', color: colors.textPrimary }}>${totalFailed.toLocaleString()}</div>
+                  <div style={{ fontSize: '1rem', fontWeight: '700', color: colors.textPrimary }}>{formatPrice(totalFailed)}</div>
                 </div>
               </div>
               <PaymentGauge paid={totalPaid} pending={totalPending} failed={totalFailed} />
@@ -1516,7 +2418,7 @@ Amount: ${payment.amount}
 
           {/* Gifts Section */}
           <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)', overflow: 'hidden', marginBottom: '1rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderBottom: `1px solid ${colors.borderPrimary}` }}>
+            <div className="mobile-gifts-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderBottom: `2px solid ${colors.borderPrimary}` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <div style={{
                   width: '40px',
@@ -1535,7 +2437,7 @@ Amount: ${payment.amount}
                   <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: 0 }}>From live-stream viewers on ConnektLive</p>
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div className="mobile-gifts-actions" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 {/* Withdrawal Setup Card */}
                 <div style={{
                   backgroundColor: actualTheme === 'dark' ? '#14532D' : '#F0FDF4',
@@ -1549,33 +2451,37 @@ Amount: ${payment.amount}
                 }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.15rem' }}>
-                      Withdraw Your Gift Earnings
+                      {hasWithdrawalMethod ? 'Gift Earnings' : 'Withdraw Your Gift Earnings'}
                     </div>
                     <div style={{ fontSize: '0.82rem', color: colors.textSecondary, lineHeight: '1.35' }}>
-                      Set up your preferred account to receive payments from viewer gifts.
+                      {hasWithdrawalMethod ? 'Withdraw your gift earnings to your saved payment account.' : 'Set up your preferred account to receive payments from viewer gifts.'}
                     </div>
                   </div>
-                  <button
-                    onClick={() => setShowGiftsDonatePromptModal(true)}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.35rem',
-                      backgroundColor: '#16A34A',
-                      color: 'white',
-                      border: '2px solid #15803D',
-                      borderRadius: '0.375rem',
-                      padding: '0.45rem 0.85rem',
-                      fontSize: '0.85rem',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap',
-                      flexShrink: 0
-                    }}
-                  >
-                    Set Up Withdrawal Method
-                  </button>
+                  {hasWithdrawalMethod ? (
+                    <button
+                      onClick={() => setShowWithdrawModal(true)}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem',
+                        backgroundColor: '#083A85', color: 'white', border: '2px solid #062a63',
+                        borderRadius: '0.375rem', padding: '0.45rem 0.85rem', fontSize: '0.85rem',
+                        fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0
+                      }}
+                    >
+                      Withdraw
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setShowGiftsPaymentMethodModal(true)}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem',
+                        backgroundColor: '#16A34A', color: 'white', border: '2px solid #15803D',
+                        borderRadius: '0.375rem', padding: '0.45rem 0.85rem', fontSize: '0.85rem',
+                        fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0
+                      }}
+                    >
+                      Set Up Withdrawal Method
+                    </button>
+                  )}
                 </div>
                 <div style={{
                   display: 'flex',
@@ -1585,7 +2491,7 @@ Amount: ${payment.amount}
                   textAlign: 'right'
                 }}>
                   <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Total Gifts</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>${totalGifts.toFixed(2)}</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>{formatPrice(totalGifts)}</div>
                 </div>
               </div>
             </div>
@@ -1623,7 +2529,7 @@ Amount: ${payment.amount}
                           </span>
                           <span style={{ fontSize: '0.7rem', color: colors.textSecondary }}>{stream.date}</span>
                         </div>
-                        <span style={{ fontSize: '1.05rem', fontWeight: '700', color: '#16A34A' }}>${streamTotal.toFixed(2)}</span>
+                        <span style={{ fontSize: '1.05rem', fontWeight: '700', color: '#16A34A' }}>{formatPrice(streamTotal)}</span>
                       </div>
 
                       {/* Title row */}
@@ -1697,7 +2603,7 @@ Amount: ${payment.amount}
 
           {/* Payments History Table */}
           <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)', overflow: 'hidden' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderBottom: `1px solid ${colors.borderPrimary}` }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderBottom: `2px solid ${colors.borderPrimary}` }}>
               <h2 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary }}>Payment History</h2>
               <button style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: colors.bgCard, border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', padding: '0.5rem 0.75rem', fontSize: '0.85rem', color: colors.textSecondary, cursor: 'pointer' }}>
                 <CalendarIcon />
@@ -1705,8 +2611,8 @@ Amount: ${payment.amount}
               </button>
             </div>
 
-            <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <div className="mobile-table-scroll" style={{ maxHeight: '500px', overflowY: 'auto', overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
               <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
                 <tr style={{ backgroundColor: colors.bgTertiary }}>
                   <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase', backgroundColor: colors.bgTertiary }}>Date</th>
@@ -1720,12 +2626,18 @@ Amount: ${payment.amount}
               </thead>
               <tbody>
                 {payments.map((payment) => (
-                  <tr key={payment.id} style={{ borderBottom: `1px solid ${colors.borderPrimary}` }}>
+                  <tr key={payment.id} style={{ borderBottom: `2px solid ${colors.borderPrimary}` }}>
                     <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.85rem', color: colors.textSecondary }}>{payment.date}</td>
                     <td style={{ padding: '0.875rem 1.25rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
-                          <Image src={payment.photographerImage} alt={payment.photographerName} width={32} height={32} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                          </svg>
+                          {payment.photographerImage && (
+                            <img src={payment.photographerImage} alt={payment.photographerName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                          )}
                         </div>
                         <div>
                           <div style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>{payment.eventName}</div>
@@ -1734,8 +2646,30 @@ Amount: ${payment.amount}
                       </div>
                     </td>
                     <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.85rem', color: colors.textSecondary }}>{payment.method}</td>
-                    <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{payment.amount}</td>
-                    <td style={{ padding: '0.875rem 1.25rem' }}><StatusBadge status={payment.status} /></td>
+                    <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(payment.amountNum)}</td>
+                    <td style={{ padding: '0.875rem 1.25rem' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                        <StatusBadge status={payment.status} />
+                        {payment.escrowStatus === 'HELD' && (
+                          <span style={{
+                            display: 'inline-flex', alignItems: 'center', padding: '0.15rem 0.5rem',
+                            borderRadius: '9999px', fontSize: '0.7rem', fontWeight: '600',
+                            backgroundColor: 'rgba(251, 191, 36, 0.15)', color: '#D97706',
+                          }}>
+                            {payment.escrowPercentage}% held
+                          </span>
+                        )}
+                        {payment.escrowStatus === 'RELEASED' && (
+                          <span style={{
+                            display: 'inline-flex', alignItems: 'center', padding: '0.15rem 0.5rem',
+                            borderRadius: '9999px', fontSize: '0.7rem', fontWeight: '600',
+                            backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#059669',
+                          }}>
+                            Released
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td style={{ padding: '0.875rem 1.25rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>{payment.invoiceNumber}</span>
@@ -1743,8 +2677,8 @@ Amount: ${payment.amount}
                       </div>
                     </td>
                     <td style={{ padding: '0.875rem 1.25rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        {(payment.status === 'pending' || payment.status === 'partially_paid') && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        {(payment.status === 'pending' || payment.status === 'partially_paid') && payment.escrowStatus !== 'HELD' && (
                           <button
                             onClick={() => handlePayNow(payment)}
                             style={{
@@ -1764,6 +2698,31 @@ Amount: ${payment.amount}
                             <CreditCardIcon />
                             Pay Now
                           </button>
+                        )}
+                        {payment.escrowStatus === 'HELD' && payment.eventCompletionStatus === 'COMPLETED' && (
+                          <button
+                            onClick={() => handlePayNow(payment)}
+                            style={{
+                              backgroundColor: '#059669',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '0.375rem',
+                              padding: '0.375rem 0.75rem',
+                              fontSize: '0.75rem',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.25rem'
+                            }}
+                          >
+                            Release Funds
+                          </button>
+                        )}
+                        {payment.escrowStatus === 'HELD' && payment.eventCompletionStatus !== 'COMPLETED' && (
+                          <span style={{ fontSize: '0.75rem', color: '#D97706', fontWeight: '500' }}>
+                            Awaiting completion
+                          </span>
                         )}
                         {payment.status === 'failed' && (
                           <button
@@ -1799,7 +2758,7 @@ Amount: ${payment.amount}
             </div>
 
             {/* Pagination */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderTop: `1px solid ${colors.borderPrimary}` }}>
+            <div className="mobile-pagination" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderTop: `2px solid ${colors.borderPrimary}` }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Showing {resultsPerPage} of {totalResults} Results</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 <button onClick={() => setCurrentPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1} style={{ background: 'none', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', padding: '0.5rem', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', opacity: currentPage === 1 ? 0.5 : 1 }}>
@@ -1824,29 +2783,12 @@ Amount: ${payment.amount}
       </div>
 
       {/* Modals */}
-      <ViewReportModal isOpen={showReportModal} onClose={() => setShowReportModal(false)} />
+      <ViewReportModal isOpen={showReportModal} onClose={() => setShowReportModal(false)} reportData={reportData} />
       <PaymentDetailsModal
         isOpen={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
         payment={selectedPayment}
       />
-      {/* Pay Now Donate Prompt Modal - Shows before pay now modal */}
-      <DonatePromptModal
-        isOpen={showPayNowDonatePromptModal}
-        onClose={() => setShowPayNowDonatePromptModal(false)}
-        onNo={() => {
-          setShowPayNowDonatePromptModal(false);
-          setShowPayNowModal(true);
-        }}
-        onYes={() => {
-          setShowPayNowDonatePromptModal(false);
-          setShowPayNowDonateModal(true);
-        }}
-      />
-
-      {/* Pay Now Donate Modal */}
-      <DonateModal isOpen={showPayNowDonateModal} onClose={() => setShowPayNowDonateModal(false)} />
-
       <PayNowModal
         isOpen={showPayNowModal}
         onClose={() => setShowPayNowModal(false)}
@@ -1902,7 +2844,7 @@ Amount: ${payment.amount}
                       padding: '0.875rem',
                       backgroundColor: colors.bgTertiary,
                       borderRadius: '0.625rem',
-                      border: `1px solid ${colors.borderPrimary}`
+                      border: `2px solid ${colors.borderPrimary}`
                     }}
                   >
                     <div style={{
@@ -1933,7 +2875,7 @@ Amount: ${payment.amount}
                         </div>
                       </div>
                       <span style={{ fontSize: '1rem', fontWeight: '700', color: '#16A34A' }}>
-                        ${gifter.amount.toFixed(2)}
+                        {formatPrice(gifter.amount)}
                       </span>
                     </div>
                     {/* Message from viewer */}
@@ -1987,12 +2929,21 @@ Amount: ${payment.amount}
             }}>
               <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>Total from this stream</span>
               <span style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#4ADE80' : '#16A34A' }}>
-                ${selectedGiftStream.gifters.reduce((s, g) => s + g.amount, 0).toFixed(2)}
+                {formatPrice(selectedGiftStream.gifters.reduce((s, g) => s + g.amount, 0))}
               </span>
             </div>
           </div>
         )}
       </Modal>
+
+      {/* Withdraw Modal */}
+      <WithdrawModal
+        isOpen={showWithdrawModal}
+        onClose={() => setShowWithdrawModal(false)}
+        role="client"
+        colors={colors}
+        actualTheme={actualTheme}
+      />
 
       {/* Gifts Payment Method Modal */}
       <Modal
@@ -2039,25 +2990,6 @@ Amount: ${payment.amount}
             </div>
           </div>
 
-          {/* Rwanda Mobile Money Requirement Notice */}
-          {isRwanda && (
-            <div style={{
-              backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF',
-              border: `1px solid ${actualTheme === 'dark' ? '#3B82F6' : '#BFDBFE'}`,
-              borderRadius: '0.5rem',
-              padding: '0.75rem 1rem',
-              marginBottom: '1rem',
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: '0.5rem'
-            }}>
-              <span style={{ fontSize: '1rem' }}>ℹ️</span>
-              <div style={{ fontSize: '0.85rem', color: actualTheme === 'dark' ? '#93C5FD' : '#1E40AF' }}>
-                <strong>Required for Rwanda:</strong> You must select either MTN or Airtel Mobile Money as a payment method. You can also add other methods optionally.
-              </div>
-            </div>
-          )}
-
           {/* Validation Error */}
           {validationError && (
             <div style={{
@@ -2093,7 +3025,7 @@ Amount: ${payment.amount}
                 alignItems: 'center',
                 gap: '1rem',
                 padding: '1rem',
-                border: selectedGiftPaymentMethod === 'mtn' ? '2px solid #16A34A' : (isRwanda && !hasMobileMoneySelected ? `2px solid #F59E0B` : `2px solid ${colors.borderPrimary}`),
+                border: selectedGiftPaymentMethod === 'mtn' ? '2px solid #16A34A' : (`2px solid ${colors.borderPrimary}`),
                 borderRadius: '0.75rem',
                 cursor: 'pointer',
                 backgroundColor: selectedGiftPaymentMethod === 'mtn' ? (actualTheme === 'dark' ? '#14532D' : '#F0FDF4') : colors.bgCard,
@@ -2101,23 +3033,10 @@ Amount: ${payment.amount}
               }}
             >
               <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0 }}>
-                <Image src="/mtn.png" alt="MTN Mobile Money" width={48} height={48} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                <Image src="/mtn.png" alt="MTN Mobile Money" width={48} height={48} unoptimized style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>MTN Mobile Money</span>
-                  {isRwanda && (
-                    <span style={{
-                      fontSize: '0.65rem',
-                      fontWeight: '600',
-                      color: '#F59E0B',
-                      backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FEF3C7',
-                      padding: '0.15rem 0.4rem',
-                      borderRadius: '0.25rem',
-                      textTransform: 'uppercase'
-                    }}>Required</span>
-                  )}
-                </div>
+                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>MTN Mobile Money</div>
                 <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Receive gifts via MTN MoMo</div>
               </div>
               <div style={{
@@ -2140,7 +3059,7 @@ Amount: ${payment.amount}
                 alignItems: 'center',
                 gap: '1rem',
                 padding: '1rem',
-                border: selectedGiftPaymentMethod === 'airtel' ? '2px solid #16A34A' : (isRwanda && !hasMobileMoneySelected ? `2px solid #F59E0B` : `2px solid ${colors.borderPrimary}`),
+                border: selectedGiftPaymentMethod === 'airtel' ? '2px solid #16A34A' : (`2px solid ${colors.borderPrimary}`),
                 borderRadius: '0.75rem',
                 cursor: 'pointer',
                 backgroundColor: selectedGiftPaymentMethod === 'airtel' ? (actualTheme === 'dark' ? '#14532D' : '#F0FDF4') : colors.bgCard,
@@ -2151,20 +3070,7 @@ Amount: ${payment.amount}
                 <Image src="/airtel.png" alt="Airtel Mobile Money" width={48} height={48} style={{ objectFit: 'cover', width: '100%', height: '100%' }} unoptimized />
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Airtel Mobile Money</span>
-                  {isRwanda && (
-                    <span style={{
-                      fontSize: '0.65rem',
-                      fontWeight: '600',
-                      color: '#F59E0B',
-                      backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FEF3C7',
-                      padding: '0.15rem 0.4rem',
-                      borderRadius: '0.25rem',
-                      textTransform: 'uppercase'
-                    }}>Required</span>
-                  )}
-                </div>
+                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Airtel Mobile Money</div>
                 <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Receive gifts via Airtel Money</div>
               </div>
               <div style={{
@@ -2176,7 +3082,7 @@ Amount: ${payment.amount}
               }} />
             </div>
 
-            {/* Bank Account */}
+            {/* Bank Transfer */}
             <div
               onClick={() => setSelectedGiftPaymentMethod('bank')}
               style={{
@@ -2191,49 +3097,20 @@ Amount: ${payment.amount}
                 transition: 'all 0.2s'
               }}
             >
-              <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0 }}>
-                <Image src="/bank.png" alt="Bank Account" width={48} height={48} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+              <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M3 21H21M3 10H21M5 6L12 3L19 6M4 10V21M20 10V21M8 14V17M12 14V17M16 14V17" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Bank Account</div>
-                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Receive gifts via bank transfer</div>
+                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Bank Transfer</div>
+                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Receive gifts to your bank account</div>
               </div>
               <div style={{
                 width: '20px',
                 height: '20px',
                 borderRadius: '50%',
                 border: selectedGiftPaymentMethod === 'bank' ? '6px solid #16A34A' : `2px solid ${colors.borderPrimary}`,
-                backgroundColor: colors.bgCard
-              }} />
-            </div>
-
-            {/* VISA/Debit/Credit Cards */}
-            <div
-              onClick={() => setSelectedGiftPaymentMethod('card')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem',
-                padding: '1rem',
-                border: selectedGiftPaymentMethod === 'card' ? '2px solid #16A34A' : `2px solid ${colors.borderPrimary}`,
-                borderRadius: '0.75rem',
-                cursor: 'pointer',
-                backgroundColor: selectedGiftPaymentMethod === 'card' ? (actualTheme === 'dark' ? '#14532D' : '#F0FDF4') : colors.bgCard,
-                transition: 'all 0.2s'
-              }}
-            >
-              <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0 }}>
-                <Image src="/cards.png" alt="VISA/Debit/Credit Cards" width={48} height={48} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Debit/Credit Cards</div>
-                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Receive gifts to your card</div>
-              </div>
-              <div style={{
-                width: '20px',
-                height: '20px',
-                borderRadius: '50%',
-                border: selectedGiftPaymentMethod === 'card' ? '6px solid #16A34A' : `2px solid ${colors.borderPrimary}`,
                 backgroundColor: colors.bgCard
               }} />
             </div>
@@ -2246,13 +3123,12 @@ Amount: ${payment.amount}
               borderRadius: '0.75rem',
               padding: '1rem',
               marginBottom: '1.25rem',
-              border: `1px solid ${colors.borderPrimary}`
+              border: `2px solid ${colors.borderPrimary}`
             }}>
               <h4 style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 1rem 0' }}>
                 {selectedGiftPaymentMethod === 'mtn' && 'MTN Mobile Money Details'}
                 {selectedGiftPaymentMethod === 'airtel' && 'Airtel Mobile Money Details'}
                 {selectedGiftPaymentMethod === 'bank' && 'Bank Account Details'}
-                {selectedGiftPaymentMethod === 'card' && 'Card Details'}
               </h4>
 
               {/* MTN Fields */}
@@ -2305,18 +3181,16 @@ Amount: ${payment.amount}
                 </div>
               )}
 
-              {/* Bank Fields */}
+              {/* Bank Transfer Fields */}
               {selectedGiftPaymentMethod === 'bank' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                      Bank Name
+                      Select Bank
                     </label>
-                    <input
-                      type="text"
-                      placeholder="e.g., Stanbic Bank"
-                      value={giftPaymentDetails.bankName}
-                      onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, bankName: e.target.value })}
+                    <select
+                      value={giftPaymentDetails.selectedBank}
+                      onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, selectedBank: e.target.value })}
                       style={{
                         width: '100%',
                         padding: '0.75rem',
@@ -2325,9 +3199,15 @@ Amount: ${payment.amount}
                         fontSize: '0.9rem',
                         backgroundColor: colors.bgCard,
                         color: colors.textPrimary,
-                        boxSizing: 'border-box'
+                        boxSizing: 'border-box',
+                        cursor: 'pointer'
                       }}
-                    />
+                    >
+                      <option value="">Choose a bank...</option>
+                      {bankProviders.map((bank) => (
+                        <option key={bank.id} value={bank.name}>{bank.name}</option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
@@ -2335,9 +3215,9 @@ Amount: ${payment.amount}
                     </label>
                     <input
                       type="text"
-                      placeholder="Enter account number"
-                      value={giftPaymentDetails.accountNumber}
-                      onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, accountNumber: e.target.value })}
+                      placeholder="Enter your bank account number"
+                      value={giftPaymentDetails.bankAccountNumber}
+                      onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, bankAccountNumber: e.target.value })}
                       style={{
                         width: '100%',
                         padding: '0.75rem',
@@ -2352,13 +3232,13 @@ Amount: ${payment.amount}
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                      Account Name
+                      Account Holder Name
                     </label>
                     <input
                       type="text"
-                      placeholder="Name on account"
-                      value={giftPaymentDetails.accountName}
-                      onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, accountName: e.target.value })}
+                      placeholder="Name as it appears on your bank account"
+                      value={giftPaymentDetails.bankAccountName}
+                      onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, bankAccountName: e.target.value })}
                       style={{
                         width: '100%',
                         padding: '0.75rem',
@@ -2370,98 +3250,6 @@ Amount: ${payment.amount}
                         boxSizing: 'border-box'
                       }}
                     />
-                  </div>
-                </div>
-              )}
-
-              {/* Card Fields */}
-              {selectedGiftPaymentMethod === 'card' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                      Card Number
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="1234 5678 9012 3456"
-                      value={giftPaymentDetails.cardNumber}
-                      onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, cardNumber: e.target.value })}
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        border: `2px solid ${colors.borderPrimary}`,
-                        borderRadius: '0.5rem',
-                        fontSize: '0.9rem',
-                        backgroundColor: colors.bgCard,
-                        color: colors.textPrimary,
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                      Name on Card
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="John Doe"
-                      value={giftPaymentDetails.cardName}
-                      onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, cardName: e.target.value })}
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        border: `2px solid ${colors.borderPrimary}`,
-                        borderRadius: '0.5rem',
-                        fontSize: '0.9rem',
-                        backgroundColor: colors.bgCard,
-                        color: colors.textPrimary,
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                        Expiry Date
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="MM/YY"
-                        value={giftPaymentDetails.cardExpiry}
-                        onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, cardExpiry: e.target.value })}
-                        style={{
-                          width: '100%',
-                          padding: '0.75rem',
-                          border: `2px solid ${colors.borderPrimary}`,
-                          borderRadius: '0.5rem',
-                          fontSize: '0.9rem',
-                          backgroundColor: colors.bgCard,
-                          color: colors.textPrimary,
-                          boxSizing: 'border-box'
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                        CVV
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="123"
-                        value={giftPaymentDetails.cardCvv}
-                        onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, cardCvv: e.target.value })}
-                        style={{
-                          width: '100%',
-                          padding: '0.75rem',
-                          border: `2px solid ${colors.borderPrimary}`,
-                          borderRadius: '0.5rem',
-                          fontSize: '0.9rem',
-                          backgroundColor: colors.bgCard,
-                          color: colors.textPrimary,
-                          boxSizing: 'border-box'
-                        }}
-                      />
-                    </div>
                   </div>
                 </div>
               )}
@@ -2491,52 +3279,27 @@ Amount: ${payment.amount}
               Cancel
             </button>
             <button
-              onClick={() => {
-                // Validate Rwanda mobile money requirement
-                if (!validateGiftPaymentMethod()) {
-                  return;
-                }
-                // Handle save payment method
-                setShowGiftsPaymentMethodModal(false);
-                setSelectedGiftPaymentMethod(null);
-                setValidationError(null);
-              }}
-              disabled={!selectedGiftPaymentMethod}
+              onClick={saveWithdrawalMethod}
+              disabled={!selectedGiftPaymentMethod || savingWithdrawal}
               style={{
                 flex: 1,
                 padding: '0.75rem 1rem',
                 border: '2px solid #15803D',
                 borderRadius: '0.5rem',
-                background: selectedGiftPaymentMethod ? '#16A34A' : colors.bgTertiary,
-                color: selectedGiftPaymentMethod ? 'white' : colors.textSecondary,
+                background: selectedGiftPaymentMethod && !savingWithdrawal ? '#16A34A' : colors.bgTertiary,
+                color: selectedGiftPaymentMethod && !savingWithdrawal ? 'white' : colors.textSecondary,
                 fontSize: '0.9rem',
                 fontWeight: '600',
-                cursor: selectedGiftPaymentMethod ? 'pointer' : 'not-allowed',
-                opacity: selectedGiftPaymentMethod ? 1 : 0.6
+                cursor: selectedGiftPaymentMethod && !savingWithdrawal ? 'pointer' : 'not-allowed',
+                opacity: selectedGiftPaymentMethod && !savingWithdrawal ? 1 : 0.6
               }}
             >
-              Save Withdrawal Method
+              {savingWithdrawal ? 'Saving...' : 'Save Withdrawal Method'}
             </button>
           </div>
         </div>
       </Modal>
 
-      {/* Gifts Donate Prompt Modal - Shows before gifts payment modal */}
-      <DonatePromptModal
-        isOpen={showGiftsDonatePromptModal}
-        onClose={() => setShowGiftsDonatePromptModal(false)}
-        onNo={() => {
-          setShowGiftsDonatePromptModal(false);
-          setShowGiftsPaymentMethodModal(true);
-        }}
-        onYes={() => {
-          setShowGiftsDonatePromptModal(false);
-          setShowGiftsDonateModal(true);
-        }}
-      />
-
-      {/* Gifts Donate Modal */}
-      <DonateModal isOpen={showGiftsDonateModal} onClose={() => setShowGiftsDonateModal(false)} />
 
       {/* Print Styles */}
       <style>{`

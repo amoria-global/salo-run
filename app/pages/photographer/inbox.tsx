@@ -1,10 +1,23 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
+import { useSearchParams } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
+import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
+import { getApiUrl, normalizeImageUrl } from '@/lib/api';
+import { checkMessageContent, checkMessageWithHistory } from '@/lib/messageFilter';
+
+const normalizeImg = (url: string | undefined | null): string => {
+  if (!url || url === 'null' || url.endsWith('/null')) return '';
+  let u = url; 
+  if (!u.includes('/') && !u.startsWith('http')) {
+    u = `${getApiUrl()}/uploads/profile/photos/${u}`;
+  }
+  return normalizeImageUrl(u) || ''; 
+};
 
 // Icons
 const SearchIcon = () => (
@@ -119,12 +132,11 @@ interface Conversation {
   messages: Message[];
 }
 
-interface InboxProps {
-  userType?: 'photographer' | 'freelancer';
-}
-
-const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
+const InboxPage = () => {
   const { colors, actualTheme } = useTheme();
+  const { user } = useDashboardAuth();
+  const searchParams = useSearchParams();
+  const urlClientId = searchParams.get('clientId');
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [messageInput, setMessageInput] = useState('');
@@ -133,9 +145,21 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
   const [activeEmojiCategory, setActiveEmojiCategory] = useState('Smileys');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const conversationsRef = useRef<Conversation[]>([]);
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editMessageContent, setEditMessageContent] = useState('');
+  const [balance, setBalance] = useState<any>(null);
+  const [isSending, setIsSending] = useState(false);
+  const [chatError, setChatError] = useState<string | null>(null);
+  const [contentWarning, setContentWarning] = useState<string | null>(null);
+  const apiUrl = getApiUrl();
+
+  // New Chat states
+  const [showNewChatModal, setShowNewChatModal] = useState(false);
+  const [contacts, setContacts] = useState<{ id: string; name: string; image: string; speciality?: string }[]>([]);
+  const [isLoadingContacts, setIsLoadingContacts] = useState(false);
+  const [contactSearchQuery, setContactSearchQuery] = useState('');
 
   // Close emoji picker when clicking outside
   useEffect(() => {
@@ -152,153 +176,194 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
     setMessageInput(prev => prev + emoji);
   };
 
-  const currentUserId = 'current-user';
+  const currentUserId = user?.id || '';
 
-  const [conversations, setConversations] = useState<Conversation[]>([
-    {
-      id: '1',
-      participants: [
-        { id: '1', name: 'Sarah Johnson', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'client', isOnline: true },
-        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: userType, isOnline: true }
-      ],
-      lastMessage: { content: 'Thank you for the beautiful photos!', senderId: '1', createdAt: '2025-07-19T14:30:00' },
-      unreadCount: 2,
-      isPinned: true,
-      isMuted: false,
-      bookingId: 'BK-001',
-      messages: [
-        { id: 'm1', conversationId: '1', senderId: '1', senderName: 'Sarah Johnson', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Hi! I would like to book a wedding photoshoot', type: 'text', isRead: true, createdAt: '2025-07-19T10:00:00' },
-        { id: 'm2', conversationId: '1', senderId: currentUserId, senderName: 'John Studio', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Hello Sarah! I would be happy to help. When is your wedding date?', type: 'text', isRead: true, createdAt: '2025-07-19T10:15:00' },
-        { id: 'm3', conversationId: '1', senderId: '1', senderName: 'Sarah Johnson', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'It is on June 15th, 2025. Do you have availability?', type: 'text', isRead: true, createdAt: '2025-07-19T10:30:00' },
-        { id: 'm4', conversationId: '1', senderId: currentUserId, senderName: 'John Studio', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Yes, I am available on that date! Let me send you my wedding packages.', type: 'text', isRead: true, createdAt: '2025-07-19T11:00:00' },
-        { id: 'm5', conversationId: '1', senderId: '1', senderName: 'Sarah Johnson', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'That sounds great! When can we expect the photos?', type: 'text', isRead: false, createdAt: '2025-07-19T14:00:00' },
-        { id: 'm6', conversationId: '1', senderId: '1', senderName: 'Sarah Johnson', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Thank you for the beautiful photos!', type: 'text', isRead: false, createdAt: '2025-07-19T14:30:00' }
-      ]
-    },
-    {
-      id: '2',
-      participants: [
-        { id: '2', name: 'Michael Chen', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'client', isOnline: false, lastSeen: '2 hours ago' },
-        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: userType, isOnline: true }
-      ],
-      lastMessage: { content: 'When can we schedule the portrait session?', senderId: '2', createdAt: '2025-07-18T16:45:00' },
-      unreadCount: 0,
-      isPinned: false,
-      isMuted: false,
-      messages: [
-        { id: 'm7', conversationId: '2', senderId: '2', senderName: 'Michael Chen', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Hello, I saw your portfolio and I am interested in a corporate portrait session', type: 'text', isRead: true, createdAt: '2025-07-18T14:00:00' },
-        { id: 'm8', conversationId: '2', senderId: currentUserId, senderName: 'John Studio', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Thank you for reaching out! I would love to work with you. What type of corporate portraits are you looking for?', type: 'text', isRead: true, createdAt: '2025-07-18T15:00:00' },
-        { id: 'm9', conversationId: '2', senderId: '2', senderName: 'Michael Chen', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'When can we schedule the portrait session?', type: 'text', isRead: true, createdAt: '2025-07-18T16:45:00' }
-      ]
-    },
-    {
-      id: '3',
-      participants: [
-        { id: '3', name: 'Emily Rodriguez', image: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg', userType: 'client', isOnline: true },
-        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: userType, isOnline: true }
-      ],
-      lastMessage: { content: 'I received the edited photos. They look amazing!', senderId: '3', createdAt: '2025-07-17T09:30:00' },
-      unreadCount: 1,
-      isPinned: false,
-      isMuted: false,
-      messages: [
-        { id: 'm10', conversationId: '3', senderId: currentUserId, senderName: 'John Studio', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Hi Emily! Your edited photos are ready. I have sent them to your email.', type: 'text', isRead: true, createdAt: '2025-07-16T18:00:00' },
-        { id: 'm11', conversationId: '3', senderId: '3', senderName: 'Emily Rodriguez', senderImage: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg', content: 'I received the edited photos. They look amazing!', type: 'text', isRead: false, createdAt: '2025-07-17T09:30:00' }
-      ]
-    },
-    {
-      id: '4',
-      participants: [
-        { id: '4', name: 'David Park', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'client', isOnline: false, lastSeen: '1 day ago' },
-        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: userType, isOnline: true }
-      ],
-      lastMessage: { content: 'Can you also do video coverage?', senderId: '4', createdAt: '2025-07-15T11:20:00' },
-      unreadCount: 0,
-      isPinned: true,
-      isMuted: true,
-      bookingId: 'BK-002',
-      messages: [
-        { id: 'm13', conversationId: '4', senderId: '4', senderName: 'David Park', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Hi! I need photography for my product launch event in Seattle', type: 'text', isRead: true, createdAt: '2025-07-14T10:00:00' },
-        { id: 'm14', conversationId: '4', senderId: currentUserId, senderName: 'John Studio', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Hello David! I would be glad to cover your event. Can you tell me more about it?', type: 'text', isRead: true, createdAt: '2025-07-14T14:00:00' },
-        { id: 'm15', conversationId: '4', senderId: '4', senderName: 'David Park', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Can you also do video coverage?', type: 'text', isRead: true, createdAt: '2025-07-15T11:20:00' }
-      ]
-    },
-    {
-      id: '5',
-      participants: [
-        { id: '5', name: 'Jessica Williams', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'client', isOnline: true },
-        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: userType, isOnline: true }
-      ],
-      lastMessage: { content: 'Looking forward to the engagement shoot!', senderId: '5', createdAt: '2025-07-14T09:15:00' },
-      unreadCount: 1,
-      isPinned: false,
-      isMuted: false,
-      messages: [
-        { id: 'm16', conversationId: '5', senderId: '5', senderName: 'Jessica Williams', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Hi! We\'re getting engaged and need photos.', type: 'text', isRead: true, createdAt: '2025-07-13T15:00:00' },
-        { id: 'm17', conversationId: '5', senderId: '5', senderName: 'Jessica Williams', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Looking forward to the engagement shoot!', type: 'text', isRead: false, createdAt: '2025-07-14T09:15:00' }
-      ]
-    },
-    {
-      id: '6',
-      participants: [
-        { id: '6', name: 'Robert Martinez', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'client', isOnline: false, lastSeen: '3 hours ago' },
-        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: userType, isOnline: true }
-      ],
-      lastMessage: { content: 'Can you send me a quote for the real estate photos?', senderId: '6', createdAt: '2025-07-13T16:30:00' },
-      unreadCount: 0,
-      isPinned: false,
-      isMuted: false,
-      messages: [
-        { id: 'm18', conversationId: '6', senderId: '6', senderName: 'Robert Martinez', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'I have 5 properties that need professional photos.', type: 'text', isRead: true, createdAt: '2025-07-13T14:00:00' },
-        { id: 'm19', conversationId: '6', senderId: '6', senderName: 'Robert Martinez', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Can you send me a quote for the real estate photos?', type: 'text', isRead: true, createdAt: '2025-07-13T16:30:00' }
-      ]
-    },
-    {
-      id: '7',
-      participants: [
-        { id: '7', name: 'Amanda Lee', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'client', isOnline: true },
-        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: userType, isOnline: true }
-      ],
-      lastMessage: { content: 'The family portraits turned out beautiful!', senderId: '7', createdAt: '2025-07-12T18:00:00' },
-      unreadCount: 0,
-      isPinned: false,
-      isMuted: false,
-      messages: [
-        { id: 'm20', conversationId: '7', senderId: '7', senderName: 'Amanda Lee', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Thank you so much for the session yesterday!', type: 'text', isRead: true, createdAt: '2025-07-12T12:00:00' },
-        { id: 'm21', conversationId: '7', senderId: '7', senderName: 'Amanda Lee', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'The family portraits turned out beautiful!', type: 'text', isRead: true, createdAt: '2025-07-12T18:00:00' }
-      ]
-    },
-    {
-      id: '8',
-      participants: [
-        { id: '8', name: 'Chris Thompson', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: 'client', isOnline: false, lastSeen: '5 hours ago' },
-        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: userType, isOnline: true }
-      ],
-      lastMessage: { content: 'Do you do sports photography?', senderId: '8', createdAt: '2025-07-11T14:45:00' },
-      unreadCount: 2,
-      isPinned: false,
-      isMuted: false,
-      messages: [
-        { id: 'm22', conversationId: '8', senderId: '8', senderName: 'Chris Thompson', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Hey! I coach a youth soccer team.', type: 'text', isRead: true, createdAt: '2025-07-11T10:00:00' },
-        { id: 'm23', conversationId: '8', senderId: '8', senderName: 'Chris Thompson', senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', content: 'Do you do sports photography?', type: 'text', isRead: false, createdAt: '2025-07-11T14:45:00' }
-      ]
-    },
-    {
-      id: '9',
-      participants: [
-        { id: '9', name: 'Sophia Brown', image: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', userType: 'client', isOnline: true },
-        { id: currentUserId, name: 'John Studio', image: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', userType: userType, isOnline: true }
-      ],
-      lastMessage: { content: 'I need maternity photos for next month.', senderId: '9', createdAt: '2025-07-10T11:30:00' },
-      unreadCount: 0,
-      isPinned: false,
-      isMuted: false,
-      messages: [
-        { id: 'm24', conversationId: '9', senderId: '9', senderName: 'Sophia Brown', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'Hi! I found your work on Instagram.', type: 'text', isRead: true, createdAt: '2025-07-10T09:00:00' },
-        { id: 'm25', conversationId: '9', senderId: '9', senderName: 'Sophia Brown', senderImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', content: 'I need maternity photos for next month.', type: 'text', isRead: true, createdAt: '2025-07-10T11:30:00' }
-      ]
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  conversationsRef.current = conversations;
+
+  // Keep ref in sync so callbacks can read current unreadCounts without stale closure
+  useEffect(() => { conversationsRef.current = conversations; }, [conversations]);
+
+  const fetchConversations = useCallback(async () => {
+    try {
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/chat/conversations`);
+      if (res.ok) {
+        const data = await res.json();
+        const list = data.data || data || [];
+        if (Array.isArray(list) && list.length > 0) {
+          const mapped = list.map((c: any) => ({
+            id: c.id || c.partnerId || '',
+            participants: c.participants || [
+              { id: currentUserId, name: '', image: '', userType: 'photographer', isOnline: true },
+              { id: c.partnerId || c.id, name: c.partnerName || c.name || '', image: normalizeImg(c.partnerImage || c.image), userType: 'client', isOnline: false },
+            ],
+            lastMessage: c.lastMessage || (c.lastMessageContent ? { content: c.lastMessageContent, senderId: c.lastSenderId || '', createdAt: c.lastMessageAt || '' } : undefined),
+            unreadCount: c.unreadCount || 0,
+            isPinned: c.isPinned || false,
+            isMuted: c.isMuted || false,
+            messages: [],
+          }));
+          const validConversations = mapped.filter((c: any) =>
+            c.participants.some((p: any) => p.id && p.id !== currentUserId)
+          );
+          setConversations(validConversations);
+          const totalUnread = validConversations.reduce((sum: number, c: any) => sum + (c.unreadCount || 0), 0);
+          window.dispatchEvent(new CustomEvent('inbox:totalCount', { detail: { total: totalUnread } }));
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch conversations:', err);
     }
-  ]);
+  }, [apiUrl, currentUserId]);
+
+  // Load messages for a conversation
+  const loadMessages = useCallback(async (partnerId: string) => {
+    try {
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/chat/messages/${partnerId}`);
+      if (res.ok) {
+        const data = await res.json();
+        const msgs = data.data || data || [];
+        if (Array.isArray(msgs)) {
+          setConversations(prev => prev.map(conv =>
+            conv.id === partnerId
+              ? {
+                  ...conv,
+                  messages: msgs.map((m: any) => ({
+                    id: m.id || '',
+                    conversationId: partnerId,
+                    senderId: m.senderId || m.sender?.id || '',
+                    senderName: m.senderName || m.sender?.name || '',
+                    senderImage: normalizeImg(m.senderImage || m.sender?.image),
+                    content: m.content || m.message || '',
+                    type: (m.type || 'text') as Message['type'],
+                    attachments: m.attachments || [],
+                    isRead: m.isRead ?? true,
+                    createdAt: m.createdAt || m.sentAt || new Date().toISOString(),
+                  })),
+                }
+              : conv
+          ));
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load messages:', err);
+    }
+  }, [apiUrl]);
+
+  // Mark messages as read
+  const markConversationAsRead = useCallback(async (partnerId: string) => {
+    // Compute the new unread total from the ref (always current, no stale-closure risk)
+    // by zeroing out the conversation being read, then dispatch the exact total so the
+    // sidebar badge is always accurate regardless of timing.
+    const newTotal = conversationsRef.current
+      .map(conv => conv.id === partnerId ? { ...conv, unreadCount: 0 } : conv)
+      .reduce((sum, c) => sum + (c.unreadCount || 0), 0);
+    setConversations(prev => prev.map(conv =>
+      conv.id === partnerId ? { ...conv, unreadCount: 0 } : conv
+    ));
+    window.dispatchEvent(new CustomEvent('inbox:totalCount', { detail: { total: newTotal } }));
+    try {
+      await dashboardAuthFetch(`${apiUrl}/api/remote/chat/messages/${partnerId}/read`, { method: 'PATCH' });
+    } catch (err) {
+      console.error('Failed to mark conversation as read:', err);
+    }
+  }, [apiUrl]);
+
+  // Fetch conversations on mount
+  useEffect(() => {
+    if (currentUserId) {
+      fetchConversations();
+    }
+  }, [currentUserId, fetchConversations]);
+
+  // Fetch clients/contacts for New Chat
+  const fetchContacts = useCallback(async () => {
+    setIsLoadingContacts(true);
+    try {
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/clients`);
+      if (res.ok) {
+        const data = await res.json();
+        const list = (data.data?.content || data.data || []).map((p: any) => ({
+          id: p.id || '',
+          name: `${(p.firstName || '')} ${(p.lastName || '')}`.trim() || p.name || 'Client',
+          image: normalizeImg(p.profilePicture || p.image),
+          speciality: p.speciality || p.category || '',
+        }));
+        setContacts(list);
+      }
+    } catch (err) {
+      console.error('Failed to fetch contacts:', err);
+    } finally {
+      setIsLoadingContacts(false);
+    }
+  }, [apiUrl]);
+
+  // Start or open conversation with a contact
+  const startConversation = (contact: { id: string; name: string; image: string }) => {
+    const existing = conversations.find(conv =>
+      conv.participants.some(p => p.id === contact.id)
+    );
+    if (existing) {
+      handleSelectConversation(existing.id);
+    } else {
+      const newConv: Conversation = {
+        id: contact.id,
+        participants: [
+          { id: currentUserId, name: user?.firstName ? `${user.firstName} ${user.lastName || ''}` : '', image: normalizeImg(user?.profilePicture), userType: 'photographer', isOnline: true },
+          { id: contact.id, name: contact.name, image: normalizeImg(contact.image), userType: 'client', isOnline: false },
+        ],
+        unreadCount: 0,
+        isPinned: false,
+        isMuted: false,
+        messages: [],
+      };
+      setConversations(prev => [newConv, ...prev]);
+      setSelectedConversation(contact.id);
+    }
+    setShowNewChatModal(false);
+    setContactSearchQuery('');
+  };
+
+  // Fetch balance
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/balance`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.action === 1 && data.data) {
+            setBalance(data.data);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch balance:', err);
+      }
+    })();
+  }, [apiUrl]);
+
+  const handleSelectConversation = useCallback((convId: string) => {
+    setSelectedConversation(convId);
+    loadMessages(convId);
+    // Always call markConversationAsRead — avoids stale-closure issues where conversations
+    // may not be loaded yet when this fires. The API is idempotent.
+    markConversationAsRead(convId);
+  }, [loadMessages, markConversationAsRead]);
+
+  // Auto-open conversation when redirected from public platform with ?clientId=
+  useEffect(() => {
+    if (!urlClientId || selectedConversation) return;
+    setSelectedConversation(urlClientId);
+    loadMessages(urlClientId);
+  }, [urlClientId, selectedConversation, loadMessages]);
+
+  // Poll messages for active conversation to receive edits/new messages from other party
+  useEffect(() => {
+    if (!selectedConversation) return;
+    const interval = setInterval(() => {
+      loadMessages(selectedConversation);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [selectedConversation, loadMessages]);
 
   // Scroll to bottom of messages
   useEffect(() => {
@@ -330,16 +395,31 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
     return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   };
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (!messageInput.trim() || !selectedConversation) return;
 
-    const newMessage: Message = {
-      id: `m${Date.now()}`,
+    if (isSending) return;
+    const conv = conversations.find(c => c.id === selectedConversation);
+    const recentMsgs = (conv?.messages || []).map(m => ({ content: m.content, senderId: m.senderId }));
+    const filterResult = checkMessageWithHistory(messageInput, recentMsgs, currentUserId);
+    if (filterResult.blocked) {
+      setContentWarning(filterResult.reason);
+      return;
+    }
+    setContentWarning(null);
+    const content = messageInput;
+    setMessageInput('');
+    setIsSending(true);
+    setChatError(null);
+
+    // Optimistic local update
+    const tempMessage: Message = {
+      id: `temp-${Date.now()}`,
       conversationId: selectedConversation,
       senderId: currentUserId,
-      senderName: 'John Studio',
-      senderImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
-      content: messageInput,
+      senderName: user?.firstName ? `${user.firstName} ${user.lastName || ''}` : '',
+      senderImage: normalizeImg(user?.profilePicture),
+      content,
       type: 'text',
       isRead: false,
       createdAt: new Date().toISOString()
@@ -349,14 +429,53 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
       if (conv.id === selectedConversation) {
         return {
           ...conv,
-          messages: [...conv.messages, newMessage],
-          lastMessage: { content: messageInput, senderId: currentUserId, createdAt: newMessage.createdAt }
+          messages: [...conv.messages, tempMessage],
+          lastMessage: { content, senderId: currentUserId, createdAt: tempMessage.createdAt }
         };
       }
       return conv;
     }));
 
-    setMessageInput('');
+    try {
+      const formData = new FormData();
+      formData.append('senderId', currentUserId);
+      formData.append('recipientId', selectedConversation);
+      formData.append('content', content);
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/chat/send`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (res.ok) {
+        const result = await res.json();
+        const realId = result.data?.id || result.id;
+        if (realId) {
+          setConversations(prev => prev.map(conv =>
+            conv.id === selectedConversation
+              ? { ...conv, messages: conv.messages.map(msg => msg.id === tempMessage.id ? { ...msg, id: realId } : msg) }
+              : conv
+          ));
+        }
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setChatError(data.message || 'Failed to send message. Please try again.');
+        setConversations(prev => prev.map(conv =>
+          conv.id === selectedConversation
+            ? { ...conv, messages: conv.messages.filter(msg => msg.id !== tempMessage.id) }
+            : conv
+        ));
+        setMessageInput(content);
+      }
+    } catch {
+      setChatError('Failed to send message. Please try again.');
+      setConversations(prev => prev.map(conv =>
+        conv.id === selectedConversation
+          ? { ...conv, messages: conv.messages.filter(msg => msg.id !== tempMessage.id) }
+          : conv
+      ));
+      setMessageInput(content);
+    } finally {
+      setIsSending(false);
+    }
   };
 
   // Message action handlers
@@ -365,23 +484,59 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
     setEditMessageContent(currentContent);
   };
 
-  const saveEditedMessage = () => {
+  const saveEditedMessage = async () => {
     if (!editingMessageId || !editMessageContent.trim() || !selectedConversation) return;
+    const editFilterResult = checkMessageContent(editMessageContent);
+    if (editFilterResult.blocked) {
+      setContentWarning(editFilterResult.reason);
+      return;
+    }
+    setContentWarning(null);
 
+    const msgId = editingMessageId;
+    const newContent = editMessageContent;
+    setEditingMessageId(null);
+    setEditMessageContent('');
+
+    // Capture original content before optimistic update for potential revert
+    const originalConv = conversations.find(c => c.id === selectedConversation);
+    const originalContent = originalConv?.messages.find(m => m.id === msgId)?.content ?? newContent;
+
+    // Optimistic update
     setConversations(prev => prev.map(conv => {
       if (conv.id === selectedConversation) {
         return {
           ...conv,
           messages: conv.messages.map(msg =>
-            msg.id === editingMessageId ? { ...msg, content: editMessageContent } : msg
+            msg.id === msgId ? { ...msg, content: newContent } : msg
           )
         };
       }
       return conv;
     }));
 
-    setEditingMessageId(null);
-    setEditMessageContent('');
+    try {
+      const res = await dashboardAuthFetch(
+        `${apiUrl}/api/remote/chat/messages/${msgId}`,
+        { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ senderId: currentUserId, content: newContent }) }
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setChatError(data.message || 'Failed to edit message. Please try again.');
+        setConversations(prev => prev.map(conv =>
+          conv.id === selectedConversation
+            ? { ...conv, messages: conv.messages.map(msg => msg.id === msgId ? { ...msg, content: originalContent } : msg) }
+            : conv
+        ));
+      }
+    } catch {
+      setChatError('Failed to edit message. Please try again.');
+      setConversations(prev => prev.map(conv =>
+        conv.id === selectedConversation
+          ? { ...conv, messages: conv.messages.map(msg => msg.id === msgId ? { ...msg, content: originalContent } : msg) }
+          : conv
+      ));
+    }
   };
 
   const cancelEdit = () => {
@@ -389,9 +544,10 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
     setEditMessageContent('');
   };
 
-  const handleDeleteMessage = (messageId: string) => {
+  const handleDeleteMessage = async (messageId: string) => {
     if (!selectedConversation) return;
 
+    // Optimistic update
     setConversations(prev => prev.map(conv => {
       if (conv.id === selectedConversation) {
         const updatedMessages = conv.messages.filter(msg => msg.id !== messageId);
@@ -404,6 +560,18 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
       }
       return conv;
     }));
+
+    try {
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/chat/messages/${messageId}?senderId=${currentUserId}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setChatError(data.message || 'Failed to delete message. Please try again.');
+        loadMessages(selectedConversation);
+      }
+    } catch {
+      setChatError('Failed to delete message. Please try again.');
+      loadMessages(selectedConversation);
+    }
   };
 
   const filteredConversations = conversations.filter(conv => {
@@ -537,7 +705,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div className={`mobile-topbar ${selectedConversation ? 'mobile-chat-active' : ''}`}>
-          <Topbar userRole={userType} tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
+          <Topbar userRole="photographer" tipsAmount={balance?.totalTips || 0} bonusAmount={balance?.totalBonuses || 0} balanceAmount={balance?.availableBalance || 0} />
         </div>
         <div className="mobile-inbox-container" style={{ flex: 1, display: 'flex', overflow: 'hidden', margin: '0 1.25rem 1rem 1.25rem' }}>
 
@@ -546,16 +714,40 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
             width: '340px',
             backgroundColor: colors.bgCard,
             borderRadius: '0.75rem 0 0 0.75rem',
-            border: `1px solid ${colors.borderPrimary}`,
-            borderRight: `1px solid ${colors.borderPrimary}`,
+            border: `2px solid ${colors.borderPrimary}`,
+            borderRight: `2px solid ${colors.borderPrimary}`,
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
             boxShadow: colors.shadowSm
           }}>
             {/* Header */}
-            <div className="mobile-conversations-list-header" style={{ padding: '1rem', borderBottom: `1px solid ${colors.borderPrimary}` }}>
-              <h1 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '1rem' }}>Messages</h1>
+            <div className="mobile-conversations-list-header" style={{ padding: '1rem', borderBottom: `2px solid ${colors.borderPrimary}` }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h1 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Messages</h1>
+                <button
+                  onClick={() => { setShowNewChatModal(true); setContactSearchQuery(''); fetchContacts(); }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.375rem',
+                    padding: '0.375rem 0.75rem',
+                    border: '2px solid #062a63',
+                    borderRadius: '0.375rem',
+                    backgroundColor: '#083A85',
+                    color: 'white',
+                    fontSize: '0.8rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  New Chat
+                </button>
+              </div>
 
               {/* Search */}
               <div style={{ position: 'relative', marginBottom: '0.75rem' }}>
@@ -608,6 +800,13 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
 
             {/* Conversations */}
             <div style={{ flex: 1, overflowY: 'auto' }}>
+              {filteredConversations.length === 0 && (
+                <div style={{ padding: '3rem 1rem', textAlign: 'center', color: colors.textSecondary }}>
+                  <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>💬</div>
+                  <p style={{ fontSize: '0.9rem', fontWeight: 600, color: colors.textPrimary, margin: '0 0 0.25rem 0' }}>No conversations yet</p>
+                  <p style={{ fontSize: '0.8rem', margin: 0 }}>Your chats with clients will appear here.</p>
+                </div>
+              )}
               {filteredConversations.map((conv) => {
                 const other = getOtherParticipant(conv);
                 if (!other) return null;
@@ -616,14 +815,21 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                   <div
                     key={conv.id}
                     className="mobile-conversation-item"
-                    onClick={() => setSelectedConversation(conv.id)}
+                    onClick={() => handleSelectConversation(conv.id)}
                     style={{
                       display: 'flex',
                       gap: '0.75rem',
                       padding: '0.875rem 1rem',
                       cursor: 'pointer',
-                      backgroundColor: selectedConversation === conv.id ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
+                      backgroundColor: selectedConversation === conv.id
+                        ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF')
+                        : conv.unreadCount > 0
+                          ? (actualTheme === 'dark' ? '#162032' : '#F5F9FF')
+                          : colors.bgCard,
                       borderBottom: `2px solid ${colors.borderPrimary}`,
+                      borderLeft: conv.unreadCount > 0 && selectedConversation !== conv.id
+                        ? '3px solid #F20C8F'
+                        : '3px solid transparent',
                       transition: 'background-color 0.2s'
                     }}
                   >
@@ -633,15 +839,23 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                         width: '48px',
                         height: '48px',
                         borderRadius: '50%',
-                        overflow: 'hidden'
+                        overflow: 'hidden',
+                        backgroundColor: '#E5E7EB',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
                       }}>
-                        <Image
-                          src={other.image}
-                          alt={other.name}
-                          width={48}
-                          height={48}
-                          style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                        />
+                        {other.image ? (
+                          <img
+                            src={other.image}
+                            alt={other.name}
+                            style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                            onError={(e) => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement)?.style.setProperty('display', 'flex'); }}
+                          />
+                        ) : null}
+                        <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'linear-gradient(135deg, #083A85, #3B82F6)', display: other.image ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '1.1rem', fontWeight: 700 }}>
+                          {other.name?.charAt(0)?.toUpperCase() || '?'}
+                        </div>
                       </div>
                       {other.isOnline && (
                         <div style={{
@@ -711,7 +925,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
             flex: 1,
             backgroundColor: colors.bgCard,
             borderRadius: '0 0.75rem 0.75rem 0',
-            border: `1px solid ${colors.borderPrimary}`,
+            border: `2px solid ${colors.borderPrimary}`,
             borderLeft: 'none',
             display: 'flex',
             flexDirection: 'column',
@@ -726,7 +940,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   padding: '1rem 1.25rem',
-                  borderBottom: `1px solid ${colors.borderPrimary}`
+                  borderBottom: `2px solid ${colors.borderPrimary}`
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <button
@@ -743,15 +957,23 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                         width: '44px',
                         height: '44px',
                         borderRadius: '50%',
-                        overflow: 'hidden'
+                        overflow: 'hidden',
+                        backgroundColor: '#E5E7EB',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
                       }}>
-                        <Image
-                          src={otherParticipant.image}
-                          alt={otherParticipant.name}
-                          width={44}
-                          height={44}
-                          style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                        />
+                        {otherParticipant.image ? (
+                          <img
+                            src={otherParticipant.image}
+                            alt={otherParticipant.name}
+                            style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                            onError={(e) => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement)?.style.setProperty('display', 'flex'); }}
+                          />
+                        ) : null}
+                        <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: 'linear-gradient(135deg, #083A85, #3B82F6)', display: otherParticipant.image ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '1rem', fontWeight: 700 }}>
+                          {otherParticipant.name?.charAt(0)?.toUpperCase() || '?'}
+                        </div>
                       </div>
                       {otherParticipant.isOnline && (
                         <div style={{
@@ -803,13 +1025,17 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                               alignSelf: 'flex-end',
                               flexShrink: 0
                             }}>
-                              <Image
-                                src={message.senderImage}
-                                alt={message.senderName}
-                                width={32}
-                                height={32}
-                                style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                              />
+                              {message.senderImage ? (
+                                <img
+                                  src={message.senderImage}
+                                  alt={message.senderName}
+                                  style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                                  onError={(e) => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement)?.style.setProperty('display', 'flex'); }}
+                                />
+                              ) : null}
+                              <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #083A85, #3B82F6)', display: message.senderImage ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.75rem', fontWeight: 700 }}>
+                                {message.senderName?.charAt(0)?.toUpperCase() || '?'}
+                              </div>
                             </div>
                           )}
                           {!isOwn && !showAvatar && <div style={{ width: '32px' }} />}
@@ -827,7 +1053,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                                 style={{
                                   padding: '0.375rem',
                                   backgroundColor: colors.bgCard,
-                                  border: `1px solid ${colors.borderPrimary}`,
+                                  border: `2px solid ${colors.borderPrimary}`,
                                   borderRadius: '0.375rem',
                                   cursor: 'pointer',
                                   display: 'flex',
@@ -845,7 +1071,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                                 style={{
                                   padding: '0.375rem',
                                   backgroundColor: colors.bgCard,
-                                  border: `1px solid ${colors.borderPrimary}`,
+                                  border: `2px solid ${colors.borderPrimary}`,
                                   borderRadius: '0.375rem',
                                   cursor: 'pointer',
                                   display: 'flex',
@@ -939,7 +1165,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                                 padding: '0.75rem 1rem',
                                 borderRadius: isOwn ? '1rem 1rem 0.25rem 1rem' : '1rem 1rem 1rem 0.25rem',
                                 boxShadow: colors.shadowSm,
-                                border: isOwn ? 'none' : `1px solid ${colors.borderPrimary}`
+                                border: isOwn ? 'none' : `2px solid ${colors.borderPrimary}`
                               }}>
                                 <p style={{ margin: 0, fontSize: '0.9rem', lineHeight: '1.5' }}>{message.content}</p>
                               </div>
@@ -964,7 +1190,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                 </div>
 
                 {/* Message Input */}
-                <div className="mobile-message-input-container" style={{ padding: '1rem 1.25rem', borderTop: `1px solid ${colors.borderPrimary}`, position: 'relative' }}>
+                <div className="mobile-message-input-container" style={{ padding: '1rem 1.25rem', borderTop: `2px solid ${colors.borderPrimary}`, position: 'relative' }}>
                   {/* Emoji Picker */}
                   {showEmojiPicker && (
                     <div
@@ -1062,6 +1288,40 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                     </div>
                   )}
 
+                  {chatError && (
+                    <div style={{
+                      backgroundColor: actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2',
+                      border: `1px solid ${actualTheme === 'dark' ? '#F87171' : '#FECACA'}`,
+                      borderRadius: '0.5rem',
+                      padding: '0.5rem 0.75rem',
+                      marginBottom: '0.5rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '0.5rem',
+                    }}>
+                      <span style={{ fontSize: '0.8rem', color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626' }}>⚠️ {chatError}</span>
+                      <button onClick={() => setChatError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626', fontSize: '1rem', lineHeight: 1 }}>×</button>
+                    </div>
+                  )}
+                  {contentWarning && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.5rem 0.75rem',
+                      marginBottom: '0.5rem',
+                      backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FFFBEB',
+                      border: `1px solid ${actualTheme === 'dark' ? '#F59E0B' : '#FDE68A'}`,
+                      borderRadius: '0.5rem',
+                      fontSize: '0.82rem',
+                      color: actualTheme === 'dark' ? '#FCD34D' : '#92400E',
+                    }}>
+                      <span>{contentWarning}</span>
+                      <button onClick={() => setContentWarning(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: actualTheme === 'dark' ? '#FCD34D' : '#92400E', fontSize: '1rem', lineHeight: 1, padding: '0 0.25rem' }}>&#x2715;</button>
+                    </div>
+                  )}
+
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <button
                       onClick={() => setShowEmojiPicker(!showEmojiPicker)}
@@ -1085,7 +1345,7 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                       type="text"
                       placeholder="Type a message..."
                       value={messageInput}
-                      onChange={(e) => setMessageInput(e.target.value)}
+                      onChange={(e) => { setMessageInput(e.target.value); if (contentWarning) setContentWarning(null); }}
                       onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
                       style={{
                         flex: 1,
@@ -1100,9 +1360,9 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                     />
                     <button
                       onClick={sendMessage}
-                      disabled={!messageInput.trim()}
+                      disabled={!messageInput.trim() || isSending}
                       style={{
-                        backgroundColor: messageInput.trim() ? '#083A85' : '#D1D5DB',
+                        backgroundColor: messageInput.trim() && !isSending ? '#083A85' : '#D1D5DB',
                         border: 'none',
                         borderRadius: '50%',
                         width: '44px',
@@ -1110,8 +1370,9 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        cursor: messageInput.trim() ? 'pointer' : 'not-allowed',
-                        transition: 'background-color 0.2s'
+                        cursor: messageInput.trim() && !isSending ? 'pointer' : 'not-allowed',
+                        transition: 'background-color 0.2s',
+                        opacity: isSending ? 0.6 : 1,
                       }}
                     >
                       <SendIcon />
@@ -1149,6 +1410,185 @@ const InboxPage = ({ userType = 'photographer' }: InboxProps) => {
           </div>
         </div>
       </div>
+
+      {/* New Chat Modal */}
+      {showNewChatModal && (
+        <div
+          onClick={() => setShowNewChatModal(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: colors.bgCard,
+              borderRadius: '1rem',
+              width: '100%',
+              maxWidth: '420px',
+              maxHeight: '70vh',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+              border: `2px solid ${colors.borderPrimary}`,
+            }}
+          >
+            {/* Modal Header */}
+            <div style={{
+              padding: '1rem 1.25rem',
+              borderBottom: `2px solid ${colors.borderPrimary}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
+              <h2 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>New Chat</h2>
+              <button
+                onClick={() => setShowNewChatModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '0.25rem',
+                  color: colors.textSecondary,
+                  fontSize: '1.25rem',
+                  lineHeight: 1,
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Search Input */}
+            <div style={{ padding: '0.75rem 1.25rem', borderBottom: `1px solid ${colors.borderPrimary}` }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.5rem 0.75rem',
+                borderRadius: '0.5rem',
+                border: `2px solid ${colors.borderPrimary}`,
+                backgroundColor: colors.bgTertiary,
+              }}>
+                <SearchIcon />
+                <input
+                  type="text"
+                  placeholder="Search contacts..."
+                  value={contactSearchQuery}
+                  onChange={(e) => setContactSearchQuery(e.target.value)}
+                  style={{
+                    flex: 1,
+                    border: 'none',
+                    outline: 'none',
+                    backgroundColor: 'transparent',
+                    fontSize: '0.9rem',
+                    color: colors.textPrimary,
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Contact List */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '0.5rem 0' }}>
+              {isLoadingContacts ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+                  <span style={{ color: colors.textSecondary, fontSize: '0.9rem' }}>Loading contacts...</span>
+                </div>
+              ) : contacts.filter(c =>
+                c.name.toLowerCase().includes(contactSearchQuery.toLowerCase()) ||
+                (c.speciality || '').toLowerCase().includes(contactSearchQuery.toLowerCase())
+              ).length === 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', textAlign: 'center' }}>
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginBottom: '0.75rem' }}>
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <circle cx="9" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <span style={{ color: colors.textSecondary, fontSize: '0.9rem' }}>
+                    {contactSearchQuery ? 'No contacts match your search' : 'No clients found'}
+                  </span>
+                </div>
+              ) : (
+                contacts
+                  .filter(c =>
+                    c.name.toLowerCase().includes(contactSearchQuery.toLowerCase()) ||
+                    (c.speciality || '').toLowerCase().includes(contactSearchQuery.toLowerCase())
+                  )
+                  .map((contact) => {
+                    const alreadyHasConvo = conversations.some(conv => conv.participants.some(p => p.id === contact.id));
+                    return (
+                      <button
+                        key={contact.id}
+                        onClick={() => startConversation(contact)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.75rem',
+                          width: '100%',
+                          padding: '0.625rem 1.25rem',
+                          border: 'none',
+                          backgroundColor: 'transparent',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          transition: 'background-color 0.15s',
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = colors.bgTertiary)}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                      >
+                        {/* Avatar */}
+                        <div style={{ width: '42px', height: '42px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                          </svg>
+                          {contact.image && (
+                            <img src={contact.image} alt={contact.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                          )}
+                        </div>
+
+                        {/* Name + Speciality */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {contact.name}
+                          </div>
+                          {contact.speciality && (
+                            <div style={{ fontSize: '0.78rem', color: colors.textSecondary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {contact.speciality}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Existing conversation indicator */}
+                        {alreadyHasConvo && (
+                          <span style={{
+                            fontSize: '0.7rem',
+                            color: '#3B82F6',
+                            backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF',
+                            padding: '0.15rem 0.5rem',
+                            borderRadius: '9999px',
+                            fontWeight: '500',
+                            flexShrink: 0,
+                          }}>
+                            Active
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

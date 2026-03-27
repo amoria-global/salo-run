@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useTheme } from "../context/ThemeContext";
+import { useDashboardAuth, dashboardAuthFetch } from "../providers/AuthProvider";
+import { getLandingUrl } from "@/lib/urls";
 
-type UserRole = "photographer" | "client" | "freelancer";
+type UserRole = "photographer" | "client" | "event-coordinator";
 
 interface NavigationItem {
   name: string;
@@ -15,16 +17,7 @@ interface NavigationItem {
   badge?: number;
 }
 
-// Badge counts for notifications and messages (in real app, these would come from API/context)
-const getNotificationCounts = (role: UserRole) => {
-  // Sample notification counts - in production, these would be fetched from backend
-  const counts = {
-    photographer: { notifications: 5, messages: 6 },
-    freelancer: { notifications: 3, messages: 4 },
-    client: { notifications: 4, messages: 2 }
-  };
-  return counts[role];
-};
+import { getApiUrl } from '@/lib/api';
 
 // Role-based navigation configurations
 const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
@@ -32,19 +25,9 @@ const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
     { name: "Home", href: "/user/photographer/dashboard", icon: "bi-house" },
     { name: "Notifications", href: "/user/photographer/notifications", icon: "bi-bell" },
     { name: "Transactions", href: "/user/photographer/transaction", icon: "bi-arrow-repeat" },
-    { name: "Gallery", href: "/user/photographer/gallery", icon: "bi-image" },
-    { name: "Streams", href: "/user/photographer/streams", icon: "bi-broadcast" },
+    { name: "Events", href: "/user/photographer/events", icon: "bi-calendar-event" },
     { name: "Inbox", href: "/user/photographer/inbox", icon: "bi-chat-dots" },
     { name: "Clients", href: "/user/photographer/clients", icon: "bi-people" },
-  ],
-  freelancer: [
-    { name: "Home", href: "/user/freelancer/dashboard", icon: "bi-house" },
-    { name: "Notifications", href: "/user/freelancer/notifications", icon: "bi-bell" },
-    { name: "Transactions", href: "/user/freelancer/transaction", icon: "bi-arrow-repeat" },
-    { name: "Gallery", href: "/user/freelancer/gallery", icon: "bi-image" },
-    { name: "Streams", href: "/user/freelancer/streams", icon: "bi-broadcast" },
-    { name: "Inbox", href: "/user/freelancer/inbox", icon: "bi-chat-dots" },
-    { name: "Clients", href: "/user/freelancer/clients", icon: "bi-people" },
   ],
   client: [
     { name: "Home", href: "/user/client/home", icon: "bi-house" },
@@ -56,6 +39,16 @@ const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
     { name: "Payments", href: "/user/client/payments", icon: "bi-credit-card" },
     { name: "Inbox", href: "/user/client/inbox", icon: "bi-chat-dots" },
   ],
+  "event-coordinator": [
+    { name: "Home", href: "/user/event-coordinator/home", icon: "bi-house" },
+    { name: "Notifications", href: "/user/event-coordinator/notifications", icon: "bi-bell" },
+    { name: "My Events", href: "/user/event-coordinator/events", icon: "bi-calendar-event" },
+    { name: "Streams", href: "/user/event-coordinator/streams", icon: "bi-broadcast" },
+    { name: "Gallery", href: "/user/event-coordinator/gallery", icon: "bi-image" },
+    { name: "Photographers", href: "/user/event-coordinator/photographers", icon: "bi-camera" },
+    { name: "Payments", href: "/user/event-coordinator/payments", icon: "bi-credit-card" },
+    { name: "Inbox", href: "/user/event-coordinator/inbox", icon: "bi-chat-dots" },
+  ],
 };
 
 // Role-based bottom navigations
@@ -66,10 +59,10 @@ const getBottomNavigationItems = (role: UserRole): NavigationItem[] => {
       { name: "Preferences", href: "/user/photographer/preferences", icon: "bi-sliders" },
       { name: "Logout", href: "/", icon: "bi-box-arrow-right" },
     ];
-  } else if (role === "freelancer") {
+  } else if (role === "event-coordinator") {
     return [
-      { name: "Profile", href: "/user/freelancer/profile", icon: "bi-person" },
-      { name: "Preferences", href: "/user/freelancer/preferences", icon: "bi-sliders" },
+      { name: "Profile", href: "/user/event-coordinator/profile", icon: "bi-person" },
+      { name: "Preferences", href: "/user/event-coordinator/preferences", icon: "bi-sliders" },
       { name: "Logout", href: "/", icon: "bi-box-arrow-right" },
     ];
   } else {
@@ -86,8 +79,8 @@ const detectRoleFromPath = (pathname: string | null): UserRole => {
   if (pathname && pathname.includes("/user/photographer")) {
     return "photographer";
   }
-  if (pathname && pathname.includes("/user/freelancer")) {
-    return "freelancer";
+  if (pathname && pathname.includes("/user/event-coordinator")) {
+    return "event-coordinator";
   }
   return "client";
 };
@@ -97,18 +90,98 @@ export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { colors, actualTheme } = useTheme();
+  const { logout, token, user } = useDashboardAuth();
+  const currentUserId = user?.id || '';
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // Automatically detect role from current URL path
   const currentRole = useMemo(() => detectRoleFromPath(pathname), [pathname]);
 
-  const notificationCounts = getNotificationCounts(currentRole);
+  const [notificationCount, setNotificationCount] = useState(0);
+  const [messageCount, setMessageCount] = useState(0);
+
+  // Tracks the timestamp of the last inbox:totalCount event so that any
+  // fetchBadgeCounts API response that started BEFORE this event is ignored.
+  // This prevents a slow/in-flight poll from overwriting a badge that was
+  // just set to 0 by a read operation.
+  const lastInboxEventTimeRef = useRef<number>(0);
+
+  const fetchBadgeCounts = useCallback(async () => {
+    if (!token) return;
+    const fetchStartTime = Date.now();
+    const apiUrl = getApiUrl();
+    const notifPrefix = currentRole === 'photographer' ? 'photographer' : currentRole === 'event-coordinator' ? 'coordinator' : 'customer';
+    const isOnInboxPage = pathname?.includes('/inbox');
+    try {
+      const [notifRes, convRes] = await Promise.all([
+        dashboardAuthFetch(`${apiUrl}/api/remote/${notifPrefix}/notifications/unread-count`, { method: 'GET' }),
+        dashboardAuthFetch(`${apiUrl}/api/remote/chat/conversations`, { method: 'GET' }),
+      ]);
+
+      if (notifRes.ok) {
+        const data = await notifRes.json();
+        if (data.action === 1) setNotificationCount(data.data ?? 0);
+      }
+      if (convRes.ok && !isOnInboxPage) {
+        const data = await convRes.json();
+        const list = data.data || data || [];
+        if (Array.isArray(list)) {
+          const validList = currentUserId
+            ? list.filter((c: any) =>
+                (c.participants || []).some((p: any) => p.id && p.id !== currentUserId)
+              )
+            : list;
+          const total = validList.reduce((sum: number, c: any) => sum + (c.unreadCount || 0), 0);
+          if (lastInboxEventTimeRef.current <= fetchStartTime) {
+            setMessageCount(total);
+          }
+        }
+      }
+    } catch {
+      // silent fail
+    }
+  }, [token, currentRole, pathname, currentUserId]);
+
+  useEffect(() => {
+    fetchBadgeCounts();
+    const interval = setInterval(fetchBadgeCounts, 30000);
+    const handleBadgeUpdate = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.type === 'notification') {
+        setNotificationCount(prev => Math.max(0, prev - (detail.count || 1)));
+      } else {
+        fetchBadgeCounts();
+      }
+    };
+    window.addEventListener('badge-update', handleBadgeUpdate);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('badge-update', handleBadgeUpdate);
+    };
+  }, [fetchBadgeCounts]);
+
+  // Immediately set the sidebar badge to the server's exact total when the inbox
+  // page dispatches fresh conversation data (on load or on read).
+  useEffect(() => {
+    const handleTotalCount = (e: Event) => {
+      const total = (e as CustomEvent<{ total: number }>).detail?.total ?? 0;
+      setMessageCount(total);
+      // Record when this event fired so fetchBadgeCounts can detect the race.
+      lastInboxEventTimeRef.current = Date.now();
+    };
+    window.addEventListener('inbox:totalCount', handleTotalCount);
+    return () => window.removeEventListener('inbox:totalCount', handleTotalCount);
+  }, []);
+
+  // Check if photographer is not accepted (pending or rejected) — restrict to profile only
+  const isNotAccepted = currentRole === 'photographer' && user?.profileReviewStatus?.toUpperCase() !== 'ACCEPTED';
+
   const navigationItems = roleNavigationMap[currentRole].map(item => {
-    // Add badge counts for Notifications and Inbox
     if (item.name === "Notifications") {
-      return { ...item, badge: notificationCounts.notifications };
+      return { ...item, badge: notificationCount };
     }
     if (item.name === "Inbox") {
-      return { ...item, badge: notificationCounts.messages };
+      return { ...item, badge: messageCount };
     }
     return item;
   });
@@ -160,16 +233,17 @@ export default function Sidebar() {
             display: flex !important;
             position: fixed !important;
             top: 1rem !important;
-            left: 0.5rem !important;
+            left: ${isMobileMenuOpen ? '16.5rem' : '0.5rem'} !important;
             z-index: 1001 !important;
             background-color: ${colors.bgSecondary} !important;
-            border: 1px solid ${colors.borderPrimary} !important;
+            border: 2px solid ${colors.borderPrimary} !important;
             border-radius: 0.5rem !important;
             padding: 0.4rem !important;
             cursor: pointer !important;
             align-items: center !important;
             justify-content: center !important;
             box-shadow: ${colors.shadowMd} !important;
+            transition: left 0.3s ease-in-out !important;
           }
 
           .mobile-overlay {
@@ -193,6 +267,10 @@ export default function Sidebar() {
           .sidebar-container {
             width: 14rem !important;
           }
+
+          .mobile-menu-button {
+            left: ${isMobileMenuOpen ? '14.5rem' : '0.5rem'} !important;
+          }
         }
       `}</style>
 
@@ -214,9 +292,18 @@ export default function Sidebar() {
           strokeLinecap="round"
           strokeLinejoin="round"
         >
-          <line x1="3" y1="12" x2="21" y2="12"/>
-          <line x1="3" y1="6" x2="21" y2="6"/>
-          <line x1="3" y1="18" x2="21" y2="18"/>
+          {isMobileMenuOpen ? (
+            <>
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </>
+          ) : (
+            <>
+              <line x1="3" y1="12" x2="21" y2="12"/>
+              <line x1="3" y1="6" x2="21" y2="6"/>
+              <line x1="3" y1="18" x2="21" y2="18"/>
+            </>
+          )}
         </svg>
       </button>
 
@@ -244,27 +331,33 @@ export default function Sidebar() {
         paddingBottom: '1.25rem'
       }}>
         {!isCollapsed && (
-          <Link href="/" style={{
+          <Link href={getLandingUrl()} style={{
             display: 'flex',
             alignItems: 'center',
             cursor: 'pointer',
-            textDecoration: 'none'
+            textDecoration: 'none',
+            flexShrink: 0
           }}>
-            <span style={{
-              fontSize: '1.5rem',
-              fontWeight: '700',
-              color: colors.textPrimary,
-              lineHeight: '1'
-            }}>Amoria</span>
-            <Image
-              src={actualTheme === 'dark' ? '/fav.png' : '/logo.png'}
-              alt="Logo"
-              width={actualTheme === 'dark' ? 42 : 48}
-              height={actualTheme === 'dark' ? 47 : 59}
+            <img
+              src="/logo.png"
+              alt="Connekyt Logo"
               style={{
-                marginLeft: actualTheme === 'dark' ? '-0.48rem' : '-0.625rem'
+                width: '50px',
+                height: '50px',
+                objectFit: 'contain',
+                position: 'relative',
+                top: '-9px',
+                left: '-13px'
               }}
             />
+            <span style={{
+              fontWeight: '700',
+              color: '#083A85',
+              fontSize: '1.4rem',
+              marginLeft: '-26px',
+              marginTop: '-2px',
+              letterSpacing: '0.5px'
+            }}>onnekyt</span>
           </Link>
         )}
         <button
@@ -308,31 +401,52 @@ export default function Sidebar() {
         minHeight: 0
       }}>
         {navigationItems.map((item) => {
-          const isActive = pathname === item.href;
+          const isActive = pathname === item.href ||
+            (item.name === 'Transactions' && pathname === `/user/${currentRole}/all-transactions`);
+
+          const navStyle = {
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: isCollapsed ? 'center' : 'flex-start',
+            gap: isCollapsed ? '0' : '0.75rem',
+            borderRadius: '0.375rem',
+            paddingLeft: '0.75rem',
+            paddingRight: '0.75rem',
+            paddingTop: '0.625rem',
+            paddingBottom: '0.625rem',
+            fontSize: '15px',
+            fontWeight: '400' as const,
+            transition: 'all 0.2s',
+            backgroundColor: isActive && !isNotAccepted ? colors.bgActive : 'transparent',
+            color: isNotAccepted ? colors.textSecondary : (isActive ? colors.textInverse : colors.textPrimary),
+            boxShadow: isActive && !isNotAccepted ? '0 1px 2px 0 rgba(0, 0, 0, 0.05)' : 'none',
+            textDecoration: 'none',
+            opacity: isNotAccepted ? 0.4 : 1,
+            cursor: isNotAccepted ? 'not-allowed' : 'pointer',
+            pointerEvents: isNotAccepted ? 'none' as const : 'auto' as const,
+          };
+
+          if (isNotAccepted) {
+            return (
+              <div key={item.name} style={navStyle} title={isCollapsed ? item.name : undefined}>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <i style={{ fontSize: '18px' }} className={`bi ${item.icon}`}></i>
+                </div>
+                {!isCollapsed && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flex: 1 }}>
+                    <span>{item.name}</span>
+                  </div>
+                )}
+              </div>
+            );
+          }
 
           return (
             <Link
               key={item.name}
               href={item.href}
               onClick={closeMobileMenu}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: isCollapsed ? 'center' : 'flex-start',
-                gap: isCollapsed ? '0' : '0.75rem',
-                borderRadius: '0.375rem',
-                paddingLeft: '0.75rem',
-                paddingRight: '0.75rem',
-                paddingTop: '0.625rem',
-                paddingBottom: '0.625rem',
-                fontSize: '15px',
-                fontWeight: '400',
-                transition: 'all 0.2s',
-                backgroundColor: isActive ? colors.bgActive : 'transparent',
-                color: isActive ? colors.textInverse : colors.textPrimary,
-                boxShadow: isActive ? '0 1px 2px 0 rgba(0, 0, 0, 0.05)' : 'none',
-                textDecoration: 'none'
-              }}
+              style={navStyle}
               title={isCollapsed ? item.name : undefined}
               onMouseEnter={(e) => {
                 if (!isActive) {
@@ -415,37 +529,61 @@ export default function Sidebar() {
         paddingRight: '0.75rem',
         paddingTop: '0.75rem',
         paddingBottom: '0.75rem',
-        borderTop: `1px solid ${colors.borderPrimary}`,
+        borderTop: `2px solid ${colors.borderPrimary}`,
         display: 'flex',
         flexDirection: 'column',
         gap: '0.125rem'
       }}>
         {bottomNavigationItems.map((item) => {
           const isActive = pathname === item.href;
+          const isLogout = item.name === 'Logout';
+          const isProfile = item.name === 'Profile';
+          const isDisabledItem = isNotAccepted && !isLogout && !isProfile;
+
+          const bottomNavStyle = {
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: isCollapsed ? 'center' : 'flex-start',
+            gap: isCollapsed ? '0' : '0.75rem',
+            borderRadius: '0.375rem',
+            paddingLeft: '0.75rem',
+            paddingRight: '0.75rem',
+            paddingTop: '0.625rem',
+            paddingBottom: '0.625rem',
+            fontSize: '15px',
+            fontWeight: '400' as const,
+            transition: 'all 0.2s',
+            backgroundColor: isActive && !isDisabledItem ? colors.bgActive : 'transparent',
+            color: isDisabledItem ? colors.textSecondary : (isActive ? colors.textInverse : colors.textPrimary),
+            boxShadow: isActive && !isDisabledItem ? '0 1px 2px 0 rgba(0, 0, 0, 0.05)' : 'none',
+            textDecoration: 'none',
+            opacity: isDisabledItem ? 0.4 : 1,
+            cursor: isDisabledItem ? 'not-allowed' : 'pointer',
+            pointerEvents: isDisabledItem ? 'none' as const : 'auto' as const,
+          };
+
+          if (isDisabledItem) {
+            return (
+              <div key={item.name} style={bottomNavStyle} title={isCollapsed ? item.name : undefined}>
+                <i style={{ fontSize: '18px' }} className={`bi ${item.icon}`}></i>
+                {!isCollapsed && <span>{item.name}</span>}
+              </div>
+            );
+          }
 
           return (
             <Link
               key={item.name}
               href={item.href}
-              onClick={closeMobileMenu}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: isCollapsed ? 'center' : 'flex-start',
-                gap: isCollapsed ? '0' : '0.75rem',
-                borderRadius: '0.375rem',
-                paddingLeft: '0.75rem',
-                paddingRight: '0.75rem',
-                paddingTop: '0.625rem',
-                paddingBottom: '0.625rem',
-                fontSize: '15px',
-                fontWeight: '400',
-                transition: 'all 0.2s',
-                backgroundColor: isActive ? colors.bgActive : 'transparent',
-                color: isActive ? colors.textInverse : colors.textPrimary,
-                boxShadow: isActive ? '0 1px 2px 0 rgba(0, 0, 0, 0.05)' : 'none',
-                textDecoration: 'none'
+              onClick={(e) => {
+                if (isLogout) {
+                  e.preventDefault();
+                  setShowLogoutModal(true);
+                } else {
+                  closeMobileMenu();
+                }
               }}
+              style={bottomNavStyle}
               title={isCollapsed ? item.name : undefined}
               onMouseEnter={(e) => {
                 if (!isActive) {
@@ -475,6 +613,105 @@ export default function Sidebar() {
         })}
       </nav>
     </aside>
+
+    {/* Logout Confirmation Modal */}
+    {showLogoutModal && (
+      <div
+        onClick={() => setShowLogoutModal(false)}
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+        }}
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            backgroundColor: colors.bgCard,
+            borderRadius: '0.75rem',
+            padding: '1.75rem',
+            maxWidth: '380px',
+            width: '90%',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            textAlign: 'center',
+          }}
+        >
+          {/* Icon */}
+          <div style={{
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            backgroundColor: actualTheme === 'dark' ? '#3B1A1A' : '#FEF2F2',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 1rem',
+          }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <polyline points="16,17 21,12 16,7" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <line x1="21" y1="12" x2="9" y2="12" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+
+          {/* Title */}
+          <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>
+            Are you sure you want to logout?
+          </h3>
+
+          {/* Description */}
+          <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0 0 1.5rem', lineHeight: '1.5' }}>
+            You will be signed out of your account and redirected to the login page.
+          </p>
+
+          {/* Buttons */}
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button
+              onClick={() => setShowLogoutModal(false)}
+              style={{
+                flex: 1,
+                padding: '0.625rem',
+                border: `2px solid ${colors.borderPrimary}`,
+                borderRadius: '0.5rem',
+                backgroundColor: 'transparent',
+                color: colors.textPrimary,
+                fontSize: '0.9rem',
+                fontWeight: '500',
+                cursor: 'pointer',
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                setShowLogoutModal(false);
+                logout();
+              }}
+              style={{
+                flex: 1,
+                padding: '0.625rem',
+                border: '2px solid #B91C1C',
+                borderRadius: '0.5rem',
+                backgroundColor: '#DC2626',
+                color: 'white',
+                fontSize: '0.9rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+              }}
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     </>
   );
 }

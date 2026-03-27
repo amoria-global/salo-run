@@ -1,10 +1,12 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
+import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
+import { getApiUrl, normalizeImageUrl } from '@/lib/api';
 
 // Types
 interface ViewerMessage {
@@ -97,6 +99,12 @@ const CloseIcon = () => (
   </svg>
 );
 
+const TrashIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+  </svg>
+);
+
 const SearchIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <circle cx="11" cy="11" r="8" stroke="#9CA3AF" strokeWidth="2"/>
@@ -175,135 +183,221 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
   );
 };
 
-// Sample completed streams data with viewer messages
-const sampleCompletedStreams: CompletedStream[] = [
-  {
-    id: 'cs1',
-    eventId: 'evt1',
-    eventTitle: 'My Wedding Ceremony',
-    eventType: 'Wedding',
-    photographerName: 'John Smith Photography',
-    photographerImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
-    streamTitle: 'Sarah & James Wedding Live',
-    description: 'Live stream of our beautiful garden wedding ceremony at Kigali Convention Center.',
-    streamDate: '2025-01-10',
-    streamTime: '14:00',
-    duration: '2:35:42',
-    coverImage: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800',
-    totalViewers: 287,
-    peakViewers: 312,
-    totalMessages: 156,
-    totalVideoMessages: 12,
-    replayUrl: 'https://connekt.app/replay/cs1',
-    messages: [
-      { id: 'm1', viewerUsername: 'aunt_mary92', viewerAvatar: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg', message: 'Congratulations Sarah and James! Wishing you a lifetime of happiness!', timestamp: '2025-01-10T14:15:00', time: '14:15' },
-      { id: 'm2', viewerUsername: 'cousin_mike', viewerAvatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', message: 'The venue looks absolutely stunning! Love the flower arrangements.', timestamp: '2025-01-10T14:18:00', time: '14:18' },
-      { id: 'm3', viewerUsername: 'bestie_emma', viewerAvatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', message: 'Sarah you look so beautiful! Im crying over here!', timestamp: '2025-01-10T14:22:00', time: '14:22' },
-      { id: 'm4', viewerUsername: 'uncle_john', viewerAvatar: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg', message: 'Proud of you both! The ceremony is perfect!', timestamp: '2025-01-10T14:30:00', time: '14:30' },
-      { id: 'm5', viewerUsername: 'college_friend', viewerAvatar: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg', message: 'Best wedding stream ever! The quality is amazing!', timestamp: '2025-01-10T14:35:00', time: '14:35' },
-      { id: 'm6', viewerUsername: 'neighbor_lisa', viewerAvatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', message: 'Such a beautiful couple! Congratulations!', timestamp: '2025-01-10T14:40:00', time: '14:40' },
-    ],
-    videoMessages: [
-      { id: 'v1', viewerUsername: 'grandma_rose', viewerAvatar: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg', videoUrl: '/live-stream.mp4', thumbnailUrl: 'https://images.unsplash.com/photo-1529634806980-85c3dd6d34ac?w=400', duration: '0:58', timestamp: '2025-01-10T14:25:00', time: '14:25', viewed: true },
-      { id: 'v2', viewerUsername: 'brother_david', viewerAvatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', videoUrl: '/live-stream-2.mp4', thumbnailUrl: 'https://images.unsplash.com/photo-1511578314322-379afb476865?w=400', duration: '0:45', timestamp: '2025-01-10T14:45:00', time: '14:45', viewed: false },
-      { id: 'v3', viewerUsername: 'childhood_friend', viewerAvatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', videoUrl: '/bako.mp4', thumbnailUrl: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=400', duration: '1:00', timestamp: '2025-01-10T15:00:00', time: '15:00', viewed: false },
-    ]
-  },
-  {
-    id: 'cs2',
-    eventId: 'evt2',
-    eventTitle: 'My 30th Birthday Bash',
-    eventType: 'Birthday',
-    photographerName: 'Creative Studios',
-    photographerImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg',
-    streamTitle: '30th Birthday Celebration Live',
-    description: 'Celebrating three decades of life! Live from Lake Kivu Resort.',
-    streamDate: '2025-01-05',
-    streamTime: '18:00',
-    duration: '3:15:20',
-    coverImage: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=800',
-    totalViewers: 156,
-    peakViewers: 189,
-    totalMessages: 98,
-    totalVideoMessages: 8,
-    replayUrl: 'https://connekt.app/replay/cs2',
-    messages: [
-      { id: 'm1', viewerUsername: 'party_pete', viewerAvatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', message: 'Happy 30th! Looks like an amazing party!', timestamp: '2025-01-05T18:10:00', time: '18:10' },
-      { id: 'm2', viewerUsername: 'work_buddy', viewerAvatar: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg', message: 'Wish I could be there! Have a blast!', timestamp: '2025-01-05T18:15:00', time: '18:15' },
-      { id: 'm3', viewerUsername: 'sister_anna', viewerAvatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', message: 'The decorations are incredible! Love it!', timestamp: '2025-01-05T18:20:00', time: '18:20' },
-      { id: 'm4', viewerUsername: 'high_school_gang', viewerAvatar: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg', message: '30 looks good on you! Cheers!', timestamp: '2025-01-05T18:30:00', time: '18:30' },
-    ],
-    videoMessages: [
-      { id: 'v1', viewerUsername: 'mom_sends_love', viewerAvatar: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg', videoUrl: '/live-stream.mp4', thumbnailUrl: 'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=400', duration: '0:52', timestamp: '2025-01-05T18:25:00', time: '18:25', viewed: true },
-      { id: 'v2', viewerUsername: 'dad_celebration', viewerAvatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', videoUrl: '/bako.mp4', thumbnailUrl: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=400', duration: '0:48', timestamp: '2025-01-05T19:00:00', time: '19:00', viewed: true },
-    ]
-  },
-  {
-    id: 'cs3',
-    eventId: 'evt3',
-    eventTitle: 'Corporate Annual Gala',
-    eventType: 'Corporate',
-    photographerName: 'Pro Events Media',
-    photographerImage: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg',
-    streamTitle: 'Annual Corporate Gala 2025',
-    description: 'Streaming our company annual gala event with awards ceremony.',
-    streamDate: '2024-12-20',
-    streamTime: '19:00',
-    duration: '4:00:15',
-    coverImage: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800',
-    totalViewers: 423,
-    peakViewers: 512,
-    totalMessages: 234,
-    totalVideoMessages: 15,
-    replayUrl: 'https://connekt.app/replay/cs3',
-    messages: [
-      { id: 'm1', viewerUsername: 'remote_team1', viewerAvatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', message: 'Great to see everyone! Amazing venue!', timestamp: '2024-12-20T19:10:00', time: '19:10' },
-      { id: 'm2', viewerUsername: 'branch_manager', viewerAvatar: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg', message: 'Congrats to all award winners!', timestamp: '2024-12-20T19:30:00', time: '19:30' },
-      { id: 'm3', viewerUsername: 'new_employee', viewerAvatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', message: 'This is incredible! Proud to be part of this team!', timestamp: '2024-12-20T20:00:00', time: '20:00' },
-    ],
-    videoMessages: [
-      { id: 'v1', viewerUsername: 'ceo_message', viewerAvatar: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg', videoUrl: '/live-stream-2.mp4', thumbnailUrl: 'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=400', duration: '1:00', timestamp: '2024-12-20T19:45:00', time: '19:45', viewed: true },
-    ]
-  },
-  {
-    id: 'cs4',
-    eventId: 'evt4',
-    eventTitle: 'Baby Shower - Little Emma',
-    eventType: 'Baby Shower',
-    photographerName: 'Moments Photography',
-    photographerImage: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg',
-    streamTitle: 'Baby Emma Welcome Party',
-    description: 'A lovely afternoon celebrating the upcoming arrival of baby Emma.',
-    streamDate: '2024-12-15',
-    streamTime: '14:00',
-    duration: '2:15:30',
-    coverImage: 'https://images.unsplash.com/photo-1511578314322-379afb476865?w=800',
-    totalViewers: 89,
-    peakViewers: 112,
-    totalMessages: 67,
-    totalVideoMessages: 6,
-    replayUrl: 'https://connekt.app/replay/cs4',
-    messages: [
-      { id: 'm1', viewerUsername: 'grandpa_joe', viewerAvatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', message: 'Cannot wait to meet little Emma!', timestamp: '2024-12-15T14:10:00', time: '14:10' },
-      { id: 'm2', viewerUsername: 'auntie_sue', viewerAvatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', message: 'The pink decorations are adorable!', timestamp: '2024-12-15T14:20:00', time: '14:20' },
-    ],
-    videoMessages: [
-      { id: 'v1', viewerUsername: 'overseas_family', viewerAvatar: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg', videoUrl: '/bako.mp4', thumbnailUrl: 'https://images.unsplash.com/photo-1519689680058-324335c77eba?w=400', duration: '0:55', timestamp: '2024-12-15T14:30:00', time: '14:30', viewed: false },
-    ]
-  },
-];
 
-const ClientStreamsPage = () => {
+interface StreamsPageProps {
+  userRole?: 'client' | 'event-coordinator';
+}
+
+const normalizeImg = (url: string | undefined | null): string => {
+  if (!url || url === 'null' || url.endsWith('/null')) return '';
+  let u = url;
+  if (!u.includes('/') && !u.startsWith('http')) {
+    u = `${getApiUrl()}/uploads/profile/photos/${u}`;
+  }
+  // Fix backend path mismatch: /event/media/ should be /event/photos/
+  u = u.replace('/uploads/event/media/', '/uploads/event/photos/');
+  return normalizeImageUrl(u) || '';
+};
+
+const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
   const { colors, actualTheme } = useTheme();
+  const { user } = useDashboardAuth();
+  const apiUrl = getApiUrl();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStream, setSelectedStream] = useState<CompletedStream | null>(null);
   const [showMessagesModal, setShowMessagesModal] = useState(false);
   const [showVideosModal, setShowVideosModal] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<ViewerVideo | null>(null);
-  const [streams, setStreams] = useState<CompletedStream[]>(sampleCompletedStreams);
+  const [streams, setStreams] = useState<CompletedStream[]>([]);
   const [filterType, setFilterType] = useState<string>('all');
   const [isVideoLoading, setIsVideoLoading] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<CompletedStream | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Fetch streams from API
+  // Fetch chats for a single stream from the dedicated endpoint
+  const fetchChatsForStream = useCallback(async (eventId: string): Promise<{ messages: ViewerMessage[]; videoMessages: ViewerVideo[] }> => {
+    const rolePrefix = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
+    // Coordinator uses /streams/{eventId}/chats, customer uses /events/{eventId}/chats
+    const chatsPath = userRole === 'event-coordinator'
+      ? `${apiUrl}/api/remote/${rolePrefix}/streams/${eventId}/chats`
+      : `${apiUrl}/api/remote/${rolePrefix}/events/${eventId}/chats`;
+    try {
+      const res = await dashboardAuthFetch(chatsPath);
+      if (res.ok) {
+        const chatData = await res.json();
+        const allChats: any[] = chatData.data || chatData || [];
+        const textMessages: ViewerMessage[] = allChats
+          .filter((m: any) => !m.videoUrl)
+          .map((m: any) => ({
+            id: m.id,
+            viewerUsername: m.viewerUsername || '',
+            viewerAvatar: normalizeImg(m.viewerAvatar),
+            message: m.message || '',
+            timestamp: m.timestamp || '',
+            time: m.time || '',
+          }));
+        const videoMessages: ViewerVideo[] = allChats
+          .filter((m: any) => m.videoUrl)
+          .map((v: any) => ({
+            id: v.id,
+            viewerUsername: v.viewerUsername || '',
+            viewerAvatar: normalizeImg(v.viewerAvatar),
+            videoUrl: normalizeImg(v.videoUrl),
+            thumbnailUrl: normalizeImg(v.thumbnailUrl),
+            duration: v.duration || '0:00',
+            timestamp: v.timestamp || '',
+            time: v.time || '',
+            viewed: v.viewed || false,
+          }));
+        return { messages: textMessages, videoMessages };
+      }
+    } catch { /* ignore per-stream chat errors */ }
+    return { messages: [], videoMessages: [] };
+  }, [apiUrl, userRole]);
+
+  const fetchStreams = useCallback(async () => {
+    try {
+      const endpoint = userRole === 'event-coordinator'
+        ? `${apiUrl}/api/remote/coordinator/streams`
+        : `${apiUrl}/api/remote/customer/streams`;
+      const res = await dashboardAuthFetch(endpoint);
+      if (res.ok) {
+        const data = await res.json();
+        const streamList: any[] = data.data || [];
+
+        // Fetch chats and event data for all streams in parallel
+        const [chatResults, eventResults] = await Promise.all([
+          Promise.all(streamList.map((s: any) => fetchChatsForStream(s.eventId))),
+          Promise.all(streamList.map(async (s: any) => {
+            try {
+              const evtRes = await fetch(`${apiUrl}/api/remote/public/events/${s.eventId}`);
+              if (evtRes.ok) {
+                const evtData = await evtRes.json();
+                return evtData.data || null;
+              }
+            } catch { /* ignore */ }
+            return null;
+          })),
+        ]);
+
+        const loaded: CompletedStream[] = streamList.map((s: any, i: number) => {
+          const { messages: inlineText, videoMessages: inlineVideo } = (() => {
+            // Also check for inline messages (in case backend adds them later)
+            const allInline: any[] = s.messages || [];
+            return {
+              messages: allInline.filter((m: any) => !m.videoUrl).map((m: any) => ({
+                id: m.id,
+                viewerUsername: m.viewerUsername || '',
+                viewerAvatar: normalizeImg(m.viewerAvatar),
+                message: m.message || '',
+                timestamp: m.timestamp || '',
+                time: m.time || '',
+              })),
+              videoMessages: allInline.filter((m: any) => m.videoUrl).map((v: any) => ({
+                id: v.id,
+                viewerUsername: v.viewerUsername || '',
+                viewerAvatar: normalizeImg(v.viewerAvatar),
+                videoUrl: normalizeImg(v.videoUrl),
+                thumbnailUrl: normalizeImg(v.thumbnailUrl),
+                duration: v.duration || '0:00',
+                timestamp: v.timestamp || '',
+                time: v.time || '',
+                viewed: v.viewed || false,
+              })),
+            };
+          })();
+
+          // Merge: dedicated endpoint chats + any inline chats (deduplicated by id)
+          const fetchedChats = chatResults[i];
+          const allMessages = [...fetchedChats.messages, ...inlineText];
+          const allVideos = [
+            ...fetchedChats.videoMessages,
+            ...inlineVideo,
+            ...(s.videoMessages || []).map((v: any) => ({
+              id: v.id,
+              viewerUsername: v.viewerUsername || '',
+              viewerAvatar: normalizeImg(v.viewerAvatar),
+              videoUrl: normalizeImg(v.videoUrl),
+              thumbnailUrl: normalizeImg(v.thumbnailUrl),
+              duration: v.duration || '0:00',
+              timestamp: v.timestamp || '',
+              time: v.time || '',
+              viewed: v.viewed || false,
+            })),
+          ];
+          // Deduplicate by id
+          const seenMsgIds = new Set<string>();
+          const uniqueMessages = allMessages.filter(m => { if (seenMsgIds.has(m.id)) return false; seenMsgIds.add(m.id); return true; });
+          const seenVidIds = new Set<string>();
+          const uniqueVideos = allVideos.filter(v => { if (seenVidIds.has(v.id)) return false; seenVidIds.add(v.id); return true; });
+
+          // Enrich with event data (cover image, photographer info)
+          const evt = eventResults[i];
+          const evtPhoto = evt?.eventPhoto || evt?.coverImage || '';
+          const evtPhotographerName = evt?.photographerName || (evt?.photographer ? `${evt.photographer.firstName || ''} ${evt.photographer.lastName || ''}`.trim() : '');
+          const evtPhotographerImage = evt?.photographerImage || evt?.photographer?.profilePicture || '';
+
+          return {
+            id: s.id,
+            eventId: s.eventId,
+            eventTitle: s.eventTitle || evt?.title || '',
+            eventType: s.eventType || evt?.eventCategory?.name || '',
+            photographerName: s.photographerName || evtPhotographerName || '',
+            photographerImage: normalizeImg(s.photographerImage || evtPhotographerImage),
+            streamTitle: s.streamTitle || '',
+            description: s.description || evt?.description || '',
+            streamDate: s.streamDate || evt?.eventDate || '',
+            streamTime: s.streamTime || evt?.startTime || '',
+            duration: s.duration || '0:00:00',
+            coverImage: normalizeImg(s.coverImage || s.bannerImage || s.eventImage || evtPhoto),
+            totalViewers: s.totalViewers || 0,
+            peakViewers: s.peakViewers || 0,
+            totalMessages: s.totalMessages || uniqueMessages.length,
+            totalVideoMessages: s.totalVideoMessages || uniqueVideos.length,
+            replayUrl: s.replayUrl || '',
+            messages: uniqueMessages,
+            videoMessages: uniqueVideos,
+          };
+        });
+        setStreams(loaded);
+      }
+    } catch (err) {
+      console.error('Failed to fetch streams:', err);
+    }
+  }, [apiUrl, userRole, fetchChatsForStream]);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchStreams();
+    }
+  }, [user?.id, fetchStreams]);
+
+  const handleDeleteStream = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      const rolePrefix = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
+      // Try stream record id first, fallback to eventId
+      const streamId = deleteTarget.id;
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${rolePrefix}/streams/${streamId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setStreams(prev => prev.filter(s => s.id !== deleteTarget.id));
+        setDeleteTarget(null);
+      } else {
+        // If failed with stream id, try with eventId
+        if (deleteTarget.eventId && deleteTarget.eventId !== streamId) {
+          const res2 = await dashboardAuthFetch(`${apiUrl}/api/remote/${rolePrefix}/streams/${deleteTarget.eventId}`, { method: 'DELETE' });
+          if (res2.ok) {
+            setStreams(prev => prev.filter(s => s.id !== deleteTarget.id));
+            setDeleteTarget(null);
+          }
+        }
+      }
+    } catch { /* ignore */ }
+    setIsDeleting(false);
+  };
 
   // Load and play video when selectedVideo changes
   useEffect(() => {
@@ -329,7 +423,7 @@ const ClientStreamsPage = () => {
   const eventTypes = ['all', 'Wedding', 'Birthday', 'Corporate', 'Baby Shower'];
 
   // Mark video as viewed
-  const markVideoAsViewed = (streamId: string, videoId: string) => {
+  const markVideoAsViewed = async (streamId: string, videoId: string) => {
     setStreams(prev => prev.map(stream => {
       if (stream.id === streamId) {
         return {
@@ -341,6 +435,14 @@ const ClientStreamsPage = () => {
       }
       return stream;
     }));
+    try {
+      await dashboardAuthFetch(
+        `${apiUrl}/api/remote/${userRole === 'event-coordinator' ? 'coordinator' : 'customer'}/streams/${streamId}/videos/${videoId}/viewed`,
+        { method: 'PATCH', headers: { 'Content-Type': 'application/json' } }
+      );
+    } catch (err) {
+      console.error('Failed to mark video as viewed:', err);
+    }
   };
 
   // Get unviewed video count
@@ -358,14 +460,14 @@ const ClientStreamsPage = () => {
   const cardStyle: React.CSSProperties = {
     backgroundColor: colors.bgCard,
     borderRadius: '0.75rem',
-    border: `1px solid ${colors.borderPrimary}`,
+    border: `2px solid ${colors.borderPrimary}`,
     overflow: 'hidden',
     transition: 'all 0.2s ease',
     cursor: 'pointer',
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary, overflow: 'hidden', width: '100%', maxWidth: '100vw' }}>
       <style>{`
         @media (max-width: 768px) {
           .mobile-header {
@@ -403,22 +505,36 @@ const ClientStreamsPage = () => {
           }
           .mobile-search input {
             width: 100% !important;
+            min-height: 44px !important;
           }
           .mobile-filter-buttons {
             overflow-x: auto !important;
             flex-wrap: nowrap !important;
             width: 100% !important;
             -webkit-overflow-scrolling: touch;
+            -ms-overflow-style: none !important;
+            scrollbar-width: none !important;
+          }
+          .mobile-filter-buttons::-webkit-scrollbar {
+            display: none !important;
+          }
+          .mobile-filter-buttons button {
+            flex-shrink: 0 !important;
+            min-height: 40px !important;
           }
           .mobile-streams-grid {
             grid-template-columns: 1fr !important;
             gap: 1rem !important;
             margin-bottom: 3rem !important;
           }
+          .mobile-streams-grid button {
+            min-height: 40px !important;
+          }
           .mobile-main-content {
-            padding: 0.75rem !important;
+            padding: 1rem !important;
             padding-bottom: 8rem !important;
             overflow-y: auto !important;
+            overflow-x: hidden !important;
           }
           .mobile-modal {
             width: 95% !important;
@@ -454,14 +570,14 @@ const ClientStreamsPage = () => {
             margin-bottom: 4rem !important;
           }
           .mobile-main-content {
-            padding: 0.5rem !important;
+            padding: 0.75rem !important;
             padding-bottom: 10rem !important;
           }
         }
       `}</style>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar userRole="client" />
+        <Topbar userRole={userRole} />
         <div className="mobile-main-content" style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
           {/* Page Header */}
           <div className="mobile-header" style={{ marginBottom: '1.5rem' }}>
@@ -491,7 +607,7 @@ const ClientStreamsPage = () => {
 
           {/* Stats Cards */}
           <div className="mobile-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-            <div style={{ ...cardStyle, padding: '1.25rem', cursor: 'default' }}>
+            <div style={{ ...cardStyle, padding: '1.25rem', cursor: 'default', borderLeft: '4px solid #3B82F6' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <div style={{ width: '40px', height: '40px', borderRadius: '0.5rem', backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#DBEAFE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: actualTheme === 'dark' ? '#60A5FA' : '#1D4ED8' }}>
                   <BroadcastIcon />
@@ -502,7 +618,7 @@ const ClientStreamsPage = () => {
                 </div>
               </div>
             </div>
-            <div style={{ ...cardStyle, padding: '1.25rem', cursor: 'default' }}>
+            <div style={{ ...cardStyle, padding: '1.25rem', cursor: 'default', borderLeft: '4px solid #10B981' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <div style={{ width: '40px', height: '40px', borderRadius: '0.5rem', backgroundColor: actualTheme === 'dark' ? '#14532D' : '#D1FAE5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: actualTheme === 'dark' ? '#4ADE80' : '#059669' }}>
                   <UsersIcon />
@@ -515,7 +631,7 @@ const ClientStreamsPage = () => {
                 </div>
               </div>
             </div>
-            <div style={{ ...cardStyle, padding: '1.25rem', cursor: 'default' }}>
+            <div style={{ ...cardStyle, padding: '1.25rem', cursor: 'default', borderLeft: '4px solid #F59E0B' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <div style={{ width: '40px', height: '40px', borderRadius: '0.5rem', backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: actualTheme === 'dark' ? '#FCD34D' : '#D97706' }}>
                   <MessageIcon />
@@ -528,7 +644,7 @@ const ClientStreamsPage = () => {
                 </div>
               </div>
             </div>
-            <div style={{ ...cardStyle, padding: '1.25rem', cursor: 'default' }}>
+            <div style={{ ...cardStyle, padding: '1.25rem', cursor: 'default', borderLeft: '4px solid #8B5CF6' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <div style={{ width: '40px', height: '40px', borderRadius: '0.5rem', backgroundColor: actualTheme === 'dark' ? '#4C1D95' : '#E0E7FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: actualTheme === 'dark' ? '#A78BFA' : '#5B21B6' }}>
                   <VideoIcon />
@@ -592,163 +708,108 @@ const ClientStreamsPage = () => {
 
           {/* Streams Grid */}
           <div className="mobile-streams-grid streams-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '1.25rem' }}>
-            {filteredStreams.map(stream => {
+            {filteredStreams.map((stream, index) => {
               const unviewedCount = getUnviewedVideoCount(stream);
               return (
                 <div
-                  key={stream.id}
-                  style={cardStyle}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.boxShadow = 'none';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                  }}
+                  key={stream.id ?? index}
+                  style={{ position: 'relative', height: '450px', borderRadius: '1.5rem', overflow: 'hidden', transition: 'transform 0.3s ease', willChange: 'transform' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.03)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
                 >
-                  {/* Cover Image */}
-                  <div style={{ position: 'relative', height: '180px' }}>
-                    <Image
-                      src={stream.coverImage}
-                      alt={stream.streamTitle}
-                      fill
-                      style={{ objectFit: 'cover' }}
-                    />
-                    <div style={{
-                      position: 'absolute',
-                      top: '0.75rem',
-                      left: '0.75rem',
-                      backgroundColor: '#111827',
-                      color: 'white',
-                      padding: '0.25rem 0.75rem',
-                      borderRadius: '0.375rem',
-                      fontSize: '0.75rem',
-                      fontWeight: '500',
-                    }}>
-                      {stream.eventType}
-                    </div>
-                    <div style={{
-                      position: 'absolute',
-                      bottom: '0.75rem',
-                      right: '0.75rem',
-                      backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                      color: 'white',
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '0.25rem',
-                      fontSize: '0.75rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.25rem',
-                    }}>
-                      <ClockIcon /> {stream.duration}
-                    </div>
-                    {unviewedCount > 0 && (
-                      <div style={{
-                        position: 'absolute',
-                        top: '0.75rem',
-                        right: '0.75rem',
-                        backgroundColor: '#DC2626',
-                        color: 'white',
-                        padding: '0.25rem 0.5rem',
-                        borderRadius: '9999px',
-                        fontSize: '0.7rem',
-                        fontWeight: '600',
-                      }}>
-                        {unviewedCount} new video{unviewedCount > 1 ? 's' : ''}
-                      </div>
-                    )}
-                  </div>
+                  {/* Blurred cover = glow effect */}
+                  <img src={stream.coverImage || '/coverr.jpg'} alt="" style={{ position: 'absolute', inset: '-10px', width: 'calc(100% + 20px)', height: 'calc(100% + 20px)', objectFit: 'cover', filter: 'blur(14px) brightness(0.7)', pointerEvents: 'none' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }} />
+                  {/* Inner card */}
+                  <div
+                    style={{ position: 'absolute', inset: '7px', borderRadius: '1.05rem', overflow: 'hidden', backgroundColor: '#000', cursor: 'pointer', transition: 'filter 0.2s' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.15)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.filter = 'brightness(1)'; }}
+                  >
+                    {/* Full-bleed cover image */}
+                    <img src={stream.coverImage || '/coverr.jpg'} alt={stream.streamTitle} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }} />
+                    {/* Gradient overlay */}
+                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0) 35%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0.55) 100%)', pointerEvents: 'none' }} />
 
-                  {/* Content */}
-                  <div style={{ padding: '1rem' }}>
-                    <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                      {stream.streamTitle}
-                    </h3>
-                    <p style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <CalendarIcon /> {formatDate(stream.streamDate)} at {stream.streamTime}
-                    </p>
-
-                    {/* Photographer Info */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                      <div style={{ width: '28px', height: '28px', borderRadius: '50%', overflow: 'hidden', position: 'relative' }}>
-                        <Image
-                          src={stream.photographerImage}
-                          alt={stream.photographerName}
-                          fill
-                          style={{ objectFit: 'cover' }}
-                        />
+                    {/* TOP: event type + duration/unviewed + delete */}
+                    <div style={{ position: 'absolute', top: '0.6rem', left: '0.6rem', right: '0.6rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div style={{ backgroundColor: '#083A85', backdropFilter: 'blur(8px)', color: 'white', padding: '0.25rem 0.7rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.02em', pointerEvents: 'none' }}>
+                        {stream.eventType}
                       </div>
-                      <span style={{ fontSize: '0.8rem', color: colors.textPrimary }}>by {stream.photographerName}</span>
-                    </div>
-
-                    {/* Stats Row */}
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      padding: '0.75rem 0',
-                      borderTop: `1px solid ${colors.borderPrimary}`,
-                      marginBottom: '0.75rem',
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: colors.textSecondary, fontSize: '0.8rem' }}>
-                        <UsersIcon /> {stream.totalViewers} viewers
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: colors.textSecondary, fontSize: '0.8rem' }}>
-                        <MessageIcon /> {stream.totalMessages}
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: colors.textSecondary, fontSize: '0.8rem' }}>
-                        <VideoIcon /> {stream.totalVideoMessages}
+                      <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
+                        {unviewedCount > 0 && (
+                          <div style={{ backgroundColor: '#DC2626', backdropFilter: 'blur(8px)', color: 'white', padding: '0.25rem 0.7rem', borderRadius: '1rem', fontSize: '0.65rem', fontWeight: 700, pointerEvents: 'none' }}>
+                            {unviewedCount} new
+                          </div>
+                        )}
+                        <div style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', color: 'white', padding: '0.25rem 0.7rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.02em', display: 'flex', alignItems: 'center', gap: '0.25rem', pointerEvents: 'none' }}>
+                          <ClockIcon /> {stream.duration}
+                        </div>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setDeleteTarget(stream); }}
+                          style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', color: 'rgba(255,255,255,0.8)', padding: '0.3rem', borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}
+                          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(220,38,38,0.8)'; e.currentTarget.style.color = 'white'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.55)'; e.currentTarget.style.color = 'rgba(255,255,255,0.8)'; }}
+                          title="Delete stream"
+                        >
+                          <TrashIcon />
+                        </button>
                       </div>
                     </div>
 
-                    {/* Action Buttons */}
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button
-                        onClick={() => {
-                          setSelectedStream(stream);
-                          setShowMessagesModal(true);
-                        }}
-                        style={{
-                          flex: 1,
-                          padding: '0.625rem',
-                          borderRadius: '0.5rem',
-                          border: 'none',
-                          backgroundColor: '#3B82F6',
-                          color: 'white',
-                          fontSize: '0.8rem',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '0.375rem',
-                        }}
-                      >
-                        <MessageIcon /> View Chats
-                      </button>
-                      <button
-                        onClick={() => {
-                          setSelectedStream(stream);
-                          setShowVideosModal(true);
-                        }}
-                        style={{
-                          flex: 1,
-                          padding: '0.625rem',
-                          borderRadius: '0.5rem',
-                          border: 'none',
-                          backgroundColor: '#DC2626',
-                          color: 'white',
-                          fontSize: '0.8rem',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '0.375rem',
-                        }}
-                      >
-                        <VideoIcon /> Videos {unviewedCount > 0 && `(${unviewedCount})`}
-                      </button>
+                    {/* BOTTOM: title, date, photographer, stats, buttons — all overlaid */}
+                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
+                      {/* Title + date over image */}
+                      <div style={{ padding: '0 0.8rem 0.5rem' }}>
+                        <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '0.03em', textTransform: 'uppercase', lineHeight: 1.3, marginBottom: '0.15rem' }}>
+                          {stream.streamTitle}
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                          <CalendarIcon /> {formatDate(stream.streamDate)} at {stream.streamTime}
+                        </div>
+                      </div>
+
+                      {/* FOOTER: frosted glass */}
+                      <div style={{ backgroundColor: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)', padding: '0.75rem 1rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                        {/* Photographer + stats row */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem' }}>
+                          <div style={{ width: '36px', height: '36px', borderRadius: '50%', overflow: 'hidden', position: 'relative', background: 'linear-gradient(135deg, #083A85, #3B82F6)', border: '2px solid rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              <circle cx="12" cy="7" r="4" stroke="white" strokeWidth="2"/>
+                            </svg>
+                            {stream.photographerImage && (
+                              <img src={stream.photographerImage} alt={stream.photographerName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                            )}
+                          </div>
+                          <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.9)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{stream.photographerName}</span>
+                          <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexShrink: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.72rem' }}>
+                              <UsersIcon /> {stream.totalViewers}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.72rem' }}>
+                              <MessageIcon /> {stream.totalMessages}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.72rem' }}>
+                              <VideoIcon /> {stream.totalVideoMessages}
+                            </div>
+                          </div>
+                        </div>
+                        {/* Action buttons */}
+                        <div style={{ display: 'flex', gap: '0.4rem' }}>
+                          <button
+                            onClick={() => { setSelectedStream(stream); setShowMessagesModal(true); }}
+                            style={{ flex: 1, padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: 'none', backgroundColor: '#083A85', color: 'white', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
+                          >
+                            <MessageIcon /> View Chats
+                          </button>
+                          <button
+                            onClick={() => { setSelectedStream(stream); setShowVideosModal(true); }}
+                            style={{ flex: 1, padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: 'none', backgroundColor: '#DC2626', color: 'white', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
+                          >
+                            <VideoIcon /> Videos {unviewedCount > 0 && `(${unviewedCount})`}
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -763,7 +824,7 @@ const ClientStreamsPage = () => {
               padding: '4rem 2rem',
               backgroundColor: colors.bgCard,
               borderRadius: '0.75rem',
-              border: `1px solid ${colors.borderPrimary}`,
+              border: `2px solid ${colors.borderPrimary}`,
             }}>
               <BroadcastIcon />
               <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: colors.textPrimary, marginTop: '1rem' }}>
@@ -826,13 +887,18 @@ const ClientStreamsPage = () => {
                     overflow: 'hidden',
                     flexShrink: 0,
                     position: 'relative',
+                    backgroundColor: '#E5E7EB',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                   }}>
-                    <Image
-                      src={msg.viewerAvatar}
-                      alt={msg.viewerUsername}
-                      fill
-                      style={{ objectFit: 'cover' }}
-                    />
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                    </svg>
+                    {msg.viewerAvatar && (
+                      <img src={msg.viewerAvatar} alt={msg.viewerUsername} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                    )}
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
@@ -956,13 +1022,19 @@ const ClientStreamsPage = () => {
                       borderRadius: '50%',
                       overflow: 'hidden',
                       position: 'relative',
+                      backgroundColor: '#374151',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
                     }}>
-                      <Image
-                        src={selectedVideo.viewerAvatar}
-                        alt={selectedVideo.viewerUsername}
-                        fill
-                        style={{ objectFit: 'cover' }}
-                      />
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                      </svg>
+                      {selectedVideo.viewerAvatar && (
+                        <img src={selectedVideo.viewerAvatar} alt={selectedVideo.viewerUsername} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                      )}
                     </div>
                     <span style={{ color: 'white', fontSize: '0.85rem', fontWeight: '500' }}>
                       @{selectedVideo.viewerUsername}
@@ -1001,13 +1073,8 @@ const ClientStreamsPage = () => {
                     position: 'relative',
                   }}
                 >
-                  <div style={{ position: 'relative', height: '100px' }}>
-                    <Image
-                      src={video.thumbnailUrl}
-                      alt={`Video from ${video.viewerUsername}`}
-                      fill
-                      style={{ objectFit: 'cover' }}
-                    />
+                  <div style={{ position: 'relative', height: '100px', backgroundColor: video.thumbnailUrl ? 'transparent' : '#0D1B2A' }}>
+                    <img src={video.thumbnailUrl || '/coverr.jpg'} alt={`Video from ${video.viewerUsername}`} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: video.thumbnailUrl ? 'cover' : 'contain' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; (e.currentTarget as HTMLImageElement).style.objectFit = 'contain'; const p = e.currentTarget.parentElement; if (p) p.style.backgroundColor = '#0D1B2A'; }} />
                     {!video.viewed && (
                       <div style={{
                         position: 'absolute',
@@ -1090,7 +1157,42 @@ const ClientStreamsPage = () => {
         )}
       </Modal>
 
-      <style global>{`
+      {/* Delete Confirmation Modal */}
+      {deleteTarget && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, backdropFilter: 'blur(4px)' }} onClick={() => !isDeleting && setDeleteTarget(null)}>
+          <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1.5rem', maxWidth: '400px', width: '90%', boxShadow: actualTheme === 'dark' ? '0 25px 60px rgba(0,0,0,0.6)' : '0 25px 60px rgba(0,0,0,0.2)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: actualTheme === 'dark' ? 'rgba(220,38,38,0.15)' : '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                </svg>
+              </div>
+            </div>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: colors.textPrimary, margin: '0 0 0.5rem', textAlign: 'center' }}>Delete Stream Record?</h3>
+            <p style={{ fontSize: '0.82rem', color: colors.textSecondary, lineHeight: '1.5', margin: '0 0 1.25rem', textAlign: 'center' }}>
+              This will permanently delete the stream record for <strong style={{ color: colors.textPrimary }}>{deleteTarget.streamTitle}</strong>, including all chat messages and video messages.
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                onClick={() => setDeleteTarget(null)}
+                disabled={isDeleting}
+                style={{ flex: 1, padding: '0.6rem 1rem', borderRadius: '0.5rem', border: `1.5px solid ${colors.borderPrimary}`, backgroundColor: colors.bgCard, color: colors.textPrimary, fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', opacity: isDeleting ? 0.5 : 1 }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteStream}
+                disabled={isDeleting}
+                style={{ flex: 1, padding: '0.6rem 1rem', borderRadius: '0.5rem', border: 'none', backgroundColor: '#DC2626', color: 'white', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', opacity: isDeleting ? 0.7 : 1 }}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style jsx global>{`
         @keyframes pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.5; }
