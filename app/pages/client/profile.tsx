@@ -1,11 +1,14 @@
 "use client";
 
-import React, { useState, useRef } from 'react';
-import Image from 'next/image';
+import React, { useState, useRef, useEffect } from 'react';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
+import CountrySelect, { eastAfricanCountries } from '../../components/CountrySelect';
 import { useTheme } from '../../context/ThemeContext';
 import { useUserProfile } from '../../context/UserProfileContext';
+import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
+import { getApiUrl } from '@/lib/api';
+import { getPlatformConfig } from '@/lib/platformConfig';
 
 // Camera icon for avatar edit
 const CameraIcon = () => (
@@ -18,17 +21,12 @@ const CameraIcon = () => (
 const ProfilePage = () => {
   const { colors, actualTheme } = useTheme();
   const { profile, updateProfile } = useUserProfile();
+  const { token, user } = useDashboardAuth();
   const [isEditEnabled, setIsEditEnabled] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
-  // East African countries with phone codes
-  const eastAfricanCountries = [
-    { name: 'Rwanda', code: '+250', flag: '🇷🇼' },
-    { name: 'Kenya', code: '+254', flag: '🇰🇪' },
-    { name: 'Uganda', code: '+256', flag: '🇺🇬' },
-    { name: 'Tanzania', code: '+255', flag: '🇹🇿' },
-    { name: 'Burundi', code: '+257', flag: '🇧🇮' },
-    { name: 'South Sudan', code: '+211', flag: '🇸🇸' },
-  ];
+  // East African countries imported from CountrySelect component
 
   // Rwanda provinces and districts
   const rwandaProvinces: { [key: string]: string[] } = {
@@ -51,7 +49,7 @@ const ProfilePage = () => {
     province: profile.province,
     district: profile.district,
     sector: profile.sector,
-    // Fields only for photographers/freelancers
+    // Fields only for photographers
     companyName: 'Personal',
     workLocation: 'Kigali, Rwanda',
     availabilityDays: 'Weekends',
@@ -59,11 +57,82 @@ const ProfilePage = () => {
     bio: 'Passionate about capturing life\'s precious moments. Looking for talented photographers for weddings, events, and family portraits.'
   });
 
-  // Profile image state
-  const [profileImage, setProfileImage] = useState<string>('https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg');
+  // Profile image state - initialized from context/user data
+  const [profileImage, setProfileImage] = useState<string>(profile.profilePicture || '');
 
   // File input ref
   const profileInputRef = useRef<HTMLInputElement>(null);
+
+  // Input validation error states
+  const [validationErrors, setValidationErrors] = useState({
+    fullName: '',
+    username: '',
+    phoneNumber: ''
+  });
+
+  // Sync profile image from user data when it loads
+  useEffect(() => {
+    if (user?.profilePicture) setProfileImage(user.profilePicture);
+  }, [user?.profilePicture]);
+
+  // Sync form data when profile context updates
+  useEffect(() => {
+    if (profile.fullName) {
+      setFormData(prev => ({
+        ...prev,
+        fullName: profile.fullName,
+        username: profile.username,
+        email: profile.email,
+        phoneCode: profile.phoneCode,
+        phoneNumber: profile.phoneNumber,
+        title: profile.title,
+        country: profile.country || prev.country,
+        province: profile.province || prev.province,
+        district: profile.district || prev.district,
+        sector: profile.sector || prev.sector,
+      }));
+    }
+  }, [profile.fullName, profile.username, profile.email, profile.phoneCode, profile.phoneNumber, profile.title, profile.country, profile.province, profile.district, profile.sector]);
+
+  // Save profile to API
+  const handleSaveProfile = async () => {
+    if (!token) return;
+    setIsSaving(true);
+    try {
+      const apiUrl = getApiUrl();
+      const nameParts = formData.fullName.trim().split(/\s+/);
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+      const phone = `${formData.phoneCode}${formData.phoneNumber.replace(/\s/g, '')}`;
+      const address = [formData.sector, formData.district, formData.province, formData.country].filter(Boolean).join(', ');
+
+      const params = new URLSearchParams();
+      if (firstName) params.append('firstName', firstName);
+      if (lastName) params.append('lastName', lastName);
+      if (phone) params.append('phone', phone);
+      if (address) params.append('address', address);
+
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/profile?${params.toString()}`, {
+        method: 'PUT',
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to save: ${response.status}`);
+      }
+
+      const result = await response.json();
+      if (result.action === 1) {
+        alert('Profile updated successfully!');
+      } else {
+        throw new Error(result.message || 'Failed to update profile');
+      }
+    } catch (err) {
+      console.error('Save profile error:', err);
+      alert(err instanceof Error ? err.message : 'Failed to save profile');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleInputChange = (field: string, value: string) => {
     if (isEditEnabled) {
@@ -76,8 +145,42 @@ const ProfilePage = () => {
     }
   };
 
+  // Validation handlers for sensitive input fields
+  const handleFullNameChange = (value: string) => {
+    if (!isEditEnabled) return;
+    // Allow only letters, spaces, and common name characters (hyphens, apostrophes)
+    if (value === '' || /^[a-zA-Z\s'-]*$/.test(value)) {
+      handleInputChange('fullName', value);
+      setValidationErrors(prev => ({ ...prev, fullName: '' }));
+    } else {
+      setValidationErrors(prev => ({ ...prev, fullName: 'Only letters, spaces, hyphens and apostrophes allowed' }));
+    }
+  };
+
+  const handleUsernameChange = (value: string) => {
+    if (!isEditEnabled) return;
+    // Allow only alphanumeric characters and underscores
+    if (value === '' || /^[a-zA-Z0-9_]*$/.test(value)) {
+      handleInputChange('username', value);
+      setValidationErrors(prev => ({ ...prev, username: '' }));
+    } else {
+      setValidationErrors(prev => ({ ...prev, username: 'Only letters, numbers and underscores allowed' }));
+    }
+  };
+
+  const handlePhoneNumberChange = (value: string) => {
+    if (!isEditEnabled) return;
+    // Allow only numbers and spaces (for formatting like "788 456 789")
+    if (value === '' || /^[\d\s]*$/.test(value)) {
+      handleInputChange('phoneNumber', value);
+      setValidationErrors(prev => ({ ...prev, phoneNumber: '' }));
+    } else {
+      setValidationErrors(prev => ({ ...prev, phoneNumber: 'Only numbers and spaces allowed' }));
+    }
+  };
+
   // Handle profile image upload
-  const handleProfileImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProfileImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       // Validate file type
@@ -86,28 +189,65 @@ const ProfilePage = () => {
         return;
       }
       // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
+      if (file.size > getPlatformConfig().uploads.maxImageSizeMb * 1024 * 1024) {
         alert('Image size should be less than 5MB');
         return;
       }
+      // Show preview immediately
       const reader = new FileReader();
       reader.onloadend = () => {
         setProfileImage(reader.result as string);
       };
       reader.readAsDataURL(file);
+
+      // Upload to API
+      if (token) {
+        setIsUploadingImage(true);
+        try {
+          const apiUrl = getApiUrl();
+          const uploadData = new FormData();
+          uploadData.append('profilePicture', file);
+          const response = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/profile/profile-picture`, {
+            method: 'POST',
+            body: uploadData,
+          });
+          if (!response.ok) {
+            console.error('Failed to upload profile picture:', response.status);
+            alert('Failed to upload profile picture. Please try again.');
+          }
+        } catch (err) {
+          console.error('Profile picture upload error:', err);
+        } finally {
+          setIsUploadingImage(false);
+        }
+      }
     }
   };
 
   const inputStyle = {
     width: '100%',
     padding: '0.75rem 1rem',
-    border: `2px solid ${colors.borderPrimary}`,
+    borderWidth: '2px',
+    borderStyle: 'solid' as const,
+    borderColor: colors.borderPrimary,
     borderRadius: '0.5rem',
     fontSize: '0.95rem',
     color: colors.textPrimary,
     backgroundColor: isEditEnabled ? colors.bgCard : colors.bgTertiary,
     outline: 'none',
     transition: 'border-color 0.2s, background-color 0.2s'
+  };
+
+  const inputErrorStyle = {
+    ...inputStyle,
+    borderColor: '#EF4444'
+  };
+
+  const errorMessageStyle = {
+    color: '#EF4444',
+    fontSize: '0.75rem',
+    marginTop: '0.25rem',
+    display: 'block'
   };
 
   const labelStyle = {
@@ -122,13 +262,22 @@ const ProfilePage = () => {
     <div style={{
       display: 'flex',
       height: '100vh',
-      backgroundColor: colors.bgPrimary
+      backgroundColor: colors.bgPrimary,
+      overflow: 'hidden',
+      width: '100%',
+      maxWidth: '100vw'
     }}>
       <style>{`
         @media (max-width: 768px) {
           .mobile-main-content {
             padding: 1rem !important;
             padding-bottom: 8rem !important;
+            overflow-x: hidden !important;
+          }
+          .mobile-form-grid-2 input,
+          .mobile-form-grid-2 select {
+            min-height: 44px !important;
+            font-size: 0.9rem !important;
           }
           .mobile-page-header {
             flex-direction: column !important;
@@ -267,6 +416,24 @@ const ProfilePage = () => {
             font-size: 0.75rem !important;
           }
         }
+        @media (max-width: 375px) {
+          .mobile-main-content {
+            padding: 0.5rem !important;
+            padding-bottom: 10rem !important;
+          }
+          .mobile-page-header h1 {
+            font-size: 1.1rem !important;
+          }
+          .mobile-tabs button {
+            font-size: 0.78rem !important;
+            padding: 0.5rem 0.375rem !important;
+          }
+          .mobile-form-grid-2 input,
+          .mobile-form-grid-2 select {
+            font-size: 0.85rem !important;
+            padding: 0.625rem 0.75rem !important;
+          }
+        }
       `}</style>
       <Sidebar />
 
@@ -276,7 +443,7 @@ const ProfilePage = () => {
         flexDirection: 'column',
         overflow: 'hidden'
       }}>
-        <Topbar userRole="client" giftAmount={225.00} />
+        <Topbar userRole="client" />
 
         <div className="mobile-main-content" style={{
           flex: 1,
@@ -313,7 +480,7 @@ const ProfilePage = () => {
                 borderRadius: '0.75rem',
                 overflow: 'hidden',
                 boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                border: `1px solid ${colors.borderPrimary}`
+                border: `2px solid ${colors.borderPrimary}`
               }}>
                 {/* Hidden file inputs */}
                 <input
@@ -336,31 +503,62 @@ const ProfilePage = () => {
                       height: '100px',
                       borderRadius: '50%',
                       overflow: 'hidden',
-                      border: '4px solid white'
+                      border: '4px solid white',
+                      backgroundColor: colors.bgTertiary,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      position: 'relative',
                     }}>
-                      <Image
-                        src={profileImage}
-                        alt="Profile"
-                        width={100}
-                        height={100}
-                        style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                      />
+                      {profileImage ? (
+                        <img
+                          src={profileImage}
+                          alt="Profile"
+                          style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                        />
+                      ) : (
+                        <span style={{ fontSize: '2rem', color: colors.textSecondary, fontWeight: '600' }}>
+                          {formData.fullName ? formData.fullName.charAt(0).toUpperCase() : '?'}
+                        </span>
+                      )}
+                      {isUploadingImage && (
+                        <div style={{
+                          position: 'absolute',
+                          inset: 0,
+                          backgroundColor: 'rgba(0,0,0,0.4)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderRadius: '50%',
+                        }}>
+                          <div style={{
+                            width: '20px',
+                            height: '20px',
+                            border: '2px solid #fff',
+                            borderTopColor: 'transparent',
+                            borderRadius: '50%',
+                            animation: 'spin 0.8s linear infinite',
+                          }} />
+                        </div>
+                      )}
                     </div>
                     <button
-                      onClick={() => profileInputRef.current?.click()}
+                      onClick={() => isEditEnabled && profileInputRef.current?.click()}
+                      disabled={!isEditEnabled}
                       style={{
                         position: 'absolute',
                         bottom: '0',
                         right: '0',
-                        backgroundColor: '#083A85',
-                        border: '2px solid #062a63',
+                        backgroundColor: isEditEnabled ? '#083A85' : '#9CA3AF',
+                        border: isEditEnabled ? '2px solid #062a63' : '2px solid #6B7280',
                         borderRadius: '50%',
                         width: '32px',
                         height: '32px',
-                        cursor: 'pointer',
+                        cursor: isEditEnabled ? 'pointer' : 'not-allowed',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center'
+                        justifyContent: 'center',
+                        opacity: isEditEnabled ? 1 : 0.5,
                       }}>
                       <CameraIcon />
                     </button>
@@ -377,16 +575,16 @@ const ProfilePage = () => {
                     fontWeight: '700',
                     color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
                     marginBottom: '0.25rem'
-                  }}>Diane Marry</h2>
+                  }}>{formData.fullName || 'User'}</h2>
                   <p style={{
                     fontSize: '0.95rem',
                     color: colors.textSecondary
-                  }}>Client</p>
+                  }}>{formData.title || 'Client'}</p>
                 </div>
 
                 {/* Account Activity */}
                 <div className="mobile-profile-card-activity" style={{
-                  borderTop: `1px solid ${colors.borderPrimary}`,
+                  borderTop: `2px solid ${colors.borderPrimary}`,
                   padding: '1.25rem'
                 }}>
                   <h3 style={{
@@ -406,7 +604,7 @@ const ProfilePage = () => {
                       alignItems: 'center'
                     }}>
                       <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Last Login</span>
-                      <span style={{ fontSize: '0.9rem', color: colors.textPrimary, fontWeight: '500' }}>Today, 2:30 PM</span>
+                      <span style={{ fontSize: '0.9rem', color: colors.textPrimary, fontWeight: '500' }}>Today</span>
                     </div>
                     <div style={{
                       display: 'flex',
@@ -414,15 +612,9 @@ const ProfilePage = () => {
                       alignItems: 'center'
                     }}>
                       <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Joined Since</span>
-                      <span style={{ fontSize: '0.9rem', color: colors.textPrimary, fontWeight: '500' }}>Jan 15, 2024</span>
-                    </div>
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
-                    }}>
-                      <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Last Updated</span>
-                      <span style={{ fontSize: '0.9rem', color: colors.textPrimary, fontWeight: '500' }}>Nov 20, 2025</span>
+                      <span style={{ fontSize: '0.9rem', color: colors.textPrimary, fontWeight: '500' }}>
+                        {user?.joinedFrom ? new Date(user.joinedFrom).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '-'}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -435,7 +627,7 @@ const ProfilePage = () => {
               borderRadius: '0.75rem',
               padding: '1.5rem',
               boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-              border: `1px solid ${colors.borderPrimary}`
+              border: `2px solid ${colors.borderPrimary}`
             }}>
               {/* Header with Edit Toggle */}
               <div className="mobile-section-actions" style={{
@@ -507,10 +699,13 @@ const ProfilePage = () => {
                   <input
                     type="text"
                     value={formData.fullName}
-                    onChange={(e) => handleInputChange('fullName', e.target.value)}
+                    onChange={(e) => handleFullNameChange(e.target.value)}
                     disabled={!isEditEnabled}
-                    style={inputStyle}
+                    style={validationErrors.fullName ? inputErrorStyle : inputStyle}
                   />
+                  {validationErrors.fullName && (
+                    <span style={errorMessageStyle}>{validationErrors.fullName}</span>
+                  )}
                 </div>
 
                 {/* Username */}
@@ -519,10 +714,13 @@ const ProfilePage = () => {
                   <input
                     type="text"
                     value={formData.username}
-                    onChange={(e) => handleInputChange('username', e.target.value)}
+                    onChange={(e) => handleUsernameChange(e.target.value)}
                     disabled={!isEditEnabled}
-                    style={inputStyle}
+                    style={validationErrors.username ? inputErrorStyle : inputStyle}
                   />
+                  {validationErrors.username && (
+                    <span style={errorMessageStyle}>{validationErrors.username}</span>
+                  )}
                 </div>
 
                 {/* Email */}
@@ -540,31 +738,31 @@ const ProfilePage = () => {
                 <div>
                   <label style={labelStyle}>Phone</label>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <select
+                    <CountrySelect
+                      countries={eastAfricanCountries}
                       value={formData.phoneCode}
-                      onChange={(e) => handleInputChange('phoneCode', e.target.value)}
+                      onChange={(val) => handleInputChange('phoneCode', val)}
+                      valueKey="code"
+                      displayKey="code"
                       disabled={!isEditEnabled}
-                      style={{
-                        ...inputStyle,
-                        width: '120px',
-                        cursor: isEditEnabled ? 'pointer' : 'not-allowed'
-                      }}
-                    >
-                      {eastAfricanCountries.map((country) => (
-                        <option key={country.code} value={country.code}>
-                          {country.flag} {country.code}
-                        </option>
-                      ))}
-                    </select>
+                      inputStyle={{ ...inputStyle, cursor: isEditEnabled ? 'pointer' : 'not-allowed' }}
+                      colors={colors}
+                      actualTheme={actualTheme}
+                      width="140px"
+                    />
                     <input
                       type="tel"
+                      maxLength={15}
                       value={formData.phoneNumber}
-                      onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
+                      onChange={(e) => handlePhoneNumberChange(e.target.value)}
                       disabled={!isEditEnabled}
                       placeholder="788 123 456"
-                      style={{ ...inputStyle, flex: 1 }}
+                      style={validationErrors.phoneNumber ? { ...inputErrorStyle, flex: 1 } : { ...inputStyle, flex: 1 }}
                     />
                   </div>
+                  {validationErrors.phoneNumber && (
+                    <span style={errorMessageStyle}>{validationErrors.phoneNumber}</span>
+                  )}
                 </div>
 
                 {/* Title */}
@@ -581,29 +779,24 @@ const ProfilePage = () => {
                 {/* Country */}
                 <div>
                   <label style={labelStyle}>Country</label>
-                  <select
+                  <CountrySelect
+                    countries={eastAfricanCountries}
                     value={formData.country}
-                    onChange={(e) => {
-                      handleInputChange('country', e.target.value);
-                      // Reset province, district, sector when country changes
-                      if (e.target.value !== 'Rwanda') {
+                    onChange={(val) => {
+                      handleInputChange('country', val);
+                      if (val !== 'Rwanda') {
                         setFormData(prev => ({ ...prev, province: '', district: '', sector: '' }));
                       } else {
                         setFormData(prev => ({ ...prev, province: 'Kigali City', district: 'Gasabo', sector: '' }));
                       }
                     }}
+                    valueKey="name"
+                    displayKey="name"
                     disabled={!isEditEnabled}
-                    style={{
-                      ...inputStyle,
-                      cursor: isEditEnabled ? 'pointer' : 'not-allowed'
-                    }}
-                  >
-                    {eastAfricanCountries.map((country) => (
-                      <option key={country.name} value={country.name}>
-                        {country.flag} {country.name}
-                      </option>
-                    ))}
-                  </select>
+                    inputStyle={{ ...inputStyle, cursor: isEditEnabled ? 'pointer' : 'not-allowed' }}
+                    colors={colors}
+                    actualTheme={actualTheme}
+                  />
                 </div>
 
                 {/* Province - Only show dropdown for Rwanda */}
@@ -697,30 +890,32 @@ const ProfilePage = () => {
                 marginTop: '1.5rem'
               }}>
                 <button
-                  disabled={!isEditEnabled}
+                  disabled={!isEditEnabled || isSaving}
+                  onClick={handleSaveProfile}
                   style={{
-                    backgroundColor: isEditEnabled ? '#083A85' : '#9CA3AF',
+                    backgroundColor: isEditEnabled && !isSaving ? '#083A85' : '#9CA3AF',
                     color: 'white',
                     border: isEditEnabled ? '2px solid #062a63' : '2px solid #6B7280',
                     borderRadius: '0.5rem',
                     padding: '0.75rem 2rem',
                     fontSize: '1rem',
                     fontWeight: '600',
-                    cursor: isEditEnabled ? 'pointer' : 'not-allowed',
-                    transition: 'background-color 0.2s'
+                    cursor: isEditEnabled && !isSaving ? 'pointer' : 'not-allowed',
+                    transition: 'background-color 0.2s',
+                    opacity: isSaving ? 0.7 : 1,
                   }}
                   onMouseEnter={(e) => {
-                    if (isEditEnabled) {
+                    if (isEditEnabled && !isSaving) {
                       e.currentTarget.style.backgroundColor = '#062a63';
                     }
                   }}
                   onMouseLeave={(e) => {
-                    if (isEditEnabled) {
+                    if (isEditEnabled && !isSaving) {
                       e.currentTarget.style.backgroundColor = '#083A85';
                     }
                   }}
                 >
-                  Update
+                  {isSaving ? 'Saving...' : 'Update'}
                 </button>
               </div>
             </div>

@@ -1,11 +1,44 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
+import { useCurrency } from '@/app/context/CurrencyContext';
+import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
+import { getApiUrl } from '@/lib/api';
+
+function formatRelativeTime(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays} days ago`;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function mapBackendType(backendType: string): NotificationType {
+  switch (backendType?.toUpperCase()) {
+    case 'PAYMENT': return 'payment';
+    case 'TIP': return 'tip';
+    case 'BONUS': return 'bonus';
+    case 'SECURITY': case 'SYSTEM': return 'security';
+    case 'MEDIA': case 'ALBUM': return 'album';
+    case 'REVIEW': return 'review';
+    case 'BOOKING': case 'EVENT': case 'ASSIGNMENT': return 'event';
+    case 'PHOTOBOOK': case 'PHOTOBOOK_RECEIVED': return 'photobook';
+    default: return 'payment';
+  }
+}
 
 // Icons
 const BellIcon = () => (
@@ -62,21 +95,8 @@ const TrashIcon = () => (
   </svg>
 );
 
-const FilterIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
-
-const SettingsIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
-    <path d="M12 1V3M12 21V23M4.22 4.22L5.64 5.64M18.36 18.36L19.78 19.78M1 12H3M21 12H23M4.22 19.78L5.64 18.36M18.36 5.64L19.78 4.22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-  </svg>
-);
-
-// Notification types specific to photographers/freelancers
-type NotificationType = 'payment' | 'tip' | 'bonus' | 'security' | 'album' | 'review';
+// Notification types specific to photographers
+type NotificationType = 'payment' | 'tip' | 'bonus' | 'security' | 'album' | 'review' | 'event' | 'photobook';
 
 interface Notification {
   id: string;
@@ -88,136 +108,63 @@ interface Notification {
   avatar?: string;
   amount?: number;
   actionUrl?: string;
+  referenceId?: string;
 }
 
-// Sample notifications data for photographer/freelancer
-const photographerNotifications: Notification[] = [
-  {
-    id: '1',
-    type: 'payment',
-    title: 'Payment Received',
-    message: 'You received $450.00 from Sarah Johnson for Wedding Photography package',
-    timestamp: '2 minutes ago',
-    read: false,
-    avatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg',
-    amount: 450.00,
-    actionUrl: '/user/photographer/transaction'
-  },
-  {
-    id: '2',
-    type: 'tip',
-    title: 'New Tip Received',
-    message: 'Michael Chen sent you a $25.00 tip for excellent service!',
-    timestamp: '15 minutes ago',
-    read: false,
-    avatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
-    amount: 25.00
-  },
-  {
-    id: '3',
-    type: 'security',
-    title: 'New Login Detected',
-    message: 'A new login was detected from Chrome on Windows 11. Location: Kigali, Rwanda',
-    timestamp: '1 hour ago',
-    read: false,
-    actionUrl: '/user/photographer/profile'
-  },
-  {
-    id: '4',
-    type: 'bonus',
-    title: 'Referral Bonus Earned',
-    message: 'You earned a $15.00 bonus for referring David Park to Amoria!',
-    timestamp: '2 hours ago',
-    read: false,
-    avatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
-    amount: 15.00
-  },
-  {
-    id: '5',
-    type: 'payment',
-    title: 'Payment Received',
-    message: 'You received $1,200.00 from Emily Rodriguez for Corporate Event package',
-    timestamp: '3 hours ago',
-    read: true,
-    avatar: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg',
-    amount: 1200.00,
-    actionUrl: '/user/photographer/transaction'
-  },
-  {
-    id: '6',
-    type: 'review',
-    title: 'New 5-Star Review',
-    message: 'Lisa Thompson left you a 5-star review: "Amazing photographer! Highly recommended!"',
-    timestamp: '5 hours ago',
-    read: true,
-    avatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg'
-  },
-  {
-    id: '7',
-    type: 'tip',
-    title: 'New Tip Received',
-    message: 'James Wilson sent you a $50.00 tip with message: "Great work on the family portraits!"',
-    timestamp: '6 hours ago',
-    read: true,
-    avatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
-    amount: 50.00
-  },
-  {
-    id: '8',
-    type: 'security',
-    title: 'Password Changed',
-    message: 'Your password was successfully changed. If this wasn\'t you, please contact support.',
-    timestamp: 'Yesterday',
-    read: true
-  },
-  {
-    id: '9',
-    type: 'bonus',
-    title: 'Monthly Performance Bonus',
-    message: 'Congratulations! You earned a $75.00 performance bonus for completing 10+ bookings this month.',
-    timestamp: 'Yesterday',
-    read: true,
-    amount: 75.00
-  },
-  {
-    id: '10',
-    type: 'payment',
-    title: 'Payment Received',
-    message: 'You received $350.00 from Alex Chen for Portrait Session',
-    timestamp: '2 days ago',
-    read: true,
-    avatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
-    amount: 350.00,
-    actionUrl: '/user/photographer/transaction'
-  },
-  {
-    id: '11',
-    type: 'security',
-    title: 'Two-Factor Authentication Enabled',
-    message: 'Two-factor authentication has been enabled on your account for enhanced security.',
-    timestamp: '3 days ago',
-    read: true
-  },
-  {
-    id: '12',
-    type: 'review',
-    title: 'New 4-Star Review',
-    message: 'Robert Kim left you a 4-star review: "Professional and creative. Would book again."',
-    timestamp: '4 days ago',
-    read: true,
-    avatar: 'https://i.pinimg.com/1200x/09/23/45/092345eac1919407e0c49f67e285b831.jpg'
-  }
-];
 
-interface NotificationsProps {
-  userType?: 'photographer' | 'freelancer';
-}
-
-const Notifications = ({ userType = 'photographer' }: NotificationsProps) => {
+const Notifications = () => {
   const { colors, actualTheme } = useTheme();
-  const [notifications, setNotifications] = useState(photographerNotifications);
+  const { formatPrice } = useCurrency();
+  const { user, token } = useDashboardAuth();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [activeFilter, setActiveFilter] = useState<'all' | NotificationType>('all');
-  const [showSettings, setShowSettings] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [balance, setBalance] = useState<any>(null);
+
+  // Fetch notifications from API
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const apiUrl = getApiUrl();
+      const [notifRes, balRes] = await Promise.all([
+        dashboardAuthFetch(`${apiUrl}/api/remote/photographer/notifications?page=0&size=50`),
+        balance ? Promise.resolve(null) : dashboardAuthFetch(`${apiUrl}/api/remote/photographer/balance`),
+      ]);
+
+      if (notifRes && notifRes.ok) {
+        const data = await notifRes.json();
+        if (data.action === 1 && data.data) {
+          const items = data.data.content || data.data || [];
+          setNotifications(items.map((n: any) => ({
+            id: n.id,
+            type: mapBackendType(n.type),
+            title: n.title,
+            message: n.message,
+            timestamp: n.createdAt ? formatRelativeTime(n.createdAt) : '',
+            read: n.isRead ?? n.read ?? false,
+            avatar: n.avatar || undefined,
+            amount: n.amount || undefined,
+            actionUrl: n.link || undefined,
+            referenceId: n.referenceId || undefined,
+          })));
+        }
+      }
+
+      if (balRes && balRes.ok) {
+        const data = await balRes.json();
+        if (data.action === 1 && data.data) {
+          setBalance(data.data);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch notifications:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -235,27 +182,111 @@ const Notifications = ({ userType = 'photographer' }: NotificationsProps) => {
         return { icon: <ImageIcon />, bg: actualTheme === 'dark' ? '#581C87' : '#F3E8FF', color: actualTheme === 'dark' ? '#C084FC' : '#9333EA' };
       case 'review':
         return { icon: <StarIcon />, bg: actualTheme === 'dark' ? '#78350F' : '#FEF3C7', color: actualTheme === 'dark' ? '#FCD34D' : '#F59E0B' };
+      case 'event':
+        return { icon: <ImageIcon />, bg: actualTheme === 'dark' ? '#1E3A5F' : '#DBEAFE', color: actualTheme === 'dark' ? '#60A5FA' : '#2563EB' };
+      case 'photobook':
+        return { icon: <ImageIcon />, bg: actualTheme === 'dark' ? '#4A1D6A' : '#F3E8FF', color: actualTheme === 'dark' ? '#D8B4FE' : '#7C3AED' };
       default:
         return { icon: <BellIcon />, bg: colors.bgTertiary, color: colors.textSecondary };
     }
   };
 
-  const markAsRead = (id: string) => {
+  const markAsRead = async (id: string) => {
+    const notif = notifications.find(n => n.id === id);
+    if (notif?.read) return;
     setNotifications(prev =>
       prev.map(n => n.id === id ? { ...n, read: true } : n)
     );
+    window.dispatchEvent(new CustomEvent('badge-update', { detail: { type: 'notification', count: 1 } }));
+    try {
+      const apiUrl = getApiUrl();
+      await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/notifications/${id}/read`, { method: 'PATCH' });
+    } catch (err) {
+      console.error('Failed to mark notification as read:', err);
+    }
   };
 
-  const markAllAsRead = () => {
+  const getNotificationDest = (notification: Notification): string | null => {
+    const refId = notification.referenceId;
+    switch (notification.type) {
+      case 'payment': case 'tip': case 'bonus':
+        return '/user/photographer/all-transactions';
+      case 'security':
+        return '/user/photographer/profile';
+      case 'album': case 'event':
+        return refId ? `/user/photographer/events/${refId}` : '/user/photographer/events';
+      case 'photobook':
+        return refId ? `/user/photographer/events/${refId}` : '/user/photographer/events';
+      case 'review':
+        return '/user/photographer/clients';
+      default: return null;
+    }
+  };
+
+  const markAllAsRead = async () => {
+    const unreadCount = notifications.filter(n => !n.read).length;
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    if (unreadCount > 0) {
+      window.dispatchEvent(new CustomEvent('badge-update', { detail: { type: 'notification', count: unreadCount } }));
+    }
+    try {
+      const apiUrl = getApiUrl();
+      await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/notifications/read-all`, { method: 'PATCH' });
+    } catch (err) {
+      console.error('Failed to mark all as read:', err);
+    }
   };
 
-  const deleteNotification = (id: string) => {
+  const deleteNotification = async (id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
+    try {
+      const apiUrl = getApiUrl();
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/notifications/${id}`, { method: 'DELETE' });
+      const data = await res.json().catch(() => ({}));
+      console.log('DELETE notification response:', { status: res.status, ok: res.ok, data });
+      if (!res.ok) {
+        alert(data.message || 'Failed to delete notification. The server did not process the request.');
+        fetchNotifications();
+      }
+    } catch (err) {
+      console.error('DELETE notification error:', err);
+      alert('Failed to delete notification. The feature may not be available yet.');
+      fetchNotifications();
+    }
   };
 
-  const deleteAllRead = () => {
+  const deleteAllRead = async () => {
     setNotifications(prev => prev.filter(n => !n.read));
+    try {
+      const apiUrl = getApiUrl();
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/notifications/delete-read`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.message || 'Failed to clear read notifications. The server did not process the request.');
+        fetchNotifications();
+      }
+    } catch {
+      alert('Failed to clear read notifications. The feature may not be available yet.');
+      fetchNotifications();
+    }
+  };
+
+  const deleteAllNotifications = async () => {
+    if (!confirm('Delete all notifications? This cannot be undone.')) return;
+    const backup = [...notifications];
+    setNotifications([]);
+    try {
+      const apiUrl = getApiUrl();
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/notifications/all`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.message || 'Failed to delete all notifications.');
+        setNotifications(backup);
+      }
+    } catch {
+      alert('Failed to delete all notifications.');
+      setNotifications(backup);
+    }
   };
 
   const filteredNotifications = activeFilter === 'all'
@@ -268,6 +299,7 @@ const Notifications = ({ userType = 'photographer' }: NotificationsProps) => {
     { value: 'tip', label: 'Tips' },
     { value: 'bonus', label: 'Bonuses' },
     { value: 'security', label: 'Security' },
+    { value: 'event', label: 'Events' },
     { value: 'review', label: 'Reviews' }
   ];
 
@@ -279,6 +311,9 @@ const Notifications = ({ userType = 'photographer' }: NotificationsProps) => {
           display: flex;
           height: 100vh;
           background-color: ${colors.bgPrimary};
+          overflow: hidden;
+          width: 100%;
+          max-width: 100vw;
         }
 
         .notifications-content {
@@ -317,7 +352,7 @@ const Notifications = ({ userType = 'photographer' }: NotificationsProps) => {
           background-color: ${colors.bgCard};
           border-radius: 0.75rem;
           padding: 1.25rem;
-          border: 1px solid ${colors.borderPrimary};
+          border: 2px solid ${colors.borderPrimary};
         }
 
         .filters-section {
@@ -333,48 +368,11 @@ const Notifications = ({ userType = 'photographer' }: NotificationsProps) => {
           flex-wrap: wrap;
         }
 
-        .settings-modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background-color: rgba(0, 0, 0, 0.5);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
-          padding: 1rem;
-        }
-
-        .settings-panel {
-          background-color: ${colors.bgCard};
-          border-radius: 0.75rem;
-          border: 1px solid ${colors.borderPrimary};
-          padding: 1.5rem;
-          box-shadow: ${colors.shadowLg};
-          max-width: 600px;
-          width: 100%;
-          max-height: 90vh;
-          overflow-y: auto;
-        }
-
-        .settings-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding-bottom: 1rem;
-          border-bottom: 1px solid ${colors.borderPrimary};
-        }
-
-        .settings-item:last-child {
-          border-bottom: none;
-        }
-
         /* Mobile responsive styles */
         @media (max-width: 768px) {
           .notifications-main {
-            padding: 0.75rem !important;
+            padding: 1rem !important;
+            padding-bottom: 8rem !important;
           }
 
           .notifications-header {
@@ -383,33 +381,44 @@ const Notifications = ({ userType = 'photographer' }: NotificationsProps) => {
             gap: 1rem !important;
           }
 
+          .notifications-header h1 {
+            font-size: 1.4rem !important;
+          }
+
+          .notifications-header p {
+            font-size: 0.85rem !important;
+          }
+
           .header-actions {
             width: 100% !important;
-            justify-content: space-between !important;
+          }
+
+          .header-actions button {
+            min-height: 44px !important;
+            font-size: 0.85rem !important;
           }
 
           .stats-grid {
-            grid-template-columns: repeat(4, 1fr) !important;
-            gap: 0.5rem !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.75rem !important;
           }
 
           .stat-card {
-            aspect-ratio: 1 / 1 !important;
             display: flex !important;
             flex-direction: column !important;
             justify-content: center !important;
             align-items: center !important;
             text-align: center !important;
-            padding: 0.75rem !important;
+            padding: 1rem !important;
           }
 
           .stat-card > div:first-child {
-            font-size: 0.7rem !important;
-            margin-bottom: 0.15rem !important;
+            font-size: 0.8rem !important;
+            margin-bottom: 0.25rem !important;
           }
 
           .stat-card > div:last-child {
-            font-size: 1.1rem !important;
+            font-size: 1.3rem !important;
           }
 
           .filters-section {
@@ -422,49 +431,51 @@ const Notifications = ({ userType = 'photographer' }: NotificationsProps) => {
             overflow-x: auto !important;
             flex-wrap: nowrap !important;
             width: 100% !important;
+            -webkit-overflow-scrolling: touch;
+            -ms-overflow-style: none !important;
+            scrollbar-width: none !important;
           }
 
-          .settings-modal-overlay {
-            padding: 0.5rem !important;
+          .filter-buttons::-webkit-scrollbar {
+            display: none !important;
           }
 
-          .settings-panel {
-            padding: 1rem !important;
-            max-height: 85vh !important;
-          }
-
-          .settings-item {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-            gap: 0.75rem !important;
-            padding-bottom: 0.75rem !important;
-          }
-
-          .settings-item > div:first-child {
-            width: 100% !important;
+          .filter-buttons button {
+            flex-shrink: 0 !important;
+            min-height: 40px !important;
           }
         }
 
         /* Extra small mobile (phones in portrait) */
         @media (max-width: 480px) {
           .notifications-main {
-            padding: 0.5rem !important;
+            padding: 0.75rem !important;
+            padding-bottom: 10rem !important;
+          }
+
+          .notifications-header h1 {
+            font-size: 1.25rem !important;
           }
 
           .stats-grid {
-            gap: 0.4rem !important;
+            gap: 0.5rem !important;
           }
 
           .stat-card {
-            padding: 0.5rem !important;
+            padding: 0.75rem !important;
           }
 
           .stat-card > div:first-child {
-            font-size: 0.65rem !important;
+            font-size: 0.7rem !important;
           }
 
           .stat-card > div:last-child {
-            font-size: 1rem !important;
+            font-size: 1.1rem !important;
+          }
+
+          .filter-buttons button {
+            font-size: 0.8rem !important;
+            padding: 0.4rem 0.75rem !important;
           }
         }
       `}</style>
@@ -473,7 +484,7 @@ const Notifications = ({ userType = 'photographer' }: NotificationsProps) => {
         <Sidebar />
 
         <div className="notifications-content">
-          <Topbar userRole={userType} tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
+          <Topbar userRole="photographer" tipsAmount={balance?.totalTips || 0} bonusAmount={balance?.totalBonuses || 0} balanceAmount={balance?.availableBalance || 0} />
 
           <div className="notifications-main">
           {/* Header */}
@@ -534,44 +545,26 @@ const Notifications = ({ userType = 'photographer' }: NotificationsProps) => {
                   Mark all as read
                 </button>
               )}
-              <button
-                onClick={() => setShowSettings(!showSettings)}
-                style={{
-                  padding: '0.625rem',
-                  backgroundColor: colors.bgCard,
-                  border: `2px solid ${colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
-                  color: colors.textPrimary,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'all 0.2s'
-                }}
-                title="Notification Settings"
-              >
-                <SettingsIcon />
-              </button>
             </div>
           </div>
 
           {/* Stats Cards */}
           <div className="stats-grid">
-            <div className="stat-card">
+            <div className="stat-card" style={{ borderLeft: '4px solid #083A85' }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Notifications</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.brandPrimary }}>{notifications.length}</div>
             </div>
-            <div className="stat-card">
+            <div className="stat-card" style={{ borderLeft: '4px solid #EF4444' }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Unread</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#EF4444' }}>{unreadCount}</div>
             </div>
-            <div className="stat-card">
+            <div className="stat-card" style={{ borderLeft: '4px solid #16A34A' }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Payments</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>
                 {notifications.filter(n => n.type === 'payment').length}
               </div>
             </div>
-            <div className="stat-card">
+            <div className="stat-card" style={{ borderLeft: '4px solid #F59E0B' }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Tips & Bonuses</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#F59E0B' }}>
                 {notifications.filter(n => n.type === 'tip' || n.type === 'bonus').length}
@@ -588,7 +581,7 @@ const Notifications = ({ userType = 'photographer' }: NotificationsProps) => {
                   onClick={() => setActiveFilter(option.value)}
                   style={{
                     padding: '0.5rem 1rem',
-                    border: activeFilter === option.value ? 'none' : `1px solid ${colors.borderPrimary}`,
+                    border: activeFilter === option.value ? 'none' : `2px solid ${colors.borderPrimary}`,
                     backgroundColor: activeFilter === option.value ? '#083A85' : colors.bgCard,
                     color: activeFilter === option.value ? 'white' : colors.textSecondary,
                     borderRadius: '0.5rem',
@@ -603,28 +596,52 @@ const Notifications = ({ userType = 'photographer' }: NotificationsProps) => {
               ))}
             </div>
 
-            {notifications.some(n => n.read) && (
-              <button
-                onClick={deleteAllRead}
-                style={{
-                  padding: '0.5rem 1rem',
-                  backgroundColor: '#FEE2E2',
-                  border: '1px solid #FECACA',
-                  borderRadius: '0.5rem',
-                  fontSize: '0.85rem',
-                  fontWeight: '500',
-                  color: '#DC2626',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.375rem',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <TrashIcon />
-                Clear read
-              </button>
-            )}
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              {notifications.some(n => n.read) && (
+                <button
+                  onClick={deleteAllRead}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    backgroundColor: '#FEE2E2',
+                    border: '1px solid #FECACA',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.85rem',
+                    fontWeight: '500',
+                    color: '#DC2626',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.375rem',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <TrashIcon />
+                  Clear read
+                </button>
+              )}
+              {notifications.length > 0 && (
+                <button
+                  onClick={deleteAllNotifications}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    backgroundColor: '#FEE2E2',
+                    border: '1px solid #FECACA',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.85rem',
+                    fontWeight: '500',
+                    color: '#DC2626',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.375rem',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <TrashIcon />
+                  Delete all
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Results Count */}
@@ -638,7 +655,7 @@ const Notifications = ({ userType = 'photographer' }: NotificationsProps) => {
           <div style={{
             backgroundColor: colors.bgCard,
             borderRadius: '0.75rem',
-            border: `1px solid ${colors.borderPrimary}`,
+            border: `2px solid ${colors.borderPrimary}`,
             overflow: 'hidden'
           }}>
             {filteredNotifications.length === 0 ? (
@@ -676,49 +693,61 @@ const Notifications = ({ userType = 'photographer' }: NotificationsProps) => {
                 </p>
               </div>
             ) : (
-              filteredNotifications.map((notification, index) => {
+              filteredNotifications.map((notification) => {
                 const iconStyle = getNotificationIcon(notification.type);
+                const dest = getNotificationDest(notification);
+                const isUnread = !notification.read;
                 return (
                   <div
                     key={notification.id}
+                    onClick={() => { markAsRead(notification.id); if (dest) window.location.href = dest; }}
                     style={{
                       display: 'flex',
-                      gap: '1rem',
+                      gap: '0.875rem',
                       padding: '1rem 1.25rem',
-                      borderBottom: index < filteredNotifications.length - 1 ? `1px solid ${colors.borderPrimary}` : 'none',
-                      backgroundColor: notification.read ? colors.bgCard : (actualTheme === 'dark' ? '#1E3A5F' : '#F0F9FF'),
-                      transition: 'background-color 0.2s',
-                      cursor: 'pointer'
+                      marginBottom: '0.5rem',
+                      borderRadius: '0.75rem',
+                      backgroundColor: isUnread
+                        ? (actualTheme === 'dark' ? 'rgba(59,130,246,0.12)' : '#EFF6FF')
+                        : (actualTheme === 'dark' ? colors.bgCard : '#FAFAFA'),
+                      border: `1.5px solid ${isUnread
+                        ? (actualTheme === 'dark' ? 'rgba(59,130,246,0.3)' : '#BFDBFE')
+                        : (actualTheme === 'dark' ? colors.borderPrimary : '#E5E7EB')}`,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      position: 'relative' as const,
+                      overflow: 'hidden',
                     }}
-                    onClick={() => markAsRead(notification.id)}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = notification.read ? colors.bgTertiary : (actualTheme === 'dark' ? '#2D4A6F' : '#E0F2FE');
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                      e.currentTarget.style.boxShadow = actualTheme === 'dark'
+                        ? '0 4px 12px rgba(0,0,0,0.3)' : '0 4px 12px rgba(0,0,0,0.08)';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = notification.read ? colors.bgCard : (actualTheme === 'dark' ? '#1E3A5F' : '#F0F9FF');
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = 'none';
                     }}
                   >
-                    {/* Icon or Avatar */}
+                    {/* Left accent line for unread */}
+                    {isUnread && (
+                      <div style={{
+                        position: 'absolute', left: 0, top: 0, bottom: 0, width: '3px',
+                        background: 'linear-gradient(180deg, #3B82F6, #8B5CF6)',
+                        borderRadius: '3px 0 0 3px',
+                      }} />
+                    )}
+
+                    {/* Icon */}
                     <div style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: '50%',
-                      backgroundColor: notification.avatar ? 'transparent' : iconStyle.bg,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                      color: iconStyle.color,
-                      overflow: 'hidden'
+                      width: '44px', height: '44px', borderRadius: '12px',
+                      background: iconStyle.bg,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0, color: iconStyle.color,
+                      overflow: 'hidden',
+                      boxShadow: `0 2px 8px ${actualTheme === 'dark' ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.06)'}`,
                     }}>
                       {notification.avatar ? (
-                        <Image
-                          src={notification.avatar}
-                          alt=""
-                          width={48}
-                          height={48}
-                          style={{ objectFit: 'cover' }}
-                        />
+                        <Image src={notification.avatar} alt="" width={44} height={44} style={{ objectFit: 'cover', borderRadius: '12px' }} />
                       ) : (
                         iconStyle.icon
                       )}
@@ -726,101 +755,109 @@ const Notifications = ({ userType = 'photographer' }: NotificationsProps) => {
 
                     {/* Content */}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'flex-start',
-                        gap: '1rem',
-                        marginBottom: '0.25rem'
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', marginBottom: '0.2rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
                           <span style={{
-                            fontSize: '0.95rem',
-                            fontWeight: notification.read ? '500' : '600',
-                            color: colors.textPrimary
+                            fontSize: '0.9rem',
+                            fontWeight: isUnread ? 700 : 500,
+                            color: colors.textPrimary,
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const,
                           }}>
                             {notification.title}
                           </span>
-                          {!notification.read && (
+                          {isUnread && (
                             <div style={{
-                              width: '8px',
-                              height: '8px',
-                              borderRadius: '50%',
-                              backgroundColor: '#3B82F6'
+                              width: '7px', height: '7px', borderRadius: '50%', flexShrink: 0,
+                              background: 'linear-gradient(135deg, #3B82F6, #8B5CF6)',
+                              boxShadow: '0 0 6px rgba(59,130,246,0.4)',
                             }} />
-                          )}
-                          {notification.amount && (
-                            <span style={{
-                              fontSize: '0.85rem',
-                              fontWeight: '700',
-                              color: notification.type === 'payment' ? '#16A34A'
-                                : notification.type === 'tip' ? '#F59E0B'
-                                : '#2563EB',
-                              backgroundColor: notification.type === 'payment' ? '#DCFCE7'
-                                : notification.type === 'tip' ? '#FEF3C7'
-                                : '#DBEAFE',
-                              padding: '0.125rem 0.5rem',
-                              borderRadius: '0.25rem'
-                            }}>
-                              +${notification.amount.toFixed(2)}
-                            </span>
                           )}
                         </div>
                         <span style={{
-                          fontSize: '0.8rem',
-                          color: '#9CA3AF',
-                          whiteSpace: 'nowrap'
+                          fontSize: '0.75rem', color: colors.textSecondary,
+                          whiteSpace: 'nowrap' as const, flexShrink: 0,
                         }}>
                           {notification.timestamp}
                         </span>
                       </div>
 
                       <p style={{
-                        fontSize: '0.875rem',
-                        color: colors.textSecondary,
-                        margin: 0,
-                        lineHeight: '1.5'
+                        fontSize: '0.82rem', color: colors.textSecondary,
+                        margin: '0 0 0.5rem 0', lineHeight: '1.45',
+                        overflow: 'hidden', textOverflow: 'ellipsis',
+                        display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const,
                       }}>
                         {notification.message}
                       </p>
 
-                      {/* Action buttons */}
-                      <div style={{
-                        display: 'flex',
-                        gap: '0.75rem',
-                        marginTop: '0.75rem'
-                      }}>
-                        {notification.actionUrl && (
-                          <Link
-                            href={notification.actionUrl}
-                            style={{
-                              fontSize: '0.85rem',
-                              fontWeight: '500',
-                              color: '#083A85',
-                              textDecoration: 'none'
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            View details
-                          </Link>
+                      {/* Bottom row: amount badge + type badge + actions */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' as const }}>
+                        {notification.amount && (
+                          <span style={{
+                            fontSize: '0.78rem', fontWeight: 700,
+                            color: notification.type === 'payment' ? '#16A34A' : notification.type === 'tip' ? '#F59E0B' : '#2563EB',
+                            backgroundColor: notification.type === 'payment' ? (actualTheme === 'dark' ? 'rgba(22,163,74,0.15)' : '#DCFCE7')
+                              : notification.type === 'tip' ? (actualTheme === 'dark' ? 'rgba(245,158,11,0.15)' : '#FEF3C7')
+                              : (actualTheme === 'dark' ? 'rgba(37,99,235,0.15)' : '#DBEAFE'),
+                            padding: '0.2rem 0.6rem', borderRadius: '6px',
+                          }}>
+                            +{formatPrice(notification.amount)}
+                          </span>
                         )}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteNotification(notification.id);
-                          }}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            fontSize: '0.85rem',
-                            fontWeight: '500',
-                            color: '#DC2626',
-                            cursor: 'pointer',
-                            padding: 0
-                          }}
-                        >
-                          Delete
-                        </button>
+                        <span style={{
+                          fontSize: '0.7rem', fontWeight: 600,
+                          color: iconStyle.color,
+                          backgroundColor: iconStyle.bg,
+                          padding: '0.15rem 0.5rem', borderRadius: '6px',
+                          textTransform: 'capitalize' as const,
+                        }}>
+                          {notification.type}
+                        </span>
+                        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                          {isUnread && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); markAsRead(notification.id); }}
+                              style={{
+                                background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                                fontSize: '0.78rem', fontWeight: 600,
+                                color: actualTheme === 'dark' ? '#4ADE80' : '#059669',
+                                display: 'flex', alignItems: 'center', gap: '0.25rem',
+                                transition: 'opacity 0.2s',
+                              }}
+                              title="Mark as read"
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                              Read
+                            </button>
+                          )}
+                          {dest && (
+                            <Link
+                              href={dest}
+                              onClick={(e) => e.stopPropagation()}
+                              style={{
+                                fontSize: '0.78rem', fontWeight: 600, textDecoration: 'none',
+                                color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
+                                display: 'flex', alignItems: 'center', gap: '0.25rem',
+                              }}
+                            >
+                              View
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                            </Link>
+                          )}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); deleteNotification(notification.id); }}
+                            style={{
+                              background: 'none', border: 'none', cursor: 'pointer', padding: '0.2rem',
+                              color: colors.textSecondary, display: 'flex', alignItems: 'center',
+                              opacity: 0.5, transition: 'opacity 0.2s',
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = '#DC2626'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.5'; e.currentTarget.style.color = colors.textSecondary; }}
+                            title="Delete notification"
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -832,353 +869,6 @@ const Notifications = ({ userType = 'photographer' }: NotificationsProps) => {
       </div>
       </div>
 
-      {/* Notification Settings Modal */}
-      {showSettings && (
-        <div className="settings-modal-overlay" onClick={() => setShowSettings(false)}>
-          <div className="settings-panel" onClick={(e) => e.stopPropagation()}>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '1.25rem'
-              }}>
-                <h2 style={{
-                  fontSize: '1.1rem',
-                  fontWeight: '600',
-                  color: colors.textPrimary,
-                  margin: 0
-                }}>
-                  Notification Settings
-                </h2>
-                <button
-                  onClick={() => setShowSettings(false)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: colors.textSecondary,
-                    cursor: 'pointer',
-                    fontSize: '1.5rem',
-                    lineHeight: '1',
-                    padding: 0
-                  }}
-                >
-                  ×
-                </button>
-              </div>
-
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '1rem'
-              }}>
-                {/* Email Notifications */}
-                <div className="settings-item">
-                  <div>
-                    <div style={{
-                      fontSize: '0.95rem',
-                      fontWeight: '500',
-                      color: colors.textPrimary,
-                      marginBottom: '0.25rem'
-                    }}>
-                      Email Notifications
-                    </div>
-                    <div style={{
-                      fontSize: '0.85rem',
-                      color: colors.textSecondary
-                    }}>
-                      Receive email alerts for important notifications
-                    </div>
-                  </div>
-                  <label style={{
-                    position: 'relative',
-                    display: 'inline-block',
-                    width: '48px',
-                    height: '24px',
-                    cursor: 'pointer'
-                  }}>
-                    <input
-                      type="checkbox"
-                      defaultChecked
-                      style={{
-                        opacity: 0,
-                        width: 0,
-                        height: 0
-                      }}
-                    />
-                    <span style={{
-                      position: 'absolute',
-                      cursor: 'pointer',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      backgroundColor: '#083A85',
-                      borderRadius: '24px',
-                      transition: '0.3s'
-                    }}>
-                      <span style={{
-                        position: 'absolute',
-                        content: '',
-                        height: '18px',
-                        width: '18px',
-                        left: '3px',
-                        bottom: '3px',
-                        backgroundColor: 'white',
-                        borderRadius: '50%',
-                        transition: '0.3s',
-                        transform: 'translateX(24px)'
-                      }} />
-                    </span>
-                  </label>
-                </div>
-
-                {/* Push Notifications */}
-                <div className="settings-item">
-                  <div>
-                    <div style={{
-                      fontSize: '0.95rem',
-                      fontWeight: '500',
-                      color: colors.textPrimary,
-                      marginBottom: '0.25rem'
-                    }}>
-                      Push Notifications
-                    </div>
-                    <div style={{
-                      fontSize: '0.85rem',
-                      color: colors.textSecondary
-                    }}>
-                      Get instant push notifications on your device
-                    </div>
-                  </div>
-                  <label style={{
-                    position: 'relative',
-                    display: 'inline-block',
-                    width: '48px',
-                    height: '24px',
-                    cursor: 'pointer'
-                  }}>
-                    <input
-                      type="checkbox"
-                      defaultChecked
-                      style={{
-                        opacity: 0,
-                        width: 0,
-                        height: 0
-                      }}
-                    />
-                    <span style={{
-                      position: 'absolute',
-                      cursor: 'pointer',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      backgroundColor: '#083A85',
-                      borderRadius: '24px',
-                      transition: '0.3s'
-                    }}>
-                      <span style={{
-                        position: 'absolute',
-                        content: '',
-                        height: '18px',
-                        width: '18px',
-                        left: '3px',
-                        bottom: '3px',
-                        backgroundColor: 'white',
-                        borderRadius: '50%',
-                        transition: '0.3s',
-                        transform: 'translateX(24px)'
-                      }} />
-                    </span>
-                  </label>
-                </div>
-
-                {/* Payment Notifications */}
-                <div className="settings-item">
-                  <div>
-                    <div style={{
-                      fontSize: '0.95rem',
-                      fontWeight: '500',
-                      color: colors.textPrimary,
-                      marginBottom: '0.25rem'
-                    }}>
-                      Payment Notifications
-                    </div>
-                    <div style={{
-                      fontSize: '0.85rem',
-                      color: colors.textSecondary
-                    }}>
-                      Notify me when I receive payments
-                    </div>
-                  </div>
-                  <label style={{
-                    position: 'relative',
-                    display: 'inline-block',
-                    width: '48px',
-                    height: '24px',
-                    cursor: 'pointer'
-                  }}>
-                    <input
-                      type="checkbox"
-                      defaultChecked
-                      style={{
-                        opacity: 0,
-                        width: 0,
-                        height: 0
-                      }}
-                    />
-                    <span style={{
-                      position: 'absolute',
-                      cursor: 'pointer',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      backgroundColor: '#083A85',
-                      borderRadius: '24px',
-                      transition: '0.3s'
-                    }}>
-                      <span style={{
-                        position: 'absolute',
-                        content: '',
-                        height: '18px',
-                        width: '18px',
-                        left: '3px',
-                        bottom: '3px',
-                        backgroundColor: 'white',
-                        borderRadius: '50%',
-                        transition: '0.3s',
-                        transform: 'translateX(24px)'
-                      }} />
-                    </span>
-                  </label>
-                </div>
-
-                {/* Tips & Bonuses Notifications */}
-                <div className="settings-item">
-                  <div>
-                    <div style={{
-                      fontSize: '0.95rem',
-                      fontWeight: '500',
-                      color: colors.textPrimary,
-                      marginBottom: '0.25rem'
-                    }}>
-                      Tips & Bonuses
-                    </div>
-                    <div style={{
-                      fontSize: '0.85rem',
-                      color: colors.textSecondary
-                    }}>
-                      Notify me when I receive tips or bonuses
-                    </div>
-                  </div>
-                  <label style={{
-                    position: 'relative',
-                    display: 'inline-block',
-                    width: '48px',
-                    height: '24px',
-                    cursor: 'pointer'
-                  }}>
-                    <input
-                      type="checkbox"
-                      defaultChecked
-                      style={{
-                        opacity: 0,
-                        width: 0,
-                        height: 0
-                      }}
-                    />
-                    <span style={{
-                      position: 'absolute',
-                      cursor: 'pointer',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      backgroundColor: '#083A85',
-                      borderRadius: '24px',
-                      transition: '0.3s'
-                    }}>
-                      <span style={{
-                        position: 'absolute',
-                        content: '',
-                        height: '18px',
-                        width: '18px',
-                        left: '3px',
-                        bottom: '3px',
-                        backgroundColor: 'white',
-                        borderRadius: '50%',
-                        transition: '0.3s',
-                        transform: 'translateX(24px)'
-                      }} />
-                    </span>
-                  </label>
-                </div>
-
-                {/* Security Alerts */}
-                <div className="settings-item">
-                  <div>
-                    <div style={{
-                      fontSize: '0.95rem',
-                      fontWeight: '500',
-                      color: colors.textPrimary,
-                      marginBottom: '0.25rem'
-                    }}>
-                      Security Alerts
-                    </div>
-                    <div style={{
-                      fontSize: '0.85rem',
-                      color: colors.textSecondary
-                    }}>
-                      Always notify me about security events (recommended)
-                    </div>
-                  </div>
-                  <label style={{
-                    position: 'relative',
-                    display: 'inline-block',
-                    width: '48px',
-                    height: '24px',
-                    cursor: 'pointer'
-                  }}>
-                    <input
-                      type="checkbox"
-                      defaultChecked
-                      style={{
-                        opacity: 0,
-                        width: 0,
-                        height: 0
-                      }}
-                    />
-                    <span style={{
-                      position: 'absolute',
-                      cursor: 'pointer',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      backgroundColor: '#083A85',
-                      borderRadius: '24px',
-                      transition: '0.3s'
-                    }}>
-                      <span style={{
-                        position: 'absolute',
-                        content: '',
-                        height: '18px',
-                        width: '18px',
-                        left: '3px',
-                        bottom: '3px',
-                        backgroundColor: 'white',
-                        borderRadius: '50%',
-                        transition: '0.3s',
-                        transform: 'translateX(24px)'
-                      }} />
-                    </span>
-                  </label>
-                </div>
-              </div>
-          </div>
-        </div>
-      )}
     </>
   );
 };

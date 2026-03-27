@@ -1,11 +1,42 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
+import { useCurrency } from '../../context/CurrencyContext';
+import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
+import { getApiUrl } from '@/lib/api';
+
+function formatRelativeTime(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays} days ago`;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function mapBackendType(backendType: string, role: string = 'client'): NotificationType {
+  switch (backendType?.toUpperCase()) {
+    case 'MEDIA': case 'ALBUM': case 'GALLERY': return 'album';
+    case 'PAYMENT': return role === 'event-coordinator' ? 'streamfee' : 'gift';
+    case 'BOOKING': return 'booking';
+    case 'EVENT': return 'booking';
+    case 'SYSTEM': case 'SECURITY': return 'security';
+    case 'PHOTOBOOK': case 'PHOTOBOOK_RECEIVED': return 'photobook';
+    default: return 'booking';
+  }
+}
 
 // Icons
 const BellIcon = () => (
@@ -27,6 +58,14 @@ const GiftIcon = () => (
     <rect x="3" y="8" width="18" height="14" rx="1" stroke="currentColor" strokeWidth="2"/>
     <path d="M12 8V22M3 12H21" stroke="currentColor" strokeWidth="2"/>
     <path d="M12 8C12 8 12 5 9.5 5C7 5 7 8 9.5 8H12M12 8C12 8 12 5 14.5 5C17 5 17 8 14.5 8H12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
+
+const StreamFeeIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+    <path d="M12 6V18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    <path d="M15 9.5C15 8.12 13.66 7 12 7C10.34 7 9 8.12 9 9.5C9 10.88 10.34 12 12 12C13.66 12 15 13.12 15 14.5C15 15.88 13.66 17 12 17C10.34 17 9 15.88 9 14.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
   </svg>
 );
 
@@ -69,15 +108,8 @@ const TrashIcon = () => (
   </svg>
 );
 
-const SettingsIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
-    <path d="M12 1V3M12 21V23M4.22 4.22L5.64 5.64M18.36 18.36L19.78 19.78M1 12H3M21 12H23M4.22 19.78L5.64 18.36M18.36 5.64L19.78 4.22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-  </svg>
-);
-
-// Notification types specific to clients
-type NotificationType = 'album' | 'gift' | 'security' | 'booking' | 'photographer';
+// Notification types specific to clients and event coordinators
+type NotificationType = 'album' | 'gift' | 'security' | 'booking' | 'photographer' | 'streamfee' | 'photobook';
 
 interface Notification {
   id: string;
@@ -90,131 +122,56 @@ interface Notification {
   albumPreview?: string;
   amount?: number;
   actionUrl?: string;
+  referenceId?: string;
 }
 
-// Sample notifications data for client dashboard
-const clientNotifications: Notification[] = [
-  {
-    id: '1',
-    type: 'album',
-    title: 'New Album Received',
-    message: 'John Studio shared "Wedding Ceremony" album with you - 156 photos',
-    timestamp: '5 minutes ago',
-    read: false,
-    avatar: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg',
-    albumPreview: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=400',
-    actionUrl: '/user/client/gallery'
-  },
-  {
-    id: '2',
-    type: 'gift',
-    title: 'Gift Received',
-    message: 'You received a $50.00 gift credit from Amoria for being a loyal customer!',
-    timestamp: '30 minutes ago',
-    read: false,
-    amount: 50.00
-  },
-  {
-    id: '3',
-    type: 'security',
-    title: 'New Login Detected',
-    message: 'Your account was accessed from Firefox on Windows 10. Location: Kigali, Rwanda',
-    timestamp: '1 hour ago',
-    read: false,
-    actionUrl: '/user/client/profile'
-  },
-  {
-    id: '4',
-    type: 'album',
-    title: 'New Album Received',
-    message: 'Mary Shots shared "Birthday Party" album with you - 89 photos',
-    timestamp: '2 hours ago',
-    read: false,
-    avatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg',
-    albumPreview: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=400',
-    actionUrl: '/user/client/gallery'
-  },
-  {
-    id: '5',
-    type: 'booking',
-    title: 'Booking Confirmed',
-    message: 'Your photography session with Elite Photography has been confirmed for Dec 20, 2025',
-    timestamp: '3 hours ago',
-    read: true,
-    avatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
-    actionUrl: '/user/client/events'
-  },
-  {
-    id: '6',
-    type: 'gift',
-    title: 'Welcome Gift',
-    message: 'Welcome to Amoria! Here\'s a $25.00 gift credit to use on your first booking.',
-    timestamp: '5 hours ago',
-    read: true,
-    amount: 25.00
-  },
-  {
-    id: '7',
-    type: 'photographer',
-    title: 'Photographer Accepted Request',
-    message: 'Sarah Lens accepted your photography request for the Fashion Shoot event',
-    timestamp: '6 hours ago',
-    read: true,
-    avatar: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg',
-    actionUrl: '/user/client/events'
-  },
-  {
-    id: '8',
-    type: 'security',
-    title: 'Password Changed Successfully',
-    message: 'Your password was successfully updated. If this wasn\'t you, contact support immediately.',
-    timestamp: 'Yesterday',
-    read: true
-  },
-  {
-    id: '9',
-    type: 'album',
-    title: 'Album Updated',
-    message: 'Alex Frames added 25 new photos to "Corporate Event" album',
-    timestamp: 'Yesterday',
-    read: true,
-    avatar: 'https://i.pinimg.com/1200x/09/23/45/092345eac1919407e0c49f67e285b831.jpg',
-    albumPreview: 'https://images.unsplash.com/photo-1560439514-4e9645039924?w=400',
-    actionUrl: '/user/client/gallery'
-  },
-  {
-    id: '10',
-    type: 'gift',
-    title: 'Referral Reward',
-    message: 'You earned $15.00 gift credit for referring a friend to Amoria!',
-    timestamp: '2 days ago',
-    read: true,
-    amount: 15.00
-  },
-  {
-    id: '11',
-    type: 'booking',
-    title: 'Session Reminder',
-    message: 'Reminder: Your family portrait session is tomorrow at 2:00 PM',
-    timestamp: '2 days ago',
-    read: true,
-    actionUrl: '/user/client/events'
-  },
-  {
-    id: '12',
-    type: 'security',
-    title: 'Two-Factor Authentication Enabled',
-    message: 'Two-factor authentication has been enabled for your account security.',
-    timestamp: '3 days ago',
-    read: true
-  }
-];
 
-const ClientNotifications = () => {
+interface NotificationsPageProps {
+  userRole?: 'client' | 'event-coordinator';
+}
+
+const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) => {
   const { colors, actualTheme } = useTheme();
-  const [notifications, setNotifications] = useState(clientNotifications);
+  const { formatPrice } = useCurrency();
+  const { token, user } = useDashboardAuth();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [activeFilter, setActiveFilter] = useState<'all' | NotificationType>('all');
-  const [showSettings, setShowSettings] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const fetchNotifications = async () => {
+    if (!token || !user?.id) return;
+    try {
+      const apiUrl = getApiUrl();
+      const endpoint = userRole === 'event-coordinator'
+        ? `${apiUrl}/api/remote/coordinator/notifications?page=0&size=50`
+        : `${apiUrl}/api/remote/customer/notifications?page=0&size=50`;
+      const response = await dashboardAuthFetch(endpoint, { headers: { 'Content-Type': 'application/json' } });
+      if (!response.ok) throw new Error('Failed to fetch notifications');
+      const result = await response.json();
+      const data = result?.data?.content || result?.data || [];
+      const mapped: Notification[] = data.map((n: { id: string; title: string; message: string; type: string; isRead: boolean; link?: string; createdAt: string; referenceId?: string }) => ({
+        id: n.id,
+        type: mapBackendType(n.type, userRole),
+        title: n.title,
+        message: n.message,
+        timestamp: formatRelativeTime(n.createdAt),
+        read: n.isRead,
+        actionUrl: n.link || undefined,
+        referenceId: n.referenceId || undefined,
+      }));
+      setNotifications(mapped);
+    } catch (err) {
+      console.error('Failed to fetch notifications:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (token && user?.id) {
+      fetchNotifications();
+    }
+  }, [token, user?.id]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -224,6 +181,8 @@ const ClientNotifications = () => {
         return { icon: <ImageIcon />, bg: actualTheme === 'dark' ? '#581C87' : '#F3E8FF', color: actualTheme === 'dark' ? '#C084FC' : '#9333EA' };
       case 'gift':
         return { icon: <GiftIcon />, bg: actualTheme === 'dark' ? '#14532D' : '#DCFCE7', color: actualTheme === 'dark' ? '#4ADE80' : '#16A34A' };
+      case 'streamfee':
+        return { icon: <StreamFeeIcon />, bg: actualTheme === 'dark' ? '#14532D' : '#DCFCE7', color: actualTheme === 'dark' ? '#4ADE80' : '#16A34A' };
       case 'security':
         return { icon: <ShieldIcon />, bg: actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2', color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626' };
       case 'booking':
@@ -235,35 +194,134 @@ const ClientNotifications = () => {
     }
   };
 
-  const markAsRead = (id: string) => {
+  const markAsRead = async (id: string) => {
     setNotifications(prev =>
       prev.map(n => n.id === id ? { ...n, read: true } : n)
     );
+    try {
+      const apiUrl = getApiUrl();
+      const readEndpoint = userRole === 'event-coordinator'
+        ? `${apiUrl}/api/remote/coordinator/notifications/${id}/read`
+        : `${apiUrl}/api/remote/customer/notifications/${id}/read`;
+      await dashboardAuthFetch(readEndpoint, { method: 'PATCH', headers: { 'Content-Type': 'application/json' } });
+      window.dispatchEvent(new Event('badge-update'));
+    } catch (err) {
+      console.error('Failed to mark notification as read:', err);
+    }
   };
 
-  const markAllAsRead = () => {
+  const getNotificationDest = (notification: Notification): string | null => {
+    const base = userRole === 'event-coordinator' ? '/user/event-coordinator' : '/user/client';
+    const refId = notification.referenceId;
+    switch (notification.type) {
+      case 'booking': case 'photobook':
+        return refId ? `${base}/events/${refId}` : `${base}/events`;
+      case 'gift':
+        return refId ? `/user/client/payments/${refId}` : '/user/client/payments';
+      case 'streamfee':
+        return refId ? `/user/event-coordinator/payments/${refId}` : '/user/event-coordinator/payments';
+      case 'photographer':
+        return userRole === 'event-coordinator' ? '/user/event-coordinator/home' : '/user/client/photographers';
+      case 'album':
+        return userRole === 'event-coordinator' ? '/user/event-coordinator/gallery' : '/user/client/gallery';
+      case 'security':
+        return `${base}/profile`;
+      default: return null;
+    }
+  };
+
+  const markAllAsRead = async () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    try {
+      const apiUrl = getApiUrl();
+      const readAllEndpoint = userRole === 'event-coordinator'
+        ? `${apiUrl}/api/remote/coordinator/notifications/read-all`
+        : `${apiUrl}/api/remote/customer/notifications/read-all`;
+      await dashboardAuthFetch(readAllEndpoint, { method: 'PATCH', headers: { 'Content-Type': 'application/json' } });
+      window.dispatchEvent(new Event('badge-update'));
+    } catch (err) {
+      console.error('Failed to mark all as read:', err);
+    }
   };
 
-  const deleteNotification = (id: string) => {
+  const deleteNotification = async (id: string) => {
+    const backup = notifications.find(n => n.id === id);
     setNotifications(prev => prev.filter(n => n.id !== id));
+    try {
+      const apiUrl = getApiUrl();
+      const endpoint = userRole === 'event-coordinator'
+        ? `${apiUrl}/api/remote/coordinator/notifications/${id}`
+        : `${apiUrl}/api/remote/customer/notifications/${id}`;
+      const res = await dashboardAuthFetch(endpoint, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.message || 'Failed to delete notification.');
+        if (backup) setNotifications(prev => [...prev, backup]);
+      }
+    } catch {
+      alert('Failed to delete notification.');
+      if (backup) setNotifications(prev => [...prev, backup]);
+    }
   };
 
-  const deleteAllRead = () => {
+  const deleteAllRead = async () => {
+    const backup = notifications.filter(n => n.read);
     setNotifications(prev => prev.filter(n => !n.read));
+    try {
+      const apiUrl = getApiUrl();
+      const endpoint = userRole === 'event-coordinator'
+        ? `${apiUrl}/api/remote/coordinator/notifications/delete-read`
+        : `${apiUrl}/api/remote/customer/notifications/delete-read`;
+      const res = await dashboardAuthFetch(endpoint, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.message || 'Failed to clear read notifications.');
+        setNotifications(prev => [...prev, ...backup]);
+      }
+    } catch {
+      alert('Failed to clear read notifications.');
+      setNotifications(prev => [...prev, ...backup]);
+    }
+  };
+
+  const deleteAllNotifications = async () => {
+    if (!confirm('Delete all notifications? This cannot be undone.')) return;
+    const backup = [...notifications];
+    setNotifications([]);
+    try {
+      const apiUrl = getApiUrl();
+      const base = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${base}/notifications/all`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.message || 'Failed to delete all notifications.');
+        setNotifications(backup);
+      }
+    } catch {
+      alert('Failed to delete all notifications.');
+      setNotifications(backup);
+    }
   };
 
   const filteredNotifications = activeFilter === 'all'
     ? notifications
     : notifications.filter(n => n.type === activeFilter);
 
-  const filterOptions: { value: 'all' | NotificationType; label: string }[] = [
-    { value: 'all', label: 'All' },
-    { value: 'album', label: 'Albums' },
-    { value: 'gift', label: 'Gifts' },
-    { value: 'booking', label: 'Bookings' },
-    { value: 'security', label: 'Security' }
-  ];
+  const filterOptions: { value: 'all' | NotificationType; label: string }[] = userRole === 'event-coordinator'
+    ? [
+        { value: 'all', label: 'All' },
+        { value: 'album', label: 'Albums' },
+        { value: 'streamfee', label: 'Stream Fees' },
+        { value: 'booking', label: 'Bookings' },
+        { value: 'security', label: 'Security' }
+      ]
+    : [
+        { value: 'all', label: 'All' },
+        { value: 'album', label: 'Albums' },
+        { value: 'gift', label: 'Gifts' },
+        { value: 'booking', label: 'Bookings' },
+        { value: 'security', label: 'Security' }
+      ];
 
   return (
     <>
@@ -311,7 +369,7 @@ const ClientNotifications = () => {
           background-color: ${colors.bgCard};
           border-radius: 0.75rem;
           padding: 1.25rem;
-          border: 1px solid ${colors.borderPrimary};
+          border: 2px solid ${colors.borderPrimary};
         }
 
         .filters-section {
@@ -329,9 +387,22 @@ const ClientNotifications = () => {
 
         /* Mobile responsive styles */
         @media (max-width: 768px) {
+          .notifications-container {
+            overflow: hidden !important;
+            width: 100% !important;
+            max-width: 100vw !important;
+          }
+
+          .notifications-content {
+            width: 100% !important;
+            min-width: 0 !important;
+            overflow-x: hidden !important;
+          }
+
           .notifications-main {
-            padding: 0.75rem !important;
-            padding-bottom: 5rem !important;
+            padding: 1rem !important;
+            padding-bottom: 8rem !important;
+            overflow-x: hidden !important;
           }
 
           .notifications-header {
@@ -340,33 +411,44 @@ const ClientNotifications = () => {
             gap: 1rem !important;
           }
 
+          .notifications-header h1 {
+            font-size: 1.4rem !important;
+          }
+
+          .notifications-header p {
+            font-size: 0.85rem !important;
+          }
+
           .header-actions {
             width: 100% !important;
-            justify-content: space-between !important;
+          }
+
+          .header-actions button {
+            min-height: 44px !important;
+            font-size: 0.85rem !important;
           }
 
           .stats-grid {
-            grid-template-columns: repeat(4, 1fr) !important;
-            gap: 0.5rem !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.75rem !important;
           }
 
           .stat-card {
-            aspect-ratio: 1 / 1 !important;
             display: flex !important;
             flex-direction: column !important;
             justify-content: center !important;
             align-items: center !important;
             text-align: center !important;
-            padding: 0.75rem !important;
+            padding: 1rem !important;
           }
 
           .stat-card > div:first-child {
-            font-size: 0.7rem !important;
-            margin-bottom: 0.15rem !important;
+            font-size: 0.8rem !important;
+            margin-bottom: 0.25rem !important;
           }
 
           .stat-card > div:last-child {
-            font-size: 1.1rem !important;
+            font-size: 1.3rem !important;
           }
 
           .filters-section {
@@ -379,30 +461,77 @@ const ClientNotifications = () => {
             overflow-x: auto !important;
             flex-wrap: nowrap !important;
             width: 100% !important;
+            -ms-overflow-style: none !important;
+            scrollbar-width: none !important;
+            padding-bottom: 0.25rem !important;
+          }
+
+          .filter-buttons::-webkit-scrollbar {
+            display: none !important;
+          }
+
+          .filter-buttons button {
+            flex-shrink: 0 !important;
+            min-height: 40px !important;
+          }
+
+          .notification-item {
+            flex-direction: column !important;
+            gap: 0.625rem !important;
+            padding: 0.875rem 1rem !important;
+          }
+
+          .notification-icon {
+            width: 40px !important;
+            height: 40px !important;
+          }
+
+          .notification-title {
+            font-size: 0.85rem !important;
+          }
+
+          .notification-message {
+            font-size: 0.8rem !important;
+          }
+
+          .notification-actions button,
+          .notification-actions a {
+            min-height: 36px !important;
+            min-width: 36px !important;
+            padding: 0.35rem 0.5rem !important;
           }
         }
 
         /* Extra small mobile (phones in portrait) */
         @media (max-width: 480px) {
           .notifications-main {
-            padding: 0.5rem !important;
-            padding-bottom: 6rem !important;
+            padding: 0.75rem !important;
+            padding-bottom: 10rem !important;
+          }
+
+          .notifications-header h1 {
+            font-size: 1.25rem !important;
           }
 
           .stats-grid {
-            gap: 0.4rem !important;
+            gap: 0.5rem !important;
           }
 
           .stat-card {
-            padding: 0.5rem !important;
+            padding: 0.75rem !important;
           }
 
           .stat-card > div:first-child {
-            font-size: 0.65rem !important;
+            font-size: 0.7rem !important;
           }
 
           .stat-card > div:last-child {
-            font-size: 1rem !important;
+            font-size: 1.1rem !important;
+          }
+
+          .filter-buttons button {
+            font-size: 0.8rem !important;
+            padding: 0.4rem 0.75rem !important;
           }
         }
       `}</style>
@@ -411,7 +540,7 @@ const ClientNotifications = () => {
         <Sidebar />
 
         <div className="notifications-content">
-          <Topbar userRole="client" giftAmount={225.00} />
+          <Topbar userRole={userRole} />
 
           <div className="notifications-main">
             {/* Header */}
@@ -445,7 +574,7 @@ const ClientNotifications = () => {
                 color: colors.textSecondary,
                 marginTop: '0.25rem'
               }}>
-                Stay updated with new albums, gifts, bookings, and account activity
+                Stay updated with new albums, {userRole === 'event-coordinator' ? 'stream fees' : 'gifts'}, bookings, and account activity
               </p>
             </div>
 
@@ -472,47 +601,31 @@ const ClientNotifications = () => {
                   Mark all as read
                 </button>
               )}
-              <button
-                onClick={() => setShowSettings(!showSettings)}
-                style={{
-                  padding: '0.625rem',
-                  backgroundColor: colors.bgCard,
-                  border: `2px solid ${colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
-                  color: colors.textPrimary,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'all 0.2s'
-                }}
-                title="Notification Settings"
-              >
-                <SettingsIcon />
-              </button>
             </div>
           </div>
 
           {/* Stats Cards */}
           <div className="stats-grid">
-            <div className="stat-card">
+            <div className="stat-card" style={{ borderLeft: '4px solid #083A85' }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Notifications</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{notifications.length}</div>
             </div>
-            <div className="stat-card">
+            <div className="stat-card" style={{ borderLeft: '4px solid #EF4444' }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Unread</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#EF4444' }}>{unreadCount}</div>
             </div>
-            <div className="stat-card">
+            <div className="stat-card" style={{ borderLeft: '4px solid #9333EA' }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>New Albums</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#9333EA' }}>
                 {notifications.filter(n => n.type === 'album').length}
               </div>
             </div>
-            <div className="stat-card">
-              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Gifts Received</div>
+            <div className="stat-card" style={{ borderLeft: '4px solid #16A34A' }}>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>
+                {userRole === 'event-coordinator' ? 'Stream Fees' : 'Gifts Received'}
+              </div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>
-                {notifications.filter(n => n.type === 'gift').length}
+                {notifications.filter(n => n.type === (userRole === 'event-coordinator' ? 'streamfee' : 'gift')).length}
               </div>
             </div>
           </div>
@@ -526,7 +639,7 @@ const ClientNotifications = () => {
                   onClick={() => setActiveFilter(option.value)}
                   style={{
                     padding: '0.5rem 1rem',
-                    border: activeFilter === option.value ? 'none' : `1px solid ${colors.borderPrimary}`,
+                    border: activeFilter === option.value ? 'none' : `2px solid ${colors.borderPrimary}`,
                     backgroundColor: activeFilter === option.value ? '#083A85' : colors.bgCard,
                     color: activeFilter === option.value ? 'white' : colors.textSecondary,
                     borderRadius: '0.5rem',
@@ -541,28 +654,52 @@ const ClientNotifications = () => {
               ))}
             </div>
 
-            {notifications.some(n => n.read) && (
-              <button
-                onClick={deleteAllRead}
-                style={{
-                  padding: '0.5rem 1rem',
-                  backgroundColor: actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2',
-                  border: `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.85rem',
-                  fontWeight: '500',
-                  color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.375rem',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <TrashIcon />
-                Clear read
-              </button>
-            )}
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              {notifications.some(n => n.read) && (
+                <button
+                  onClick={deleteAllRead}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    backgroundColor: actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2',
+                    border: `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}`,
+                    borderRadius: '0.5rem',
+                    fontSize: '0.85rem',
+                    fontWeight: '500',
+                    color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.375rem',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <TrashIcon />
+                  Clear read
+                </button>
+              )}
+              {notifications.length > 0 && (
+                <button
+                  onClick={deleteAllNotifications}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    backgroundColor: actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2',
+                    border: `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}`,
+                    borderRadius: '0.5rem',
+                    fontSize: '0.85rem',
+                    fontWeight: '500',
+                    color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.375rem',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <TrashIcon />
+                  Delete all
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Results Count */}
@@ -576,7 +713,7 @@ const ClientNotifications = () => {
           <div style={{
             backgroundColor: colors.bgCard,
             borderRadius: '0.75rem',
-            border: `1px solid ${colors.borderPrimary}`,
+            border: `2px solid ${colors.borderPrimary}`,
             overflow: 'hidden'
           }}>
             {filteredNotifications.length === 0 ? (
@@ -614,49 +751,62 @@ const ClientNotifications = () => {
                 </p>
               </div>
             ) : (
-              filteredNotifications.map((notification, index) => {
+              filteredNotifications.map((notification) => {
                 const iconStyle = getNotificationIcon(notification.type);
+                const dest = getNotificationDest(notification);
+                const isUnread = !notification.read;
                 return (
                   <div
                     key={notification.id}
+                    className="notification-item"
+                    onClick={() => { markAsRead(notification.id); if (dest) window.location.href = dest; }}
                     style={{
                       display: 'flex',
-                      gap: '1rem',
+                      gap: '0.875rem',
                       padding: '1rem 1.25rem',
-                      borderBottom: index < filteredNotifications.length - 1 ? `1px solid ${colors.borderPrimary}` : 'none',
-                      backgroundColor: notification.read ? colors.bgCard : (actualTheme === 'dark' ? '#1E3A5F' : '#F0F9FF'),
-                      transition: 'background-color 0.2s',
-                      cursor: 'pointer'
+                      marginBottom: '0.5rem',
+                      borderRadius: '0.75rem',
+                      backgroundColor: isUnread
+                        ? (actualTheme === 'dark' ? 'rgba(59,130,246,0.12)' : '#EFF6FF')
+                        : (actualTheme === 'dark' ? colors.bgCard : '#FAFAFA'),
+                      border: `1.5px solid ${isUnread
+                        ? (actualTheme === 'dark' ? 'rgba(59,130,246,0.3)' : '#BFDBFE')
+                        : (actualTheme === 'dark' ? colors.borderPrimary : '#E5E7EB')}`,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      position: 'relative' as const,
+                      overflow: 'hidden',
                     }}
-                    onClick={() => markAsRead(notification.id)}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = notification.read ? colors.bgTertiary : (actualTheme === 'dark' ? '#2D4A6F' : '#E0F2FE');
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                      e.currentTarget.style.boxShadow = actualTheme === 'dark'
+                        ? '0 4px 12px rgba(0,0,0,0.3)' : '0 4px 12px rgba(0,0,0,0.08)';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = notification.read ? colors.bgCard : (actualTheme === 'dark' ? '#1E3A5F' : '#F0F9FF');
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = 'none';
                     }}
                   >
-                    {/* Icon or Avatar */}
-                    <div style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: '50%',
-                      backgroundColor: notification.avatar ? 'transparent' : iconStyle.bg,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                      color: iconStyle.color,
-                      overflow: 'hidden'
+                    {/* Left accent line for unread */}
+                    {isUnread && (
+                      <div style={{
+                        position: 'absolute', left: 0, top: 0, bottom: 0, width: '3px',
+                        background: 'linear-gradient(180deg, #3B82F6, #8B5CF6)',
+                        borderRadius: '3px 0 0 3px',
+                      }} />
+                    )}
+
+                    {/* Icon */}
+                    <div className="notification-icon" style={{
+                      width: '44px', height: '44px', borderRadius: '12px',
+                      background: iconStyle.bg,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0, color: iconStyle.color,
+                      overflow: 'hidden',
+                      boxShadow: `0 2px 8px ${actualTheme === 'dark' ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.06)'}`,
                     }}>
                       {notification.avatar ? (
-                        <Image
-                          src={notification.avatar}
-                          alt=""
-                          width={48}
-                          height={48}
-                          style={{ objectFit: 'cover' }}
-                        />
+                        <Image src={notification.avatar} alt="" width={44} height={44} style={{ objectFit: 'cover', borderRadius: '12px' }} />
                       ) : (
                         iconStyle.icon
                       )}
@@ -664,116 +814,118 @@ const ClientNotifications = () => {
 
                     {/* Content */}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'flex-start',
-                        gap: '1rem',
-                        marginBottom: '0.25rem'
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span style={{
-                            fontSize: '0.95rem',
-                            fontWeight: notification.read ? '500' : '600',
-                            color: colors.textPrimary
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', marginBottom: '0.2rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
+                          <span className="notification-title" style={{
+                            fontSize: '0.9rem',
+                            fontWeight: isUnread ? 700 : 500,
+                            color: colors.textPrimary,
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const,
                           }}>
                             {notification.title}
                           </span>
-                          {!notification.read && (
+                          {isUnread && (
                             <div style={{
-                              width: '8px',
-                              height: '8px',
-                              borderRadius: '50%',
-                              backgroundColor: '#3B82F6'
+                              width: '7px', height: '7px', borderRadius: '50%', flexShrink: 0,
+                              background: 'linear-gradient(135deg, #3B82F6, #8B5CF6)',
+                              boxShadow: '0 0 6px rgba(59,130,246,0.4)',
                             }} />
-                          )}
-                          {notification.amount && (
-                            <span style={{
-                              fontSize: '0.85rem',
-                              fontWeight: '700',
-                              color: '#16A34A',
-                              backgroundColor: '#DCFCE7',
-                              padding: '0.125rem 0.5rem',
-                              borderRadius: '0.25rem'
-                            }}>
-                              +${notification.amount.toFixed(2)}
-                            </span>
                           )}
                         </div>
                         <span style={{
-                          fontSize: '0.8rem',
-                          color: '#9CA3AF',
-                          whiteSpace: 'nowrap'
+                          fontSize: '0.75rem', color: colors.textSecondary,
+                          whiteSpace: 'nowrap' as const, flexShrink: 0,
                         }}>
                           {notification.timestamp}
                         </span>
                       </div>
 
-                      <p style={{
-                        fontSize: '0.875rem',
-                        color: colors.textSecondary,
-                        margin: 0,
-                        lineHeight: '1.5'
+                      <p className="notification-message" style={{
+                        fontSize: '0.82rem', color: colors.textSecondary,
+                        margin: '0 0 0.5rem 0', lineHeight: '1.45',
+                        overflow: 'hidden', textOverflow: 'ellipsis',
+                        display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const,
                       }}>
                         {notification.message}
                       </p>
 
-                      {/* Album Preview for album notifications */}
+                      {/* Album Preview */}
                       {notification.albumPreview && (
                         <div style={{
-                          marginTop: '0.75rem',
-                          width: '120px',
-                          height: '80px',
-                          borderRadius: '0.5rem',
-                          overflow: 'hidden',
-                          position: 'relative'
+                          marginBottom: '0.5rem', width: '120px', height: '80px',
+                          borderRadius: '8px', overflow: 'hidden', position: 'relative' as const,
+                          boxShadow: `0 2px 6px ${actualTheme === 'dark' ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.1)'}`,
                         }}>
-                          <Image
-                            src={notification.albumPreview}
-                            alt="Album preview"
-                            fill
-                            style={{ objectFit: 'cover' }}
-                          />
+                          <Image src={notification.albumPreview} alt="Album preview" fill style={{ objectFit: 'cover' }} />
                         </div>
                       )}
 
-                      {/* Action buttons */}
-                      <div style={{
-                        display: 'flex',
-                        gap: '0.75rem',
-                        marginTop: '0.75rem'
-                      }}>
-                        {notification.actionUrl && (
-                          <Link
-                            href={notification.actionUrl}
-                            style={{
-                              fontSize: '0.85rem',
-                              fontWeight: '500',
-                              color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
-                              textDecoration: 'none'
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {notification.type === 'album' ? 'View album' : 'View details'}
-                          </Link>
+                      {/* Bottom row: amount badge + type badge + actions */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' as const }}>
+                        {notification.amount && (
+                          <span style={{
+                            fontSize: '0.78rem', fontWeight: 700,
+                            color: '#16A34A',
+                            backgroundColor: actualTheme === 'dark' ? 'rgba(22,163,74,0.15)' : '#DCFCE7',
+                            padding: '0.2rem 0.6rem', borderRadius: '6px',
+                          }}>
+                            +{formatPrice(notification.amount)}
+                          </span>
                         )}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteNotification(notification.id);
-                          }}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            fontSize: '0.85rem',
-                            fontWeight: '500',
-                            color: '#DC2626',
-                            cursor: 'pointer',
-                            padding: 0
-                          }}
-                        >
-                          Delete
-                        </button>
+                        <span style={{
+                          fontSize: '0.7rem', fontWeight: 600,
+                          color: iconStyle.color,
+                          backgroundColor: iconStyle.bg,
+                          padding: '0.15rem 0.5rem', borderRadius: '6px',
+                          textTransform: 'capitalize' as const,
+                        }}>
+                          {notification.type}
+                        </span>
+                        <div className="notification-actions" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                          {isUnread && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); markAsRead(notification.id); }}
+                              style={{
+                                background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                                fontSize: '0.78rem', fontWeight: 600,
+                                color: actualTheme === 'dark' ? '#4ADE80' : '#059669',
+                                display: 'flex', alignItems: 'center', gap: '0.25rem',
+                                transition: 'opacity 0.2s',
+                              }}
+                              title="Mark as read"
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                              Read
+                            </button>
+                          )}
+                          {dest && (
+                            <Link
+                              href={dest}
+                              onClick={(e) => e.stopPropagation()}
+                              style={{
+                                fontSize: '0.78rem', fontWeight: 600, textDecoration: 'none',
+                                color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
+                                display: 'flex', alignItems: 'center', gap: '0.25rem',
+                              }}
+                            >
+                              View
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                            </Link>
+                          )}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); deleteNotification(notification.id); }}
+                            style={{
+                              background: 'none', border: 'none', cursor: 'pointer', padding: '0.2rem',
+                              color: colors.textSecondary, display: 'flex', alignItems: 'center',
+                              opacity: 0.5, transition: 'opacity 0.2s',
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = '#DC2626'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.5'; e.currentTarget.style.color = colors.textSecondary; }}
+                            title="Delete notification"
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>

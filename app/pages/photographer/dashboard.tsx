@@ -1,10 +1,15 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
+import { useCurrency } from '@/app/context/CurrencyContext';
+import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
+import CompleteProfileModal from '../../components/CompleteProfileModal';
+import { getApiUrl, normalizeImageUrl } from '@/lib/api';
 import {
   StatCard,
   ActivityItem,
@@ -149,34 +154,264 @@ const getTimeOfDay = () => {
   return 'night';
 };
 
-interface PhotographerDashboardProps {
-  userType?: 'photographer' | 'freelancer';
-}
-
 interface Client {
   id: string;
   name: string;
   event: string;
   status: 'In Progress' | 'Completed' | 'Pending';
-  avatar: string;
+  avatar?: string;
 }
 
-const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashboardProps) => {
+const PhotographerDashboard = () => {
   const { colors, actualTheme } = useTheme();
+  const { formatPrice } = useCurrency();
+  const { user } = useDashboardAuth();
+  const router = useRouter();
+
+  // Redirect pending/rejected photographers to their profile page
+  useEffect(() => {
+    if (user && user.profileReviewStatus?.toUpperCase() !== 'ACCEPTED') {
+      router.replace('/user/photographer/profile');
+    }
+  }, [user, router]);
   const [activeFilter, setActiveFilter] = useState<'today' | 'week' | 'month' | 'custom'>('week');
   const [timeOfDay, setTimeOfDay] = useState(getTimeOfDay());
   const [greetingIndex, setGreetingIndex] = useState(0);
   const [greetings, setGreetings] = useState(getGreetings(getTimeOfDay()));
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
-  // Comparison mode state
-  const [isComparisonMode, setIsComparisonMode] = useState(false);
+  // Comparison mode state (persisted to localStorage)
+  const [isComparisonMode, setIsComparisonMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('connekt_comparison_mode') === 'true';
+    }
+    return false;
+  });
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [futurePlans, setFuturePlans] = useState<FuturePlan[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<FuturePlan | null>(null);
   const [planTimePeriod, setPlanTimePeriod] = useState<'today' | 'week' | 'month' | 'custom'>('week');
   const [showPlanDropdown, setShowPlanDropdown] = useState(false);
   const [editingPlan, setEditingPlan] = useState<FuturePlan | null>(null);
+
+  // Profile completion modal state
+  const [showProfileModal, setShowProfileModal] = useState(false);
+
+  // API data state
+  const [analytics, setAnalytics] = useState<any>(null);
+  const [balance, setBalance] = useState<any>(null);
+  const [apiClients, setApiClients] = useState<Client[]>([]);
+  const [recentActivities, setRecentActivities] = useState<{ label: string; value: string; valueColor?: string }[]>([]);
+  const [recentPayments, setRecentPayments] = useState<{ name: string; type: string; amount: string; avatar?: string }[]>([]);
+  const [performanceData, setPerformanceData] = useState([
+    { day: 'Sun', value1: 0, value2: 0 },
+    { day: 'Mon', value1: 0, value2: 0 },
+    { day: 'Tue', value1: 0, value2: 0 },
+    { day: 'Wed', value1: 0, value2: 0 },
+    { day: 'Thu', value1: 0, value2: 0 },
+    { day: 'Fri', value1: 0, value2: 0 },
+    { day: 'Sat', value1: 0, value2: 0 }
+  ]);
+  const [statTrends, setStatTrends] = useState<Record<string, { percentage: string; trend: 'up' | 'down' }>>({
+    totalEarnings: { percentage: '0%', trend: 'up' },
+    pending: { percentage: '0%', trend: 'up' },
+    clients: { percentage: '0%', trend: 'up' },
+    bonuses: { percentage: '0%', trend: 'up' },
+    rating: { percentage: '0%', trend: 'up' },
+  });
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch static dashboard data (once on mount)
+  useEffect(() => {
+    const fetchStaticData = async () => {
+      const apiUrl = getApiUrl();
+      try {
+        const [analyticsRes, balanceRes, clientsRes, convRes, transactionsRes] = await Promise.allSettled([
+          dashboardAuthFetch(`${apiUrl}/api/remote/photographer/analytics`),
+          dashboardAuthFetch(`${apiUrl}/api/remote/photographer/balance`),
+          dashboardAuthFetch(`${apiUrl}/api/remote/photographer/clients`),
+          dashboardAuthFetch(`${apiUrl}/api/remote/chat/conversations`),
+          dashboardAuthFetch(`${apiUrl}/api/remote/photographer/transactions?page=0&size=5`),
+        ]);
+        const normalizeImg = (url: string | undefined) => normalizeImageUrl(url);
+
+        if (analyticsRes.status === 'fulfilled' && analyticsRes.value.ok) {
+          const data = await analyticsRes.value.json();
+          if (data.action === 1 && data.data) setAnalytics(data.data);
+        }
+        if (balanceRes.status === 'fulfilled' && balanceRes.value.ok) {
+          const data = await balanceRes.value.json();
+          if (data.action === 1 && data.data) setBalance(data.data);
+        }
+        // Primary: /photographer/clients; Fallback: chat conversations
+        {
+          let clientsMapped: Client[] = [];
+          if (clientsRes.status === 'fulfilled' && clientsRes.value.ok) {
+            const data = await clientsRes.value.json().catch(() => null);
+
+            if (data?.data) {
+              const rawList = Array.isArray(data.data) ? data.data : data.data.content || [];
+              clientsMapped = rawList.slice(0, 3).map((c: any) => ({
+                id: c.id || '',
+                name: c.name || `${c.firstName || ''} ${c.lastName || ''}`.trim() || 'Client',
+                event: c.lastEventType || 'Photography',
+                status: (c.status === 'COMPLETED' || c.status === 'completed' ? 'Completed' : c.status === 'CONTACTED' || c.status === 'active' ? 'In Progress' : 'Pending') as Client['status'],
+                avatar: normalizeImg(c.profilePicture || c.profileImage || undefined),
+              }));
+            }
+          }
+          if (clientsMapped.length === 0 && convRes.status === 'fulfilled' && convRes.value.ok) {
+            const convData = await convRes.value.json().catch(() => null);
+            const convList = convData?.data || convData || [];
+            if (Array.isArray(convList)) {
+              const currentId = user?.id || '';
+              clientsMapped = convList.slice(0, 3).map((conv: any) => {
+                const partner = conv.participants?.find((p: any) => p.id !== currentId) || {};
+                return {
+                  id: partner.id || conv.partnerId || conv.id || '',
+                  name: partner.name || conv.partnerName || conv.name || 'Client',
+                  event: 'Photography',
+                  status: 'In Progress' as Client['status'],
+                  avatar: normalizeImg(partner.image || conv.partnerImage || conv.image || undefined),
+                };
+              });
+            }
+          }
+          setApiClients(clientsMapped);
+        }
+        if (transactionsRes.status === 'fulfilled' && transactionsRes.value.ok) {
+          const data = await transactionsRes.value.json();
+          if (data.data) {
+            const txns = Array.isArray(data.data) ? data.data : data.data.content || [];
+            const completed = txns
+              .filter((t: any) => {
+                const s = (t.status || '').toUpperCase();
+                return s === 'COMPLETED' || s === 'SUCCESS';
+              })
+              .slice(0, 3)
+              .map((t: any) => ({
+                name: t.clientName || t.customerName || t.photographerName || 'Payment',
+                type: t.paymentType || t.type || t.service || 'Earnings',
+                amount: formatPrice(t.amount || 0),
+                avatar: normalizeImg(t.clientImage || t.customerImage || t.photographerImage || undefined),
+              }));
+            setRecentPayments(completed);
+          }
+        }
+      } catch (error) {
+        console.error('[Photographer Dashboard] Error fetching static data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchStaticData();
+  }, []);
+
+  // Fetch performance chart & trends (re-fetches when filter changes)
+  useEffect(() => {
+    const fetchFilteredData = async () => {
+      const apiUrl = getApiUrl();
+      const periodParam = activeFilter === 'today' ? 'today' : activeFilter === 'month' ? 'month' : 'week';
+      try {
+        const [performanceRes, trendsRes] = await Promise.allSettled([
+          dashboardAuthFetch(`${apiUrl}/api/remote/photographer/performance?period=${periodParam}`),
+          dashboardAuthFetch(`${apiUrl}/api/remote/photographer/trends?period=${periodParam}`),
+        ]);
+
+        if (performanceRes.status === 'fulfilled' && performanceRes.value.ok) {
+          const data = await performanceRes.value.json();
+          if (data.action === 1 && Array.isArray(data.data)) {
+            setPerformanceData(data.data.map((d: any) => ({
+              day: d.day || '',
+              value1: Number(d.value1) || 0,
+              value2: Number(d.value2) || 0,
+            })));
+          }
+        }
+
+        if (trendsRes.status === 'fulfilled' && trendsRes.value.ok) {
+          const data = await trendsRes.value.json();
+          if (data.action === 1 && data.data) {
+            const t = data.data;
+            setStatTrends({
+              totalEarnings: { percentage: t.totalEarnings?.percentage || '0%', trend: t.totalEarnings?.trend || 'up' },
+              pending: { percentage: t.pending?.percentage || '0%', trend: t.pending?.trend || 'up' },
+              clients: { percentage: t.clients?.percentage || '0%', trend: t.clients?.trend || 'up' },
+              bonuses: { percentage: t.bonuses?.percentage || '0%', trend: t.bonuses?.trend || 'up' },
+              rating: { percentage: t.rating?.percentage || '0%', trend: t.rating?.trend || 'up' },
+            });
+          }
+        }
+      } catch (error) {
+        console.error('[Photographer Dashboard] Error fetching filtered data:', error);
+      }
+    };
+    fetchFilteredData();
+  }, [activeFilter]);
+
+  // Fetch activities and plans from API
+  useEffect(() => {
+    const fetchActivitiesAndPlans = async () => {
+      const apiUrl = getApiUrl();
+      try {
+        const [activitiesRes, plansRes] = await Promise.allSettled([
+          dashboardAuthFetch(`${apiUrl}/api/remote/photographer/activities`),
+          dashboardAuthFetch(`${apiUrl}/api/remote/photographer/plans`),
+        ]);
+
+        if (activitiesRes.status === 'fulfilled' && activitiesRes.value.ok) {
+          const data = await activitiesRes.value.json();
+          if (data.action === 1 && Array.isArray(data.data)) {
+            setRecentActivities(data.data.map((a: any) => ({
+              label: a.label || '',
+              value: a.value || '',
+              valueColor: a.type === 'payment' ? '#16A34A' : undefined,
+            })));
+          }
+        }
+
+        if (plansRes.status === 'fulfilled' && plansRes.value.ok) {
+          const data = await plansRes.value.json();
+          if (data.action === 1 && Array.isArray(data.data) && data.data.length > 0) {
+            const mapped: FuturePlan[] = data.data.map((p: any) => ({
+              id: p.id,
+              name: p.name || '',
+              timePeriod: p.timePeriod || 'week',
+              customStartDate: p.customStartDate || undefined,
+              customEndDate: p.customEndDate || undefined,
+              targetEarnings: p.targetEarnings || '0',
+              targetPending: p.targetPending || '0',
+              targetClients: p.targetClients || '0',
+              targetBonuses: p.targetBonuses || '0',
+              targetRatings: p.targetRatings || '0',
+              targetPerformance: [],
+              createdAt: p.createdAt || '',
+            }));
+            setFuturePlans(mapped);
+            // Restore comparison mode from localStorage
+            const savedPlanId = localStorage.getItem('connekt_comparison_plan_id');
+            const savedMode = localStorage.getItem('connekt_comparison_mode') === 'true';
+            if (savedMode && savedPlanId) {
+              const restored = mapped.find(p => p.id === savedPlanId);
+              if (restored) {
+                setSelectedPlan(restored);
+                setIsComparisonMode(true);
+                setActiveFilter(restored.timePeriod);
+              } else {
+                // Saved plan no longer exists, clear persistence
+                localStorage.removeItem('connekt_comparison_mode');
+                localStorage.removeItem('connekt_comparison_plan_id');
+                setIsComparisonMode(false);
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch activities/plans:', err);
+      }
+    };
+    fetchActivitiesAndPlans();
+  }, []);
 
   // Form state for creating future plan
   const [planForm, setPlanForm] = useState({
@@ -232,6 +467,34 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
     };
   }, [timeOfDay, greetings.length]);
 
+  // Show profile completion modal when profile fields are missing
+  useEffect(() => {
+    if (user && user.customerType?.toLowerCase() === 'photographer') {
+      const isIncomplete = !user.about || !user.address ||
+        !user.specialties?.length || !user.equipments?.length ||
+        !user.professionalPhilosophy || !user.professionalSkills?.length ||
+        !user.educationLevels?.length ||
+        (!user.certifications?.length && !user.trainings?.length);
+
+      if (isIncomplete) {
+        const skipped = localStorage.getItem('profileModalSkipped');
+        if (skipped) {
+          try {
+            const { timestamp } = JSON.parse(skipped);
+            const thirtyMin = 30 * 60 * 1000;
+            setShowProfileModal(Date.now() - timestamp > thirtyMin);
+          } catch {
+            setShowProfileModal(true);
+          }
+        } else {
+          setShowProfileModal(true);
+        }
+      } else {
+        setShowProfileModal(false);
+      }
+    }
+  }, [user]);
+
   const toggleDropdown = (id: string) => {
     setActiveDropdown(activeDropdown === id ? null : id);
   };
@@ -279,7 +542,7 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
   };
 
   // Handle creating a new future plan
-  const handleCreatePlan = () => {
+  const handleCreatePlan = async () => {
     if (!planForm.name || !planForm.targetEarnings) {
       return; // Basic validation
     }
@@ -295,7 +558,7 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
       targetClients: planForm.targetClients,
       targetBonuses: planForm.targetBonuses,
       targetRatings: planForm.targetRatings,
-      targetPerformance: [], // Will be generated dynamically
+      targetPerformance: [],
       createdAt: new Date().toISOString()
     };
 
@@ -303,25 +566,66 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
     setSelectedPlan(newPlan);
     setShowPlanModal(false);
     setIsComparisonMode(true);
-    // Sync the dashboard filter with the plan's time period
     setActiveFilter(planTimePeriod);
     resetPlanForm();
+    localStorage.setItem('connekt_comparison_mode', 'true');
+    localStorage.setItem('connekt_comparison_plan_id', newPlan.id);
+
+    // Persist to backend
+    try {
+      const apiUrl = getApiUrl();
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/plans`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newPlan.name,
+          timePeriod: newPlan.timePeriod,
+          customStartDate: newPlan.customStartDate || null,
+          customEndDate: newPlan.customEndDate || null,
+          targetEarnings: newPlan.targetEarnings,
+          targetPending: newPlan.targetPending,
+          targetClients: newPlan.targetClients,
+          targetBonuses: newPlan.targetBonuses,
+          targetRatings: newPlan.targetRatings,
+        }),
+      });
+      if (res.ok) {
+        const result = await res.json();
+        if (result?.data?.id) {
+          const realId = result.data.id;
+          setFuturePlans(prev => prev.map(p => p.id === newPlan.id ? { ...p, id: realId } : p));
+          setSelectedPlan(prev => prev?.id === newPlan.id ? { ...prev, id: realId } : prev);
+          localStorage.setItem('connekt_comparison_plan_id', realId);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to save plan:', err);
+    }
   };
 
   // Handle selecting an existing plan
   const handleSelectPlan = (plan: FuturePlan) => {
     setSelectedPlan(plan);
     setIsComparisonMode(true);
-    // Sync the dashboard filter with the selected plan's time period
     setActiveFilter(plan.timePeriod);
+    localStorage.setItem('connekt_comparison_mode', 'true');
+    localStorage.setItem('connekt_comparison_plan_id', plan.id);
   };
 
   // Handle deleting a plan
-  const handleDeletePlan = (planId: string) => {
+  const handleDeletePlan = async (planId: string) => {
     setFuturePlans(prev => prev.filter(p => p.id !== planId));
     if (selectedPlan?.id === planId) {
       setSelectedPlan(null);
       setIsComparisonMode(false);
+      localStorage.removeItem('connekt_comparison_mode');
+      localStorage.removeItem('connekt_comparison_plan_id');
+    }
+    try {
+      const apiUrl = getApiUrl();
+      await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/plans/${planId}`, { method: 'DELETE' });
+    } catch (err) {
+      console.error('Failed to delete plan:', err);
     }
   };
 
@@ -344,7 +648,7 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
   };
 
   // Handle saving plan (create or update)
-  const handleSavePlan = () => {
+  const handleSavePlan = async () => {
     if (!planForm.name || !planForm.targetEarnings) {
       return; // Basic validation
     }
@@ -366,13 +670,34 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
 
       setFuturePlans(prev => prev.map(p => p.id === editingPlan.id ? updatedPlan : p));
 
-      // Update selected plan if it's the one being edited
       if (selectedPlan?.id === editingPlan.id) {
         setSelectedPlan(updatedPlan);
       }
 
       setActiveFilter(planTimePeriod);
       setEditingPlan(null);
+
+      // Persist update to backend
+      try {
+        const apiUrl = getApiUrl();
+        await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/plans/${editingPlan.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: updatedPlan.name,
+            timePeriod: updatedPlan.timePeriod,
+            customStartDate: updatedPlan.customStartDate || null,
+            customEndDate: updatedPlan.customEndDate || null,
+            targetEarnings: updatedPlan.targetEarnings,
+            targetPending: updatedPlan.targetPending,
+            targetClients: updatedPlan.targetClients,
+            targetBonuses: updatedPlan.targetBonuses,
+            targetRatings: updatedPlan.targetRatings,
+          }),
+        });
+      } catch (err) {
+        console.error('Failed to update plan:', err);
+      }
     } else {
       // Create new plan
       handleCreatePlan();
@@ -388,11 +713,14 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
     if (isComparisonMode) {
       setIsComparisonMode(false);
       setSelectedPlan(null);
+      localStorage.removeItem('connekt_comparison_mode');
+      localStorage.removeItem('connekt_comparison_plan_id');
     } else if (futurePlans.length > 0) {
       setSelectedPlan(futurePlans[0]);
       setIsComparisonMode(true);
-      // Sync filter with first plan's time period
       setActiveFilter(futurePlans[0].timePeriod);
+      localStorage.setItem('connekt_comparison_mode', 'true');
+      localStorage.setItem('connekt_comparison_plan_id', futurePlans[0].id);
     } else {
       // Initialize modal time period from current filter
       setPlanTimePeriod(activeFilter);
@@ -402,72 +730,12 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
 
   const currentGreeting = greetings[greetingIndex];
   const staticMessage = getStaticMessage(timeOfDay);
-  const performanceData = [
-    { day: 'Sun', value1: 130, value2: 150 },
-    { day: 'Mon', value1: 90, value2: 100 },
-    { day: 'Tue', value1: 100, value2: 130 },
-    { day: 'Wed', value1: 60, value2: 70 },
-    { day: 'Thu', value1: 70, value2: 80 },
-    { day: 'Fri', value1: 130, value2: 150 },
-    { day: 'Sat', value1: 90, value2: 70 }
-  ];
 
-  const recentActivities = [
-    { label: 'Customer', value: 'Joseph Mugabo' },
-    { label: 'Transaction', value: '-450', valueColor: '#ff0066' },
-    { label: 'Archive', value: 'jsm_wedd.mp4' },
-    { label: 'Package', value: 'Tier 1' },
-    { label: 'Referral', value: 'Pacific Uwitonze',  valueColor: '#083A85' },
-    { label: 'Logs', value: 'Today, 14. July 2025' }
-  ];
+  const clients: Client[] = apiClients;
 
-  const clients: Client[] = [
-    {
-      id: 'CLT-001',
-      name: 'Kalisa Aime',
-      event: 'Wedding',
-      status: 'In Progress' as const,
-      avatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg'
-    },
-    {
-      id: 'CLT-002',
-      name: 'Ketty Bashabe',
-      event: 'Birthday',
-      status: 'Completed' as const,
-      avatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg'
-    },
-    {
-      id: 'CLT-003',
-      name: 'Juno Kizigenza',
-      event: 'Festival',
-      status: 'Pending' as const,
-      avatar: 'https://i.pinimg.com/1200x/09/23/45/092345eac1919407e0c49f67e285b831.jpg'
-    }
-  ];
-
-  const recentPayments = [
-    {
-      name: 'Kalisa Aime',
-      type: 'Earnings',
-      amount: '$1,950',
-      avatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg'
-    },
-    {
-      name: 'Amoria',
-      type: 'Archive commission',
-      amount: '$50.80',
-      logo: '/logo.png'
-    },
-    {
-      name: 'Amoria',
-      type: 'Referral bonus',
-      amount: '$3.0',
-      logo: '/logo.png'
-    }
-  ];
-
-  // Determine the base path based on user type
-  const basePath = userType === 'freelancer' ? '/user/freelancer' : '/user/photographer';
+  // Base path for navigation
+  const basePath = '/user/photographer';
+  const periodLabel = activeFilter === 'today' ? 'yesterday' : activeFilter === 'month' ? 'last month' : 'last week';
 
   return (
     <>
@@ -511,7 +779,7 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
           padding-top: 0.75rem;
           padding-bottom: 0.75rem;
           box-shadow: ${colors.shadowSm};
-          border: 1px solid ${colors.borderPrimary};
+          border: 2px solid ${colors.borderPrimary};
           display: flex;
           gap: 2rem;
         }
@@ -588,7 +856,7 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
         <Sidebar />
 
         <div className="dashboard-content">
-          <Topbar userRole={userType} tipsAmount={275.00} bonusAmount={725.00} balanceAmount={4975.00} />
+          <Topbar userRole="photographer" tipsAmount={balance?.totalTips || 0} bonusAmount={balance?.totalBonuses || analytics?.bonuses || 0} balanceAmount={balance?.withdrawableBalance ?? balance?.availableBalance ?? 0} />
 
           <div className="dashboard-main">
             <header className="dashboard-header">
@@ -600,7 +868,7 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
                 fontWeight: '600',
                 transition: 'opacity 0.3s ease'
               }}>
-                {currentGreeting}, <span style={{ fontWeight: '600', color: colors.brandPrimary }}>Diane</span>
+                {currentGreeting}, <span style={{ fontWeight: '600', color: colors.brandPrimary }}>{user?.firstName || 'there'}</span>
               </h1>
               <p style={{
                 fontSize: '0.875rem',
@@ -613,15 +881,16 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <button
                 onClick={toggleComparisonMode}
+                title={isComparisonMode ? 'Exit comparison mode' : 'Set target goals and compare them against your real stats to track progress'}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.5rem',
                   padding: '0.5rem 1rem',
                   borderRadius: '0.5rem',
-                  border: isComparisonMode ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`,
-                  backgroundColor: isComparisonMode ? '#F20C8F' : colors.bgCard,
-                  color: isComparisonMode ? 'white' : colors.textSecondary,
+                  border: isComparisonMode ? '2px solid #F20C8F' : '2px solid #0c943e',
+                  backgroundColor: isComparisonMode ? '#F20C8F' : '#0c943e',
+                  color: isComparisonMode ? 'white' : 'white',
                   cursor: 'pointer',
                   fontSize: '0.875rem',
                   fontWeight: '500',
@@ -682,7 +951,7 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
                           backgroundColor: colors.bgCard,
                           borderRadius: '0.5rem',
                           boxShadow: colors.shadowLg,
-                          border: `1px solid ${colors.borderPrimary}`,
+                          border: `2px solid ${colors.borderPrimary}`,
                           zIndex: 100,
                           minWidth: '220px',
                           maxHeight: '300px',
@@ -837,7 +1106,7 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
               paddingTop: '0.75rem',
               paddingBottom: '0.75rem',
               boxShadow: colors.shadowSm,
-              border: `1px solid ${colors.borderPrimary}`,
+              border: `2px solid ${colors.borderPrimary}`,
               display: 'flex',
               gap: '2rem'
             }}>
@@ -858,7 +1127,7 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
                   lineHeight: '1.75rem',
                   fontWeight: '700',
                   color: colors.textPrimary
-                }}>$9.64k</span>
+                }}>{formatPrice(analytics?.totalEarnings || analytics?.earnings || 0)}</span>
               </div>
               <div style={{
                 display: 'flex',
@@ -877,7 +1146,7 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
                   lineHeight: '1.75rem',
                   fontWeight: '700',
                   color: colors.textPrimary
-                }}>26</span>
+                }}>{analytics?.totalClients || analytics?.clients || 0}</span>
               </div>
               <div style={{
                 display: 'flex',
@@ -896,8 +1165,29 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
                   lineHeight: '1.75rem',
                   fontWeight: '700',
                   color: colors.textPrimary
-                }}>73.5%</span>
+                }}>{analytics?.accuracy ? `${analytics.accuracy}%` : '0%'}</span>
               </div>
+              {balance?.heldForDelivery > 0 && (
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center'
+              }}>
+                <span style={{
+                  fontSize: '1rem',
+                  lineHeight: '1rem',
+                  fontWeight: '600',
+                  marginBottom: '0.25rem',
+                  color: '#F59E0B'
+                }}>Held for Delivery</span>
+                <span style={{
+                  fontSize: '1.25rem',
+                  lineHeight: '1.75rem',
+                  fontWeight: '700',
+                  color: colors.textPrimary
+                }}>{formatPrice(balance.heldForDelivery)}</span>
+              </div>
+              )}
             </div>
             </div>
           </header>
@@ -981,59 +1271,90 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
         </button>
       </div>
 
+      {/* Comparison mode guide banner */}
+      {isComparisonMode && selectedPlan && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.625rem',
+          padding: '0.625rem 1rem',
+          marginBottom: '0.75rem',
+          backgroundColor: actualTheme === 'dark' ? 'rgba(242, 12, 143, 0.08)' : '#FDF2F8',
+          border: `1px solid ${actualTheme === 'dark' ? 'rgba(242, 12, 143, 0.25)' : '#FBCFE8'}`,
+          borderRadius: '0.5rem',
+          fontSize: '0.8rem',
+          color: actualTheme === 'dark' ? '#F9A8D4' : '#9D174D',
+          lineHeight: '1.4',
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+            <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" stroke="currentColor" strokeWidth="2"/>
+            <path d="M12 16v-4M12 8h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+          <span>
+            Comparing with <strong>{selectedPlan.name}</strong> — stat cards show progress bars toward your targets.
+            The performance chart overlays target values alongside actual data. Switch plans or click <strong>"Exit Comparison"</strong> when done.
+          </span>
+        </div>
+      )}
+
       <div className="stat-cards-grid">
         <StatCard
           title="Total Earnings"
-          value="$2,600"
-          percentage="52.76%"
-          timeframe="last week"
+          value={formatPrice(analytics?.totalEarnings || 0)}
+          percentage={statTrends.totalEarnings.percentage}
+          timeframe={periodLabel}
           icon={<MoneyIcon />}
-          trend="up"
-          href={`${basePath}/earnings`}
+          trend={statTrends.totalEarnings.trend}
+          href={`${basePath}/all-transactions`}
+          accentColor="#083A85"
           isComparisonMode={isComparisonMode && !!selectedPlan}
           targetValue={selectedPlan?.targetEarnings}
         />
         <StatCard
           title="Pending"
-          value="$700"
-          percentage="36.8%"
-          timeframe="last week"
+          value={formatPrice(analytics?.pendingPayments || 0)}
+          percentage={statTrends.pending.percentage}
+          timeframe={periodLabel}
           icon={<ClockIcon />}
-          trend="down"
-          href={`${basePath}/pending-payments`}
+          trend={statTrends.pending.trend}
+          href={`${basePath}/all-transactions`}
+          accentColor="#F59E0B"
           isComparisonMode={isComparisonMode && !!selectedPlan}
           targetValue={selectedPlan?.targetPending}
         />
         <StatCard
           title="Total clients"
-          value="5.0"
-          percentage="5.4%"
-          timeframe="last week"
+          value={String(analytics?.totalClients || 0)}
+          percentage={statTrends.clients.percentage}
+          timeframe={periodLabel}
           icon={<UsersIcon />}
-          trend="up"
+          trend={statTrends.clients.trend}
           href={`${basePath}/clients`}
+          accentColor="#3B82F6"
           isComparisonMode={isComparisonMode && !!selectedPlan}
           targetValue={selectedPlan?.targetClients}
         />
         <StatCard
           title="Bonuses"
-          value="$3.05"
-          percentage="47.38%"
-          timeframe="last week"
+          value={formatPrice(analytics?.bonuses || 0)}
+          percentage={statTrends.bonuses.percentage}
+          timeframe={periodLabel}
           icon={<GiftIcon />}
-          trend="down"
-          href={`${basePath}/bonuses`}
+          trend={statTrends.bonuses.trend}
+          href={`${basePath}/all-transactions`}
+          accentColor="#10B981"
           isComparisonMode={isComparisonMode && !!selectedPlan}
           targetValue={selectedPlan?.targetBonuses}
         />
         <StatCard
           title="Ratings"
-          value="3.9/5"
-          percentage="8%"
-          timeframe="last 120 reviews"
+          value={analytics?.averageRating ? `${analytics.averageRating.toFixed(1)}/5` : '5.0/5'}
+          percentage={statTrends.rating.percentage}
+          timeframe={periodLabel}
           icon={<StarIcon />}
-          trend="up"
-          href={`${basePath}/reviews`}
+          trend={statTrends.rating.trend}
+          href={`${basePath}/profile`}
+          accentColor="#8B5CF6"
           isComparisonMode={isComparisonMode && !!selectedPlan}
           targetValue={selectedPlan?.targetRatings}
         />
@@ -1123,16 +1444,21 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
                     onMouseEnter={(e) => e.currentTarget.style.backgroundColor = colors.bgHover}
                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                   >
-                    <img
-                      src={client.avatar}
-                      alt={client.name}
-                      style={{
-                        width: '2.25rem',
-                        height: '2.25rem',
-                        borderRadius: '9999px',
-                        objectFit: 'cover'
-                      }}
-                    />
+                    {client.avatar ? (
+                      <img
+                        src={client.avatar}
+                        alt={client.name}
+                        style={{
+                          width: '2.25rem',
+                          height: '2.25rem',
+                          borderRadius: '9999px',
+                          objectFit: 'cover'
+                        }}
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
+                    ) : (
+                      <div style={{ width: '2.25rem', height: '2.25rem', borderRadius: '9999px', backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', fontWeight: '600', color: '#6B7280', flexShrink: 0 }}>{client.name.charAt(0)}</div>
+                    )}
                     <div style={{
                       flex: 1,
                       display: 'flex',
@@ -1191,7 +1517,7 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
                           backgroundColor: colors.bgCard,
                           borderRadius: '0.5rem',
                           boxShadow: colors.shadowMd,
-                          border: `1px solid ${colors.borderPrimary}`,
+                          border: `2px solid ${colors.borderPrimary}`,
                           zIndex: 10,
                           minWidth: '140px',
                           overflow: 'hidden'
@@ -1351,6 +1677,33 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
               </button>
             </div>
 
+            {/* Guide Tips */}
+            {!editingPlan && (
+              <div style={{
+                backgroundColor: actualTheme === 'dark' ? 'rgba(59, 130, 246, 0.1)' : '#EFF6FF',
+                border: `1px solid ${actualTheme === 'dark' ? 'rgba(59, 130, 246, 0.3)' : '#BFDBFE'}`,
+                borderRadius: '0.5rem',
+                padding: '0.875rem 1rem',
+                marginBottom: '1.25rem',
+                fontSize: '0.8rem',
+                lineHeight: '1.6',
+                color: actualTheme === 'dark' ? '#93C5FD' : '#1E40AF',
+              }}>
+                <div style={{ fontWeight: '600', marginBottom: '0.375rem', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                    <path d="M12 16v-4M12 8h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
+                  How it works
+                </div>
+                <ol style={{ margin: 0, paddingLeft: '1.25rem' }}>
+                  <li>Set a <strong>plan name</strong> and <strong>time period</strong> that matches how you want to track progress (e.g. weekly earnings goal).</li>
+                  <li>Fill in <strong>target values</strong> for the stats you care about — leave others blank to skip them.</li>
+                  <li>After saving, click <strong>"Compare Goals"</strong> on the dashboard to overlay your targets on your real stats and see progress bars.</li>
+                </ol>
+              </div>
+            )}
+
             {/* Plan Name */}
             <div style={{ marginBottom: '1rem' }}>
               <label style={{
@@ -1369,7 +1722,7 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
                   width: '100%',
                   padding: '0.75rem',
                   borderRadius: '0.5rem',
-                  border: `1px solid ${colors.borderPrimary}`,
+                  border: `2px solid ${colors.borderPrimary}`,
                   backgroundColor: colors.bgPrimary,
                   color: colors.textPrimary,
                   fontSize: '0.9rem'
@@ -1435,7 +1788,7 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
                       width: '100%',
                       padding: '0.75rem',
                       borderRadius: '0.5rem',
-                      border: `1px solid ${colors.borderPrimary}`,
+                      border: `2px solid ${colors.borderPrimary}`,
                       backgroundColor: colors.bgPrimary,
                       color: colors.textPrimary,
                       fontSize: '0.9rem'
@@ -1458,7 +1811,7 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
                       width: '100%',
                       padding: '0.75rem',
                       borderRadius: '0.5rem',
-                      border: `1px solid ${colors.borderPrimary}`,
+                      border: `2px solid ${colors.borderPrimary}`,
                       backgroundColor: colors.bgPrimary,
                       color: colors.textPrimary,
                       fontSize: '0.9rem'
@@ -1470,7 +1823,7 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
 
             {/* Target Stats Fields */}
             <div style={{
-              borderTop: `1px solid ${colors.borderPrimary}`,
+              borderTop: `2px solid ${colors.borderPrimary}`,
               paddingTop: '1rem',
               marginBottom: '1rem'
             }}>
@@ -1502,7 +1855,7 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
                       width: '100%',
                       padding: '0.75rem',
                       borderRadius: '0.5rem',
-                      border: `1px solid ${colors.borderPrimary}`,
+                      border: `2px solid ${colors.borderPrimary}`,
                       backgroundColor: colors.bgPrimary,
                       color: colors.textPrimary,
                       fontSize: '0.9rem'
@@ -1526,7 +1879,7 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
                       width: '100%',
                       padding: '0.75rem',
                       borderRadius: '0.5rem',
-                      border: `1px solid ${colors.borderPrimary}`,
+                      border: `2px solid ${colors.borderPrimary}`,
                       backgroundColor: colors.bgPrimary,
                       color: colors.textPrimary,
                       fontSize: '0.9rem'
@@ -1550,7 +1903,7 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
                       width: '100%',
                       padding: '0.75rem',
                       borderRadius: '0.5rem',
-                      border: `1px solid ${colors.borderPrimary}`,
+                      border: `2px solid ${colors.borderPrimary}`,
                       backgroundColor: colors.bgPrimary,
                       color: colors.textPrimary,
                       fontSize: '0.9rem'
@@ -1574,7 +1927,7 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
                       width: '100%',
                       padding: '0.75rem',
                       borderRadius: '0.5rem',
-                      border: `1px solid ${colors.borderPrimary}`,
+                      border: `2px solid ${colors.borderPrimary}`,
                       backgroundColor: colors.bgPrimary,
                       color: colors.textPrimary,
                       fontSize: '0.9rem'
@@ -1598,7 +1951,7 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
                       width: '100%',
                       padding: '0.75rem',
                       borderRadius: '0.5rem',
-                      border: `1px solid ${colors.borderPrimary}`,
+                      border: `2px solid ${colors.borderPrimary}`,
                       backgroundColor: colors.bgPrimary,
                       color: colors.textPrimary,
                       fontSize: '0.9rem'
@@ -1622,7 +1975,7 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
                 style={{
                   padding: '0.75rem 1.5rem',
                   borderRadius: '0.5rem',
-                  border: `1px solid ${colors.borderPrimary}`,
+                  border: `2px solid ${colors.borderPrimary}`,
                   backgroundColor: 'transparent',
                   color: colors.textSecondary,
                   cursor: 'pointer',
@@ -1657,6 +2010,20 @@ const PhotographerDashboard = ({ userType = 'photographer' }: PhotographerDashbo
         </div>
       )}
     </div>
+
+      {/* Profile Completion Modal for new photographers - DISABLED
+      <CompleteProfileModal
+        isOpen={showProfileModal}
+        onComplete={() => {
+          setShowProfileModal(false);
+        }}
+        onSkip={() => {
+          localStorage.setItem('profileModalSkipped', JSON.stringify({ timestamp: Date.now() }));
+          setShowProfileModal(false);
+        }}
+      />
+      */}
+
     </>
   );
 };

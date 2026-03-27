@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { usePathname } from 'next/navigation';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
-export type UserRole = 'photographer' | 'freelancer' | 'client' | 'default';
+export type UserRole = 'photographer' | 'client' | 'default';
 
 interface ThemeContextType {
   theme: ThemeMode;
@@ -18,9 +18,6 @@ interface ThemeContextType {
 const detectRoleFromPath = (pathname: string | null): UserRole => {
   if (pathname && pathname.includes('/user/photographer')) {
     return 'photographer';
-  }
-  if (pathname && pathname.includes('/user/freelancer')) {
-    return 'freelancer';
   }
   if (pathname && pathname.includes('/user/client')) {
     return 'client';
@@ -42,7 +39,7 @@ const lightColors = {
   bgSecondary: '#FFFFFF',
   bgTertiary: '#F3F4F6',
   bgSidebar: '#f5f5f5',
-  bgCard: '#FFFFFF',
+  bgCard: '#F7F8FA',
   bgHover: '#E5E7EB',
   bgActive: '#083A85',
   bgInput: '#FFFFFF',
@@ -81,6 +78,7 @@ const lightColors = {
   shadowMd: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
   shadowLg: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
   shadowXl: '0 20px 25px -5px rgba(0, 0, 0, 0.15)',
+  shadowCard: '0 1px 3px rgba(0, 0, 0, 0.06)',
 };
 
 const darkColors = {
@@ -128,6 +126,7 @@ const darkColors = {
   shadowMd: '0 4px 6px -1px rgba(0, 0, 0, 0.4)',
   shadowLg: '0 10px 15px -3px rgba(0, 0, 0, 0.5)',
   shadowXl: '0 20px 25px -5px rgba(0, 0, 0, 0.6)',
+  shadowCard: '0 1px 3px rgba(0, 0, 0, 0.15)',
 };
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);

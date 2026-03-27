@@ -11,6 +11,7 @@ interface StatCardProps {
   icon: React.ReactNode;
   trend?: 'up' | 'down';
   href?: string;
+  accentColor?: string;
   // Comparison mode props
   isComparisonMode?: boolean;
   targetValue?: string;
@@ -39,6 +40,7 @@ export const StatCard: React.FC<StatCardProps> = ({
   icon,
   trend = 'up',
   href,
+  accentColor,
   isComparisonMode = false,
   targetValue
 }) => {
@@ -54,7 +56,10 @@ export const StatCard: React.FC<StatCardProps> = ({
       padding: '0.875rem',
       boxShadow: colors.shadowSm,
       height: '100%',
-      border: isComparisonMode ? `2px solid ${isGoalMet ? colors.statusSuccess : colors.brandAccent}` : 'none',
+      borderTop: isComparisonMode ? `2px solid ${isGoalMet ? colors.statusSuccess : colors.brandAccent}` : `2px solid ${colors.borderPrimary}`,
+      borderRight: isComparisonMode ? `2px solid ${isGoalMet ? colors.statusSuccess : colors.brandAccent}` : `2px solid ${colors.borderPrimary}`,
+      borderBottom: isComparisonMode ? `2px solid ${isGoalMet ? colors.statusSuccess : colors.brandAccent}` : `2px solid ${colors.borderPrimary}`,
+      borderLeft: accentColor ? `4px solid ${accentColor}` : (isComparisonMode ? `2px solid ${isGoalMet ? colors.statusSuccess : colors.brandAccent}` : `2px solid ${colors.borderPrimary}`),
       position: 'relative',
       overflow: 'hidden'
     }}>
@@ -166,24 +171,26 @@ export const StatCard: React.FC<StatCardProps> = ({
             color: colors.textTertiary
           }}>{timeframe}</span>
         </div>
-        <a
-          href={href || '#'}
-          style={{
-            padding: '0.25rem',
-            cursor: 'pointer',
-            transition: 'opacity 0.3s',
-            textDecoration: 'none'
-          }}
-          title="View details"
-          onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-          onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-        >
-          <i style={{
-            fontSize: '0.875rem',
-            lineHeight: '1.25rem',
-            color: colors.textLink
-          }} className="bi bi-box-arrow-up-right"></i>
-        </a>
+        {href && (
+          <a
+            href={href}
+            style={{
+              padding: '0.25rem',
+              cursor: 'pointer',
+              transition: 'opacity 0.3s',
+              textDecoration: 'none'
+            }}
+            title={`View ${href.split('/').pop()?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'details'}`}
+            onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+            onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+          >
+            <i style={{
+              fontSize: '0.875rem',
+              lineHeight: '1.25rem',
+              color: colors.textLink
+            }} className="bi bi-box-arrow-up-right"></i>
+          </a>
+        )}
       </div>
     </div>
   );

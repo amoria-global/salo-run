@@ -1,26 +1,41 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import Sidebar from '../components/sidebar';
 import Topbar from '../components/topbar';
 import { useTheme, ThemeMode } from '../context/ThemeContext';
-import DonateModal, { DonateButton, DonatePromptModal } from '../components/DonateModal';
+import { dashboardAuthFetch } from '../providers/AuthProvider';
+import { getApiUrl } from '@/lib/api';
+import { validateAccountDetails } from '@/lib/xentripay';
+
+// API response type
+interface ApiResponse<T = unknown> {
+  action: number;
+  message?: string;
+  data?: T;
+}
+
+// Preference payload for PUT
+interface PreferencePayload {
+  value: string;
+  [key: string]: unknown;
+}
 
 interface PaymentMethod {
   id: string;
-  type: 'card' | 'bank' | 'mobile';
+  type: 'mobile' | 'bank';
+  methodType: string;
   name: string;
   details: string;
   isDefault: boolean;
-  icon: string;
-  lastFour?: string;
-  expiryDate?: string;
+  bankName?: string;
+  accountName?: string;
 }
 
 interface PreferencesPageProps {
-  userType?: 'photographer' | 'freelancer' | 'client';
+  userType?: 'photographer' | 'client' | 'event-coordinator';
 }
 
 // SVG Icons
@@ -48,12 +63,6 @@ const CreditCardIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <rect x="1" y="4" width="22" height="16" rx="2" stroke="currentColor" strokeWidth="2"/>
     <path d="M1 10H23" stroke="currentColor" strokeWidth="2"/>
-  </svg>
-);
-
-const BankIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M3 21H21M3 10H21M5 6L12 3L19 6M4 10V21M20 10V21M8 14V17M12 14V17M16 14V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
@@ -97,71 +106,217 @@ const CheckIcon = () => (
 );
 
 // Component to handle URL params - needs Suspense boundary
-const TabParamHandler = ({ setActiveTab }: { setActiveTab: (tab: 'appearance' | 'payments') => void }) => {
+const TabParamHandler = ({ setActiveTab }: { setActiveTab: (tab: 'appearance' | 'payments' | 'notifications') => void }) => {
   const searchParams = useSearchParams();
 
   useEffect(() => {
     const tab = searchParams.get('tab');
     if (tab === 'payments') {
       setActiveTab('payments');
+    } else if (tab === 'notifications') {
+      setActiveTab('notifications');
     }
   }, [searchParams, setActiveTab]);
 
   return null;
 };
 
+const COUNTRIES: { name: string; dialCode: string; flag: string; iso: string }[] = [
+  { name: 'Benin', dialCode: '+229', flag: '🇧🇯', iso: 'bj' },
+  { name: 'Botswana', dialCode: '+267', flag: '🇧🇼', iso: 'bw' },
+  { name: 'Cameroon', dialCode: '+237', flag: '🇨🇲', iso: 'cm' },
+  { name: 'Chad', dialCode: '+235', flag: '🇹🇩', iso: 'td' },
+  { name: 'Congo (Brazzaville)', dialCode: '+242', flag: '🇨🇬', iso: 'cg' },
+  { name: "Côte d'Ivoire", dialCode: '+225', flag: '🇨🇮', iso: 'ci' },
+  { name: 'Eswatini', dialCode: '+268', flag: '🇸🇿', iso: 'sz' },
+  { name: 'Gabon', dialCode: '+241', flag: '🇬🇦', iso: 'ga' },
+  { name: 'Ghana', dialCode: '+233', flag: '🇬🇭', iso: 'gh' },
+  { name: 'Kenya', dialCode: '+254', flag: '🇰🇪', iso: 'ke' },
+  { name: 'Liberia', dialCode: '+231', flag: '🇱🇷', iso: 'lr' },
+  { name: 'Madagascar', dialCode: '+261', flag: '🇲🇬', iso: 'mg' },
+  { name: 'Malawi', dialCode: '+265', flag: '🇲🇼', iso: 'mw' },
+  { name: 'Niger', dialCode: '+227', flag: '🇳🇪', iso: 'ne' },
+  { name: 'Nigeria', dialCode: '+234', flag: '🇳🇬', iso: 'ng' },
+  { name: 'Rwanda', dialCode: '+250', flag: '🇷🇼', iso: 'rw' },
+  { name: 'Seychelles', dialCode: '+248', flag: '🇸🇨', iso: 'sc' },
+  { name: 'South Africa', dialCode: '+27', flag: '🇿🇦', iso: 'za' },
+  { name: 'South Sudan', dialCode: '+211', flag: '🇸🇸', iso: 'ss' },
+  { name: 'Sudan', dialCode: '+249', flag: '🇸🇩', iso: 'sd' },
+  { name: 'Uganda', dialCode: '+256', flag: '🇺🇬', iso: 'ug' },
+  { name: 'Zambia', dialCode: '+260', flag: '🇿🇲', iso: 'zm' },
+];
+
 const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) => {
   const { theme, setTheme, actualTheme, colors } = useTheme();
-  const [activeTab, setActiveTab] = useState<'appearance' | 'payments'>('appearance');
+  const [activeTab, setActiveTab] = useState<'appearance' | 'payments' | 'notifications'>('appearance');
   const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
   const [showEditPaymentModal, setShowEditPaymentModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showDonateModal, setShowDonateModal] = useState(false);
-  const [showDonatePromptModal, setShowDonatePromptModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod | null>(null);
-  const [paymentType, setPaymentType] = useState<'card' | 'bank' | 'mtn' | 'airtel'>('card');
+  const [paymentType, setPaymentType] = useState<'mtn' | 'airtel' | 'bank'>('mtn');
 
   // Form states
-  const [cardNumber, setCardNumber] = useState('');
-  const [cardName, setCardName] = useState('');
-  const [expiryDate, setExpiryDate] = useState('');
-  const [cvv, setCvv] = useState('');
-  const [bankName, setBankName] = useState('');
-  const [accountNumber, setAccountNumber] = useState('');
-  const [routingNumber, setRoutingNumber] = useState('');
-  const [mobileProvider, setMobileProvider] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
+  const [accountHolderName, setAccountHolderName] = useState('');
+  const [countryCode, setCountryCode] = useState('+250');
+  const [countryFlag, setCountryFlag] = useState('🇷🇼');
+  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+  const [countrySearch, setCountrySearch] = useState('');
 
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([
-    {
-      id: '1',
-      type: 'card',
-      name: 'Visa',
-      details: 'Visa ending in 4242',
-      lastFour: '4242',
-      expiryDate: '12/26',
-      isDefault: true,
-      icon: 'bi-credit-card-2-front'
-    },
-    {
-      id: '2',
-      type: 'bank',
-      name: 'Bank of Kigali',
-      details: 'Account ending in 7890',
-      lastFour: '7890',
-      isDefault: false,
-      icon: 'bi-bank'
-    },
-    {
-      id: '3',
-      type: 'mobile',
-      name: 'MTN Mobile Money',
-      details: '+250 78X XXX X89',
-      lastFour: 'X89',
-      isDefault: false,
-      icon: 'bi-phone'
+  // Bank transfer states
+  const [bankAccountNumber, setBankAccountNumber] = useState('');
+  const [bankAccountName, setBankAccountName] = useState('');
+  const [selectedBank, setSelectedBank] = useState('');
+  const [bankProviders, setBankProviders] = useState<{ id: string; name: string }[]>([]);
+  const [mobileProviders, setMobileProviders] = useState<{ id: string; name: string }[]>([]);
+
+  // Account validation states
+  const [isValidating, setIsValidating] = useState(false);
+  const [validatedName, setValidatedName] = useState('');
+  const [validationError, setValidationError] = useState('');
+  const [showNameMismatch, setShowNameMismatch] = useState(false);
+  const [xentriPayName, setXentriPayName] = useState('');
+  const [enteredNameForMismatch, setEnteredNameForMismatch] = useState('');
+  const [pendingSaveData, setPendingSaveData] = useState<{
+    methodType: string; accountName: string; accountNumber: string; bankName: string;
+  } | null>(null);
+
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+
+  const [isSavingPreference, setIsSavingPreference] = useState(false);
+
+  // Notification settings states
+  const [emailNotifications, setEmailNotifications] = useState(true);
+  const [pushNotifications, setPushNotifications] = useState(true);
+  const [securityAlerts, setSecurityAlerts] = useState(true);
+  // Role-specific notification toggles
+  const [paymentNotifications, setPaymentNotifications] = useState(true);
+  const [tipsAndBonuses, setTipsAndBonuses] = useState(true);
+  const [albumNotifications, setAlbumNotifications] = useState(true);
+  const [bookingNotifications, setBookingNotifications] = useState(true);
+  const [giftNotifications, setGiftNotifications] = useState(true);
+  const [streamFeeNotifications, setStreamFeeNotifications] = useState(true);
+
+  // Resolve the preferences API base path based on user role
+  const preferencesBasePath = userType === 'event-coordinator'
+    ? '/api/remote/coordinator/preferences'
+    : userType === 'photographer'
+      ? '/api/remote/photographer/preferences'
+      : '/api/remote/customer/preferences';
+
+  // Load saved preferences from API
+  useEffect(() => {
+    const loadPreferences = async () => {
+      try {
+        const apiUrl = getApiUrl();
+        const response = await dashboardAuthFetch(`${apiUrl}${preferencesBasePath}`);
+        if (!response.ok) return;
+        const result = await response.json();
+        const prefs = result?.data || {};
+
+        // Apply theme preference if saved
+        if (prefs.theme && ['light', 'dark', 'system'].includes(prefs.theme)) {
+          setTheme(prefs.theme as ThemeMode);
+        }
+
+        // Load withdrawal methods from API
+        const wmBasePath = userType === 'event-coordinator'
+          ? '/api/remote/customer/withdrawal-methods'
+          : userType === 'photographer'
+            ? '/api/remote/photographer/withdrawal-methods'
+            : '/api/remote/customer/withdrawal-methods';
+        try {
+          const wmRes = await dashboardAuthFetch(`${apiUrl}${wmBasePath}`);
+          if (wmRes.ok) {
+            const wmResult = await wmRes.json();
+            const methods = (wmResult?.data || []).map((m: any) => {
+              const mt = (m.methodType || '').toUpperCase();
+              const bn = (m.bankName || '').toLowerCase();
+              const isAirtel = bn.includes('airtel');
+              return {
+                id: m.id,
+                type: mt === 'BANK_TRANSFER' ? 'bank' : 'mobile',
+                methodType: m.methodType,
+                name: mt === 'BANK_TRANSFER' ? (m.bankName || 'Bank Transfer') : (isAirtel ? 'Airtel Money' : 'MTN Mobile Money'),
+                details: m.accountNumber || '',
+                isDefault: m.isDefault || false,
+                bankName: m.bankName,
+                accountName: m.accountName,
+              } as PaymentMethod;
+            });
+            setPaymentMethods(methods);
+          }
+        } catch (e) {
+          console.error('Failed to load withdrawal methods:', e);
+        }
+
+        // Load notification preferences
+        if (prefs.email_notifications !== undefined) setEmailNotifications(prefs.email_notifications === 'true');
+        if (prefs.push_notifications !== undefined) setPushNotifications(prefs.push_notifications === 'true');
+        if (prefs.security_alerts !== undefined) setSecurityAlerts(prefs.security_alerts === 'true');
+        if (prefs.payment_notifications !== undefined) setPaymentNotifications(prefs.payment_notifications === 'true');
+        if (prefs.tips_and_bonuses !== undefined) setTipsAndBonuses(prefs.tips_and_bonuses === 'true');
+        if (prefs.album_notifications !== undefined) setAlbumNotifications(prefs.album_notifications === 'true');
+        if (prefs.booking_notifications !== undefined) setBookingNotifications(prefs.booking_notifications === 'true');
+        if (prefs.gift_notifications !== undefined) setGiftNotifications(prefs.gift_notifications === 'true');
+        if (prefs.stream_fee_notifications !== undefined) setStreamFeeNotifications(prefs.stream_fee_notifications === 'true');
+
+        // (payment methods are loaded from withdrawal-methods API above)
+      } catch (err) {
+        console.error('Failed to load preferences:', err);
+      }
+    };
+    loadPreferences();
+  }, [userType, setTheme, preferencesBasePath]);
+
+  // Save a preference to the API (PUT /preferences/{key})
+  const savePreference = useCallback(async (key: string, value: string) => {
+    try {
+      const apiUrl = getApiUrl();
+      const response = await dashboardAuthFetch(`${apiUrl}${preferencesBasePath}/${encodeURIComponent(key)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value }),
+      });
+      const result: ApiResponse = await response.json();
+      if (!response.ok || result.action !== 1) {
+        console.error(`Failed to save preference "${key}":`, result.message);
+      }
+    } catch (err) {
+      console.error(`Error saving preference "${key}":`, err);
     }
-  ]);
+  }, [userType, preferencesBasePath]);
+
+  // Delete a preference from the API (DELETE /preferences/{key})
+  const deletePreference = useCallback(async (key: string) => {
+    try {
+      const apiUrl = getApiUrl();
+      const response = await dashboardAuthFetch(`${apiUrl}${preferencesBasePath}/${encodeURIComponent(key)}`, {
+        method: 'DELETE',
+      });
+      const result: ApiResponse = await response.json();
+      if (!response.ok || result.action !== 1) {
+        console.error(`Failed to delete preference "${key}":`, result.message);
+      }
+    } catch (err) {
+      console.error(`Error deleting preference "${key}":`, err);
+    }
+  }, [userType, preferencesBasePath]);
+
+  // Load bank providers when modal opens
+  useEffect(() => {
+    if (!showAddPaymentModal) return;
+    const apiUrl = getApiUrl();
+    dashboardAuthFetch(`${apiUrl}/api/remote/withdrawals/xentripay/providers`)
+      .then(res => res.json())
+      .then(result => {
+        const banks = result?.data?.banks || [];
+        const mobile = result?.data?.mobileMoney || [];
+        setBankProviders(banks);
+        setMobileProviders(mobile);
+      })
+      .catch(() => setBankProviders([]));
+  }, [showAddPaymentModal]);
 
   const themeOptions: { mode: ThemeMode; label: string; icon: React.ReactNode; description: string }[] = [
     { mode: 'light', label: 'Light', icon: <SunIcon />, description: 'Classic light theme for daytime use' },
@@ -169,123 +324,381 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
     { mode: 'system', label: 'System', icon: <SystemIcon />, description: 'Automatically match your device settings' }
   ];
 
-  const handleSetDefault = (id: string) => {
-    setPaymentMethods(methods =>
-      methods.map(m => ({ ...m, isDefault: m.id === id }))
-    );
+  const withdrawalMethodBasePath = userType === 'event-coordinator'
+    ? '/api/remote/customer/withdrawal-methods'
+    : userType === 'photographer'
+      ? '/api/remote/photographer/withdrawal-methods'
+      : '/api/remote/customer/withdrawal-methods';
+
+  const handleSetDefault = async (id: string) => {
+    const method = paymentMethods.find(m => m.id === id);
+    if (!method) return;
+    try {
+      const apiUrl = getApiUrl();
+      await dashboardAuthFetch(`${apiUrl}${withdrawalMethodBasePath}/${id}?methodType=${encodeURIComponent(method.methodType)}&accountName=${encodeURIComponent(method.accountName || method.name)}&accountNumber=${encodeURIComponent(method.details)}&bankName=${encodeURIComponent(method.bankName || '')}&isDefault=true`, {
+        method: 'PUT',
+      });
+      setPaymentMethods(methods =>
+        methods.map(m => ({ ...m, isDefault: m.id === id }))
+      );
+    } catch (err) {
+      console.error('Failed to set default method:', err);
+    }
   };
 
-  const handleDeletePayment = () => {
+  const handleDeletePayment = async () => {
     if (selectedPayment) {
-      setPaymentMethods(methods => methods.filter(m => m.id !== selectedPayment.id));
+      try {
+        const apiUrl = getApiUrl();
+        await dashboardAuthFetch(`${apiUrl}${withdrawalMethodBasePath}/${selectedPayment.id}`, {
+          method: 'DELETE',
+        });
+        setPaymentMethods(methods => methods.filter(m => m.id !== selectedPayment.id));
+      } catch (err) {
+        console.error('Failed to delete withdrawal method:', err);
+      }
       setShowDeleteModal(false);
       setSelectedPayment(null);
     }
   };
 
   const resetForm = () => {
-    setCardNumber('');
-    setCardName('');
-    setExpiryDate('');
-    setCvv('');
-    setBankName('');
-    setAccountNumber('');
-    setRoutingNumber('');
-    setMobileProvider('');
     setMobileNumber('');
-    setPaymentType('card');
+    setAccountHolderName('');
+    setCountryCode('+250');
+    setCountryFlag('🇷🇼');
+    setShowCountryDropdown(false);
+    setCountrySearch('');
+    setBankAccountNumber('');
+    setBankAccountName('');
+    setSelectedBank('');
+    setPaymentType('mtn');
+    setValidatedName('');
+    setValidationError('');
+    setShowNameMismatch(false);
+    setXentriPayName('');
+    setEnteredNameForMismatch('');
+    setPendingSaveData(null);
   };
 
-  const handleAddPayment = () => {
-    let newPayment: PaymentMethod;
+  const saveWithdrawalMethod = async (methodType: string, accountName: string, accountNumber: string, bankName: string) => {
+    const apiUrl = getApiUrl();
+    const isDefault = paymentMethods.length === 0;
+    const params = new URLSearchParams({
+      methodType,
+      accountName,
+      accountNumber,
+      bankName,
+      isDefault: String(isDefault),
+    });
 
-    if (paymentType === 'card') {
-      const lastFour = cardNumber.replace(/\s/g, '').slice(-4);
-      newPayment = {
-        id: Date.now().toString(),
-        type: 'card',
-        name: cardName || 'Card',
-        details: `Card ending in ${lastFour}`,
-        lastFour,
-        expiryDate,
-        isDefault: paymentMethods.length === 0,
-        icon: 'bi-credit-card-2-front'
+    const res = await dashboardAuthFetch(`${apiUrl}${withdrawalMethodBasePath}?${params.toString()}`, {
+      method: 'POST',
+    });
+    const result = await res.json();
+
+    if (res.ok && result.action === 1) {
+      const m = result.data;
+      const bn = (m.bankName || '').toLowerCase();
+      const isAirtel = bn.includes('airtel');
+      const newMethod: PaymentMethod = {
+        id: m.id,
+        type: methodType === 'BANK_TRANSFER' ? 'bank' : 'mobile',
+        methodType: m.methodType,
+        name: methodType === 'BANK_TRANSFER' ? (m.bankName || 'Bank Transfer') : (isAirtel ? 'Airtel Money' : 'MTN Mobile Money'),
+        details: m.accountNumber || '',
+        isDefault: m.isDefault || false,
+        bankName: m.bankName,
+        accountName: m.accountName,
       };
-    } else if (paymentType === 'bank') {
-      const lastFour = accountNumber.slice(-4);
-      newPayment = {
-        id: Date.now().toString(),
-        type: 'bank',
-        name: bankName,
-        details: `Account ending in ${lastFour}`,
-        lastFour,
-        isDefault: paymentMethods.length === 0,
-        icon: 'bi-bank'
-      };
-    } else if (paymentType === 'mtn') {
-      const lastFour = mobileNumber.slice(-3);
-      newPayment = {
-        id: Date.now().toString(),
-        type: 'mobile',
-        name: 'MTN Mobile Money',
-        details: mobileNumber || 'MTN Mobile Money',
-        lastFour,
-        isDefault: paymentMethods.length === 0,
-        icon: 'bi-phone'
-      };
-    } else {
-      // Airtel
-      const lastFour = mobileNumber.slice(-3);
-      newPayment = {
-        id: Date.now().toString(),
-        type: 'mobile',
-        name: 'Airtel Money',
-        details: mobileNumber || 'Airtel Money',
-        lastFour,
-        isDefault: paymentMethods.length === 0,
-        icon: 'bi-phone'
-      };
+      setPaymentMethods([...paymentMethods, newMethod]);
     }
+  };
 
-    setPaymentMethods([...paymentMethods, newPayment]);
+  const handleConfirmMismatchName = async () => {
+    if (!pendingSaveData) return;
+    setIsSavingPreference(true);
+    setShowNameMismatch(false);
+    try {
+      await saveWithdrawalMethod(pendingSaveData.methodType, pendingSaveData.accountName, pendingSaveData.accountNumber, pendingSaveData.bankName);
+    } catch (err) {
+      console.error('Failed to save withdrawal method:', err);
+      setValidationError('Something went wrong. Please try again.');
+    }
     setShowAddPaymentModal(false);
+    setIsSavingPreference(false);
+    setPendingSaveData(null);
     resetForm();
   };
 
-  const formatCardNumber = (value: string) => {
-    const cleaned = value.replace(/\D/g, '');
-    const groups = cleaned.match(/.{1,4}/g);
-    return groups ? groups.join(' ').slice(0, 19) : '';
+  const handleCancelMismatch = () => {
+    setShowNameMismatch(false);
+    setPendingSaveData(null);
+    setIsSavingPreference(false);
   };
 
-  const formatExpiryDate = (value: string) => {
-    const cleaned = value.replace(/\D/g, '');
-    if (cleaned.length >= 2) {
-      return cleaned.slice(0, 2) + '/' + cleaned.slice(2, 4);
+  const handleAddPayment = async () => {
+    setIsSavingPreference(true);
+    setValidationError('');
+    setShowNameMismatch(false);
+    try {
+      let methodType: string;
+      let accountName: string;
+      let accountNumber: string;
+      let bankName: string;
+      let bankId: string;
+
+      if (paymentType === 'bank') {
+        methodType = 'BANK_TRANSFER';
+        accountName = bankAccountName;
+        accountNumber = bankAccountNumber;
+        bankName = selectedBank;
+        const provider = bankProviders.find(b => b.name === selectedBank);
+        bankId = provider?.id || '';
+      } else if (paymentType === 'mtn') {
+        methodType = 'MOBILE_MONEY';
+        accountName = accountHolderName || 'MTN Mobile Money';
+        accountNumber = mobileNumber ? `${countryCode}${mobileNumber.replace(/\s/g, '')}` : '';
+        bankName = 'MTN Mobile Money';
+        const provider = mobileProviders.find(p => p.name.toLowerCase().includes('mtn'));
+        bankId = provider?.id || '63510';
+      } else {
+        methodType = 'MOBILE_MONEY';
+        accountName = accountHolderName || 'Airtel Money';
+        accountNumber = mobileNumber ? `${countryCode}${mobileNumber.replace(/\s/g, '')}` : '';
+        bankName = 'Airtel Rwanda';
+        const provider = mobileProviders.find(p => p.name.toLowerCase().includes('airtel'));
+        bankId = provider?.id || '63514';
+      }
+
+      if (!accountNumber) {
+        setValidationError('Please enter an account number.');
+        setIsSavingPreference(false);
+        return;
+      }
+
+      // Determine if this is mobile money (needs validation) or bank (skip validation)
+      const isMobileMoney = methodType === 'MOBILE_MONEY';
+
+      let nameToSave: string;
+
+      if (!isMobileMoney) {
+        // Bank transfer - skip validation, use entered name
+        console.log('Skipping validation for bank transfer');
+        nameToSave = accountName || bankAccountName || '';
+
+        if (!nameToSave.trim()) {
+          setValidationError('Please enter the account holder name.');
+          setIsSavingPreference(false);
+          return;
+        }
+      } else {
+        // Mobile money - validate with XentriPay
+        console.log('Validating mobile money account');
+        setIsValidating(true);
+        const validation = await validateAccountDetails(accountNumber, bankId);
+        setIsValidating(false);
+
+        if (!validation.valid) {
+          setValidationError(validation.error || 'Account validation failed. Please check the account number.');
+          setIsSavingPreference(false);
+          return;
+        }
+
+        const registeredName = validation.registeredName || '';
+
+        // Compare entered name with XentriPay registered name
+        const enteredNorm = accountName.trim().toLowerCase();
+        const xentriNorm = registeredName.trim().toLowerCase();
+
+        if (!registeredName) {
+          nameToSave = accountName;
+        } else if (!accountName.trim() || enteredNorm === xentriNorm) {
+          nameToSave = registeredName;
+        } else {
+          // Names don't match — show confirmation dialog
+          setXentriPayName(registeredName);
+          setEnteredNameForMismatch(accountName);
+          setShowNameMismatch(true);
+          setPendingSaveData({ methodType, accountName: registeredName, accountNumber, bankName });
+          setIsSavingPreference(false);
+          return;
+        }
+      }
+
+      setValidatedName(nameToSave);
+      await saveWithdrawalMethod(methodType, nameToSave, accountNumber, bankName);
+    } catch (err) {
+      console.error('Failed to add withdrawal method:', err);
+      setValidationError('Something went wrong. Please try again.');
     }
-    return cleaned;
+    setShowAddPaymentModal(false);
+    setIsSavingPreference(false);
+    resetForm();
   };
 
-  const getPaymentIcon = (type: 'card' | 'bank' | 'mobile') => {
+  const getPaymentIcon = (type: 'mobile' | 'bank') => {
     switch (type) {
-      case 'card': return <CreditCardIcon />;
-      case 'bank': return <BankIcon />;
+      case 'bank': return <CreditCardIcon />;
       case 'mobile': return <MobileIcon />;
     }
   };
 
-  const getPaymentImage = (type: 'card' | 'bank' | 'mobile', provider?: string) => {
+  const getPaymentImage = (type: 'mobile' | 'bank', provider?: string) => {
     if (type === 'mobile') {
       if (provider?.toLowerCase().includes('mtn')) return '/mtn.png';
       if (provider?.toLowerCase().includes('airtel')) return '/airtel.png';
-      return '/mtn.png'; // default
+      return '/mtn.png';
     }
-    if (type === 'bank') return '/bank.png';
-    return '/cards.png';
+    return null; // bank uses icon, not image
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary, overflow: 'hidden', width: '100%', maxWidth: '100vw' }}>
+      <style>{`
+        @media (max-width: 768px) {
+          .mobile-pref-content {
+            padding: 1rem !important;
+            padding-bottom: 8rem !important;
+            overflow-x: hidden !important;
+          }
+          .mobile-pref-title {
+            font-size: 1.4rem !important;
+          }
+          .mobile-pref-subtitle {
+            font-size: 0.85rem !important;
+          }
+          .mobile-pref-tabs {
+            width: 100% !important;
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            -ms-overflow-style: none !important;
+            scrollbar-width: none !important;
+            padding-right: 0.5rem !important;
+          }
+          .mobile-pref-tabs::-webkit-scrollbar {
+            display: none !important;
+          }
+          .mobile-pref-tabs button {
+            white-space: nowrap !important;
+            flex-shrink: 0 !important;
+            min-height: 40px !important;
+            font-size: 0.8rem !important;
+            padding: 0.4rem 0.625rem !important;
+            gap: 0.25rem !important;
+          }
+          .mobile-pref-tabs button i {
+            font-size: 0.85rem !important;
+          }
+          .mobile-theme-grid {
+            grid-template-columns: 1fr !important;
+            gap: 0.75rem !important;
+          }
+          .mobile-pref-card {
+            padding: 1rem !important;
+            border-radius: 0.75rem !important;
+          }
+          .mobile-pref-card h2 {
+            font-size: 1.1rem !important;
+          }
+          .mobile-payment-item {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 0.75rem !important;
+          }
+          .mobile-payment-actions {
+            width: 100% !important;
+            justify-content: flex-end !important;
+          }
+          .mobile-payment-actions button {
+            min-height: 40px !important;
+          }
+          .mobile-notif-container > div > div > div {
+            flex-wrap: wrap !important;
+            gap: 0.5rem !important;
+          }
+          .mobile-notif-container button {
+            flex-shrink: 0 !important;
+          }
+          .mobile-modal-inner {
+            margin: 0.5rem !important;
+            margin-bottom: 4rem !important;
+            padding: 1rem !important;
+            padding-bottom: 1.5rem !important;
+            max-height: calc(100vh - 8rem) !important;
+            width: calc(100% - 1rem) !important;
+            max-width: none !important;
+          }
+          .mobile-modal-inner h2 {
+            font-size: 1.05rem !important;
+          }
+          .mobile-modal-inner input,
+          .mobile-modal-inner select {
+            min-height: 44px !important;
+            font-size: 0.9rem !important;
+          }
+          .mobile-payment-option {
+            gap: 0.625rem !important;
+            padding: 0.625rem !important;
+          }
+          .mobile-payment-option-icon {
+            width: 36px !important;
+            height: 36px !important;
+          }
+          .mobile-payment-option-label {
+            font-size: 0.85rem !important;
+          }
+          .mobile-payment-option-desc {
+            font-size: 0.7rem !important;
+          }
+          .mobile-payment-option-radio {
+            width: 16px !important;
+            height: 16px !important;
+          }
+          .mobile-modal-grid-2 {
+            grid-template-columns: 1fr !important;
+          }
+          .mobile-modal-footer {
+            flex-direction: column !important;
+            gap: 0.5rem !important;
+            margin-top: 1rem !important;
+            padding-bottom: 1rem !important;
+          }
+          .mobile-modal-footer button {
+            width: 100% !important;
+            min-height: 44px !important;
+          }
+        }
+        @media (max-width: 640px) {
+          .mobile-pref-content {
+            padding: 0.75rem !important;
+            padding-bottom: 10rem !important;
+          }
+          .mobile-pref-title {
+            font-size: 1.2rem !important;
+          }
+          .mobile-pref-tabs button {
+            font-size: 0.75rem !important;
+            padding: 0.375rem 0.5rem !important;
+          }
+        }
+        @media (max-width: 375px) {
+          .mobile-pref-content {
+            padding: 0.5rem !important;
+            padding-bottom: 10rem !important;
+          }
+          .mobile-pref-title {
+            font-size: 1.1rem !important;
+          }
+          .mobile-pref-tabs button {
+            font-size: 0.7rem !important;
+            padding: 0.325rem 0.4rem !important;
+          }
+          .mobile-pref-tabs button i {
+            display: none !important;
+          }
+        }
+      `}</style>
       {/* Handle URL params for tab selection */}
       <Suspense fallback={null}>
         <TabParamHandler setActiveTab={setActiveTab} />
@@ -293,20 +706,20 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <Topbar userRole={userType} />
-        <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
+        <div className="mobile-pref-content" style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
 
           {/* Header */}
           <header style={{ marginBottom: '1.5rem' }}>
-            <h1 style={{ fontSize: '1.8rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
+            <h1 className="mobile-pref-title" style={{ fontSize: '1.8rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
               Preferences
             </h1>
-            <p style={{ fontSize: '0.95rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
+            <p className="mobile-pref-subtitle" style={{ fontSize: '0.95rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
               Customize your dashboard experience and manage payment settings
             </p>
           </header>
 
           {/* Tabs */}
-          <div style={{
+          <div className="mobile-pref-tabs" style={{
             display: 'flex',
             gap: '0.25rem',
             backgroundColor: colors.bgTertiary,
@@ -317,7 +730,8 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
           }}>
             {[
               { key: 'appearance' as const, label: 'Appearance', icon: 'bi-palette' },
-              { key: 'payments' as const, label: userType === 'client' ? 'Payment Accounts' : 'Withdrawal Accounts', icon: 'bi-wallet2' }
+              { key: 'payments' as const, label: 'Payment Accounts', icon: 'bi-wallet2' },
+              { key: 'notifications' as const, label: 'Notifications', icon: 'bi-bell' }
             ].map((tab) => (
               <button
                 key={tab.key}
@@ -346,12 +760,12 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
 
           {/* Appearance Tab */}
           {activeTab === 'appearance' && (
-            <div style={{
+            <div className="mobile-pref-card" style={{
               backgroundColor: colors.bgSecondary,
               borderRadius: '1rem',
               padding: '1.5rem',
               boxShadow: colors.shadowMd,
-              border: `1px solid ${colors.borderPrimary}`
+              border: `2px solid ${colors.borderPrimary}`
             }}>
               <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
                 Theme Mode
@@ -360,18 +774,21 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                 Choose how the dashboard looks to you. Select a single theme, or sync with your system settings.
               </p>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+              <div className="mobile-theme-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', maxWidth: '480px' }}>
                 {themeOptions.map((option) => (
                   <button
                     key={option.mode}
-                    onClick={() => setTheme(option.mode)}
+                    onClick={() => {
+                      setTheme(option.mode);
+                      savePreference('theme', option.mode);
+                    }}
                     style={{
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
-                      gap: '0.75rem',
-                      padding: '1.5rem',
-                      borderRadius: '0.75rem',
+                      gap: '0.5rem',
+                      padding: '0.75rem',
+                      borderRadius: '0.5rem',
                       border: theme === option.mode
                         ? `2px solid ${colors.brandPrimary}`
                         : `2px solid ${colors.borderPrimary}`,
@@ -386,7 +803,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                     {/* Preview */}
                     <div style={{
                       width: '100%',
-                      height: '80px',
+                      height: '56px',
                       borderRadius: '0.5rem',
                       backgroundColor: option.mode === 'dark' ? '#1F2937' : option.mode === 'light' ? '#F9FAFB' : (actualTheme === 'dark' ? '#1F2937' : '#F9FAFB'),
                       border: `1px solid ${option.mode === 'dark' ? '#374151' : '#E5E7EB'}`,
@@ -446,7 +863,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                     </div>
 
                     <p style={{
-                      fontSize: '0.8rem',
+                      fontSize: '0.7rem',
                       color: colors.textSecondary,
                       margin: 0,
                       textAlign: 'center'
@@ -518,7 +935,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
               {/* Add Payment Button */}
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
                 <button
-                  onClick={() => setShowDonatePromptModal(true)}
+                  onClick={() => setShowAddPaymentModal(true)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -535,7 +952,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                   }}
                 >
                   <PlusIcon />
-                  {userType === 'client' ? 'Add Payment Method' : 'Add Withdrawal Account'}
+                  Add Payment Account
                 </button>
               </div>
 
@@ -544,18 +961,18 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                 backgroundColor: colors.bgSecondary,
                 borderRadius: '1rem',
                 boxShadow: colors.shadowMd,
-                border: `1px solid ${colors.borderPrimary}`,
+                border: `2px solid ${colors.borderPrimary}`,
                 overflow: 'hidden'
               }}>
                 <div style={{
                   padding: '1.25rem',
-                  borderBottom: `1px solid ${colors.borderPrimary}`
+                  borderBottom: `2px solid ${colors.borderPrimary}`
                 }}>
                   <h2 style={{ fontSize: '1.125rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
-                    {userType === 'client' ? 'Saved Payment Methods' : 'Saved Withdrawal Accounts'}
+                    Saved Payment Accounts
                   </h2>
                   <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0.25rem 0 0 0' }}>
-                    {userType === 'client' ? 'Manage your payment methods for bookings and transactions' : 'Manage your withdrawal accounts for receiving payments'}
+                    Manage your accounts for payments and withdrawals
                   </p>
                 </div>
 
@@ -575,10 +992,10 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                       <CreditCardIcon />
                     </div>
                     <p style={{ fontSize: '1rem', fontWeight: '500', color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
-                      {userType === 'client' ? 'No payment methods saved' : 'No withdrawal accounts saved'}
+                      No payment accounts saved
                     </p>
                     <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: 0 }}>
-                      {userType === 'client' ? 'Add a card, bank account, or mobile money to get started' : 'Add a bank account or mobile money to receive your earnings'}
+                      Add a mobile money or bank account to get started
                     </p>
                   </div>
                 ) : (
@@ -586,12 +1003,13 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                     {paymentMethods.map((method, index) => (
                       <div
                         key={method.id}
+                        className="mobile-payment-item"
                         style={{
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           padding: '1rem 1.25rem',
-                          borderBottom: index < paymentMethods.length - 1 ? `1px solid ${colors.borderPrimary}` : 'none',
+                          borderBottom: index < paymentMethods.length - 1 ? `2px solid ${colors.borderPrimary}` : 'none',
                           transition: 'background-color 0.2s'
                         }}
                       >
@@ -601,16 +1019,28 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                             height: '48px',
                             borderRadius: '0.5rem',
                             overflow: 'hidden',
-                            flexShrink: 0
+                            flexShrink: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '2px'
                           }}>
-                            <Image
-                              src={getPaymentImage(method.type, method.name)}
-                              alt={method.name}
-                              width={48}
-                              height={48}
-                              unoptimized
-                              style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                            />
+                            {method.type === 'bank' ? (
+                              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3 21H21M3 10H21M5 6L12 3L19 6M4 10V21M20 10V21M8 14V17M12 14V17M16 14V17" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            ) : getPaymentImage(method.type, method.name) ? (
+                              <Image
+                                src={getPaymentImage(method.type, method.name)!}
+                                alt={method.name}
+                                width={48}
+                                height={48}
+                                unoptimized
+                                style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                              />
+                            ) : (
+                              <MobileIcon />
+                            )}
                           </div>
                           <div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -632,12 +1062,12 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                             </div>
                             <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0.125rem 0 0 0' }}>
                               {method.details}
-                              {method.expiryDate && ` • Expires ${method.expiryDate}`}
+                              {method.accountName && ` • ${method.accountName}`}
                             </p>
                           </div>
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div className="mobile-payment-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                           {!method.isDefault && (
                             <button
                               onClick={() => handleSetDefault(method.id)}
@@ -669,7 +1099,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                               justifyContent: 'center',
                               backgroundColor: colors.bgTertiary,
                               color: colors.textSecondary,
-                              border: `1px solid ${colors.borderPrimary}`,
+                              border: `2px solid ${colors.borderPrimary}`,
                               borderRadius: '0.375rem',
                               cursor: 'pointer',
                               transition: 'all 0.2s'
@@ -708,6 +1138,459 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
               </div>
             </div>
           )}
+
+          {/* Notifications Tab */}
+          {activeTab === 'notifications' && (
+            <div className="mobile-pref-card mobile-notif-container" style={{
+              backgroundColor: colors.bgSecondary,
+              borderRadius: '1rem',
+              padding: '1.5rem',
+              boxShadow: colors.shadowMd,
+              border: `2px solid ${colors.borderPrimary}`
+            }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
+                Notification Settings
+              </h2>
+              <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1.5rem 0' }}>
+                Choose which notifications you want to receive and how you want to be notified
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {/* Email Notifications */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '1rem',
+                  backgroundColor: colors.bgTertiary,
+                  borderRadius: '0.75rem',
+                  border: `1px solid ${colors.borderPrimary}`
+                }}>
+                  <div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.25rem' }}>
+                      Email Notifications
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
+                      Receive email alerts for important notifications
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => { setEmailNotifications(!emailNotifications); savePreference('email_notifications', String(!emailNotifications)); }}
+                    style={{
+                      width: '48px',
+                      height: '26px',
+                      borderRadius: '13px',
+                      border: 'none',
+                      backgroundColor: emailNotifications ? '#083A85' : (actualTheme === 'dark' ? '#4B5563' : '#D1D5DB'),
+                      cursor: 'pointer',
+                      position: 'relative',
+                      transition: 'background-color 0.3s',
+                      flexShrink: 0
+                    }}
+                  >
+                    <span style={{
+                      position: 'absolute',
+                      top: '3px',
+                      left: emailNotifications ? '25px' : '3px',
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '50%',
+                      backgroundColor: 'white',
+                      transition: 'left 0.3s',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                    }} />
+                  </button>
+                </div>
+
+                {/* Push Notifications */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '1rem',
+                  backgroundColor: colors.bgTertiary,
+                  borderRadius: '0.75rem',
+                  border: `1px solid ${colors.borderPrimary}`
+                }}>
+                  <div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.25rem' }}>
+                      Push Notifications
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
+                      Get instant push notifications on your device
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => { setPushNotifications(!pushNotifications); savePreference('push_notifications', String(!pushNotifications)); }}
+                    style={{
+                      width: '48px',
+                      height: '26px',
+                      borderRadius: '13px',
+                      border: 'none',
+                      backgroundColor: pushNotifications ? '#083A85' : (actualTheme === 'dark' ? '#4B5563' : '#D1D5DB'),
+                      cursor: 'pointer',
+                      position: 'relative',
+                      transition: 'background-color 0.3s',
+                      flexShrink: 0
+                    }}
+                  >
+                    <span style={{
+                      position: 'absolute',
+                      top: '3px',
+                      left: pushNotifications ? '25px' : '3px',
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '50%',
+                      backgroundColor: 'white',
+                      transition: 'left 0.3s',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                    }} />
+                  </button>
+                </div>
+
+                {/* Divider */}
+                <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, margin: '0.5rem 0' }} />
+
+                <p style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.25rem 0' }}>
+                  Notification Categories
+                </p>
+
+                {/* Role-specific: Photographer - Payment Notifications */}
+                {userType === 'photographer' && (
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '1rem',
+                    backgroundColor: colors.bgTertiary,
+                    borderRadius: '0.75rem',
+                    border: `1px solid ${colors.borderPrimary}`
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.25rem' }}>
+                        Payment Notifications
+                      </div>
+                      <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
+                        Notify me when I receive payments
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => { setPaymentNotifications(!paymentNotifications); savePreference('payment_notifications', String(!paymentNotifications)); }}
+                      style={{
+                        width: '48px',
+                        height: '26px',
+                        borderRadius: '13px',
+                        border: 'none',
+                        backgroundColor: paymentNotifications ? '#083A85' : (actualTheme === 'dark' ? '#4B5563' : '#D1D5DB'),
+                        cursor: 'pointer',
+                        position: 'relative',
+                        transition: 'background-color 0.3s',
+                        flexShrink: 0
+                      }}
+                    >
+                      <span style={{
+                        position: 'absolute',
+                        top: '3px',
+                        left: paymentNotifications ? '25px' : '3px',
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        backgroundColor: 'white',
+                        transition: 'left 0.3s',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                      }} />
+                    </button>
+                  </div>
+                )}
+
+                {/* Role-specific: Photographer - Tips & Bonuses */}
+                {userType === 'photographer' && (
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '1rem',
+                    backgroundColor: colors.bgTertiary,
+                    borderRadius: '0.75rem',
+                    border: `1px solid ${colors.borderPrimary}`
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.25rem' }}>
+                        Tips & Bonuses
+                      </div>
+                      <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
+                        Notify me when I receive tips or bonuses
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => { setTipsAndBonuses(!tipsAndBonuses); savePreference('tips_and_bonuses', String(!tipsAndBonuses)); }}
+                      style={{
+                        width: '48px',
+                        height: '26px',
+                        borderRadius: '13px',
+                        border: 'none',
+                        backgroundColor: tipsAndBonuses ? '#083A85' : (actualTheme === 'dark' ? '#4B5563' : '#D1D5DB'),
+                        cursor: 'pointer',
+                        position: 'relative',
+                        transition: 'background-color 0.3s',
+                        flexShrink: 0
+                      }}
+                    >
+                      <span style={{
+                        position: 'absolute',
+                        top: '3px',
+                        left: tipsAndBonuses ? '25px' : '3px',
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        backgroundColor: 'white',
+                        transition: 'left 0.3s',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                      }} />
+                    </button>
+                  </div>
+                )}
+
+                {/* Role-specific: Client/Coordinator - Album Notifications */}
+                {(userType === 'client' || userType === 'event-coordinator') && (
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '1rem',
+                    backgroundColor: colors.bgTertiary,
+                    borderRadius: '0.75rem',
+                    border: `1px solid ${colors.borderPrimary}`
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.25rem' }}>
+                        Album Notifications
+                      </div>
+                      <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
+                        Notify me when new albums are shared or updated
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => { setAlbumNotifications(!albumNotifications); savePreference('album_notifications', String(!albumNotifications)); }}
+                      style={{
+                        width: '48px',
+                        height: '26px',
+                        borderRadius: '13px',
+                        border: 'none',
+                        backgroundColor: albumNotifications ? '#083A85' : (actualTheme === 'dark' ? '#4B5563' : '#D1D5DB'),
+                        cursor: 'pointer',
+                        position: 'relative',
+                        transition: 'background-color 0.3s',
+                        flexShrink: 0
+                      }}
+                    >
+                      <span style={{
+                        position: 'absolute',
+                        top: '3px',
+                        left: albumNotifications ? '25px' : '3px',
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        backgroundColor: 'white',
+                        transition: 'left 0.3s',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                      }} />
+                    </button>
+                  </div>
+                )}
+
+                {/* Role-specific: Client/Coordinator - Booking Notifications */}
+                {(userType === 'client' || userType === 'event-coordinator') && (
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '1rem',
+                    backgroundColor: colors.bgTertiary,
+                    borderRadius: '0.75rem',
+                    border: `1px solid ${colors.borderPrimary}`
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.25rem' }}>
+                        Booking Notifications
+                      </div>
+                      <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
+                        Notify me about booking updates and confirmations
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => { setBookingNotifications(!bookingNotifications); savePreference('booking_notifications', String(!bookingNotifications)); }}
+                      style={{
+                        width: '48px',
+                        height: '26px',
+                        borderRadius: '13px',
+                        border: 'none',
+                        backgroundColor: bookingNotifications ? '#083A85' : (actualTheme === 'dark' ? '#4B5563' : '#D1D5DB'),
+                        cursor: 'pointer',
+                        position: 'relative',
+                        transition: 'background-color 0.3s',
+                        flexShrink: 0
+                      }}
+                    >
+                      <span style={{
+                        position: 'absolute',
+                        top: '3px',
+                        left: bookingNotifications ? '25px' : '3px',
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        backgroundColor: 'white',
+                        transition: 'left 0.3s',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                      }} />
+                    </button>
+                  </div>
+                )}
+
+                {/* Role-specific: Client - Gift Notifications */}
+                {userType === 'client' && (
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '1rem',
+                    backgroundColor: colors.bgTertiary,
+                    borderRadius: '0.75rem',
+                    border: `1px solid ${colors.borderPrimary}`
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.25rem' }}>
+                        Gift Notifications
+                      </div>
+                      <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
+                        Notify me when I receive gifts
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => { setGiftNotifications(!giftNotifications); savePreference('gift_notifications', String(!giftNotifications)); }}
+                      style={{
+                        width: '48px',
+                        height: '26px',
+                        borderRadius: '13px',
+                        border: 'none',
+                        backgroundColor: giftNotifications ? '#083A85' : (actualTheme === 'dark' ? '#4B5563' : '#D1D5DB'),
+                        cursor: 'pointer',
+                        position: 'relative',
+                        transition: 'background-color 0.3s',
+                        flexShrink: 0
+                      }}
+                    >
+                      <span style={{
+                        position: 'absolute',
+                        top: '3px',
+                        left: giftNotifications ? '25px' : '3px',
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        backgroundColor: 'white',
+                        transition: 'left 0.3s',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                      }} />
+                    </button>
+                  </div>
+                )}
+
+                {/* Role-specific: Coordinator - Stream Fee Notifications */}
+                {userType === 'event-coordinator' && (
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '1rem',
+                    backgroundColor: colors.bgTertiary,
+                    borderRadius: '0.75rem',
+                    border: `1px solid ${colors.borderPrimary}`
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.25rem' }}>
+                        Stream Fee Notifications
+                      </div>
+                      <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
+                        Notify me when I receive live stream access fee revenue
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => { setStreamFeeNotifications(!streamFeeNotifications); savePreference('stream_fee_notifications', String(!streamFeeNotifications)); }}
+                      style={{
+                        width: '48px',
+                        height: '26px',
+                        borderRadius: '13px',
+                        border: 'none',
+                        backgroundColor: streamFeeNotifications ? '#083A85' : (actualTheme === 'dark' ? '#4B5563' : '#D1D5DB'),
+                        cursor: 'pointer',
+                        position: 'relative',
+                        transition: 'background-color 0.3s',
+                        flexShrink: 0
+                      }}
+                    >
+                      <span style={{
+                        position: 'absolute',
+                        top: '3px',
+                        left: streamFeeNotifications ? '25px' : '3px',
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        backgroundColor: 'white',
+                        transition: 'left 0.3s',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                      }} />
+                    </button>
+                  </div>
+                )}
+
+                {/* Security Alerts - all roles */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '1rem',
+                  backgroundColor: colors.bgTertiary,
+                  borderRadius: '0.75rem',
+                  border: `1px solid ${colors.borderPrimary}`
+                }}>
+                  <div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.25rem' }}>
+                      Security Alerts
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
+                      Always notify me about security events (recommended)
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => { setSecurityAlerts(!securityAlerts); savePreference('security_alerts', String(!securityAlerts)); }}
+                    style={{
+                      width: '48px',
+                      height: '26px',
+                      borderRadius: '13px',
+                      border: 'none',
+                      backgroundColor: securityAlerts ? '#083A85' : (actualTheme === 'dark' ? '#4B5563' : '#D1D5DB'),
+                      cursor: 'pointer',
+                      position: 'relative',
+                      transition: 'background-color 0.3s',
+                      flexShrink: 0
+                    }}
+                  >
+                    <span style={{
+                      position: 'absolute',
+                      top: '3px',
+                      left: securityAlerts ? '25px' : '3px',
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '50%',
+                      backgroundColor: 'white',
+                      transition: 'left 0.3s',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                    }} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -730,6 +1613,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
           onClick={() => { setShowAddPaymentModal(false); resetForm(); }}
         >
           <div
+            className="mobile-modal-inner"
             style={{
               backgroundColor: colors.bgModal,
               borderRadius: '1rem',
@@ -745,7 +1629,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
             {/* Modal Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
-                {userType === 'client' ? 'Add Payment Method' : 'Add Withdrawal Account'}
+                Add Payment Account
               </h2>
               <button
                 onClick={() => { setShowAddPaymentModal(false); resetForm(); }}
@@ -765,63 +1649,69 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
             <div style={{
               display: 'flex',
               flexDirection: 'column',
-              gap: '0.625rem',
-              marginBottom: '1.5rem'
+              gap: '0.5rem',
+              marginBottom: '1.25rem'
             }}>
-              {(userType === 'client' ? [
-                { type: 'card' as const, label: 'Credit/Debit Card', description: 'Pay with Visa, Mastercard, etc.', image: '/cards.png' },
-                { type: 'mtn' as const, label: 'MTN Mobile Money', description: 'Pay with MTN Mobile Money', image: '/mtn.png' },
-                { type: 'airtel' as const, label: 'Airtel Money', description: 'Pay with Airtel Money', image: '/airtel.png' },
-                { type: 'bank' as const, label: 'Bank Account', description: 'Direct bank transfer', image: '/bank.png' }
-              ] : [
-                { type: 'mtn' as const, label: 'MTN Mobile Money', description: 'Receive via MTN Mobile Money', image: '/mtn.png' },
-                { type: 'airtel' as const, label: 'Airtel Money', description: 'Receive via Airtel Money', image: '/airtel.png' },
-                { type: 'bank' as const, label: 'Bank Account', description: 'Receive via bank transfer', image: '/bank.png' }
+              {([
+                { type: 'mtn' as const, label: 'MTN Mobile Money', description: 'Withdraw via MTN Mobile Money', image: '/mtn.png' },
+                { type: 'airtel' as const, label: 'Airtel Money', description: 'Withdraw via Airtel Money', image: '/airtel.png' },
+                { type: 'bank' as const, label: 'Bank Transfer', description: 'Withdraw to a Rwandan bank account', image: '' }
               ]).map((option) => (
                 <div
                   key={option.type}
+                  className="mobile-payment-option"
                   onClick={() => setPaymentType(option.type)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '1rem',
-                    padding: '1rem',
+                    gap: '0.75rem',
+                    padding: '0.75rem',
                     border: paymentType === option.type ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                    borderRadius: '0.75rem',
+                    borderRadius: '0.625rem',
                     cursor: 'pointer',
                     backgroundColor: paymentType === option.type ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
                     transition: 'all 0.2s'
                   }}
                 >
-                  <div style={{
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: '0.5rem',
+                  <div className="mobile-payment-option-icon" style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '0.375rem',
                     overflow: 'hidden',
-                    flexShrink: 0
+                    flexShrink: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '2px'
                   }}>
-                    <Image
-                      src={option.image}
-                      alt={option.label}
-                      width={48}
-                      height={48}
-                      unoptimized
-                      style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                    />
+                    {option.type === 'bank' ? (
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 21H21M3 10H21M5 6L12 3L19 6M4 10V21M20 10V21M8 14V17M12 14V17M16 14V17" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    ) : (
+                      <Image
+                        src={option.image}
+                        alt={option.label}
+                        width={40}
+                        height={40}
+                        unoptimized
+                        style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                      />
+                    )}
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="mobile-payment-option-label" style={{ fontSize: '0.875rem', fontWeight: '600', color: colors.textPrimary }}>
                       {option.label}
                     </div>
-                    <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>
+                    <div className="mobile-payment-option-desc" style={{ fontSize: '0.75rem', color: colors.textSecondary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {option.description}
                     </div>
                   </div>
-                  <div style={{
-                    width: '20px',
-                    height: '20px',
+                  <div className="mobile-payment-option-radio" style={{
+                    width: '18px',
+                    height: '18px',
                     borderRadius: '50%',
-                    border: paymentType === option.type ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                    border: paymentType === option.type ? '5px solid #083A85' : `2px solid ${colors.borderPrimary}`,
                     backgroundColor: colors.bgCard,
                     flexShrink: 0
                   }} />
@@ -829,115 +1719,16 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
               ))}
             </div>
 
-            {/* Card Form */}
-            {paymentType === 'card' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>
-                    Card Number
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="1234 5678 9012 3456"
-                    value={cardNumber}
-                    onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
-                    maxLength={19}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      border: `2px solid ${colors.borderSecondary}`,
-                      borderRadius: '0.5rem',
-                      fontSize: '0.9rem',
-                      backgroundColor: colors.bgInput,
-                      color: colors.textPrimary,
-                      outline: 'none',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>
-                    Cardholder Name
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="John Doe"
-                    value={cardName}
-                    onChange={(e) => setCardName(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      border: `2px solid ${colors.borderSecondary}`,
-                      borderRadius: '0.5rem',
-                      fontSize: '0.9rem',
-                      backgroundColor: colors.bgInput,
-                      color: colors.textPrimary,
-                      outline: 'none',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>
-                      Expiry Date
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="MM/YY"
-                      value={expiryDate}
-                      onChange={(e) => setExpiryDate(formatExpiryDate(e.target.value))}
-                      maxLength={5}
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        border: `2px solid ${colors.borderSecondary}`,
-                        borderRadius: '0.5rem',
-                        fontSize: '0.9rem',
-                        backgroundColor: colors.bgInput,
-                        color: colors.textPrimary,
-                        outline: 'none',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>
-                      CVV
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="123"
-                      value={cvv}
-                      onChange={(e) => setCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                      maxLength={4}
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        border: `2px solid ${colors.borderSecondary}`,
-                        borderRadius: '0.5rem',
-                        fontSize: '0.9rem',
-                        backgroundColor: colors.bgInput,
-                        color: colors.textPrimary,
-                        outline: 'none',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Bank Form */}
+            {/* Bank Transfer Form */}
             {paymentType === 'bank' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>
-                    Bank Name
+                    Select Bank
                   </label>
                   <select
-                    value={bankName}
-                    onChange={(e) => setBankName(e.target.value)}
+                    value={selectedBank}
+                    onChange={(e) => setSelectedBank(e.target.value)}
                     style={{
                       width: '100%',
                       padding: '0.75rem',
@@ -947,17 +1738,14 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                       backgroundColor: colors.bgInput,
                       color: colors.textPrimary,
                       outline: 'none',
-                      cursor: 'pointer',
-                      boxSizing: 'border-box'
+                      boxSizing: 'border-box',
+                      cursor: 'pointer'
                     }}
                   >
-                    <option value="">Select a bank</option>
-                    <option value="Bank of Kigali">Bank of Kigali</option>
-                    <option value="Equity Bank">Equity Bank</option>
-                    <option value="I&M Bank">I&M Bank</option>
-                    <option value="Access Bank">Access Bank</option>
-                    <option value="Ecobank">Ecobank</option>
-                    <option value="KCB Bank">KCB Bank</option>
+                    <option value="">Choose a bank...</option>
+                    {bankProviders.map((bank) => (
+                      <option key={bank.id} value={bank.name}>{bank.name}</option>
+                    ))}
                   </select>
                 </div>
                 <div>
@@ -966,9 +1754,9 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                   </label>
                   <input
                     type="text"
-                    placeholder="Enter account number"
-                    value={accountNumber}
-                    onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, ''))}
+                    placeholder="Enter your bank account number"
+                    value={bankAccountNumber}
+                    onChange={(e) => setBankAccountNumber(e.target.value)}
                     style={{
                       width: '100%',
                       padding: '0.75rem',
@@ -984,41 +1772,13 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>
-                    Routing Number (Optional)
+                    Account Holder Name
                   </label>
                   <input
                     type="text"
-                    placeholder="Enter routing number"
-                    value={routingNumber}
-                    onChange={(e) => setRoutingNumber(e.target.value.replace(/\D/g, ''))}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      border: `2px solid ${colors.borderSecondary}`,
-                      borderRadius: '0.5rem',
-                      fontSize: '0.9rem',
-                      backgroundColor: colors.bgInput,
-                      color: colors.textPrimary,
-                      outline: 'none',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* MTN Mobile Money Form */}
-            {paymentType === 'mtn' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>
-                    MTN Phone Number
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="+250 78X XXX XXX"
-                    value={mobileNumber}
-                    onChange={(e) => setMobileNumber(e.target.value)}
+                    placeholder="Name as it appears on your bank account"
+                    value={bankAccountName}
+                    onChange={(e) => setBankAccountName(e.target.value)}
                     style={{
                       width: '100%',
                       padding: '0.75rem',
@@ -1035,18 +1795,157 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
               </div>
             )}
 
-            {/* Airtel Money Form */}
-            {paymentType === 'airtel' && (
+            {/* Mobile Money Phone Number Form (shared for MTN and Airtel) */}
+            {(paymentType === 'mtn' || paymentType === 'airtel') && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>
-                    Airtel Phone Number
+                    {paymentType === 'mtn' ? 'MTN' : 'Airtel'} Phone Number
+                  </label>
+                  <div style={{ display: 'flex', gap: '0.5rem', position: 'relative' }}>
+                    {/* Country code selector */}
+                    <div style={{ position: 'relative', flexShrink: 0 }}>
+                      <button
+                        type="button"
+                        onClick={() => { setShowCountryDropdown(!showCountryDropdown); setCountrySearch(''); }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.375rem',
+                          padding: '0.75rem 0.625rem',
+                          border: `2px solid ${colors.borderSecondary}`,
+                          borderRadius: '0.5rem',
+                          backgroundColor: colors.bgInput,
+                          color: colors.textPrimary,
+                          fontSize: '0.9rem',
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          minWidth: '90px',
+                        }}
+                      >
+                        <img src={`https://flagcdn.com/w40/${(COUNTRIES.find(c => c.dialCode === countryCode) || COUNTRIES[15]).iso}.png`} alt="" style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px', flexShrink: 0 }} />
+                        <span style={{ fontWeight: '500' }}>{countryCode}</span>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+                          <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </button>
+
+                      {showCountryDropdown && (
+                        <>
+                          {/* Click-outside overlay */}
+                          <div
+                            style={{ position: 'fixed', inset: 0, zIndex: 99 }}
+                            onClick={() => setShowCountryDropdown(false)}
+                          />
+                          {/* Dropdown */}
+                          <div style={{
+                            position: 'absolute',
+                            top: 'calc(100% + 4px)',
+                            left: 0,
+                            zIndex: 100,
+                            backgroundColor: colors.bgCard,
+                            border: `2px solid ${colors.borderPrimary}`,
+                            borderRadius: '0.5rem',
+                            boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                            width: '240px',
+                            maxHeight: '220px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            overflow: 'hidden',
+                          }}>
+                            {/* Search */}
+                            <div style={{ padding: '0.5rem', borderBottom: `1px solid ${colors.borderPrimary}`, flexShrink: 0 }}>
+                              <input
+                                type="text"
+                                placeholder="Search country…"
+                                value={countrySearch}
+                                onChange={(e) => setCountrySearch(e.target.value)}
+                                autoFocus
+                                style={{
+                                  width: '100%',
+                                  padding: '0.375rem 0.5rem',
+                                  border: `1px solid ${colors.borderSecondary}`,
+                                  borderRadius: '0.375rem',
+                                  fontSize: '0.85rem',
+                                  backgroundColor: colors.bgInput,
+                                  color: colors.textPrimary,
+                                  outline: 'none',
+                                  boxSizing: 'border-box',
+                                }}
+                              />
+                            </div>
+                            {/* List */}
+                            <div style={{ overflowY: 'auto', flex: 1 }}>
+                              {COUNTRIES
+                                .filter(c =>
+                                  c.name.toLowerCase().includes(countrySearch.toLowerCase()) ||
+                                  c.dialCode.includes(countrySearch)
+                                )
+                                .map((c) => (
+                                  <div
+                                    key={c.name}
+                                    onClick={() => {
+                                      setCountryCode(c.dialCode);
+                                      setCountryFlag(c.flag);
+                                      setShowCountryDropdown(false);
+                                      setCountrySearch('');
+                                    }}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '0.5rem',
+                                      padding: '0.5rem 0.75rem',
+                                      cursor: 'pointer',
+                                      fontSize: '0.875rem',
+                                      color: colors.textPrimary,
+                                      backgroundColor: countryCode === c.dialCode && countryFlag === c.flag
+                                        ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF')
+                                        : 'transparent',
+                                    }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = colors.bgHover; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = countryCode === c.dialCode && countryFlag === c.flag ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : 'transparent'; }}
+                                  >
+                                    <img src={`https://flagcdn.com/w40/${c.iso}.png`} alt={c.name} style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px', flexShrink: 0 }} />
+                                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
+                                    <span style={{ color: colors.textSecondary, flexShrink: 0 }}>{c.dialCode}</span>
+                                  </div>
+                                ))}
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Phone number input */}
+                    <input
+                      type="tel"
+                      placeholder="7XX XXX XXX"
+                      value={mobileNumber}
+                      onChange={(e) => setMobileNumber(e.target.value.replace(/[^\d\s\-]/g, ''))}
+                      style={{
+                        flex: 1,
+                        padding: '0.75rem',
+                        border: `2px solid ${colors.borderSecondary}`,
+                        borderRadius: '0.5rem',
+                        fontSize: '0.9rem',
+                        backgroundColor: colors.bgInput,
+                        color: colors.textPrimary,
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                        minWidth: 0,
+                      }}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>
+                    Account Holder Name
                   </label>
                   <input
                     type="text"
-                    placeholder="+250 73X XXX XXX"
-                    value={mobileNumber}
-                    onChange={(e) => setMobileNumber(e.target.value)}
+                    placeholder="Name registered on your mobile money"
+                    value={accountHolderName}
+                    onChange={(e) => setAccountHolderName(e.target.value)}
                     style={{
                       width: '100%',
                       padding: '0.75rem',
@@ -1059,14 +1958,89 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                       boxSizing: 'border-box'
                     }}
                   />
+                </div>
+              </div>
+            )}
+
+            {/* Validation Feedback */}
+            {validationError && (
+              <div style={{
+                marginTop: '1rem',
+                padding: '0.75rem',
+                borderRadius: '0.5rem',
+                backgroundColor: '#fee2e2',
+                color: '#dc2626',
+                fontSize: '0.85rem',
+              }}>
+                {validationError}
+              </div>
+            )}
+
+            {/* Name Mismatch Confirmation */}
+            {showNameMismatch && (
+              <div style={{
+                marginTop: '1rem',
+                padding: '1rem',
+                borderRadius: '0.5rem',
+                backgroundColor: actualTheme === 'dark' ? '#2D2006' : '#FEF3C7',
+                border: `1px solid ${actualTheme === 'dark' ? '#92400E' : '#F59E0B'}`,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, marginTop: '1px' }}>
+                    <path d="M12 9V13M12 17H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <div>
+                    <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: '600', color: actualTheme === 'dark' ? '#FBBF24' : '#92400E' }}>
+                      Name mismatch
+                    </p>
+                    <p style={{ margin: '0.375rem 0 0', fontSize: '0.825rem', color: actualTheme === 'dark' ? '#FDE68A' : '#78350F', lineHeight: '1.4' }}>
+                      You entered <strong>{enteredNameForMismatch}</strong>, but this account is registered as <strong>{xentriPayName}</strong>.
+                    </p>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    onClick={handleCancelMismatch}
+                    style={{
+                      flex: 1,
+                      padding: '0.5rem',
+                      border: `1px solid ${actualTheme === 'dark' ? '#92400E' : '#D97706'}`,
+                      borderRadius: '0.375rem',
+                      backgroundColor: 'transparent',
+                      color: actualTheme === 'dark' ? '#FBBF24' : '#92400E',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Go Back
+                  </button>
+                  <button
+                    onClick={handleConfirmMismatchName}
+                    style={{
+                      flex: 1,
+                      padding: '0.5rem',
+                      border: 'none',
+                      borderRadius: '0.375rem',
+                      backgroundColor: actualTheme === 'dark' ? '#92400E' : '#D97706',
+                      color: 'white',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Use "{xentriPayName}"
+                  </button>
                 </div>
               </div>
             )}
 
             {/* Action Buttons */}
-            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', alignItems: 'center' }}>
+            {!showNameMismatch && (
+            <div className="mobile-modal-footer" style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', alignItems: 'center' }}>
               <button
                 onClick={() => { setShowAddPaymentModal(false); resetForm(); }}
+                disabled={isValidating || isSavingPreference}
                 style={{
                   flex: 1,
                   padding: '0.75rem',
@@ -1076,13 +2050,15 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                   color: colors.textPrimary,
                   fontSize: '0.9rem',
                   fontWeight: '600',
-                  cursor: 'pointer'
+                  cursor: isValidating || isSavingPreference ? 'not-allowed' : 'pointer',
+                  opacity: isValidating || isSavingPreference ? 0.5 : 1,
                 }}
               >
                 Cancel
               </button>
               <button
                 onClick={handleAddPayment}
+                disabled={isValidating || isSavingPreference}
                 style={{
                   flex: 1,
                   padding: '0.75rem',
@@ -1092,32 +2068,18 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                   color: 'white',
                   fontSize: '0.9rem',
                   fontWeight: '600',
-                  cursor: 'pointer'
+                  cursor: isValidating || isSavingPreference ? 'not-allowed' : 'pointer',
+                  opacity: isValidating || isSavingPreference ? 0.7 : 1,
                 }}
               >
-                {userType === 'client' ? 'Add Payment Method' : 'Add Withdrawal Account'}
+                {isValidating ? 'Validating...' : isSavingPreference ? 'Saving...' : 'Add Payment Account'}
               </button>
             </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* Add Payment Donate Prompt Modal - Shows before add payment modal */}
-      <DonatePromptModal
-        isOpen={showDonatePromptModal}
-        onClose={() => setShowDonatePromptModal(false)}
-        onNo={() => {
-          setShowDonatePromptModal(false);
-          setShowAddPaymentModal(true);
-        }}
-        onYes={() => {
-          setShowDonatePromptModal(false);
-          setShowDonateModal(true);
-        }}
-      />
-
-      {/* Donate Modal */}
-      <DonateModal isOpen={showDonateModal} onClose={() => setShowDonateModal(false)} />
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && selectedPayment && (
@@ -1176,7 +2138,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
               margin: 0,
               marginBottom: '0.75rem',
               textAlign: 'center'
-            }}>{userType === 'client' ? 'Delete Payment Method' : 'Delete Withdrawal Account'}</h2>
+            }}>Delete Payment Account</h2>
 
             <p style={{
               fontSize: '0.95rem',
@@ -1199,7 +2161,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
               This action cannot be undone.
             </p>
 
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <div className="mobile-modal-footer" style={{ display: 'flex', gap: '0.75rem' }}>
               <button
                 onClick={() => { setShowDeleteModal(false); setSelectedPayment(null); }}
                 style={{
@@ -1275,7 +2237,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
-                {userType === 'client' ? 'Edit Payment Method' : 'Edit Withdrawal Account'}
+                Edit Payment Account
               </h2>
               <button
                 onClick={() => { setShowEditPaymentModal(false); setSelectedPayment(null); }}
@@ -1303,16 +2265,28 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                   height: '48px',
                   borderRadius: '0.5rem',
                   overflow: 'hidden',
-                  flexShrink: 0
+                  flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '2px'
                 }}>
-                  <Image
-                    src={getPaymentImage(selectedPayment.type, selectedPayment.name)}
-                    alt={selectedPayment.name}
-                    width={48}
-                    height={48}
-                    unoptimized
-                    style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                  />
+                  {selectedPayment.type === 'bank' ? (
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M3 21H21M3 10H21M5 6L12 3L19 6M4 10V21M20 10V21M8 14V17M12 14V17M16 14V17" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  ) : getPaymentImage(selectedPayment.type, selectedPayment.name) ? (
+                    <Image
+                      src={getPaymentImage(selectedPayment.type, selectedPayment.name)!}
+                      alt={selectedPayment.name}
+                      width={48}
+                      height={48}
+                      unoptimized
+                      style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                    />
+                  ) : (
+                    <MobileIcon />
+                  )}
                 </div>
                 <div>
                   <p style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
@@ -1326,9 +2300,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
             </div>
 
             <p style={{ fontSize: '0.9rem', color: colors.textSecondary, textAlign: 'center', margin: '0 0 1.5rem 0' }}>
-              {userType === 'client'
-                ? 'For security reasons, you can only update the payment method by removing and adding a new one.'
-                : 'For security reasons, you can only update the withdrawal account by removing and adding a new one.'}
+              For security reasons, you can only update the account by removing and adding a new one.
             </p>
 
             <button

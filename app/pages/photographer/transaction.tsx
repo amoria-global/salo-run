@@ -1,12 +1,17 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
-import DonateModal, { DonateButton, DonatePromptModal } from '../../components/DonateModal';
+import { useCurrency } from '@/app/context/CurrencyContext';
+import { HeartIcon } from '../../components/UnlockModal';
+import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
+import { getApiUrl } from '@/lib/api';
+import { processWithdrawal, sanitizeErrorMessage } from '@/lib/xentripay';
+import { fetchPlatformConfig, type PlatformConfig, DEFAULT_CONFIG } from '@/lib/platformConfig';
 
 // Icons
 const DownloadIcon = () => (
@@ -90,18 +95,6 @@ const MobileMoneyIcon = ({ color = '#F59E0B' }: { color?: string }) => (
   </svg>
 );
 
-const BankIcon = ({ color = '#3B82F6' }: { color?: string }) => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M3 21H21" stroke={color} strokeWidth="2" strokeLinecap="round"/>
-    <path d="M3 10H21" stroke={color} strokeWidth="2" strokeLinecap="round"/>
-    <path d="M12 3L21 10H3L12 3Z" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M5 10V21" stroke={color} strokeWidth="2" strokeLinecap="round"/>
-    <path d="M9 10V21" stroke={color} strokeWidth="2" strokeLinecap="round"/>
-    <path d="M15 10V21" stroke={color} strokeWidth="2" strokeLinecap="round"/>
-    <path d="M19 10V21" stroke={color} strokeWidth="2" strokeLinecap="round"/>
-  </svg>
-);
-
 const CardIcon = ({ color = '#8B5CF6' }: { color?: string }) => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <rect x="2" y="4" width="20" height="16" rx="2" stroke={color} strokeWidth="2"/>
@@ -173,6 +166,7 @@ interface ViewReportModalProps {
 
 const ViewReportModal: React.FC<ViewReportModalProps> = ({ isOpen, onClose }) => {
   const { colors, actualTheme } = useTheme();
+  const { formatPrice } = useCurrency();
   const reportData = {
     period: '13 - 18 July 2025',
     totalEarned: 1200.13,
@@ -195,10 +189,10 @@ Period: ${reportData.period}
 Generated: ${new Date().toLocaleDateString()}
 
 Financial Summary:
-- Total Earned: $${reportData.totalEarned.toFixed(2)}
-- Pending Amount: $${reportData.pending.toFixed(2)}
-- Withdrawn: $${reportData.withdrawn.toFixed(2)}
-- Total: $${(reportData.totalEarned + reportData.pending + reportData.withdrawn).toFixed(2)}
+- Total Earned: ${formatPrice(reportData.totalEarned)}
+- Pending Amount: ${formatPrice(reportData.pending)}
+- Withdrawn: ${formatPrice(reportData.withdrawn)}
+- Total: ${formatPrice(reportData.totalEarned + reportData.pending + reportData.withdrawn)}
 
 Transaction Summary:
 - Total Transactions: ${reportData.totalTransactions}
@@ -233,25 +227,25 @@ Transaction Summary:
                   <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981' }} />
                   <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Earned</span>
                 </div>
-                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>${reportData.totalEarned.toFixed(2)}</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(reportData.totalEarned)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                   <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#FBBF24' }} />
                   <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Pending</span>
                 </div>
-                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>${reportData.pending.toFixed(2)}</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(reportData.pending)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                   <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#3B82F6' }} />
                   <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Withdrawn</span>
                 </div>
-                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>${reportData.withdrawn.toFixed(2)}</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(reportData.withdrawn)}</span>
               </div>
-              <div style={{ borderTop: `1px solid ${colors.borderPrimary}`, marginTop: '0.35rem', paddingTop: '0.35rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, marginTop: '0.35rem', paddingTop: '0.35rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.75rem', fontWeight: '500', color: colors.textSecondary }}>Total</span>
-                <span style={{ fontSize: '0.95rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>${(reportData.totalEarned + reportData.pending + reportData.withdrawn).toFixed(2)}</span>
+                <span style={{ fontSize: '0.95rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{formatPrice(reportData.totalEarned + reportData.pending + reportData.withdrawn)}</span>
               </div>
             </div>
           </div>
@@ -349,6 +343,7 @@ interface TransactionDetailsModalProps {
 
 const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({ isOpen, onClose, transaction }) => {
   const { colors } = useTheme();
+  const { formatPrice } = useCurrency();
   if (!transaction) return null;
 
   const handlePrintReceipt = () => {
@@ -370,7 +365,7 @@ Client: ${transaction.clientName}
 Service: ${transaction.service}
 Payment Method: ${transaction.method}
 
-Amount: ${transaction.amount}
+Amount: ${formatPrice(transaction.amountNum)}
 
 =====================================
     Thank you for using Connekt
@@ -428,15 +423,21 @@ Amount: ${transaction.amount}
           {transaction.status.replace('_', ' ')}
         </span>
         <span style={{ fontSize: '1.75rem', fontWeight: '700', color: colors.textPrimary, marginTop: '0.5rem' }}>
-          {transaction.amount}
+          {formatPrice(transaction.amountNum)}
         </span>
       </div>
 
       {/* Transaction Info */}
       <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '1rem', marginBottom: '1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: `1px solid ${colors.borderPrimary}` }}>
-          <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
-            <Image src={transaction.clientImage} alt={transaction.clientName} width={40} height={40} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: `2px solid ${colors.borderPrimary}` }}>
+          <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+            </svg>
+            {transaction.clientImage && (
+              <img src={transaction.clientImage} alt={transaction.clientName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+            )}
           </div>
           <div>
             <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>{transaction.clientName}</div>
@@ -524,39 +525,201 @@ Amount: ${transaction.amount}
 
 // Withdraw Modal
 interface WithdrawModalProps {
+  userName?: string;
   isOpen: boolean;
   onClose: () => void;
   availableBalance: number;
-  userType?: 'photographer' | 'freelancer';
 }
 
 interface WithdrawAccount {
   id: string;
-  type: 'mobile' | 'bank' | 'card' | 'mtn' | 'airtel';
+  type: 'mtn' | 'airtel' | 'bank';
   label: string;
   accountNumber: string;
   accountName: string;
   color: string;
 }
 
-const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availableBalance, userType = 'photographer' }) => {
+const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availableBalance, userName }) => {
   const { colors, actualTheme } = useTheme();
+  const { formatPrice, currencies } = useCurrency();
+
+  // Withdrawals are always in RWF — convert USD balance to RWF
+  const rwfRate = currencies.find(c => c.code === 'RWF')?.rate || 1460;
+  const availableBalanceRwf = Math.floor(availableBalance * rwfRate);
   const router = useRouter();
   const [withdrawAmount, setWithdrawAmount] = useState<string>('');
   const [selectedAccount, setSelectedAccount] = useState<string>('');
+  const [donationAmount, setDonationAmount] = useState<string>('');
+  const [customDonation, setCustomDonation] = useState<string>('');
+  const [donationSkipped, setDonationSkipped] = useState<boolean>(false);
+  const [showCustomInput, setShowCustomInput] = useState<boolean>(false);
+  const [accounts, setAccounts] = useState<WithdrawAccount[]>([]);
+  const [accountsLoading, setAccountsLoading] = useState<boolean>(false);
+  const [withdrawableSources, setWithdrawableSources] = useState<{
+    balance: number;
+    tips: number;
+    bonus: number;
+    gifts: number;
+    streamFees: number;
+    total: number;
+  } | null>(null);
+  const [selectedSource, setSelectedSource] = useState<'balance' | 'tips' | 'bonus' | 'gifts' | 'streamFees'>('balance');
 
-  const accounts: WithdrawAccount[] = [
-    { id: 'mtn', type: 'mtn', label: 'MTN Mobile Money', accountNumber: '0789 XXX 980', accountName: 'John Doe', color: '#F59E0B' },
-    { id: 'airtel', type: 'airtel', label: 'Airtel Money', accountNumber: '0738 XXX 456', accountName: 'John Doe', color: '#ED1C24' },
-    { id: 'bank', type: 'bank', label: 'Bank of Kigali', accountNumber: '0012 XXXX 4532', accountName: 'John Doe', color: '#3B82F6' },
-    { id: 'visa', type: 'card', label: 'Visa Debit Card', accountNumber: '**** **** **** 4187', accountName: 'John Doe', color: '#8B5CF6' }
-  ];
+  // XentriPay withdrawal states
+  const [withdrawStep, setWithdrawStep] = useState<'form' | 'processing' | 'success' | 'failed'>('form');
+  const [withdrawError, setWithdrawError] = useState<string>('');
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
 
-  const handleWithdraw = () => {
-    console.log('Withdrawing:', withdrawAmount, 'to account:', selectedAccount);
-    onClose();
+  const displayName = userName || 'Account Holder';
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setAccountsLoading(true);
+    const apiUrl = getApiUrl();
+
+    // Fetch withdrawal methods
+    dashboardAuthFetch(`${apiUrl}/api/remote/photographer/withdrawal-methods`)
+      .then(res => res.json())
+      .then(result => {
+        const methods = result?.data || [];
+        const loaded: WithdrawAccount[] = methods.map((m: any) => {
+          const methodType = (m.methodType || '').toUpperCase();
+          const bankName = (m.bankName || '').toLowerCase();
+          const isAirtel = bankName.includes('airtel');
+          const type: WithdrawAccount['type'] = methodType === 'BANK_TRANSFER' ? 'bank'
+            : isAirtel ? 'airtel' : 'mtn';
+          return {
+            id: m.id as string,
+            type,
+            label: methodType === 'BANK_TRANSFER' ? (m.bankName || 'Bank Transfer') : (m.bankName || (isAirtel ? 'Airtel Money' : 'MTN Mobile Money')),
+            accountNumber: m.accountNumber as string,
+            accountName: m.accountName as string,
+            color: type === 'bank' ? '#3B82F6' : type === 'airtel' ? '#ED1C24' : '#F59E0B',
+          };
+        });
+        setAccounts(loaded);
+        const defaultMethod = methods.find((m: any) => m.isDefault);
+        if (defaultMethod) {
+          setSelectedAccount(defaultMethod.id);
+        } else if (loaded.length > 0) {
+          setSelectedAccount(loaded[0].id);
+        }
+      })
+      .catch(() => setAccounts([]))
+      .finally(() => setAccountsLoading(false));
+
+    // Fetch withdrawable sources
+    dashboardAuthFetch(`${apiUrl}/api/remote/photographer/withdrawable-sources`)
+      .then(res => res.json())
+      .then(result => {
+        if (result.action === 1 && result.data) {
+          setWithdrawableSources(result.data);
+        }
+      })
+      .catch(err => console.error('Failed to fetch withdrawable sources:', err));
+  }, [isOpen]);
+
+  const donationValue = donationAmount === 'custom' ? (parseFloat(customDonation) || 0) : (parseFloat(donationAmount) || 0);
+  const donationAddressed = donationSkipped || donationValue > 0;
+
+  const selectedSourceAmount = withdrawableSources?.[selectedSource] || 0;
+  const selectedSourceAmountRwf = Math.floor(selectedSourceAmount * rwfRate);
+
+  const parsedWithdrawAmount = parseFloat(withdrawAmount) || 0;
+  const amountError = withdrawAmount !== '' && parsedWithdrawAmount <= 0
+    ? 'Please enter a withdrawal amount greater than zero.'
+    : parsedWithdrawAmount > selectedSourceAmountRwf
+      ? `Insufficient ${selectedSource} balance. Available: RF ${selectedSourceAmountRwf.toLocaleString()}`
+      : '';
+  const isWithdrawValid = parsedWithdrawAmount > 0 && parsedWithdrawAmount <= selectedSourceAmountRwf;
+
+  const handleSelectDonation = (amount: string) => {
+    setDonationSkipped(false);
+    if (amount === 'custom') {
+      setDonationAmount('custom');
+      setShowCustomInput(true);
+    } else {
+      setDonationAmount(amount);
+      setShowCustomInput(false);
+      setCustomDonation('');
+    }
+  };
+
+  const handleSkipDonation = () => {
+    setDonationSkipped(true);
+    setDonationAmount('');
+    setCustomDonation('');
+    setShowCustomInput(false);
+  };
+
+  const handleWithdraw = async () => {
+    const amount = parseFloat(withdrawAmount) || 0;
+    const donation = donationAmount === 'custom' ? (parseFloat(customDonation) || 0) : (parseFloat(donationAmount) || 0);
+
+    setIsWithdrawing(true);
+    setWithdrawError('');
+    setWithdrawStep('processing');
+
+    try {
+      // Step 1: Create the PhotographerTransaction record
+      const apiUrl = getApiUrl();
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/withdraw`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount,
+          withdrawalMethodId: selectedAccount,
+          donationAmount: donation,
+          source: selectedSource.toUpperCase()
+        }),
+      });
+
+      const result = await res.json();
+
+      if (!res.ok || result.action === 0) {
+        setWithdrawError(sanitizeErrorMessage(result.message, 'Failed to create withdrawal request. Please try again.'));
+        setWithdrawStep('failed');
+        setIsWithdrawing(false);
+        return;
+      }
+
+      // Step 2: Process payout via XentriPay
+      const transactionId = result.data?.id || result.data?.transactionId;
+      if (!transactionId) {
+        // Withdrawal record created but no transaction ID returned — still a success for the ledger
+        setWithdrawStep('success');
+        setIsWithdrawing(false);
+        return;
+      }
+
+      const payoutResult = await processWithdrawal(String(transactionId));
+
+      if (payoutResult.success) {
+        setWithdrawStep('success');
+      } else {
+        setWithdrawError(payoutResult.error || 'Failed to process withdrawal. Please try again.');
+        setWithdrawStep('failed');
+      }
+    } catch (err) {
+      setWithdrawError(sanitizeErrorMessage(err instanceof Error ? err.message : '', 'Withdrawal failed. Please try again.'));
+      setWithdrawStep('failed');
+    } finally {
+      setIsWithdrawing(false);
+    }
+  };
+
+  const handleWithdrawClose = () => {
+    setWithdrawStep('form');
+    setWithdrawError('');
     setWithdrawAmount('');
     setSelectedAccount('');
+    setDonationAmount('');
+    setCustomDonation('');
+    setDonationSkipped(false);
+    setShowCustomInput(false);
+    setIsWithdrawing(false);
+    onClose();
   };
 
   const getAccountImage = (type: string) => {
@@ -565,16 +728,65 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
         return '/mtn.png';
       case 'airtel':
         return '/airtel.png';
-      case 'bank':
-        return '/bank.png';
-      case 'card':
-        return '/cards.png';
       default:
-        return '/cards.png';
+        return null;
     }
   };
 
   if (!isOpen) return null;
+
+  // Withdrawal Processing View
+  if (withdrawStep === 'processing') {
+    return (
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+        <div style={{ backgroundColor: colors.bgCard, borderRadius: '1rem', width: '450px', maxWidth: '95vw', padding: '2rem', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ width: '64px', height: '64px', margin: '0 auto 1.5rem', border: '4px solid rgba(8, 58, 133, 0.2)', borderTopColor: '#083A85', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          <h4 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>Processing Withdrawal</h4>
+          <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1rem', lineHeight: '1.5' }}>
+            Your withdrawal of RF {(parseFloat(withdrawAmount) || 0).toLocaleString()} is being processed. This may take a moment...
+          </p>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      </div>
+    );
+  }
+
+  // Withdrawal Success View
+  if (withdrawStep === 'success') {
+    return (
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+        <div style={{ backgroundColor: colors.bgCard, borderRadius: '1rem', width: '450px', maxWidth: '95vw', padding: '2rem', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ width: '64px', height: '64px', margin: '0 auto 1.5rem', borderRadius: '50%', backgroundColor: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17L4 12" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </div>
+          <h4 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>Withdrawal Submitted!</h4>
+          <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1.5rem' }}>
+            Your withdrawal of RF {(parseFloat(withdrawAmount) || 0).toLocaleString()} has been submitted and is being processed to your account.
+          </p>
+          <button onClick={() => { handleWithdrawClose(); window.location.reload(); }} style={{ padding: '0.75rem 2rem', border: '2px solid #062a63', borderRadius: '0.5rem', background: '#083A85', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Done</button>
+        </div>
+      </div>
+    );
+  }
+
+  // Withdrawal Failed View
+  if (withdrawStep === 'failed') {
+    return (
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+        <div style={{ backgroundColor: colors.bgCard, borderRadius: '1rem', width: '450px', maxWidth: '95vw', padding: '2rem', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ width: '64px', height: '64px', margin: '0 auto 1.5rem', borderRadius: '50%', backgroundColor: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </div>
+          <h4 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>Withdrawal Failed</h4>
+          <p style={{ fontSize: '0.9rem', color: '#EF4444', margin: '0 0 1.5rem' }}>{withdrawError || 'Something went wrong. Please try again.'}</p>
+          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+            <button onClick={handleWithdrawClose} style={{ padding: '0.75rem 1.5rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Close</button>
+            <button onClick={() => { setWithdrawStep('form'); setWithdrawError(''); }} style={{ padding: '0.75rem 1.5rem', border: '2px solid #c00a72', borderRadius: '0.5rem', background: '#F20C8F', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Try Again</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{
@@ -588,11 +800,12 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 1000,
-    }} onClick={onClose}>
+    }} onClick={handleWithdrawClose}>
       <div className="mobile-modal" style={{
         backgroundColor: colors.bgCard,
         borderRadius: '1rem',
-        width: '420px',
+        width: '520px',
+        maxWidth: '95vw',
         maxHeight: '90vh',
         overflowY: 'auto',
         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
@@ -611,7 +824,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
             <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0.25rem 0 0 0' }}>Transfer earnings to your account</p>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleWithdrawClose}
             style={{
               background: colors.bgTertiary,
               border: `2px solid ${colors.borderPrimary}`,
@@ -661,10 +874,10 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
 
             <div style={{ position: 'relative', zIndex: 1 }}>
               <div className="mobile-balance-display-text" style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.8)', marginBottom: '0.5rem', fontWeight: '500' }}>
-                Available Balance
+                Available Balance (RWF)
               </div>
               <div className="mobile-balance-display-amount" style={{ fontSize: '2rem', fontWeight: '700', color: 'white', letterSpacing: '-0.02em' }}>
-                ${availableBalance.toLocaleString()}.00
+                RF {availableBalanceRwf.toLocaleString()}
               </div>
             </div>
           </div>
@@ -689,7 +902,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
                 fontSize: '1.1rem',
                 fontWeight: '600',
                 color: colors.textSecondary
-              }}>$</span>
+              }}>RF</span>
               <input
                 type="text"
                 placeholder="0.00"
@@ -697,7 +910,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
                 onChange={(e) => setWithdrawAmount(e.target.value)}
                 style={{
                   width: '100%',
-                  padding: '0.875rem 1rem 0.875rem 2rem',
+                  padding: '0.875rem 1rem 0.875rem 2.5rem',
                   border: '2px solid #E5E7EB',
                   borderRadius: '0.75rem',
                   fontSize: '1.1rem',
@@ -719,13 +932,13 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
             </div>
             {/* Quick amount buttons */}
             <div className="mobile-quick-amounts" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', marginTop: '0.75rem' }}>
-              {['100', '250', '500', '1000'].map((amount) => (
+              {['5000', '10000', '25000', '50000'].map((amount) => (
                 <button
                   key={amount}
                   onClick={() => setWithdrawAmount(amount)}
                   style={{
                     padding: '0.5rem',
-                    border: withdrawAmount === amount ? '2px solid #083A85' : `1px solid ${colors.borderPrimary}`,
+                    border: withdrawAmount === amount ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
                     borderRadius: '0.5rem',
                     background: withdrawAmount === amount ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
                     color: withdrawAmount === amount ? '#083A85' : colors.textSecondary,
@@ -735,9 +948,93 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
                     transition: 'all 0.2s'
                   }}
                 >
-                  ${amount}
+                  RF {parseInt(amount).toLocaleString()}
                 </button>
               ))}
+            </div>
+            {amountError && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                marginTop: '0.5rem',
+                padding: '0.5rem 0.75rem',
+                backgroundColor: actualTheme === 'dark' ? 'rgba(239,68,68,0.1)' : '#FEF2F2',
+                border: '1px solid',
+                borderColor: actualTheme === 'dark' ? 'rgba(239,68,68,0.3)' : '#FECACA',
+                borderRadius: '0.5rem',
+                fontSize: '0.8rem',
+                color: actualTheme === 'dark' ? '#F87171' : '#DC2626',
+                fontWeight: '500'
+              }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                  <path d="M12 8V12M12 16H12.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+                {amountError}
+              </div>
+            )}
+          </div>
+
+          {/* Withdrawal Source Selection */}
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label style={{
+              display: 'block',
+              marginBottom: '0.75rem',
+              fontSize: '0.875rem',
+              fontWeight: '600',
+              color: colors.textPrimary
+            }}>
+              Withdraw From
+            </label>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+              gap: '0.75rem'
+            }}>
+              {[
+                { key: 'balance', label: 'Balance', amount: withdrawableSources?.balance || 0 },
+                { key: 'tips', label: 'Tips', amount: withdrawableSources?.tips || 0 },
+                { key: 'bonus', label: 'Bonus', amount: withdrawableSources?.bonus || 0 },
+                { key: 'gifts', label: 'Gifts', amount: withdrawableSources?.gifts || 0 },
+                { key: 'streamFees', label: 'Stream Fees', amount: withdrawableSources?.streamFees || 0 },
+              ].map(source => {
+                const isSelected = selectedSource === source.key;
+                const isDisabled = source.amount <= 0;
+                return (
+                  <button
+                    key={source.key}
+                    onClick={() => !isDisabled && setSelectedSource(source.key as any)}
+                    disabled={isDisabled}
+                    style={{
+                      padding: '0.75rem',
+                      border: isSelected ? `2px solid #083A85` : `1px solid ${colors.borderPrimary}`,
+                      borderRadius: '0.5rem',
+                      background: isDisabled ? colors.bgTertiary : isSelected ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
+                      opacity: isDisabled ? 0.5 : 1,
+                      cursor: isDisabled ? 'not-allowed' : 'pointer',
+                      textAlign: 'left',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    <div style={{
+                      fontSize: '0.75rem',
+                      color: colors.textSecondary,
+                      marginBottom: '0.25rem',
+                      fontWeight: '500',
+                    }}>
+                      {source.label}
+                    </div>
+                    <div style={{
+                      fontSize: '0.9rem',
+                      fontWeight: '600',
+                      color: isDisabled ? colors.textSecondary : colors.textPrimary
+                    }}>
+                      RF {Math.floor(source.amount * rwfRate).toLocaleString()}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -750,9 +1047,24 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
               color: '#374151',
               marginBottom: '0.75rem'
             }}>
-              Withdraw To
+              Payment Account
             </label>
             <div className="mobile-account-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+              {accountsLoading ? (
+                <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: 0, textAlign: 'center', padding: '1rem 0' }}>
+                  Loading accounts…
+                </p>
+              ) : accounts.length === 0 ? (
+                <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: 0, textAlign: 'center', padding: '1rem 0' }}>
+                  No withdrawal accounts saved.{' '}
+                  <span
+                    onClick={() => router.push('/user/photographer/preferences?tab=payments')}
+                    style={{ color: colors.brandPrimary, fontWeight: '500', cursor: 'pointer', textDecoration: 'underline' }}
+                  >
+                    Add one in Preferences → Payments
+                  </span>
+                </p>
+              ) : null}
               {accounts.map((account) => (
                 <div
                   key={account.id}
@@ -776,16 +1088,28 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
                     height: '48px',
                     borderRadius: '0.5rem',
                     overflow: 'hidden',
-                    flexShrink: 0
+                    flexShrink: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '2px'
                   }}>
-                    <Image
-                      src={getAccountImage(account.type)}
-                      alt={account.label}
-                      width={48}
-                      height={48}
-                      unoptimized
-                      style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                    />
+                    {account.type === 'bank' ? (
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 21H21M3 10H21M5 6L12 3L19 6M4 10V21M20 10V21M8 14V17M12 14V17M16 14V17" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    ) : getAccountImage(account.type) ? (
+                      <Image
+                        src={getAccountImage(account.type)!}
+                        alt={account.label}
+                        width={48}
+                        height={48}
+                        unoptimized
+                        style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                      />
+                    ) : (
+                      <MobileMoneyIcon />
+                    )}
                   </div>
 
                   {/* Account Info */}
@@ -830,24 +1154,195 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
             </div>
           </div>
 
-          {/* Info text about withdrawal accounts */}
+          {/* Info text about payment accounts */}
           <p className="mobile-info-text" style={{
-            fontSize: '0.8rem',
+            fontSize: '0.86rem',
             color: colors.textSecondary,
             margin: '0.75rem 0 1.25rem 0',
             textAlign: 'center'
           }}>
             <i className="bi bi-info-circle" style={{ marginRight: '0.375rem' }}></i>
-            Manage your withdrawal accounts in <span
-              onClick={() => router.push(`/user/${userType}/preferences?tab=payments`)}
+            Manage your payment accounts in <span
+              onClick={() => router.push('/user/photographer/preferences?tab=payments')}
               style={{ color: colors.brandPrimary, fontWeight: '500', cursor: 'pointer', textDecoration: 'underline' }}
-            >Preferences → Withdrawal Accounts</span>
+            >Preferences → Payment Accounts</span>
           </p>
+
+          {/* Donation Section */}
+          <div style={{
+            marginBottom: '1.25rem',
+            padding: '1rem',
+            borderRadius: '0.75rem',
+            border: `2px solid ${donationSkipped ? colors.borderPrimary : (donationValue > 0 ? '#F20C8F' : 'rgba(242, 12, 143, 0.3)')}`,
+            background: actualTheme === 'dark'
+              ? 'linear-gradient(135deg, rgba(242, 12, 143, 0.08) 0%, rgba(255, 107, 157, 0.03) 100%)'
+              : 'linear-gradient(135deg, rgba(242, 12, 143, 0.05) 0%, rgba(255, 107, 157, 0.02) 100%)',
+            transition: 'all 0.2s'
+          }}>
+            {/* Header */}
+            <div style={{ marginBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <HeartIcon />
+                <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>
+                  Support a Cause
+                </span>
+                <span style={{ fontSize: '0.81rem', color: colors.textSecondary, marginLeft: 'auto' }}>Optional</span>
+              </div>
+              <p style={{ fontSize: '0.84rem', color: colors.textSecondary, margin: '0.35rem 0 0 0', lineHeight: '1.4' }}>
+                Add a small donation to help fund community projects and initiatives
+              </p>
+            </div>
+
+            {!donationSkipped && (
+              <>
+                {/* Quick Amount Buttons */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                  {['500', '1000', '2500', '5000'].map((amount) => (
+                    <button
+                      key={amount}
+                      onClick={() => handleSelectDonation(amount)}
+                      style={{
+                        padding: '0.4rem 0.75rem',
+                        border: donationAmount === amount ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`,
+                        borderRadius: '0.5rem',
+                        background: donationAmount === amount
+                          ? (actualTheme === 'dark' ? 'rgba(242, 12, 143, 0.15)' : 'rgba(242, 12, 143, 0.08)')
+                          : colors.bgCard,
+                        color: donationAmount === amount ? '#F20C8F' : colors.textSecondary,
+                        fontSize: '0.8rem',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        flex: '1',
+                        minWidth: '0'
+                      }}
+                    >
+                      RF {parseInt(amount).toLocaleString()}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => handleSelectDonation('custom')}
+                    style={{
+                      padding: '0.4rem 0.75rem',
+                      border: donationAmount === 'custom' ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`,
+                      borderRadius: '0.5rem',
+                      background: donationAmount === 'custom'
+                        ? (actualTheme === 'dark' ? 'rgba(242, 12, 143, 0.15)' : 'rgba(242, 12, 143, 0.08)')
+                        : colors.bgCard,
+                      color: donationAmount === 'custom' ? '#F20C8F' : colors.textSecondary,
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      flex: '1',
+                      minWidth: '0'
+                    }}
+                  >
+                    Custom
+                  </button>
+                </div>
+
+                {/* Custom Amount Input */}
+                {showCustomInput && (
+                  <div style={{ position: 'relative', marginBottom: '0.75rem' }}>
+                    <span style={{
+                      position: 'absolute',
+                      left: '0.75rem',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      fontSize: '0.9rem',
+                      fontWeight: '600',
+                      color: colors.textSecondary
+                    }}>$</span>
+                    <input
+                      type="number"
+                      placeholder="Enter amount"
+                      value={customDonation}
+                      onChange={(e) => setCustomDonation(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.6rem 0.75rem 0.6rem 1.75rem',
+                        border: `2px solid ${customDonation ? '#F20C8F' : colors.borderPrimary}`,
+                        borderRadius: '0.5rem',
+                        fontSize: '0.85rem',
+                        color: colors.textPrimary,
+                        backgroundColor: colors.bgCard,
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                        transition: 'border-color 0.2s'
+                      }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = '#F20C8F';
+                        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(242, 12, 143, 0.1)';
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = customDonation ? '#F20C8F' : colors.borderPrimary;
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                    />
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* No Thanks Button */}
+            <button
+              onClick={handleSkipDonation}
+              style={{
+                width: '100%',
+                padding: '0.5rem 1rem',
+                borderRadius: '9999px',
+                border: donationSkipped ? '2px solid #F20C8F' : '2px solid #6B7280',
+                background: donationSkipped ? '#F20C8F' : colors.bgTertiary,
+                color: donationSkipped ? 'white' : '#374151',
+                fontSize: '0.875rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                textAlign: 'center'
+              }}
+            >
+              {donationSkipped ? '✓ Donation skipped' : 'No thanks, skip donation'}
+            </button>
+
+            {/* Donations Page Link */}
+            <div style={{ marginTop: '0.5rem' }}>
+              <a
+                href={`${process.env.NEXT_PUBLIC_LANDING_URL as string}/user/donations`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  router.push('/user/donations');
+                }}
+                style={{
+                  fontSize: '0.81rem',
+                  color: '#F20C8F',
+                  textDecoration: 'none',
+                  fontWeight: '500'
+                }}
+              >
+                Learn more about our donation program →
+              </a>
+            </div>
+          </div>
+
+          {/* Validation Message */}
+          {!donationAddressed && (
+            <p style={{
+              fontSize: '0.86rem',
+              color: '#F20C8F',
+              margin: '0 0 0.75rem 0',
+              textAlign: 'center',
+              fontWeight: '500'
+            }}>
+              Please select a donation amount or skip to continue
+            </p>
+          )}
 
           {/* Actions */}
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
             <button
-              onClick={onClose}
+              onClick={handleWithdrawClose}
+              disabled={isWithdrawing}
               style={{
                 flex: 1,
                 padding: '0.875rem 1rem',
@@ -857,27 +1352,28 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
                 color: colors.textPrimary,
                 fontSize: '0.9rem',
                 fontWeight: '600',
-                cursor: 'pointer',
+                cursor: isWithdrawing ? 'not-allowed' : 'pointer',
+                opacity: isWithdrawing ? 0.6 : 1,
                 transition: 'all 0.2s'
               }}
-              onMouseEnter={(e) => e.currentTarget.style.background = colors.borderPrimary}
+              onMouseEnter={(e) => { if (!isWithdrawing) e.currentTarget.style.background = colors.borderPrimary; }}
               onMouseLeave={(e) => e.currentTarget.style.background = colors.bgTertiary}
             >
               Cancel
             </button>
             <button
               onClick={handleWithdraw}
-              disabled={!withdrawAmount || !selectedAccount}
+              disabled={!isWithdrawValid || !selectedAccount || !donationAddressed || accounts.length === 0 || isWithdrawing}
               style={{
                 flex: 1,
                 padding: '0.875rem 1rem',
-                border: !withdrawAmount || !selectedAccount ? '2px solid #9CA3AF' : '2px solid #062a63',
+                border: !isWithdrawValid || !selectedAccount || !donationAddressed || accounts.length === 0 || isWithdrawing ? '2px solid #9CA3AF' : '2px solid #062a63',
                 borderRadius: '0.75rem',
-                background: !withdrawAmount || !selectedAccount ? '#9CA3AF' : '#083A85',
+                background: !isWithdrawValid || !selectedAccount || !donationAddressed || accounts.length === 0 || isWithdrawing ? '#9CA3AF' : '#083A85',
                 color: 'white',
                 fontSize: '0.9rem',
                 fontWeight: '600',
-                cursor: !withdrawAmount || !selectedAccount ? 'not-allowed' : 'pointer',
+                cursor: !isWithdrawValid || !selectedAccount || !donationAddressed || accounts.length === 0 || isWithdrawing ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -886,7 +1382,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
               }}
             >
               <WithdrawIcon />
-              Withdraw Funds
+              {isWithdrawing ? 'Processing...' : 'Withdraw Funds'}
             </button>
           </div>
         </div>
@@ -931,9 +1427,22 @@ interface EarningsChartProps {
 
 const EarningsChart: React.FC<EarningsChartProps> = ({ data, height = 140, chartType }) => {
   const { colors } = useTheme();
+  const { formatPrice } = useCurrency();
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const maxValue = Math.max(...data.map(d => d.value));
-  const minValue = Math.min(...data.map(d => d.value));
+
+  // Filter out invalid entries and handle empty/insufficient data
+  const safeData = (data || []).filter(d => d && typeof d.value === 'number');
+
+  if (safeData.length === 0) {
+    return (
+      <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.textSecondary, fontSize: '0.85rem' }}>
+        No earnings data available
+      </div>
+    );
+  }
+
+  const maxValue = Math.max(...safeData.map(d => d.value));
+  const minValue = Math.min(...safeData.map(d => d.value));
   const range = maxValue - minValue || 1;
   const paddingTop = 20;
   const paddingBottom = 30;
@@ -942,28 +1451,31 @@ const EarningsChart: React.FC<EarningsChartProps> = ({ data, height = 140, chart
   const chartHeight = height - paddingTop - paddingBottom;
   const chartWidth = 500;
   const barWidth = 35;
-  const barGap = (chartWidth - paddingLeft - paddingRight - (data.length * barWidth)) / (data.length - 1);
+  const divisor = safeData.length > 1 ? safeData.length - 1 : 1;
+  const barGap = (chartWidth - paddingLeft - paddingRight - (safeData.length * barWidth)) / divisor;
 
-  const points = data.map((item, index) => {
+  const points = safeData.map((item, index) => {
     const x = chartType === 'bar'
       ? paddingLeft + index * (barWidth + barGap) + barWidth / 2
-      : paddingLeft + (index / (data.length - 1)) * (chartWidth - paddingLeft - paddingRight);
+      : paddingLeft + (index / divisor) * (chartWidth - paddingLeft - paddingRight);
     const y = paddingTop + chartHeight - ((item.value - minValue) / range) * chartHeight;
     return { x, y, ...item };
   });
 
   // Create smooth bezier curve for line chart
-  const pathD = points.map((point, index) => {
+  const pathD = points.length > 0 ? points.map((point, index) => {
     if (index === 0) return `M ${point.x} ${point.y}`;
     const prev = points[index - 1];
     const tension = 0.3;
     const cpx1 = prev.x + (point.x - prev.x) * tension;
     const cpx2 = point.x - (point.x - prev.x) * tension;
     return `C ${cpx1} ${prev.y} ${cpx2} ${point.y} ${point.x} ${point.y}`;
-  }).join(' ');
+  }).join(' ') : '';
 
   // Area path for line chart
-  const areaPath = `${pathD} L ${points[points.length - 1].x} ${height - paddingBottom} L ${points[0].x} ${height - paddingBottom} Z`;
+  const areaPath = points.length > 0
+    ? `${pathD} L ${points[points.length - 1].x} ${height - paddingBottom} L ${points[0].x} ${height - paddingBottom} Z`
+    : '';
 
   const renderChart = () => {
     switch (chartType) {
@@ -1117,7 +1629,7 @@ const EarningsChart: React.FC<EarningsChartProps> = ({ data, height = 140, chart
         </svg>
 
         {/* Tooltip */}
-        {hoveredIndex !== null && (
+        {hoveredIndex !== null && points[hoveredIndex] && (
           <div style={{
             position: 'absolute',
             left: `${(points[hoveredIndex].x / chartWidth) * 100}%`,
@@ -1148,7 +1660,7 @@ const EarningsChart: React.FC<EarningsChartProps> = ({ data, height = 140, chart
               </div>
               <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Earnings</span>
               <span style={{ fontSize: '0.95rem', fontWeight: '700', color: colors.textPrimary }}>
-                ${points[hoveredIndex].value.toLocaleString()}
+                {formatPrice(points[hoveredIndex].value)}
               </span>
             </div>
           </div>
@@ -1164,7 +1676,7 @@ const EarningsChart: React.FC<EarningsChartProps> = ({ data, height = 140, chart
           justifyContent: 'space-between',
           padding: '0 5px'
         }}>
-          {data.map((item, index) => (
+          {safeData.map((item, index) => (
             <span key={index} style={{
               fontSize: '0.75rem',
               color: '#9CA3AF',
@@ -1189,8 +1701,8 @@ interface EarningsGaugeProps {
 
 const EarningsGauge: React.FC<EarningsGaugeProps> = ({ completed, pending, withdrawn }) => {
   const total = completed + pending + withdrawn;
-  const completedAngle = (completed / total) * 180;
-  const pendingAngle = (pending / total) * 180;
+  const completedAngle = total > 0 ? (completed / total) * 180 : 60;
+  const pendingAngle = total > 0 ? (pending / total) * 180 : 60;
 
   const createArc = (startAngle: number, endAngle: number, color: string) => {
     const radius = 70;
@@ -1198,10 +1710,10 @@ const EarningsGauge: React.FC<EarningsGaugeProps> = ({ completed, pending, withd
     const centerY = 80;
     const startRad = (180 + startAngle) * (Math.PI / 180);
     const endRad = (180 + endAngle) * (Math.PI / 180);
-    const x1 = centerX + radius * Math.cos(startRad);
-    const y1 = centerY + radius * Math.sin(startRad);
-    const x2 = centerX + radius * Math.cos(endRad);
-    const y2 = centerY + radius * Math.sin(endRad);
+    const x1 = Math.round((centerX + radius * Math.cos(startRad)) * 100) / 100;
+    const y1 = Math.round((centerY + radius * Math.sin(startRad)) * 100) / 100;
+    const x2 = Math.round((centerX + radius * Math.cos(endRad)) * 100) / 100;
+    const y2 = Math.round((centerY + radius * Math.sin(endRad)) * 100) / 100;
     const largeArc = endAngle - startAngle > 180 ? 1 : 0;
 
     return (
@@ -1273,24 +1785,36 @@ const ServiceTypeBadge: React.FC<ServiceTypeBadgeProps> = ({ type }) => {
   );
 };
 
-interface TransactionsPageProps {
-  userType?: 'photographer' | 'freelancer';
-}
-
-const TransactionsPage = ({ userType = 'photographer' }: TransactionsPageProps) => {
+const TransactionsPage = () => {
   const { colors, actualTheme } = useTheme();
+  const { formatPrice } = useCurrency();
+  const { user } = useDashboardAuth();
+  const router = useRouter();
   const [activeTimeFilter, setActiveTimeFilter] = useState<'1W' | '1M' | '3M' | '6M' | '1Y'>('1W');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
   const [chartType, setChartType] = useState<ChartType>('line');
   const [showReportModal, setShowReportModal] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
-  const [showWithdrawDonatePromptModal, setShowWithdrawDonatePromptModal] = useState(false);
-  const [showWithdrawDonateModal, setShowWithdrawDonateModal] = useState(false);
+  const [showSetupModal, setShowSetupModal] = useState(false);
+  const [hasPaymentAccount, setHasPaymentAccount] = useState<boolean | null>(null);
   const [showTipsModal, setShowTipsModal] = useState(false);
-  const [showTipsDonateModal, setShowTipsDonateModal] = useState(false);
-  const [showTipsDonatePromptModal, setShowTipsDonatePromptModal] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [balance, setBalance] = useState<any>(null);
+  const [analytics, setAnalytics] = useState<any>(null);
+
+  useEffect(() => {
+    const apiUrl = getApiUrl();
+    dashboardAuthFetch(`${apiUrl}/api/remote/photographer/withdrawal-methods`)
+      .then(res => res.json())
+      .then(result => {
+        const methods = result?.data || [];
+        setHasPaymentAccount(methods.length > 0);
+      })
+      .catch(() => setHasPaymentAccount(null));
+  }, []);
 
   const handleViewTransaction = (transaction: Transaction) => {
     setSelectedTransaction(transaction);
@@ -1312,7 +1836,7 @@ Client: ${transaction.clientName}
 Service: ${transaction.service}
 Payment Method: ${transaction.method}
 
-Amount: ${transaction.amount}
+Amount: ${formatPrice(transaction.amountNum)}
 
 =====================================
     Thank you for using Connekt
@@ -1327,51 +1851,140 @@ Amount: ${transaction.amount}
     URL.revokeObjectURL(url);
   };
 
-  const earningsData = [
-    { date: 'Nov 13', value: 650 },
-    { date: 'Nov 14', value: 480 },
-    { date: 'Nov 15', value: 720 },
-    { date: 'Nov 16', value: 550 },
-    { date: 'Nov 17', value: 380 },
-    { date: 'Nov 18', value: 620 },
-    { date: 'Nov 19', value: 450 }
-  ];
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [earningsData, setEarningsData] = useState<{ date: string; value: number }[]>([]);
+  const [tipsData, setTipsData] = useState<{ id: number; clientName: string; amount: number; date: string; eventName: string; message: string }[]>([]);
+  const [platformConfig, setPlatformConfig] = useState<PlatformConfig>(DEFAULT_CONFIG);
+  const [bonusStatus, setBonusStatus] = useState<{ status: string; amount?: number; currencyAbbreviation?: string; threshold?: number; completedEvents?: number; adminComment?: string }>({ status: 'NOT_ELIGIBLE' });
 
-  const transactions: Transaction[] = [
-    { id: 1, date: 'Nov, 20 14:05 PM', clientName: 'Sarah Johnson', clientImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', service: 'Wedding Photography', serviceType: 'Wedding', method: 'Credit Card', amount: '$450.0', amountNum: 450, status: 'completed', transactionId: '4****4492', requestId: 'AM26412' },
-    { id: 2, date: 'Nov, 18 10:30 AM', clientName: 'Michael Brown', clientImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', service: 'Birthday Party', serviceType: 'Birthday', method: 'Mobile Money', amount: '$300.0', amountNum: 300, status: 'pending', transactionId: '4****4493', requestId: 'AM26413' },
-    { id: 3, date: 'Nov, 25 09:00 AM', clientName: 'Emily Davis', clientImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', service: 'Corporate Event', serviceType: 'Corporate', method: '-', amount: '$500.0', amountNum: 500, status: 'in_progress', transactionId: '4****4494', requestId: 'AM26414' },
-    { id: 4, date: 'Sep, 15 16:00 PM', clientName: 'James Wilson', clientImage: 'https://i.pinimg.com/1200x/09/23/45/092345eac1919407e0c49f67e285b831.jpg', service: 'Portrait Session', serviceType: 'Portrait', method: 'Bank Transfer', amount: '$350.0', amountNum: 350, status: 'withdrawn', transactionId: '4****4495', requestId: 'AM26415' },
-    { id: 5, date: 'Nov, 25 14:00 PM', clientName: 'Lisa Anderson', clientImage: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg', service: 'Event Coverage', serviceType: 'Event', method: 'Credit Card', amount: '$200.0', amountNum: 200, status: 'initiated', transactionId: '4****4496', requestId: 'AM26416' },
-    { id: 6, date: 'Oct, 01 11:00 AM', clientName: 'Robert Taylor', clientImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', service: 'Corporate Headshots', serviceType: 'Corporate', method: 'Credit Card', amount: '$400.0', amountNum: 400, status: 'completed', transactionId: '4****4497', requestId: 'AM26417' },
-    { id: 7, date: 'Nov, 12 15:30 PM', clientName: 'Jennifer Martinez', clientImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg', service: 'Wedding Reception', serviceType: 'Wedding', method: 'Mobile Money', amount: '$250.0', amountNum: 250, status: 'completed', transactionId: '4****4498', requestId: 'AM26418' },
-    { id: 8, date: 'Nov, 28 10:00 AM', clientName: 'David Garcia', clientImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg', service: 'Birthday Party', serviceType: 'Birthday', method: '-', amount: '$350.0', amountNum: 350, status: 'pending', transactionId: '4****4499', requestId: 'AM26419' },
-  ];
+  function formatTxDate(dateStr: string): string {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const h = d.getHours();
+    return `${months[d.getMonth()]}, ${String(d.getDate()).padStart(2, '0')} ${String(h % 12 || 12).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+  }
 
-  // Calculate totals
+  function mapStatus(s: string): TransactionStatus {
+    if (!s) return 'initiated';
+    const u = s.toUpperCase();
+    if (u === 'COMPLETED' || u === 'SUCCESS') return 'completed';
+    if (u === 'PENDING') return 'pending';
+    if (u === 'IN_PROGRESS' || u === 'PROCESSING') return 'in_progress';
+    if (u === 'WITHDRAWN') return 'withdrawn';
+    return 'initiated';
+  }
+
+  const fetchData = useCallback(async (page: number = 0) => {
+    const apiUrl = getApiUrl();
+    try {
+      const [txRes, balRes, analyticsRes] = await Promise.allSettled([
+        dashboardAuthFetch(`${apiUrl}/api/remote/photographer/transactions?page=${page}&size=8`),
+        dashboardAuthFetch(`${apiUrl}/api/remote/photographer/balance`),
+        dashboardAuthFetch(`${apiUrl}/api/remote/photographer/analytics`),
+      ]);
+
+      if (txRes.status === 'fulfilled' && txRes.value.ok) {
+        const data = await txRes.value.json();
+        if (data.action === 1 && data.data) {
+          const content = Array.isArray(data.data) ? data.data : data.data.content || [];
+          const mapped: Transaction[] = content.map((t: any, i: number) => ({
+            id: t.id || i + 1,
+            date: formatTxDate(t.createdAt || t.date || ''),
+            clientName: t.clientName || t.customerName || t.photographerName || 'N/A',
+            clientImage: t.clientImage || t.customerImage || undefined,
+            service: t.service || t.description || t.eventTitle || t.paymentType || 'Payment',
+            serviceType: t.serviceType || t.eventType || t.paymentType || 'Service',
+            method: t.paymentMethod || t.method || '-',
+            amount: `$${t.amount || 0}`,
+            amountNum: t.amountInUsd ?? t.amount ?? 0,
+            status: mapStatus(t.status || ''),
+            transactionId: t.transactionId || t.reference || `${String(t.id).slice(0, 4)}****`,
+            requestId: t.requestId || t.reference || t.invoiceNumber || `AM${t.id || i}`,
+          }));
+          setTransactions(mapped);
+          if (data.data.totalPages) setTotalPages(data.data.totalPages);
+          if (data.data.number !== undefined) setCurrentPage(data.data.number);
+        }
+      }
+
+      if (balRes.status === 'fulfilled' && balRes.value.ok) {
+        const data = await balRes.value.json();
+        if (data.action === 1 && data.data) {
+          setBalance(data.data);
+          // Map tips from balance data if available
+          if (data.data.tips && Array.isArray(data.data.tips)) {
+            setTipsData(data.data.tips.map((t: any, i: number) => ({
+              id: t.id || i + 1,
+              clientName: t.clientName || t.customerName || 'Client',
+              amount: t.amount || 0,
+              date: t.date || t.createdAt || '',
+              eventName: t.eventName || t.description || 'Service',
+              message: t.message || '',
+            })));
+          }
+        }
+      }
+
+      if (analyticsRes.status === 'fulfilled' && analyticsRes.value.ok) {
+        const data = await analyticsRes.value.json();
+        if (data.action === 1 && data.data) {
+          setAnalytics(data.data);
+          // Map earnings chart data if available
+          if (data.data.earningsChart && Array.isArray(data.data.earningsChart)) {
+            setEarningsData(data.data.earningsChart.map((e: any) => ({
+              date: e.date || e.label || '',
+              value: e.value || e.amount || 0,
+            })));
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[Transactions] Error fetching:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData(0);
+  }, [fetchData]);
+
+  // Fetch platform config + bonus status
+  useEffect(() => {
+    fetchPlatformConfig().then(setPlatformConfig);
+    if (user) {
+      (async () => {
+        try {
+          const res = await dashboardAuthFetch(`${getApiUrl()}/api/remote/photographer/bonus-status`);
+          if (res.ok) {
+            const result = await res.json();
+            if (result.data) setBonusStatus(result.data);
+          }
+        } catch { /* ignore */ }
+      })();
+    }
+  }, [user]);
+
+  // Calculate totals from fetched transactions
   const totalCompleted = transactions.filter(t => t.status === 'completed').reduce((sum, t) => sum + t.amountNum, 0);
   const totalPending = transactions.filter(t => t.status === 'pending' || t.status === 'in_progress' || t.status === 'initiated').reduce((sum, t) => sum + t.amountNum, 0);
   const totalWithdrawn = transactions.filter(t => t.status === 'withdrawn').reduce((sum, t) => sum + t.amountNum, 0);
 
-  // Tips data (from clients/viewers)
-  const tipsData = [
-    { id: 1, clientName: 'Sarah Johnson', amount: 150, date: 'Nov 20, 2024', eventName: 'Wedding Photography', message: 'Amazing photos! Thank you!' },
-    { id: 2, clientName: 'Michael Brown', amount: 75, date: 'Nov 18, 2024', eventName: 'Birthday Party', message: 'Great work!' },
-    { id: 3, clientName: 'Emily Davis', amount: 50, date: 'Nov 15, 2024', eventName: 'Corporate Event', message: '' },
-  ];
-  const totalTips = tipsData.reduce((sum, t) => sum + t.amount, 0);
+  // Balance values from API
+  const totalTips = balance?.totalTips || tipsData.reduce((sum, t) => sum + t.amount, 0);
+  const completedEventsCount = analytics?.completedEvents || analytics?.totalCompletedEvents || 0;
+  const totalEventsAmount = analytics?.totalEarnings || totalCompleted + totalPending + totalWithdrawn;
+  const BONUS_THRESHOLD = bonusStatus.threshold || platformConfig.photographer.bonusThreshold;
+  const platformBonus = balance?.totalBonuses || bonusStatus.amount || 0;
+  const bonusApproved = bonusStatus.status === 'APPROVED';
+  const bonusPending = bonusStatus.status === 'PENDING_APPROVAL';
+  const bonusRejected = bonusStatus.status === 'REJECTED';
+  const bonusEarned = bonusApproved;
+  const bonusReached = completedEventsCount >= BONUS_THRESHOLD;
+  const eventsToBonus = Math.max(0, BONUS_THRESHOLD - completedEventsCount);
+  const availableBalance = balance?.withdrawableBalance ?? balance?.availableBalance ?? 0;
 
-  // Platform bonus data (10% for every 10 events completed)
-  const completedEventsCount = 27; // Total completed events
-  const totalEventsAmount = 7250; // Total amount from all completed events
-  const bonusEligibleSets = Math.floor(completedEventsCount / 10); // How many sets of 10 events
-  const platformBonus = 725; // Consistent bonus amount across all pages
-  const nextBonusAt = (bonusEligibleSets + 1) * 10;
-  const eventsToNextBonus = nextBonusAt - completedEventsCount;
-
-  const availableBalance = 4975; // Consistent balance amount across all pages
-
-  const totalPages = 5;
   const resultsPerPage = 8;
   const totalResults = transactions.length;
 
@@ -1645,7 +2258,7 @@ Amount: ${transaction.amount}
       `}</style>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar userRole={userType} tipsAmount={totalTips} bonusAmount={platformBonus} balanceAmount={availableBalance} />
+        <Topbar userRole="photographer" tipsAmount={totalTips} bonusAmount={platformBonus} balanceAmount={availableBalance} />
         <div className="mobile-main-content" style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
 
           {/* Header with Withdraw Button */}
@@ -1657,7 +2270,7 @@ Amount: ${transaction.amount}
               </p>
             </div>
             <button
-              onClick={() => setShowWithdrawDonatePromptModal(true)}
+              onClick={() => hasPaymentAccount === false ? setShowSetupModal(true) : setShowWithdrawModal(true)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -1686,21 +2299,21 @@ Amount: ${transaction.amount}
                 </div>
                 <div>
                   <div className="balance-label" style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Available to Withdraw</div>
-                  <div className="mobile-balance-amount" style={{ fontSize: '1.75rem', fontWeight: '700', color: colors.textPrimary }}>${availableBalance.toLocaleString()}</div>
+                  <div className="mobile-balance-amount" style={{ fontSize: '1.75rem', fontWeight: '700', color: colors.textPrimary }}>{formatPrice(availableBalance)}</div>
                 </div>
               </div>
               <div className="mobile-balance-stats" style={{ display: 'flex', gap: '2rem' }}>
                 <div>
                   <div className="stat-label" style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Previous Deposit</div>
-                  <div className="stat-value" style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>$450.00</div>
+                  <div className="stat-value" style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(balance?.lastDeposit || 0)}</div>
                 </div>
                 <div>
                   <div className="stat-label" style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Last Withdrawal</div>
-                  <div className="stat-value" style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>$1,345.00</div>
+                  <div className="stat-value" style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(balance?.lastWithdrawal || 0)}</div>
                 </div>
                 <div>
                   <div className="stat-label" style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Active Account</div>
-                  <div className="stat-value" style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>*****980</div>
+                  <div className="stat-value" style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>{balance?.activeAccount || '—'}</div>
                 </div>
               </div>
             </div>
@@ -1721,17 +2334,17 @@ Amount: ${transaction.amount}
                   <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: 0 }}>Appreciation from your clients</p>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>${totalTips.toLocaleString()}</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>{formatPrice(totalTips)}</div>
                   <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>{tipsData.length} tips received</div>
                 </div>
               </div>
 
               {/* Recent Tips List */}
-              <div style={{ borderTop: `1px solid ${colors.borderPrimary}`, paddingTop: '1rem' }}>
+              <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, paddingTop: '1rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                   <span style={{ fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary }}>Recent Tips</span>
                   <button
-                    onClick={() => setShowTipsDonatePromptModal(true)}
+                    onClick={() => setShowTipsModal(true)}
                     style={{ fontSize: '0.8rem', color: '#16A34A', fontWeight: '500', background: 'none', border: 'none', cursor: 'pointer' }}
                   >
                     View All
@@ -1762,36 +2375,57 @@ Amount: ${transaction.amount}
                     </div>
                     <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Platform Bonus</h3>
                   </div>
-                  <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: 0 }}>Earn 10% for every 10 events completed</p>
+                  <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: 0 }}>
+                    {bonusApproved ? 'Bonus earned for completing your first ' + BONUS_THRESHOLD + ' events!'
+                      : bonusPending ? 'Bonus pending admin approval'
+                      : bonusRejected ? 'Bonus request was not approved'
+                      : `Complete your first ${BONUS_THRESHOLD} events to earn ${formatPrice(platformConfig.photographer.bonusAmount)}`}
+                  </p>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>${platformBonus.toLocaleString()}</div>
-                  <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>{bonusEligibleSets} bonus{bonusEligibleSets !== 1 ? 'es' : ''} earned</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: bonusApproved ? '#16A34A' : bonusPending ? '#F59E0B' : bonusRejected ? '#DC2626' : colors.textSecondary }}>{bonusApproved ? formatPrice(platformBonus) : formatPrice(platformConfig.photographer.bonusAmount)}</div>
+                  <div style={{ fontSize: '0.75rem', color: bonusPending ? '#F59E0B' : bonusRejected ? '#DC2626' : colors.textSecondary }}>
+                    {bonusApproved ? 'Bonus earned' : bonusPending ? 'Pending approval' : bonusRejected ? 'Not approved' : 'Not yet earned'}
+                  </div>
                 </div>
               </div>
 
-              {/* Progress to Next Bonus */}
-              <div style={{ borderTop: `1px solid ${colors.borderPrimary}`, paddingTop: '1rem' }}>
+              {/* Progress to Bonus */}
+              <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, paddingTop: '1rem' }}>
+                {bonusRejected && bonusStatus.adminComment && (
+                  <div style={{ padding: '0.75rem', backgroundColor: actualTheme === 'dark' ? '#7F1D1D20' : '#FEF2F2', borderRadius: '0.375rem', border: `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}`, marginBottom: '0.75rem' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: '600', color: actualTheme === 'dark' ? '#FCA5A5' : '#991B1B', marginBottom: '0.2rem' }}>Admin Comment</div>
+                    <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{bonusStatus.adminComment}</div>
+                  </div>
+                )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary }}>Progress to Next Bonus</span>
-                  <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#16A34A' }}>{completedEventsCount % 10}/10 events</span>
+                  <span style={{ fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary }}>
+                    {bonusApproved ? 'Bonus Achieved' : bonusPending ? 'Pending Approval' : 'Progress to Bonus'}
+                  </span>
+                  <span style={{ fontSize: '0.8rem', fontWeight: '600', color: bonusApproved ? '#16A34A' : bonusPending ? '#F59E0B' : '#2563EB' }}>
+                    {Math.min(completedEventsCount, BONUS_THRESHOLD)}/{BONUS_THRESHOLD} events
+                  </span>
                 </div>
                 <div style={{ width: '100%', height: '8px', backgroundColor: colors.borderPrimary, borderRadius: '9999px', overflow: 'hidden', marginBottom: '0.75rem' }}>
-                  <div style={{ width: `${(completedEventsCount % 10) * 10}%`, height: '100%', backgroundColor: '#16A34A', borderRadius: '9999px', transition: 'width 0.3s ease' }} />
+                  <div style={{ width: `${Math.min(100, (completedEventsCount / BONUS_THRESHOLD) * 100)}%`, height: '100%', backgroundColor: bonusApproved ? '#16A34A' : bonusPending ? '#F59E0B' : '#2563EB', borderRadius: '9999px', transition: 'width 0.3s ease' }} />
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ padding: '0.5rem 0.75rem', backgroundColor: actualTheme === 'dark' ? '#14532D' : '#F0FDF4', borderRadius: '0.375rem', border: `1px solid ${actualTheme === 'dark' ? '#166534' : '#BBF7D0'}` }}>
                     <div style={{ fontSize: '0.7rem', color: actualTheme === 'dark' ? '#4ADE80' : '#166534', marginBottom: '0.125rem' }}>Completed Events</div>
                     <div style={{ fontSize: '1rem', fontWeight: '700', color: '#16A34A' }}>{completedEventsCount}</div>
                   </div>
-                  <div style={{ padding: '0.5rem 0.75rem', backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF', borderRadius: '0.375rem', border: `1px solid ${actualTheme === 'dark' ? '#1E40AF' : '#BFDBFE'}` }}>
-                    <div style={{ fontSize: '0.7rem', color: actualTheme === 'dark' ? '#60A5FA' : '#1E40AF', marginBottom: '0.125rem' }}>Events to Next Bonus</div>
-                    <div style={{ fontSize: '1rem', fontWeight: '700', color: '#2563EB' }}>{eventsToNextBonus}</div>
-                  </div>
-                  <div style={{ padding: '0.5rem 0.75rem', backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FEF3C7', borderRadius: '0.375rem', border: `1px solid ${actualTheme === 'dark' ? '#92400E' : '#FCD34D'}` }}>
-                    <div style={{ fontSize: '0.7rem', color: actualTheme === 'dark' ? '#FCD34D' : '#92400E', marginBottom: '0.125rem' }}>Next Bonus Amount</div>
-                    <div style={{ fontSize: '1rem', fontWeight: '700', color: '#F59E0B' }}>~${Math.round(totalEventsAmount * 0.10 / bonusEligibleSets || 0)}</div>
-                  </div>
+                  {!bonusReached && (
+                    <div style={{ padding: '0.5rem 0.75rem', backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF', borderRadius: '0.375rem', border: `1px solid ${actualTheme === 'dark' ? '#1E40AF' : '#BFDBFE'}` }}>
+                      <div style={{ fontSize: '0.7rem', color: actualTheme === 'dark' ? '#60A5FA' : '#1E40AF', marginBottom: '0.125rem' }}>Events Remaining</div>
+                      <div style={{ fontSize: '1rem', fontWeight: '700', color: '#2563EB' }}>{eventsToBonus}</div>
+                    </div>
+                  )}
+                  {bonusReached && (
+                    <div style={{ padding: '0.5rem 0.75rem', backgroundColor: bonusApproved ? (actualTheme === 'dark' ? '#14532D' : '#F0FDF4') : bonusPending ? (actualTheme === 'dark' ? '#78350F' : '#FEF3C7') : (actualTheme === 'dark' ? '#7F1D1D' : '#FEF2F2'), borderRadius: '0.375rem', border: `1px solid ${bonusApproved ? (actualTheme === 'dark' ? '#166534' : '#BBF7D0') : bonusPending ? (actualTheme === 'dark' ? '#92400E' : '#FCD34D') : (actualTheme === 'dark' ? '#991B1B' : '#FECACA')}` }}>
+                      <div style={{ fontSize: '0.7rem', color: bonusApproved ? (actualTheme === 'dark' ? '#4ADE80' : '#166534') : bonusPending ? (actualTheme === 'dark' ? '#FCD34D' : '#92400E') : (actualTheme === 'dark' ? '#FCA5A5' : '#991B1B'), marginBottom: '0.125rem' }}>Status</div>
+                      <div style={{ fontSize: '1rem', fontWeight: '700', color: bonusApproved ? '#16A34A' : bonusPending ? '#F59E0B' : '#DC2626' }}>{bonusApproved ? 'Approved' : bonusPending ? 'Pending' : 'Rejected'}</div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -1806,7 +2440,7 @@ Amount: ${transaction.amount}
                 <div>
                   <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Earnings</div>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '1rem' }}>
-                    <span style={{ fontSize: '1.75rem', fontWeight: '700', color: colors.textPrimary }}>${(totalCompleted + totalPending + totalWithdrawn).toLocaleString()}</span>
+                    <span style={{ fontSize: '1.75rem', fontWeight: '700', color: colors.textPrimary }}>{formatPrice(totalCompleted + totalPending + totalWithdrawn)}</span>
                     <span style={{ fontSize: '0.85rem', color: '#10B981', fontWeight: '500' }}>+23% vs last week</span>
                   </div>
                 </div>
@@ -1910,21 +2544,21 @@ Amount: ${transaction.amount}
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10B981' }} />
                     <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Completed</span>
                   </div>
-                  <div style={{ fontSize: '1rem', fontWeight: '700', color: colors.textPrimary }}>${totalCompleted.toLocaleString()}</div>
+                  <div style={{ fontSize: '1rem', fontWeight: '700', color: colors.textPrimary }}>{formatPrice(totalCompleted)}</div>
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#FBBF24' }} />
                     <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Pending</span>
                   </div>
-                  <div style={{ fontSize: '1rem', fontWeight: '700', color: colors.textPrimary }}>${totalPending.toLocaleString()}</div>
+                  <div style={{ fontSize: '1rem', fontWeight: '700', color: colors.textPrimary }}>{formatPrice(totalPending)}</div>
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#3B82F6' }} />
                     <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Withdrawn</span>
                   </div>
-                  <div style={{ fontSize: '1rem', fontWeight: '700', color: colors.textPrimary }}>${totalWithdrawn.toLocaleString()}</div>
+                  <div style={{ fontSize: '1rem', fontWeight: '700', color: colors.textPrimary }}>{formatPrice(totalWithdrawn)}</div>
                 </div>
               </div>
               <EarningsGauge completed={totalCompleted} pending={totalPending} withdrawn={totalWithdrawn} />
@@ -1933,7 +2567,7 @@ Amount: ${transaction.amount}
 
           {/* Transaction History Table */}
           <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', boxShadow: colors.shadowSm, overflow: 'hidden' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderBottom: `1px solid ${colors.borderPrimary}` }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderBottom: `2px solid ${colors.borderPrimary}` }}>
               <h2 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary }}>Transaction History</h2>
               <button style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: colors.bgCard, border: '2px solid #D1D5DB', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', fontSize: '0.85rem', color: colors.textSecondary, cursor: 'pointer' }}>
                 <CalendarIcon />
@@ -1956,12 +2590,18 @@ Amount: ${transaction.amount}
               </thead>
               <tbody>
                 {transactions.map((transaction) => (
-                  <tr key={transaction.id} style={{ borderBottom: `1px solid ${colors.borderPrimary}` }}>
+                  <tr key={transaction.id} style={{ borderBottom: `2px solid ${colors.borderPrimary}` }}>
                     <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.85rem', color: colors.textSecondary }}>{transaction.date}</td>
                     <td style={{ padding: '0.875rem 1.25rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
-                          <Image src={transaction.clientImage} alt={transaction.clientName} width={32} height={32} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                          </svg>
+                          {transaction.clientImage && (
+                            <img src={transaction.clientImage} alt={transaction.clientName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                          )}
                         </div>
                         <div>
                           <div style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>{transaction.clientName}</div>
@@ -1970,7 +2610,7 @@ Amount: ${transaction.amount}
                       </div>
                     </td>
                     <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.85rem', color: colors.textSecondary }}>{transaction.method}</td>
-                    <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{transaction.amount}</td>
+                    <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(transaction.amountNum)}</td>
                     <td style={{ padding: '0.875rem 1.25rem' }}><StatusBadge status={transaction.status} /></td>
                     <td style={{ padding: '0.875rem 1.25rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -1992,27 +2632,45 @@ Amount: ${transaction.amount}
             </table>
             </div>
 
+            {/* Loading state */}
+            {isLoading && (
+              <div style={{ textAlign: 'center', padding: '3rem', color: colors.textSecondary }}>
+                <p style={{ fontSize: '1rem', fontWeight: '500' }}>Loading transactions...</p>
+              </div>
+            )}
+
+            {/* No results */}
+            {!isLoading && transactions.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '3rem', color: colors.textSecondary }}>
+                <p style={{ fontSize: '1rem', fontWeight: '500' }}>No transactions found</p>
+              </div>
+            )}
+
             {/* Pagination */}
-            <div className="mobile-pagination" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderTop: `1px solid ${colors.borderPrimary}` }}>
-              <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Showing {resultsPerPage} of {totalResults} Results</div>
+            {totalPages > 1 && (
+            <div className="mobile-pagination" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderTop: `2px solid ${colors.borderPrimary}` }}>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Page {currentPage + 1} of {totalPages}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <button onClick={() => setCurrentPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1} style={{ background: 'none', border: '2px solid #D1D5DB', borderRadius: '0.375rem', padding: '0.5rem', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', opacity: currentPage === 1 ? 0.5 : 1 }}>
+                <button onClick={() => fetchData(currentPage - 1)} disabled={currentPage === 0} style={{ background: 'none', border: '2px solid #D1D5DB', borderRadius: '0.375rem', padding: '0.5rem', cursor: currentPage === 0 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', opacity: currentPage === 0 ? 0.5 : 1 }}>
                   <ChevronLeftIcon />
                 </button>
-                {[1, 2, 3].map((page) => (
-                  <button key={page} onClick={() => setCurrentPage(page)} style={{ width: '32px', height: '32px', border: currentPage === page ? '2px solid #062a63' : `2px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', backgroundColor: currentPage === page ? '#083A85' : colors.bgCard, color: currentPage === page ? 'white' : colors.textSecondary, fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer' }}>
-                    {page}
+                {Array.from({ length: Math.min(totalPages, 3) }, (_, i) => i).map((page) => (
+                  <button key={page} onClick={() => fetchData(page)} style={{ width: '32px', height: '32px', border: currentPage === page ? '2px solid #062a63' : `2px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', backgroundColor: currentPage === page ? '#083A85' : colors.bgCard, color: currentPage === page ? 'white' : colors.textSecondary, fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer' }}>
+                    {page + 1}
                   </button>
                 ))}
-                <span style={{ padding: '0 0.5rem', color: colors.textSecondary }}>...</span>
-                <button onClick={() => setCurrentPage(totalPages)} style={{ width: '32px', height: '32px', border: currentPage === totalPages ? '2px solid #062a63' : `2px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', backgroundColor: currentPage === totalPages ? '#083A85' : colors.bgCard, color: currentPage === totalPages ? 'white' : colors.textSecondary, fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer' }}>
-                  {totalPages}
-                </button>
-                <button onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages} style={{ background: 'none', border: '2px solid #D1D5DB', borderRadius: '0.375rem', padding: '0.5rem', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', opacity: currentPage === totalPages ? 0.5 : 1 }}>
+                {totalPages > 3 && <>
+                  <span style={{ padding: '0 0.5rem', color: colors.textSecondary }}>...</span>
+                  <button onClick={() => fetchData(totalPages - 1)} style={{ width: '32px', height: '32px', border: currentPage === totalPages - 1 ? '2px solid #062a63' : `2px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', backgroundColor: currentPage === totalPages - 1 ? '#083A85' : colors.bgCard, color: currentPage === totalPages - 1 ? 'white' : colors.textSecondary, fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer' }}>
+                    {totalPages}
+                  </button>
+                </>}
+                <button onClick={() => fetchData(currentPage + 1)} disabled={currentPage >= totalPages - 1} style={{ background: 'none', border: '2px solid #D1D5DB', borderRadius: '0.375rem', padding: '0.5rem', cursor: currentPage >= totalPages - 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', opacity: currentPage >= totalPages - 1 ? 0.5 : 1 }}>
                   <ChevronRightIcon />
                 </button>
               </div>
             </div>
+            )}
           </div>
         </div>
       </div>
@@ -2024,28 +2682,51 @@ Amount: ${transaction.amount}
         onClose={() => setShowTransactionModal(false)}
         transaction={selectedTransaction}
       />
-      {/* Withdraw Donate Prompt Modal - Shows before withdraw modal */}
-      <DonatePromptModal
-        isOpen={showWithdrawDonatePromptModal}
-        onClose={() => setShowWithdrawDonatePromptModal(false)}
-        onNo={() => {
-          setShowWithdrawDonatePromptModal(false);
-          setShowWithdrawModal(true);
-        }}
-        onYes={() => {
-          setShowWithdrawDonatePromptModal(false);
-          setShowWithdrawDonateModal(true);
-        }}
-      />
 
-      {/* Withdraw Donate Modal */}
-      <DonateModal isOpen={showWithdrawDonateModal} onClose={() => setShowWithdrawDonateModal(false)} />
+      {/* Payment Account Setup Required Modal */}
+      {showSetupModal && (
+        <div
+          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
+          onClick={() => setShowSetupModal(false)}
+        >
+          <div
+            style={{ backgroundColor: colors.bgCard, borderRadius: '1rem', padding: '2rem', maxWidth: '380px', width: '90%', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem auto' }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="1" y="6" width="22" height="15" rx="2" stroke="#083A85" strokeWidth="2"/>
+                <path d="M1 10H23" stroke="#083A85" strokeWidth="2"/>
+                <circle cx="6" cy="15" r="1.5" fill="#083A85"/>
+              </svg>
+            </div>
+            <h3 style={{ fontSize: '1.125rem', fontWeight: '700', color: colors.textPrimary, margin: '0 0 0.75rem 0' }}>
+              Payment Account Required
+            </h3>
+            <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1.5rem 0', lineHeight: '1.6' }}>
+              You need to set up a payment account before you can withdraw funds. Add one in Preferences → Payment Accounts.
+            </p>
+            <button
+              onClick={() => { setShowSetupModal(false); router.push('/user/photographer/preferences?tab=payments'); }}
+              style={{ width: '100%', padding: '0.75rem', backgroundColor: '#083A85', color: 'white', border: 'none', borderRadius: '0.75rem', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer', marginBottom: '0.75rem' }}
+            >
+              Set Up Payment Account
+            </button>
+            <button
+              onClick={() => setShowSetupModal(false)}
+              style={{ width: '100%', padding: '0.75rem', backgroundColor: 'transparent', color: colors.textSecondary, border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.75rem', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}
+            >
+              Maybe Later
+            </button>
+          </div>
+        </div>
+      )}
 
       <WithdrawModal
         isOpen={showWithdrawModal}
         onClose={() => setShowWithdrawModal(false)}
         availableBalance={availableBalance}
-        userType={userType}
+        userName={`${user?.firstName || ''} ${user?.lastName || ''}`.trim()}
       />
 
       {/* Tips Modal */}
@@ -2060,7 +2741,7 @@ Amount: ${transaction.amount}
             border: '1px solid #BBF7D0',
             marginBottom: '1.25rem'
           }}>
-            <div style={{ fontSize: '1.75rem', fontWeight: '700', color: '#16A34A' }}>${totalTips.toLocaleString()}</div>
+            <div style={{ fontSize: '1.75rem', fontWeight: '700', color: '#16A34A' }}>{formatPrice(totalTips)}</div>
             <div style={{ fontSize: '0.85rem', color: '#166534' }}>Total Tips Received</div>
             <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginTop: '0.25rem' }}>{tipsData.length} tips from clients</div>
           </div>
@@ -2123,22 +2804,6 @@ Amount: ${transaction.amount}
         </div>
       </Modal>
 
-      {/* Tips Donate Prompt Modal - Shows before tips modal */}
-      <DonatePromptModal
-        isOpen={showTipsDonatePromptModal}
-        onClose={() => setShowTipsDonatePromptModal(false)}
-        onNo={() => {
-          setShowTipsDonatePromptModal(false);
-          setShowTipsModal(true);
-        }}
-        onYes={() => {
-          setShowTipsDonatePromptModal(false);
-          setShowTipsDonateModal(true);
-        }}
-      />
-
-      {/* Tips Donate Modal */}
-      <DonateModal isOpen={showTipsDonateModal} onClose={() => setShowTipsDonateModal(false)} />
 
       {/* Print Styles */}
       <style>{`

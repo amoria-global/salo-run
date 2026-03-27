@@ -1,8 +1,14 @@
 "use client";
 
-import Image from "next/image";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useTheme } from "../context/ThemeContext";
+import { useDashboardAuth, dashboardAuthFetch } from "../providers/AuthProvider";
+import { useCurrency } from "../context/CurrencyContext";
+
+import { getApiUrl } from '@/lib/api';
+import WithdrawModal from './WithdrawModal';
 
 // Icons for dropdown menu
 const ProfileIcon = () => (
@@ -43,57 +49,291 @@ const CloseIcon = () => (
   </svg>
 );
 
-// Sample notifications data
-const notificationsData = [
-  { id: 1, type: 'payment', title: 'Payment Received', message: 'You received $250.00 from Kagabo Innocent', time: '2 min ago', read: false },
-  { id: 2, type: 'booking', title: 'New Booking', message: 'Wedding photography session booked for Dec 15', time: '15 min ago', read: false },
-  { id: 3, type: 'system', title: 'Profile Updated', message: 'Your profile information was successfully updated', time: '1 hour ago', read: false },
-  { id: 4, type: 'payment', title: 'Bonus Credited', message: 'Referral bonus of $3.00 has been credited', time: '2 hours ago', read: true },
-  { id: 5, type: 'booking', title: 'Booking Reminder', message: 'Upcoming session with Penny Gloria tomorrow', time: '3 hours ago', read: true },
-  { id: 6, type: 'system', title: 'New Feature', message: 'Check out the new transaction reports feature', time: '5 hours ago', read: true },
-  { id: 7, type: 'payment', title: 'Payment Pending', message: 'Payment of $500.00 is awaiting approval', time: '1 day ago', read: true },
-  { id: 8, type: 'booking', title: 'Session Completed', message: 'Corporate event photography marked complete', time: '1 day ago', read: true },
-  { id: 9, type: 'system', title: 'Security Alert', message: 'New login detected from Chrome on Windows', time: '2 days ago', read: true },
-];
+const SunIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth="2"/>
+    <path d="M12 1V3M12 21V23M4.22 4.22L5.64 5.64M18.36 18.36L19.78 19.78M1 12H3M21 12H23M4.22 19.78L5.64 18.36M18.36 5.64L19.78 4.22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
+
+const MoonIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+
+interface NotificationItem {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  time: string;
+  read: boolean;
+  actionUrl?: string;
+  referenceId?: string;
+}
+
+function formatTimeAgo(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return 'just now';
+  if (diffMins < 60) return `${diffMins} min ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 30) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+  return `${Math.floor(diffDays / 30)} month${Math.floor(diffDays / 30) > 1 ? 's' : ''} ago`;
+}
 
 interface TopbarProps {
   bonusAmount?: number;
   tipsAmount?: number; // Tips from viewers/clients
   giftAmount?: number;
-  balanceAmount?: number; // For photographer/freelancer - unwithdrawn paid amount + tips + bonuses
-  userRole?: 'client' | 'photographer' | 'freelancer' | 'admin';
+  balanceAmount?: number; // For photographer - unwithdrawn paid amount + tips + bonuses
+  liveStreamFeeAmount?: number; // For event-coordinator - Live Stream Access Fee revenue
+  userRole?: 'client' | 'photographer' | 'admin' | 'event-coordinator';
 }
 
-export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmount, userRole = 'client' }: TopbarProps) {
-  const { colors, actualTheme } = useTheme();
+export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmountProp, balanceAmount, liveStreamFeeAmount, userRole = 'client' }: TopbarProps) {
+  const { colors, actualTheme, theme, setTheme } = useTheme();
+  const { user, logout, token } = useDashboardAuth();
+  const router = useRouter();
+  const { currency, setCurrency, formatPrice, currencies } = useCurrency();
+
+  const getUserDisplayName = () => {
+    if (user?.firstName && user?.lastName) {
+      return `${user.firstName} ${user.lastName}`;
+    }
+    if (user?.firstName) {
+      return user.firstName;
+    }
+    if (user?.email) {
+      return user.email.split('@')[0];
+    }
+    return 'User';
+  };
 
   const getRoleDisplayName = (role: string) => {
     switch (role) {
       case 'photographer':
         return 'Photographer';
-      case 'freelancer':
-        return 'Freelancer';
       case 'admin':
         return 'Admin';
+      case 'event-coordinator':
+        return 'Event Coordinator';
       case 'client':
       default:
         return 'Client';
     }
   };
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const [notifications, setNotifications] = useState(notificationsData);
+  const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [giftAmount, setGiftAmount] = useState(giftAmountProp ?? 0);
+  const [selfLiveStreamFee, setSelfLiveStreamFee] = useState(0);
+  const [selfBalanceAmount, setSelfBalanceAmount] = useState(0);
+  const [selfTipsAmount, setSelfTipsAmount] = useState(0);
+  const [selfBonusAmount, setSelfBonusAmount] = useState(0);
+  const [pendingPaymentWarning, setPendingPaymentWarning] = useState<{count: number; totalAmount: number; firstEvent: string; firstEventId?: string; firstPaymentId?: string} | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
+  const currencyRef = useRef<HTMLDivElement>(null);
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const fetchNotifications = useCallback(async () => {
+    if (!token) return;
+    const apiUrl = getApiUrl();
+    const notifBase = userRole === 'event-coordinator' ? 'coordinator' : userRole === 'photographer' ? 'photographer' : 'customer';
+    try {
+      const [notifRes, countRes] = await Promise.allSettled([
+        dashboardAuthFetch(`${apiUrl}/api/remote/${notifBase}/notifications?page=0&size=20`, { method: 'GET' }),
+        dashboardAuthFetch(`${apiUrl}/api/remote/${notifBase}/notifications/unread-count`, { method: 'GET' }),
+      ]);
 
-  const markAsRead = (id: number) => {
+      if (notifRes.status === 'fulfilled' && notifRes.value.ok) {
+        const data = await notifRes.value.json();
+        if (data.action === 1 && (Array.isArray(data.data) || data.data?.content)) {
+          const items = Array.isArray(data.data) ? data.data : data.data?.content || [];
+          setNotifications(items.map((n: any) => ({
+            id: n.id,
+            type: n.type || 'system',
+            title: n.title || '',
+            message: n.message || '',
+            time: n.createdAt ? formatTimeAgo(n.createdAt) : '',
+            read: n.isRead ?? true,
+            actionUrl: n.link || undefined,
+            referenceId: n.referenceId || undefined,
+          })));
+        }
+      }
+      if (countRes.status === 'fulfilled' && countRes.value.ok) {
+        const data = await countRes.value.json();
+        if (data.action === 1) setUnreadCount(data.data ?? 0);
+      }
+    } catch {
+      // silent fail
+    }
+  }, [token, userRole]);
+
+  const fetchFinancials = useCallback(async () => {
+    if (!token) return;
+    const apiUrl = getApiUrl();
+    try {
+      if (userRole === 'event-coordinator') {
+        if (liveStreamFeeAmount === undefined) {
+          const res = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/balance`, { method: 'GET' });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.action === 1 && data.data) {
+              setSelfLiveStreamFee(data.data.totalEarnings ?? 0);
+            }
+          }
+        }
+      } else if (userRole === 'photographer') {
+        if (balanceAmount === undefined || tipsAmount === undefined || bonusAmount === undefined) {
+          const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/balance`, { method: 'GET' });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.action === 1 && data.data) {
+              if (balanceAmount === undefined) setSelfBalanceAmount(Math.max(0, data.data.withdrawableBalance ?? data.data.availableBalance ?? data.data.totalPaid ?? 0));
+              if (tipsAmount === undefined) setSelfTipsAmount(data.data.totalTips ?? 0);
+              if (bonusAmount === undefined) setSelfBonusAmount(data.data.totalBonuses ?? data.data.bonus ?? 0);
+            }
+          }
+        }
+      } else {
+        if (giftAmountProp === undefined) {
+          const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/analytics`, { method: 'GET' });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.action === 1 && data.data) {
+              setGiftAmount(data.data.gifts ?? 0);
+            }
+          }
+        }
+      }
+
+      // Fetch pending payments for client and coordinator roles
+      if (userRole === 'client' || userRole === 'event-coordinator') {
+        const pendingBase = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
+        const pendingRes = await dashboardAuthFetch(`${apiUrl}/api/remote/${pendingBase}/payments/pending`, { method: 'GET' });
+        if (pendingRes.ok) {
+          const pendingData = await pendingRes.json();
+          if (pendingData.action === 1 && Array.isArray(pendingData.data) && pendingData.data.length > 0) {
+            const payments = pendingData.data;
+            const total = payments.reduce((sum: number, p: any) => sum + ((p.amountInUsd ?? p.amount ?? 0) - (p.paidAmountInUsd ?? p.paidAmount ?? 0)), 0);
+            setPendingPaymentWarning({
+              count: payments.length,
+              totalAmount: total,
+              firstEvent: payments[0]?.eventTitle ?? 'Unknown Event',
+              firstEventId: payments[0]?.eventId ?? undefined,
+              firstPaymentId: payments[0]?.id ?? undefined,
+            });
+          } else {
+            setPendingPaymentWarning(null);
+          }
+        }
+      }
+    } catch {
+      // silent fail
+    }
+  }, [token, userRole, giftAmountProp, liveStreamFeeAmount, balanceAmount, tipsAmount, bonusAmount]);
+
+  useEffect(() => {
+    if (giftAmountProp !== undefined) setGiftAmount(giftAmountProp);
+  }, [giftAmountProp]);
+
+  useEffect(() => {
+    fetchNotifications();
+    fetchFinancials();
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, [fetchNotifications, fetchFinancials]);
+
+  const markAsRead = async (id: string) => {
+    const wasUnread = notifications.find(n => n.id === id && !n.read);
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    if (wasUnread) setUnreadCount(prev => Math.max(0, prev - 1));
+    const apiUrl = getApiUrl();
+    const base = userRole === 'event-coordinator' ? 'coordinator' : userRole === 'photographer' ? 'photographer' : 'customer';
+    try {
+      await dashboardAuthFetch(`${apiUrl}/api/remote/${base}/notifications/${id}/read`, { method: 'PATCH' });
+    } catch {
+      // silent fail
+    }
   };
 
-  const markAllAsRead = () => {
+  const markAllAsRead = async () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    setUnreadCount(0);
+    const apiUrl = getApiUrl();
+    const base = userRole === 'event-coordinator' ? 'coordinator' : userRole === 'photographer' ? 'photographer' : 'customer';
+    try {
+      await dashboardAuthFetch(`${apiUrl}/api/remote/${base}/notifications/read-all`, { method: 'PATCH' });
+    } catch {
+      // silent fail
+    }
+  };
+
+  const handleNotificationClick = (notification: NotificationItem) => {
+    markAsRead(notification.id);
+    setIsNotificationsOpen(false);
+    const t = notification.type?.toLowerCase();
+    const refId = notification.referenceId;
+    let dest: string | null = null;
+
+    if (userRole === 'photographer') {
+      switch (t) {
+        case 'payment': case 'tip': case 'bonus': case 'withdrawal': dest = '/user/photographer/transaction'; break;
+        case 'booking': case 'event':
+          dest = refId ? `/user/photographer/events/${refId}` : '/user/photographer/events'; break;
+        case 'album': case 'media':
+          dest = refId ? `/user/photographer/events/${refId}` : '/user/photographer/events'; break;
+        case 'security': dest = '/user/photographer/profile'; break;
+        case 'streaming':
+          dest = refId ? `/user/photographer/events/${refId}` : '/user/photographer/events'; break;
+        case 'photobook':
+          dest = refId ? `/user/photographer/events/${refId}` : '/user/photographer/events'; break;
+      }
+    } else if (userRole === 'event-coordinator') {
+      switch (t) {
+        case 'booking': case 'event':
+          dest = refId ? `/user/event-coordinator/events/${refId}` : '/user/event-coordinator/events'; break;
+        case 'payment': case 'streamfee': case 'streaming':
+          dest = refId ? `/user/event-coordinator/payments/${refId}` : '/user/event-coordinator/payments'; break;
+        case 'album': case 'media':
+          dest = refId ? `/user/event-coordinator/gallery` : '/user/event-coordinator/gallery'; break;
+        case 'photographer': dest = '/user/event-coordinator/home'; break;
+        case 'security': dest = '/user/event-coordinator/profile'; break;
+        case 'photobook':
+          dest = refId ? `/user/event-coordinator/events/${refId}` : '/user/event-coordinator/events'; break;
+      }
+    } else {
+      switch (t) {
+        case 'booking': case 'event':
+          dest = refId ? `/user/client/events/${refId}` : '/user/client/events'; break;
+        case 'payment':
+          dest = refId ? `/user/client/payments/${refId}` : '/user/client/payments'; break;
+        case 'gift': dest = '/user/client/payments'; break;
+        case 'album': case 'media':
+          dest = refId ? `/user/client/gallery` : '/user/client/gallery'; break;
+        case 'photographer': dest = '/user/client/photographers'; break;
+        case 'security': dest = '/user/client/profile'; break;
+        case 'streaming': dest = '/user/client/streams'; break;
+        case 'photobook':
+          dest = refId ? `/user/client/events/${refId}` : '/user/client/events'; break;
+      }
+    }
+
+    // Fallback to actionUrl from backend if no match
+    dest = dest || notification.actionUrl || null;
+    if (dest) router.push(dest);
   };
 
   const getNotificationIcon = (type: string) => {
@@ -117,6 +357,9 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
       }
       if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
         setIsNotificationsOpen(false);
+      }
+      if (currencyRef.current && !currencyRef.current.contains(event.target as Node)) {
+        setIsCurrencyOpen(false);
       }
     };
 
@@ -264,36 +507,30 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
             margin-right: 0.25rem !important;
             padding-left: 0.35rem !important;
             padding-right: 0.35rem !important;
-            flex-direction: column !important;
-            gap: 0.5rem !important;
+            flex-direction: row !important;
+            gap: 0.4rem !important;
           }
 
           .topbar-title {
-            font-size: 0.85rem !important;
-            line-height: 1.1rem !important;
-            text-align: center !important;
-            width: 100% !important;
+            font-size: 0.75rem !important;
+            line-height: 1rem !important;
+            white-space: nowrap !important;
           }
 
           .topbar-right {
-            width: 100% !important;
-            justify-content: space-between !important;
-            gap: 0.3rem !important;
+            gap: 0.35rem !important;
+            flex-shrink: 0 !important;
           }
 
-          .topbar-balance span:first-child,
-          .topbar-tips span:first-child,
-          .topbar-bonus span:first-child {
-            font-size: 0.65rem !important;
+          /* Hide financial stats on small mobile */
+          .topbar-balance,
+          .topbar-tips,
+          .topbar-bonus {
+            display: none !important;
           }
 
-          .topbar-balance span:last-child,
-          .topbar-tips span:last-child,
-          .topbar-bonus span:last-child {
-            font-size: 0.75rem !important;
-          }
-
-          .profile-dropdown-container img {
+          .profile-dropdown-container img,
+          .profile-dropdown-container > div:first-child > div:first-child {
             width: 1.75rem !important;
             height: 1.75rem !important;
           }
@@ -313,7 +550,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
       marginRight: '1.5rem',
       marginTop: '0.75rem',
       marginBottom: '0.75rem',
-      border: `1px solid ${colors.borderPrimary}`,
+      border: `2px solid ${colors.borderPrimary}`,
       boxShadow: colors.shadowSm
     }}>
       {/* Left side - Dashboard title */}
@@ -329,6 +566,22 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
         alignItems: 'center',
         gap: '1.5rem'
       }}>
+        {/* Theme Toggle */}
+        <div
+          onClick={() => setTheme(actualTheme === 'dark' ? 'light' : 'dark')}
+          style={{
+            cursor: 'pointer',
+            color: colors.textSecondary,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'color 0.2s'
+          }}
+          title={actualTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          {actualTheme === 'dark' ? <SunIcon /> : <MoonIcon />}
+        </div>
+
         {/* Notification Bell */}
         <div
           ref={notificationsRef}
@@ -380,7 +633,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
               backgroundColor: colors.bgSecondary,
               borderRadius: '0.75rem',
               boxShadow: colors.shadowLg,
-              border: `1px solid ${colors.borderPrimary}`,
+              border: `2px solid ${colors.borderPrimary}`,
               width: '360px',
               maxHeight: '480px',
               zIndex: 50,
@@ -392,7 +645,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 padding: '1rem',
-                borderBottom: `1px solid ${colors.borderPrimary}`
+                borderBottom: `2px solid ${colors.borderPrimary}`
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Notifications</h3>
@@ -457,7 +710,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
                     return (
                       <div
                         key={notification.id}
-                        onClick={() => markAsRead(notification.id)}
+                        onClick={() => handleNotificationClick(notification)}
                         style={{
                           display: 'flex',
                           gap: '0.75rem',
@@ -544,14 +797,14 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
               {/* Footer */}
               <div style={{
                 padding: '0.75rem',
-                borderTop: `1px solid ${colors.borderPrimary}`,
+                borderTop: `2px solid ${colors.borderPrimary}`,
                 textAlign: 'center'
               }}>
-                <a
+                <Link
                   href={userRole === 'photographer'
                     ? '/user/photographer/notifications'
-                    : userRole === 'freelancer'
-                      ? '/user/freelancer/notifications'
+                    : userRole === 'event-coordinator'
+                      ? '/user/event-coordinator/notifications'
                       : '/user/client/notifications'}
                   style={{
                     color: '#2563EB',
@@ -561,14 +814,106 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
                   }}
                 >
                   View all notifications
-                </a>
+                </Link>
               </div>
             </div>
           )}
         </div>
 
-        {/* Balance - Shows for photographer/freelancer only */}
-        {(userRole === 'photographer' || userRole === 'freelancer') && (
+        {/* Currency Selector */}
+        <div
+          ref={currencyRef}
+          style={{ position: 'relative' }}
+        >
+          <button
+            onClick={() => setIsCurrencyOpen(!isCurrencyOpen)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              padding: '0.3rem 0.6rem',
+              borderRadius: '9999px',
+              border: `2px solid ${colors.borderPrimary}`,
+              background: colors.bgTertiary,
+              color: colors.textPrimary,
+              fontSize: '0.8rem',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <img src={`https://flagcdn.com/w40/${currencies.find(c => c.code === currency)?.flag}.png`} alt="" style={{ width: '18px', height: '14px', objectFit: 'cover', borderRadius: '2px' }} />
+            {currency}
+            <i style={{
+              fontSize: '0.6rem',
+              color: colors.textSecondary,
+              transform: isCurrencyOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition: 'transform 0.2s ease'
+            }} className="bi bi-chevron-down"></i>
+          </button>
+
+          {isCurrencyOpen && (
+            <div style={{
+              position: 'absolute',
+              top: 'calc(100% + 0.5rem)',
+              right: 0,
+              backgroundColor: colors.bgSecondary,
+              borderRadius: '0.75rem',
+              boxShadow: colors.shadowLg,
+              border: `2px solid ${colors.borderPrimary}`,
+              padding: '0.5rem',
+              minWidth: '180px',
+              zIndex: 50
+            }}>
+              {currencies.map((c) => (
+                <button
+                  key={c.code}
+                  onClick={() => {
+                    setCurrency(c.code);
+                    setIsCurrencyOpen(false);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    width: '100%',
+                    padding: '0.5rem 0.75rem',
+                    borderRadius: '0.5rem',
+                    border: 'none',
+                    background: currency === c.code ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : 'transparent',
+                    color: colors.textPrimary,
+                    fontSize: '0.85rem',
+                    fontWeight: currency === c.code ? '600' : '400',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s',
+                    gap: '0.5rem'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (currency !== c.code) e.currentTarget.style.backgroundColor = colors.bgTertiary;
+                  }}
+                  onMouseLeave={(e) => {
+                    if (currency !== c.code) e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <img src={`https://flagcdn.com/w40/${c.flag}.png`} alt={c.name} style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px' }} />
+                    <span style={{ fontWeight: '600' }}>{c.code}</span>
+                    <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{c.name}</span>
+                  </div>
+                  {currency === c.code && (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M20 6L9 17L4 12" stroke={actualTheme === 'dark' ? '#60A5FA' : '#083A85'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Balance - Shows for photographer only */}
+        {userRole === 'photographer' && (
           <div className="topbar-balance" style={{
             display: 'flex',
             alignItems: 'center',
@@ -584,13 +929,13 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
               fontSize: '1.15rem',
               lineHeight: '1.5rem',
               fontWeight: '700',
-              color: balanceAmount && balanceAmount > 0 ? colors.brandPrimary : colors.textSecondary
-            }}>${balanceAmount !== undefined ? balanceAmount.toFixed(2) : '0.00'}</span>
+              color: (balanceAmount ?? selfBalanceAmount) > 0 ? colors.brandPrimary : colors.textSecondary
+            }}>${(balanceAmount ?? selfBalanceAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
         )}
 
-        {/* Tips - Shows for photographer/freelancer only (from clients/viewers) */}
-        {(userRole === 'photographer' || userRole === 'freelancer') && (
+        {/* Tips - Shows for photographer only (from clients/viewers) */}
+        {userRole === 'photographer' && (
           <div className="topbar-tips" style={{
             display: 'flex',
             alignItems: 'center',
@@ -606,12 +951,12 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
               fontSize: '1.15rem',
               lineHeight: '1.5rem',
               fontWeight: '600',
-              color: tipsAmount && tipsAmount > 0 ? '#F59E0B' : colors.textSecondary
-            }}>${tipsAmount !== undefined ? tipsAmount.toFixed(2) : '0.00'}</span>
+              color: (tipsAmount ?? selfTipsAmount) > 0 ? '#F59E0B' : colors.textSecondary
+            }}>${(tipsAmount ?? selfTipsAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
         )}
 
-        {/* Bonus/Gift - Shows Gift for clients, Bonus for photographers/freelancers (platform rewards) */}
+        {/* Bonus/Gift/Live Stream Fees - Shows Gift for clients, Live Stream Fees for event-coordinator, Bonus for photographers (platform rewards) */}
         <div className="topbar-bonus" style={{
           display: 'flex',
           alignItems: 'center',
@@ -622,17 +967,21 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
             lineHeight: '1.5rem',
             fontWeight: '600',
             color: colors.textPrimary
-          }}>{userRole === 'client' ? 'Gifts:' : 'Bonus:'}</span>
+          }}>{userRole === 'client' ? 'Gifts:' : userRole === 'event-coordinator' ? 'Stream Fees:' : 'Bonus:'}</span>
           <span style={{
             fontSize: '1.15rem',
             lineHeight: '1.5rem',
             fontWeight: '600',
             color: userRole === 'client'
-              ? (giftAmount && giftAmount > 0 ? colors.statusSuccess : colors.brandPrimary)
-              : (bonusAmount && bonusAmount > 0 ? colors.statusSuccess : colors.brandPrimary)
-          }}>${userRole === 'client'
-            ? (giftAmount !== undefined ? giftAmount.toFixed(2) : '0.00')
-            : (bonusAmount !== undefined ? bonusAmount.toFixed(2) : '0.00')}</span>
+              ? (giftAmount > 0 ? colors.statusSuccess : colors.brandPrimary)
+              : userRole === 'event-coordinator'
+                ? ((liveStreamFeeAmount ?? selfLiveStreamFee) > 0 ? colors.statusSuccess : colors.brandPrimary)
+                : ((bonusAmount ?? selfBonusAmount) > 0 ? colors.statusSuccess : colors.brandPrimary)
+          }}>${(userRole === 'client'
+            ? giftAmount
+            : userRole === 'event-coordinator'
+              ? (liveStreamFeeAmount ?? selfLiveStreamFee)
+              : (bonusAmount ?? selfBonusAmount)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
         </div>
 
         {/* Profile with Dropdown */}
@@ -652,18 +1001,33 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
               cursor: 'pointer'
             }}
           >
-            <Image
-              src="https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg"
-              alt="Profile"
-              width={40}
-              height={40}
-              style={{
-                borderRadius: '9999px',
-                objectFit: 'cover',
+            {user?.profilePicture ? (
+              <img
+                src={user.profilePicture}
+                alt="Profile"
+                style={{
+                  borderRadius: '9999px',
+                  objectFit: 'cover',
+                  width: '2.5rem',
+                  height: '2.5rem'
+                }}
+              />
+            ) : (
+              <div style={{
                 width: '2.5rem',
-                height: '2.5rem'
-              }}
-            />
+                height: '2.5rem',
+                borderRadius: '9999px',
+                backgroundColor: '#083A85',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontWeight: '600',
+                fontSize: '1rem',
+              }}>
+                {user?.firstName ? user.firstName.charAt(0).toUpperCase() : '?'}
+              </div>
+            )}
             <div className="topbar-profile-info" style={{
               display: 'flex',
               flexDirection: 'column'
@@ -673,7 +1037,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
                 lineHeight: '1.5rem',
                 fontWeight: '700',
                 color: colors.brandPrimary
-              }}>Diane Mary</span>
+              }}>{getUserDisplayName()}</span>
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -684,9 +1048,11 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
                   lineHeight: '1.5rem',
                   fontWeight: '600',
                   color: colors.textPrimary
-                }}>${userRole === 'client'
-                  ? (giftAmount !== undefined ? giftAmount.toFixed(2) : '0.00')
-                  : (balanceAmount !== undefined ? balanceAmount.toFixed(2) : '0.00')}</span>
+                }}>{formatPrice(userRole === 'client'
+                  ? giftAmount
+                  : userRole === 'event-coordinator'
+                    ? (liveStreamFeeAmount ?? selfLiveStreamFee)
+                    : (balanceAmount ?? selfBalanceAmount))}</span>
                 <i style={{
                   fontSize: '0.75rem',
                   lineHeight: '1rem',
@@ -707,7 +1073,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
               backgroundColor: colors.bgSecondary,
               borderRadius: '0.75rem',
               boxShadow: colors.shadowLg,
-              border: `1px solid ${colors.borderPrimary}`,
+              border: `2px solid ${colors.borderPrimary}`,
               padding: '1.25rem',
               minWidth: '220px',
               zIndex: 50
@@ -716,7 +1082,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
               <div style={{
                 marginBottom: '1rem',
                 paddingBottom: '1rem',
-                borderBottom: `1px solid ${colors.borderPrimary}`
+                borderBottom: `2px solid ${colors.borderPrimary}`
               }}>
                 <div style={{
                   fontSize: '1.1rem',
@@ -724,13 +1090,13 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
                   color: colors.brandPrimary,
                   marginBottom: '0.25rem'
                 }}>
-                  Diane Marry
+                  {getUserDisplayName()}
                 </div>
                 <div style={{
                   fontSize: '0.9rem',
                   color: colors.textSecondary
                 }}>
-                  ID: <span style={{ color: '#EC4899', fontWeight: '600' }}>12004573</span>
+                  {user?.email && <span>{user.email}</span>}
                 </div>
               </div>
 
@@ -741,7 +1107,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
                 gap: '0.25rem'
               }}>
                 <a
-                  href="/user/client/profile"
+                  href={`/user/${userRole}/profile`}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -765,18 +1131,21 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
                   Profile settings
                 </a>
 
-                <a
-                  href="/preferences"
+                <button
+                  onClick={() => { setIsDropdownOpen(false); setShowWithdrawModal(true); }}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.75rem',
                     padding: '0.75rem',
                     borderRadius: '0.5rem',
-                    textDecoration: 'none',
+                    border: 'none',
+                    background: 'none',
                     color: colors.textSecondary,
                     fontSize: '0.95rem',
                     fontWeight: '500',
+                    cursor: 'pointer',
+                    width: '100%',
                     transition: 'background-color 0.2s'
                   }}
                   onMouseEnter={(e) => {
@@ -786,22 +1155,28 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
                     e.currentTarget.style.backgroundColor = 'transparent';
                   }}
                 >
-                  <PreferencesIcon />
-                  Preferences
-                </a>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+                  Withdraw
+                </button>
 
-                <a
-                  href="/logout"
+                <button
+                  onClick={() => {
+                    setIsDropdownOpen(false);
+                    setShowLogoutModal(true);
+                  }}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.75rem',
                     padding: '0.75rem',
                     borderRadius: '0.5rem',
-                    textDecoration: 'none',
+                    border: 'none',
+                    background: 'none',
                     color: colors.textSecondary,
                     fontSize: '0.95rem',
                     fontWeight: '500',
+                    cursor: 'pointer',
+                    width: '100%',
                     transition: 'background-color 0.2s'
                   }}
                   onMouseEnter={(e) => {
@@ -813,13 +1188,167 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount, balanceAmo
                 >
                   <LogoutIcon />
                   Logout
-                </a>
+                </button>
               </div>
             </div>
           )}
         </div>
       </div>
     </div>
+
+    {/* Payment Warning Banner */}
+    {pendingPaymentWarning && (userRole === 'client' || userRole === 'event-coordinator') && (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FFFBEB',
+        borderLeft: '4px solid #F59E0B',
+        marginLeft: '1.5rem',
+        marginRight: '1.5rem',
+        marginBottom: '0.5rem',
+        padding: '0.6rem 1rem',
+        borderRadius: '0.5rem',
+        fontSize: '0.85rem',
+        color: actualTheme === 'dark' ? '#FDE68A' : '#92400E',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
+          <span style={{ fontSize: '1.1rem' }}>&#9888;</span>
+          <span style={{ fontWeight: 600 }}>
+            Payment Required: {formatPrice(pendingPaymentWarning.totalAmount)} for {pendingPaymentWarning.firstEvent}
+            {pendingPaymentWarning.count > 1 ? ` (+${pendingPaymentWarning.count - 1} more)` : ''}
+          </span>
+        </div>
+        <button
+          onClick={() => {
+            const base = userRole === 'event-coordinator' ? '/user/event-coordinator' : '/user/client';
+            const eventId = pendingPaymentWarning?.firstEventId;
+            router.push(eventId ? `${base}/events/${eventId}` : `${base}/payments`);
+          }}
+          style={{
+            backgroundColor: '#F59E0B',
+            color: '#78350F',
+            border: 'none',
+            padding: '0.35rem 0.85rem',
+            borderRadius: '0.375rem',
+            fontSize: '0.8rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Pay Now
+        </button>
+      </div>
+    )}
+
+    {/* Logout Confirmation Modal */}
+    {/* Withdraw Modal */}
+    <WithdrawModal
+      isOpen={showWithdrawModal}
+      onClose={() => setShowWithdrawModal(false)}
+      role={userRole === 'photographer' ? 'photographer' : userRole === 'event-coordinator' ? 'event-coordinator' : 'client'}
+      colors={colors}
+      actualTheme={actualTheme}
+    />
+
+    {showLogoutModal && (
+      <div
+        onClick={() => setShowLogoutModal(false)}
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+        }}
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            backgroundColor: colors.bgSecondary,
+            borderRadius: '0.75rem',
+            padding: '1.75rem',
+            maxWidth: '380px',
+            width: '90%',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            textAlign: 'center',
+          }}
+        >
+          {/* Icon */}
+          <div style={{
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            backgroundColor: actualTheme === 'dark' ? '#3B1A1A' : '#FEF2F2',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 1rem',
+          }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <polyline points="16,17 21,12 16,7" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <line x1="21" y1="12" x2="9" y2="12" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+
+          {/* Title */}
+          <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>
+            Are you sure you want to logout?
+          </h3>
+
+          {/* Description */}
+          <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0 0 1.5rem', lineHeight: '1.5' }}>
+            You will be signed out of your account and redirected to the login page.
+          </p>
+
+          {/* Buttons */}
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button
+              onClick={() => setShowLogoutModal(false)}
+              style={{
+                flex: 1,
+                padding: '0.625rem',
+                border: `2px solid ${colors.borderPrimary}`,
+                borderRadius: '0.5rem',
+                backgroundColor: 'transparent',
+                color: colors.textPrimary,
+                fontSize: '0.9rem',
+                fontWeight: '500',
+                cursor: 'pointer',
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                setShowLogoutModal(false);
+                logout();
+              }}
+              style={{
+                flex: 1,
+                padding: '0.625rem',
+                border: '2px solid #B91C1C',
+                borderRadius: '0.5rem',
+                backgroundColor: '#DC2626',
+                color: 'white',
+                fontSize: '0.9rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+              }}
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     </>
   );
 }

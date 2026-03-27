@@ -1,12 +1,16 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
-import DonateModal, { DonateButton, DonatePromptModal } from '../../components/DonateModal';
+import { useCurrency } from '@/app/context/CurrencyContext';
+import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
+import { HeartIcon as DonateHeartIcon } from '../../components/UnlockModal';
+import { getApiUrl, normalizeImageUrl } from '@/lib/api';
+import { initiateBookingPayment, pollPaymentStatus, getTelecomProvider, getPaymentMethodType } from '@/lib/xentripay';
 
 // Icons
 const SearchIcon = () => (
@@ -67,6 +71,13 @@ const FilterIcon = () => (
 const CloseIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const CopyIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
@@ -162,6 +173,7 @@ type PaymentStatus = 'paid' | 'pending' | 'failed' | 'partially_paid';
 
 interface Booking {
   id: string;
+  declarationId?: string;
   eventName: string;
   eventType: string;
   eventDate: string;
@@ -275,8 +287,14 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
   );
 };
 
-const BookedPhotographersPage = () => {
+interface PhotographersPageProps {
+  userRole?: 'client' | 'event-coordinator';
+}
+
+const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps) => {
   const { colors, actualTheme } = useTheme();
+  const { formatPrice, currencyId } = useCurrency();
+  const { token, user } = useDashboardAuth();
   const router = useRouter();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
@@ -285,8 +303,25 @@ const BookedPhotographersPage = () => {
   const [selectedPhotographer, setSelectedPhotographer] = useState<BookedPhotographer | null>(null);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportPhotographer, setReportPhotographer] = useState<BookedPhotographer | null>(null);
+  const [reportReason, setReportReason] = useState('');
+  const [reportDescription, setReportDescription] = useState('');
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
   const [showRebookModal, setShowRebookModal] = useState(false);
   const [rebookPhotographer, setRebookPhotographer] = useState<BookedPhotographer | null>(null);
+  const [rebookEventType, setRebookEventType] = useState('');
+  const [rebookDate, setRebookDate] = useState('');
+  const [rebookTime, setRebookTime] = useState('');
+  const [rebookLocation, setRebookLocation] = useState('');
+  const [rebookNotes, setRebookNotes] = useState('');
+  const [isSubmittingRebook, setIsSubmittingRebook] = useState(false);
+  const [rebookError, setRebookError] = useState<string | null>(null);
+  const [rebookEvents, setRebookEvents] = useState<{id: string; title: string; eventType: string; eventDate: string; startTime: string; endTime: string; location: string; city: string; country: string; address: string}[]>([]);
+  const [rebookEventsLoading, setRebookEventsLoading] = useState(false);
+  const [selectedRebookEventId, setSelectedRebookEventId] = useState<string>('');
+  const [rebookPackages, setRebookPackages] = useState<any[]>([]);
+  const [rebookPackageId, setRebookPackageId] = useState<string>('');
+  const [rebookPackagesLoading, setRebookPackagesLoading] = useState(false);
+  const [rebookPackagesError, setRebookPackagesError] = useState<string | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewPhotographer, setReviewPhotographer] = useState<BookedPhotographer | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; photographer: BookedPhotographer } | null>(null);
@@ -295,270 +330,291 @@ const BookedPhotographersPage = () => {
   const [activeTab, setActiveTab] = useState<'all' | 'favorites' | 'pending_payments'>('all');
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewText, setReviewText] = useState('');
+  const [reviewEvents, setReviewEvents] = useState<{id: string; title: string; eventDate: string}[]>([]);
+  const [selectedReviewEventId, setSelectedReviewEventId] = useState<string>('');
+  const [reviewEventsLoading, setReviewEventsLoading] = useState(false);
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
   const [tipAmount, setTipAmount] = useState<number | 'custom' | ''>('');
   const [customTipAmount, setCustomTipAmount] = useState('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [showPaymentDonateModal, setShowPaymentDonateModal] = useState(false);
-  const [showPaymentDonatePromptModal, setShowPaymentDonatePromptModal] = useState(false);
   // New states for tip flow
   const [showTipPromptModal, setShowTipPromptModal] = useState(false);
   const [showTipSelectionModal, setShowTipSelectionModal] = useState(false);
   const [showTipPaymentModal, setShowTipPaymentModal] = useState(false);
-  const [showTipDonateModal, setShowTipDonateModal] = useState(false);
-  const [showTipDonatePromptModal, setShowTipDonatePromptModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  // Invite modal states
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [isSendingInvite, setIsSendingInvite] = useState(false);
+  const [inviteCopied, setInviteCopied] = useState(false);
   const [pendingReviewPhotographer, setPendingReviewPhotographer] = useState<BookedPhotographer | null>(null);
   const [selectedTipPaymentMethod, setSelectedTipPaymentMethod] = useState<string>('card');
   const [paymentBooking, setPaymentBooking] = useState<{ photographer: BookedPhotographer; booking: Booking } | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('card');
+  // Donation states for payment modal
+  const [payDonationAmount, setPayDonationAmount] = useState<string>('');
+  const [payCustomDonation, setPayCustomDonation] = useState<string>('');
+  const [payDonationSkipped, setPayDonationSkipped] = useState<boolean>(false);
+  const [payShowCustomInput, setPayShowCustomInput] = useState<boolean>(false);
+  const [payShowReceipt, setPayShowReceipt] = useState<boolean>(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  // XentriPay states
+  const [paymentPhone, setPaymentPhone] = useState<string>('');
+  const [xentriPayStep, setXentriPayStep] = useState<'select' | 'processing' | 'success' | 'failed'>('select');
+  const [xentriPayError, setXentriPayError] = useState<string>('');
+  const stopPollingRef = React.useRef<(() => void) | null>(null);
+  // Donation states for tip payment modal
+  const [tipDonationAmount, setTipDonationAmount] = useState<string>('');
+  const [tipCustomDonation, setTipCustomDonation] = useState<string>('');
+  const [tipDonationSkipped, setTipDonationSkipped] = useState<boolean>(false);
+  const [tipShowCustomInput, setTipShowCustomInput] = useState<boolean>(false);
+  const [tipShowReceipt, setTipShowReceipt] = useState<boolean>(false);
 
-  const [photographers, setPhotographers] = useState<BookedPhotographer[]>([
-    {
-      id: '1',
-      firstName: 'John',
-      lastName: 'Studio',
-      profileImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
-      coverImage: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800',
-      portfolioImages: [
-        'https://images.unsplash.com/photo-1519741497674-611481863552?w=400',
-        'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=400',
-        'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=400'
-      ],
-      bio: 'Professional wedding and event photographer with over 10 years of experience capturing lifes most precious moments. Specialized in candid shots and emotional storytelling.',
-      specializations: ['Weddings', 'Events', 'Portraits'],
-      experience: 10,
-      location: { city: 'Kigali', country: 'Rwanda' },
-      rating: 4.9,
-      reviewCount: 156,
-      completedBookings: 234,
-      verified: true,
-      startingPrice: 450,
-      responseTime: '1 hour',
-      isFavorite: true,
-      isAvailable: true,
-      languages: ['English', 'Kinyarwanda', 'French'],
-      equipment: ['Canon EOS R5', 'Sony A7III', 'DJI Mavic Pro'],
-      lastBookingDate: '2024-11-15',
-      lastEventType: 'Wedding',
-      lastEventName: 'Sarah & James Wedding',
-      totalBookingsWithClient: 3,
-      totalSpent: 1350,
-      myRating: 5,
-      myReview: 'Absolutely amazing work! John captured every moment perfectly.',
-      bookings: [
-        {
-          id: 'BK-001',
-          eventName: 'Sarah & James Wedding',
-          eventType: 'Wedding',
-          eventDate: '2024-11-15',
-          eventTime: '14:00',
-          duration: '8 hours',
-          location: 'Kigali Convention Center',
-          packageName: 'Premium Wedding',
-          totalAmount: 1500,
-          paidAmount: 1500,
-          paymentStatus: 'paid',
-          status: 'completed'
-        },
-        {
-          id: 'BK-008',
-          eventName: 'Anniversary Celebration',
-          eventType: 'Event',
-          eventDate: '2025-01-20',
-          eventTime: '16:00',
-          duration: '4 hours',
-          location: 'Marriott Hotel Kigali',
-          packageName: 'Event Coverage',
-          totalAmount: 600,
-          paidAmount: 300,
-          paymentStatus: 'partially_paid',
-          status: 'upcoming'
-        }
-      ]
-    },
-    {
-      id: '2',
-      firstName: 'Mary',
-      lastName: 'Shots',
-      profileImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg',
-      coverImage: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=800',
-      portfolioImages: [
-        'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=400',
-        'https://images.unsplash.com/photo-1464349153735-7db50ed83c84?w=400',
-        'https://images.unsplash.com/photo-1496843916299-590492c751f4?w=400'
-      ],
-      bio: 'Specializing in birthday parties and family celebrations. I believe every moment deserves to be captured beautifully. Natural light specialist.',
-      specializations: ['Birthdays', 'Family', 'Kids'],
-      experience: 6,
-      location: { city: 'Nairobi', country: 'Kenya' },
-      rating: 4.7,
-      reviewCount: 89,
-      completedBookings: 142,
-      verified: true,
-      startingPrice: 300,
-      responseTime: '2 hours',
-      isFavorite: false,
-      isAvailable: true,
-      languages: ['English', 'Swahili'],
-      equipment: ['Nikon D850', 'Canon 5D Mark IV'],
-      lastBookingDate: '2024-10-28',
-      lastEventType: 'Birthday',
-      lastEventName: 'Emily\'s 5th Birthday',
-      totalBookingsWithClient: 2,
-      totalSpent: 600,
-      bookings: [
-        {
-          id: 'BK-002',
-          eventName: 'Emily\'s 5th Birthday',
-          eventType: 'Birthday',
-          eventDate: '2024-10-28',
-          eventTime: '15:00',
-          duration: '4 hours',
-          location: 'Lake Kivu Resort, Gisenyi',
-          packageName: 'Birthday Special',
-          totalAmount: 300,
-          paidAmount: 300,
-          paymentStatus: 'paid',
-          status: 'completed'
-        },
-        {
-          id: 'BK-009',
-          eventName: 'Baby Shower',
-          eventType: 'Family',
-          eventDate: '2025-02-14',
-          eventTime: '11:00',
-          duration: '3 hours',
-          location: 'Home Studio',
-          packageName: 'Family Package',
-          totalAmount: 350,
-          paidAmount: 0,
-          paymentStatus: 'pending',
-          status: 'upcoming'
-        }
-      ]
-    },
-    {
-      id: '3',
-      firstName: 'Alex',
-      lastName: 'Frames',
-      profileImage: 'https://i.pinimg.com/1200x/09/23/45/092345eac1919407e0c49f67e285b831.jpg',
-      coverImage: 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=800',
-      portfolioImages: [
-        'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=400',
-        'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=400',
-        'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=400'
-      ],
-      bio: 'Festival and concert photographer bringing energy and life to every shot. Experienced in low-light and fast-paced environments. Published in Rolling Stone Africa.',
-      specializations: ['Festivals', 'Concerts', 'Nightlife'],
-      experience: 8,
-      location: { city: 'Kampala', country: 'Uganda' },
-      rating: 4.8,
-      reviewCount: 67,
-      completedBookings: 98,
-      verified: true,
-      startingPrice: 350,
-      responseTime: '3 hours',
-      isFavorite: true,
-      isAvailable: false,
-      languages: ['English', 'Luganda'],
-      equipment: ['Sony A7S III', 'Canon EOS R6'],
-      lastBookingDate: '2024-09-20',
-      lastEventType: 'Concert',
-      lastEventName: 'Nyege Nyege Festival 2024',
-      totalBookingsWithClient: 1,
-      totalSpent: 350,
-      myRating: 5,
-      myReview: 'Alex is incredible at capturing the energy of live events!',
-      bookings: [
-        {
-          id: 'BK-003',
-          eventName: 'Nyege Nyege Festival 2024',
-          eventType: 'Concert',
-          eventDate: '2024-09-20',
-          eventTime: '16:00',
-          duration: '6 hours',
-          location: 'Amahoro Stadium, Kigali',
-          packageName: 'Festival Coverage',
-          totalAmount: 350,
-          paidAmount: 350,
-          paymentStatus: 'paid',
-          status: 'completed'
-        }
-      ]
-    },
-    {
-      id: '4',
-      firstName: 'Elite',
-      lastName: 'Photography',
-      profileImage: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg',
-      coverImage: 'https://images.unsplash.com/photo-1560439514-4e9645039924?w=800',
-      portfolioImages: [
-        'https://images.unsplash.com/photo-1560439514-4e9645039924?w=400',
-        'https://images.unsplash.com/photo-1552664730-d307ca884978?w=400',
-        'https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=400'
-      ],
-      bio: 'Corporate photography specialist. Headshots, team photos, and company events with a professional touch. Trusted by Fortune 500 companies.',
-      specializations: ['Corporate', 'Headshots', 'Commercial'],
-      experience: 12,
-      location: { city: 'Dar es Salaam', country: 'Tanzania' },
-      rating: 4.6,
-      reviewCount: 112,
-      completedBookings: 187,
-      verified: true,
-      startingPrice: 500,
-      responseTime: '30 mins',
-      isFavorite: false,
-      isAvailable: true,
-      languages: ['English', 'Swahili', 'Arabic'],
-      equipment: ['Canon EOS R5', 'Profoto B10', 'Phase One'],
-      lastBookingDate: '2024-11-01',
-      lastEventType: 'Corporate',
-      lastEventName: 'MTN Annual Conference',
-      totalBookingsWithClient: 4,
-      totalSpent: 2000,
-      myRating: 4,
-      myReview: 'Very professional. Great corporate shots.',
-      bookings: [
-        {
-          id: 'BK-004',
-          eventName: 'MTN Annual Conference',
-          eventType: 'Corporate',
-          eventDate: '2024-11-01',
-          eventTime: '09:00',
-          duration: '6 hours',
-          location: 'Tech Hub Office, Kigali',
-          packageName: 'Corporate Full Day',
-          totalAmount: 800,
-          paidAmount: 800,
-          paymentStatus: 'paid',
-          status: 'completed'
-        },
-        {
-          id: 'BK-010',
-          eventName: 'Team Headshots',
-          eventType: 'Corporate',
-          eventDate: '2025-01-15',
-          eventTime: '10:00',
-          duration: '3 hours',
-          location: 'Company HQ',
-          packageName: 'Corporate Headshots',
-          totalAmount: 500,
-          paidAmount: 0,
-          paymentStatus: 'failed',
-          status: 'upcoming'
-        }
-      ]
-    }
-    
-  ]);
+  const [photographers, setPhotographers] = useState<BookedPhotographer[]>([]);
 
   const specializations = ['Weddings', 'Events', 'Portraits', 'Birthdays', 'Corporate', 'Fashion', 'Festivals', 'Concerts'];
 
-  const toggleFavorite = (id: string) => {
+  // Fetch booked photographers from API
+  useEffect(() => {
+    if (!token || !user?.id) return;
+
+    const fetchPhotographers = async () => {
+      try {
+        const apiUrl = getApiUrl();
+        const ns = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
+        const endpoint = `${apiUrl}/api/remote/${ns}/photographers`;
+
+        // Fetch photographers and bookmarks in parallel
+        const [response, bookmarksResponse] = await Promise.all([
+          dashboardAuthFetch(endpoint, { headers: { 'Content-Type': 'application/json' } }),
+          dashboardAuthFetch(`${apiUrl}/api/remote/customer/photographers/bookmarks`, { headers: { 'Content-Type': 'application/json' } }).catch(() => null),
+        ]);
+        if (!response.ok) throw new Error('Failed to fetch photographers');
+        const result = await response.json();
+
+        // Build a set of bookmarked photographer IDs
+        let bookmarkedIds = new Set<string>();
+        if (bookmarksResponse?.ok) {
+          try {
+            const bmResult = await bookmarksResponse.json();
+            const bmData = bmResult?.data?.content || bmResult?.data || [];
+            const bmArr = Array.isArray(bmData) ? bmData : [];
+            bmArr.forEach((b: any) => {
+              if (b.photographerId) bookmarkedIds.add(b.photographerId);
+            });
+          } catch { /* ignore parse errors */ }
+        }
+
+        // Coordinator endpoint returns paginated {content:[...]}, customer returns flat array
+        const data = result?.data?.content || result?.data || [];
+        const mapped: BookedPhotographer[] = data.map((p: any) => ({
+          id: p.id,
+          firstName: p.firstName || '',
+          lastName: p.lastName || '',
+          profileImage: normalizeImageUrl(p.profileImage || p.profilePicture || undefined),
+          coverImage: normalizeImageUrl(p.coverImage || p.coverPicture || '') || '',
+          portfolioImages: (p.portfolioImages || (p.projects || []).map((proj: any) => proj.imageUrl || '')).map((url: string) => normalizeImageUrl(url) || ''),
+          bio: p.bio || p.about || '',
+          specializations: p.specializations || (p.specialties || []).map((s: any) => typeof s === 'string' ? s : s.name || ''),
+          experience: p.experience || 0,
+          location: p.location || (p.address ? { city: p.address, country: '' } : { city: '', country: '' }),
+          rating: p.rating || 5,
+          reviewCount: p.reviewCount || (p.reviews || []).length || 0,
+          completedBookings: p.completedBookings || 0,
+          verified: p.isVerified || p.profileReviewStatus === 'ACCEPTED' || false,
+          startingPrice: p.startingPrice || 0,
+          responseTime: p.responseTime || 'N/A',
+          isFavorite: p.isFavorite || p.isBookmarked || p.bookmarked || bookmarkedIds.has(p.id) || false,
+          isAvailable: p.isAvailable || false,
+          languages: p.languages || [],
+          equipment: p.equipment || (p.equipments || []).map((e: any) => typeof e === 'string' ? e : e.name || ''),
+          lastBookingDate: p.lastBookingDate || '',
+          lastEventType: p.lastEventType || '',
+          lastEventName: p.lastEventName || '',
+          totalBookingsWithClient: p.totalBookingsWithClient || 0,
+          totalSpent: p.totalSpent || 0,
+          myRating: p.myRating || undefined,
+          myReview: p.myReview || undefined,
+          bookings: (p.bookings || []).map((b: any) => ({
+            id: b.id,
+            declarationId: b.declarationId || b.paymentDeclarationId || b.id,
+            eventName: b.eventName || '',
+            eventType: b.eventType || '',
+            eventDate: b.eventDate || '',
+            eventTime: b.eventTime || '',
+            duration: b.duration || '',
+            location: b.location || '',
+            packageName: b.packageName || '',
+            totalAmount: b.totalAmount || 0,
+            paidAmount: b.paidAmount || 0,
+            paymentStatus: b.paymentStatus || 'pending',
+            status: b.status || 'upcoming',
+          })),
+        }));
+        setPhotographers(mapped);
+      } catch (err) {
+        console.error('Failed to fetch photographers:', err);
+      }
+    };
+
+    fetchPhotographers();
+  }, [token, user?.id]);
+
+  // Fetch completed events when review modal opens
+  useEffect(() => {
+    if (!showReviewModal || !reviewPhotographer || !token) return;
+
+    const fetchEvents = async () => {
+      setReviewEventsLoading(true);
+      setReviewError(null);
+      try {
+        const apiUrl = getApiUrl();
+        const eventsNs = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
+        const response = await dashboardAuthFetch(`${apiUrl}/api/remote/${eventsNs}/events?page=0&size=100`);
+
+        if (!response.ok) throw new Error('Failed to fetch events');
+
+        const result = await response.json();
+        const events = result?.data?.content || result?.data || [];
+
+        // Filter for completed events involving this photographer
+        const completedEvents = events
+          .filter((evt: { status?: string; photographerId?: string }) =>
+            evt.photographerId === reviewPhotographer.id &&
+            (evt.status === 'COMPLETED' || evt.status === 'completed')
+          )
+          .map((evt: { id: string; title?: string; eventDate?: string }) => ({
+            id: evt.id,
+            title: evt.title || 'Untitled Event',
+            eventDate: evt.eventDate || '',
+          }));
+
+        setReviewEvents(completedEvents);
+      } catch (err) {
+        console.error('Failed to fetch events for review:', err);
+        setReviewEvents([]);
+      } finally {
+        setReviewEventsLoading(false);
+      }
+    };
+
+    fetchEvents();
+  }, [showReviewModal, reviewPhotographer, token]);
+
+  // Fetch existing events when rebook modal opens
+  useEffect(() => {
+    if (!showRebookModal || !token) return;
+
+    const fetchRebookEvents = async () => {
+      setRebookEventsLoading(true);
+      try {
+        const apiUrl = getApiUrl();
+        const eventsNs = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
+        const response = await dashboardAuthFetch(`${apiUrl}/api/remote/${eventsNs}/events?page=0&size=100`);
+        if (!response.ok) throw new Error('Failed to fetch events');
+        const result = await response.json();
+        const rawEvents = result?.data?.content || result?.data || [];
+        const events = Array.isArray(rawEvents) ? rawEvents : [];
+        const upcoming = events
+          .filter((evt: any) => {
+            const s = (evt.eventStatus || evt.status || '').toUpperCase();
+            return s !== 'CANCELLED' && s !== 'CANCELED';
+          })
+          .map((evt: any) => ({
+            id: evt.id,
+            title: evt.title || evt.eventName || 'Untitled Event',
+            eventType: evt.eventCategory || evt.eventType || evt.title || '',
+            eventDate: evt.eventDate || '',
+            startTime: evt.startTime || '',
+            endTime: evt.endTime || '',
+            location: evt.location || '',
+            city: '',
+            country: '',
+            address: '',
+          }));
+        setRebookEvents(upcoming);
+      } catch (err) {
+        console.error('Failed to fetch events for rebook:', err);
+        setRebookEvents([]);
+      } finally {
+        setRebookEventsLoading(false);
+      }
+    };
+
+    fetchRebookEvents();
+  }, [showRebookModal, token]);
+
+  // Fetch photographer packages when rebook modal opens
+  useEffect(() => {
+    if (!showRebookModal || !rebookPhotographer || !token) return;
+
+    const fetchPackages = async () => {
+      setRebookPackagesLoading(true);
+      setRebookPackagesError(null);
+      try {
+        const apiUrl = getApiUrl();
+        const response = await dashboardAuthFetch(`${apiUrl}/api/remote/public/photographers/${rebookPhotographer.id}/packages`);
+        if (!response.ok) throw new Error('Failed to fetch packages');
+        const result = await response.json();
+        const pkgs = result?.data || result || [];
+        setRebookPackages(Array.isArray(pkgs) ? pkgs : []);
+      } catch (err) {
+        console.error('Failed to fetch photographer packages:', err);
+        setRebookPackagesError('Could not load packages');
+        setRebookPackages([]);
+      } finally {
+        setRebookPackagesLoading(false);
+      }
+    };
+
+    fetchPackages();
+  }, [showRebookModal, rebookPhotographer, token]);
+
+  const handleRebookEventSelect = (eventId: string) => {
+    setSelectedRebookEventId(eventId);
+    if (!eventId) {
+      // Cleared selection — reset fields
+      setRebookEventType('');
+      setRebookDate('');
+      setRebookTime('');
+      setRebookLocation('');
+      return;
+    }
+    const evt = rebookEvents.find(e => e.id === eventId);
+    if (!evt) return;
+    setRebookEventType(evt.eventType || '');
+    setRebookDate(evt.eventDate || '');
+    setRebookTime(evt.startTime || '');
+    setRebookLocation(evt.location || '');
+  };
+
+  const toggleFavorite = async (id: string) => {
+    const photographer = photographers.find(p => p.id === id);
+    if (!photographer) return;
+    const willFavorite = !photographer.isFavorite;
     setPhotographers(prev => prev.map(p =>
-      p.id === id ? { ...p, isFavorite: !p.isFavorite } : p
+      p.id === id ? { ...p, isFavorite: willFavorite } : p
     ));
+    try {
+      const apiUrl = getApiUrl();
+      // Bookmark endpoints are under /customer/ for all roles (no role restriction)
+      const endpoint = willFavorite
+        ? `${apiUrl}/api/remote/customer/photographers/bookmark/${id}`
+        : `${apiUrl}/api/remote/customer/photographers/unbookmark/${id}`;
+      const res = await dashboardAuthFetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.message || 'Bookmark failed');
+      }
+    } catch (err) {
+      console.error('Failed to toggle favorite:', err);
+      setPhotographers(prev => prev.map(p =>
+        p.id === id ? { ...p, isFavorite: !willFavorite } : p
+      ));
+    }
   };
 
   const handleContextMenu = (e: React.MouseEvent, photographer: BookedPhotographer) => {
@@ -648,29 +704,64 @@ const BookedPhotographersPage = () => {
     );
   };
 
-  const submitReview = () => {
-    if (reviewPhotographer) {
-      // Save the review first
+  const submitReview = async () => {
+    if (!reviewPhotographer) return;
+
+    if (!selectedReviewEventId) {
+      setReviewError('Please select an event to review');
+      return;
+    }
+
+    if (!reviewText.trim()) {
+      setReviewError('Please write a review comment');
+      return;
+    }
+
+    setIsSubmittingReview(true);
+    setReviewError(null);
+
+    try {
+      const apiUrl = getApiUrl();
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer-reviews`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventId: selectedReviewEventId,
+          rating: reviewRating,
+          comment: reviewText,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => '');
+        throw new Error(errorText || `Failed to submit review: ${response.status}`);
+      }
+
+      // Update local state
       setPhotographers(prev => prev.map(p =>
         p.id === reviewPhotographer.id
-          ? {
-              ...p,
-              myRating: reviewRating,
-              myReview: reviewText
-            }
+          ? { ...p, myRating: reviewRating, myReview: reviewText }
           : p
       ));
 
       // Store photographer for tip flow
       setPendingReviewPhotographer(reviewPhotographer);
 
-      // Close review modal
+      // Close review modal and reset
       setShowReviewModal(false);
       setReviewRating(5);
       setReviewText('');
+      setSelectedReviewEventId('');
+      setReviewEvents([]);
+      setReviewError(null);
 
       // Show tip prompt modal
       setShowTipPromptModal(true);
+    } catch (err) {
+      console.error('Submit review error:', err);
+      setReviewError(err instanceof Error ? err.message : 'Failed to submit review');
+    } finally {
+      setIsSubmittingReview(false);
     }
   };
 
@@ -688,25 +779,63 @@ const BookedPhotographersPage = () => {
 
   const handleSendTip = () => {
     setShowTipSelectionModal(false);
-    setShowTipDonatePromptModal(true);
+    setShowTipPaymentModal(true);
   };
 
-  const handleTipPaymentComplete = () => {
+  const handleTipPaymentComplete = async () => {
     if (pendingReviewPhotographer) {
       const finalTipAmount = tipAmount === 'custom' ? parseFloat(customTipAmount) || 0 : (tipAmount as number) || 0;
 
-      // Update photographer's total spent
-      setPhotographers(prev => prev.map(p =>
-        p.id === pendingReviewPhotographer.id
-          ? { ...p, totalSpent: p.totalSpent + finalTipAmount }
-          : p
-      ));
+      // Find an eventId from the photographer's bookings
+      const completedBooking = pendingReviewPhotographer.bookings?.find(b => b.status === 'completed');
+      const eventId = completedBooking?.id;
+
+      let tipRecorded = false;
+      if (eventId && finalTipAmount > 0) {
+        try {
+          const apiUrl = getApiUrl();
+          const tipDonationValue = tipDonationAmount === 'custom' ? (parseFloat(tipCustomDonation) || 0) : (parseFloat(tipDonationAmount) || 0);
+          const params = new URLSearchParams({
+            recipientId: pendingReviewPhotographer.id,
+            eventId,
+            amount: finalTipAmount.toString(),
+            ...(currencyId ? { currencyId } : {}),
+            ...(tipDonationValue > 0 ? { donationAmount: tipDonationValue.toString() } : {}),
+          });
+          const res = await dashboardAuthFetch(
+            `${apiUrl}/api/remote/payments/record-tip?${params.toString()}`,
+            { method: 'POST', headers: { 'Content-Type': 'application/json' } }
+          );
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.message || 'Failed to record tip');
+          }
+          tipRecorded = true;
+        } catch (err) {
+          console.error('Failed to record tip:', err);
+        }
+      }
+
+      // Only update local total spent if tip was successfully recorded
+      if (tipRecorded) {
+        setPhotographers(prev => prev.map(p =>
+          p.id === pendingReviewPhotographer.id
+            ? { ...p, totalSpent: p.totalSpent + finalTipAmount }
+            : p
+        ));
+      }
 
       setShowTipPaymentModal(false);
       setTipAmount('');
       setCustomTipAmount('');
       setSelectedTipPaymentMethod('card');
-      setSuccessMessage('Review submitted successfully!');
+      if (tipRecorded) {
+        setSuccessMessage('Review and tip submitted successfully!');
+      } else if (finalTipAmount > 0) {
+        setSuccessMessage('Review submitted, but the tip could not be processed. Please try tipping from the photographer\'s profile.');
+      } else {
+        setSuccessMessage('Review submitted successfully!');
+      }
       setShowSuccessModal(true);
       setPendingReviewPhotographer(null);
     }
@@ -717,9 +846,125 @@ const BookedPhotographersPage = () => {
     setSuccessMessage('');
   };
 
-  // Check if photographer has any completed events (reviews only allowed for past events)
+  // --- Send rebook request (both client and coordinator) ---
+  const handleSendBookingRequest = async () => {
+    if (!rebookPhotographer) return;
+
+    if (!rebookPackageId) {
+      setRebookError('Please select a photographer package');
+      return;
+    }
+
+    if (!rebookEventType || !rebookDate || !rebookTime || !rebookLocation) {
+      setRebookError('Please fill in all required fields');
+      return;
+    }
+
+    setIsSubmittingRebook(true);
+    setRebookError(null);
+
+    try {
+      const apiUrl = getApiUrl();
+      const rebookNs = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/${rebookNs}/rebook`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...(selectedRebookEventId ? { eventId: selectedRebookEventId } : {}),
+          title: selectedRebookEventId
+            ? (rebookEvents.find(e => e.id === selectedRebookEventId)?.title || `${rebookEventType} - ${rebookPhotographer.firstName} ${rebookPhotographer.lastName}`.trim())
+            : `${rebookEventType} - ${rebookPhotographer.firstName} ${rebookPhotographer.lastName}`.trim(),
+          photographerId: rebookPhotographer.id,
+          packageId: rebookPackageId,
+          eventType: rebookEventType,
+          eventDate: rebookDate,
+          startTime: rebookTime,
+          endTime: rebookTime,
+          location: rebookLocation,
+          notes: rebookNotes,
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok || result.action === 0) {
+        throw new Error(result.message || 'Failed to send booking request');
+      }
+
+      // Reset form & close modal
+      setShowRebookModal(false);
+      setRebookEventType('');
+      setRebookDate('');
+      setRebookTime('');
+      setRebookLocation('');
+      setRebookNotes('');
+      setRebookPhotographer(null);
+      setSelectedRebookEventId('');
+      setRebookEvents([]);
+      setRebookPackages([]);
+      setRebookPackageId('');
+      setRebookPackagesError(null);
+
+      setSuccessMessage('Booking request sent successfully!');
+      setShowSuccessModal(true);
+    } catch (err) {
+      console.error('Rebook error:', err);
+      setRebookError(err instanceof Error ? err.message : 'Failed to send booking request');
+    } finally {
+      setIsSubmittingRebook(false);
+    }
+  };
+
+  // --- Invite photographer by email (coordinator + client) ---
+  const inviteLink = `https://connekt.app/invite/photographer/${user?.id || ''}`;
+
+  const handleInvitePhotographer = async () => {
+    if (!inviteEmail.trim()) {
+      setInviteError('Please enter a valid email address');
+      return;
+    }
+
+    setIsSendingInvite(true);
+    setInviteError(null);
+
+    try {
+      const apiUrl = getApiUrl();
+      const rolePrefix = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
+      const response = await dashboardAuthFetch(
+        `${apiUrl}/api/remote/${rolePrefix}/photographers/invite?email=${encodeURIComponent(inviteEmail.trim())}`,
+        { method: 'POST' }
+      );
+
+      const result = await response.json();
+      if (!response.ok || result.action === 0) {
+        throw new Error(result.message || 'Failed to invite photographer');
+      }
+
+      setInviteEmail('');
+      setInviteError(null);
+      setShowInviteModal(false);
+      setSuccessMessage('Invitation sent successfully!');
+      setShowSuccessModal(true);
+    } catch (err) {
+      console.error('Invite photographer error:', err);
+      setInviteError(err instanceof Error ? err.message : 'Failed to invite photographer');
+    } finally {
+      setIsSendingInvite(false);
+    }
+  };
+
+  const handleCopyInviteLink = () => {
+    navigator.clipboard.writeText(inviteLink);
+    setInviteCopied(true);
+    setTimeout(() => setInviteCopied(false), 2000);
+  };
+
+  // Allow reviews only for photographers with completed events
   const hasCompletedEvent = (photographer: BookedPhotographer) => {
-    return photographer.bookings.some(booking => booking.status === 'completed');
+    if (photographer.completedBookings > 0) return true;
+    return photographer.bookings.some(booking => {
+      const s = (booking.status || '').toUpperCase();
+      return s === 'COMPLETED';
+    });
   };
 
   // Close context menu when clicking outside
@@ -730,7 +975,7 @@ const BookedPhotographersPage = () => {
   }, []);
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary, overflow: 'hidden', width: '100%', maxWidth: '100vw' }}>
       <style>{`
         @media (max-width: 768px) {
           .mobile-header {
@@ -745,8 +990,15 @@ const BookedPhotographersPage = () => {
             font-size: 0.85rem !important;
           }
           .mobile-header-actions {
-            flex-direction: column !important;
-            gap: 0.75rem !important;
+            flex-direction: row !important;
+            flex-wrap: wrap !important;
+            gap: 0.5rem !important;
+          }
+          .mobile-header-actions select {
+            min-height: 40px !important;
+          }
+          .mobile-header-actions button {
+            min-height: 40px !important;
           }
           .mobile-stats-grid {
             grid-template-columns: repeat(2, 1fr) !important;
@@ -762,25 +1014,51 @@ const BookedPhotographersPage = () => {
             font-size: 1.2rem !important;
           }
           .mobile-tabs {
-            flex-wrap: wrap !important;
-            gap: 0.5rem !important;
+            overflow-x: auto !important;
+            flex-wrap: nowrap !important;
+            width: 100% !important;
+            -webkit-overflow-scrolling: touch;
+            -ms-overflow-style: none !important;
+            scrollbar-width: none !important;
+            padding-bottom: 0.25rem !important;
+          }
+          .mobile-tabs::-webkit-scrollbar {
+            display: none !important;
+          }
+          .mobile-tabs button {
+            flex-shrink: 0 !important;
+            white-space: nowrap !important;
+            min-height: 40px !important;
           }
           .mobile-search-filters {
             flex-direction: column !important;
             gap: 0.75rem !important;
           }
+          .mobile-search-filters input {
+            min-height: 44px !important;
+          }
           .mobile-filter-buttons {
             overflow-x: auto !important;
             flex-wrap: nowrap !important;
             -webkit-overflow-scrolling: touch;
+            -ms-overflow-style: none !important;
+            scrollbar-width: none !important;
+          }
+          .mobile-filter-buttons::-webkit-scrollbar {
+            display: none !important;
+          }
+          .mobile-filter-buttons button {
+            flex-shrink: 0 !important;
+            min-height: 40px !important;
           }
           .mobile-photographers-grid {
             grid-template-columns: 1fr !important;
             gap: 1rem !important;
           }
           .mobile-main-content {
-            padding: 0.75rem !important;
+            padding: 1rem !important;
             padding-bottom: 8rem !important;
+            overflow-x: hidden !important;
           }
         }
         @media (max-width: 640px) {
@@ -803,14 +1081,55 @@ const BookedPhotographersPage = () => {
             font-size: 1.1rem !important;
           }
           .mobile-main-content {
-            padding: 0.5rem !important;
+            padding: 0.75rem !important;
             padding-bottom: 10rem !important;
+          }
+          .mobile-tabs button {
+            font-size: 0.8rem !important;
+            padding: 0.4rem 0.75rem !important;
+          }
+          .mobile-tabs button span {
+            font-size: 0.65rem !important;
+          }
+        }
+        @media (max-width: 375px) {
+          .mobile-main-content {
+            padding: 0.5rem !important;
+            padding-bottom: 8rem !important;
+          }
+          .mobile-title {
+            font-size: 1.2rem !important;
+          }
+          .mobile-subtitle {
+            font-size: 0.75rem !important;
+          }
+          .mobile-tabs button {
+            font-size: 0.75rem !important;
+            padding: 0.35rem 0.5rem !important;
+            min-height: 36px !important;
+          }
+          .mobile-tabs button span {
+            font-size: 0.6rem !important;
+            padding: 0.1rem 0.35rem !important;
+          }
+          .mobile-header-actions select {
+            font-size: 0.8rem !important;
+            padding: 0.4rem 1.5rem 0.4rem 0.5rem !important;
+          }
+          .mobile-stats-grid > div {
+            padding: 0.5rem !important;
+          }
+          .mobile-stats-grid > div > div:first-child {
+            font-size: 0.65rem !important;
+          }
+          .mobile-stats-grid > div > div:last-child {
+            font-size: 1rem !important;
           }
         }
       `}</style>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar userRole="client" giftAmount={225.00} />
+        <Topbar userRole={userRole} />
         <div className="mobile-main-content" style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
 
           {/* Header */}
@@ -822,6 +1141,29 @@ const BookedPhotographersPage = () => {
               </p>
             </div>
             <div className="mobile-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              {/* Invite Photographer */}
+              {(userRole === 'event-coordinator' || userRole === 'client') && (
+                <button
+                  onClick={() => { setShowInviteModal(true); setInviteEmail(''); setInviteError(null); setInviteCopied(false); }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.5rem 1rem',
+                    backgroundColor: '#F20C8F',
+                    color: 'white',
+                    border: '2px solid #c00a72',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.9rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  <MessageIcon />
+                  Invite New
+                </button>
+              )}
               {/* Sort Dropdown */}
               <div style={{ position: 'relative' }}>
                 <select
@@ -834,7 +1176,7 @@ const BookedPhotographersPage = () => {
                   style={{
                     appearance: 'none',
                     backgroundColor: colors.bgCard,
-                    border: `1px solid ${colors.borderPrimary}`,
+                    border: `2px solid ${colors.borderPrimary}`,
                     borderRadius: '0.5rem',
                     padding: '0.5rem 2rem 0.5rem 0.75rem',
                     fontSize: '0.9rem',
@@ -894,35 +1236,35 @@ const BookedPhotographersPage = () => {
 
           {/* Stats Cards */}
           <div className="mobile-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', borderTop: `2px solid ${colors.borderPrimary}`, borderRight: `2px solid ${colors.borderPrimary}`, borderBottom: `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #083A85' }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Photographers</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{photographers.length}</div>
             </div>
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', borderTop: `2px solid ${colors.borderPrimary}`, borderRight: `2px solid ${colors.borderPrimary}`, borderBottom: `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #3B82F6' }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Bookings</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
                 {photographers.reduce((sum, p) => sum + p.totalBookingsWithClient, 0)}
               </div>
             </div>
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', borderTop: `2px solid ${colors.borderPrimary}`, borderRight: `2px solid ${colors.borderPrimary}`, borderBottom: `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #10B981' }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Spent</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
-                ${photographers.reduce((sum, p) => sum + p.totalSpent, 0).toLocaleString()}
+                {formatPrice(photographers.reduce((sum, p) => sum + p.totalSpent, 0))}
               </div>
             </div>
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', borderTop: `2px solid ${colors.borderPrimary}`, borderRight: `2px solid ${colors.borderPrimary}`, borderBottom: `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #F20C8F' }}>
               <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Favorites</div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#F20C8F' }}>
                 {photographers.filter(p => p.isFavorite).length}
               </div>
             </div>
-            <div style={{ backgroundColor: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#450A0A' : '#FEF2F2') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: totalPendingAmount > 0 ? `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}` : `1px solid ${colors.borderPrimary}` }}>
+            <div style={{ backgroundColor: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#450A0A' : '#FEF2F2') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', borderTop: totalPendingAmount > 0 ? `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}` : `2px solid ${colors.borderPrimary}`, borderRight: totalPendingAmount > 0 ? `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}` : `2px solid ${colors.borderPrimary}`, borderBottom: totalPendingAmount > 0 ? `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}` : `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #DC2626' }}>
               <div style={{ fontSize: '0.85rem', color: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#FCA5A5' : '#B91C1C') : colors.textSecondary, marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 {totalPendingAmount > 0 && <AlertCircleIcon />}
                 Pending Payments
               </div>
               <div style={{ fontSize: '1.5rem', fontWeight: '700', color: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#FCA5A5' : '#DC2626') : colors.textSecondary }}>
-                ${totalPendingAmount.toLocaleString()}
+                {formatPrice(totalPendingAmount)}
               </div>
             </div>
           </div>
@@ -984,7 +1326,7 @@ const BookedPhotographersPage = () => {
                 style={{
                   width: '100%',
                   padding: '0.75rem 1rem 0.75rem 2.75rem',
-                  border: `1px solid ${colors.borderPrimary}`,
+                  border: `2px solid ${colors.borderPrimary}`,
                   borderRadius: '0.5rem',
                   fontSize: '0.95rem',
                   fontWeight: '500',
@@ -1003,7 +1345,7 @@ const BookedPhotographersPage = () => {
                 gap: '0.5rem',
                 backgroundColor: showFilters ? '#083A85' : colors.bgCard,
                 color: showFilters ? 'white' : '#6B7280',
-                border: `1px solid ${colors.borderPrimary}`,
+                border: `2px solid ${colors.borderPrimary}`,
                 borderRadius: '0.5rem',
                 padding: '0.75rem 1rem',
                 fontSize: '0.9rem',
@@ -1017,7 +1359,7 @@ const BookedPhotographersPage = () => {
 
           {/* Filter Tags */}
           {showFilters && (
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap', backgroundColor: colors.bgCard, padding: '1rem', borderRadius: '0.5rem', border: `1px solid ${colors.borderPrimary}` }}>
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap', backgroundColor: colors.bgCard, padding: '1rem', borderRadius: '0.5rem', border: `2px solid ${colors.borderPrimary}` }}>
               <div style={{ flex: 1 }}>
                 <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.5rem', display: 'block' }}>Event Type</span>
                 <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap' }}>
@@ -1027,7 +1369,7 @@ const BookedPhotographersPage = () => {
                       onClick={() => setSelectedSpecialization(selectedSpecialization === spec ? null : spec)}
                       style={{
                         padding: '0.375rem 0.75rem',
-                        border: selectedSpecialization === spec ? '1px solid #083A85' : `1px solid ${colors.borderPrimary}`,
+                        border: selectedSpecialization === spec ? '1px solid #083A85' : `2px solid ${colors.borderPrimary}`,
                         borderRadius: '9999px',
                         fontSize: '0.8rem',
                         cursor: 'pointer',
@@ -1069,7 +1411,7 @@ const BookedPhotographersPage = () => {
 
           {/* Photographers Grid/List */}
           {filteredPhotographers.length === 0 ? (
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '3rem', textAlign: 'center', border: `1px solid ${colors.borderPrimary}` }}>
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '3rem', textAlign: 'center', border: `2px solid ${colors.borderPrimary}` }}>
               <CameraIcon />
               <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, marginTop: '1rem' }}>No photographers found</h3>
               <p style={{ fontSize: '0.9rem', color: colors.textSecondary, marginTop: '0.5rem' }}>
@@ -1105,22 +1447,11 @@ const BookedPhotographersPage = () => {
                   }}
                 >
                   {/* Cover Image with overlay */}
-                  <div style={{ position: 'relative', height: '160px' }}>
-                    <div style={{
-                      width: '100%',
-                      height: '160px',
-                      backgroundImage: `url(${photographer.coverImage})`,
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                      borderRadius: '1rem 1rem 0 0'
-                    }}>
-                      <div style={{
-                        position: 'absolute',
-                        inset: 0,
-                        backgroundColor: 'rgba(13, 27, 42, 0.3)',
-                        borderRadius: '1rem 1rem 0 0'
-                      }} />
-                    </div>
+                  <div style={{ position: 'relative', height: '160px', backgroundColor: photographer.coverImage ? 'transparent' : '#0D1B2A' }}>
+                    <img src={photographer.coverImage || '/coverr.jpg'} alt={photographer.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: photographer.coverImage ? 'cover' : 'contain', objectPosition: 'center', borderRadius: '1rem 1rem 0 0' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; (e.currentTarget as HTMLImageElement).style.objectFit = 'contain'; const p = e.currentTarget.parentElement; if (p) p.style.backgroundColor = '#0D1B2A'; }} />
+                    {photographer.coverImage && (
+                      <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(13, 27, 42, 0.3)', borderRadius: '1rem 1rem 0 0' }} />
+                    )}
                     {/* Bookings Badge */}
                     <div style={{
                       position: 'absolute',
@@ -1166,20 +1497,17 @@ const BookedPhotographersPage = () => {
                       left: '20px',
                       width: '70px',
                       height: '70px',
-                      zIndex: 10
+                      zIndex: 10,
                     }}>
-                      <img
-                        src={photographer.profileImage}
-                        alt={photographer.firstName}
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          borderRadius: '50%',
-                          border: '2px solid white',
-                          objectFit: 'cover',
-                          objectPosition: 'center'
-                        }}
-                      />
+                      <div style={{ width: '70px', height: '70px', borderRadius: '50%', border: '2px solid white', backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
+                        <svg width="38" height="38" viewBox="0 0 24 24" fill="none">
+                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                        </svg>
+                        {photographer.profileImage && (
+                          <img src={photographer.profileImage} alt={photographer.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                        )}
+                      </div>
                       {photographer.verified && (
                         <div style={{
                           position: 'absolute',
@@ -1255,7 +1583,7 @@ const BookedPhotographersPage = () => {
                                 </span>
                               </div>
                               <button
-                                onClick={(e) => { e.stopPropagation(); setPaymentBooking({ photographer, booking }); setShowPaymentDonatePromptModal(true); }}
+                                onClick={(e) => { e.stopPropagation(); setPaymentBooking({ photographer, booking }); setShowPaymentModal(true); }}
                                 style={{
                                   backgroundColor: booking.paymentStatus === 'failed' ? '#F20C8F' : '#083A85',
                                   color: 'white',
@@ -1270,7 +1598,7 @@ const BookedPhotographersPage = () => {
                                   gap: '0.25rem'
                                 }}
                               >
-                                {booking.paymentStatus === 'failed' ? <><RefreshIcon /> Retry</> : <><CreditCardIcon /> Pay ${amountDue}</>}
+                                {booking.paymentStatus === 'failed' ? <><RefreshIcon /> Retry</> : <><CreditCardIcon /> Pay {formatPrice(amountDue)}</>}
                               </button>
                             </div>
                           );
@@ -1279,10 +1607,10 @@ const BookedPhotographersPage = () => {
                     )}
 
                     {/* Price and Actions */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', paddingTop: '1rem', borderTop: `1px solid ${colors.borderPrimary}` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', paddingTop: '1rem', borderTop: `2px solid ${colors.borderPrimary}` }}>
                       <div>
                         <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Total Spent</span>
-                        <div style={{ fontSize: '1.1rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>${photographer.totalSpent}</div>
+                        <div style={{ fontSize: '1.1rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{formatPrice(photographer.totalSpent)}</div>
                       </div>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                         {hasCompletedEvent(photographer) && (
@@ -1316,7 +1644,7 @@ const BookedPhotographersPage = () => {
                           </button>
                         )}
                         <button
-                          onClick={(e) => { e.stopPropagation(); setRebookPhotographer(photographer); setShowRebookModal(true); }}
+                          onClick={(e) => { e.stopPropagation(); setRebookPhotographer(photographer); setSelectedRebookEventId(''); setRebookEventType(''); setRebookDate(''); setRebookTime(''); setRebookLocation(''); setRebookNotes(''); setShowRebookModal(true); }}
                           style={{
                             backgroundColor: '#F20C8F',
                             color: 'white',
@@ -1349,7 +1677,7 @@ const BookedPhotographersPage = () => {
                     display: 'flex',
                     gap: '1.25rem',
                     padding: '1.25rem',
-                    borderBottom: index < filteredPhotographers.length - 1 ? `1px solid ${colors.borderPrimary}` : 'none',
+                    borderBottom: index < filteredPhotographers.length - 1 ? `2px solid ${colors.borderPrimary}` : 'none',
                     cursor: 'pointer',
                     transition: 'background-color 0.2s ease'
                   }}
@@ -1362,19 +1690,16 @@ const BookedPhotographersPage = () => {
                     e.currentTarget.style.backgroundColor = 'transparent';
                   }}
                 >
-                  <div style={{ position: 'relative', width: '70px', height: '70px' }}>
-                    <img
-                      src={photographer.profileImage}
-                      alt={photographer.firstName}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        borderRadius: '50%',
-                        border: '2px solid white',
-                        objectFit: 'cover',
-                        objectPosition: 'center'
-                      }}
-                    />
+                  <div style={{ position: 'relative', width: '70px', height: '70px', flexShrink: 0 }}>
+                    <div style={{ width: '70px', height: '70px', borderRadius: '50%', border: '2px solid white', backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
+                      <svg width="38" height="38" viewBox="0 0 24 24" fill="none">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                      </svg>
+                      {photographer.profileImage && (
+                        <img src={photographer.profileImage} alt={photographer.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                      )}
+                    </div>
                     {photographer.verified && (
                       <div style={{
                         position: 'absolute',
@@ -1447,7 +1772,7 @@ const BookedPhotographersPage = () => {
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'space-between', gap: '0.5rem' }}>
                     <div style={{ textAlign: 'right' }}>
                       <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Total Spent</span>
-                      <div style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>${photographer.totalSpent}</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{formatPrice(photographer.totalSpent)}</div>
                     </div>
                     {/* Payment Status in List View */}
                     {photographer.bookings.some(b => b.paymentStatus !== 'paid') && (
@@ -1458,7 +1783,7 @@ const BookedPhotographersPage = () => {
                           return (
                             <button
                               key={booking.id}
-                              onClick={(e) => { e.stopPropagation(); setPaymentBooking({ photographer, booking }); setShowPaymentDonatePromptModal(true); }}
+                              onClick={(e) => { e.stopPropagation(); setPaymentBooking({ photographer, booking }); setShowPaymentModal(true); }}
                               style={{
                                 backgroundColor: booking.paymentStatus === 'failed' ? '#F20C8F' : '#083A85',
                                 color: 'white',
@@ -1473,7 +1798,7 @@ const BookedPhotographersPage = () => {
                                 gap: '0.25rem'
                               }}
                             >
-                              {booking.paymentStatus === 'failed' ? <><RefreshIcon /> Retry Payment</> : <><CreditCardIcon /> Pay ${amountDue}</>}
+                              {booking.paymentStatus === 'failed' ? <><RefreshIcon /> Retry Payment</> : <><CreditCardIcon /> Pay {formatPrice(amountDue)}</>}
                             </button>
                           );
                         })}
@@ -1488,7 +1813,7 @@ const BookedPhotographersPage = () => {
                           gap: '0.375rem',
                           backgroundColor: colors.bgCard,
                           color: colors.textSecondary,
-                          border: `1px solid ${colors.borderPrimary}`,
+                          border: `2px solid ${colors.borderPrimary}`,
                           borderRadius: '0.375rem',
                           padding: '0.5rem 0.75rem',
                           fontSize: '0.85rem',
@@ -1529,7 +1854,7 @@ const BookedPhotographersPage = () => {
                         </button>
                       )}
                       <button
-                        onClick={(e) => { e.stopPropagation(); setRebookPhotographer(photographer); setShowRebookModal(true); }}
+                        onClick={(e) => { e.stopPropagation(); setRebookPhotographer(photographer); setSelectedRebookEventId(''); setRebookEventType(''); setRebookDate(''); setRebookTime(''); setRebookLocation(''); setRebookNotes(''); setShowRebookModal(true); }}
                         style={{
                           backgroundColor: '#F20C8F',
                           color: 'white',
@@ -1566,7 +1891,7 @@ const BookedPhotographersPage = () => {
             backgroundColor: colors.bgCard,
             borderRadius: '0.5rem',
             boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)',
-            border: `1px solid ${colors.borderPrimary}`,
+            border: `2px solid ${colors.borderPrimary}`,
             padding: '0.5rem 0',
             zIndex: 1000,
             minWidth: '180px'
@@ -1574,7 +1899,7 @@ const BookedPhotographersPage = () => {
           onClick={(e) => e.stopPropagation()}
         >
           {[
-            { icon: <RefreshIcon />, label: 'Rebook Photographer', action: () => { setRebookPhotographer(contextMenu.photographer); setShowRebookModal(true); } },
+            { icon: <RefreshIcon />, label: 'Rebook Photographer', action: () => { setRebookPhotographer(contextMenu.photographer); setSelectedRebookEventId(''); setRebookEventType(''); setRebookDate(''); setRebookTime(''); setRebookLocation(''); setRebookNotes(''); setShowRebookModal(true); } },
             { icon: <MessageIcon />, label: 'Send Message', action: () => {} },
             { icon: <CameraIcon />, label: 'View Profile', action: () => setSelectedPhotographer(contextMenu.photographer) },
             { icon: <HeartIcon filled={contextMenu.photographer.isFavorite} />, label: contextMenu.photographer.isFavorite ? 'Remove from Favorites' : 'Add to Favorites', action: () => toggleFavorite(contextMenu.photographer.id) },
@@ -1617,20 +1942,11 @@ const BookedPhotographersPage = () => {
         {selectedPhotographer && (
           <div>
             {/* Cover with overlay */}
-            <div style={{ position: 'relative', height: '160px', margin: '-1.5rem -1.5rem 0 -1.5rem', overflow: 'visible' }}>
-              <div style={{
-                width: '100%',
-                height: '160px',
-                backgroundImage: `url(${selectedPhotographer.coverImage})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center'
-              }}>
-                <div style={{
-                  position: 'absolute',
-                  inset: 0,
-                  backgroundColor: 'rgba(13, 27, 42, 0.3)'
-                }} />
-              </div>
+            <div style={{ position: 'relative', height: '160px', margin: '-1.5rem -1.5rem 0 -1.5rem', overflow: 'visible', backgroundColor: selectedPhotographer.coverImage ? 'transparent' : '#0D1B2A' }}>
+              <img src={selectedPhotographer.coverImage || '/coverr.jpg'} alt={selectedPhotographer.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: selectedPhotographer.coverImage ? 'cover' : 'contain', objectPosition: 'center' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; (e.currentTarget as HTMLImageElement).style.objectFit = 'contain'; const p = e.currentTarget.parentElement; if (p) p.style.backgroundColor = '#0D1B2A'; }} />
+              {selectedPhotographer.coverImage && (
+                <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(13, 27, 42, 0.3)' }} />
+              )}
               <button
                 onClick={() => setSelectedPhotographer(null)}
                 style={{
@@ -1661,18 +1977,15 @@ const BookedPhotographersPage = () => {
                 height: '70px',
                 zIndex: 10
               }}>
-                <img
-                  src={selectedPhotographer.profileImage}
-                  alt={selectedPhotographer.firstName}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    borderRadius: '50%',
-                    border: '2px solid white',
-                    objectFit: 'cover',
-                    objectPosition: 'center'
-                  }}
-                />
+                <div style={{ width: '70px', height: '70px', borderRadius: '50%', border: '2px solid white', backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
+                  <svg width="38" height="38" viewBox="0 0 24 24" fill="none">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                  </svg>
+                  {selectedPhotographer.profileImage && (
+                    <img src={selectedPhotographer.profileImage} alt={selectedPhotographer.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                  )}
+                </div>
                 {selectedPhotographer.verified && (
                   <div style={{
                     position: 'absolute',
@@ -1717,7 +2030,7 @@ const BookedPhotographersPage = () => {
                   <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Bookings</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: '700', color: colors.textPrimary }}>${selectedPhotographer.totalSpent}</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: '700', color: colors.textPrimary }}>{formatPrice(selectedPhotographer.totalSpent)}</div>
                   <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Total Spent</div>
                 </div>
                 <div>
@@ -1846,7 +2159,7 @@ const BookedPhotographersPage = () => {
                 </button>
               )}
               <button
-                onClick={() => { setRebookPhotographer(selectedPhotographer); setShowRebookModal(true); setSelectedPhotographer(null); }}
+                onClick={() => { setRebookPhotographer(selectedPhotographer); setSelectedRebookEventId(''); setRebookEventType(''); setRebookDate(''); setRebookTime(''); setRebookLocation(''); setRebookNotes(''); setShowRebookModal(true); setSelectedPhotographer(null); }}
                 style={{
                   flex: 1,
                   backgroundColor: '#F20C8F',
@@ -1864,7 +2177,7 @@ const BookedPhotographersPage = () => {
                 }}
               >
                 <RefreshIcon />
-                Rebook - ${selectedPhotographer.startingPrice}
+                Rebook - {formatPrice(selectedPhotographer.startingPrice)}
               </button>
             </div>
           </div>
@@ -1882,18 +2195,15 @@ const BookedPhotographersPage = () => {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem', padding: '0.75rem', backgroundColor: actualTheme === 'dark' ? '#831843' : '#FDF2F8', borderRadius: '0.5rem' }}>
               <div style={{ position: 'relative', width: '48px', height: '48px', flexShrink: 0 }}>
-                <img
-                  src={rebookPhotographer.profileImage}
-                  alt={rebookPhotographer.firstName}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    borderRadius: '50%',
-                    border: '2px solid white',
-                    objectFit: 'cover',
-                    objectPosition: 'center'
-                  }}
-                />
+                <div style={{ width: '48px', height: '48px', borderRadius: '50%', border: '2px solid white', backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                  </svg>
+                  {rebookPhotographer.profileImage && (
+                    <img src={rebookPhotographer.profileImage} alt={rebookPhotographer.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                  )}
+                </div>
                 {rebookPhotographer.verified && (
                   <div style={{
                     position: 'absolute',
@@ -1926,23 +2236,116 @@ const BookedPhotographersPage = () => {
               <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{rebookPhotographer.lastEventType} • {formatDate(rebookPhotographer.lastBookingDate)}</div>
             </div>
 
+            {/* Package Selection */}
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+                Select a Package <span style={{ color: '#EF4444' }}>*</span>
+              </label>
+              {rebookPackagesLoading ? (
+                <div style={{ textAlign: 'center', padding: '1rem', color: colors.textSecondary, fontSize: '0.85rem' }}>Loading packages...</div>
+              ) : rebookPackagesError ? (
+                <div style={{ color: '#EF4444', fontSize: '0.85rem', padding: '0.5rem 0.75rem', backgroundColor: '#FEF2F2', borderRadius: '0.375rem' }}>{rebookPackagesError}</div>
+              ) : rebookPackages.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '1rem', color: colors.textSecondary, fontSize: '0.85rem' }}>No packages available</div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem' }}>
+                  {rebookPackages.map((pkg: any) => {
+                    const isSelected = rebookPackageId === pkg.id;
+                    return (
+                      <div
+                        key={pkg.id}
+                        onClick={() => setRebookPackageId(pkg.id)}
+                        style={{
+                          border: `2px solid ${isSelected ? '#F20C8F' : colors.borderPrimary}`,
+                          borderRadius: '0.5rem',
+                          padding: '0.75rem',
+                          cursor: 'pointer',
+                          backgroundColor: isSelected ? (actualTheme === 'dark' ? '#831843' : '#FDF2F8') : colors.bgCard,
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <div style={{ fontWeight: '600', fontSize: '0.9rem', color: colors.textPrimary, marginBottom: '0.25rem' }}>
+                          {pkg.packageName || pkg.name}
+                        </div>
+                        <div style={{ fontWeight: '700', fontSize: '1rem', color: '#F20C8F', marginBottom: '0.25rem' }}>
+                          {pkg.currency?.symbol || pkg.currencySymbol || ''}{pkg.price}
+                          <span style={{ fontWeight: '400', fontSize: '0.8rem', color: colors.textSecondary, marginLeft: '0.25rem' }}>
+                            {pkg.currency?.abbreviation || pkg.currencyAbbreviation || ''}
+                          </span>
+                        </div>
+                        {(pkg.durationHours || pkg.duration) && (
+                          <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{pkg.durationHours || pkg.duration} hours</div>
+                        )}
+                        {pkg.description && (
+                          <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginTop: '0.25rem', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any }}>
+                            {pkg.description}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Assign to existing event */}
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+                Assign to Existing Event
+              </label>
+              <select
+                value={selectedRebookEventId}
+                onChange={(e) => handleRebookEventSelect(e.target.value)}
+                disabled={rebookEventsLoading}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: `2px solid ${selectedRebookEventId ? '#F20C8F' : colors.borderPrimary}`,
+                  borderRadius: '0.5rem',
+                  fontSize: '0.9rem',
+                  backgroundColor: colors.bgCard,
+                  color: colors.textPrimary,
+                  cursor: rebookEventsLoading ? 'wait' : 'pointer'
+                }}
+              >
+                <option value="">{rebookEventsLoading ? 'Loading events...' : '-- Select an event or fill manually --'}</option>
+                {rebookEvents.map(evt => (
+                  <option key={evt.id} value={evt.id}>
+                    {evt.title}{evt.eventDate ? ` — ${evt.eventDate}` : ''}
+                  </option>
+                ))}
+              </select>
+              {selectedRebookEventId && (
+                <div style={{ fontSize: '0.8rem', color: '#F20C8F', marginTop: '0.375rem' }}>
+                  Fields auto-filled from selected event. You can still edit them below.
+                </div>
+              )}
+            </div>
+
+            <div style={{ height: '1px', backgroundColor: colors.borderPrimary, margin: '0.75rem 0 1rem' }} />
+
             <div style={{ marginBottom: '1rem' }}>
               <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
                 Event Type
               </label>
-              <select style={{
-                width: '100%',
-                padding: '0.75rem',
-                border: `2px solid ${colors.borderPrimary}`,
-                borderRadius: '0.5rem',
-                fontSize: '0.9rem',
-                backgroundColor: colors.bgCard,
-                color: colors.textPrimary,
-                cursor: 'pointer'
-              }}>
-                <option>Select event type</option>
-                {rebookPhotographer.specializations.map(s => <option key={s}>{s}</option>)}
-              </select>
+              <input
+                list="rebook-event-types"
+                value={rebookEventType}
+                onChange={(e) => setRebookEventType(e.target.value)}
+                placeholder="Enter or select event type"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: `2px solid ${colors.borderPrimary}`,
+                  borderRadius: '0.5rem',
+                  fontSize: '0.9rem',
+                  backgroundColor: colors.bgCard,
+                  color: colors.textPrimary,
+                }}
+              />
+              <datalist id="rebook-event-types">
+                {rebookPhotographer.specializations.map(s => <option key={s} value={s} />)}
+              </datalist>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
@@ -1952,6 +2355,8 @@ const BookedPhotographersPage = () => {
                 </label>
                 <input
                   type="date"
+                  value={rebookDate}
+                  onChange={(e) => setRebookDate(e.target.value)}
                   style={{
                     width: '100%',
                     padding: '0.75rem',
@@ -1969,6 +2374,8 @@ const BookedPhotographersPage = () => {
                 </label>
                 <input
                   type="time"
+                  value={rebookTime}
+                  onChange={(e) => setRebookTime(e.target.value)}
                   style={{
                     width: '100%',
                     padding: '0.75rem',
@@ -1989,6 +2396,8 @@ const BookedPhotographersPage = () => {
               <input
                 type="text"
                 placeholder="Enter event location"
+                value={rebookLocation}
+                onChange={(e) => setRebookLocation(e.target.value)}
                 style={{
                   width: '100%',
                   padding: '0.75rem',
@@ -2006,6 +2415,8 @@ const BookedPhotographersPage = () => {
               </label>
               <textarea
                 placeholder="Any special requirements or details..."
+                value={rebookNotes}
+                onChange={(e) => setRebookNotes(e.target.value)}
                 style={{
                   width: '100%',
                   padding: '0.75rem',
@@ -2019,9 +2430,16 @@ const BookedPhotographersPage = () => {
               />
             </div>
 
+            {rebookError && (
+              <div style={{ color: '#EF4444', fontSize: '0.85rem', marginBottom: '0.75rem', padding: '0.5rem 0.75rem', backgroundColor: '#FEF2F2', borderRadius: '0.375rem' }}>
+                {rebookError}
+              </div>
+            )}
+
             <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '4rem' }}>
               <button
-                onClick={() => setShowRebookModal(false)}
+                onClick={() => { setShowRebookModal(false); setRebookError(null); }}
+                disabled={isSubmittingRebook}
                 style={{
                   flex: 1,
                   padding: '0.75rem 1rem',
@@ -2031,12 +2449,15 @@ const BookedPhotographersPage = () => {
                   color: colors.textPrimary,
                   fontSize: '0.9rem',
                   fontWeight: '600',
-                  cursor: 'pointer'
+                  cursor: isSubmittingRebook ? 'not-allowed' : 'pointer',
+                  opacity: isSubmittingRebook ? 0.6 : 1
                 }}
               >
                 Cancel
               </button>
               <button
+                onClick={handleSendBookingRequest}
+                disabled={isSubmittingRebook}
                 style={{
                   flex: 1,
                   padding: '0.75rem 1rem',
@@ -2046,7 +2467,8 @@ const BookedPhotographersPage = () => {
                   color: 'white',
                   fontSize: '0.9rem',
                   fontWeight: '600',
-                  cursor: 'pointer',
+                  cursor: isSubmittingRebook ? 'not-allowed' : 'pointer',
+                  opacity: isSubmittingRebook ? 0.7 : 1,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -2054,7 +2476,7 @@ const BookedPhotographersPage = () => {
                 }}
               >
                 <CheckIcon />
-                Send Booking Request
+                {isSubmittingRebook ? 'Sending...' : 'Send Booking Request'}
               </button>
             </div>
           </div>
@@ -2064,25 +2486,27 @@ const BookedPhotographersPage = () => {
       {/* Review Modal */}
       <Modal
         isOpen={showReviewModal}
-        onClose={() => setShowReviewModal(false)}
+        onClose={() => {
+          setShowReviewModal(false);
+          setSelectedReviewEventId('');
+          setReviewEvents([]);
+          setReviewError(null);
+        }}
         title={reviewPhotographer?.myReview ? 'Edit Your Review' : 'Leave a Review'}
       >
         {reviewPhotographer && (
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
               <div style={{ position: 'relative', width: '48px', height: '48px', flexShrink: 0 }}>
-                <img
-                  src={reviewPhotographer.profileImage}
-                  alt={reviewPhotographer.firstName}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    borderRadius: '50%',
-                    border: '2px solid white',
-                    objectFit: 'cover',
-                    objectPosition: 'center'
-                  }}
-                />
+                <div style={{ width: '48px', height: '48px', borderRadius: '50%', border: '2px solid white', backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                  </svg>
+                  {reviewPhotographer.profileImage && (
+                    <img src={reviewPhotographer.profileImage} alt={reviewPhotographer.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                  )}
+                </div>
                 {reviewPhotographer.verified && (
                   <div style={{
                     position: 'absolute',
@@ -2106,6 +2530,67 @@ const BookedPhotographersPage = () => {
                 <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>{reviewPhotographer.lastEventName}</div>
               </div>
             </div>
+
+            {/* Event Selector */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+                Select Event *
+              </label>
+              {reviewEventsLoading ? (
+                <div style={{ padding: '0.75rem', fontSize: '0.85rem', color: colors.textSecondary, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{
+                    width: '16px',
+                    height: '16px',
+                    border: '2px solid #e5e7eb',
+                    borderTopColor: '#083A85',
+                    borderRadius: '50%',
+                    animation: 'spin 0.8s linear infinite',
+                  }} />
+                  Loading completed events...
+                </div>
+              ) : reviewEvents.length === 0 ? (
+                <div style={{ padding: '0.75rem', fontSize: '0.85rem', color: '#9CA3AF', background: colors.bgTertiary, borderRadius: '0.5rem', border: `2px solid ${colors.borderPrimary}` }}>
+                  No completed events with this photographer
+                </div>
+              ) : (
+                <select
+                  value={selectedReviewEventId}
+                  onChange={(e) => setSelectedReviewEventId(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    border: `2px solid ${colors.borderPrimary}`,
+                    borderRadius: '0.5rem',
+                    fontSize: '0.9rem',
+                    color: colors.textPrimary,
+                    background: colors.bgPrimary,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <option value="">-- Select an event --</option>
+                  {reviewEvents.map((evt) => (
+                    <option key={evt.id} value={evt.id}>
+                      {evt.title}{evt.eventDate ? ` (${new Date(evt.eventDate).toLocaleDateString()})` : ''}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            {/* Review Error */}
+            {reviewError && (
+              <div style={{
+                padding: '0.75rem',
+                marginBottom: '1rem',
+                background: '#FEF2F2',
+                border: '1px solid #FECACA',
+                borderRadius: '0.5rem',
+                color: '#DC2626',
+                fontSize: '0.85rem',
+              }}>
+                {reviewError}
+              </div>
+            )}
 
             <div style={{ marginBottom: '1.25rem' }}>
               <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
@@ -2154,7 +2639,12 @@ const BookedPhotographersPage = () => {
 
             <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '4rem' }}>
               <button
-                onClick={() => setShowReviewModal(false)}
+                onClick={() => {
+                  setShowReviewModal(false);
+                  setSelectedReviewEventId('');
+                  setReviewEvents([]);
+                  setReviewError(null);
+                }}
                 style={{
                   flex: 1,
                   padding: '0.75rem 1rem',
@@ -2171,19 +2661,21 @@ const BookedPhotographersPage = () => {
               </button>
               <button
                 onClick={submitReview}
+                disabled={isSubmittingReview || !selectedReviewEventId}
                 style={{
                   flex: 1,
                   padding: '0.75rem 1rem',
                   border: '2px solid #062a63',
                   borderRadius: '0.5rem',
-                  background: '#083A85',
+                  background: isSubmittingReview || !selectedReviewEventId ? '#6B7280' : '#083A85',
                   color: 'white',
                   fontSize: '0.9rem',
                   fontWeight: '600',
-                  cursor: 'pointer'
+                  cursor: isSubmittingReview || !selectedReviewEventId ? 'not-allowed' : 'pointer',
+                  opacity: isSubmittingReview ? 0.7 : 1,
                 }}
               >
-                {reviewPhotographer.myReview ? 'Update Review' : 'Submit Review'}
+                {isSubmittingReview ? 'Submitting...' : reviewPhotographer.myReview ? 'Update Review' : 'Submit Review'}
               </button>
             </div>
           </div>
@@ -2193,7 +2685,7 @@ const BookedPhotographersPage = () => {
       {/* Report Modal */}
       <Modal
         isOpen={showReportModal}
-        onClose={() => setShowReportModal(false)}
+        onClose={() => { setShowReportModal(false); setReportReason(''); setReportDescription(''); }}
         title="Report Photographer"
       >
         {reportPhotographer && (
@@ -2203,14 +2695,16 @@ const BookedPhotographersPage = () => {
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.25rem' }}>
               {['Inappropriate content', 'Fake profile', 'Spam or scam', 'Unprofessional behavior', 'Other'].map((reason) => (
-                <label key={reason} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', cursor: 'pointer' }}>
-                  <input type="radio" name="report-reason" style={{ width: '16px', height: '16px' }} />
+                <label key={reason} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', border: `2px solid ${reportReason === reason ? '#083A85' : colors.borderPrimary}`, borderRadius: '0.5rem', cursor: 'pointer' }}>
+                  <input type="radio" name="report-reason" checked={reportReason === reason} onChange={() => setReportReason(reason)} style={{ width: '16px', height: '16px' }} />
                   <span style={{ fontSize: '0.9rem', color: colors.textPrimary }}>{reason}</span>
                 </label>
               ))}
             </div>
             <textarea
               placeholder="Additional details (optional)"
+              value={reportDescription}
+              onChange={(e) => setReportDescription(e.target.value)}
               style={{
                 width: '100%',
                 padding: '0.75rem',
@@ -2240,19 +2734,43 @@ const BookedPhotographersPage = () => {
                 Cancel
               </button>
               <button
-                onClick={() => setShowReportModal(false)}
+                onClick={async () => {
+                  if (!reportPhotographer || !reportReason) return;
+                  setIsSubmittingReport(true);
+                  try {
+                    const apiUrl = getApiUrl();
+                    const reportNs = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
+                    const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${reportNs}/photographers/${reportPhotographer.id}/report`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ reason: reportReason, description: reportDescription }),
+                    });
+                    if (!res.ok) throw new Error('Failed to submit report');
+                    setShowReportModal(false);
+                    setReportReason('');
+                    setReportDescription('');
+                    setSuccessMessage('Report submitted successfully');
+                    setTimeout(() => setSuccessMessage(''), 3000);
+                  } catch (err) {
+                    console.error('Failed to submit report:', err);
+                  } finally {
+                    setIsSubmittingReport(false);
+                  }
+                }}
+                disabled={isSubmittingReport || !reportReason}
                 style={{
                   padding: '0.625rem 1.25rem',
                   border: '2px solid #b91c1c',
                   borderRadius: '0.5rem',
-                  background: '#DC2626',
+                  background: isSubmittingReport || !reportReason ? '#9CA3AF' : '#DC2626',
                   color: 'white',
                   fontSize: '0.9rem',
                   fontWeight: '600',
-                  cursor: 'pointer'
+                  cursor: isSubmittingReport || !reportReason ? 'not-allowed' : 'pointer',
+                  opacity: isSubmittingReport ? 0.7 : 1,
                 }}
               >
-                Submit Report
+                {isSubmittingReport ? 'Submitting...' : 'Submit Report'}
               </button>
             </div>
           </div>
@@ -2260,226 +2778,325 @@ const BookedPhotographersPage = () => {
       </Modal>
 
       {/* Payment Modal */}
-      <Modal
-        isOpen={showPaymentModal}
-        onClose={() => setShowPaymentModal(false)}
-        title={paymentBooking?.booking.paymentStatus === 'failed' ? 'Retry Payment' : 'Complete Payment'}
-        maxWidth="450px"
-      >
-        {paymentBooking && (
-          <div>
-            {/* Failed Payment Warning */}
-            {paymentBooking.booking.paymentStatus === 'failed' && (
-              <div style={{ backgroundColor: actualTheme === 'dark' ? '#450A0A' : '#FEE2E2', borderRadius: '0.5rem', padding: '0.75rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <AlertCircleIcon />
-                <span style={{ fontSize: '0.85rem', color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626' }}>Previous payment attempt failed. Please try again with a different payment method.</span>
-              </div>
-            )}
+      {paymentBooking && (() => {
+        const payAmountDue = paymentBooking.booking.totalAmount - paymentBooking.booking.paidAmount;
+        const payDonationValue = payDonationAmount === 'custom' ? (parseFloat(payCustomDonation) || 0) : (parseFloat(payDonationAmount) || 0);
+        const payTotalAmount = payAmountDue + payDonationValue;
+        const payDonationAddressed = payDonationSkipped || payDonationValue > 0;
+        const payPhoneValid = selectedPaymentMethod === 'card' || paymentPhone.trim().length > 0;
+        const payIsEnabled = payDonationAddressed && payPhoneValid;
+        const payMethodMap: Record<string, { label: string; image: string }> = {
+          card: { label: 'Credit/Debit Card', image: '/cards.png' },
+          mtn: { label: 'MTN Mobile Money', image: '/mtn.png' },
+          airtel: { label: 'Airtel Mobile Money', image: '/airtel.png' },
+        };
+        const handlePaySelectDonation = (amount: string) => {
+          setPayDonationSkipped(false);
+          if (amount === 'custom') { setPayDonationAmount('custom'); setPayShowCustomInput(true); }
+          else { setPayDonationAmount(amount); setPayShowCustomInput(false); setPayCustomDonation(''); }
+        };
+        const handlePaySkipDonation = () => {
+          setPayDonationSkipped(true); setPayDonationAmount(''); setPayCustomDonation(''); setPayShowCustomInput(false);
+        };
+        const handlePayClose = () => {
+          if (stopPollingRef.current) { stopPollingRef.current(); stopPollingRef.current = null; }
+          setPayShowReceipt(false); setShowPaymentModal(false); setXentriPayStep('select'); setXentriPayError(''); setPaymentPhone('');
+        };
 
-            {/* Photographer Info */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', padding: '0.75rem', backgroundColor: colors.bgTertiary, borderRadius: '0.5rem' }}>
-              <div style={{ position: 'relative', width: '48px', height: '48px', flexShrink: 0 }}>
-                <img
-                  src={paymentBooking.photographer.profileImage}
-                  alt={paymentBooking.photographer.firstName}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    borderRadius: '50%',
-                    border: '2px solid white',
-                    objectFit: 'cover',
-                    objectPosition: 'center'
-                  }}
-                />
-                {paymentBooking.photographer.verified && (
-                  <div style={{
-                    position: 'absolute',
-                    bottom: '0px',
-                    right: '0px',
-                    background: 'white',
-                    borderRadius: '50%',
-                    width: '18px',
-                    height: '18px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15)'
-                  }}>
-                    <i className="bi bi-patch-check-fill" style={{ color: '#3b82f6', fontSize: '0.75rem' }} />
-                  </div>
-                )}
+        const handlePayNowXentriPay = async () => {
+          const declId = paymentBooking.booking.declarationId || paymentBooking.booking.id;
+          if (!declId) { setXentriPayError('No payment declaration found'); return; }
+          if (selectedPaymentMethod !== 'card' && !paymentPhone.trim()) { setXentriPayError('Please enter your phone number'); return; }
+          setIsProcessingPayment(true); setXentriPayError(''); setXentriPayStep('processing');
+          try {
+            const telecom = getTelecomProvider(selectedPaymentMethod);
+            const methodType = getPaymentMethodType(selectedPaymentMethod);
+            const phone = selectedPaymentMethod === 'card' ? '' : paymentPhone.trim();
+            const result = await initiateBookingPayment(String(declId), phone, telecom, methodType, undefined, undefined, currencyId);
+            if (!result.success || !result.data) {
+              setXentriPayError(result.error || 'Failed to initiate payment'); setXentriPayStep('failed'); setIsProcessingPayment(false); return;
+            }
+            if (selectedPaymentMethod === 'card' && result.data.paymentUrl) window.open(result.data.paymentUrl, '_blank');
+            const stopPolling = pollPaymentStatus(result.data.refid, {
+              onSuccess: () => { setXentriPayStep('success'); setIsProcessingPayment(false); },
+              onFailure: () => { setXentriPayStep('failed'); setXentriPayError('Payment was not completed. Please try again.'); setIsProcessingPayment(false); },
+              onError: (error) => { setXentriPayStep('failed'); setXentriPayError(error); setIsProcessingPayment(false); },
+            });
+            stopPollingRef.current = stopPolling;
+          } catch (error) {
+            setXentriPayError(error instanceof Error ? error.message : 'Payment failed'); setXentriPayStep('failed'); setIsProcessingPayment(false);
+          }
+        };
+
+        // XentriPay Processing View
+        if (xentriPayStep === 'processing') {
+          return (
+            <Modal isOpen={showPaymentModal} onClose={handlePayClose} title="Processing Payment" maxWidth="450px">
+              <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+                <div style={{ width: '64px', height: '64px', margin: '0 auto 1.5rem', border: '4px solid rgba(8, 58, 133, 0.2)', borderTopColor: '#083A85', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                <h4 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>
+                  {selectedPaymentMethod === 'card' ? 'Complete payment in your browser' : 'Check your phone'}
+                </h4>
+                <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1rem', lineHeight: '1.5' }}>
+                  {selectedPaymentMethod === 'card'
+                    ? 'A payment page has been opened. Complete the payment there and we\'ll confirm it here.'
+                    : 'A USSD prompt has been sent to your phone. Please approve the payment on your device.'}
+                </p>
+                <p style={{ fontSize: '0.8rem', color: colors.textSecondary }}>This may take a few moments...</p>
+                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
               </div>
+            </Modal>
+          );
+        }
+
+        // XentriPay Success View
+        if (xentriPayStep === 'success') {
+          return (
+            <Modal isOpen={showPaymentModal} onClose={handlePayClose} title="Payment Successful" maxWidth="450px">
+              <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+                <div style={{ width: '64px', height: '64px', margin: '0 auto 1.5rem', borderRadius: '50%', backgroundColor: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17L4 12" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                </div>
+                <h4 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>Payment Completed!</h4>
+                <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1.5rem' }}>Your payment of {formatPrice(payTotalAmount)} has been received successfully.</p>
+                <button onClick={() => { handlePayClose(); setSuccessMessage('Payment processed successfully'); setTimeout(() => setSuccessMessage(''), 3000); }} style={{ padding: '0.75rem 2rem', border: '2px solid #062a63', borderRadius: '0.5rem', background: '#083A85', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Done</button>
+              </div>
+            </Modal>
+          );
+        }
+
+        // XentriPay Failed View
+        if (xentriPayStep === 'failed') {
+          return (
+            <Modal isOpen={showPaymentModal} onClose={handlePayClose} title="Payment Failed" maxWidth="450px">
+              <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+                <div style={{ width: '64px', height: '64px', margin: '0 auto 1.5rem', borderRadius: '50%', backgroundColor: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                </div>
+                <h4 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>Payment Failed</h4>
+                <p style={{ fontSize: '0.9rem', color: '#EF4444', margin: '0 0 1.5rem' }}>{xentriPayError || 'Something went wrong. Please try again.'}</p>
+                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+                  <button onClick={handlePayClose} style={{ padding: '0.75rem 1.5rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Close</button>
+                  <button onClick={() => { setXentriPayStep('select'); setXentriPayError(''); setPayShowReceipt(false); setIsProcessingPayment(false); }} style={{ padding: '0.75rem 1.5rem', border: '2px solid #c00a72', borderRadius: '0.5rem', background: '#F20C8F', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Try Again</button>
+                </div>
+              </div>
+            </Modal>
+          );
+        }
+
+        if (payShowReceipt) {
+          const mi = payMethodMap[selectedPaymentMethod] || payMethodMap.card;
+          return (
+            <Modal isOpen={showPaymentModal} onClose={handlePayClose} title="Payment Summary" maxWidth="450px">
               <div>
-                <div style={{ fontWeight: '600', color: colors.textPrimary }}>{paymentBooking.photographer.firstName} {paymentBooking.photographer.lastName}</div>
-                <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>{paymentBooking.booking.eventName}</div>
+                <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.75rem', padding: '1.25rem', marginBottom: '1.25rem', border: `2px solid ${colors.borderPrimary}` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Photographer</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{paymentBooking.photographer.firstName} {paymentBooking.photographer.lastName}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Event</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, textAlign: 'right', maxWidth: '60%' }}>{paymentBooking.booking.eventName}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Date</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>{formatDate(paymentBooking.booking.eventDate)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Package</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>{paymentBooking.booking.packageName}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Payment Method</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div style={{ width: '24px', height: '24px', borderRadius: '0.25rem', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1px' }}>
+                        {selectedPaymentMethod === 'card' ? (
+                          <>
+                            <Image src="/visa.png" alt="Visa" width={14} height={20} unoptimized style={{ objectFit: 'contain' }} />
+                            <Image src="/master.png" alt="Mastercard" width={14} height={20} unoptimized style={{ objectFit: 'contain' }} />
+                          </>
+                        ) : (
+                          <Image src={mi.image} alt={mi.label} width={24} height={24} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                        )}
+                      </div>
+                      <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{mi.label}</span>
+                    </div>
+                  </div>
+                  <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, margin: '0.75rem 0' }} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>Amount Due</span>
+                    <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(payAmountDue)}</span>
+                  </div>
+                  {payDonationValue > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><DonateHeartIcon /><span style={{ fontSize: '0.9rem', fontWeight: '500', color: '#F20C8F' }}>Donation</span></div>
+                      <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#F20C8F' }}>{formatPrice(payDonationValue)}</span>
+                    </div>
+                  )}
+                  <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, margin: '0.75rem 0' }} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '1.05rem', fontWeight: '700', color: colors.textPrimary }}>Total</span>
+                    <span style={{ fontSize: '1.3rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{formatPrice(payTotalAmount)}</span>
+                  </div>
+                </div>
+                {xentriPayError && (
+                  <p style={{ fontSize: '0.85rem', color: '#EF4444', margin: '0 0 0.75rem', textAlign: 'center' }}>{xentriPayError}</p>
+                )}
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                  <button onClick={() => { setPayShowReceipt(false); setXentriPayError(''); }} disabled={isProcessingPayment} style={{ flex: 1, padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: isProcessingPayment ? 'not-allowed' : 'pointer', opacity: isProcessingPayment ? 0.6 : 1 }}>Cancel</button>
+                  <button
+                    onClick={handlePayNowXentriPay}
+                    disabled={isProcessingPayment}
+                    style={{ flex: 1, padding: '0.75rem 1rem', border: paymentBooking.booking.paymentStatus === 'failed' ? '2px solid #c00a72' : '2px solid #062a63', borderRadius: '0.5rem', background: isProcessingPayment ? '#9CA3AF' : (paymentBooking.booking.paymentStatus === 'failed' ? '#F20C8F' : '#083A85'), color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: isProcessingPayment ? 'not-allowed' : 'pointer', transition: 'all 0.2s', opacity: isProcessingPayment ? 0.7 : 1 }}>
+                    {isProcessingPayment ? 'Processing...' : `${paymentBooking.booking.paymentStatus === 'failed' ? 'Retry' : 'Pay'} ${formatPrice(payTotalAmount)}`}
+                  </button>
+                </div>
               </div>
-            </div>
+            </Modal>
+          );
+        }
 
-            {/* Amount Summary */}
-            <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '1rem', marginBottom: '1.25rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Event</span>
-                <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>{paymentBooking.booking.eventType}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Date</span>
-                <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>{formatDate(paymentBooking.booking.eventDate)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Package</span>
-                <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>{paymentBooking.booking.packageName}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Total Amount</span>
-                <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>${paymentBooking.booking.totalAmount}</span>
-              </div>
-              {paymentBooking.booking.paidAmount > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                  <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Already Paid</span>
-                  <span style={{ fontSize: '0.9rem', fontWeight: '500', color: '#059669' }}>-${paymentBooking.booking.paidAmount}</span>
+        return (
+          <Modal isOpen={showPaymentModal} onClose={handlePayClose} title={paymentBooking.booking.paymentStatus === 'failed' ? 'Retry Payment' : 'Complete Payment'} maxWidth="450px">
+            <div>
+              {paymentBooking.booking.paymentStatus === 'failed' && (
+                <div style={{ backgroundColor: actualTheme === 'dark' ? '#450A0A' : '#FEE2E2', borderRadius: '0.5rem', padding: '0.75rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <AlertCircleIcon />
+                  <span style={{ fontSize: '0.85rem', color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626' }}>Previous payment attempt failed. Please try again with a different payment method.</span>
                 </div>
               )}
-              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: `1px solid ${colors.borderPrimary}` }}>
-                <span style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>Amount Due</span>
-                <span style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
-                  ${paymentBooking.booking.totalAmount - paymentBooking.booking.paidAmount}
-                </span>
-              </div>
-            </div>
 
-            {/* Payment Method Selection */}
-            <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>
-                Payment Method
-              </label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-                {[
-                  { id: 'card', label: 'Credit/Debit Card', description: 'Pay with Visa, Mastercard, etc.', image: '/cards.png' },
-                  { id: 'mtn', label: 'MTN Mobile Money', description: 'Pay with MTN Mobile Money', image: '/mtn.png' },
-                  { id: 'airtel', label: 'Airtel Money', description: 'Pay with Airtel Money', image: '/airtel.png' },
-                  { id: 'bank', label: 'Bank Transfer', description: 'Direct bank transfer', image: '/bank.png' }
-                ].map((method) => (
-                  <div
-                    key={method.id}
-                    onClick={() => setSelectedPaymentMethod(method.id)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '1rem',
-                      padding: '1rem',
+              {/* Payment Method Selection */}
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>Select Payment Method</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {[
+                    { id: 'card', label: 'Credit/Debit Card', description: 'Pay with Visa, Mastercard, etc.', image: '/cards.png' },
+                    { id: 'mtn', label: 'MTN Mobile Money', description: 'Pay via MTN MoMo', image: '/mtn.png' },
+                    { id: 'airtel', label: 'Airtel Mobile Money', description: 'Pay via Airtel Money', image: '/airtel.png' },
+                  ].map((method) => (
+                    <div key={method.id} onClick={() => setSelectedPaymentMethod(method.id)} style={{
+                      display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem',
                       border: selectedPaymentMethod === method.id ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                      borderRadius: '0.75rem',
-                      cursor: 'pointer',
-                      backgroundColor: selectedPaymentMethod === method.id ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    <div style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: '0.5rem',
-                      overflow: 'hidden',
-                      flexShrink: 0
+                      borderRadius: '0.75rem', cursor: 'pointer',
+                      backgroundColor: selectedPaymentMethod === method.id ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard, transition: 'all 0.2s'
                     }}>
-                      <Image
-                        src={method.image}
-                        alt={method.label}
-                        width={48}
-                        height={48}
-                        unoptimized
-                        style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                      />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>
-                        {method.label}
+                      <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
+                        {method.id === 'card' ? (
+                          <>
+                            <Image src="/visa.png" alt="Visa" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
+                            <Image src="/master.png" alt="Mastercard" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
+                          </>
+                        ) : (
+                          <Image src={method.image} alt={method.label} width={48} height={48} unoptimized style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                        )}
                       </div>
-                      <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>
-                        {method.description}
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>{method.label}</div>
+                        <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{method.description}</div>
                       </div>
+                      <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: selectedPaymentMethod === method.id ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`, backgroundColor: colors.bgCard, flexShrink: 0 }} />
                     </div>
-                    <div style={{
-                      width: '20px',
-                      height: '20px',
-                      borderRadius: '50%',
-                      border: selectedPaymentMethod === method.id ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                      backgroundColor: colors.bgCard,
-                      flexShrink: 0
-                    }} />
+                  ))}
+                </div>
+
+                {/* Phone Number Input (for mobile money) */}
+                {(selectedPaymentMethod === 'mtn' || selectedPaymentMethod === 'airtel') && (
+                  <div style={{ marginTop: '0.75rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.375rem' }}>Phone Number</label>
+                    <input type="tel" placeholder="e.g. 078XXXXXXX" value={paymentPhone} onChange={(e) => { setPaymentPhone(e.target.value); setXentriPayError(''); }}
+                      style={{ width: '100%', padding: '0.7rem 0.75rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, backgroundColor: colors.bgCard, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = '#083A85'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(8, 58, 133, 0.1)'; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }}
+                    />
+                    <p style={{ fontSize: '0.78rem', color: colors.textSecondary, margin: '0.25rem 0 0 0' }}>
+                      Enter the {selectedPaymentMethod === 'mtn' ? 'MTN' : 'Airtel'} number to receive the payment prompt
+                    </p>
                   </div>
-                ))}
+                )}
+
+                <p style={{ fontSize: '0.86rem', color: colors.textSecondary, margin: '0.75rem 0 0 0', textAlign: 'center' }}>
+                  <i className="bi bi-info-circle" style={{ marginRight: '0.375rem' }}></i>
+                  Manage your payment methods in <span onClick={() => router.push(`/user/${userRole === 'event-coordinator' ? 'event-coordinator' : 'client'}/preferences?tab=payments`)} style={{ color: colors.brandPrimary, fontWeight: '500', cursor: 'pointer', textDecoration: 'underline' }}>Preferences → Payment Accounts</span>
+                </p>
+              </div>
+
+              {/* Donation Section */}
+              <div style={{
+                marginBottom: '1.25rem', padding: '1rem', borderRadius: '0.75rem',
+                border: `2px solid ${payDonationSkipped ? colors.borderPrimary : (payDonationValue > 0 ? '#F20C8F' : 'rgba(242, 12, 143, 0.3)')}`,
+                background: actualTheme === 'dark' ? 'linear-gradient(135deg, rgba(242, 12, 143, 0.08) 0%, rgba(255, 107, 157, 0.03) 100%)' : 'linear-gradient(135deg, rgba(242, 12, 143, 0.05) 0%, rgba(255, 107, 157, 0.02) 100%)',
+                transition: 'all 0.2s'
+              }}>
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <DonateHeartIcon />
+                    <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>Support a Cause</span>
+                    <span style={{ fontSize: '0.81rem', color: colors.textSecondary, marginLeft: 'auto' }}>Optional</span>
+                  </div>
+                  <p style={{ fontSize: '0.84rem', color: colors.textSecondary, margin: '0.35rem 0 0 0', lineHeight: '1.4' }}>
+                    Add a small donation to help fund community projects and initiatives
+                  </p>
+                </div>
+                {!payDonationSkipped && (
+                  <>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                      {['5', '10', '25', '50'].map((amount) => (
+                        <button key={amount} onClick={() => handlePaySelectDonation(amount)} style={{
+                          padding: '0.4rem 0.75rem', border: payDonationAmount === amount ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`,
+                          borderRadius: '0.5rem', background: payDonationAmount === amount ? (actualTheme === 'dark' ? 'rgba(242, 12, 143, 0.15)' : 'rgba(242, 12, 143, 0.08)') : colors.bgCard,
+                          color: payDonationAmount === amount ? '#F20C8F' : colors.textSecondary, fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', flex: '1', minWidth: '0'
+                        }}>{formatPrice(parseFloat(amount))}</button>
+                      ))}
+                      <button onClick={() => handlePaySelectDonation('custom')} style={{
+                        padding: '0.4rem 0.75rem', border: payDonationAmount === 'custom' ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`,
+                        borderRadius: '0.5rem', background: payDonationAmount === 'custom' ? (actualTheme === 'dark' ? 'rgba(242, 12, 143, 0.15)' : 'rgba(242, 12, 143, 0.08)') : colors.bgCard,
+                        color: payDonationAmount === 'custom' ? '#F20C8F' : colors.textSecondary, fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', flex: '1', minWidth: '0'
+                      }}>Custom</button>
+                    </div>
+                    {payShowCustomInput && (
+                      <div style={{ position: 'relative', marginBottom: '0.75rem' }}>
+                        <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontSize: '0.9rem', fontWeight: '600', color: colors.textSecondary }}>$</span>
+                        <input type="number" placeholder="Enter amount" value={payCustomDonation} onChange={(e) => setPayCustomDonation(e.target.value)} style={{
+                          width: '100%', padding: '0.6rem 0.75rem 0.6rem 1.75rem', border: `2px solid ${payCustomDonation ? '#F20C8F' : colors.borderPrimary}`,
+                          borderRadius: '0.5rem', fontSize: '0.85rem', color: colors.textPrimary, backgroundColor: colors.bgCard, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s'
+                        }} onFocus={(e) => { e.currentTarget.style.borderColor = '#F20C8F'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(242, 12, 143, 0.1)'; }}
+                        onBlur={(e) => { e.currentTarget.style.borderColor = payCustomDonation ? '#F20C8F' : colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }} />
+                      </div>
+                    )}
+                  </>
+                )}
+                <button onClick={handlePaySkipDonation} style={{
+                  width: '100%', padding: '0.5rem 1rem', borderRadius: '9999px',
+                  border: payDonationSkipped ? '2px solid #F20C8F' : '2px solid #6B7280',
+                  background: payDonationSkipped ? '#F20C8F' : colors.bgTertiary,
+                  color: payDonationSkipped ? 'white' : '#374151',
+                  fontSize: '0.875rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center'
+                }}>{payDonationSkipped ? '✓ Donation skipped' : 'No thanks, skip donation'}</button>
+                <div style={{ marginTop: '0.5rem' }}>
+                  <a href={`${process.env.NEXT_PUBLIC_LANDING_URL as string}/user/donations`} onClick={(e) => { e.preventDefault(); router.push('/user/donations'); }} style={{ fontSize: '0.81rem', color: '#F20C8F', textDecoration: 'none', fontWeight: '500' }}>Learn more about our donation program →</a>
+                </div>
+              </div>
+
+              {(!payDonationAddressed || !payPhoneValid) && (
+                <p style={{ fontSize: '0.86rem', color: '#EF4444', margin: '0 0 0.75rem 0', textAlign: 'center' }}>
+                  {!payPhoneValid ? 'Please enter your phone number' : 'Please select a donation amount or skip to continue'}
+                </p>
+              )}
+
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                <button onClick={handlePayClose} style={{ flex: 1, padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Cancel</button>
+                <button disabled={!payIsEnabled} onClick={() => setPayShowReceipt(true)} style={{
+                  flex: 1, padding: '0.75rem 1rem', border: !payIsEnabled ? '2px solid #9CA3AF' : '2px solid #062a63',
+                  borderRadius: '0.5rem', background: !payIsEnabled ? '#9CA3AF' : '#083A85', color: 'white', fontSize: '0.9rem', fontWeight: '600',
+                  cursor: !payIsEnabled ? 'not-allowed' : 'pointer', opacity: !payIsEnabled ? 0.7 : 1, transition: 'all 0.2s'
+                }}>Proceed to Payment</button>
               </div>
             </div>
+          </Modal>
+        );
+      })()}
 
-            {/* Info text about payment accounts */}
-            <p style={{
-              fontSize: '0.8rem',
-              color: colors.textSecondary,
-              margin: '0.75rem 0 1.25rem 0',
-              textAlign: 'center'
-            }}>
-              <i className="bi bi-info-circle" style={{ marginRight: '0.375rem' }}></i>
-              Manage your payment methods in <span
-                onClick={() => router.push('/user/client/preferences?tab=payments')}
-                style={{ color: colors.brandPrimary, fontWeight: '500', cursor: 'pointer', textDecoration: 'underline' }}
-              >Preferences → Payment Accounts</span>
-            </p>
-
-            {/* Actions */}
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '4rem' }}>
-              <DonateButton onClick={() => setShowPaymentDonateModal(true)} />
-              <button
-                onClick={() => setShowPaymentModal(false)}
-                style={{
-                  flex: 1,
-                  padding: '0.75rem 1rem',
-                  border: `2px solid ${colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
-                  background: colors.bgTertiary,
-                  color: colors.textPrimary,
-                  fontSize: '0.9rem',
-                  fontWeight: '600',
-                  cursor: 'pointer'
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                style={{
-                  flex: 1,
-                  padding: '0.75rem 1rem',
-                  border: paymentBooking.booking.paymentStatus === 'failed' ? '2px solid #c00a72' : '2px solid #062a63',
-                  borderRadius: '0.5rem',
-                  background: paymentBooking.booking.paymentStatus === 'failed' ? '#F20C8F' : '#083A85',
-                  color: 'white',
-                  fontSize: '0.9rem',
-                  fontWeight: '600',
-                  cursor: 'pointer'
-                }}
-              >
-                {paymentBooking.booking.paymentStatus === 'failed' ? 'Retry Payment' : 'Pay'} ${paymentBooking.booking.totalAmount - paymentBooking.booking.paidAmount}
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
-
-      {/* Payment Donate Prompt Modal - Shows before payment modal */}
-      <DonatePromptModal
-        isOpen={showPaymentDonatePromptModal}
-        onClose={() => setShowPaymentDonatePromptModal(false)}
-        onNo={() => {
-          setShowPaymentDonatePromptModal(false);
-          setShowPaymentModal(true);
-        }}
-        onYes={() => {
-          setShowPaymentDonatePromptModal(false);
-          setShowPaymentDonateModal(true);
-        }}
-      />
-
-      {/* Payment Donate Modal */}
-      <DonateModal isOpen={showPaymentDonateModal} onClose={() => setShowPaymentDonateModal(false)} />
 
       {/* Tip Prompt Modal */}
       <Modal
@@ -2590,7 +3207,7 @@ const BookedPhotographersPage = () => {
                     transition: 'all 0.2s'
                   }}
                 >
-                  ${amount}
+                  {formatPrice(amount)}
                 </button>
               ))}
               <button
@@ -2689,255 +3306,411 @@ const BookedPhotographersPage = () => {
       </Modal>
 
       {/* Tip Payment Modal */}
-      <Modal
-        isOpen={showTipPaymentModal}
-        onClose={() => {
-          setShowTipPaymentModal(false);
-          setTipAmount('');
-          setCustomTipAmount('');
-          setSelectedTipPaymentMethod('card');
-          setSuccessMessage('Review submitted successfully!');
-          setShowSuccessModal(true);
-          setPendingReviewPhotographer(null);
-        }}
-        title="Complete Tip Payment"
-        maxWidth="450px"
-      >
-        {pendingReviewPhotographer && (
-          <div>
-            {/* Photographer Info */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', padding: '0.75rem', backgroundColor: colors.bgTertiary, borderRadius: '0.5rem' }}>
-              <div style={{ position: 'relative', width: '48px', height: '48px', flexShrink: 0 }}>
-                <img
-                  src={pendingReviewPhotographer.profileImage}
-                  alt={pendingReviewPhotographer.firstName}
+      {pendingReviewPhotographer && (() => {
+        const tipAmountNum = tipAmount === 'custom' ? (parseFloat(customTipAmount) || 0) : (parseFloat(String(tipAmount)) || 0);
+        const tipDonationValue = tipDonationAmount === 'custom' ? (parseFloat(tipCustomDonation) || 0) : (parseFloat(tipDonationAmount) || 0);
+        const tipTotalAmount = tipAmountNum + tipDonationValue;
+        const tipDonationAddressed = tipDonationSkipped || tipDonationValue > 0;
+        const tipIsEnabled = tipDonationAddressed;
+        const tipMethodMap: Record<string, { label: string; image: string }> = {
+          card: { label: 'Credit/Debit Card', image: '/cards.png' },
+          mtn: { label: 'MTN Mobile Money', image: '/mtn.png' },
+          airtel: { label: 'Airtel Mobile Money', image: '/airtel.png' },
+        };
+        const handleTipSelectDonation = (amount: string) => {
+          setTipDonationSkipped(false);
+          if (amount === 'custom') { setTipDonationAmount('custom'); setTipShowCustomInput(true); }
+          else { setTipDonationAmount(amount); setTipShowCustomInput(false); setTipCustomDonation(''); }
+        };
+        const handleTipSkipDonation = () => {
+          setTipDonationSkipped(true); setTipDonationAmount(''); setTipCustomDonation(''); setTipShowCustomInput(false);
+        };
+        const handleTipClose = () => {
+          setTipShowReceipt(false); setShowTipPaymentModal(false); setTipAmount(''); setCustomTipAmount('');
+          setSelectedTipPaymentMethod('card'); setSuccessMessage('Review submitted successfully!');
+          setShowSuccessModal(true); setPendingReviewPhotographer(null);
+        };
+
+        if (tipShowReceipt) {
+          const mi = tipMethodMap[selectedTipPaymentMethod] || tipMethodMap.card;
+          return (
+            <Modal isOpen={showTipPaymentModal} onClose={handleTipClose} title="Payment Summary" maxWidth="450px">
+              <div>
+                <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.75rem', padding: '1.25rem', marginBottom: '1.25rem', border: `2px solid ${colors.borderPrimary}` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Photographer</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{pendingReviewPhotographer.firstName} {pendingReviewPhotographer.lastName}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Type</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>Tip for great service</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Payment Method</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div style={{ width: '24px', height: '24px', borderRadius: '0.25rem', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1px' }}>
+                        {selectedTipPaymentMethod === 'card' ? (
+                          <>
+                            <Image src="/visa.png" alt="Visa" width={14} height={20} unoptimized style={{ objectFit: 'contain' }} />
+                            <Image src="/master.png" alt="Mastercard" width={14} height={20} unoptimized style={{ objectFit: 'contain' }} />
+                          </>
+                        ) : (
+                          <Image src={mi.image} alt={mi.label} width={24} height={24} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                        )}
+                      </div>
+                      <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{mi.label}</span>
+                    </div>
+                  </div>
+                  <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, margin: '0.75rem 0' }} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>Tip Amount</span>
+                    <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(tipAmountNum)}</span>
+                  </div>
+                  {tipDonationValue > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><DonateHeartIcon /><span style={{ fontSize: '0.9rem', fontWeight: '500', color: '#F20C8F' }}>Donation</span></div>
+                      <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#F20C8F' }}>{formatPrice(tipDonationValue)}</span>
+                    </div>
+                  )}
+                  <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, margin: '0.75rem 0' }} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '1.05rem', fontWeight: '700', color: colors.textPrimary }}>Total</span>
+                    <span style={{ fontSize: '1.3rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{formatPrice(tipTotalAmount)}</span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                  <button onClick={() => setTipShowReceipt(false)} style={{ flex: 1, padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Cancel</button>
+                  <button onClick={handleTipPaymentComplete} style={{ flex: 1, padding: '0.75rem 1rem', border: '2px solid #062a63', borderRadius: '0.5rem', background: '#083A85', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s' }}>
+                    Pay {formatPrice(tipTotalAmount)}
+                  </button>
+                </div>
+              </div>
+            </Modal>
+          );
+        }
+
+        return (
+          <Modal isOpen={showTipPaymentModal} onClose={handleTipClose} title="Complete Tip Payment" maxWidth="450px">
+            <div>
+              {/* Payment Method Selection */}
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>Select Payment Method</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {[
+                    { id: 'card', label: 'Credit/Debit Card', description: 'Pay with Visa, Mastercard, etc.', image: '/cards.png' },
+                    { id: 'mtn', label: 'MTN Mobile Money', description: 'Pay via MTN MoMo', image: '/mtn.png' },
+                    { id: 'airtel', label: 'Airtel Mobile Money', description: 'Pay via Airtel Money', image: '/airtel.png' },
+                  ].map((method) => (
+                    <div key={method.id} onClick={() => setSelectedTipPaymentMethod(method.id)} style={{
+                      display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem',
+                      border: selectedTipPaymentMethod === method.id ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                      borderRadius: '0.75rem', cursor: 'pointer',
+                      backgroundColor: selectedTipPaymentMethod === method.id ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard, transition: 'all 0.2s'
+                    }}>
+                      <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
+                        {method.id === 'card' ? (
+                          <>
+                            <Image src="/visa.png" alt="Visa" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
+                            <Image src="/master.png" alt="Mastercard" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
+                          </>
+                        ) : (
+                          <Image src={method.image} alt={method.label} width={48} height={48} unoptimized style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                        )}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>{method.label}</div>
+                        <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{method.description}</div>
+                      </div>
+                      <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: selectedTipPaymentMethod === method.id ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`, backgroundColor: colors.bgCard, flexShrink: 0 }} />
+                    </div>
+                  ))}
+                </div>
+                <p style={{ fontSize: '0.86rem', color: colors.textSecondary, margin: '0.75rem 0 0 0', textAlign: 'center' }}>
+                  <i className="bi bi-info-circle" style={{ marginRight: '0.375rem' }}></i>
+                  Manage your payment methods in <span onClick={() => router.push(`/user/${userRole === 'event-coordinator' ? 'event-coordinator' : 'client'}/preferences?tab=payments`)} style={{ color: colors.brandPrimary, fontWeight: '500', cursor: 'pointer', textDecoration: 'underline' }}>Preferences → Payment Accounts</span>
+                </p>
+              </div>
+
+              {/* Donation Section */}
+              <div style={{
+                marginBottom: '1.25rem', padding: '1rem', borderRadius: '0.75rem',
+                border: `2px solid ${tipDonationSkipped ? colors.borderPrimary : (tipDonationValue > 0 ? '#F20C8F' : 'rgba(242, 12, 143, 0.3)')}`,
+                background: actualTheme === 'dark' ? 'linear-gradient(135deg, rgba(242, 12, 143, 0.08) 0%, rgba(255, 107, 157, 0.03) 100%)' : 'linear-gradient(135deg, rgba(242, 12, 143, 0.05) 0%, rgba(255, 107, 157, 0.02) 100%)',
+                transition: 'all 0.2s'
+              }}>
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <DonateHeartIcon />
+                    <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>Support a Cause</span>
+                    <span style={{ fontSize: '0.81rem', color: colors.textSecondary, marginLeft: 'auto' }}>Optional</span>
+                  </div>
+                  <p style={{ fontSize: '0.84rem', color: colors.textSecondary, margin: '0.35rem 0 0 0', lineHeight: '1.4' }}>
+                    Add a small donation to help fund community projects and initiatives
+                  </p>
+                </div>
+                {!tipDonationSkipped && (
+                  <>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                      {['5', '10', '25', '50'].map((amount) => (
+                        <button key={amount} onClick={() => handleTipSelectDonation(amount)} style={{
+                          padding: '0.4rem 0.75rem', border: tipDonationAmount === amount ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`,
+                          borderRadius: '0.5rem', background: tipDonationAmount === amount ? (actualTheme === 'dark' ? 'rgba(242, 12, 143, 0.15)' : 'rgba(242, 12, 143, 0.08)') : colors.bgCard,
+                          color: tipDonationAmount === amount ? '#F20C8F' : colors.textSecondary, fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', flex: '1', minWidth: '0'
+                        }}>{formatPrice(parseFloat(amount))}</button>
+                      ))}
+                      <button onClick={() => handleTipSelectDonation('custom')} style={{
+                        padding: '0.4rem 0.75rem', border: tipDonationAmount === 'custom' ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`,
+                        borderRadius: '0.5rem', background: tipDonationAmount === 'custom' ? (actualTheme === 'dark' ? 'rgba(242, 12, 143, 0.15)' : 'rgba(242, 12, 143, 0.08)') : colors.bgCard,
+                        color: tipDonationAmount === 'custom' ? '#F20C8F' : colors.textSecondary, fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', flex: '1', minWidth: '0'
+                      }}>Custom</button>
+                    </div>
+                    {tipShowCustomInput && (
+                      <div style={{ position: 'relative', marginBottom: '0.75rem' }}>
+                        <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontSize: '0.9rem', fontWeight: '600', color: colors.textSecondary }}>$</span>
+                        <input type="number" placeholder="Enter amount" value={tipCustomDonation} onChange={(e) => setTipCustomDonation(e.target.value)} style={{
+                          width: '100%', padding: '0.6rem 0.75rem 0.6rem 1.75rem', border: `2px solid ${tipCustomDonation ? '#F20C8F' : colors.borderPrimary}`,
+                          borderRadius: '0.5rem', fontSize: '0.85rem', color: colors.textPrimary, backgroundColor: colors.bgCard, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s'
+                        }} onFocus={(e) => { e.currentTarget.style.borderColor = '#F20C8F'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(242, 12, 143, 0.1)'; }}
+                        onBlur={(e) => { e.currentTarget.style.borderColor = tipCustomDonation ? '#F20C8F' : colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }} />
+                      </div>
+                    )}
+                  </>
+                )}
+                <button onClick={handleTipSkipDonation} style={{
+                  width: '100%', padding: '0.5rem 1rem', borderRadius: '9999px',
+                  border: tipDonationSkipped ? '2px solid #F20C8F' : '2px solid #6B7280',
+                  background: tipDonationSkipped ? '#F20C8F' : colors.bgTertiary,
+                  color: tipDonationSkipped ? 'white' : '#374151',
+                  fontSize: '0.875rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center'
+                }}>{tipDonationSkipped ? '✓ Donation skipped' : 'No thanks, skip donation'}</button>
+                <div style={{ marginTop: '0.5rem' }}>
+                  <a href={`${process.env.NEXT_PUBLIC_LANDING_URL as string}/user/donations`} onClick={(e) => { e.preventDefault(); router.push('/user/donations'); }} style={{ fontSize: '0.81rem', color: '#F20C8F', textDecoration: 'none', fontWeight: '500' }}>Learn more about our donation program →</a>
+                </div>
+              </div>
+
+              {!tipDonationAddressed && (
+                <p style={{ fontSize: '0.86rem', color: '#EF4444', margin: '0 0 0.75rem 0', textAlign: 'center' }}>Please select a donation amount or skip to continue</p>
+              )}
+
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                <button onClick={handleTipClose} style={{ flex: 1, padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Cancel</button>
+                <button disabled={!tipIsEnabled} onClick={() => setTipShowReceipt(true)} style={{
+                  flex: 1, padding: '0.75rem 1rem', border: !tipIsEnabled ? '2px solid #9CA3AF' : '2px solid #062a63',
+                  borderRadius: '0.5rem', background: !tipIsEnabled ? '#9CA3AF' : '#083A85', color: 'white', fontSize: '0.9rem', fontWeight: '600',
+                  cursor: !tipIsEnabled ? 'not-allowed' : 'pointer', opacity: !tipIsEnabled ? 0.7 : 1, transition: 'all 0.2s'
+                }}>Proceed to Payment</button>
+              </div>
+            </div>
+          </Modal>
+        );
+      })()}
+
+
+      {/* Invite Photographer Modal */}
+      {showInviteModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1100,
+            padding: '1rem'
+          }}
+          onClick={() => setShowInviteModal(false)}
+        >
+          <div
+            style={{
+              backgroundColor: colors.bgCard,
+              borderRadius: '0.75rem',
+              padding: '1.5rem',
+              maxWidth: '480px',
+              width: '100%',
+              maxHeight: '90vh',
+              overflowY: 'auto'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <div>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Invite Photographer</h2>
+                <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: '0.25rem 0 0 0' }}>Send an invite via email or share the link</p>
+              </div>
+              <button
+                onClick={() => setShowInviteModal(false)}
+                style={{
+                  background: colors.bgTertiary,
+                  border: `2px solid ${colors.borderPrimary}`,
+                  cursor: 'pointer',
+                  padding: '0.5rem',
+                  borderRadius: '0.375rem',
+                  color: colors.textPrimary,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <CloseIcon />
+              </button>
+            </div>
+
+            {/* Email Invite */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+                Email Address
+              </label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <input
+                  type="email"
+                  placeholder="photographer@example.com"
+                  value={inviteEmail}
+                  onChange={(e) => { setInviteEmail(e.target.value); setInviteError(null); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleInvitePhotographer(); }}
                   style={{
-                    width: '100%',
-                    height: '100%',
-                    borderRadius: '50%',
-                    border: '2px solid white',
-                    objectFit: 'cover',
-                    objectPosition: 'center'
+                    flex: 1,
+                    padding: '0.625rem 0.875rem',
+                    border: `2px solid ${inviteError ? '#EF4444' : colors.borderPrimary}`,
+                    borderRadius: '0.5rem',
+                    fontSize: '0.9rem',
+                    color: colors.textPrimary,
+                    backgroundColor: colors.bgCard,
+                    outline: 'none'
                   }}
                 />
-                {pendingReviewPhotographer.verified && (
-                  <div style={{
-                    position: 'absolute',
-                    bottom: '0px',
-                    right: '0px',
-                    background: 'white',
-                    borderRadius: '50%',
-                    width: '18px',
-                    height: '18px',
+                <button
+                  onClick={handleInvitePhotographer}
+                  disabled={isSendingInvite || !inviteEmail.trim()}
+                  style={{
+                    padding: '0.625rem 1rem',
+                    border: '2px solid #c00a72',
+                    borderRadius: '0.5rem',
+                    background: (!inviteEmail.trim() || isSendingInvite) ? '#9CA3AF' : '#F20C8F',
+                    color: 'white',
+                    fontSize: '0.85rem',
+                    fontWeight: '600',
+                    cursor: (!inviteEmail.trim() || isSendingInvite) ? 'not-allowed' : 'pointer',
+                    whiteSpace: 'nowrap',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15)'
-                  }}>
-                    <i className="bi bi-patch-check-fill" style={{ color: '#3b82f6', fontSize: '0.75rem' }} />
-                  </div>
-                )}
+                    gap: '0.375rem'
+                  }}
+                >
+                  <MessageIcon />
+                  {isSendingInvite ? 'Sending...' : 'Send'}
+                </button>
               </div>
-              <div>
-                <div style={{ fontWeight: '600', color: colors.textPrimary }}>{pendingReviewPhotographer.firstName} {pendingReviewPhotographer.lastName}</div>
-                <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Tip for great service</div>
-              </div>
+              {inviteError && (
+                <div style={{ color: '#EF4444', fontSize: '0.8rem', marginTop: '0.375rem' }}>
+                  {inviteError}
+                </div>
+              )}
             </div>
 
-            {/* Tip Amount Summary */}
-            <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '1rem', marginBottom: '1.25rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>Tip Amount</span>
-                <span style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
-                  ${tipAmount === 'custom' ? (parseFloat(customTipAmount) || 0) : tipAmount}
-                </span>
-              </div>
+            {/* Divider */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+              <div style={{ flex: 1, height: '1px', backgroundColor: colors.borderPrimary }} />
+              <span style={{ fontSize: '0.8rem', color: colors.textSecondary, fontWeight: '500' }}>or share invite link</span>
+              <div style={{ flex: 1, height: '1px', backgroundColor: colors.borderPrimary }} />
             </div>
 
-            {/* Payment Method Selection */}
-            <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>
-                Payment Method
+            {/* Invite Link */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+                Invite Link
               </label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-                {[
-                  { id: 'card', label: 'Credit/Debit Card', description: 'Pay with Visa, Mastercard, etc.', image: '/cards.png' },
-                  { id: 'mtn', label: 'MTN Mobile Money', description: 'Pay with MTN Mobile Money', image: '/mtn.png' },
-                  { id: 'airtel', label: 'Airtel Money', description: 'Pay with Airtel Money', image: '/airtel.png' },
-                  { id: 'bank', label: 'Bank Transfer', description: 'Direct bank transfer', image: '/bank.png' }
-                ].map((method) => (
-                  <div
-                    key={method.id}
-                    onClick={() => setSelectedTipPaymentMethod(method.id)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '1rem',
-                      padding: '1rem',
-                      border: selectedTipPaymentMethod === method.id ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                      borderRadius: '0.75rem',
-                      cursor: 'pointer',
-                      backgroundColor: selectedTipPaymentMethod === method.id ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    <div style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: '0.5rem',
-                      overflow: 'hidden',
-                      flexShrink: 0
-                    }}>
-                      <Image
-                        src={method.image}
-                        alt={method.label}
-                        width={48}
-                        height={48}
-                        unoptimized
-                        style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                      />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>
-                        {method.label}
-                      </div>
-                      <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>
-                        {method.description}
-                      </div>
-                    </div>
-                    <div style={{
-                      width: '20px',
-                      height: '20px',
-                      borderRadius: '50%',
-                      border: selectedTipPaymentMethod === method.id ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                      backgroundColor: colors.bgCard,
-                      flexShrink: 0
-                    }} />
-                  </div>
-                ))}
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <input
+                  type="text"
+                  value={inviteLink}
+                  readOnly
+                  style={{
+                    flex: 1,
+                    padding: '0.625rem 0.875rem',
+                    border: `2px solid ${colors.borderPrimary}`,
+                    borderRadius: '0.5rem',
+                    fontSize: '0.85rem',
+                    backgroundColor: colors.bgTertiary,
+                    color: colors.textPrimary
+                  }}
+                />
+                <button
+                  onClick={handleCopyInviteLink}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.375rem',
+                    padding: '0.625rem 1rem',
+                    border: inviteCopied ? '2px solid #059669' : '2px solid #062a63',
+                    borderRadius: '0.5rem',
+                    background: inviteCopied ? '#10B981' : '#083A85',
+                    color: 'white',
+                    fontSize: '0.85rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  <CopyIcon />
+                  {inviteCopied ? 'Copied!' : 'Copy'}
+                </button>
               </div>
-            </div>
-
-            {/* Info text about payment accounts */}
-            <p style={{
-              fontSize: '0.8rem',
-              color: colors.textSecondary,
-              margin: '0.75rem 0 1.25rem 0',
-              textAlign: 'center'
-            }}>
-              <i className="bi bi-info-circle" style={{ marginRight: '0.375rem' }}></i>
-              Manage your payment methods in <span
-                onClick={() => router.push('/user/client/preferences?tab=payments')}
-                style={{ color: colors.brandPrimary, fontWeight: '500', cursor: 'pointer', textDecoration: 'underline' }}
-              >Preferences → Payment Accounts</span>
-            </p>
-
-            {/* Actions */}
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '4rem' }}>
-              <DonateButton onClick={() => setShowTipDonateModal(true)} />
-              <button
-                onClick={() => {
-                  setShowTipPaymentModal(false);
-                  setTipAmount('');
-                  setCustomTipAmount('');
-                  setSelectedTipPaymentMethod('card');
-                  setSuccessMessage('Review submitted successfully!');
-                  setShowSuccessModal(true);
-                  setPendingReviewPhotographer(null);
-                }}
-                style={{
-                  flex: 1,
-                  padding: '0.75rem 1rem',
-                  border: `2px solid ${colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
-                  background: colors.bgTertiary,
-                  color: colors.textPrimary,
-                  fontSize: '0.9rem',
-                  fontWeight: '600',
-                  cursor: 'pointer'
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleTipPaymentComplete}
-                style={{
-                  flex: 1,
-                  padding: '0.75rem 1rem',
-                  border: '2px solid #062a63',
-                  borderRadius: '0.5rem',
-                  background: '#083A85',
-                  color: 'white',
-                  fontSize: '0.9rem',
-                  fontWeight: '600',
-                  cursor: 'pointer'
-                }}
-              >
-                Pay ${tipAmount === 'custom' ? (parseFloat(customTipAmount) || 0) : tipAmount}
-              </button>
             </div>
           </div>
-        )}
-      </Modal>
-
-      {/* Tip Donate Prompt Modal - Shows before tip payment modal */}
-      <DonatePromptModal
-        isOpen={showTipDonatePromptModal}
-        onClose={() => setShowTipDonatePromptModal(false)}
-        onNo={() => {
-          setShowTipDonatePromptModal(false);
-          setShowTipPaymentModal(true);
-        }}
-        onYes={() => {
-          setShowTipDonatePromptModal(false);
-          setShowTipDonateModal(true);
-        }}
-      />
-
-      {/* Tip Donate Modal */}
-      <DonateModal isOpen={showTipDonateModal} onClose={() => setShowTipDonateModal(false)} />
+        </div>
+      )}
 
       {/* Success Modal */}
       <Modal
         isOpen={showSuccessModal}
         onClose={handleSuccessClose}
         title=""
-        maxWidth="350px"
+        maxWidth="400px"
       >
-        <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
+        <div style={{ textAlign: 'center', padding: '1rem 0.5rem 0.5rem' }}>
           <div style={{
-            width: '80px',
-            height: '80px',
+            width: '88px',
+            height: '88px',
             borderRadius: '50%',
-            backgroundColor: '#D1FAE5',
+            background: 'linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            margin: '0 auto 1.25rem'
+            margin: '0 auto 1.5rem',
+            boxShadow: '0 8px 24px -4px rgba(16, 185, 129, 0.3)',
           }}>
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M20 6L9 17L4 12" stroke="#059669" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+            <svg width="42" height="42" viewBox="0 0 24 24" fill="none">
+              <path d="M20 6L9 17L4 12" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+          <h3 style={{ fontSize: '1.35rem', fontWeight: '700', color: colors.textPrimary, marginBottom: '0.625rem', letterSpacing: '-0.01em' }}>
             {successMessage}
           </h3>
-          <p style={{ fontSize: '0.9rem', color: colors.textSecondary, marginBottom: '1.5rem' }}>
-            Thank you for your feedback!
+          <p style={{ fontSize: '0.9rem', color: colors.textSecondary, marginBottom: '2rem', lineHeight: '1.5' }}>
+            {successMessage.toLowerCase().includes('invit') ? 'The photographer will receive an email invitation to join the platform.' : 'Thank you for your feedback!'}
           </p>
           <button
             onClick={handleSuccessClose}
             style={{
-              padding: '0.75rem 2rem',
-              border: '2px solid #062a63',
-              borderRadius: '0.5rem',
-              background: '#083A85',
+              padding: '0.75rem 2.5rem',
+              border: 'none',
+              borderRadius: '0.625rem',
+              background: 'linear-gradient(135deg, #083A85 0%, #0A4DA6 100%)',
               color: 'white',
               fontSize: '0.9rem',
               fontWeight: '600',
               cursor: 'pointer',
-              marginBottom: '4rem'
+              boxShadow: '0 4px 12px -2px rgba(8, 58, 133, 0.4)',
+              transition: 'transform 0.15s ease, box-shadow 0.15s ease',
             }}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 16px -2px rgba(8, 58, 133, 0.5)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 12px -2px rgba(8, 58, 133, 0.4)'; }}
           >
             Done
           </button>

@@ -1,14 +1,17 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
+import { useCurrency } from '../../context/CurrencyContext';
+import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
+import { getApiUrl, normalizeImageUrl } from '@/lib/api';
+import PayNowModal, { Payment } from '../../components/UnlockModal';
 import {
   StatCard,
-  HeaderStat,
   ActivityItem,
   PaymentItem,
   PerformanceChart,
@@ -132,7 +135,7 @@ interface PendingPayment {
   id: string;
   eventName: string;
   photographerName: string;
-  photographerImage: string;
+  photographerImage?: string;
   amount: number;
   paidAmount: number;
   dueDate: string;
@@ -144,16 +147,238 @@ interface Photographer {
   name: string;
   event: string;
   status: 'In Progress' | 'Completed' | 'Pending';
-  avatar: string;
+  avatar?: string;
+}
+
+interface AnalyticsData {
+  totalEvents: number;
+  upcomingEvents: number;
+  completedEvents: number;
+  cancelledEvents: number;
+  totalBookings: number;
+  bookingsByStatus: Record<string, number>;
+  totalSpent: number;
+  pendingAmount: number;
+  gifts: number;
+  totalPhotos: number;
+  totalVideos: number;
+  bookmarkedPhotographers: number;
+  unreadNotifications: number;
+}
+
+interface ApiPayment {
+  id: string;
+  eventId: string;
+  eventTitle: string;
+  photographerName: string | null;
+  photographerImage: string | null;
+  amount: number;
+  amountInUsd?: number;
+  paidAmountInUsd?: number;
+  currencyAbbreviation: string;
+  paymentType: string;
+  status: string;
+  paidAmount: number;
+  dueDate: string;
+  createdAt: string;
+}
+
+interface ApiActivity {
+  id: string;
+  title: string;
+  message: string;
+  type: string;
+  isRead: boolean;
+  createdAt: string;
 }
 
 const ClientDashboard = () => {
   const { colors, actualTheme } = useTheme();
+  const { formatPrice } = useCurrency();
+  const { user } = useDashboardAuth();
+  const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<'today' | 'week' | 'month' | 'custom'>('week');
   const [timeOfDay, setTimeOfDay] = useState(getTimeOfDay());
   const [greetingIndex, setGreetingIndex] = useState(0);
   const [greetings, setGreetings] = useState(getGreetings(getTimeOfDay()));
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [showPayNowModal, setShowPayNowModal] = useState(false);
+  const [payNowPayment, setPayNowPayment] = useState<Payment | null>(null);
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const [customApplied, setCustomApplied] = useState(false);
+
+  // API data state
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([]);
+  const [photographers, setPhotographers] = useState<Photographer[]>([]);
+  const [recentActivities, setRecentActivities] = useState<{ label: string; value: string; valueColor?: string }[]>([]);
+  const [recentPayments, setRecentPayments] = useState<{ name: string; type: string; amount: string; avatar?: string }[]>([]);
+  const [performanceData, setPerformanceData] = useState([
+    { day: 'Sun', value1: 0, value2: 0 },
+    { day: 'Mon', value1: 0, value2: 0 },
+    { day: 'Tue', value1: 0, value2: 0 },
+    { day: 'Wed', value1: 0, value2: 0 },
+    { day: 'Thu', value1: 0, value2: 0 },
+    { day: 'Fri', value1: 0, value2: 0 },
+    { day: 'Sat', value1: 0, value2: 0 }
+  ]);
+  const [statTrends, setStatTrends] = useState<Record<string, { percentage: string; trend: 'up' | 'down' }>>({
+    totalSpent: { percentage: '0%', trend: 'up' },
+    pending: { percentage: '0%', trend: 'up' },
+    bookings: { percentage: '0%', trend: 'up' },
+    gifts: { percentage: '0%', trend: 'up' },
+    favorites: { percentage: '0%', trend: 'up' },
+  });
+  const [isLoading, setIsLoading] = useState(true);
+
+
+  // Fetch all dashboard data
+  const fetchDashboardData = useCallback(async () => {
+    const apiUrl = getApiUrl();
+    const periodParam = activeFilter === 'today' ? 'today' : activeFilter === 'month' ? 'month' : 'week';
+    const customDateQuery = activeFilter === 'custom' && customApplied && customStartDate && customEndDate
+      ? `&startDate=${customStartDate}&endDate=${customEndDate}` : '';
+    const perfQuery = activeFilter === 'custom' && customApplied && customStartDate && customEndDate
+      ? `period=custom${customDateQuery}` : `period=${periodParam}`;
+    const trendsQuery = perfQuery;
+    try {
+      const [analyticsRes, pendingRes, photographersRes, activitiesRes, paymentsRes, performanceRes, trendsRes] = await Promise.allSettled([
+        dashboardAuthFetch(`${apiUrl}/api/remote/customer/analytics`),
+        dashboardAuthFetch(`${apiUrl}/api/remote/customer/payments/pending`),
+        dashboardAuthFetch(`${apiUrl}/api/remote/customer/analytics/photographers?size=5`),
+        dashboardAuthFetch(`${apiUrl}/api/remote/customer/analytics/recent-activities?size=6`),
+        dashboardAuthFetch(`${apiUrl}/api/remote/customer/analytics/recent-payments?size=5`),
+        dashboardAuthFetch(`${apiUrl}/api/remote/customer/analytics/performance?${perfQuery}`),
+        dashboardAuthFetch(`${apiUrl}/api/remote/customer/analytics/trends?${trendsQuery}`),
+      ]);
+
+      // Analytics
+      if (analyticsRes.status === 'fulfilled' && analyticsRes.value.ok) {
+        const data = await analyticsRes.value.json();
+        if (data.action === 1 && data.data) {
+          setAnalytics(data.data);
+        }
+      }
+
+      // Pending Payments
+      if (pendingRes.status === 'fulfilled' && pendingRes.value.ok) {
+        const data = await pendingRes.value.json();
+        if (data.action === 1 && data.data) {
+          const mapped: PendingPayment[] = (data.data as ApiPayment[]).map((p) => ({
+            id: p.id,
+            eventName: p.eventTitle || 'Event',
+            photographerName: p.photographerName || 'Photographer',
+            photographerImage: normalizeImageUrl(p.photographerImage || undefined),
+            amount: p.amountInUsd ?? p.amount,
+            paidAmount: p.paidAmountInUsd ?? p.paidAmount ?? 0,
+            dueDate: p.dueDate ? p.dueDate.split('T')[0] : '',
+            status: p.status === 'PARTIAL' ? 'partially_paid' : p.status === 'FAILED' ? 'failed' : 'pending' as PendingPayment['status'],
+          }));
+          setPendingPayments(mapped);
+        }
+      }
+
+      // Photographers
+      if (photographersRes.status === 'fulfilled' && photographersRes.value.ok) {
+        const data = await photographersRes.value.json();
+        if (data.action === 1 && data.data) {
+          const mapped: Photographer[] = (data.data as Array<{ id: string; name: string; event: string; status: string; avatar: string | null }>).map((p) => ({
+            id: p.id,
+            name: p.name,
+            event: p.event || 'Event',
+            status: (p.status as Photographer['status']) || 'Pending',
+            avatar: normalizeImageUrl(p.avatar || undefined),
+          }));
+          setPhotographers(mapped);
+        }
+      }
+
+      // Recent Activities
+      if (activitiesRes.status === 'fulfilled' && activitiesRes.value.ok) {
+        const data = await activitiesRes.value.json();
+        if (data.action === 1 && data.data) {
+          const mapped = (data.data as ApiActivity[]).map((a) => ({
+            label: a.type ? a.type.charAt(0) + a.type.slice(1).toLowerCase() : 'Activity',
+            value: a.title || a.message,
+          }));
+          setRecentActivities(mapped);
+        }
+      }
+
+      // Recent Transactions — show pending/unpaid photographers
+      if (paymentsRes.status === 'fulfilled' && paymentsRes.value.ok) {
+        const data = await paymentsRes.value.json();
+        if (data.action === 1 && data.data) {
+          const pendingTxns = (data.data as ApiPayment[])
+            .filter((p) => p.status !== 'COMPLETED' && p.status !== 'SUCCESS')
+            .slice(0, 5)
+            .map((p) => ({
+              name: p.photographerName || 'Payment',
+              type: p.status === 'PARTIAL' ? 'Partially paid' : p.status === 'FAILED' ? 'Failed' : 'Pending',
+              amount: formatPrice(p.amountInUsd ?? p.amount),
+              avatar: normalizeImageUrl(p.photographerImage || undefined),
+            }));
+          setRecentPayments(pendingTxns);
+        }
+      }
+
+      // Performance Chart
+      if (performanceRes.status === 'fulfilled' && performanceRes.value.ok) {
+        const data = await performanceRes.value.json();
+        if (data.action === 1 && Array.isArray(data.data)) {
+          setPerformanceData(data.data.map((d: any) => ({
+            day: d.day || '',
+            value1: Number(d.value1) || 0,
+            value2: Number(d.value2) || 0,
+          })));
+        }
+      }
+
+      // Stat Trends
+      if (trendsRes.status === 'fulfilled' && trendsRes.value.ok) {
+        const data = await trendsRes.value.json();
+        if (data.action === 1 && data.data) {
+          const t = data.data;
+          setStatTrends({
+            totalSpent: { percentage: t.totalSpent?.percentage || '0%', trend: t.totalSpent?.trend || 'up' },
+            pending: { percentage: t.pending?.percentage || '0%', trend: t.pending?.trend || 'up' },
+            bookings: { percentage: t.bookings?.percentage || '0%', trend: t.bookings?.trend || 'up' },
+            gifts: { percentage: t.gifts?.percentage || '0%', trend: t.gifts?.trend || 'up' },
+            favorites: { percentage: t.favorites?.percentage || '0%', trend: t.favorites?.trend || 'up' },
+          });
+        }
+      }
+    } catch (error) {
+      console.error('[Client Dashboard] Error fetching dashboard data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [formatPrice, activeFilter, customApplied, customStartDate, customEndDate]);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
+
+  const handlePayNow = (pending: PendingPayment) => {
+    const payment: Payment = {
+      id: parseInt(pending.id.replace(/\D/g, '')) || 0,
+      declarationId: pending.id,
+      date: pending.dueDate,
+      eventName: pending.eventName,
+      eventType: 'Photography',
+      photographerName: pending.photographerName,
+      photographerImage: pending.photographerImage ?? '',
+      method: 'card',
+      amount: `$${(pending.amount - pending.paidAmount).toFixed(2)}`,
+      amountNum: pending.amount - pending.paidAmount,
+      paidAmount: pending.paidAmount,
+      status: pending.status === 'partially_paid' ? 'pending' : pending.status,
+      invoiceNumber: pending.id,
+    };
+    setPayNowPayment(payment);
+    setShowPayNowModal(true);
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -197,118 +422,35 @@ const ClientDashboard = () => {
   const currentGreeting = greetings[greetingIndex];
   const staticMessage = getStaticMessage(timeOfDay);
 
-  // Pending Payments Data
-  const pendingPayments: PendingPayment[] = [
-    {
-      id: 'PAY-001',
-      eventName: 'Corporate Headshots',
-      photographerName: 'Elite Photography',
-      photographerImage: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
-      amount: 500,
-      paidAmount: 0,
-      dueDate: '2025-07-25',
-      status: 'pending'
-    },
-    {
-      id: 'PAY-002',
-      eventName: 'Family Portrait',
-      photographerName: 'Mary Shots',
-      photographerImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg',
-      amount: 250,
-      paidAmount: 125,
-      dueDate: '2025-07-30',
-      status: 'partially_paid'
-    },
-    {
-      id: 'PAY-003',
-      eventName: 'Fashion Shoot',
-      photographerName: 'Sarah Lens',
-      photographerImage: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg',
-      amount: 400,
-      paidAmount: 0,
-      dueDate: '2025-08-05',
-      status: 'failed'
-    }
-  ];
-
   const totalPendingAmount = pendingPayments.reduce((sum, p) => sum + (p.amount - p.paidAmount), 0);
   const hasFailedPayments = pendingPayments.some(p => p.status === 'failed');
 
-  const performanceData = [
-    { day: 'Sun', value1: 130, value2: 150 },
-    { day: 'Mon', value1: 90, value2: 100 },
-    { day: 'Tue', value1: 100, value2: 130 },
-    { day: 'Wed', value1: 60, value2: 70 },
-    { day: 'Thu', value1: 70, value2: 80 },
-    { day: 'Fri', value1: 130, value2: 150 },
-    { day: 'Sat', value1: 90, value2: 70 }
-  ];
-
-  const recentActivities = [
-    { label: 'Photographer', value: 'John Studio' },
-    { label: 'Payment', value: '-$450', valueColor: '#ff0066' },
-    { label: 'Photos', value: 'wedding_gallery.zip' },
-    { label: 'Package', value: 'Premium' },
-    { label: 'Booking', value: 'Wedding Shoot',  valueColor: '#083A85' },
-    { label: 'Last Activity', value: 'Today, 14. July 2025' }
-  ];
-
-  const photographers: Photographer[] = [
-    {
-      id: 'PHT-001',
-      name: 'John Studio',
-      event: 'Wedding',
-      status: 'In Progress' as const,
-      avatar: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg'
-    },
-    {
-      id: 'PHT-002',
-      name: 'Mary Shots',
-      event: 'Birthday',
-      status: 'Completed' as const,
-      avatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg'
-    },
-    {
-      id: 'PHT-003',
-      name: 'Alex Frames',
-      event: 'Festival',
-      status: 'Pending' as const,
-      avatar: 'https://i.pinimg.com/1200x/09/23/45/092345eac1919407e0c49f67e285b831.jpg'
-    }
-  ];
+  const periodLabel = activeFilter === 'today' ? 'yesterday' : activeFilter === 'month' ? 'last month' : activeFilter === 'custom' && customStartDate && customEndDate ? `${customStartDate} - ${customEndDate}` : 'last week';
 
   const toggleDropdown = (id: string) => {
     setActiveDropdown(activeDropdown === id ? null : id);
   };
 
-  const recentPayments = [
-    {
-      name: 'John Studio',
-      type: 'Booking Payment',
-      amount: '$1,950',
-      avatar: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg'
-    },
-    {
-      name: 'Mary Shots',
-      type: 'Photo Package',
-      amount: '$850',
-      avatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg'
-    },
-    {
-      name: 'Amoria',
-      type: 'Platform Fee',
-      amount: '$25.00',
-      logo: '/logo.png'
-    }
-  ];
-
   return (
+    <>
     <div style={{
       display: 'flex',
       height: '100vh',
-      backgroundColor: colors.bgPrimary
+      backgroundColor: colors.bgPrimary,
+      overflow: 'hidden',
+      width: '100%',
+      maxWidth: '100vw'
     }}>
       <style jsx>{`
+        @media (max-width: 1024px) {
+          .mobile-stats-grid {
+            grid-template-columns: repeat(3, 1fr) !important;
+          }
+          .mobile-main-grid {
+            grid-template-columns: 1fr !important;
+            gap: 1rem !important;
+          }
+        }
         @media (max-width: 768px) {
           .mobile-main-content {
             padding: 1rem !important;
@@ -334,7 +476,7 @@ const ClientDashboard = () => {
             flex-direction: row !important;
             justify-content: space-between !important;
             padding: 0.75rem !important;
-            border-bottom: 1px solid ${colors.borderPrimary} !important;
+            border-bottom: 2px solid ${colors.borderPrimary} !important;
           }
           .mobile-header-stat:last-child {
             border-bottom: none !important;
@@ -348,7 +490,7 @@ const ClientDashboard = () => {
             padding: 0.5rem 0.75rem !important;
           }
           .mobile-stats-grid {
-            grid-template-columns: 1fr !important;
+            grid-template-columns: repeat(2, 1fr) !important;
             gap: 0.75rem !important;
           }
           .mobile-main-grid {
@@ -358,8 +500,58 @@ const ClientDashboard = () => {
           .mobile-pending-payments {
             padding: 1rem !important;
           }
+          .mobile-pending-header {
+            flex-direction: column !important;
+            gap: 0.75rem !important;
+          }
+          .mobile-pending-header .mobile-view-all-link {
+            align-self: flex-start !important;
+          }
+          .mobile-pending-card {
+            min-width: 240px !important;
+          }
           .mobile-card {
             padding: 1rem !important;
+          }
+          .mobile-photographer-row {
+            flex-wrap: wrap !important;
+            gap: 0.5rem !important;
+          }
+          .mobile-photographer-status {
+            order: 4 !important;
+            margin-left: 2.875rem !important;
+          }
+          .mobile-photographer-menu {
+            position: absolute !important;
+            top: 0.5rem !important;
+            right: 0 !important;
+          }
+          .mobile-photographer-menu button {
+            padding: 0.5rem !important;
+            min-width: 44px !important;
+            min-height: 44px !important;
+          }
+          .mobile-pay-btn {
+            min-height: 40px !important;
+            padding: 0.5rem 1rem !important;
+            font-size: 0.8rem !important;
+          }
+          .mobile-custom-dates {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 0.5rem !important;
+          }
+          .mobile-custom-dates > div {
+            width: 100% !important;
+          }
+          .mobile-custom-dates input[type="date"] {
+            flex: 1 !important;
+            width: 100% !important;
+            min-height: 40px !important;
+          }
+          .mobile-custom-dates button {
+            width: 100% !important;
+            min-height: 40px !important;
           }
         }
         @media (max-width: 640px) {
@@ -374,6 +566,20 @@ const ClientDashboard = () => {
             font-size: 0.8rem !important;
             padding: 0.5rem 0.625rem !important;
           }
+          .mobile-stats-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .mobile-pending-card {
+            min-width: 100% !important;
+            flex: 1 1 100% !important;
+          }
+          .mobile-pending-cards-scroll {
+            flex-direction: column !important;
+            overflow-x: visible !important;
+          }
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator {
+          cursor: pointer;
         }
       `}</style>
       <Sidebar />
@@ -384,11 +590,12 @@ const ClientDashboard = () => {
         flexDirection: 'column',
         overflow: 'hidden'
       }}>
-        <Topbar userRole="client" giftAmount={225.00} />
+        <Topbar userRole="client" giftAmount={analytics?.gifts || 0} />
 
         <div className="mobile-main-content" style={{
           flex: 1,
           overflowY: 'auto',
+          overflowX: 'hidden',
           backgroundColor: colors.bgPrimary,
           paddingLeft: '1.25rem',
           paddingRight: '1.25rem',
@@ -409,7 +616,7 @@ const ClientDashboard = () => {
                 fontWeight: '600',
                 transition: 'opacity 0.3s ease'
               }}>
-                {currentGreeting}, <span style={{ fontWeight: '600', color: colors.brandPrimary }}>Diane</span>
+                {currentGreeting}, <span style={{ fontWeight: '600', color: colors.brandPrimary }}>{user?.firstName || 'there'}</span>
               </h1>
               <p style={{
                 fontSize: '0.875rem',
@@ -427,7 +634,7 @@ const ClientDashboard = () => {
               paddingTop: '0.75rem',
               paddingBottom: '0.75rem',
               boxShadow: colors.shadowSm,
-              border: `1px solid ${colors.borderPrimary}`,
+              border: `2px solid ${colors.borderPrimary}`,
               display: 'flex',
               gap: '2rem'
             }}>
@@ -448,7 +655,7 @@ const ClientDashboard = () => {
                   lineHeight: '1.75rem',
                   fontWeight: '700',
                   color: colors.textPrimary
-                }}>$9.64k</span>
+                }}>{formatPrice(analytics?.totalSpent || 0)}</span>
               </div>
               <div className="mobile-header-stat" style={{
                 display: 'flex',
@@ -467,7 +674,7 @@ const ClientDashboard = () => {
                   lineHeight: '1.75rem',
                   fontWeight: '700',
                   color: colors.textPrimary
-                }}>12</span>
+                }}>{analytics?.totalBookings || 0}</span>
               </div>
               <div className="mobile-header-stat" style={{
                 display: 'flex',
@@ -486,7 +693,7 @@ const ClientDashboard = () => {
                   lineHeight: '1.75rem',
                   fontWeight: '700',
                   color: colors.textPrimary
-                }}>248</span>
+                }}>{analytics?.totalPhotos || 0}</span>
               </div>
             </div>
           </header>
@@ -574,6 +781,72 @@ const ClientDashboard = () => {
         </button>
       </div>
 
+      {activeFilter === 'custom' && (
+        <div className="mobile-custom-dates" style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          marginBottom: '1rem',
+          flexWrap: 'wrap'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textSecondary, whiteSpace: 'nowrap' }}>From</label>
+            <input
+              type="date"
+              value={customStartDate}
+              onChange={(e) => { setCustomStartDate(e.target.value); setCustomApplied(false); }}
+              max={customEndDate || undefined}
+              style={{
+                padding: '0.4rem 0.625rem',
+                borderRadius: '0.375rem',
+                border: `2px solid ${colors.borderPrimary}`,
+                backgroundColor: colors.bgCard,
+                color: colors.textPrimary,
+                fontSize: '0.85rem',
+                outline: 'none',
+                cursor: 'pointer'
+              }}
+            />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textSecondary, whiteSpace: 'nowrap' }}>To</label>
+            <input
+              type="date"
+              value={customEndDate}
+              onChange={(e) => { setCustomEndDate(e.target.value); setCustomApplied(false); }}
+              min={customStartDate || undefined}
+              style={{
+                padding: '0.4rem 0.625rem',
+                borderRadius: '0.375rem',
+                border: `2px solid ${colors.borderPrimary}`,
+                backgroundColor: colors.bgCard,
+                color: colors.textPrimary,
+                fontSize: '0.85rem',
+                outline: 'none',
+                cursor: 'pointer'
+              }}
+            />
+          </div>
+          <button
+            onClick={() => { if (customStartDate && customEndDate) setCustomApplied(true); }}
+            disabled={!customStartDate || !customEndDate}
+            style={{
+              padding: '0.4rem 1rem',
+              borderRadius: '0.375rem',
+              border: 'none',
+              backgroundColor: customStartDate && customEndDate ? '#F20C8F' : colors.borderPrimary,
+              color: customStartDate && customEndDate ? 'white' : colors.textTertiary,
+              fontSize: '0.85rem',
+              fontWeight: '600',
+              cursor: customStartDate && customEndDate ? 'pointer' : 'not-allowed',
+              transition: 'all 0.3s'
+            }}
+          >
+            Apply
+          </button>
+        </div>
+      )}
+
       <div className="mobile-stats-grid" style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(5, 1fr)',
@@ -582,48 +855,50 @@ const ClientDashboard = () => {
       }}>
         <StatCard
           title="Total Spent"
-          value="$2,600"
-          percentage="52.76%"
-          timeframe="last week"
+          value={formatPrice(analytics?.totalSpent || 0)}
+          percentage={statTrends.totalSpent.percentage}
+          timeframe={periodLabel}
           icon={<MoneyIcon />}
-          trend="up"
-          href="/user/client/transactions"
+          trend={statTrends.totalSpent.trend}
+          accentColor="#083A85"
         />
         <StatCard
           title="Pending"
-          value="$700"
-          percentage="36.8%"
-          timeframe="last week"
+          value={formatPrice(analytics?.pendingAmount || 0)}
+          percentage={statTrends.pending.percentage}
+          timeframe={periodLabel}
           icon={<ClockIcon />}
-          trend="down"
-          href="/user/client/bookings"
+          trend={statTrends.pending.trend}
+          accentColor="#F59E0B"
         />
         <StatCard
           title="Bookings"
-          value="12"
-          percentage="5.4%"
-          timeframe="last week"
+          value={String(analytics?.totalBookings || 0)}
+          percentage={statTrends.bookings.percentage}
+          timeframe={periodLabel}
           icon={<UsersIcon />}
-          trend="up"
-          href="/user/client/bookings"
+          trend={statTrends.bookings.trend}
+          href="/user/client/events"
+          accentColor="#3B82F6"
         />
         <StatCard
           title="Gifts"
-          value="$225"
-          percentage="12.5%"
-          timeframe="last week"
+          value={formatPrice(analytics?.gifts || 0)}
+          percentage={statTrends.gifts.percentage}
+          timeframe={periodLabel}
           icon={<GiftIcon />}
-          trend="up"
-          href="/user/client/payments"
+          trend={statTrends.gifts.trend}
+          accentColor="#10B981"
         />
         <StatCard
           title="Favorites"
-          value="8"
-          percentage="8%"
-          timeframe="photographers"
+          value={String(analytics?.bookmarkedPhotographers || 0)}
+          percentage={statTrends.favorites.percentage}
+          timeframe={periodLabel}
           icon={<StarIcon />}
-          trend="up"
+          trend={statTrends.favorites.trend}
           href="/user/client/photographers"
+          accentColor="#8B5CF6"
         />
       </div>
 
@@ -636,7 +911,7 @@ const ClientDashboard = () => {
           padding: '1rem 1.25rem',
           marginBottom: '1rem'
         }}>
-          <div style={{
+          <div className="mobile-pending-header" style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'flex-start',
@@ -667,11 +942,12 @@ const ClientDashboard = () => {
                   color: hasFailedPayments ? (actualTheme === 'dark' ? '#FCA5A5' : '#991B1B') : (actualTheme === 'dark' ? '#FCD34D' : '#92400E'),
                   margin: '0.25rem 0 0 0'
                 }}>
-                  You have {pendingPayments.length} payment{pendingPayments.length > 1 ? 's' : ''} totaling <strong>${totalPendingAmount}</strong> that need{pendingPayments.length === 1 ? 's' : ''} attention
+                  You have {pendingPayments.length} payment{pendingPayments.length > 1 ? 's' : ''} totaling <strong>{formatPrice(totalPendingAmount)}</strong> that need{pendingPayments.length === 1 ? 's' : ''} attention
                 </p>
               </div>
             </div>
             <Link
+              className="mobile-view-all-link"
               href="/user/client/payments"
               style={{
                 display: 'flex',
@@ -680,7 +956,8 @@ const ClientDashboard = () => {
                 fontSize: '0.85rem',
                 fontWeight: '600',
                 color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
-                textDecoration: 'none'
+                textDecoration: 'none',
+                flexShrink: 0
               }}
             >
               View All
@@ -688,7 +965,7 @@ const ClientDashboard = () => {
             </Link>
           </div>
 
-          <div style={{
+          <div className="mobile-pending-cards-scroll" style={{
             display: 'flex',
             gap: '0.75rem',
             overflowX: 'auto',
@@ -697,26 +974,27 @@ const ClientDashboard = () => {
             {pendingPayments.map((payment) => (
               <div
                 key={payment.id}
+                className="mobile-pending-card"
                 style={{
                   flex: '0 0 auto',
                   backgroundColor: colors.bgCard,
                   borderRadius: '0.5rem',
                   padding: '0.75rem 1rem',
                   minWidth: '280px',
-                  border: payment.status === 'failed' ? `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}` : `1px solid ${colors.borderPrimary}`,
+                  border: payment.status === 'failed' ? `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}` : `2px solid ${colors.borderPrimary}`,
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.75rem'
                 }}
               >
-                <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
-                  <Image
-                    src={payment.photographerImage}
-                    alt={payment.photographerName}
-                    width={40}
-                    height={40}
-                    style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                  />
+                <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                  </svg>
+                  {payment.photographerImage && (
+                    <img src={payment.photographerImage} alt={payment.photographerName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                  )}
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{
@@ -727,7 +1005,7 @@ const ClientDashboard = () => {
                     alignItems: 'center',
                     gap: '0.5rem'
                   }}>
-                    {payment.eventName}
+                    {payment.photographerName}
                     {payment.status === 'failed' && (
                       <span style={{
                         fontSize: '0.65rem',
@@ -754,7 +1032,7 @@ const ClientDashboard = () => {
                     )}
                   </div>
                   <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>
-                    {payment.photographerName}
+                    {payment.eventName}
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
@@ -763,19 +1041,24 @@ const ClientDashboard = () => {
                     fontWeight: '700',
                     color: payment.status === 'failed' ? (actualTheme === 'dark' ? '#FCA5A5' : '#DC2626') : (actualTheme === 'dark' ? '#60A5FA' : '#083A85')
                   }}>
-                    ${payment.amount - payment.paidAmount}
+                    {formatPrice(payment.amount - payment.paidAmount)}
                   </div>
-                  <Link
-                    href="/user/client/payments"
+                  <button
+                    className="mobile-pay-btn"
+                    onClick={() => handlePayNow(payment)}
                     style={{
                       fontSize: '0.75rem',
                       fontWeight: '600',
-                      color: payment.status === 'failed' ? '#F20C8F' : (actualTheme === 'dark' ? '#60A5FA' : '#083A85'),
-                      textDecoration: 'none',
+                      color: 'white',
+                      backgroundColor: payment.status === 'failed' ? '#DC2626' : '#083A85',
+                      border: 'none',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'flex-end',
-                      gap: '0.25rem'
+                      justifyContent: 'center',
+                      gap: '0.25rem',
+                      borderRadius: '0.375rem',
+                      padding: '0.375rem 0.75rem',
+                      cursor: 'pointer'
                     }}
                   >
                     {payment.status === 'failed' ? (
@@ -786,10 +1069,10 @@ const ClientDashboard = () => {
                     ) : (
                       <>
                         <CreditCardIcon />
-                        Pay
+                        Pay Now
                       </>
                     )}
-                  </Link>
+                  </button>
                 </div>
               </div>
             ))}
@@ -800,9 +1083,10 @@ const ClientDashboard = () => {
       <div className="mobile-main-grid" style={{
         display: 'grid',
         gridTemplateColumns: '1fr 320px',
-        gap: '1rem'
+        gap: '1rem',
+        minWidth: 0
       }}>
-        <div>
+        <div style={{ minWidth: 0 }}>
           <section className="mobile-card" style={{
             backgroundColor: colors.bgCard,
             borderRadius: '0.5rem',
@@ -868,6 +1152,7 @@ const ClientDashboard = () => {
                 return (
                   <div
                     key={photographer.id}
+                    className="mobile-photographer-row"
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -880,16 +1165,15 @@ const ClientDashboard = () => {
                     onMouseEnter={(e) => e.currentTarget.style.backgroundColor = colors.bgHover}
                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                   >
-                    <img
-                      src={photographer.avatar}
-                      alt={photographer.name}
-                      style={{
-                        width: '2.25rem',
-                        height: '2.25rem',
-                        borderRadius: '9999px',
-                        objectFit: 'cover'
-                      }}
-                    />
+                    <div style={{ width: '2.25rem', height: '2.25rem', borderRadius: '9999px', overflow: 'hidden', flexShrink: 0, backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                      </svg>
+                      {photographer.avatar && (
+                        <img src={photographer.avatar} alt={photographer.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                      )}
+                    </div>
                     <div style={{
                       flex: 1,
                       display: 'flex',
@@ -908,7 +1192,7 @@ const ClientDashboard = () => {
                         color: colors.textSecondary
                       }}>{photographer.event}</span>
                     </div>
-                    <span style={{
+                    <span className="mobile-photographer-status" style={{
                       paddingLeft: '0.625rem',
                       paddingRight: '0.625rem',
                       paddingTop: '0.25rem',
@@ -919,7 +1203,7 @@ const ClientDashboard = () => {
                       fontWeight: '600',
                       ...getStatusStyle()
                     }}>{photographer.status}</span>
-                    <div style={{ position: 'relative' }}>
+                    <div className="mobile-photographer-menu" style={{ position: 'relative' }}>
                       <button
                         style={{
                           padding: '0.25rem',
@@ -948,7 +1232,7 @@ const ClientDashboard = () => {
                           backgroundColor: colors.bgCard,
                           borderRadius: '0.5rem',
                           boxShadow: colors.shadowMd,
-                          border: `1px solid ${colors.borderPrimary}`,
+                          border: `2px solid ${colors.borderPrimary}`,
                           zIndex: 10,
                           minWidth: '140px',
                           overflow: 'hidden'
@@ -1048,6 +1332,14 @@ const ClientDashboard = () => {
         </div>
       </div>
     </div>
+
+      <PayNowModal
+        isOpen={showPayNowModal}
+        onClose={() => setShowPayNowModal(false)}
+        payment={payNowPayment}
+        onPaymentSuccess={() => { setShowPayNowModal(false); fetchDashboardData(); }}
+      />
+    </>
   );
 };
 
