@@ -623,7 +623,10 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
   };
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    if (!dateStr) return '-';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '-';
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   const getPaymentStatusColor = (status: PaymentStatus) => {
@@ -1545,13 +1548,15 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                     </div>
 
                     {/* Last Booking Info */}
+                    {(photographer.lastEventName || photographer.lastBookingDate) && (
                     <div style={{ marginTop: '0.75rem', padding: '0.75rem', backgroundColor: colors.bgTertiary, borderRadius: '0.5rem' }}>
                       <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Last Booking</div>
                       <div style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>{photographer.lastEventName}</div>
                       <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginTop: '0.125rem' }}>
-                        {photographer.lastEventType} • {formatDate(photographer.lastBookingDate)}
+                        {photographer.lastEventType}{photographer.lastBookingDate ? ` • ${formatDate(photographer.lastBookingDate)}` : ''}
                       </div>
                     </div>
+                    )}
 
                     {/* Rating */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem' }}>
