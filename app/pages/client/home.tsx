@@ -241,7 +241,8 @@ const ClientDashboard = () => {
       ? `&startDate=${customStartDate}&endDate=${customEndDate}` : '';
     const perfQuery = activeFilter === 'custom' && customApplied && customStartDate && customEndDate
       ? `period=custom${customDateQuery}` : `period=${periodParam}`;
-    const trendsQuery = perfQuery;
+    const trendsQuery = activeFilter === 'custom' && customApplied && customStartDate && customEndDate
+      ? `period=custom&from=${customStartDate}&to=${customEndDate}` : `period=${periodParam}`;
     try {
       const [analyticsRes, pendingRes, photographersRes, activitiesRes, paymentsRes, performanceRes, trendsRes] = await Promise.allSettled([
         dashboardAuthFetch(`${apiUrl}/api/remote/customer/analytics`),
@@ -340,12 +341,16 @@ const ClientDashboard = () => {
         const data = await trendsRes.value.json();
         if (data.action === 1 && data.data) {
           const t = data.data;
+          const fmt = (m: any) => ({
+            percentage: m?.changePercent != null ? `${Math.abs(m.changePercent).toFixed(1)}%` : '0%',
+            trend: (m?.trend === 'down' ? 'down' : 'up') as 'up' | 'down',
+          });
           setStatTrends({
-            totalSpent: { percentage: t.totalSpent?.percentage || '0%', trend: t.totalSpent?.trend || 'up' },
-            pending: { percentage: t.pending?.percentage || '0%', trend: t.pending?.trend || 'up' },
-            bookings: { percentage: t.bookings?.percentage || '0%', trend: t.bookings?.trend || 'up' },
-            gifts: { percentage: t.gifts?.percentage || '0%', trend: t.gifts?.trend || 'up' },
-            favorites: { percentage: t.favorites?.percentage || '0%', trend: t.favorites?.trend || 'up' },
+            totalSpent: fmt(t.totalSpent),
+            pending: fmt(t.pending),
+            bookings: fmt(t.events),
+            gifts: fmt(t.gifts),
+            favorites: fmt(t.photographers),
           });
         }
       }
