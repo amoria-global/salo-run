@@ -205,6 +205,33 @@ const EventCoordinatorDashboard = () => {
     { day: 'Sat', value1: 0, value2: 0 }
   ]);
   const [isLoading, setIsLoading] = useState(true);
+  const [trends, setTrends] = useState<Record<string, { value: number; changePercent: number; trend: string }> | null>(null);
+
+  // Fetch trends data based on active filter
+  const fetchTrends = useCallback(async (period: string, from?: string, to?: string) => {
+    const apiUrl = getApiUrl();
+    try {
+      let url = `${apiUrl}/api/remote/coordinator/analytics/trends?period=${period}`;
+      if (period === 'custom' && from && to) {
+        url += `&from=${from}&to=${to}`;
+      }
+      const res = await dashboardAuthFetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.action === 1 && data.data) {
+          setTrends(data.data);
+        }
+      }
+    } catch (error) {
+      console.error('[Coordinator Dashboard] Error fetching trends:', error);
+    }
+  }, []);
+
+  // Refetch trends when filter changes
+  useEffect(() => {
+    if (activeFilter === 'custom') return; // custom waits for Apply button
+    fetchTrends(activeFilter);
+  }, [activeFilter, fetchTrends]);
 
   // Fetch all dashboard data
   const fetchDashboardData = useCallback(async () => {
@@ -749,8 +776,7 @@ const EventCoordinatorDashboard = () => {
           <button
             onClick={() => {
               if (customDateFrom && customDateTo) {
-                // TODO: trigger data fetch with customDateFrom and customDateTo
-                console.log('Custom range:', customDateFrom, 'to', customDateTo);
+                fetchTrends('custom', customDateFrom, customDateTo);
               }
             }}
             disabled={!customDateFrom || !customDateTo}
@@ -779,48 +805,48 @@ const EventCoordinatorDashboard = () => {
       }}>
         <StatCard
           title="Total Revenue"
-          value={formatPrice(analytics?.totalRevenue ?? balanceData?.totalDeclared ?? 0)}
-          percentage="62.3%"
-          timeframe="last week"
+          value={formatPrice(trends?.totalRevenue?.value ?? analytics?.totalRevenue ?? balanceData?.totalDeclared ?? 0)}
+          percentage={trends?.totalRevenue ? `${Math.abs(trends.totalRevenue.changePercent).toFixed(1)}%` : undefined}
+          timeframe={activeFilter === 'today' ? 'vs yesterday' : activeFilter === 'week' ? 'vs last week' : activeFilter === 'month' ? 'vs last month' : 'vs previous'}
+          trend={trends?.totalRevenue?.trend === 'down' ? 'down' : 'up'}
           icon={<MoneyIcon />}
-          trend="up"
           accentColor="#083A85"
         />
         <StatCard
           title="Pending"
-          value={formatPrice(analytics?.totalPending ?? balanceData?.totalPending ?? 0)}
-          percentage="28.5%"
-          timeframe="last week"
+          value={formatPrice(trends?.pending?.value ?? analytics?.totalPending ?? balanceData?.totalPending ?? 0)}
+          percentage={trends?.pending ? `${Math.abs(trends.pending.changePercent).toFixed(1)}%` : undefined}
+          timeframe={activeFilter === 'today' ? 'vs yesterday' : activeFilter === 'week' ? 'vs last week' : activeFilter === 'month' ? 'vs last month' : 'vs previous'}
+          trend={trends?.pending?.trend === 'down' ? 'down' : 'up'}
           icon={<ClockIcon />}
-          trend="down"
           accentColor="#F59E0B"
         />
         <StatCard
           title="Events"
-          value={String(analytics?.totalEvents ?? 0)}
-          percentage="15.2%"
-          timeframe="last week"
+          value={String(trends?.events?.value ?? analytics?.totalEvents ?? 0)}
+          percentage={trends?.events ? `${Math.abs(trends.events.changePercent).toFixed(1)}%` : undefined}
+          timeframe={activeFilter === 'today' ? 'vs yesterday' : activeFilter === 'week' ? 'vs last week' : activeFilter === 'month' ? 'vs last month' : 'vs previous'}
+          trend={trends?.events?.trend === 'down' ? 'down' : 'up'}
           icon={<UsersIcon />}
-          trend="up"
           href="/user/event-coordinator/events"
           accentColor="#3B82F6"
         />
         <StatCard
           title="Stream Fees"
-          value={formatPrice(balanceData?.totalEarnings ?? 0)}
-          percentage="45.8%"
-          timeframe="last week"
+          value={formatPrice(trends?.streamFees?.value ?? balanceData?.totalEarnings ?? 0)}
+          percentage={trends?.streamFees ? `${Math.abs(trends.streamFees.changePercent).toFixed(1)}%` : undefined}
+          timeframe={activeFilter === 'today' ? 'vs yesterday' : activeFilter === 'week' ? 'vs last week' : activeFilter === 'month' ? 'vs last month' : 'vs previous'}
+          trend={trends?.streamFees?.trend === 'down' ? 'down' : 'up'}
           icon={<LiveStreamFeeIcon />}
-          trend="up"
           accentColor="#10B981"
         />
         <StatCard
           title="Photographers"
-          value={String(analytics?.totalPhotographers ?? 0)}
-          percentage="10%"
-          timeframe="total"
+          value={String(trends?.photographers?.value ?? analytics?.totalPhotographers ?? 0)}
+          percentage={trends?.photographers ? `${Math.abs(trends.photographers.changePercent).toFixed(1)}%` : undefined}
+          timeframe={activeFilter === 'today' ? 'vs yesterday' : activeFilter === 'week' ? 'vs last week' : activeFilter === 'month' ? 'vs last month' : 'vs previous'}
+          trend={trends?.photographers?.trend === 'down' ? 'down' : 'up'}
           icon={<StarIcon />}
-          trend="up"
           href="/user/event-coordinator/photographers"
           accentColor="#8B5CF6"
         />

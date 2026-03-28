@@ -474,11 +474,14 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
         clearAuthFromStorage();
         setUser(null);
         setToken(null);
+        // Save the new token immediately so dashboardAuthFetch calls during
+        // the async profile fetch below don't fail with "No auth token available"
+        saveTokenToStorage(urlToken);
       }
 
       // Check for token in cookie
       const cookieToken = getCookieToken();
-      // Check localStorage (will be empty if we just cleared above)
+      // Check localStorage (will have urlToken if we just saved it above)
       const storedToken = typeof window !== 'undefined' ? localStorage.getItem(AUTH_TOKEN_KEY) : null;
       const storedUserStr = typeof window !== 'undefined' ? localStorage.getItem(AUTH_USER_KEY) : null;
 
@@ -870,8 +873,22 @@ export async function dashboardAuthFetch(
   url: string,
   options: RequestInit = {}
 ): Promise<Response> {
-  const currentToken = (typeof window !== 'undefined' ? localStorage.getItem('authToken') : null) || getCookieToken();
-  if (!currentToken) throw new Error('No auth token available');
+  let currentToken = (typeof window !== 'undefined' ? localStorage.getItem('authToken') : null) || getCookieToken();
+
+  // If no token in storage, try refreshing from the refresh token before giving up
+  if (!currentToken) {
+    const refreshed = await attemptDashboardTokenRefresh('');
+    if (refreshed) {
+      currentToken = refreshed;
+    } else {
+      // No token and no refresh possible — return a synthetic 401 so callers
+      // handle it gracefully instead of crashing with an unhandled exception
+      return new Response(JSON.stringify({ action: 0, message: 'No auth token available' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  }
 
   const headers: Record<string, string> = {
     'Authorization': `Bearer ${currentToken}`,
