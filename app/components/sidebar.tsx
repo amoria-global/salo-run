@@ -260,6 +260,19 @@ export default function Sidebar() {
           .sidebar-toggle-desktop {
             display: none !important;
           }
+
+          .sidebar-logo-link {
+            margin-left: 0 !important;
+          }
+
+          .sidebar-logo-icon {
+            width: 42px !important;
+            height: 42px !important;
+          }
+
+          .sidebar-logo-text {
+            font-size: 1.1rem !important;
+          }
         }
 
         /* Very small mobile */
@@ -327,37 +340,37 @@ export default function Sidebar() {
         justifyContent: 'space-between',
         paddingLeft: '1.5rem',
         paddingRight: '1.5rem',
-        paddingTop: '1.25rem',
-        paddingBottom: '1.25rem'
+        height: '80px',
+        paddingBottom: '8px'
       }}>
         {!isCollapsed && (
-          <Link href={getLandingUrl()} style={{
+          <Link href={getLandingUrl()} className="sidebar-logo-link" style={{
             display: 'flex',
+            flexDirection: 'column',
             alignItems: 'center',
             cursor: 'pointer',
             textDecoration: 'none',
-            flexShrink: 0
+            flexShrink: 0,
+            lineHeight: 1,
+            marginLeft: '1rem'
           }}>
             <img
               src="/logo.png"
               alt="Connekyt Logo"
+              className="sidebar-logo-icon"
               style={{
-                width: '50px',
-                height: '50px',
+                width: '54px',
+                height: '54px',
                 objectFit: 'contain',
-                position: 'relative',
-                top: '-9px',
-                left: '-13px'
               }}
             />
-            <span style={{
+            <span className="sidebar-logo-text" style={{
               fontWeight: '700',
               color: '#083A85',
-              fontSize: '1.4rem',
-              marginLeft: '-26px',
-              marginTop: '-2px',
-              letterSpacing: '0.5px'
-            }}>onnekyt</span>
+              fontSize: '1.35rem',
+              letterSpacing: '0.5px',
+              marginTop: '-4px'
+            }}>Connekyt</span>
           </Link>
         )}
         <button
