@@ -97,6 +97,11 @@ const ProfilePage = () => {
   // Save profile to API
   const handleSaveProfile = async () => {
     if (!token) return;
+    const address = [formData.sector, formData.district, formData.province, formData.country].filter(Boolean).join(', ');
+    if (!address.trim()) {
+      alert('Location / Address is required. Please fill in at least your district and country.');
+      return;
+    }
     setIsSaving(true);
     try {
       const apiUrl = getApiUrl();
@@ -104,7 +109,6 @@ const ProfilePage = () => {
       const firstName = nameParts[0] || '';
       const lastName = nameParts.slice(1).join(' ') || '';
       const phone = `${formData.phoneCode}${formData.phoneNumber.replace(/\s/g, '')}`;
-      const address = [formData.sector, formData.district, formData.province, formData.country].filter(Boolean).join(', ');
 
       const params = new URLSearchParams();
       if (firstName) params.append('firstName', firstName);

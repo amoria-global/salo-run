@@ -1063,6 +1063,13 @@ const MyEventsPage = () => {
   const handleEditEvent = async () => {
     if (!editEvent || !editTitle || !editCategory || !editDate || !editTime) return;
 
+    // Minimum stream access fee: 1,000 RWF
+    const editNumPrice = Number((editPrice || '').replace(/[^\d]/g, ''));
+    if (editNumPrice > 0 && editNumPrice < 1000) {
+      setSubmitError('Live Stream Access Fee must be at least 1,000 RWF.');
+      return;
+    }
+
     // Calculate duration from start and end time
     let calculatedDuration = editDuration;
     if (editTime && editEndTime) {
@@ -1319,6 +1326,13 @@ const MyEventsPage = () => {
     if (!createBannerImageFile && !createBannerImagePreview) missingFields.push('Banner Image');
     if (missingFields.length > 0) {
       setSubmitError(`Please fill in the required fields: ${missingFields.join(', ')}`);
+      return;
+    }
+
+    // Minimum stream access fee: 1,000 RWF
+    const numPrice = Number((createPrice || '').replace(/[^\d]/g, ''));
+    if (numPrice > 0 && numPrice < 1000) {
+      setSubmitError('Live Stream Access Fee must be at least 1,000 RWF.');
       return;
     }
 
@@ -3866,10 +3880,18 @@ const MyEventsPage = () => {
               })()}
             </div>
 
+            {/* Submit Error (Edit) */}
+            {submitError && (
+              <div style={{ padding: '0.75rem', backgroundColor: '#FEE2E2', color: '#DC2626', borderRadius: '0.5rem', fontSize: '0.85rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ flexShrink: 0 }}>⚠</span>
+                {submitError}
+              </div>
+            )}
+
             {/* Action Buttons */}
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', paddingTop: '1rem', borderTop: `2px solid ${colors.borderPrimary}`, marginBottom: '4rem' }}>
               <button
-                onClick={() => { setShowEditModal(false); setEditEvent(null); }}
+                onClick={() => { setShowEditModal(false); setEditEvent(null); setSubmitError(null); }}
                 style={{
                   padding: '0.75rem 1.25rem',
                   border: `2px solid ${colors.borderPrimary}`,
