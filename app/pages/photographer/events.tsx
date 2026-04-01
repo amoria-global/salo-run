@@ -319,15 +319,14 @@ interface AssignedEvent {
 
 interface StreamConfig {
   eventId: string;
-  serverUrl?: string;
-  streamKey?: string;
+  whipUrl?: string;
+  whepUrl?: string;
   connectionStatus: 'disconnected' | 'connected' | 'paused' | 'ended';
   streamHealth: 'good' | 'fair' | 'poor';
   uploadSpeed: string;
   viewerCount: number;
   peakViewers: number;
   inviteToken?: string;
-  playbackUrl?: string;
   streamType?: 'entry_fee' | 'invite_token';
   error?: string;
 }
@@ -919,27 +918,25 @@ const PhotographerEventsPage = () => {
       }
       const startData = await res.json().catch(() => ({}));
       const sData = startData.data || startData;
-      const serverUrl = sData.rtmpsUrl || sData.serverUrl || '';
-      const streamKey = sData.rtmpsKey || sData.streamKey || '';
-      const playbackUrl = sData.hlsManifestUrl || '';
+      const whipUrlVal = sData.whipUrl || '';
+      const whepUrlVal = sData.whepUrl || '';
       const inviteToken = sData.inviteToken || '';
       const connStatus = sData.connectionStatus || 'disconnected';
 
-      if (serverUrl && streamKey) {
+      if (whipUrlVal) {
         setStreamConfigs(prev => ({
           ...prev,
           [eventId]: {
             ...prev[eventId],
             eventId,
-            serverUrl,
-            streamKey,
+            whipUrl: whipUrlVal,
+            whepUrl: whepUrlVal,
             connectionStatus: connStatus as StreamConfig['connectionStatus'],
             streamHealth: 'unknown' as StreamConfig['streamHealth'],
             uploadSpeed: '0 Mbps',
             viewerCount: 0,
             peakViewers: 0,
             inviteToken,
-            playbackUrl,
           }
         }));
       } else {
@@ -953,8 +950,8 @@ const PhotographerEventsPage = () => {
             [eventId]: {
               ...prev[eventId],
               eventId,
-              serverUrl: cfg.serverUrl || '',
-              streamKey: cfg.streamKey || '',
+              whipUrl: cfg.whipUrl || '',
+              whepUrl: cfg.whepUrl || '',
               connectionStatus: (cfg.connectionStatus || 'disconnected') as StreamConfig['connectionStatus'],
               streamHealth: cfg.streamHealth || 'unknown',
               uploadSpeed: cfg.uploadSpeed || '0 Mbps',
@@ -1039,19 +1036,15 @@ const PhotographerEventsPage = () => {
           const cfg = data.data;
           if (cfg) {
             const connStatus: string = cfg.connectionStatus || 'disconnected';
-            // Fetch public event for hlsManifestUrl and streamType
-            let hlsUrl = '';
+            // Fetch public event for whepUrl and streamType
             let pubStreamType = '';
+            let pubWhepUrl = '';
             try {
               const pubRes = await fetch(`${apiUrl}/api/remote/public/events/${eventId}`);
               if (pubRes.ok) {
                 const pubData = await pubRes.json();
-                hlsUrl = pubData.data?.hlsManifestUrl || '';
                 pubStreamType = pubData.data?.streamType || '';
-                // Construct HLS URL from liveInputId if hlsManifestUrl is missing
-                if (!hlsUrl && pubData.data?.liveInputId) {
-                  hlsUrl = `https://customer-ngk2huwatflljurq.cloudflarestream.com/${pubData.data.liveInputId}/manifest/video.m3u8`;
-                }
+                pubWhepUrl = pubData.data?.whepUrl || '';
               }
             } catch { /* ignore */ }
             setStreamConfigs(prev => ({
@@ -1059,15 +1052,14 @@ const PhotographerEventsPage = () => {
               [eventId]: {
                 ...prev[eventId],
                 eventId,
-                serverUrl: cfg.serverUrl || prev[eventId]?.serverUrl || '',
-                streamKey: cfg.streamKey || prev[eventId]?.streamKey || '',
+                whipUrl: cfg.whipUrl || prev[eventId]?.whipUrl || '',
+                whepUrl: cfg.whepUrl || pubWhepUrl || prev[eventId]?.whepUrl || '',
                 connectionStatus: connStatus as StreamConfig['connectionStatus'],
                 streamHealth: cfg.streamHealth || 'unknown',
                 uploadSpeed: cfg.uploadSpeed || '0 Mbps',
                 viewerCount: cfg.viewerCount || 0,
                 peakViewers: cfg.peakViewers || 0,
                 inviteToken: cfg.inviteToken || prev[eventId]?.inviteToken || '',
-                playbackUrl: hlsUrl || cfg.hlsManifestUrl || prev[eventId]?.playbackUrl || '',
                 streamType: (pubStreamType || prev[eventId]?.streamType || '') as StreamConfig['streamType'],
               }
             }));
@@ -2328,9 +2320,8 @@ const PhotographerEventsPage = () => {
           isOpen={showStreamPreview}
           onClose={() => setShowStreamPreview(false)}
           eventTitle={selectedEvent.title}
-          serverUrl={streamConfigs[selectedEvent.id]?.serverUrl}
-          streamKey={streamConfigs[selectedEvent.id]?.streamKey}
-          playbackUrl={streamConfigs[selectedEvent.id]?.playbackUrl || undefined}
+          whipUrl={streamConfigs[selectedEvent.id]?.whipUrl}
+          whepUrl={streamConfigs[selectedEvent.id]?.whepUrl}
           inviteToken={streamConfigs[selectedEvent.id]?.streamType === 'entry_fee' ? undefined : streamConfigs[selectedEvent.id]?.inviteToken}
           connectionStatus={streamConfigs[selectedEvent.id]?.connectionStatus || 'disconnected'}
           streamHealth={streamConfigs[selectedEvent.id]?.streamHealth}

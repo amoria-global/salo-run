@@ -652,6 +652,14 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   // Save all changes handler for the "Save Changes" button
   const handleSaveAllChanges = async () => {
     if (!token) return;
+    if (!basicInfo.address?.trim()) {
+      showToast('error', 'Location / Working Area is required.');
+      return;
+    }
+    if (!packages || packages.length === 0) {
+      showToast('error', 'At least one delivery package is required. Go to the Packages tab to create one.');
+      return;
+    }
     setIsSavingAll(true);
     try {
       const [firstName, ...rest] = basicInfo.fullName.trim().split(' ');

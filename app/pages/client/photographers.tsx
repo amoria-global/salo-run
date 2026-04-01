@@ -918,7 +918,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
   };
 
   // --- Invite photographer by email (coordinator + client) ---
-  const inviteLink = `https://connekt.app/invite/photographer/${user?.id || ''}`;
+  const inviteLink = `${process.env.NEXT_PUBLIC_LANDING_URL as string}/user/auth/signup?userType=Photographer&invitedBy=${user?.id || ''}`;
 
   const handleInvitePhotographer = async () => {
     if (!inviteEmail.trim()) {
