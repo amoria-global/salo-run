@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import Sidebar from '../components/sidebar';
 import Topbar from '../components/topbar';
 import { useTheme, ThemeMode } from '../context/ThemeContext';
-import { dashboardAuthFetch } from '../providers/AuthProvider';
+import { dashboardAuthFetch, useDashboardAuth } from '../providers/AuthProvider';
 import { getApiUrl } from '@/lib/api';
 import { validateAccountDetails } from '@/lib/xentripay';
 
@@ -106,7 +106,7 @@ const CheckIcon = () => (
 );
 
 // Component to handle URL params - needs Suspense boundary
-const TabParamHandler = ({ setActiveTab }: { setActiveTab: (tab: 'appearance' | 'payments' | 'notifications') => void }) => {
+const TabParamHandler = ({ setActiveTab }: { setActiveTab: (tab: 'appearance' | 'payments' | 'notifications' | 'security') => void }) => {
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -115,6 +115,8 @@ const TabParamHandler = ({ setActiveTab }: { setActiveTab: (tab: 'appearance' | 
       setActiveTab('payments');
     } else if (tab === 'notifications') {
       setActiveTab('notifications');
+    } else if (tab === 'security') {
+      setActiveTab('security');
     }
   }, [searchParams, setActiveTab]);
 
@@ -148,7 +150,8 @@ const COUNTRIES: { name: string; dialCode: string; flag: string; iso: string }[]
 
 const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) => {
   const { theme, setTheme, actualTheme, colors } = useTheme();
-  const [activeTab, setActiveTab] = useState<'appearance' | 'payments' | 'notifications'>('appearance');
+  const [activeTab, setActiveTab] = useState<'appearance' | 'payments' | 'notifications' | 'security'>('appearance');
+  const { user, updateUser } = useDashboardAuth();
   const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
   const [showEditPaymentModal, setShowEditPaymentModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -184,6 +187,13 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
 
   const [isSavingPreference, setIsSavingPreference] = useState(false);
+
+  // Withdrawal verification method
+  const [withdrawalVerificationMethod, setWithdrawalVerificationMethod] = useState(
+    user?.preferredWithdrawalVerification || 'EMAIL_OTP'
+  );
+  const [isSavingVerificationMethod, setIsSavingVerificationMethod] = useState(false);
+  const [verificationMethodMessage, setVerificationMethodMessage] = useState('');
 
   // Notification settings states
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -302,6 +312,40 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
       console.error(`Error deleting preference "${key}":`, err);
     }
   }, [userType, preferencesBasePath]);
+
+  // Save withdrawal verification method
+  const saveVerificationMethod = useCallback(async (method: string) => {
+    setIsSavingVerificationMethod(true);
+    setVerificationMethodMessage('');
+    try {
+      const apiUrl = getApiUrl();
+      const basePath = userType === 'event-coordinator'
+        ? '/api/remote/coordinator/withdrawal-verification-method'
+        : '/api/remote/customer/withdrawal-verification-method';
+      const response = await dashboardAuthFetch(`${apiUrl}${basePath}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ method }),
+      });
+      const result: ApiResponse = await response.json();
+      if (response.ok && result.action === 1) {
+        setWithdrawalVerificationMethod(method);
+        updateUser({ preferredWithdrawalVerification: method });
+        setVerificationMethodMessage('Verification method updated successfully');
+      } else {
+        setVerificationMethodMessage(result.message || 'Failed to update verification method');
+        // Revert selection
+        setWithdrawalVerificationMethod(user?.preferredWithdrawalVerification || 'EMAIL_OTP');
+      }
+    } catch (err) {
+      console.error('Failed to save verification method:', err);
+      setVerificationMethodMessage('Failed to update verification method');
+      setWithdrawalVerificationMethod(user?.preferredWithdrawalVerification || 'EMAIL_OTP');
+    } finally {
+      setIsSavingVerificationMethod(false);
+      setTimeout(() => setVerificationMethodMessage(''), 4000);
+    }
+  }, [userType, user, updateUser]);
 
   // Load bank providers when modal opens
   useEffect(() => {
@@ -731,7 +775,8 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
             {[
               { key: 'appearance' as const, label: 'Appearance', icon: 'bi-palette' },
               { key: 'payments' as const, label: 'Payment Accounts', icon: 'bi-wallet2' },
-              { key: 'notifications' as const, label: 'Notifications', icon: 'bi-bell' }
+              { key: 'notifications' as const, label: 'Notifications', icon: 'bi-bell' },
+              { key: 'security' as const, label: 'Security', icon: 'bi-shield-lock' }
             ].map((tab) => (
               <button
                 key={tab.key}
@@ -1587,6 +1632,197 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                       boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
                     }} />
                   </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Security Tab */}
+          {activeTab === 'security' && (
+            <div className="mobile-pref-card" style={{
+              backgroundColor: colors.bgSecondary,
+              borderRadius: '1rem',
+              padding: '1.5rem',
+              boxShadow: colors.shadowMd,
+              border: `2px solid ${colors.borderPrimary}`
+            }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
+                Withdrawal Verification
+              </h2>
+              <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1.5rem 0' }}>
+                Choose how to verify your identity before each withdrawal is processed.
+              </p>
+
+              {verificationMethodMessage && (
+                <div style={{
+                  padding: '0.75rem 1rem',
+                  borderRadius: '0.5rem',
+                  marginBottom: '1rem',
+                  fontSize: '0.85rem',
+                  backgroundColor: verificationMethodMessage.includes('success') ? '#DCFCE7' : '#FEE2E2',
+                  color: verificationMethodMessage.includes('success') ? '#166534' : '#991B1B',
+                  border: `1px solid ${verificationMethodMessage.includes('success') ? '#BBF7D0' : '#FECACA'}`,
+                }}>
+                  {verificationMethodMessage}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {([
+                  {
+                    value: 'EMAIL_OTP',
+                    label: 'Email OTP',
+                    description: 'Receive a 6-digit code via email to verify each withdrawal',
+                    icon: 'bi-envelope',
+                    requiresKyc: false,
+                  },
+                  {
+                    value: 'SMS_OTP',
+                    label: 'SMS OTP',
+                    description: 'Receive a 6-digit code via SMS to verify each withdrawal',
+                    icon: 'bi-phone',
+                    requiresKyc: false,
+                  },
+                  {
+                    value: 'FACE_SCAN',
+                    label: 'Face Scan',
+                    description: 'Verify your identity with a live selfie compared to your KYC photo',
+                    icon: 'bi-person-bounding-box',
+                    requiresKyc: true,
+                  },
+                  {
+                    value: 'FACE_SCAN_WITH_OTP',
+                    label: 'Face Scan + OTP',
+                    description: 'Maximum security: both face scan and OTP code required',
+                    icon: 'bi-shield-check',
+                    requiresKyc: true,
+                  },
+                ] as const).map((option) => {
+                  const isSelected = withdrawalVerificationMethod === option.value;
+                  const kycNotApproved = option.requiresKyc && user?.kycStatus !== 'APPROVED';
+                  const isDisabled = isSavingVerificationMethod || kycNotApproved;
+
+                  return (
+                    <button
+                      key={option.value}
+                      onClick={() => !isDisabled && saveVerificationMethod(option.value)}
+                      disabled={isDisabled}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '1rem',
+                        padding: '1rem',
+                        backgroundColor: isSelected
+                          ? (actualTheme === 'dark' ? 'rgba(8, 58, 133, 0.2)' : 'rgba(8, 58, 133, 0.05)')
+                          : colors.bgTertiary,
+                        borderRadius: '0.75rem',
+                        border: `2px solid ${isSelected ? '#083A85' : colors.borderPrimary}`,
+                        cursor: isDisabled ? 'not-allowed' : 'pointer',
+                        opacity: kycNotApproved ? 0.5 : 1,
+                        textAlign: 'left',
+                        transition: 'all 0.2s',
+                        width: '100%',
+                      }}
+                    >
+                      <div style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '0.5rem',
+                        backgroundColor: isSelected ? '#083A85' : (actualTheme === 'dark' ? '#374151' : '#F3F4F6'),
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}>
+                        <i className={`bi ${option.icon}`} style={{
+                          fontSize: '1.1rem',
+                          color: isSelected ? 'white' : colors.textSecondary,
+                        }} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{
+                          fontSize: '0.95rem',
+                          fontWeight: '600',
+                          color: colors.textPrimary,
+                          marginBottom: '0.25rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                        }}>
+                          {option.label}
+                          {isSelected && (
+                            <span style={{
+                              fontSize: '0.7rem',
+                              fontWeight: '600',
+                              color: '#083A85',
+                              backgroundColor: actualTheme === 'dark' ? 'rgba(8, 58, 133, 0.3)' : 'rgba(8, 58, 133, 0.1)',
+                              padding: '0.15rem 0.5rem',
+                              borderRadius: '1rem',
+                            }}>Active</span>
+                          )}
+                          {isSavingVerificationMethod && isSelected && (
+                            <div style={{
+                              width: '14px', height: '14px',
+                              border: '2px solid #E5E7EB', borderTopColor: '#083A85',
+                              borderRadius: '50%', animation: 'spin 1s linear infinite',
+                            }} />
+                          )}
+                        </div>
+                        <div style={{ fontSize: '0.85rem', color: colors.textSecondary, lineHeight: '1.4' }}>
+                          {option.description}
+                        </div>
+                        {kycNotApproved && (
+                          <div style={{
+                            fontSize: '0.8rem',
+                            color: '#DC2626',
+                            marginTop: '0.35rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.25rem',
+                          }}>
+                            <i className="bi bi-exclamation-circle" style={{ fontSize: '0.75rem' }} />
+                            Requires approved KYC verification
+                          </div>
+                        )}
+                      </div>
+                      <div style={{
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        border: `2px solid ${isSelected ? '#083A85' : colors.borderPrimary}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        marginTop: '0.25rem',
+                      }}>
+                        {isSelected && (
+                          <div style={{
+                            width: '10px',
+                            height: '10px',
+                            borderRadius: '50%',
+                            backgroundColor: '#083A85',
+                          }} />
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div style={{
+                marginTop: '1.25rem',
+                padding: '0.875rem 1rem',
+                backgroundColor: actualTheme === 'dark' ? 'rgba(8, 58, 133, 0.15)' : 'rgba(8, 58, 133, 0.04)',
+                borderRadius: '0.75rem',
+                border: `1px solid ${actualTheme === 'dark' ? 'rgba(8, 58, 133, 0.3)' : 'rgba(8, 58, 133, 0.1)'}`,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+                  <i className="bi bi-info-circle" style={{ color: '#083A85', fontSize: '0.9rem', marginTop: '0.1rem' }} />
+                  <p style={{ fontSize: '0.825rem', color: colors.textSecondary, margin: 0, lineHeight: '1.5' }}>
+                    Each time you request a withdrawal, you will be asked to verify using your chosen method.
+                    Face scan options require an approved KYC with a selfie on file.
+                  </p>
                 </div>
               </div>
             </div>

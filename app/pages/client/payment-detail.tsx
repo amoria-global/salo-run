@@ -8,6 +8,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { getApiUrl, normalizeImageUrl } from '@/lib/api';
+import PayNowModal, { Payment as PayNowPayment } from '../../components/UnlockModal';
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
 
@@ -199,6 +200,7 @@ const PaymentDetailPage: React.FC<PaymentDetailPageProps> = ({ userRole }) => {
   const [payment, setPayment] = useState<PaymentDeclaration | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showPayNowModal, setShowPayNowModal] = useState(false);
 
   const fetchPayment = useCallback(async () => {
     if (!token || !id) return;
@@ -275,8 +277,26 @@ const PaymentDetailPage: React.FC<PaymentDetailPageProps> = ({ userRole }) => {
 
   const handlePayNow = () => {
     if (!payment) return;
-    router.push(`/user/${userRole}/payments?autoPayId=${payment.id}`);
+    setShowPayNowModal(true);
   };
+
+  // Convert PaymentDeclaration to the Payment type expected by PayNowModal
+  const payNowPayment: PayNowPayment | null = payment ? {
+    id: typeof payment.id === 'string' ? parseInt(payment.id, 10) || 0 : payment.id as unknown as number,
+    declarationId: String(payment.id),
+    eventId: payment.eventId,
+    date: payment.createdAt,
+    eventName: payment.eventTitle,
+    eventType: payment.paymentType,
+    photographerName: payment.photographerName,
+    photographerImage: payment.photographerImage || '',
+    method: '',
+    amount: `${payment.currencyAbbreviation} ${payment.amount}`,
+    amountNum: payment.amount,
+    paidAmount: payment.paidAmount,
+    status: payment.status?.toLowerCase() as any,
+    invoiceNumber: `INV-${String(payment.id).substring(0, 8).toUpperCase()}`,
+  } : null;
 
   const handleDownloadReceipt = () => {
     if (!payment) return;
@@ -1026,6 +1046,17 @@ Escrow Status: ${getEscrowStatusLabel(payment.escrowStatus || '')}
           </div>
         </div>
       </div>
+
+      {/* Pay Now Modal */}
+      <PayNowModal
+        isOpen={showPayNowModal}
+        onClose={() => setShowPayNowModal(false)}
+        payment={payNowPayment}
+        onPaymentSuccess={() => {
+          setShowPayNowModal(false);
+          fetchPayment();
+        }}
+      />
     </div>
   );
 };
