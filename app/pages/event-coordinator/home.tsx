@@ -552,6 +552,46 @@ const EventCoordinatorDashboard = () => {
           paddingTop: '1rem',
           paddingBottom: '1rem'
         }}>
+          {/* KYC Warning Banner */}
+          {user && user.kycStatus !== 'APPROVED' && user.customerType !== 'Viewer' && (
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem',
+              padding: '0.75rem 1rem', marginBottom: '1rem', borderRadius: '0.5rem',
+              backgroundColor: user.kycStatus === 'REJECTED'
+                ? (actualTheme === 'dark' ? '#7F1D1D' : '#FEF2F2')
+                : user.kycStatus === 'PENDING'
+                  ? (actualTheme === 'dark' ? '#78350F' : '#FFFBEB')
+                  : (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF'),
+              color: user.kycStatus === 'REJECTED'
+                ? (actualTheme === 'dark' ? '#FCA5A5' : '#991B1B')
+                : user.kycStatus === 'PENDING'
+                  ? (actualTheme === 'dark' ? '#FDE68A' : '#92400E')
+                  : (actualTheme === 'dark' ? '#93C5FD' : '#1E40AF'),
+              border: `1px solid ${user.kycStatus === 'REJECTED' ? '#F87171' : user.kycStatus === 'PENDING' ? '#F59E0B' : '#3B82F6'}40`,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, fontSize: '0.85rem' }}>
+                <span style={{ fontSize: '1.1rem' }}>{user.kycStatus === 'REJECTED' ? '\u2716' : user.kycStatus === 'PENDING' ? '\u23F3' : '\u26A0'}</span>
+                <span style={{ fontWeight: 600 }}>
+                  {user.kycStatus === 'PENDING' && 'Your KYC verification is under review'}
+                  {user.kycStatus === 'REJECTED' && 'Your KYC verification was rejected. Please resubmit.'}
+                  {(!user.kycStatus || user.kycStatus === 'NOT_SUBMITTED') && 'Complete KYC verification to unlock withdrawals and all features'}
+                </span>
+              </div>
+              {user.kycStatus !== 'PENDING' && (
+                <button
+                  onClick={() => router.push('/user/event-coordinator/profile')}
+                  style={{
+                    backgroundColor: user.kycStatus === 'REJECTED' ? '#EF4444' : '#3B82F6',
+                    color: '#FFFFFF', border: 'none', padding: '0.35rem 0.85rem', borderRadius: '0.375rem',
+                    fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
+                  }}
+                >
+                  {user.kycStatus === 'REJECTED' ? 'Resubmit KYC' : 'Complete KYC'}
+                </button>
+              )}
+            </div>
+          )}
+
           <header className="mobile-header" style={{
             display: 'flex',
             justifyContent: 'space-between',

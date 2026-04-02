@@ -6,6 +6,8 @@ import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import CountrySelect, { eastAfricanCountries } from '../../components/CountrySelect';
 import ApprovalPendingModal from '../../components/ApprovalPendingModal';
+import KycBadge from '../../components/KycBadge';
+import KycVerificationModal from '../../components/KycVerificationModal';
 import { useTheme } from '../../context/ThemeContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { getApiUrl, normalizeImageUrl } from '@/lib/api';
@@ -216,6 +218,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   const [savingCoverPhoto, setSavingCoverPhoto] = useState(false);
   const [savingImportantDetails, setSavingImportantDetails] = useState(false);
   const importantDetailsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // KYC state
+  const [showKycModal, setShowKycModal] = useState(false);
 
   // Toast notifications state
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -2961,6 +2966,11 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                     color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
                     marginBottom: '0.25rem'
                   }}>{basicInfo.fullName}</h2>
+                  {user?.kycStatus === 'APPROVED' && (
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.25rem' }}>
+                      <KycBadge kycStatus={user.kycStatus} size="sm" />
+                    </div>
+                  )}
                   <p style={{
                     fontSize: '0.95rem',
                     color: colors.textSecondary
@@ -2995,6 +3005,47 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                     <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Completed Jobs</div>
                   </div>
                 </div>
+
+                {/* KYC Verification Banner */}
+                {user?.kycStatus && user.kycStatus !== 'APPROVED' && user.customerType !== 'Viewer' && (
+                  <div style={{
+                    padding: '1rem 1.25rem', margin: '0 1.25rem',
+                    borderRadius: '0.75rem', marginBottom: '0.75rem',
+                    backgroundColor: user.kycStatus === 'PENDING' ? '#FFFBEB' : user.kycStatus === 'REJECTED' ? '#FEF2F2' : '#F0F9FF',
+                    border: `1px solid ${user.kycStatus === 'PENDING' ? '#FDE68A' : user.kycStatus === 'REJECTED' ? '#FECACA' : '#BFDBFE'}`,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={user.kycStatus === 'PENDING' ? '#D97706' : user.kycStatus === 'REJECTED' ? '#DC2626' : '#2563EB'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 22C12 22 20 18 20 12V5L12 2L4 5V12C4 18 12 22 12 22Z"/>
+                      </svg>
+                      <span style={{
+                        fontSize: '0.8rem', fontWeight: '600',
+                        color: user.kycStatus === 'PENDING' ? '#92400E' : user.kycStatus === 'REJECTED' ? '#991B1B' : '#1E40AF',
+                      }}>
+                        {user.kycStatus === 'PENDING' ? 'KYC Under Review' : user.kycStatus === 'REJECTED' ? 'KYC Rejected' : 'KYC Required'}
+                      </span>
+                    </div>
+                    <p style={{
+                      fontSize: '0.75rem', margin: 0, lineHeight: '1.4',
+                      color: user.kycStatus === 'PENDING' ? '#92400E' : user.kycStatus === 'REJECTED' ? '#991B1B' : '#1E40AF',
+                    }}>
+                      {user.kycStatus === 'PENDING'
+                        ? 'Your identity verification is being reviewed.'
+                        : user.kycStatus === 'REJECTED'
+                        ? 'Your KYC was rejected. Please resubmit.'
+                        : 'Complete identity verification to enable withdrawals.'}
+                    </p>
+                    {user.kycStatus !== 'PENDING' && (
+                      <button onClick={() => setShowKycModal(true)} style={{
+                        marginTop: '0.5rem', padding: '0.4rem 0.75rem', fontSize: '0.75rem', fontWeight: '600',
+                        border: 'none', borderRadius: '0.5rem', cursor: 'pointer',
+                        backgroundColor: '#083A85', color: 'white',
+                      }}>
+                        {user.kycStatus === 'REJECTED' ? 'Resubmit KYC' : 'Complete KYC'}
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 {/* Account Activity */}
                 <div className="mobile-profile-card-activity" style={{
@@ -5636,6 +5687,15 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
       {/* Show approval pending modal after profile save */}
       <ApprovalPendingModal isOpen={showApprovalModal} profileCompletion={profileCompletion} />
+
+      {/* KYC Verification Modal */}
+      <KycVerificationModal
+        isOpen={showKycModal}
+        onClose={() => setShowKycModal(false)}
+        onSuccess={() => { setShowKycModal(false); refreshUserProfile(); }}
+        colors={colors}
+        actualTheme={actualTheme}
+      />
     </div>
   );
 };

@@ -546,6 +546,7 @@ const PAYMENT_METHODS: Record<string, { label: string; image: string }> = {
 const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onPaymentSuccess }) => {
   const { colors, actualTheme } = useTheme();
   const { formatPrice, currencyId } = useCurrency();
+  const { profile } = useUserProfile();
   const router = useRouter();
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('card');
   const [donationAmount, setDonationAmount] = useState<string>('');
@@ -581,6 +582,13 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
   const [xentriPayStep, setXentriPayStep] = useState<'select' | 'processing' | 'success' | 'failed'>('select');
   const [xentriPayError, setXentriPayError] = useState<string>('');
   const stopPollingRef = React.useRef<(() => void) | null>(null);
+
+  // Pre-fill phone from user profile when modal opens
+  useEffect(() => {
+    if (isOpen && profile?.phoneNumber && !paymentPhone) {
+      setPaymentPhone(`${profile.phoneCode || ''}${profile.phoneNumber}`);
+    }
+  }, [isOpen, profile]);
 
   useEffect(() => {
     if (!isOpen) return;
