@@ -261,17 +261,13 @@ export default function Sidebar() {
             display: none !important;
           }
 
-          .sidebar-logo-link {
-            margin-left: 0 !important;
-          }
-
           .sidebar-logo-icon {
-            width: 42px !important;
-            height: 42px !important;
+            width: 39px !important;
+            height: 39px !important;
           }
 
           .sidebar-logo-text {
-            font-size: 1.1rem !important;
+            font-size: 1.25rem !important;
           }
         }
 
@@ -340,36 +336,36 @@ export default function Sidebar() {
         justifyContent: 'space-between',
         paddingLeft: '1.5rem',
         paddingRight: '1.5rem',
-        height: '80px',
-        paddingBottom: '8px'
+        paddingTop: '1.25rem',
+        paddingBottom: '1.25rem'
       }}>
         {!isCollapsed && (
           <Link href={getLandingUrl()} className="sidebar-logo-link" style={{
             display: 'flex',
-            flexDirection: 'column',
             alignItems: 'center',
             cursor: 'pointer',
             textDecoration: 'none',
             flexShrink: 0,
-            lineHeight: 1,
-            marginLeft: '1rem'
           }}>
             <img
               src="/logo.png"
               alt="Connekyt Logo"
               className="sidebar-logo-icon"
               style={{
-                width: '54px',
-                height: '54px',
+                width: '49px',
+                height: '49px',
                 objectFit: 'contain',
+                position: 'relative',
+                top: '-1px',
+                left: '-15px',
               }}
             />
             <span className="sidebar-logo-text" style={{
               fontWeight: '700',
               color: '#083A85',
-              fontSize: '1.35rem',
-              letterSpacing: '0.5px',
-              marginTop: '-4px'
+              fontSize: '1.3rem',
+              marginLeft: '-20px',
+              letterSpacing: '0.3px',
             }}>Connekyt</span>
           </Link>
         )}
