@@ -133,6 +133,8 @@ export interface DashboardUser {
   packages?: unknown[];
   profileReviewStatus?: string;
   reviewComment?: string;
+  kycStatus?: string;
+  preferredWithdrawalVerification?: string;
 }
 
 /**
@@ -346,6 +348,8 @@ function mapProfileData(data: any): DashboardUser {
     packages: data.packages || [],
     profileReviewStatus: data.profileReviewStatus || undefined,
     reviewComment: data.reviewComment || undefined,
+    kycStatus: data.kycStatus || undefined,
+    preferredWithdrawalVerification: data.preferredWithdrawalVerification || 'EMAIL_OTP',
   };
 }
 
