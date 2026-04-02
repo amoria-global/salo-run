@@ -319,8 +319,8 @@ interface AssignedEvent {
 
 interface StreamConfig {
   eventId: string;
-  serverUrl?: string;
-  streamKey?: string;
+  whipUrl?: string;
+  whepUrl?: string;
   connectionStatus: 'disconnected' | 'connected' | 'paused' | 'ended';
   streamHealth: 'good' | 'fair' | 'poor';
   uploadSpeed: string;
@@ -913,20 +913,20 @@ const PhotographerEventsPage = () => {
       }
       const startData = await res.json().catch(() => ({}));
       const sData = startData.data || startData;
-      const serverUrl = sData.rtmpsUrl || sData.serverUrl || '';
-      const streamKey = sData.rtmpsKey || sData.streamKey || '';
+      const whipUrl = sData.whipUrl || '';
+      const whepUrl = sData.whepUrl || '';
       const playbackUrl = sData.hlsManifestUrl || '';
       const inviteToken = sData.inviteToken || '';
       const connStatus = sData.connectionStatus || 'disconnected';
 
-      if (serverUrl && streamKey) {
+      if (whipUrl) {
         setStreamConfigs(prev => ({
           ...prev,
           [eventId]: {
             ...prev[eventId],
             eventId,
-            serverUrl,
-            streamKey,
+            whipUrl,
+            whepUrl,
             connectionStatus: connStatus as StreamConfig['connectionStatus'],
             streamHealth: 'unknown' as StreamConfig['streamHealth'],
             uploadSpeed: '0 Mbps',
@@ -947,8 +947,8 @@ const PhotographerEventsPage = () => {
             [eventId]: {
               ...prev[eventId],
               eventId,
-              serverUrl: cfg.serverUrl || '',
-              streamKey: cfg.streamKey || '',
+              whipUrl: cfg.whipUrl || '',
+              whepUrl: cfg.whepUrl || '',
               connectionStatus: (cfg.connectionStatus || 'disconnected') as StreamConfig['connectionStatus'],
               streamHealth: cfg.streamHealth || 'unknown',
               uploadSpeed: cfg.uploadSpeed || '0 Mbps',
@@ -1011,7 +1011,7 @@ const PhotographerEventsPage = () => {
         setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], error: msg } }));
       } else {
         // Stream permanently ended — credentials cleared by backend
-        setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'ended', serverUrl: undefined, streamKey: undefined } }));
+        setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'ended', whipUrl: undefined, whepUrl: undefined } }));
         setEvents(prev => prev.map(e => e.id === eventId ? { ...e, status: 'completed' as EventStatus } : e));
       }
     } catch (err) {
@@ -1026,7 +1026,7 @@ const PhotographerEventsPage = () => {
     const eventId = selectedEvent.id;
     const poll = async () => {
       try {
-        // Fetch stream config for RTMP credentials + connection status
+        // Fetch stream config for WHIP/WHEP credentials + connection status
         const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/events/${eventId}/stream/config`);
         if (res.ok) {
           const data = await res.json();
@@ -1053,8 +1053,8 @@ const PhotographerEventsPage = () => {
               [eventId]: {
                 ...prev[eventId],
                 eventId,
-                serverUrl: cfg.serverUrl || prev[eventId]?.serverUrl || '',
-                streamKey: cfg.streamKey || prev[eventId]?.streamKey || '',
+                whipUrl: cfg.whipUrl || prev[eventId]?.whipUrl || '',
+                whepUrl: cfg.whepUrl || prev[eventId]?.whepUrl || '',
                 connectionStatus: connStatus as StreamConfig['connectionStatus'],
                 streamHealth: cfg.streamHealth || 'unknown',
                 uploadSpeed: cfg.uploadSpeed || '0 Mbps',
@@ -2322,8 +2322,8 @@ const PhotographerEventsPage = () => {
           isOpen={showStreamPreview}
           onClose={() => setShowStreamPreview(false)}
           eventTitle={selectedEvent.title}
-          serverUrl={streamConfigs[selectedEvent.id]?.serverUrl}
-          streamKey={streamConfigs[selectedEvent.id]?.streamKey}
+          whipUrl={streamConfigs[selectedEvent.id]?.whipUrl}
+          whepUrl={streamConfigs[selectedEvent.id]?.whepUrl}
           playbackUrl={streamConfigs[selectedEvent.id]?.playbackUrl || undefined}
           inviteToken={streamConfigs[selectedEvent.id]?.streamType === 'entry_fee' ? undefined : streamConfigs[selectedEvent.id]?.inviteToken}
           connectionStatus={streamConfigs[selectedEvent.id]?.connectionStatus || 'disconnected'}
