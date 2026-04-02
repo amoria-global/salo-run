@@ -668,9 +668,9 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose, availabl
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount,
+          amount: amount / rwfRate,
           withdrawalMethodId: selectedAccount,
-          donationAmount: donation,
+          donationAmount: donation / rwfRate,
           source: selectedSource.toUpperCase()
         }),
       });
