@@ -1294,7 +1294,7 @@ const MyEventsPage = () => {
     if (!createDate) missingFields.push('Date');
     if (!createTime) missingFields.push('Start Time');
     if (!createBannerImageFile && !createBannerImagePreview) missingFields.push('Banner Image');
-    if (!createPrice) missingFields.push('Price');
+    if (createPrice === undefined || createPrice === null || createPrice === '') missingFields.push('Price');
     if (createGroupDiscount === '') missingFields.push('Group Stream Discount');
     if (missingFields.length > 0) {
       setSubmitError(`Please fill in the required fields: ${missingFields.join(', ')}`);
@@ -2065,7 +2065,7 @@ const MyEventsPage = () => {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Live Stream Access Fee *</label>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Live Stream Access Fee</label>
                 <div style={{ display: 'flex', gap: '0' }}>
                   <input
                     type="text"
@@ -2082,7 +2082,6 @@ const MyEventsPage = () => {
                       color: colors.textPrimary,
                       backgroundColor: colors.bgCard
                     }}
-                    required
                   />
                   <div ref={createCurrencyRef} style={{ position: 'relative', minWidth: '120px' }}>
                     <button type="button" onClick={() => setCreateCurrencyOpen(!createCurrencyOpen)} style={{
@@ -3630,7 +3629,7 @@ const MyEventsPage = () => {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Live Stream Access Fee *</label>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.375rem' }}>Live Stream Access Fee</label>
                   <div style={{ display: 'flex', gap: '0' }}>
                     <input
                       type="text"
@@ -3647,7 +3646,6 @@ const MyEventsPage = () => {
                         color: colors.textPrimary,
                         backgroundColor: colors.bgCard
                       }}
-                      required
                     />
                     <div ref={editCurrencyRef} style={{ position: 'relative', minWidth: '120px' }}>
                       <button type="button" onClick={() => setEditCurrencyOpen(!editCurrencyOpen)} style={{

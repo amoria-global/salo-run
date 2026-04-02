@@ -11,8 +11,8 @@ interface StreamPreviewProps {
   isOpen: boolean;
   onClose: () => void;
   eventTitle: string;
-  serverUrl?: string;
-  streamKey?: string;
+  whipUrl?: string;
+  whepUrl?: string;
   playbackUrl?: string;
   inviteToken?: string;
   connectionStatus: 'disconnected' | 'connected' | 'paused' | 'ended';
@@ -113,8 +113,8 @@ export default function StreamPreview({
   isOpen,
   onClose,
   eventTitle,
-  serverUrl,
-  streamKey,
+  whipUrl,
+  whepUrl,
   playbackUrl,
   inviteToken,
   connectionStatus,
@@ -140,7 +140,7 @@ export default function StreamPreview({
   const [encoderDetected, setEncoderDetected] = useState(false);
 
   const isDark = theme === 'dark';
-  const hasCredentials = !!(serverUrl && streamKey);
+  const hasCredentials = !!whipUrl;
   const isLive = connectionStatus === 'connected';
   const isPaused = connectionStatus === 'paused';
   const isEnded = connectionStatus === 'ended';
@@ -533,8 +533,8 @@ export default function StreamPreview({
                 </div>
                 <div style={{ color: '#64748B', fontSize: '0.73rem', maxWidth: '280px', textAlign: 'center', lineHeight: '1.4', marginBottom: '0.75rem' }}>
                   {hasCredentials
-                    ? 'Paste the credentials into OBS and click "Start Streaming".'
-                    : 'Get your RTMP credentials to configure your encoder.'}
+                    ? 'Configure OBS with the WHIP URL and click Start Streaming.'
+                    : 'Get your stream credentials to configure your encoder.'}
                 </div>
                 {!hasCredentials && (
                   <button onClick={onStartStream} style={{
@@ -555,7 +555,7 @@ export default function StreamPreview({
                   onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 16px -2px rgba(14,165,233,0.5)'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 12px -2px rgba(14,165,233,0.4)'; }}
                   >
-                    <BroadcastIcon /> Get RTMP Credentials
+                    <BroadcastIcon /> Get Stream Credentials
                   </button>
                 )}
               </>
@@ -613,35 +613,106 @@ export default function StreamPreview({
         {isLive && <span style={{ fontSize: '0.73rem', color: colors.textSecondary }}>{viewerCount} watching</span>}
       </div>
 
-      {/* RTMP Credentials — hide when ended */}
+      {/* OBS Setup (WHIP) + Credentials — hide when ended */}
       {!isEnded && hasCredentials && (
-        <div style={{
-          backgroundColor: isDark ? 'rgba(139,92,246,0.05)' : '#FAFAFE',
-          border: `1px solid ${isDark ? 'rgba(139,92,246,0.15)' : '#EDE9FE'}`,
-          borderRadius: '0.5rem',
-          padding: '0.75rem',
-        }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: colors.textPrimary, marginBottom: '0.5rem' }}>RTMP Credentials</div>
-          <div style={{ marginBottom: '0.5rem' }}>
-            <label style={{ fontSize: '0.65rem', fontWeight: 600, color: colors.textTertiary, display: 'block', marginBottom: '0.2rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Server URL</label>
-            <div style={{ display: 'flex', gap: '0.35rem' }}>
-              <input readOnly value={serverUrl} style={inputField} />
-              <button onClick={() => handleCopy(serverUrl!, 'serverUrl')} style={smallBtn}>
-                {copiedField === 'serverUrl' ? <><CheckIcon /> Copied</> : <><CopyIcon /> Copy</>}
-              </button>
+        <>
+          {/* OBS Setup (WHIP) Guide */}
+          <div style={{
+            backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FAFAFE',
+            border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#F3F4F6'}`,
+            borderRadius: '0.5rem',
+            padding: '0.75rem',
+          }}>
+            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: colors.textPrimary, marginBottom: '0.6rem' }}>OBS Setup (WHIP)</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+              {[
+                { step: '1', text: 'Open OBS \u2192 File \u2192 Settings' },
+                { step: '2', text: 'Go to Stream tab' },
+                { step: '3', text: 'Set Service to WHIP' },
+                { step: '4', text: 'Paste the WHIP URL below into the Server field' },
+                { step: '5', text: 'Leave Bearer Token empty' },
+                { step: '6', text: 'Click Apply \u2192 close Settings' },
+                { step: '7', text: 'Click Start Streaming in OBS' },
+              ].map(item => (
+                <div key={item.step} style={{
+                  display: 'flex', alignItems: 'center', gap: '0.6rem',
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : 'white',
+                  borderRadius: '0.4rem',
+                  padding: '0.5rem 0.65rem',
+                  border: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : '#F3F4F6'}`,
+                }}>
+                  <div style={{
+                    width: '22px', height: '22px', borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)',
+                    color: 'white', fontSize: '0.65rem', fontWeight: 700,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  }}>{item.step}</div>
+                  <span style={{ fontSize: '0.78rem', color: colors.textSecondary }}>{item.text}</span>
+                </div>
+              ))}
             </div>
           </div>
-          <div>
-            <label style={{ fontSize: '0.65rem', fontWeight: 600, color: colors.textTertiary, display: 'block', marginBottom: '0.2rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Stream Key</label>
-            <div style={{ display: 'flex', gap: '0.35rem' }}>
-              <input readOnly value={showKey ? streamKey : '\u2022'.repeat(20)} style={inputField} />
+
+          {/* WHIP URL */}
+          <div style={{
+            backgroundColor: isDark ? 'rgba(139,92,246,0.05)' : '#FAFAFE',
+            border: `1px solid ${isDark ? 'rgba(139,92,246,0.15)' : '#EDE9FE'}`,
+            borderRadius: '0.5rem',
+            padding: '0.75rem',
+          }}>
+            <label style={{ fontSize: '0.65rem', fontWeight: 600, color: colors.textTertiary, display: 'block', marginBottom: '0.2rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>WHIP URL</label>
+            <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+              <input readOnly value={showKey ? whipUrl : (whipUrl || '').substring(0, 40) + '...'} style={inputField} />
               <button onClick={() => setShowKey(!showKey)} style={smallBtn}>{showKey ? <EyeOffIcon /> : <EyeOnIcon />}</button>
-              <button onClick={() => handleCopy(streamKey!, 'streamKey')} style={smallBtn}>
-                {copiedField === 'streamKey' ? <><CheckIcon /> Copied</> : <><CopyIcon /> Copy</>}
+              <button onClick={() => handleCopy(whipUrl!, 'whipUrl')} style={smallBtn}>
+                {copiedField === 'whipUrl' ? <><CheckIcon /> Copied</> : <><CopyIcon /> Copy</>}
               </button>
             </div>
+            <div style={{ fontSize: '0.65rem', color: colors.textTertiary, marginTop: '0.3rem', fontStyle: 'italic' }}>
+              No stream key or bearer token needed &mdash; the URL is self-authenticating.
+            </div>
           </div>
-        </div>
+
+          {/* Recommended OBS Output Settings */}
+          <div style={{
+            backgroundColor: isDark ? 'rgba(59,130,246,0.06)' : '#EFF6FF',
+            border: `1px solid ${isDark ? 'rgba(59,130,246,0.2)' : '#BFDBFE'}`,
+            borderRadius: '0.5rem',
+            padding: '0.75rem',
+          }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: isDark ? '#60A5FA' : '#2563EB', marginBottom: '0.5rem' }}>Recommended OBS Output Settings</div>
+            <div style={{ fontSize: '0.7rem', color: colors.textSecondary, marginBottom: '0.5rem' }}>
+              Go to OBS &rarr; File &rarr; Settings &rarr; Output (Simple mode)
+            </div>
+            <table style={{ width: '100%', fontSize: '0.72rem', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#E5E7EB'}` }}>
+                  {['Internet Speed', 'Bitrate', 'Resolution', 'FPS'].map(h => (
+                    <th key={h} style={{ textAlign: 'left', padding: '0.35rem 0.5rem', fontWeight: 600, color: colors.textTertiary }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { speed: '5-10 Mbps', bitrate: '1500 Kbps', res: '854x480', fps: '30' },
+                  { speed: '10-25 Mbps', bitrate: '2500 Kbps', res: '1280x720', fps: '30' },
+                  { speed: '25-50 Mbps', bitrate: '4000 Kbps', res: '1280x720', fps: '30' },
+                  { speed: '50+ Mbps', bitrate: '6000 Kbps', res: '1920x1080', fps: '30' },
+                ].map(row => (
+                  <tr key={row.speed} style={{ borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : '#F3F4F6'}` }}>
+                    <td style={{ padding: '0.35rem 0.5rem', fontWeight: 600, color: colors.textPrimary }}>{row.speed}</td>
+                    <td style={{ padding: '0.35rem 0.5rem', color: colors.textSecondary }}>{row.bitrate}</td>
+                    <td style={{ padding: '0.35rem 0.5rem', color: colors.textSecondary }}>{row.res}</td>
+                    <td style={{ padding: '0.35rem 0.5rem', color: colors.textSecondary }}>{row.fps}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div style={{ fontSize: '0.65rem', color: colors.textTertiary, marginTop: '0.4rem' }}>
+              Encoder: Software (x264) &bull; Preset: veryfast &bull; Audio: Opus 160 Kbps
+            </div>
+          </div>
+        </>
       )}
 
       {/* No credentials yet — setup prompt */}
@@ -667,17 +738,18 @@ export default function StreamPreview({
               Set Up Your Live Stream
             </div>
             <div style={{ fontSize: '0.8rem', color: colors.textSecondary, lineHeight: '1.5' }}>
-              Get your RTMP credentials, paste them into your encoder (OBS / Streamlabs), and test your stream before going live.
+              Get your WHIP URL, configure OBS, and test your stream before going live.
             </div>
           </div>
 
           {/* Steps */}
           <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
             {[
-              { step: '1', text: 'Click below to generate your RTMP server URL and stream key' },
-              { step: '2', text: 'Open OBS, go to Settings > Stream, paste the credentials' },
-              { step: '3', text: 'Start streaming in OBS to preview and test your feed' },
-              { step: '4', text: 'When ready, click Go Live to broadcast to your audience' },
+              { step: '1', text: 'Click below to generate your WHIP streaming URL' },
+              { step: '2', text: 'Open OBS \u2192 File \u2192 Settings \u2192 Stream \u2192 set Service to WHIP' },
+              { step: '3', text: 'Paste the WHIP URL into the Server field, leave Bearer Token empty' },
+              { step: '4', text: 'Start streaming in OBS to preview and test your feed' },
+              { step: '5', text: 'When ready, click Go Live to broadcast to your audience' },
             ].map(item => (
               <div key={item.step} style={{
                 display: 'flex', alignItems: 'center', gap: '0.75rem',
@@ -714,7 +786,7 @@ export default function StreamPreview({
           onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px -3px rgba(14,165,233,0.45)'; }}
           >
             <BroadcastIcon />
-            <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'white' }}>Get RTMP Credentials &amp; Test Stream</span>
+            <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'white' }}>Get Stream Credentials &amp; Test Stream</span>
           </button>
         </div>
       )}
@@ -738,7 +810,7 @@ export default function StreamPreview({
         </div>
       )}
 
-      {/* Encoder Guide removed — OBS steps shown inline above Get RTMP button */}
+      {/* OBS guide shown inline when credentials are available */}
 
       {/* Error */}
       {error && (

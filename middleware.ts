@@ -53,7 +53,10 @@ export function middleware(request: NextRequest) {
 
   // If no token at all on protected routes, redirect to home app login
   if (!hasToken && pathname.startsWith('/user')) {
-    const loginUrl = new URL(`${getLandingUrl()}/user/auth/login`);
+    const landingBase = getLandingUrl();
+    const loginUrl = landingBase
+      ? new URL(`${landingBase}/user/auth/login`)
+      : new URL('/user/auth/login', request.url);
 
     // Add return URL so user can be redirected back after login
     loginUrl.searchParams.set('returnUrl', request.nextUrl.href);
@@ -68,7 +71,10 @@ export function middleware(request: NextRequest) {
 
   // Defensive guard: If we have a role but no token, clear the role cookie to force re-auth
   if (userRole && !hasToken && pathname.startsWith('/user/')) {
-    const loginUrl = new URL(`${getLandingUrl()}/user/auth/login`, request.url);
+    const landingBase2 = getLandingUrl();
+    const loginUrl = landingBase2
+      ? new URL(`${landingBase2}/user/auth/login`)
+      : new URL('/user/auth/login', request.url);
     loginUrl.searchParams.set('returnUrl', request.nextUrl.href);
 
     const response = NextResponse.redirect(loginUrl);
