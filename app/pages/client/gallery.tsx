@@ -199,6 +199,160 @@ const BookIcon = () => (
     <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
   </svg>
 );
+<<<<<<< Updated upstream
+=======
+
+const PlusIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="12" y1="5" x2="12" y2="19"></line>
+    <line x1="5" y1="12" x2="19" y2="12"></line>
+  </svg>
+);
+
+const TrashIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="3 6 5 6 21 6"></polyline>
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+  </svg>
+);
+
+// Photobook Interfaces
+interface PhotobookImage {
+  url: string;
+  sourceAlbumId: number;
+  sourceAlbumTitle: string;
+  addedAt: string;
+}
+
+interface Photobook {
+  id: string;
+  name: string;
+  description: string;
+  thumbnail: string | null;
+  createdAt: string;
+  images: PhotobookImage[];
+  maxImages: number;
+}
+
+// Sample album data from photographers/freelancers
+const clientAlbumsData = [
+  {
+    id: 1,
+    title: 'Johnson Wedding - Ceremony',
+    photographer: 'Sarah Anderson',
+    photographerAvatar: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg',
+    category: 'Wedding',
+    date: 'Dec 15, 2024',
+    receivedDate: 'Dec 18, 2024',
+    thumbnail: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=400',
+    photoCount: 45,
+    downloadedCount: 12,
+    favoriteCount: 8,
+    images: [
+      'https://images.unsplash.com/photo-1519741497674-611481863552?w=800',
+      'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800',
+      'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=800',
+      'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=800',
+      'https://images.unsplash.com/photo-1606216794074-735e91aa2c92?w=800',
+      'https://images.unsplash.com/photo-1591604466107-ec97de577aff?w=800'
+    ]
+  },
+  {
+    id: 2,
+    title: 'Johnson Wedding - Reception',
+    photographer: 'Sarah Anderson',
+    photographerAvatar: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg',
+    category: 'Wedding',
+    date: 'Dec 15, 2024',
+    receivedDate: 'Dec 18, 2024',
+    thumbnail: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=400',
+    photoCount: 78,
+    downloadedCount: 35,
+    favoriteCount: 22,
+    images: [
+      'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800',
+      'https://images.unsplash.com/photo-1519741497674-611481863552?w=800',
+      'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=800',
+      'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=800'
+    ]
+  },
+  {
+    id: 3,
+    title: 'Family Portrait Session',
+    photographer: 'Mike Chen',
+    photographerAvatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
+    category: 'Portrait',
+    date: 'Nov 28, 2024',
+    receivedDate: 'Dec 2, 2024',
+    thumbnail: 'https://images.unsplash.com/photo-1511895426328-dc8714191300?w=400',
+    photoCount: 32,
+    downloadedCount: 28,
+    favoriteCount: 15,
+    images: [
+      'https://images.unsplash.com/photo-1511895426328-dc8714191300?w=800',
+      'https://images.unsplash.com/photo-1609220136736-443140cffec6?w=800',
+      'https://images.unsplash.com/photo-1581579438747-1dc8d17bbce4?w=800'
+    ]
+  },
+  {
+    id: 4,
+    title: 'Company Annual Gala',
+    photographer: 'David Kim',
+    photographerAvatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
+    category: 'Event',
+    date: 'Nov 15, 2024',
+    receivedDate: 'Nov 20, 2024',
+    thumbnail: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400',
+    photoCount: 124,
+    downloadedCount: 45,
+    favoriteCount: 30,
+    images: [
+      'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800',
+      'https://images.unsplash.com/photo-1505236858219-8359eb29e329?w=800',
+      'https://images.unsplash.com/photo-1511578314322-379afb476865?w=800',
+      'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800',
+      'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=800'
+    ]
+  },
+  {
+    id: 5,
+    title: 'Product Catalog - Spring Collection',
+    photographer: 'Emily Zhang',
+    photographerAvatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg',
+    category: 'Product',
+    date: 'Oct 10, 2024',
+    receivedDate: 'Oct 15, 2024',
+    thumbnail: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400',
+    photoCount: 56,
+    downloadedCount: 56,
+    favoriteCount: 18,
+    images: [
+      'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800',
+      'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800',
+      'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=800'
+    ]
+  },
+  {
+    id: 6,
+    title: 'Birthday Celebration',
+    photographer: 'Alex Rivera',
+    photographerAvatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
+    category: 'Event',
+    date: 'Sep 22, 2024',
+    receivedDate: 'Sep 25, 2024',
+    thumbnail: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=400',
+    photoCount: 89,
+    downloadedCount: 67,
+    favoriteCount: 42,
+    images: [
+      'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=800',
+      'https://images.unsplash.com/photo-1464349153735-7db50ed83c84?w=800',
+      'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=800',
+      'https://images.unsplash.com/photo-1527529482837-4698179dc6ce?w=800'
+    ]
+  }
+];
+>>>>>>> Stashed changes
 
 const PlusIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -757,6 +911,30 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   // Confirmation modal state
   const [confirmationModal, setConfirmationModal] = useState<{ show: boolean; title: string; message: string; onConfirm: () => void }>({ show: false, title: '', message: '', onConfirm: () => {} });
 
+  // Photobook states
+  const [photobook, setPhotobook] = useState<Photobook | null>(null);
+  const [showCreatePhotobookModal, setShowCreatePhotobookModal] = useState(false);
+  const [showPhotobookModal, setShowPhotobookModal] = useState(false);
+  const [viewingPhotobooks, setViewingPhotobooks] = useState(false);
+  const [photobookName, setPhotobookName] = useState('');
+  const [photobookDescription, setPhotobookDescription] = useState('');
+  const [photobookThumbnailUrl, setPhotobookThumbnailUrl] = useState<string | null>(null);
+
+  // Add to Photobook states
+  const [showAddToPhotobookModal, setShowAddToPhotobookModal] = useState(false);
+  const [addToPhotobookAlbum, setAddToPhotobookAlbum] = useState<typeof clientAlbumsData[0] | null>(null);
+  const [selectedImagesForPhotobook, setSelectedImagesForPhotobook] = useState<string[]>([]);
+  const [showThumbnailSelector, setShowThumbnailSelector] = useState(false);
+
+  // Track removed albums (hidden after adding to photobook)
+  const [removedAlbumIds, setRemovedAlbumIds] = useState<number[]>([]);
+
+  // Notification modal state
+  const [notificationModal, setNotificationModal] = useState<{ show: boolean; title: string; message: string; type: 'success' | 'info' | 'warning' | 'error' }>({ show: false, title: '', message: '', type: 'info' });
+
+  // Confirmation modal state
+  const [confirmationModal, setConfirmationModal] = useState<{ show: boolean; title: string; message: string; onConfirm: () => void }>({ show: false, title: '', message: '', onConfirm: () => {} });
+
   const categories = ['All', 'Wedding', 'Portrait', 'Event', 'Product'];
   const photographers = ['All', ...Array.from(new Set(albums.map(a => a.photographer)))];
   const [showPayNowModal, setShowPayNowModal] = useState(false);
@@ -764,6 +942,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   const [showPricingPlans, setShowPricingPlans] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<'one-time' | 'plus' | 'pro' | null>(null);
 
+<<<<<<< Updated upstream
   const STORAGE_PLANS = (() => {
     const cfg = getPlatformConfig();
     const plans = cfg.gallery.storagePlans;
@@ -839,6 +1018,8 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
     return { expiresAt, daysRemaining, isExpired: daysRemaining <= 0, isWarning: daysRemaining > 0 && daysRemaining <= WARNING_DAYS };
   };
 
+=======
+>>>>>>> Stashed changes
   // Filter albums - also exclude removed albums when not viewing photobooks
   const filteredAlbums = albums.filter(album => {
     // Hide removed albums unless viewing photobooks
@@ -869,7 +1050,14 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   const totalPhotobookImages = photobooks.reduce((sum, pb) => sum + pb.images.length, 0);
 
   // Functions
+<<<<<<< Updated upstream
   const openMultiSelectView = (album: any) => {
+=======
+  // Max images limit for photobook (placeholder - will be set by backend later)
+  const MAX_PHOTOBOOK_IMAGES = 10;
+
+  const openMultiSelectView = (album: typeof clientAlbumsData[0]) => {
+>>>>>>> Stashed changes
     setMultiSelectAlbum(album);
     setSelectedImages([]);
     // Auto-enter select mode when photobook exists
@@ -904,18 +1092,39 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
     if (selectedImages.includes(image)) {
       setSelectedImages(selectedImages.filter(img => img !== image));
     } else {
+<<<<<<< Updated upstream
       if (selectedImages.length < MAX_IMAGE_SELECTION) {
         setSelectedImages([...selectedImages, image]);
       }
+=======
+      // Enforce max limit when photobook exists
+      if (photobook && selectedImages.length >= MAX_PHOTOBOOK_IMAGES) {
+        setNotificationModal({ show: true, title: 'Maximum Reached', message: `You can only select up to ${MAX_PHOTOBOOK_IMAGES} images for your photobook.`, type: 'warning' });
+        return;
+      }
+      setSelectedImages([...selectedImages, image]);
+>>>>>>> Stashed changes
     }
   };
 
   const selectAllImages = () => {
     if (multiSelectAlbum) {
+<<<<<<< Updated upstream
       if (selectedImages.length === Math.min(multiSelectAlbum.images.length, MAX_IMAGE_SELECTION)) {
         setSelectedImages([]);
       } else {
         setSelectedImages([...multiSelectAlbum.images].slice(0, MAX_IMAGE_SELECTION));
+=======
+      if (selectedImages.length === multiSelectAlbum.images.length || (photobook && selectedImages.length >= MAX_PHOTOBOOK_IMAGES)) {
+        setSelectedImages([]);
+      } else {
+        // Cap at max when photobook exists
+        if (photobook) {
+          setSelectedImages(multiSelectAlbum.images.slice(0, MAX_PHOTOBOOK_IMAGES));
+        } else {
+          setSelectedImages([...multiSelectAlbum.images]);
+        }
+>>>>>>> Stashed changes
       }
     }
   };
@@ -1019,6 +1228,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
     }
   };
 
+<<<<<<< Updated upstream
   const handleAddCurrentImageToPhotobook = () => {
     if (!viewerAlbum || photobooks.length === 0) return;
     const currentImage = viewerAlbum.images[currentImageIndex];
@@ -1051,6 +1261,21 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
         }
         setSelectedImages([]);
       }
+=======
+  const handleBulkDelete = () => {
+    if (selectedImages.length > 0) {
+      const count = selectedImages.length;
+      setConfirmationModal({
+        show: true,
+        title: 'Delete Images',
+        message: `Are you sure you want to delete ${count} image(s)? This action cannot be undone.`,
+        onConfirm: () => {
+          setNotificationModal({ show: true, title: 'Images Deleted', message: `${count} image(s) deleted successfully!`, type: 'success' });
+          setSelectedImages([]);
+          setConfirmationModal({ show: false, title: '', message: '', onConfirm: () => {} });
+        }
+      });
+>>>>>>> Stashed changes
     }
   };
 
@@ -2238,6 +2463,36 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                 Create Photobook
               </button>
 
+<<<<<<< Updated upstream
+=======
+              {/* Photobook Buttons */}
+              <button
+                onClick={() => {
+                  if (photobook) {
+                    setNotificationModal({ show: true, title: 'Photobook Exists', message: 'You already have a photobook created. Only one photobook is supported at this time.', type: 'info' });
+                  } else {
+                    setShowCreatePhotobookModal(true);
+                  }
+                }}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '0.5rem',
+                  border: `2px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}`,
+                  backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EBF5FF',
+                  color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  fontSize: '0.875rem',
+                  fontWeight: '600'
+                }}
+              >
+                <PlusIcon />
+                Create Photobook
+              </button>
+
+>>>>>>> Stashed changes
               {photobook && (
                 <button
                   onClick={() => setViewingPhotobooks(!viewingPhotobooks)}
@@ -2456,6 +2711,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
             </div>
           </div>
 
+<<<<<<< Updated upstream
           {/* Albums Grid/List or Photobooks View */}
           {pageView === 'albums' ? (
             <>
@@ -2487,6 +2743,306 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                         </span>
                       </div>
                     )}
+=======
+          {/* Photobook View or Albums Grid/List */}
+          {viewingPhotobooks && photobook ? (
+            // Photobook View
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem' }}>
+              <div
+                style={{
+                  backgroundColor: colors.bgCard,
+                  borderRadius: '0.75rem',
+                  overflow: 'hidden',
+                  border: `1px solid ${colors.borderPrimary}`,
+                  cursor: 'pointer'
+                }}
+                onClick={() => setShowPhotobookModal(true)}
+              >
+                {/* Photobook Thumbnail */}
+                <div style={{ position: 'relative', height: '180px', overflow: 'hidden', backgroundColor: colors.bgTertiary }}>
+                  {photobook.thumbnail ? (
+                    <Image src={photobook.thumbnail} alt={photobook.name} fill style={{ objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: colors.textSecondary }}>
+                      <BookIcon />
+                    </div>
+                  )}
+                  <div style={{
+                    position: 'absolute',
+                    top: '0.5rem',
+                    right: '0.5rem',
+                    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                    color: 'white',
+                    padding: '0.25rem 0.5rem',
+                    borderRadius: '0.25rem',
+                    fontSize: '0.75rem',
+                    fontWeight: '500'
+                  }}>
+                    {photobook.images.length} photos
+                  </div>
+                </div>
+
+                {/* Photobook Info */}
+                <div style={{ padding: '1rem' }}>
+                  <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0, marginBottom: '0.5rem' }}>
+                    {photobook.name}
+                  </h3>
+                  {photobook.description && (
+                    <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: 0, marginBottom: '0.75rem' }}>
+                      {photobook.description}
+                    </p>
+                  )}
+
+                  {photobook.images.length === 0 ? (
+                    <div style={{
+                      padding: '1rem',
+                      backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EBF5FF',
+                      borderRadius: '0.5rem',
+                      border: `1px dashed ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}`,
+                      textAlign: 'center'
+                    }}>
+                      <p style={{ fontSize: '0.85rem', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85', margin: 0 }}>
+                        Select preferred images from sent albums to add to this Photobook.
+                      </p>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowPhotobookModal(true);
+                        }}
+                        style={{
+                          flex: 1,
+                          padding: '0.5rem',
+                          borderRadius: '0.375rem',
+                          border: '2px solid #062a63',
+                          backgroundColor: '#083A85',
+                          color: 'white',
+                          fontSize: '0.8rem',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.25rem'
+                        }}
+                      >
+                        <EyeIcon />
+                        Browse
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setNotificationModal({ show: true, title: 'Coming Soon', message: 'Share functionality coming soon!', type: 'info' });
+                        }}
+                        style={{
+                          flex: 1,
+                          padding: '0.5rem',
+                          borderRadius: '0.375rem',
+                          border: '2px solid #9CA3AF',
+                          backgroundColor: colors.bgTertiary,
+                          color: colors.textPrimary,
+                          fontSize: '0.8rem',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.25rem'
+                        }}
+                      >
+                        <ShareIcon />
+                        Share
+                      </button>
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          // Download all images
+                          for (let i = 0; i < photobook.images.length; i++) {
+                            const img = photobook.images[i];
+                            const filename = `${photobook.name.replace(/[^a-z0-9]/gi, '_')}_${i + 1}.jpg`;
+                            await downloadImage(img.url, filename);
+                            if (i < photobook.images.length - 1) {
+                              await new Promise(resolve => setTimeout(resolve, 300));
+                            }
+                          }
+                        }}
+                        style={{
+                          padding: '0.5rem',
+                          borderRadius: '0.375rem',
+                          border: '2px solid #9CA3AF',
+                          backgroundColor: colors.bgTertiary,
+                          color: colors.textPrimary,
+                          fontSize: '0.8rem',
+                          fontWeight: '600',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <DownloadIcon />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : viewMode === 'grid' ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem' }}>
+              {filteredAlbums.map((album) => (
+                <div
+                  key={album.id}
+                  style={{
+                    backgroundColor: colors.bgCard,
+                    borderRadius: '0.75rem',
+                    overflow: 'hidden',
+                    border: `1px solid ${colors.borderPrimary}`,
+                    transition: 'all 0.2s',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => {
+                    setSelectedAlbum(album);
+                    setShowViewModal(true);
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow = 'none';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                >
+                  {/* Album Thumbnail */}
+                  <div style={{ position: 'relative', height: '180px', overflow: 'hidden' }}>
+                    <Image
+                      src={album.thumbnail}
+                      alt={album.title}
+                      fill
+                      style={{ objectFit: 'cover' }}
+                    />
+                    <div style={{
+                      position: 'absolute',
+                      top: '0.5rem',
+                      right: '0.5rem',
+                      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                      color: 'white',
+                      padding: '0.25rem 0.5rem',
+                      borderRadius: '0.25rem',
+                      fontSize: '0.75rem',
+                      fontWeight: '500'
+                    }}>
+                      {album.photoCount} photos
+                    </div>
+                    <div style={{
+                      position: 'absolute',
+                      bottom: '0.5rem',
+                      left: '0.5rem',
+                      backgroundColor: '#083A85',
+                      color: 'white',
+                      padding: '0.25rem 0.5rem',
+                      borderRadius: '0.25rem',
+                      fontSize: '0.7rem',
+                      fontWeight: '500'
+                    }}>
+                      {album.category}
+                    </div>
+                  </div>
+
+                  {/* Album Info */}
+                  <div style={{ padding: '1rem' }}>
+                    <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0, marginBottom: '0.5rem' }}>
+                      {album.title}
+                    </h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                      <div style={{ position: 'relative', width: '24px', height: '24px', borderRadius: '50%', overflow: 'hidden' }}>
+                        <Image src={album.photographerAvatar} alt={album.photographer} fill style={{ objectFit: 'cover' }} />
+                      </div>
+                      <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>{album.photographer}</span>
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#9CA3AF', marginBottom: '0.75rem' }}>
+                      Received: {album.receivedDate}
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openMultiSelectView(album);
+                        }}
+                        style={{
+                          flex: 1,
+                          padding: '0.5rem',
+                          borderRadius: '0.375rem',
+                          border: '2px solid #062a63',
+                          backgroundColor: '#083A85',
+                          color: 'white',
+                          fontSize: '0.8rem',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.25rem'
+                        }}
+                      >
+                        <EyeIcon />
+                        Browse
+                      </button>
+                      {!photobook && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShareAlbum(album);
+                            setShowShareModal(true);
+                          }}
+                          style={{
+                            flex: 1,
+                            padding: '0.5rem',
+                            borderRadius: '0.375rem',
+                            border: '2px solid #9CA3AF',
+                            backgroundColor: colors.bgTertiary,
+                            color: colors.textPrimary,
+                            fontSize: '0.8rem',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.25rem'
+                          }}
+                        >
+                          <ShareIcon />
+                          Share
+                        </button>
+                      )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openDeleteModal(album);
+                        }}
+                        style={{
+                          width: '36px',
+                          height: '36px',
+                          padding: '0.5rem',
+                          borderRadius: '0.375rem',
+                          border: '2px solid #FCA5A5',
+                          backgroundColor: '#FEE2E2',
+                          color: '#DC2626',
+                          fontSize: '0.8rem',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          transition: 'all 0.2s'
+                        }}
+                        title="Delete Album"
+                      >
+                        <i className="bi bi-trash" style={{ fontSize: '0.9rem' }}></i>
+                      </button>
+                    </div>
+>>>>>>> Stashed changes
                   </div>
                 );
               })()}
@@ -3279,6 +3835,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                     ))}
                   </ul>
 
+<<<<<<< Updated upstream
                   {/* Select Button */}
                   <button
                     onClick={() => {
@@ -3313,6 +3870,72 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                   >
                     Select Plan
                   </button>
+=======
+                  {/* Actions */}
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openMultiSelectView(album);
+                      }}
+                      style={{
+                        padding: '0.375rem 0.75rem',
+                        borderRadius: '0.375rem',
+                        border: '2px solid #062a63',
+                        backgroundColor: '#083A85',
+                        color: 'white',
+                        fontSize: '0.8rem',
+                        fontWeight: '500',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Browse
+                    </button>
+                    {!photobook && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShareAlbum(album);
+                          setShowShareModal(true);
+                        }}
+                        style={{
+                          padding: '0.375rem 0.75rem',
+                          borderRadius: '0.375rem',
+                          border: '2px solid #9CA3AF',
+                          backgroundColor: colors.bgTertiary,
+                          color: colors.textPrimary,
+                          fontSize: '0.8rem',
+                          fontWeight: '500',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Share
+                      </button>
+                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openDeleteModal(album);
+                      }}
+                      style={{
+                        padding: '0.375rem 0.75rem',
+                        borderRadius: '0.375rem',
+                        border: '2px solid #FCA5A5',
+                        backgroundColor: '#FEE2E2',
+                        color: '#DC2626',
+                        fontSize: '0.8rem',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      title="Delete Album"
+                    >
+                      <i className="bi bi-trash" style={{ fontSize: '0.85rem' }}></i>
+                    </button>
+                  </div>
+>>>>>>> Stashed changes
                 </div>
               ))}
             </div>
@@ -3449,6 +4072,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
             </div>
 
             {/* Action Buttons */}
+<<<<<<< Updated upstream
             <div style={{ display: 'flex', gap: '0.75rem' }}>
               <button
                 onClick={() => {
@@ -3474,6 +4098,67 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                 <ImageIcon />
                 Browse Photos
               </button>
+=======
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button
+                  onClick={() => {
+                    setShowViewModal(false);
+                    openMultiSelectView(selectedAlbum);
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '0.875rem',
+                    borderRadius: '0.5rem',
+                    border: '2px solid #062a63',
+                    backgroundColor: '#083A85',
+                    color: 'white',
+                    fontSize: '0.95rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  <ImageIcon />
+                  Browse Photos
+                </button>
+                {!photobook && (
+                  <button
+                    onClick={() => {
+                      setShowViewModal(false);
+                      setShareAlbum(selectedAlbum);
+                      setShowShareModal(true);
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '0.875rem',
+                      borderRadius: '0.5rem',
+                      border: '2px solid #9CA3AF',
+                      backgroundColor: colors.bgTertiary,
+                      color: colors.textPrimary,
+                      fontSize: '0.95rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem'
+                    }}
+                  >
+                    <ShareIcon />
+                    Share Album
+                  </button>
+                )}
+              </div>
+              {photobook && (
+                <p style={{ fontSize: '0.8rem', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85', textAlign: 'center', margin: 0, fontWeight: '500' }}>
+                  Browse photos to select and add to &quot;{photobook.name}&quot;
+                </p>
+              )}
+>>>>>>> Stashed changes
             </div>
           </div>
         </div>
@@ -3726,7 +4411,11 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
               {/* Max images info when photobook exists */}
               {photobook && (
                 <span style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.7)', padding: '0.5rem 0.75rem', backgroundColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '0.375rem' }}>
+<<<<<<< Updated upstream
                   Max: {MAX_IMAGE_SELECTION} images
+=======
+                  Max: {MAX_PHOTOBOOK_IMAGES} images
+>>>>>>> Stashed changes
                 </span>
               )}
 
@@ -3777,7 +4466,11 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                   fontWeight: '600',
                   color: '#16A34A'
                 }}>
+<<<<<<< Updated upstream
                   {selectedImages.length} of {Math.min(multiSelectAlbum.images.length, MAX_IMAGE_SELECTION)} selected (max {MAX_IMAGE_SELECTION})
+=======
+                  {selectedImages.length} of {photobook ? MAX_PHOTOBOOK_IMAGES : multiSelectAlbum.images.length} {photobook ? 'max' : ''} selected
+>>>>>>> Stashed changes
                 </span>
                 <button
                   onClick={selectAllImages}
@@ -3805,6 +4498,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
 
               {/* Add to Photobook Action */}
               {selectedImages.length > 0 && (
+<<<<<<< Updated upstream
                 <div className="mobile-bulk-actions" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
                   {selectedImages.length >= MAX_IMAGE_SELECTION && (
                     <span style={{ fontSize: '0.8rem', color: '#F59E0B', fontWeight: '500' }}>
@@ -3856,6 +4550,140 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                     <span style={{ fontSize: '0.75rem', color: '#F59E0B' }}>
                       Create a photobook first
                     </span>
+=======
+                <div className="mobile-bulk-actions" style={{ display: 'flex', gap: '0.75rem' }}>
+                  {photobook ? (
+                    // When photobook exists: show "Add to Photobook" only
+                    <button
+                      onClick={() => {
+                        if (!multiSelectAlbum) return;
+                        // Add selected images to photobook
+                        const newImages: PhotobookImage[] = selectedImages.map(url => ({
+                          url,
+                          sourceAlbumId: multiSelectAlbum.id,
+                          sourceAlbumTitle: multiSelectAlbum.title,
+                          addedAt: new Date().toISOString()
+                        }));
+                        setPhotobook({
+                          ...photobook,
+                          images: [...photobook.images, ...newImages]
+                        });
+                        // Remove album from view
+                        setRemovedAlbumIds([...removedAlbumIds, multiSelectAlbum.id]);
+                        // Close multi-select and show thumbnail selector
+                        closeMultiSelectView();
+                        setShowThumbnailSelector(true);
+                      }}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        borderRadius: '0.5rem',
+                        border: 'none',
+                        backgroundColor: '#16A34A',
+                        color: 'white',
+                        fontSize: '0.875rem',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#15803D';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = '#16A34A';
+                      }}
+                    >
+                      <BookIcon />
+                      Add to Photobook ({selectedImages.length})
+                    </button>
+                  ) : (
+                    // Original actions when no photobook: download, share, delete
+                    <>
+                      <button
+                        onClick={handleBulkDownload}
+                        style={{
+                          padding: '0.5rem 1rem',
+                          borderRadius: '0.5rem',
+                          border: 'none',
+                          backgroundColor: '#083A85',
+                          color: 'white',
+                          fontSize: '0.875rem',
+                          fontWeight: '500',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#062D6B';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = '#083A85';
+                        }}
+                      >
+                        <DownloadIcon />
+                        Download ({selectedImages.length})
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShareAlbum(multiSelectAlbum);
+                          setShowShareModal(true);
+                        }}
+                        style={{
+                          padding: '0.5rem 1rem',
+                          borderRadius: '0.5rem',
+                          border: 'none',
+                          backgroundColor: '#16A34A',
+                          color: 'white',
+                          fontSize: '0.875rem',
+                          fontWeight: '500',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#15803D';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = '#16A34A';
+                        }}
+                      >
+                        <ShareIcon />
+                        Share ({selectedImages.length})
+                      </button>
+                      <button
+                        onClick={handleBulkDelete}
+                        style={{
+                          padding: '0.5rem 1rem',
+                          borderRadius: '0.5rem',
+                          border: 'none',
+                          backgroundColor: '#DC2626',
+                          color: 'white',
+                          fontSize: '0.875rem',
+                          fontWeight: '500',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#B91C1C';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = '#DC2626';
+                        }}
+                      >
+                        <TrashIcon />
+                        Delete ({selectedImages.length})
+                      </button>
+                    </>
+>>>>>>> Stashed changes
                   )}
                 </div>
               )}
@@ -3877,6 +4705,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
               gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
               gap: '1rem'
             }}>
+<<<<<<< Updated upstream
               {multiSelectAlbum.images.map((image: string, index: number) => {
                 const isDisabled = isSelectMode && selectedImages.length >= MAX_IMAGE_SELECTION && !selectedImages.includes(image);
                 return (
@@ -3909,6 +4738,43 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                       fill
                       style={{ objectFit: 'cover' }}
                     />
+=======
+              {multiSelectAlbum.images.map((image, index) => {
+                const isMaxReached = photobook && selectedImages.length >= MAX_PHOTOBOOK_IMAGES;
+                const isDisabled = isMaxReached && !selectedImages.includes(image);
+                return (
+                <div
+                  key={index}
+                  style={{
+                    position: 'relative',
+                    aspectRatio: '1',
+                    borderRadius: '0.75rem',
+                    overflow: 'hidden',
+                    cursor: isDisabled ? 'not-allowed' : (isSelectMode ? 'pointer' : 'default'),
+                    border: selectedImages.includes(image)
+                      ? '3px solid #16A34A'
+                      : '3px solid transparent',
+                    transition: 'all 0.2s',
+                    transform: selectedImages.includes(image) ? 'scale(0.98)' : 'scale(1)',
+                    opacity: isDisabled ? 0.4 : 1,
+                    pointerEvents: isDisabled ? 'none' : 'auto'
+                  }}
+                  onClick={() => {
+                    if (isDisabled) return;
+                    if (isSelectMode) {
+                      toggleImageSelection(image);
+                    } else {
+                      openImageViewer(multiSelectAlbum, index);
+                    }
+                  }}
+                >
+                  <Image
+                    src={image}
+                    alt={`${multiSelectAlbum.title} - Image ${index + 1}`}
+                    fill
+                    style={{ objectFit: 'cover' }}
+                  />
+>>>>>>> Stashed changes
 
                     {/* Selection Overlay */}
                     {isSelectMode && (
@@ -3979,6 +4845,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                       </div>
                     )}
 
+<<<<<<< Updated upstream
                     {/* Image Number Badge (when not in select mode) */}
                     {!isSelectMode && (
                       <div style={{
@@ -3996,6 +4863,25 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                       </div>
                     )}
                   </div>
+=======
+                  {/* Image Number Badge (when not in select mode) */}
+                  {!isSelectMode && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '0.5rem',
+                      right: '0.5rem',
+                      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                      color: 'white',
+                      padding: '0.25rem 0.5rem',
+                      borderRadius: '0.25rem',
+                      fontSize: '0.75rem',
+                      fontWeight: '500'
+                    }}>
+                      {index + 1}
+                    </div>
+                  )}
+                </div>
+>>>>>>> Stashed changes
                 );
               })}
             </div>
@@ -7668,7 +8554,11 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
               gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
               gap: '1rem'
             }}>
+<<<<<<< Updated upstream
               {addToPhotobookAlbum.images.map((image: string, index: number) => (
+=======
+              {addToPhotobookAlbum.images.map((image, index) => (
+>>>>>>> Stashed changes
                 <div
                   key={index}
                   onClick={() => {
