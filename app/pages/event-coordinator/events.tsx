@@ -482,7 +482,7 @@ const MyEventsPage = () => {
   const [createPhotographerId, setCreatePhotographerId] = useState<string>('');
   const [createEventVisibility, setCreateEventVisibility] = useState<string>('PUBLIC');
   const [createPackageId, setCreatePackageId] = useState<string>('');
-  const [photographerPackages, setPhotographerPackages] = useState<{id: string; packageName: string; price: number; currencyId: string; description: string; durationHours: number}[]>([]);
+  const [photographerPackages, setPhotographerPackages] = useState<{id: string; packageName: string; price: number; currencyId: string; currencySymbol: string; currencyAbbreviation: string; description: string; durationHours: number; includedPhotos: number; includedVideos: number}[]>([]);
   const [packagesLoading, setPackagesLoading] = useState(false);
   const [packagesError, setPackagesError] = useState<string | null>(null);
   const [createEscrowPercentage, setCreateEscrowPercentage] = useState<number>(50);
@@ -699,8 +699,12 @@ const MyEventsPage = () => {
           packageName: (p.packageName as string) || 'Package',
           price: (p.price as number) || 0,
           currencyId: (p.currencyId as string) || 'RWF',
+          currencySymbol: (p.currencySymbol as string) || (p.currency as any)?.symbol || '',
+          currencyAbbreviation: (p.currencyAbbreviation as string) || (p.currency as any)?.abbreviation || '',
           description: (p.description as string) || '',
           durationHours: (p.durationHours as number) || 0,
+          includedPhotos: (p.includedPhotos as number) || 0,
+          includedVideos: (p.includedVideos as number) || 0,
         })));
       } catch {
         setPackagesError('Could not load packages. Please try again.');
@@ -719,6 +723,19 @@ const MyEventsPage = () => {
       console.error('Failed to clear form draft:', error);
     }
   }, []);
+
+  // Auto-scroll to escrow/payment terms section when package is selected
+  useEffect(() => {
+    if (createPackageId && createPhotographerId) {
+      const timer = setTimeout(() => {
+        const escrowSection = document.querySelector('[data-section="escrow"]');
+        if (escrowSection) {
+          escrowSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [createPackageId, createPhotographerId]);
 
   // Event categories from prompt
   const [eventCategories, setEventCategories] = useState<{ id: string; name: string }[]>([]);
@@ -1035,6 +1052,13 @@ const MyEventsPage = () => {
   const handleEditEvent = async () => {
     if (!editEvent || !editTitle || !editCategory || !editDate || !editTime) return;
 
+    // Minimum stream access fee: 1,000 RWF
+    const editNumPrice = Number((editPrice || '').replace(/[^\d]/g, ''));
+    if (editNumPrice > 0 && editNumPrice < 1000) {
+      setSubmitError('Live Stream Access Fee must be at least 1,000 RWF.');
+      return;
+    }
+
     // Calculate duration from start and end time
     let calculatedDuration = editDuration;
     if (editTime && editEndTime) {
@@ -1298,6 +1322,13 @@ const MyEventsPage = () => {
     if (createGroupDiscount === '') missingFields.push('Group Stream Discount');
     if (missingFields.length > 0) {
       setSubmitError(`Please fill in the required fields: ${missingFields.join(', ')}`);
+      return;
+    }
+
+    // Minimum stream access fee: 1,000 RWF
+    const numPrice = Number(createPrice.replace(/[^\d]/g, ''));
+    if (numPrice > 0 && numPrice < 1000) {
+      setSubmitError('Live Stream Access Fee must be at least 1,000 RWF.');
       return;
     }
 
@@ -2378,7 +2409,7 @@ const MyEventsPage = () => {
                 )}
                 {photographerPackages.length > 0 && (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.5rem' }}>
-                    {photographerPackages.map((pkg: { id: string; packageName: string; price: number; currencyId: string; description: string; durationHours: number }) => (
+                    {photographerPackages.map((pkg) => (
                       <div
                         key={pkg.id}
                         onClick={() => setCreatePackageId(pkg.id)}
@@ -2397,11 +2428,19 @@ const MyEventsPage = () => {
                           {pkg.packageName}
                         </div>
                         <div style={{ fontSize: '0.95rem', fontWeight: '700', color: '#083A85', marginBottom: '0.25rem' }}>
-                          {pkg.currencyId} {pkg.price.toLocaleString()}
+                          {pkg.currencySymbol || ''}{pkg.price.toLocaleString()}
+                          {pkg.currencyAbbreviation && <span style={{ fontWeight: '400', fontSize: '0.75rem', color: colors.textSecondary, marginLeft: '0.25rem' }}>{pkg.currencyAbbreviation}</span>}
                         </div>
                         {pkg.durationHours > 0 && (
                           <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>
                             {pkg.durationHours} hour{pkg.durationHours !== 1 ? 's' : ''}
+                          </div>
+                        )}
+                        {(pkg.includedPhotos > 0 || pkg.includedVideos > 0) && (
+                          <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>
+                            {pkg.includedPhotos > 0 && <span>{pkg.includedPhotos} photos</span>}
+                            {pkg.includedPhotos > 0 && pkg.includedVideos > 0 && <span> &middot; </span>}
+                            {pkg.includedVideos > 0 && <span>{pkg.includedVideos} videos</span>}
                           </div>
                         )}
                         {pkg.description && (
@@ -2420,7 +2459,7 @@ const MyEventsPage = () => {
 
           {/* Escrow / Payment Milestone Selector — shown when photographer + package selected */}
           {createPhotographerId && createPackageId && (
-            <div style={{ marginBottom: '1.5rem' }}>
+            <div data-section="escrow" style={{ marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Payment Terms</span>
@@ -3879,10 +3918,18 @@ const MyEventsPage = () => {
               })()}
             </div>
 
+            {/* Submit Error (Edit) */}
+            {submitError && (
+              <div style={{ padding: '0.75rem', backgroundColor: '#FEE2E2', color: '#DC2626', borderRadius: '0.5rem', fontSize: '0.85rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ flexShrink: 0 }}>⚠</span>
+                {submitError}
+              </div>
+            )}
+
             {/* Action Buttons */}
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', paddingTop: '1rem', borderTop: `2px solid ${colors.borderPrimary}`, marginBottom: '4rem' }}>
               <button
-                onClick={() => { setShowEditModal(false); setEditEvent(null); }}
+                onClick={() => { setShowEditModal(false); setEditEvent(null); setSubmitError(null); }}
                 style={{
                   padding: '0.75rem 1.25rem',
                   border: `2px solid ${colors.borderPrimary}`,

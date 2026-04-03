@@ -9,6 +9,8 @@ import { useUserProfile } from '../../context/UserProfileContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { getApiUrl } from '@/lib/api';
 import { getPlatformConfig } from '@/lib/platformConfig';
+import KycBadge from '../../components/KycBadge';
+import KycVerificationModal from '../../components/KycVerificationModal';
 
 // API response types for coordinator profile
 interface CoordinatorProfilePayload {
@@ -44,6 +46,7 @@ const ProfilePage = () => {
   const [isEditEnabled, setIsEditEnabled] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [showKycModal, setShowKycModal] = useState(false);
 
   // East African countries with phone codes
   // East African countries imported from CountrySelect component
@@ -143,6 +146,11 @@ const ProfilePage = () => {
   // Save profile to API
   const handleSaveProfile = async () => {
     if (!token) return;
+    const address = [formData.sector, formData.district, formData.province, formData.country].filter(Boolean).join(', ');
+    if (!address.trim()) {
+      alert('Location / Address is required. Please fill in at least your district and country.');
+      return;
+    }
     setIsSaving(true);
     try {
       const apiUrl = getApiUrl();
@@ -153,7 +161,7 @@ const ProfilePage = () => {
         firstName: firstName || '',
         lastName: lastName || '',
         phone: `${formData.phoneCode}${formData.phoneNumber.replace(/\s/g, '')}`,
-        address: [formData.sector, formData.district, formData.province, formData.country].filter(Boolean).join(', '),
+        address,
         organizationName: formData.organizationName,
         businessType: formData.businessType,
         taxId: formData.taxId,
@@ -596,11 +604,57 @@ const ProfilePage = () => {
                     color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
                     marginBottom: '0.25rem'
                   }}>{formData.fullName || 'User'}</h2>
+                  {user?.kycStatus === 'APPROVED' && (
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.25rem' }}>
+                      <KycBadge kycStatus={user.kycStatus} size="sm" />
+                    </div>
+                  )}
                   <p style={{
                     fontSize: '0.95rem',
                     color: colors.textSecondary
                   }}>Event Coordinator</p>
                 </div>
+
+                {/* KYC Verification Banner */}
+                {user?.kycStatus && user.kycStatus !== 'APPROVED' && user.customerType !== 'Viewer' && (
+                  <div style={{
+                    padding: '1rem 1.25rem', margin: '0 1.25rem',
+                    borderRadius: '0.75rem', marginBottom: '0.75rem',
+                    backgroundColor: user.kycStatus === 'PENDING' ? '#FFFBEB' : user.kycStatus === 'REJECTED' ? '#FEF2F2' : '#F0F9FF',
+                    border: `1px solid ${user.kycStatus === 'PENDING' ? '#FDE68A' : user.kycStatus === 'REJECTED' ? '#FECACA' : '#BFDBFE'}`,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={user.kycStatus === 'PENDING' ? '#D97706' : user.kycStatus === 'REJECTED' ? '#DC2626' : '#2563EB'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 22C12 22 20 18 20 12V5L12 2L4 5V12C4 18 12 22 12 22Z"/>
+                      </svg>
+                      <span style={{
+                        fontSize: '0.8rem', fontWeight: '600',
+                        color: user.kycStatus === 'PENDING' ? '#92400E' : user.kycStatus === 'REJECTED' ? '#991B1B' : '#1E40AF',
+                      }}>
+                        {user.kycStatus === 'PENDING' ? 'KYC Under Review' : user.kycStatus === 'REJECTED' ? 'KYC Rejected' : 'KYC Required'}
+                      </span>
+                    </div>
+                    <p style={{
+                      fontSize: '0.75rem', margin: 0, lineHeight: '1.4',
+                      color: user.kycStatus === 'PENDING' ? '#92400E' : user.kycStatus === 'REJECTED' ? '#991B1B' : '#1E40AF',
+                    }}>
+                      {user.kycStatus === 'PENDING'
+                        ? 'Your identity verification is being reviewed.'
+                        : user.kycStatus === 'REJECTED'
+                        ? 'Your KYC was rejected. Please resubmit.'
+                        : 'Complete identity verification to enable withdrawals.'}
+                    </p>
+                    {user.kycStatus !== 'PENDING' && (
+                      <button onClick={() => setShowKycModal(true)} style={{
+                        marginTop: '0.5rem', padding: '0.4rem 0.75rem', fontSize: '0.75rem', fontWeight: '600',
+                        border: 'none', borderRadius: '0.5rem', cursor: 'pointer',
+                        backgroundColor: '#083A85', color: 'white',
+                      }}>
+                        {user.kycStatus === 'REJECTED' ? 'Resubmit KYC' : 'Complete KYC'}
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 {/* Account Activity */}
                 <div className="mobile-profile-card-activity" style={{
@@ -1048,6 +1102,15 @@ const ProfilePage = () => {
           </div>
         </div>
       </div>
+
+      {/* KYC Verification Modal */}
+      <KycVerificationModal
+        isOpen={showKycModal}
+        onClose={() => setShowKycModal(false)}
+        onSuccess={() => setShowKycModal(false)}
+        colors={colors}
+        actualTheme={actualTheme}
+      />
     </div>
   );
 };

@@ -623,7 +623,10 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
   };
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    if (!dateStr) return '-';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '-';
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   const getPaymentStatusColor = (status: PaymentStatus) => {
@@ -846,6 +849,19 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
     setSuccessMessage('');
   };
 
+  // Auto-submit rebook when package is selected and all required fields are filled
+  useEffect(() => {
+    if (rebookPackageId && !isSubmittingRebook && (
+      selectedRebookEventId || (rebookEventType && rebookDate && rebookTime && rebookLocation)
+    )) {
+      const timer = setTimeout(() => {
+        handleSendBookingRequest();
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rebookPackageId]);
+
   // --- Send rebook request (both client and coordinator) ---
   const handleSendBookingRequest = async () => {
     if (!rebookPhotographer) return;
@@ -915,7 +931,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
   };
 
   // --- Invite photographer by email (coordinator + client) ---
-  const inviteLink = `https://connekt.app/invite/photographer/${user?.id || ''}`;
+  const inviteLink = `${process.env.NEXT_PUBLIC_LANDING_URL as string}/user/auth/signup?userType=Photographer&invitedBy=${user?.id || ''}`;
 
   const handleInvitePhotographer = async () => {
     if (!inviteEmail.trim()) {
@@ -1545,13 +1561,15 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                     </div>
 
                     {/* Last Booking Info */}
+                    {(photographer.lastEventName || photographer.lastBookingDate) && (
                     <div style={{ marginTop: '0.75rem', padding: '0.75rem', backgroundColor: colors.bgTertiary, borderRadius: '0.5rem' }}>
                       <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Last Booking</div>
                       <div style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>{photographer.lastEventName}</div>
                       <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginTop: '0.125rem' }}>
-                        {photographer.lastEventType} • {formatDate(photographer.lastBookingDate)}
+                        {photographer.lastEventType}{photographer.lastBookingDate ? ` • ${formatDate(photographer.lastBookingDate)}` : ''}
                       </div>
                     </div>
+                    )}
 
                     {/* Rating */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem' }}>
@@ -2115,6 +2133,89 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                 ))}
               </div>
             </div>
+
+            {/* Booking History */}
+            {selectedPhotographer.bookings && selectedPhotographer.bookings.length > 0 && (
+              <div style={{ marginBottom: '1.25rem' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>Booking History</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {selectedPhotographer.bookings.map((booking) => {
+                    const paymentColor = getPaymentStatusColor(booking.paymentStatus);
+                    const amountDue = booking.totalAmount - booking.paidAmount;
+                    const statusColor = booking.status === 'completed'
+                      ? { bg: actualTheme === 'dark' ? '#14532D' : '#DCFCE7', text: actualTheme === 'dark' ? '#86EFAC' : '#15803D' }
+                      : booking.status === 'cancelled'
+                        ? { bg: actualTheme === 'dark' ? '#450A0A' : '#FEE2E2', text: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626' }
+                        : { bg: actualTheme === 'dark' ? '#1E3A8A' : '#DBEAFE', text: actualTheme === 'dark' ? '#93C5FD' : '#1D4ED8' };
+                    return (
+                      <div key={booking.id} style={{
+                        padding: '0.75rem',
+                        borderRadius: '0.5rem',
+                        border: `1px solid ${colors.borderPrimary}`,
+                        backgroundColor: colors.bgTertiary,
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                          <div>
+                            <div style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{booking.eventName}</div>
+                            <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{booking.eventType} &middot; {formatDate(booking.eventDate)}</div>
+                          </div>
+                          <span style={{
+                            fontSize: '0.7rem', fontWeight: '600', padding: '0.2rem 0.5rem', borderRadius: '9999px',
+                            backgroundColor: statusColor.bg, color: statusColor.text,
+                          }}>
+                            {booking.status}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.5rem' }}>
+                          <span style={{ fontWeight: '500' }}>Package:</span> {booking.packageName}
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                          <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>
+                            Total: <span style={{ fontWeight: '600', color: colors.textPrimary }}>{formatPrice(booking.totalAmount)}</span>
+                            {booking.paidAmount > 0 && <> &middot; Paid: <span style={{ fontWeight: '600', color: '#15803D' }}>{formatPrice(booking.paidAmount)}</span></>}
+                          </div>
+                          <span style={{
+                            fontSize: '0.7rem', fontWeight: '600', padding: '0.2rem 0.5rem', borderRadius: '9999px',
+                            backgroundColor: paymentColor.bg, color: paymentColor.text,
+                          }}>
+                            {booking.paymentStatus.replace('_', ' ')}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          {(booking.paymentStatus === 'pending' || booking.paymentStatus === 'partially_paid' || booking.paymentStatus === 'failed') && amountDue > 0 && (
+                            <button
+                              onClick={() => setPaymentBooking({ photographer: selectedPhotographer, booking })}
+                              style={{
+                                padding: '0.4rem 0.75rem', fontSize: '0.8rem', fontWeight: '600', borderRadius: '0.375rem', cursor: 'pointer',
+                                backgroundColor: booking.paymentStatus === 'failed' ? '#F20C8F' : '#083A85',
+                                color: 'white',
+                                border: booking.paymentStatus === 'failed' ? '1px solid #c00a72' : '1px solid #062a63',
+                                display: 'flex', alignItems: 'center', gap: '0.25rem',
+                              }}
+                            >
+                              <CreditCardIcon />
+                              {booking.paymentStatus === 'failed' ? 'Retry' : `Pay ${formatPrice(amountDue)}`}
+                            </button>
+                          )}
+                          {booking.declarationId && (
+                            <button
+                              onClick={() => router.push(`/user/${userRole}/payments/${booking.declarationId}`)}
+                              style={{
+                                padding: '0.4rem 0.75rem', fontSize: '0.8rem', fontWeight: '600', borderRadius: '0.375rem', cursor: 'pointer',
+                                backgroundColor: colors.bgCard, color: colors.textPrimary,
+                                border: `1px solid ${colors.borderPrimary}`,
+                              }}
+                            >
+                              View Details
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Actions */}
             <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '4rem' }}>

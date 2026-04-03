@@ -9,6 +9,8 @@ import { useCurrency } from "../context/CurrencyContext";
 
 import { getApiUrl } from '@/lib/api';
 import WithdrawModal from './WithdrawModal';
+import PayNowModal from './UnlockModal';
+import type { Payment } from './UnlockModal';
 
 // Icons for dropdown menu
 const ProfileIcon = () => (
@@ -142,6 +144,8 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
   const [selfTipsAmount, setSelfTipsAmount] = useState(0);
   const [selfBonusAmount, setSelfBonusAmount] = useState(0);
   const [pendingPaymentWarning, setPendingPaymentWarning] = useState<{count: number; totalAmount: number; firstEvent: string; firstEventId?: string; firstPaymentId?: string} | null>(null);
+  const [showPayNowModal, setShowPayNowModal] = useState(false);
+  const [topbarPayment, setTopbarPayment] = useState<Payment | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const currencyRef = useRef<HTMLDivElement>(null);
@@ -1220,10 +1224,44 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
           </span>
         </div>
         <button
-          onClick={() => {
+          onClick={async () => {
+            const paymentId = pendingPaymentWarning?.firstPaymentId;
+            if (!paymentId) {
+              const base = userRole === 'event-coordinator' ? '/user/event-coordinator' : '/user/client';
+              router.push(`${base}/payments`);
+              return;
+            }
+            try {
+              const apiUrl = getApiUrl();
+              const pendingBase = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
+              const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${pendingBase}/payments/${paymentId}`, { method: 'GET' });
+              if (res.ok) {
+                const data = await res.json();
+                if (data.action === 1 && data.data) {
+                  const p = data.data;
+                  setTopbarPayment({
+                    id: typeof p.id === 'string' ? parseInt(p.id, 10) || 0 : p.id,
+                    declarationId: String(p.id),
+                    eventId: p.eventId,
+                    date: p.createdAt,
+                    eventName: p.eventTitle || pendingPaymentWarning.firstEvent,
+                    eventType: p.paymentType || '',
+                    photographerName: p.photographerName || '',
+                    photographerImage: p.photographerImage || '',
+                    method: '',
+                    amount: `${p.currencyAbbreviation || ''} ${p.amount || 0}`,
+                    amountNum: p.amount || 0,
+                    paidAmount: p.paidAmount || 0,
+                    status: (p.status?.toLowerCase() || 'pending') as any,
+                    invoiceNumber: `INV-${String(p.id).substring(0, 8).toUpperCase()}`,
+                  });
+                  setShowPayNowModal(true);
+                  return;
+                }
+              }
+            } catch { /* fallback to navigation */ }
             const base = userRole === 'event-coordinator' ? '/user/event-coordinator' : '/user/client';
-            const eventId = pendingPaymentWarning?.firstEventId;
-            router.push(eventId ? `${base}/events/${eventId}` : `${base}/payments`);
+            router.push(`${base}/payments/${paymentId}`);
           }}
           style={{
             backgroundColor: '#F59E0B',
@@ -1242,6 +1280,48 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
       </div>
     )}
 
+    {/* KYC Warning Banner — shown when no pending payment warning */}
+    {user && user.kycStatus !== 'APPROVED' && userRole !== 'admin' && user.customerType !== 'Viewer' && !pendingPaymentWarning && (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: user.kycStatus === 'REJECTED'
+          ? (actualTheme === 'dark' ? '#7F1D1D' : '#FEF2F2')
+          : (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF'),
+        padding: '0.4rem 1rem',
+        fontSize: '0.82rem',
+        color: user.kycStatus === 'REJECTED'
+          ? (actualTheme === 'dark' ? '#FCA5A5' : '#991B1B')
+          : (actualTheme === 'dark' ? '#93C5FD' : '#1E40AF'),
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
+          <span style={{ fontSize: '1.1rem' }}>{user.kycStatus === 'REJECTED' ? '\u2716' : user.kycStatus === 'PENDING' ? '\u23F3' : '\u26A0'}</span>
+          <span style={{ fontWeight: 600 }}>
+            {user.kycStatus === 'PENDING' ? 'KYC verification pending review' : user.kycStatus === 'REJECTED' ? 'KYC rejected — resubmit required' : 'KYC verification required'}
+          </span>
+        </div>
+        {user.kycStatus !== 'PENDING' && (
+          <button
+            onClick={() => router.push(`/user/${userRole}/profile`)}
+            style={{
+              backgroundColor: user.kycStatus === 'REJECTED' ? '#EF4444' : '#3B82F6',
+              color: '#FFFFFF',
+              border: 'none',
+              padding: '0.35rem 0.85rem',
+              borderRadius: '0.375rem',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {user.kycStatus === 'REJECTED' ? 'Resubmit' : 'Complete KYC'}
+          </button>
+        )}
+      </div>
+    )}
+
     {/* Logout Confirmation Modal */}
     {/* Withdraw Modal */}
     <WithdrawModal
@@ -1250,6 +1330,12 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
       role={userRole === 'photographer' ? 'photographer' : userRole === 'event-coordinator' ? 'event-coordinator' : 'client'}
       colors={colors}
       actualTheme={actualTheme}
+    />
+    <PayNowModal
+      isOpen={showPayNowModal}
+      onClose={() => { setShowPayNowModal(false); setTopbarPayment(null); }}
+      payment={topbarPayment}
+      onPaymentSuccess={() => { setShowPayNowModal(false); setTopbarPayment(null); fetchFinancials(); }}
     />
 
     {showLogoutModal && (

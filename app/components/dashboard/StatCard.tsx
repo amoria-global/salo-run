@@ -6,8 +6,8 @@ import { useTheme } from '../../context/ThemeContext';
 interface StatCardProps {
   title: string;
   value: string;
-  percentage: string;
-  timeframe: string;
+  percentage?: string;
+  timeframe?: string;
   icon: React.ReactNode;
   trend?: 'up' | 'down';
   href?: string;
@@ -152,6 +152,7 @@ export const StatCard: React.FC<StatCardProps> = ({
         alignItems: 'center',
         justifyContent: 'space-between'
       }}>
+        {percentage ? (
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -171,6 +172,7 @@ export const StatCard: React.FC<StatCardProps> = ({
             color: colors.textTertiary
           }}>{timeframe}</span>
         </div>
+        ) : <div />}
         {href && (
           <a
             href={href}
