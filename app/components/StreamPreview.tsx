@@ -716,6 +716,9 @@ export default function StreamPreview({
             <div style={{ fontSize: '0.65rem', color: colors.textTertiary, marginTop: '0.4rem', lineHeight: 1.4 }}>
               <strong>Encoder:</strong> Software (x264) &bull; <strong>Preset:</strong> veryfast &bull; <strong>Audio:</strong> Opus 160 Kbps
             </div>
+            <div style={{ fontSize: '0.65rem', color: colors.textTertiary, marginTop: '0.3rem', fontStyle: 'italic' }}>
+              No stream key or bearer token needed &mdash; the URL is self-authenticating.
+            </div>
           </div>
 
         </div>

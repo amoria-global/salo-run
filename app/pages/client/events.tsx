@@ -1080,10 +1080,10 @@ const MyEventsPage = () => {
   const handleEditEvent = async () => {
     if (!editEvent || !editTitle || !editCategory || !editDate || !editTime) return;
 
-    // Minimum stream access fee: 1,000 RWF
+    // Minimum stream access fee: 100 RWF
     const editNumPrice = Number((editPrice || '').replace(/[^\d]/g, ''));
-    if (editNumPrice > 0 && editNumPrice < 1000) {
-      setSubmitError('Live Stream Access Fee must be at least 1,000 RWF.');
+    if (editNumPrice > 0 && editNumPrice < 100) {
+      setSubmitError('Live Stream Access Fee must be at least 100 RWF.');
       return;
     }
 
@@ -1346,10 +1346,10 @@ const MyEventsPage = () => {
       return;
     }
 
-    // Minimum stream access fee: 1,000 RWF
+    // Minimum stream access fee: 100 RWF
     const numPrice = Number((createPrice || '').replace(/[^\d]/g, ''));
-    if (numPrice > 0 && numPrice < 1000) {
-      setSubmitError('Live Stream Access Fee must be at least 1,000 RWF.');
+    if (numPrice > 0 && numPrice < 100) {
+      setSubmitError('Live Stream Access Fee must be at least 100 RWF.');
       return;
     }
 
