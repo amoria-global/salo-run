@@ -10,6 +10,8 @@ import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { getApiUrl, normalizeImageUrl } from '@/lib/api';
+import PayNowModal from '@/app/components/UnlockModal';
+import type { Payment } from '@/app/components/UnlockModal';
 
 // ── Icons ────────────────────────────────────────────────────────────────────
 
@@ -120,6 +122,12 @@ interface EventData {
   packageId: string | null;
   packageName: string | null;
   packagePrice: number | null;
+  packageCurrencySymbol?: string;
+  packageCurrencyAbbreviation?: string;
+  packageDurationHours?: number;
+  packageIncludedPhotos?: number;
+  packageIncludedVideos?: number;
+  packageDescription?: string;
   bookingStatus: string | null;
   bookingId: string | null;
   completionStatus: string | null;
@@ -256,6 +264,30 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
   const [completionComment, setCompletionComment] = useState('');
   const [showDeclineModal, setShowDeclineModal] = useState(false);
   const [declineReason, setDeclineReason] = useState('');
+  const [showPayNowModal, setShowPayNowModal] = useState(false);
+  const [selectedPayNowPayment, setSelectedPayNowPayment] = useState<Payment | null>(null);
+
+  const convertToPayNowPayment = (p: PaymentData): Payment => ({
+    id: typeof p.id === 'string' ? parseInt(p.id, 10) || 0 : p.id as unknown as number,
+    declarationId: String(p.id),
+    eventId: p.eventId,
+    date: p.createdAt,
+    eventName: p.eventTitle,
+    eventType: p.paymentType,
+    photographerName: p.photographerName,
+    photographerImage: p.photographerImage || '',
+    method: '',
+    amount: `${p.currencyAbbreviation} ${p.amount}`,
+    amountNum: p.amount,
+    paidAmount: p.paidAmount,
+    status: (p.status?.toLowerCase() || 'pending') as any,
+    invoiceNumber: `INV-${String(p.id).substring(0, 8).toUpperCase()}`,
+  });
+
+  const handlePayNowClick = (payment: PaymentData) => {
+    setSelectedPayNowPayment(convertToPayNowPayment(payment));
+    setShowPayNowModal(true);
+  };
 
   // Fetch event details
   const fetchEvent = useCallback(async () => {
@@ -1147,8 +1179,32 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Price</span>
                     <span style={{ fontSize: '0.85rem', fontWeight: '600', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
-                      {formatPrice(event.packagePrice)}
+                      {event.packageCurrencySymbol || ''}{formatPrice(event.packagePrice)} {event.packageCurrencyAbbreviation || ''}
                     </span>
+                  </div>
+                )}
+                {event.packageDurationHours != null && event.packageDurationHours > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Duration</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>{event.packageDurationHours} hours</span>
+                  </div>
+                )}
+                {event.packageIncludedPhotos != null && event.packageIncludedPhotos > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Included Photos</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>{event.packageIncludedPhotos}</span>
+                  </div>
+                )}
+                {event.packageIncludedVideos != null && event.packageIncludedVideos > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Included Videos</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>{event.packageIncludedVideos}</span>
+                  </div>
+                )}
+                {event.packageDescription && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Description</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>{event.packageDescription}</span>
                   </div>
                 )}
                 {event.eventType && (
@@ -1232,8 +1288,11 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                 </h3>
               </div>
               {hasPendingPayments && (
-                <Link
-                  href={paymentsPath}
+                <button
+                  onClick={() => {
+                    const pendingPayment = payments.find(p => p.status === 'PENDING' || p.status === 'PARTIAL');
+                    if (pendingPayment) handlePayNowClick(pendingPayment);
+                  }}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -1245,13 +1304,12 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                     padding: '0.5rem 1rem',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    textDecoration: 'none',
                     cursor: 'pointer',
                   }}
                 >
                   <CreditCardIcon />
                   Pay Now
-                </Link>
+                </button>
               )}
             </div>
 
@@ -1475,8 +1533,8 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                     {/* Pay Now button for individual pending payment */}
                     {isPending && !isHeld && (
                       <div style={{ marginTop: '0.75rem' }}>
-                        <Link
-                          href={paymentsPath}
+                        <button
+                          onClick={() => handlePayNowClick(payment)}
                           style={{
                             display: 'inline-flex',
                             alignItems: 'center',
@@ -1488,13 +1546,12 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
                             padding: '0.45rem 0.875rem',
                             fontSize: '0.8rem',
                             fontWeight: '600',
-                            textDecoration: 'none',
                             cursor: 'pointer',
                           }}
                         >
                           <CreditCardIcon />
                           Pay Now
-                        </Link>
+                        </button>
                       </div>
                     )}
                   </div>
@@ -1960,6 +2017,13 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
           </div>
         </div>
       )}
+
+      <PayNowModal
+        isOpen={showPayNowModal}
+        onClose={() => { setShowPayNowModal(false); setSelectedPayNowPayment(null); }}
+        payment={selectedPayNowPayment}
+        onPaymentSuccess={() => { setShowPayNowModal(false); setSelectedPayNowPayment(null); fetchEvent(); }}
+      />
     </div>
   );
 }

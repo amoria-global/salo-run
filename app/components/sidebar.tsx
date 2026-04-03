@@ -260,6 +260,15 @@ export default function Sidebar() {
           .sidebar-toggle-desktop {
             display: none !important;
           }
+
+          .sidebar-logo-icon {
+            width: 39px !important;
+            height: 39px !important;
+          }
+
+          .sidebar-logo-text {
+            font-size: 1.25rem !important;
+          }
         }
 
         /* Very small mobile */
@@ -331,33 +340,33 @@ export default function Sidebar() {
         paddingBottom: '1.25rem'
       }}>
         {!isCollapsed && (
-          <Link href={getLandingUrl()} style={{
+          <Link href={getLandingUrl()} className="sidebar-logo-link" style={{
             display: 'flex',
             alignItems: 'center',
             cursor: 'pointer',
             textDecoration: 'none',
-            flexShrink: 0
+            flexShrink: 0,
           }}>
             <img
               src="/logo.png"
               alt="Connekyt Logo"
+              className="sidebar-logo-icon"
               style={{
-                width: '50px',
-                height: '50px',
+                width: '49px',
+                height: '49px',
                 objectFit: 'contain',
                 position: 'relative',
-                top: '-9px',
-                left: '-13px'
+                top: '-1px',
+                left: '-15px',
               }}
             />
-            <span style={{
+            <span className="sidebar-logo-text" style={{
               fontWeight: '700',
               color: '#083A85',
-              fontSize: '1.4rem',
-              marginLeft: '-26px',
-              marginTop: '-2px',
-              letterSpacing: '0.5px'
-            }}>onnekyt</span>
+              fontSize: '1.3rem',
+              marginLeft: '-20px',
+              letterSpacing: '0.3px',
+            }}>Connekyt</span>
           </Link>
         )}
         <button

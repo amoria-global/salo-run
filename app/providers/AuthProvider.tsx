@@ -133,6 +133,8 @@ export interface DashboardUser {
   packages?: unknown[];
   profileReviewStatus?: string;
   reviewComment?: string;
+  kycStatus?: string;
+  preferredWithdrawalVerification?: string;
 }
 
 /**
@@ -167,7 +169,7 @@ function saveTokenToStorage(token: string): void {
     localStorage.setItem('authToken', token);
 
     // Then save to cookie (can't fail silently)
-    const maxAge = 60 * 60 * 24 * 7; // 7 days
+    const maxAge = 60 * 60 * 24; // 1 day — matches backend refresh token expiry
     document.cookie = `authToken=${token}; path=/; max-age=${maxAge}; samesite=lax`;
   } catch (error) {
     console.error('[Dashboard Auth] Failed to save token to storage:', error);
@@ -179,7 +181,7 @@ function saveRefreshTokenToStorage(refreshToken: string): void {
   if (typeof window === 'undefined') return;
   try {
     localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-    const maxAge = 60 * 60 * 24 * 7;
+    const maxAge = 60 * 60 * 24; // 1 day
     document.cookie = `refreshToken=${refreshToken}; path=/; max-age=${maxAge}; samesite=lax`;
   } catch (error) {
     console.error('[Dashboard Auth] Failed to save refresh token:', error);
@@ -231,7 +233,7 @@ function getCookieToken(): string | null {
  */
 function setTokenCookie(token: string): void {
   if (typeof document === 'undefined') return;
-  const maxAge = 60 * 60 * 24 * 7; // 7 days
+  const maxAge = 60 * 60 * 24; // 1 day — matches backend refresh token expiry
   document.cookie = `authToken=${token}; path=/; max-age=${maxAge}; samesite=lax`;
 }
 
@@ -346,6 +348,8 @@ function mapProfileData(data: any): DashboardUser {
     packages: data.packages || [],
     profileReviewStatus: data.profileReviewStatus || undefined,
     reviewComment: data.reviewComment || undefined,
+    kycStatus: data.kycStatus || undefined,
+    preferredWithdrawalVerification: data.preferredWithdrawalVerification || 'EMAIL_OTP',
   };
 }
 
@@ -474,11 +478,14 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
         clearAuthFromStorage();
         setUser(null);
         setToken(null);
+        // Save the new token immediately so dashboardAuthFetch calls during
+        // the async profile fetch below don't fail with "No auth token available"
+        saveTokenToStorage(urlToken);
       }
 
       // Check for token in cookie
       const cookieToken = getCookieToken();
-      // Check localStorage (will be empty if we just cleared above)
+      // Check localStorage (will have urlToken if we just saved it above)
       const storedToken = typeof window !== 'undefined' ? localStorage.getItem(AUTH_TOKEN_KEY) : null;
       const storedUserStr = typeof window !== 'undefined' ? localStorage.getItem(AUTH_USER_KEY) : null;
 
@@ -506,7 +513,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
             localStorage.setItem(AUTH_USER_KEY, JSON.stringify(userProfile));
             // Store role cookie for middleware route protection
             if (userProfile.customerType) {
-              document.cookie = `userRole=${userProfile.customerType.toLowerCase()}; path=/; max-age=${60*60*24*7}; samesite=lax`;
+              document.cookie = `userRole=${userProfile.customerType.toLowerCase()}; path=/; max-age=${60*60*24}; samesite=lax`;
             }
           }
 
@@ -557,66 +564,36 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     initAuth();
   }, [searchParams]);
 
-  // Validate token and refresh profile every 5 minutes
-  // For photographers: proactively refresh token before it expires to avoid session interruption during live streams
+  // Proactively refresh token and profile every 4 hours (access token expires in 5h).
+  // The 401-retry logic in dashboardAuthFetch is the primary refresh mechanism;
+  // this interval just reduces how often the 401 fallback is triggered.
   useEffect(() => {
     if (!token) return;
 
-    const isPhotographer = typeof window !== 'undefined' && (
-      window.location.pathname.includes('/photographer') ||
-      document.cookie.includes('userRole=photographer')
-    );
-
-    const INTERVAL = isPhotographer ? 3 * 60 * 1000 : 5 * 60 * 1000; // 3min for photographer, 5min for others
+    const INTERVAL = 4 * 60 * 60 * 1000; // 4 hours — well within 5h access token lifetime
 
     const intervalId = setInterval(async () => {
-      // For photographers, try to refresh the token proactively before it expires
-      if (isPhotographer) {
-        const newToken = await attemptDashboardTokenRefresh(token);
-        if (newToken) {
-          setToken(newToken);
-          // Also refresh profile with new token
-          const { user: userProfile } = await fetchUserProfile(newToken);
-          if (userProfile) {
-            setUser(userProfile);
-            if (typeof window !== 'undefined') {
-              localStorage.setItem(AUTH_USER_KEY, JSON.stringify(userProfile));
-              if (userProfile.customerType) {
-                document.cookie = `userRole=${userProfile.customerType.toLowerCase()}; path=/; max-age=${60*60*24*7}; samesite=lax`;
-              }
+      const newToken = await attemptDashboardTokenRefresh(token);
+      if (newToken) {
+        setToken(newToken);
+        const { user: userProfile } = await fetchUserProfile(newToken);
+        if (userProfile) {
+          setUser(userProfile);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(AUTH_USER_KEY, JSON.stringify(userProfile));
+            if (userProfile.customerType) {
+              document.cookie = `userRole=${userProfile.customerType.toLowerCase()}; path=/; max-age=${60*60*24}; samesite=lax`;
             }
           }
-        } else {
-          // Refresh failed — clear auth and redirect to login
-          console.warn('[Dashboard Auth] Photographer token refresh failed — redirecting to login');
-          clearAuthFromStorage();
-          setUser(null);
-          setToken(null);
-          const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL as string;
-          window.location.href = `${landingUrl}/user/auth/login?session_expired=true`;
         }
-        return;
-      }
-
-      const { user: userProfile, reason } = await fetchUserProfile(token);
-
-      if (!userProfile) {
-        // Don't clear state on server errors — keep existing user data
       } else {
-        // Success — sync latest token from storage (may have been refreshed)
-        const latestToken = (typeof window !== 'undefined' ? localStorage.getItem(AUTH_TOKEN_KEY) : null) || token;
-        if (latestToken !== token) {
-          setToken(latestToken);
-        }
-        // Update user with fresh data
-        setUser(userProfile);
-        if (typeof window !== 'undefined') {
-          localStorage.setItem(AUTH_USER_KEY, JSON.stringify(userProfile));
-          // Keep role cookie fresh
-          if (userProfile.customerType) {
-            document.cookie = `userRole=${userProfile.customerType.toLowerCase()}; path=/; max-age=${60*60*24*7}; samesite=lax`;
-          }
-        }
+        // Refresh failed — clear auth and redirect to login
+        console.warn('[Dashboard Auth] Token refresh failed — redirecting to login');
+        clearAuthFromStorage();
+        setUser(null);
+        setToken(null);
+        const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL as string;
+        window.location.href = `${landingUrl}/user/auth/login?session_expired=true`;
       }
     }, INTERVAL);
 
@@ -900,8 +877,22 @@ export async function dashboardAuthFetch(
   url: string,
   options: RequestInit = {}
 ): Promise<Response> {
-  const currentToken = (typeof window !== 'undefined' ? localStorage.getItem('authToken') : null) || getCookieToken();
-  if (!currentToken) throw new Error('No auth token available');
+  let currentToken = (typeof window !== 'undefined' ? localStorage.getItem('authToken') : null) || getCookieToken();
+
+  // If no token in storage, try refreshing from the refresh token before giving up
+  if (!currentToken) {
+    const refreshed = await attemptDashboardTokenRefresh('');
+    if (refreshed) {
+      currentToken = refreshed;
+    } else {
+      // No token and no refresh possible — return a synthetic 401 so callers
+      // handle it gracefully instead of crashing with an unhandled exception
+      return new Response(JSON.stringify({ action: 0, message: 'No auth token available' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  }
 
   const headers: Record<string, string> = {
     'Authorization': `Bearer ${currentToken}`,
