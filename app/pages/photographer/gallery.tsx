@@ -26,7 +26,7 @@ interface AddAlbumFormData {
   uploadShared: boolean;
   selectedCoverIndex: number;
   uploadedImagePreviews: string[];
-  userType: 'photographer' | 'freelancer';
+  userType: 'photographer' | 'client';
   savedAt: number;
 }
 
@@ -479,7 +479,7 @@ const galleryData = [
 ];
 
 interface GalleryProps {
-  userType?: 'photographer' | 'freelancer';
+  userType?: 'photographer' | 'client';
 }
 
 const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
