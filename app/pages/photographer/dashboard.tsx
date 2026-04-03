@@ -315,7 +315,7 @@ const PhotographerDashboard = () => {
       try {
         const [performanceRes, trendsRes] = await Promise.allSettled([
           dashboardAuthFetch(`${apiUrl}/api/remote/photographer/performance?period=${periodParam}`),
-          dashboardAuthFetch(`${apiUrl}/api/remote/photographer/trends?period=${periodParam}`),
+          dashboardAuthFetch(`${apiUrl}/api/remote/photographer/analytics/trends?period=${periodParam}`),
         ]);
 
         if (performanceRes.status === 'fulfilled' && performanceRes.value.ok) {
@@ -333,12 +333,16 @@ const PhotographerDashboard = () => {
           const data = await trendsRes.value.json();
           if (data.action === 1 && data.data) {
             const t = data.data;
+            const fmt = (m: any) => ({
+              percentage: m?.changePercent != null ? `${Math.abs(m.changePercent).toFixed(1)}%` : '0%',
+              trend: (m?.trend === 'down' ? 'down' : 'up') as 'up' | 'down',
+            });
             setStatTrends({
-              totalEarnings: { percentage: t.totalEarnings?.percentage || '0%', trend: t.totalEarnings?.trend || 'up' },
-              pending: { percentage: t.pending?.percentage || '0%', trend: t.pending?.trend || 'up' },
-              clients: { percentage: t.clients?.percentage || '0%', trend: t.clients?.trend || 'up' },
-              bonuses: { percentage: t.bonuses?.percentage || '0%', trend: t.bonuses?.trend || 'up' },
-              rating: { percentage: t.rating?.percentage || '0%', trend: t.rating?.trend || 'up' },
+              totalEarnings: fmt(t.totalEarnings),
+              pending: fmt(t.pending),
+              clients: fmt(t.clients),
+              bonuses: fmt(t.bonuses),
+              rating: fmt(t.rating),
             });
           }
         }
