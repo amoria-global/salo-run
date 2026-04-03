@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import Hls from 'hls.js';
+import { WHIPClient, WHEPPlayer } from '@/lib/whip-client';
 
 // ============================================
 // TYPES
@@ -13,7 +13,6 @@ interface StreamPreviewProps {
   eventTitle: string;
   whipUrl?: string;
   whepUrl?: string;
-  playbackUrl?: string;
   inviteToken?: string;
   connectionStatus: 'disconnected' | 'connected' | 'paused' | 'ended';
   streamHealth?: string;
@@ -115,7 +114,6 @@ export default function StreamPreview({
   eventTitle,
   whipUrl,
   whepUrl,
-  playbackUrl,
   inviteToken,
   connectionStatus,
   streamHealth,
@@ -131,13 +129,19 @@ export default function StreamPreview({
   colors,
 }: StreamPreviewProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const hlsRef = useRef<Hls | null>(null);
+  const whepRef = useRef<WHEPPlayer | null>(null);
+  const whipRef = useRef<WHIPClient | null>(null);
+  const localStreamRef = useRef<MediaStream | null>(null);
+  const localPreviewRef = useRef<HTMLVideoElement>(null);
   const [copiedField, setCopiedField] = useState('');
   const [showKey, setShowKey] = useState(false);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
   const [encoderDetected, setEncoderDetected] = useState(false);
+  const [publishMode, setPublishMode] = useState<'browser' | 'obs'>('browser');
+  const [isBrowserCapturing, setIsBrowserCapturing] = useState(false);
+  const [browserCaptureError, setBrowserCaptureError] = useState<string | null>(null);
 
   const isDark = theme === 'dark';
   const hasCredentials = !!whipUrl;
@@ -147,29 +151,31 @@ export default function StreamPreview({
   const isDisconnected = connectionStatus === 'disconnected';
   const isTestPreview = isDisconnected && hasCredentials && encoderDetected;
 
-  // Poll HLS manifest to detect OBS encoder connection
+  // Detect encoder connection via WHEP probe
   useEffect(() => {
-    if (!isDisconnected || !hasCredentials || !playbackUrl || isEnded) {
+    if (!isDisconnected || !hasCredentials || !whepUrl || isEnded) {
       setEncoderDetected(false);
       return;
     }
     let cancelled = false;
-    const checkManifest = async () => {
+
+    const checkEncoder = async () => {
       try {
-        const res = await fetch(playbackUrl, { method: 'HEAD', mode: 'cors' });
-        if (!cancelled && res.ok) setEncoderDetected(true);
+        const testPlayer = new WHEPPlayer(whepUrl);
+        const stream = await testPlayer.play();
+        if (!cancelled && stream.getTracks().length > 0) {
+          setEncoderDetected(true);
+        }
+        await testPlayer.stop();
       } catch {
-        // Also try GET in case HEAD is blocked by CORS
-        try {
-          const res = await fetch(playbackUrl, { mode: 'cors' });
-          if (!cancelled && res.ok) setEncoderDetected(true);
-        } catch { /* not yet available */ }
+        // Encoder not connected yet
       }
     };
-    checkManifest();
-    const interval = setInterval(checkManifest, 3000);
+
+    checkEncoder();
+    const interval = setInterval(checkEncoder, 3000);
     return () => { cancelled = true; clearInterval(interval); };
-  }, [isDisconnected, hasCredentials, playbackUrl, isEnded]);
+  }, [isDisconnected, hasCredentials, whepUrl, isEnded]);
 
   // Callback ref to detect when video element mounts/unmounts
   const videoCallbackRef = useCallback((node: HTMLVideoElement | null) => {
@@ -177,91 +183,44 @@ export default function StreamPreview({
     setVideoReady(!!node);
   }, []);
 
-  // Cleanup HLS on unmount or when going non-live/non-preview
+  // Cleanup WHEP playback on unmount or when going non-live/non-preview
   const showVideo = isLive || isTestPreview;
   useEffect(() => {
-    if (!showVideo || !playbackUrl) {
-      if (hlsRef.current) {
-        const interval = (hlsRef.current as unknown as Record<string, unknown>)._liveEdgeInterval as ReturnType<typeof setInterval> | undefined;
-        if (interval) clearInterval(interval);
-        hlsRef.current.destroy();
-        hlsRef.current = null;
+    if (!showVideo || !whepUrl) {
+      if (whepRef.current) {
+        whepRef.current.stop();
+        whepRef.current = null;
       }
     }
-  }, [showVideo, playbackUrl]);
+  }, [showVideo, whepUrl]);
 
-  // HLS player setup — triggered when video element is ready AND we're live/previewing with a URL
+  // Cleanup browser capture on unmount
   useEffect(() => {
-    if (!playbackUrl || !videoRef.current || !showVideo || !videoReady) return;
+    return () => {
+      if (whipRef.current) { whipRef.current.stop(); whipRef.current = null; }
+      if (localStreamRef.current) { localStreamRef.current.getTracks().forEach(t => t.stop()); localStreamRef.current = null; }
+    };
+  }, []);
 
-    // Destroy previous instance if URL changed
-    if (hlsRef.current) {
-      const interval = (hlsRef.current as unknown as Record<string, unknown>)._liveEdgeInterval as ReturnType<typeof setInterval> | undefined;
-      if (interval) clearInterval(interval);
-      hlsRef.current.destroy();
-      hlsRef.current = null;
+  // WHEP playback setup
+  useEffect(() => {
+    if (!whepUrl || !videoRef.current || !showVideo || !videoReady) return;
+
+    if (whepRef.current) {
+      whepRef.current.stop();
+      whepRef.current = null;
     }
 
     const video = videoRef.current;
-
-    if (Hls.isSupported()) {
-      const hls = new Hls({
-        enableWorker: true,
-        lowLatencyMode: true,
-        liveSyncDurationCount: 1,
-        liveMaxLatencyDurationCount: 3,
-        liveBackBufferLength: 0,
-        backBufferLength: 0,
-        highBufferWatchdogPeriod: 1,
-        maxBufferLength: 3,
-        maxMaxBufferLength: 5,
-        maxBufferSize: 0,
-        maxBufferHole: 0.5,
-        manifestLoadingTimeOut: 15000,
-        manifestLoadingMaxRetry: 10,
-        manifestLoadingRetryDelay: 1000,
-        levelLoadingTimeOut: 10000,
-        levelLoadingMaxRetry: 10,
-        levelLoadingRetryDelay: 1000,
-        fragLoadingTimeOut: 10000,
-        fragLoadingMaxRetry: 6,
-        fragLoadingRetryDelay: 500,
-      });
-      hls.loadSource(playbackUrl);
-      hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        video.muted = true;
-        video.play().catch(() => {});
-      });
-      const liveEdgeInterval = setInterval(() => {
-        if (hls.liveSyncPosition && video.currentTime > 0) {
-          const drift = hls.liveSyncPosition - video.currentTime;
-          if (drift > 4) {
-            video.currentTime = hls.liveSyncPosition;
-          } else if (drift > 2) {
-            video.playbackRate = 1.05;
-          } else {
-            video.playbackRate = 1.0;
-          }
-        }
-      }, 2000);
-      hls.on(Hls.Events.ERROR, (_event, data) => {
-        if (data.fatal) {
-          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-            setTimeout(() => hls.startLoad(), 1000);
-          } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-            hls.recoverMediaError();
-          }
-        }
-      });
-      hlsRef.current = hls;
-      (hls as unknown as Record<string, unknown>)._liveEdgeInterval = liveEdgeInterval;
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = playbackUrl;
-      video.addEventListener('loadedmetadata', () => {
-        video.play().catch(() => {});
-      });
-    }
+    const player = new WHEPPlayer(whepUrl);
+    whepRef.current = player;
+    player.play().then((remoteStream) => {
+      video.srcObject = remoteStream;
+      video.muted = true;
+      video.play().catch(() => {});
+    }).catch(() => {
+      // WHEP connection failed — will retry on next poll
+    });
 
     const handleWaiting = () => setIsBuffering(true);
     const handlePlaying = () => setIsBuffering(false);
@@ -272,7 +231,7 @@ export default function StreamPreview({
       video.removeEventListener('waiting', handleWaiting);
       video.removeEventListener('playing', handlePlaying);
     };
-  }, [playbackUrl, showVideo, videoReady]);
+  }, [whepUrl, showVideo, videoReady]);
 
   const handleCopy = useCallback((text: string, field: string) => {
     navigator.clipboard.writeText(text);
@@ -282,7 +241,51 @@ export default function StreamPreview({
 
   const handleEndConfirm = () => {
     setShowEndConfirm(false);
+    // Stop browser capture if active
+    if (whipRef.current) { whipRef.current.stop(); whipRef.current = null; }
+    if (localStreamRef.current) { localStreamRef.current.getTracks().forEach(t => t.stop()); localStreamRef.current = null; }
+    setIsBrowserCapturing(false);
     onEndStream();
+  };
+
+  // Start browser camera/mic capture and publish via WHIP
+  const startBrowserCapture = async () => {
+    if (!whipUrl) return;
+    setBrowserCaptureError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      localStreamRef.current = stream;
+
+      // Show local preview
+      if (localPreviewRef.current) {
+        localPreviewRef.current.srcObject = stream;
+      }
+
+      // Publish to WHIP
+      const client = new WHIPClient(whipUrl);
+      await client.publish(stream);
+      whipRef.current = client;
+      setIsBrowserCapturing(true);
+      setEncoderDetected(true);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to access camera/microphone';
+      if (msg.includes('Permission') || msg.includes('NotAllowed')) {
+        setBrowserCaptureError('Camera/microphone permission denied. Please allow access and try again.');
+      } else if (msg.includes('NotFound') || msg.includes('DevicesNotFound')) {
+        setBrowserCaptureError('No camera or microphone found on this device.');
+      } else {
+        setBrowserCaptureError(msg);
+      }
+    }
+  };
+
+  // Stop browser capture
+  const stopBrowserCapture = () => {
+    if (whipRef.current) { whipRef.current.stop(); whipRef.current = null; }
+    if (localStreamRef.current) { localStreamRef.current.getTracks().forEach(t => t.stop()); localStreamRef.current = null; }
+    if (localPreviewRef.current) { localPreviewRef.current.srcObject = null; }
+    setIsBrowserCapturing(false);
+    setEncoderDetected(false);
   };
 
   if (!isOpen) return null;
@@ -385,9 +388,19 @@ export default function StreamPreview({
         border: isLive ? '2px solid #10B981' : isTestPreview ? '2px solid #3B82F6' : `2px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#E5E7EB'}`,
         backgroundColor: '#000',
       }}>
-        {/* Live or Test Preview: show HLS player */}
-        {(isLive || isTestPreview) && playbackUrl ? (
+        {/* Live or Test Preview: show WHEP player or local camera preview */}
+        {(isLive || isTestPreview) && (whepUrl || isBrowserCapturing) ? (
           <>
+            {/* Local camera preview (browser capture mode) */}
+            {isBrowserCapturing && (
+              <video
+                ref={localPreviewRef}
+                style={{ position: 'absolute', top: '10px', right: '10px', width: '120px', height: '90px', objectFit: 'cover', borderRadius: '0.4rem', border: '2px solid rgba(255,255,255,0.3)', zIndex: 5 }}
+                playsInline
+                muted
+                autoPlay
+              />
+            )}
             <video
               ref={videoCallbackRef}
               style={{ width: '100%', height: '100%', objectFit: 'contain' }}
@@ -534,7 +547,7 @@ export default function StreamPreview({
                 <div style={{ color: '#64748B', fontSize: '0.73rem', maxWidth: '280px', textAlign: 'center', lineHeight: '1.4', marginBottom: '0.75rem' }}>
                   {hasCredentials
                     ? 'Configure OBS with the WHIP URL and click Start Streaming.'
-                    : 'Get your stream credentials to configure your encoder.'}
+                    : 'Get your WHIP URL to configure OBS and start streaming.'}
                 </div>
                 {!hasCredentials && (
                   <button onClick={onStartStream} style={{
@@ -613,106 +626,102 @@ export default function StreamPreview({
         {isLive && <span style={{ fontSize: '0.73rem', color: colors.textSecondary }}>{viewerCount} watching</span>}
       </div>
 
-      {/* OBS Setup (WHIP) + Credentials — hide when ended */}
+      {/* Stream Credentials — WHIP or RTMP fallback */}
       {!isEnded && hasCredentials && (
-        <>
-          {/* OBS Setup (WHIP) Guide */}
-          <div style={{
-            backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FAFAFE',
-            border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#F3F4F6'}`,
-            borderRadius: '0.5rem',
-            padding: '0.75rem',
-          }}>
-            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: colors.textPrimary, marginBottom: '0.6rem' }}>OBS Setup (WHIP)</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-              {[
-                { step: '1', text: 'Open OBS \u2192 File \u2192 Settings' },
-                { step: '2', text: 'Go to Stream tab' },
-                { step: '3', text: 'Set Service to WHIP' },
-                { step: '4', text: 'Paste the WHIP URL below into the Server field' },
-                { step: '5', text: 'Leave Bearer Token empty' },
-                { step: '6', text: 'Click Apply \u2192 close Settings' },
-                { step: '7', text: 'Click Start Streaming in OBS' },
-              ].map(item => (
-                <div key={item.step} style={{
-                  display: 'flex', alignItems: 'center', gap: '0.6rem',
-                  backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : 'white',
-                  borderRadius: '0.4rem',
-                  padding: '0.5rem 0.65rem',
-                  border: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : '#F3F4F6'}`,
-                }}>
-                  <div style={{
-                    width: '22px', height: '22px', borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)',
-                    color: 'white', fontSize: '0.65rem', fontWeight: 700,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                  }}>{item.step}</div>
-                  <span style={{ fontSize: '0.78rem', color: colors.textSecondary }}>{item.text}</span>
-                </div>
-              ))}
-            </div>
+        <div style={{
+          backgroundColor: isDark ? 'rgba(139,92,246,0.05)' : '#FAFAFE',
+          border: `1px solid ${isDark ? 'rgba(139,92,246,0.15)' : '#EDE9FE'}`,
+          borderRadius: '0.5rem',
+          padding: '0.75rem',
+        }}>
+          {/* OBS Setup Steps */}
+          <div style={{ fontSize: '0.8rem', fontWeight: 700, color: colors.textPrimary, marginBottom: '0.6rem' }}>OBS Setup (WHIP)</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.75rem' }}>
+            {[
+              'Open OBS → File → Settings',
+              'Go to Stream tab',
+              'Set Service to WHIP',
+              'Paste the WHIP URL below into the Server field',
+              'Leave Bearer Token empty',
+              'Click Apply → close Settings',
+              'Click Start Streaming in OBS',
+            ].map((text, i) => (
+              <div key={i} style={{
+                display: 'flex', alignItems: 'flex-start', gap: '0.6rem',
+                padding: '0.45rem 0.5rem',
+                backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F9FAFB',
+                borderRadius: '0.4rem',
+                border: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : '#F3F4F6'}`,
+              }}>
+                <div style={{
+                  width: '22px', height: '22px', borderRadius: '50%', flexShrink: 0,
+                  background: 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)',
+                  color: 'white', fontSize: '0.68rem', fontWeight: 700,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>{i + 1}</div>
+                <span style={{ fontSize: '0.82rem', color: colors.textPrimary, lineHeight: 1.5 }}>{text}</span>
+              </div>
+            ))}
           </div>
 
           {/* WHIP URL */}
+          <label style={{ fontSize: '0.7rem', fontWeight: 700, color: colors.textTertiary, display: 'block', marginBottom: '0.3rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>WHIP URL</label>
+          <div style={{ display: 'flex', gap: '0.35rem', marginBottom: '0.3rem' }}>
+            <input readOnly value={showKey ? whipUrl : `${whipUrl!.substring(0, 40)}...`} style={inputField} />
+            <button onClick={() => setShowKey(!showKey)} style={smallBtn}>{showKey ? <EyeOffIcon /> : <EyeOnIcon />}</button>
+            <button onClick={() => handleCopy(whipUrl!, 'whipUrl')} style={smallBtn}>
+              {copiedField === 'whipUrl' ? <><CheckIcon /> Copied</> : <><CopyIcon /> Copy</>}
+            </button>
+          </div>
+          <div style={{ fontSize: '0.68rem', color: colors.textTertiary, marginBottom: '0.75rem' }}>No stream key or bearer token needed — the URL is self-authenticating.</div>
+
+          {/* Recommended OBS Encoder Settings */}
           <div style={{
-            backgroundColor: isDark ? 'rgba(139,92,246,0.05)' : '#FAFAFE',
-            border: `1px solid ${isDark ? 'rgba(139,92,246,0.15)' : '#EDE9FE'}`,
-            borderRadius: '0.5rem',
-            padding: '0.75rem',
+            backgroundColor: isDark ? 'rgba(14,165,233,0.06)' : '#F0F9FF',
+            border: `1px solid ${isDark ? 'rgba(14,165,233,0.15)' : '#BAE6FD'}`,
+            borderRadius: '0.4rem',
+            padding: '0.65rem 0.75rem',
           }}>
-            <label style={{ fontSize: '0.65rem', fontWeight: 600, color: colors.textTertiary, display: 'block', marginBottom: '0.2rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>WHIP URL</label>
-            <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
-              <input readOnly value={showKey ? whipUrl : (whipUrl || '').substring(0, 40) + '...'} style={inputField} />
-              <button onClick={() => setShowKey(!showKey)} style={smallBtn}>{showKey ? <EyeOffIcon /> : <EyeOnIcon />}</button>
-              <button onClick={() => handleCopy(whipUrl!, 'whipUrl')} style={smallBtn}>
-                {copiedField === 'whipUrl' ? <><CheckIcon /> Copied</> : <><CopyIcon /> Copy</>}
-              </button>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: isDark ? '#7DD3FC' : '#0369A1', marginBottom: '0.5rem' }}>
+              Recommended OBS Output Settings
+            </div>
+            <div style={{ fontSize: '0.68rem', color: colors.textSecondary, marginBottom: '0.5rem' }}>
+              Go to OBS &rarr; File &rarr; Settings &rarr; Output (Simple mode)
+            </div>
+            <table style={{ width: '100%', fontSize: '0.72rem', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#E0F2FE'}` }}>
+                  <th style={{ textAlign: 'left', padding: '0.3rem 0.4rem', color: colors.textTertiary, fontWeight: 600 }}>Internet Speed</th>
+                  <th style={{ textAlign: 'left', padding: '0.3rem 0.4rem', color: colors.textTertiary, fontWeight: 600 }}>Bitrate</th>
+                  <th style={{ textAlign: 'left', padding: '0.3rem 0.4rem', color: colors.textTertiary, fontWeight: 600 }}>Resolution</th>
+                  <th style={{ textAlign: 'left', padding: '0.3rem 0.4rem', color: colors.textTertiary, fontWeight: 600 }}>FPS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { speed: '5-10 Mbps', bitrate: '1500 Kbps', resolution: '854x480', fps: '30' },
+                  { speed: '10-25 Mbps', bitrate: '2500 Kbps', resolution: '1280x720', fps: '30' },
+                  { speed: '25-50 Mbps', bitrate: '4000 Kbps', resolution: '1280x720', fps: '30' },
+                  { speed: '50+ Mbps', bitrate: '6000 Kbps', resolution: '1920x1080', fps: '30' },
+                ].map((row, i) => (
+                  <tr key={i} style={{ borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.04)' : '#F0F9FF'}` }}>
+                    <td style={{ padding: '0.3rem 0.4rem', color: colors.textPrimary, fontWeight: 600 }}>{row.speed}</td>
+                    <td style={{ padding: '0.3rem 0.4rem', color: colors.textSecondary }}>{row.bitrate}</td>
+                    <td style={{ padding: '0.3rem 0.4rem', color: colors.textSecondary }}>{row.resolution}</td>
+                    <td style={{ padding: '0.3rem 0.4rem', color: colors.textSecondary }}>{row.fps}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div style={{ fontSize: '0.65rem', color: colors.textTertiary, marginTop: '0.4rem', lineHeight: 1.4 }}>
+              <strong>Encoder:</strong> Software (x264) &bull; <strong>Preset:</strong> veryfast &bull; <strong>Audio:</strong> Opus 160 Kbps
             </div>
             <div style={{ fontSize: '0.65rem', color: colors.textTertiary, marginTop: '0.3rem', fontStyle: 'italic' }}>
               No stream key or bearer token needed &mdash; the URL is self-authenticating.
             </div>
           </div>
 
-          {/* Recommended OBS Output Settings */}
-          <div style={{
-            backgroundColor: isDark ? 'rgba(59,130,246,0.06)' : '#EFF6FF',
-            border: `1px solid ${isDark ? 'rgba(59,130,246,0.2)' : '#BFDBFE'}`,
-            borderRadius: '0.5rem',
-            padding: '0.75rem',
-          }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: isDark ? '#60A5FA' : '#2563EB', marginBottom: '0.5rem' }}>Recommended OBS Output Settings</div>
-            <div style={{ fontSize: '0.7rem', color: colors.textSecondary, marginBottom: '0.5rem' }}>
-              Go to OBS &rarr; File &rarr; Settings &rarr; Output (Simple mode)
-            </div>
-            <table style={{ width: '100%', fontSize: '0.72rem', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#E5E7EB'}` }}>
-                  {['Internet Speed', 'Bitrate', 'Resolution', 'FPS'].map(h => (
-                    <th key={h} style={{ textAlign: 'left', padding: '0.35rem 0.5rem', fontWeight: 600, color: colors.textTertiary }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  { speed: '5-10 Mbps', bitrate: '1500 Kbps', res: '854x480', fps: '30' },
-                  { speed: '10-25 Mbps', bitrate: '2500 Kbps', res: '1280x720', fps: '30' },
-                  { speed: '25-50 Mbps', bitrate: '4000 Kbps', res: '1280x720', fps: '30' },
-                  { speed: '50+ Mbps', bitrate: '6000 Kbps', res: '1920x1080', fps: '30' },
-                ].map(row => (
-                  <tr key={row.speed} style={{ borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : '#F3F4F6'}` }}>
-                    <td style={{ padding: '0.35rem 0.5rem', fontWeight: 600, color: colors.textPrimary }}>{row.speed}</td>
-                    <td style={{ padding: '0.35rem 0.5rem', color: colors.textSecondary }}>{row.bitrate}</td>
-                    <td style={{ padding: '0.35rem 0.5rem', color: colors.textSecondary }}>{row.res}</td>
-                    <td style={{ padding: '0.35rem 0.5rem', color: colors.textSecondary }}>{row.fps}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <div style={{ fontSize: '0.65rem', color: colors.textTertiary, marginTop: '0.4rem' }}>
-              Encoder: Software (x264) &bull; Preset: veryfast &bull; Audio: Opus 160 Kbps
-            </div>
-          </div>
-        </>
+        </div>
       )}
 
       {/* No credentials yet — setup prompt */}
@@ -737,7 +746,7 @@ export default function StreamPreview({
             <div style={{ fontSize: '1.05rem', fontWeight: 700, color: colors.textPrimary, marginBottom: '0.4rem' }}>
               Set Up Your Live Stream
             </div>
-            <div style={{ fontSize: '0.8rem', color: colors.textSecondary, lineHeight: '1.5' }}>
+            <div style={{ fontSize: '0.85rem', color: colors.textSecondary, lineHeight: '1.5' }}>
               Get your WHIP URL, configure OBS, and test your stream before going live.
             </div>
           </div>
@@ -746,25 +755,25 @@ export default function StreamPreview({
           <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
             {[
               { step: '1', text: 'Click below to generate your WHIP streaming URL' },
-              { step: '2', text: 'Open OBS \u2192 File \u2192 Settings \u2192 Stream \u2192 set Service to WHIP' },
+              { step: '2', text: 'Open OBS → File → Settings → Stream → set Service to WHIP' },
               { step: '3', text: 'Paste the WHIP URL into the Server field, leave Bearer Token empty' },
               { step: '4', text: 'Start streaming in OBS to preview and test your feed' },
               { step: '5', text: 'When ready, click Go Live to broadcast to your audience' },
             ].map(item => (
               <div key={item.step} style={{
-                display: 'flex', alignItems: 'center', gap: '0.75rem',
+                display: 'flex', alignItems: 'flex-start', gap: '0.75rem',
                 backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F9FAFB',
                 borderRadius: '0.5rem',
-                padding: '0.6rem 0.75rem',
+                padding: '0.65rem 0.75rem',
                 border: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : '#F3F4F6'}`,
               }}>
                 <div style={{
-                  width: '24px', height: '24px', borderRadius: '50%',
+                  width: '26px', height: '26px', borderRadius: '50%',
                   background: 'linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)',
-                  color: 'white', fontSize: '0.7rem', fontWeight: 700,
+                  color: 'white', fontSize: '0.75rem', fontWeight: 700,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 }}>{item.step}</div>
-                <span style={{ fontSize: '0.78rem', color: colors.textSecondary }}>{item.text}</span>
+                <span style={{ fontSize: '0.85rem', color: colors.textSecondary, lineHeight: 1.5 }}>{item.text}</span>
               </div>
             ))}
           </div>
@@ -961,7 +970,7 @@ export default function StreamPreview({
                 </div>
                 <div>
                   <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'white', margin: 0 }}>
-                    {isEnded ? 'Stream Ended' : !hasCredentials ? 'Stream Setup' : isTestPreview ? 'Test Preview' : 'Live Stream Control'}
+                    {isEnded ? 'Stream Ended' : !hasCredentials ? 'OBS Stream Setup' : isTestPreview ? 'Test Preview' : 'Live Stream Control'}
                   </h2>
                   <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.55)', margin: 0 }}>{eventTitle}</p>
                 </div>

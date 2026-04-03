@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import Image from 'next/image';
@@ -242,7 +243,9 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   const { colors, actualTheme } = useTheme();
   const { formatPrice } = useCurrency();
   const { user, token } = useDashboardAuth();
+  const router = useRouter();
   const apiUrl = getApiUrl();
+  const rolePrefix = userRole === 'event-coordinator' ? 'event-coordinator' : 'client';
   const [albums, setAlbums] = useState<any[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
@@ -2595,6 +2598,13 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                             </div>
                             <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.9)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{album.photographer}</span>
                             <button
+                              onClick={() => router.push(`/user/${rolePrefix}/gallery/albums/${album.id}`)}
+                              title="View Details"
+                              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.38rem 0.5rem', backgroundColor: 'rgba(8,58,133,0.82)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer', flexShrink: 0 }}
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                            </button>
+                            <button
                               onClick={() => openDeleteModal(album)}
                               title="Delete Album"
                               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.38rem 0.5rem', backgroundColor: 'rgba(220,38,38,0.82)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: 'pointer', flexShrink: 0 }}
@@ -2722,6 +2732,28 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                           }}
                         >
                           Browse
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/user/${rolePrefix}/gallery/albums/${album.id}`);
+                          }}
+                          style={{
+                            padding: '0.375rem 0.75rem',
+                            borderRadius: '0.375rem',
+                            border: '2px solid #062a63',
+                            backgroundColor: 'transparent',
+                            color: '#083A85',
+                            fontSize: '0.8rem',
+                            fontWeight: '500',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.35rem'
+                          }}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                          Details
                         </button>
                         <button
                           onClick={(e) => {
@@ -2864,6 +2896,13 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                         {/* FOOTER BAR: frosted glass */}
                         <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)', padding: '0.6rem 0.8rem', borderTop: '1px solid rgba(255,255,255,0.1)', borderRadius: '0 0 1.05rem 1.05rem' }}>
                           <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                            <button
+                              onClick={() => router.push(`/user/${rolePrefix}/gallery/photobooks/${photobook.id}`)}
+                              title="View Details"
+                              style={{ padding: '0.4rem 0.5rem', borderRadius: '0.375rem', border: 'none', backgroundColor: 'rgba(255,255,255,0.15)', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                            </button>
                             {photobook.images.length === 0 ? (
                               <button
                                 onClick={() => openSetupWizard(photobook)}

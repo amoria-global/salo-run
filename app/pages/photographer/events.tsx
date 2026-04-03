@@ -327,7 +327,6 @@ interface StreamConfig {
   viewerCount: number;
   peakViewers: number;
   inviteToken?: string;
-  playbackUrl?: string;
   streamType?: 'entry_fee' | 'invite_token';
   error?: string;
 }
@@ -479,6 +478,7 @@ const PhotographerEventsPage = () => {
   const [showSendFreeInvitationModal, setShowSendFreeInvitationModal] = useState(false);
   const [freeAlbumToSend, setFreeAlbumToSend] = useState<{ albumId: string; title: string; email: string; accessCode: string } | null>(null);
   const [albumSuccessModal, setAlbumSuccessModal] = useState<{ type: 'paid' | 'free'; title: string; inviteCode?: string; email?: string; accessCode?: string; photoCount: number } | null>(null);
+  const [codeCopied, setCodeCopied] = useState(false);
   const [uploadProgress, setUploadProgress] = useState('');
   const [mediaIdMap, setMediaIdMap] = useState<Record<string, string>>({});
 
@@ -856,7 +856,12 @@ const PhotographerEventsPage = () => {
     return () => document.removeEventListener('mousedown', handler);
   }, [showFaceAICurrencyDropdown]);
 
-  const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '-';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '-';
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
   const formatTime = (time: string) => { const [h, m] = time.split(':'); const hour = parseInt(h); return `${hour % 12 || 12}:${m} ${hour >= 12 ? 'PM' : 'AM'}`; };
 
   const getStatusBadge = (status: EventStatus) => {
@@ -913,27 +918,25 @@ const PhotographerEventsPage = () => {
       }
       const startData = await res.json().catch(() => ({}));
       const sData = startData.data || startData;
-      const whipUrl = sData.whipUrl || '';
-      const whepUrl = sData.whepUrl || '';
-      const playbackUrl = sData.hlsManifestUrl || '';
+      const whipUrlVal = sData.whipUrl || '';
+      const whepUrlVal = sData.whepUrl || '';
       const inviteToken = sData.inviteToken || '';
       const connStatus = sData.connectionStatus || 'disconnected';
 
-      if (whipUrl) {
+      if (whipUrlVal) {
         setStreamConfigs(prev => ({
           ...prev,
           [eventId]: {
             ...prev[eventId],
             eventId,
-            whipUrl,
-            whepUrl,
+            whipUrl: whipUrlVal,
+            whepUrl: whepUrlVal,
             connectionStatus: connStatus as StreamConfig['connectionStatus'],
             streamHealth: 'unknown' as StreamConfig['streamHealth'],
             uploadSpeed: '0 Mbps',
             viewerCount: 0,
             peakViewers: 0,
             inviteToken,
-            playbackUrl,
           }
         }));
       } else {
@@ -1033,19 +1036,15 @@ const PhotographerEventsPage = () => {
           const cfg = data.data;
           if (cfg) {
             const connStatus: string = cfg.connectionStatus || 'disconnected';
-            // Fetch public event for hlsManifestUrl and streamType
-            let hlsUrl = '';
+            // Fetch public event for whepUrl and streamType
             let pubStreamType = '';
+            let pubWhepUrl = '';
             try {
               const pubRes = await fetch(`${apiUrl}/api/remote/public/events/${eventId}`);
               if (pubRes.ok) {
                 const pubData = await pubRes.json();
-                hlsUrl = pubData.data?.hlsManifestUrl || '';
                 pubStreamType = pubData.data?.streamType || '';
-                // Construct HLS URL from liveInputId if hlsManifestUrl is missing
-                if (!hlsUrl && pubData.data?.liveInputId) {
-                  hlsUrl = `https://customer-ngk2huwatflljurq.cloudflarestream.com/${pubData.data.liveInputId}/manifest/video.m3u8`;
-                }
+                pubWhepUrl = pubData.data?.whepUrl || '';
               }
             } catch { /* ignore */ }
             setStreamConfigs(prev => ({
@@ -1054,14 +1053,13 @@ const PhotographerEventsPage = () => {
                 ...prev[eventId],
                 eventId,
                 whipUrl: cfg.whipUrl || prev[eventId]?.whipUrl || '',
-                whepUrl: cfg.whepUrl || prev[eventId]?.whepUrl || '',
+                whepUrl: cfg.whepUrl || pubWhepUrl || prev[eventId]?.whepUrl || '',
                 connectionStatus: connStatus as StreamConfig['connectionStatus'],
                 streamHealth: cfg.streamHealth || 'unknown',
                 uploadSpeed: cfg.uploadSpeed || '0 Mbps',
                 viewerCount: cfg.viewerCount || 0,
                 peakViewers: cfg.peakViewers || 0,
                 inviteToken: cfg.inviteToken || prev[eventId]?.inviteToken || '',
-                playbackUrl: hlsUrl || cfg.hlsManifestUrl || prev[eventId]?.playbackUrl || '',
                 streamType: (pubStreamType || prev[eventId]?.streamType || '') as StreamConfig['streamType'],
               }
             }));
@@ -2324,7 +2322,6 @@ const PhotographerEventsPage = () => {
           eventTitle={selectedEvent.title}
           whipUrl={streamConfigs[selectedEvent.id]?.whipUrl}
           whepUrl={streamConfigs[selectedEvent.id]?.whepUrl}
-          playbackUrl={streamConfigs[selectedEvent.id]?.playbackUrl || undefined}
           inviteToken={streamConfigs[selectedEvent.id]?.streamType === 'entry_fee' ? undefined : streamConfigs[selectedEvent.id]?.inviteToken}
           connectionStatus={streamConfigs[selectedEvent.id]?.connectionStatus || 'disconnected'}
           streamHealth={streamConfigs[selectedEvent.id]?.streamHealth}
@@ -2652,34 +2649,34 @@ const PhotographerEventsPage = () => {
             </p>
 
             {/* Details card */}
-            <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '1rem', marginBottom: '1.25rem', textAlign: 'left' as const }}>
+            <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.75rem', padding: '1.5rem 1.25rem', marginBottom: '1.25rem', textAlign: 'center' as const }}>
               {albumSuccessModal.type === 'paid' && albumSuccessModal.inviteCode && (
-                <div style={{ marginBottom: '0.75rem' }}>
-                  <div style={{ fontSize: '0.7rem', color: colors.textTertiary, marginBottom: '0.2rem' }}>Invite Code</div>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#3B82F6', letterSpacing: '0.1em' }}>{albumSuccessModal.inviteCode}</div>
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <div style={{ fontSize: '0.7rem', color: colors.textTertiary, marginBottom: '0.5rem', textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>Invite Code</div>
+                  <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#3B82F6', letterSpacing: '0.2em', fontFamily: 'monospace' }}>{albumSuccessModal.inviteCode}</div>
                 </div>
               )}
               {albumSuccessModal.type === 'paid' && albumSuccessModal.inviteCode && (
-                <div style={{ marginBottom: '0.75rem' }}>
-                  <div style={{ fontSize: '0.7rem', color: colors.textTertiary, marginBottom: '0.2rem' }}>Find My Photos Link</div>
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <div style={{ fontSize: '0.7rem', color: colors.textTertiary, marginBottom: '0.3rem', textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>Find My Photos Link</div>
                   <div style={{ fontSize: '0.78rem', color: colors.textPrimary, wordBreak: 'break-all' }}>{`${process.env.NEXT_PUBLIC_LANDING_URL as string}/user/find-my-photos?code=${albumSuccessModal.inviteCode}`}</div>
                 </div>
               )}
               {albumSuccessModal.type === 'free' && albumSuccessModal.email && (
-                <div style={{ marginBottom: '0.75rem' }}>
-                  <div style={{ fontSize: '0.7rem', color: colors.textTertiary, marginBottom: '0.2rem' }}>Invitation Sent To</div>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: colors.textPrimary }}>{albumSuccessModal.email}</div>
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <div style={{ fontSize: '0.7rem', color: colors.textTertiary, marginBottom: '0.3rem', textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>Invitation Sent To</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 600, color: colors.textPrimary }}>{albumSuccessModal.email}</div>
                 </div>
               )}
               {albumSuccessModal.type === 'free' && albumSuccessModal.accessCode && (
-                <div style={{ marginBottom: '0.75rem' }}>
-                  <div style={{ fontSize: '0.7rem', color: colors.textTertiary, marginBottom: '0.2rem' }}>Access Code</div>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#10B981', letterSpacing: '0.15em' }}>{albumSuccessModal.accessCode}</div>
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <div style={{ fontSize: '0.7rem', color: colors.textTertiary, marginBottom: '0.5rem', textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>Access Code</div>
+                  <div style={{ fontSize: '2rem', fontWeight: 800, color: '#10B981', letterSpacing: '0.3em', fontFamily: 'monospace' }}>{albumSuccessModal.accessCode}</div>
                 </div>
               )}
               <div>
-                <div style={{ fontSize: '0.7rem', color: colors.textTertiary, marginBottom: '0.2rem' }}>Photos</div>
-                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: colors.textPrimary }}>{albumSuccessModal.photoCount} uploaded</div>
+                <div style={{ fontSize: '0.7rem', color: colors.textTertiary, marginBottom: '0.3rem', textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>Photos</div>
+                <div style={{ fontSize: '0.95rem', fontWeight: 700, color: colors.textPrimary }}>{albumSuccessModal.photoCount} uploaded</div>
               </div>
             </div>
 
@@ -2689,11 +2686,46 @@ const PhotographerEventsPage = () => {
                 <button
                   onClick={() => {
                     const code = albumSuccessModal.type === 'paid' ? albumSuccessModal.inviteCode : albumSuccessModal.accessCode;
-                    if (code) { navigator.clipboard.writeText(code); }
+                    if (!code) return;
+                    try {
+                      if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(code).then(() => {
+                          setCodeCopied(true);
+                          setTimeout(() => setCodeCopied(false), 2000);
+                        }).catch(() => {
+                          // Fallback for clipboard API failure
+                          const ta = document.createElement('textarea');
+                          ta.value = code;
+                          ta.style.position = 'fixed';
+                          ta.style.opacity = '0';
+                          document.body.appendChild(ta);
+                          ta.select();
+                          document.execCommand('copy');
+                          document.body.removeChild(ta);
+                          setCodeCopied(true);
+                          setTimeout(() => setCodeCopied(false), 2000);
+                        });
+                      } else {
+                        // Fallback for browsers without clipboard API
+                        const ta = document.createElement('textarea');
+                        ta.value = code;
+                        ta.style.position = 'fixed';
+                        ta.style.opacity = '0';
+                        document.body.appendChild(ta);
+                        ta.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(ta);
+                        setCodeCopied(true);
+                        setTimeout(() => setCodeCopied(false), 2000);
+                      }
+                    } catch {
+                      // Last resort fallback
+                      window.prompt('Copy this code:', code);
+                    }
                   }}
-                  style={secondaryBtn}
+                  style={{ ...secondaryBtn, minWidth: '160px' }}
                 >
-                  Copy {albumSuccessModal.type === 'paid' ? 'Invite Code' : 'Access Code'}
+                  {codeCopied ? 'Copied!' : `Copy ${albumSuccessModal.type === 'paid' ? 'Invite Code' : 'Access Code'}`}
                 </button>
               )}
               <button onClick={() => setAlbumSuccessModal(null)} style={primaryBtn}>Done</button>
