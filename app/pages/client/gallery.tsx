@@ -192,9 +192,48 @@ const QRCodeIcon = () => (
   </svg>
 );
 
+// Photobook Icons
+const BookIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+  </svg>
+);
+
+const PlusIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="12" y1="5" x2="12" y2="19"></line>
+    <line x1="5" y1="12" x2="19" y2="12"></line>
+  </svg>
+);
+
+const TrashIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="3 6 5 6 21 6"></polyline>
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+  </svg>
+);
+
+// Photobook Interfaces
+interface PhotobookImage {
+  url: string;
+  sourceAlbumId: number;
+  sourceAlbumTitle: string;
+  addedAt: string;
+}
+
+interface Photobook {
+  id: string;
+  name: string;
+  description: string;
+  thumbnail: string | null;
+  createdAt: string;
+  images: PhotobookImage[];
+  maxImages: number;
+}
+
 // Album data placeholder - loaded from API
 const clientAlbumsData: any[] = [];
-
 
 interface GalleryPageProps {
   userRole?: 'client' | 'event-coordinator';
@@ -695,6 +734,29 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   const [photobookCurrentImageIndex, setPhotobookCurrentImageIndex] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
 
+  // Photobook states
+  const [photobook, setPhotobook] = useState<Photobook | null>(null);
+  const [showCreatePhotobookModal, setShowCreatePhotobookModal] = useState(false);
+  const [showPhotobookModal, setShowPhotobookModal] = useState(false);
+  const [viewingPhotobooks, setViewingPhotobooks] = useState(false);
+  const [photobookName, setPhotobookName] = useState('');
+  const [photobookDescription, setPhotobookDescription] = useState('');
+  const [photobookThumbnailUrl, setPhotobookThumbnailUrl] = useState<string | null>(null);
+
+  // Add to Photobook states
+  const [showAddToPhotobookModal, setShowAddToPhotobookModal] = useState(false);
+  const [addToPhotobookAlbum, setAddToPhotobookAlbum] = useState<typeof clientAlbumsData[0] | null>(null);
+  const [selectedImagesForPhotobook, setSelectedImagesForPhotobook] = useState<string[]>([]);
+
+  // Track removed albums (hidden after adding to photobook)
+  const [removedAlbumIds, setRemovedAlbumIds] = useState<number[]>([]);
+
+  // Notification modal state
+  const [notificationModal, setNotificationModal] = useState<{ show: boolean; title: string; message: string; type: 'success' | 'info' | 'warning' | 'error' }>({ show: false, title: '', message: '', type: 'info' });
+
+  // Confirmation modal state
+  const [confirmationModal, setConfirmationModal] = useState<{ show: boolean; title: string; message: string; onConfirm: () => void }>({ show: false, title: '', message: '', onConfirm: () => {} });
+
   const categories = ['All', 'Wedding', 'Portrait', 'Event', 'Product'];
   const photographers = ['All', ...Array.from(new Set(albums.map(a => a.photographer)))];
   const [showPayNowModal, setShowPayNowModal] = useState(false);
@@ -777,8 +839,12 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
     return { expiresAt, daysRemaining, isExpired: daysRemaining <= 0, isWarning: daysRemaining > 0 && daysRemaining <= WARNING_DAYS };
   };
 
-  // Filter albums
+  // Filter albums - also exclude removed albums when not viewing photobooks
   const filteredAlbums = albums.filter(album => {
+    // Hide removed albums unless viewing photobooks
+    if (!viewingPhotobooks && removedAlbumIds.includes(album.id)) {
+      return false;
+    }
     const matchesSearch = album.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          album.photographer.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = filterCategory === 'All' || album.category === filterCategory;
@@ -806,7 +872,8 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
   const openMultiSelectView = (album: any) => {
     setMultiSelectAlbum(album);
     setSelectedImages([]);
-    setIsSelectMode(false);
+    // Auto-enter select mode when photobook exists
+    setIsSelectMode(!!photobook);
     setShowMultiSelectView(true);
   };
 
@@ -2143,6 +2210,57 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                 <PhotobooksViewIcon active={pageView === 'photobooks'} />
                 Photobooks
               </button>
+
+              {/* Photobook Buttons */}
+              <button
+                onClick={() => {
+                  if (photobook) {
+                    setNotificationModal({ show: true, title: 'Photobook Exists', message: 'You already have a photobook created. Only one photobook is supported at this time.', type: 'info' });
+                  } else {
+                    setShowCreatePhotobookModal(true);
+                  }
+                }}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '0.5rem',
+                  border: `2px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}`,
+                  backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EBF5FF',
+                  color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  fontSize: '0.875rem',
+                  fontWeight: '600'
+                }}
+              >
+                <PlusIcon />
+                Create Photobook
+              </button>
+
+              {photobook && (
+                <button
+                  onClick={() => setViewingPhotobooks(!viewingPhotobooks)}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    borderRadius: '0.5rem',
+                    border: `2px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}`,
+                    backgroundColor: viewingPhotobooks
+                      ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85')
+                      : (actualTheme === 'dark' ? '#1E3A5F' : '#EBF5FF'),
+                    color: viewingPhotobooks ? 'white' : (actualTheme === 'dark' ? '#60A5FA' : '#083A85'),
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    fontSize: '0.875rem',
+                    fontWeight: '600'
+                  }}
+                >
+                  <BookIcon />
+                  {viewingPhotobooks ? 'View Sent Albums' : 'View Photobooks'}
+                </button>
+              )}
             </div>
           </header>
 
@@ -3445,7 +3563,7 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
                     if (option.name === 'Copy Link') {
                       handleCopyLink(shareLink);
                     } else if (option.name === 'QR Code') {
-                      alert('QR Code feature coming soon!');
+                      setNotificationModal({ show: true, title: 'Coming Soon', message: 'QR Code feature coming soon!', type: 'info' });
                     } else {
                       const url = option.getUrl(shareLink, shareAlbum.title);
                       window.open(url, '_blank', 'noopener,noreferrer');
@@ -3575,33 +3693,42 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              {/* Select Mode Toggle */}
-              <button
-                onClick={() => {
-                  setIsSelectMode(!isSelectMode);
-                  if (isSelectMode) {
-                    setSelectedImages([]);
-                  }
-                }}
-                style={{
-                  padding: '0.5rem 1rem',
-                  borderRadius: '0.5rem',
-                  border: '2px solid',
-                  borderColor: isSelectMode ? '#16A34A' : 'rgba(255, 255, 255, 0.3)',
-                  backgroundColor: isSelectMode ? '#16A34A' : 'transparent',
-                  color: 'white',
-                  fontSize: '0.875rem',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <GridIcon active={false} />
-                {isSelectMode ? 'Exit Select Mode' : 'Select Mode'}
-              </button>
+              {/* Select Mode Toggle - hidden when photobook exists (always in select mode) */}
+              {!photobook && (
+                <button
+                  onClick={() => {
+                    setIsSelectMode(!isSelectMode);
+                    if (isSelectMode) {
+                      setSelectedImages([]);
+                    }
+                  }}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    borderRadius: '0.5rem',
+                    border: '2px solid',
+                    borderColor: isSelectMode ? '#16A34A' : 'rgba(255, 255, 255, 0.3)',
+                    backgroundColor: isSelectMode ? '#16A34A' : 'transparent',
+                    color: 'white',
+                    fontSize: '0.875rem',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <GridIcon active={false} />
+                  {isSelectMode ? 'Exit Select Mode' : 'Select Mode'}
+                </button>
+              )}
+
+              {/* Max images info when photobook exists */}
+              {photobook && (
+                <span style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.7)', padding: '0.5rem 0.75rem', backgroundColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '0.375rem' }}>
+                  Max: {MAX_IMAGE_SELECTION} images
+                </span>
+              )}
 
               {/* Close Button */}
               <button
@@ -7204,6 +7331,882 @@ const ClientGallery = ({ userRole = 'client' }: GalleryPageProps) => {
               >
                 <i className="bi bi-trash" style={{ fontSize: '1rem' }}></i>
                 Delete Album
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Photobook Modal */}
+      {showCreatePhotobookModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1100,
+            padding: '1rem'
+          }}
+          onClick={() => setShowCreatePhotobookModal(false)}
+        >
+          <div
+            style={{
+              backgroundColor: colors.bgCard,
+              borderRadius: '1rem',
+              padding: '1.5rem',
+              width: '500px',
+              maxWidth: '95%',
+              maxHeight: '90vh',
+              overflowY: 'auto'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Create Photobook</h2>
+              <button
+                onClick={() => setShowCreatePhotobookModal(false)}
+                style={{
+                  background: colors.bgTertiary,
+                  border: `2px solid ${colors.borderPrimary}`,
+                  cursor: 'pointer',
+                  padding: '0.5rem',
+                  borderRadius: '0.375rem',
+                  color: colors.textPrimary,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <CloseIcon />
+              </button>
+            </div>
+
+            {/* Photobook Name */}
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+                Photobook Name *
+              </label>
+              <input
+                type="text"
+                value={photobookName}
+                onChange={(e) => setPhotobookName(e.target.value)}
+                placeholder="Enter photobook name"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  border: `2px solid ${colors.borderPrimary}`,
+                  borderRadius: '0.5rem',
+                  fontSize: '0.9rem',
+                  color: colors.textPrimary,
+                  backgroundColor: colors.bgCard,
+                  outline: 'none'
+                }}
+              />
+            </div>
+
+            {/* Photobook Description */}
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+                Description
+              </label>
+              <textarea
+                value={photobookDescription}
+                onChange={(e) => setPhotobookDescription(e.target.value)}
+                placeholder="Enter a description for your photobook"
+                rows={3}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  border: `2px solid ${colors.borderPrimary}`,
+                  borderRadius: '0.5rem',
+                  fontSize: '0.9rem',
+                  color: colors.textPrimary,
+                  backgroundColor: colors.bgCard,
+                  resize: 'vertical',
+                  outline: 'none'
+                }}
+              />
+            </div>
+
+            {/* Thumbnail Selection from Albums */}
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+                Select Thumbnail (Optional)
+              </label>
+              <p style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.75rem' }}>
+                Choose a cover image from your sent albums
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', maxHeight: '200px', overflowY: 'auto' }}>
+                {albums.map((album) => (
+                  <div
+                    key={album.id}
+                    onClick={() => setPhotobookThumbnailUrl(album.thumbnail)}
+                    style={{
+                      position: 'relative',
+                      aspectRatio: '1',
+                      borderRadius: '0.5rem',
+                      overflow: 'hidden',
+                      cursor: 'pointer',
+                      border: photobookThumbnailUrl === album.thumbnail ? '3px solid #083A85' : '2px solid transparent'
+                    }}
+                  >
+                    <Image src={album.thumbnail} alt={album.title} fill style={{ objectFit: 'cover' }} />
+                    {photobookThumbnailUrl === album.thumbnail && (
+                      <div style={{ position: 'absolute', top: '4px', right: '4px', color: 'white', backgroundColor: '#083A85', borderRadius: '50%', padding: '2px' }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                onClick={() => setShowCreatePhotobookModal(false)}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem 1rem',
+                  borderRadius: '0.5rem',
+                  border: `2px solid ${colors.borderPrimary}`,
+                  backgroundColor: colors.bgCard,
+                  color: colors.textPrimary,
+                  fontSize: '0.95rem',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (!photobookName.trim()) {
+                    setNotificationModal({ show: true, title: 'Required Field', message: 'Please enter a photobook name.', type: 'warning' });
+                    return;
+                  }
+                  const newPhotobook: Photobook = {
+                    id: Date.now().toString(),
+                    name: photobookName,
+                    description: photobookDescription,
+                    thumbnail: photobookThumbnailUrl,
+                    createdAt: new Date().toISOString(),
+                    images: [],
+                    maxImages: 100 // Placeholder
+                  };
+                  setPhotobook(newPhotobook);
+                  setShowCreatePhotobookModal(false);
+                  setPhotobookName('');
+                  setPhotobookDescription('');
+                  setPhotobookThumbnailUrl(null);
+                }}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem 1rem',
+                  borderRadius: '0.5rem',
+                  border: '2px solid #062a63',
+                  backgroundColor: '#083A85',
+                  color: 'white',
+                  fontSize: '0.95rem',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                Create Photobook
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add to Photobook Modal - Image Selection */}
+      {showAddToPhotobookModal && addToPhotobookAlbum && photobook && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.95)',
+            display: 'flex',
+            flexDirection: 'column',
+            zIndex: 1200
+          }}
+        >
+          {/* Header */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '1rem 1.5rem',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)'
+          }}>
+            <div>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: 'white', margin: 0 }}>
+                Select Images for &quot;{photobook.name}&quot;
+              </h2>
+              <p style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.7)', margin: '0.25rem 0 0' }}>
+                From: {addToPhotobookAlbum.title} ({addToPhotobookAlbum.images.length} photos)
+              </p>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <span style={{ color: '#16A34A', fontWeight: '600' }}>
+                {selectedImagesForPhotobook.length} selected
+              </span>
+              <button
+                onClick={() => {
+                  setShowAddToPhotobookModal(false);
+                  setAddToPhotobookAlbum(null);
+                  setSelectedImagesForPhotobook([]);
+                }}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  border: '2px solid rgba(255, 255, 255, 0.3)',
+                  cursor: 'pointer',
+                  padding: '0.5rem',
+                  borderRadius: '0.5rem',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <CloseIcon />
+              </button>
+            </div>
+          </div>
+
+          {/* Selection Controls */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '0.75rem 1.5rem',
+            backgroundColor: 'rgba(22, 163, 74, 0.1)',
+            borderBottom: '1px solid rgba(22, 163, 74, 0.3)'
+          }}>
+            <button
+              onClick={() => {
+                if (selectedImagesForPhotobook.length === addToPhotobookAlbum.images.length) {
+                  setSelectedImagesForPhotobook([]);
+                } else {
+                  setSelectedImagesForPhotobook([...addToPhotobookAlbum.images]);
+                }
+              }}
+              style={{
+                padding: '0.375rem 0.75rem',
+                borderRadius: '0.375rem',
+                border: '1px solid #16A34A',
+                backgroundColor: 'transparent',
+                color: '#16A34A',
+                fontSize: '0.8rem',
+                fontWeight: '500',
+                cursor: 'pointer'
+              }}
+            >
+              {selectedImagesForPhotobook.length === addToPhotobookAlbum.images.length ? 'Deselect All' : 'Select All'}
+            </button>
+
+            {selectedImagesForPhotobook.length > 0 && (
+              <button
+                onClick={() => {
+                  // Add selected images to photobook
+                  const newImages: PhotobookImage[] = selectedImagesForPhotobook.map(url => ({
+                    url,
+                    sourceAlbumId: addToPhotobookAlbum.id,
+                    sourceAlbumTitle: addToPhotobookAlbum.title,
+                    addedAt: new Date().toISOString()
+                  }));
+
+                  setPhotobook({
+                    ...photobook,
+                    images: [...photobook.images, ...newImages]
+                  });
+
+                  // Remove album from view
+                  setRemovedAlbumIds([...removedAlbumIds, addToPhotobookAlbum.id]);
+
+                  // Show thumbnail selector
+                  setShowAddToPhotobookModal(false);
+                  setShowThumbnailSelector(true);
+                }}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '0.5rem',
+                  border: 'none',
+                  backgroundColor: '#16A34A',
+                  color: 'white',
+                  fontSize: '0.875rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                <BookIcon />
+                Add {selectedImagesForPhotobook.length} to Photobook
+              </button>
+            )}
+          </div>
+
+          {/* Image Grid */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+              gap: '1rem'
+            }}>
+              {addToPhotobookAlbum.images.map((image: string, index: number) => (
+                <div
+                  key={index}
+                  onClick={() => {
+                    if (selectedImagesForPhotobook.includes(image)) {
+                      setSelectedImagesForPhotobook(selectedImagesForPhotobook.filter(img => img !== image));
+                    } else {
+                      setSelectedImagesForPhotobook([...selectedImagesForPhotobook, image]);
+                    }
+                  }}
+                  style={{
+                    position: 'relative',
+                    aspectRatio: '1',
+                    borderRadius: '0.75rem',
+                    overflow: 'hidden',
+                    cursor: 'pointer',
+                    border: selectedImagesForPhotobook.includes(image) ? '3px solid #16A34A' : '3px solid transparent',
+                    transform: selectedImagesForPhotobook.includes(image) ? 'scale(0.98)' : 'scale(1)',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <Image src={image} alt={`Image ${index + 1}`} fill style={{ objectFit: 'cover' }} />
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: selectedImagesForPhotobook.includes(image) ? 'rgba(22, 163, 74, 0.3)' : 'rgba(0, 0, 0, 0.2)',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    justifyContent: 'flex-start',
+                    padding: '0.75rem'
+                  }}>
+                    <div style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '50%',
+                      border: selectedImagesForPhotobook.includes(image) ? 'none' : '2px solid rgba(255, 255, 255, 0.8)',
+                      backgroundColor: selectedImagesForPhotobook.includes(image) ? '#16A34A' : 'rgba(0, 0, 0, 0.3)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white'
+                    }}>
+                      {selectedImagesForPhotobook.includes(image) && (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Thumbnail Selector Modal - After adding images */}
+      {showThumbnailSelector && photobook && photobook.images.length > 0 && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1300,
+            padding: '1rem'
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: colors.bgCard,
+              borderRadius: '1rem',
+              padding: '1.5rem',
+              width: '600px',
+              maxWidth: '95%',
+              maxHeight: '80vh',
+              overflowY: 'auto'
+            }}
+          >
+            <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0, marginBottom: '0.5rem' }}>
+              Select Photobook Thumbnail
+            </h2>
+            <p style={{ fontSize: '0.9rem', color: colors.textSecondary, marginBottom: '1rem' }}>
+              Choose a cover image for your photobook from the images you just added
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem', marginBottom: '1.5rem' }}>
+              {photobook.images.map((image, index) => (
+                <div
+                  key={index}
+                  onClick={() => setPhotobook({ ...photobook, thumbnail: image.url })}
+                  style={{
+                    position: 'relative',
+                    aspectRatio: '1',
+                    borderRadius: '0.5rem',
+                    overflow: 'hidden',
+                    cursor: 'pointer',
+                    border: photobook.thumbnail === image.url ? '3px solid #083A85' : '2px solid transparent'
+                  }}
+                >
+                  <Image src={image.url} alt={`Image ${index + 1}`} fill style={{ objectFit: 'cover' }} />
+                  {photobook.thumbnail === image.url && (
+                    <div style={{ position: 'absolute', top: '4px', right: '4px', color: 'white', backgroundColor: '#083A85', borderRadius: '50%', padding: '2px' }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <button
+              onClick={() => {
+                setShowThumbnailSelector(false);
+                setAddToPhotobookAlbum(null);
+                setSelectedImagesForPhotobook([]);
+              }}
+              style={{
+                width: '100%',
+                padding: '0.875rem',
+                borderRadius: '0.5rem',
+                border: '2px solid #062a63',
+                backgroundColor: '#083A85',
+                color: 'white',
+                fontSize: '0.95rem',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Photobook Modal - Full View with Actions */}
+      {showPhotobookModal && photobook && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.95)',
+            display: 'flex',
+            flexDirection: 'column',
+            zIndex: 1400
+          }}
+        >
+          {/* Header with Actions */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '1rem 1.5rem',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)'
+          }}>
+            <div>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: 'white', margin: 0 }}>
+                {photobook.name}
+              </h2>
+              <p style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.7)', margin: '0.25rem 0 0' }}>
+                {photobook.images.length} photos
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              {/* Share Button */}
+              <button
+                onClick={() => {
+                  setShowPhotobookModal(false);
+                  setNotificationModal({ show: true, title: 'Coming Soon', message: 'Share functionality coming soon!', type: 'info' });
+                }}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '0.5rem',
+                  border: 'none',
+                  backgroundColor: '#16A34A',
+                  color: 'white',
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                <ShareIcon />
+                Share
+              </button>
+
+              {/* Download Button */}
+              <button
+                onClick={async () => {
+                  // Download all images in photobook
+                  for (let i = 0; i < photobook.images.length; i++) {
+                    const img = photobook.images[i];
+                    const filename = `${photobook.name.replace(/[^a-z0-9]/gi, '_')}_${i + 1}.jpg`;
+                    await downloadImage(img.url, filename);
+                    if (i < photobook.images.length - 1) {
+                      await new Promise(resolve => setTimeout(resolve, 300));
+                    }
+                  }
+                }}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '0.5rem',
+                  border: 'none',
+                  backgroundColor: '#083A85',
+                  color: 'white',
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                <DownloadIcon />
+                Download All
+              </button>
+
+              {/* Delete Button */}
+              <button
+                onClick={() => {
+                  setConfirmationModal({
+                    show: true,
+                    title: 'Delete Photobook',
+                    message: 'Are you sure you want to delete this photobook? This action cannot be undone and all curated images will be lost.',
+                    onConfirm: () => {
+                      setPhotobook(null);
+                      setRemovedAlbumIds([]);
+                      setViewingPhotobooks(false);
+                      setShowPhotobookModal(false);
+                      setConfirmationModal({ show: false, title: '', message: '', onConfirm: () => {} });
+                    }
+                  });
+                }}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '0.5rem',
+                  border: '2px solid #DC2626',
+                  backgroundColor: 'transparent',
+                  color: '#DC2626',
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                <TrashIcon />
+                Delete
+              </button>
+
+              {/* Close Button */}
+              <button
+                onClick={() => setShowPhotobookModal(false)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  border: '2px solid rgba(255, 255, 255, 0.3)',
+                  cursor: 'pointer',
+                  padding: '0.5rem',
+                  borderRadius: '0.5rem',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <CloseIcon />
+              </button>
+            </div>
+          </div>
+
+          {/* Image Grid */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
+            {photobook.images.length === 0 ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                <div style={{ textAlign: 'center', color: 'rgba(255, 255, 255, 0.7)' }}>
+                  <BookIcon />
+                  <p style={{ marginTop: '1rem' }}>No images yet. Switch to &quot;View Sent Albums&quot; to add images.</p>
+                </div>
+              </div>
+            ) : (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                gap: '1rem'
+              }}>
+                {photobook.images.map((image, index) => (
+                  <div
+                    key={index}
+                    style={{
+                      position: 'relative',
+                      aspectRatio: '1',
+                      borderRadius: '0.75rem',
+                      overflow: 'hidden',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => {
+                      // Open image viewer
+                      setViewerAlbum({
+                        id: 0,
+                        title: photobook.name,
+                        photographer: '',
+                        photographerAvatar: '',
+                        category: '',
+                        date: '',
+                        receivedDate: '',
+                        thumbnail: photobook.thumbnail || '',
+                        photoCount: photobook.images.length,
+                        downloadedCount: 0,
+                        favoriteCount: 0,
+                        images: photobook.images.map(img => img.url)
+                      });
+                      setCurrentImageIndex(index);
+                      setShowImageViewer(true);
+                      setShowPhotobookModal(false);
+                    }}
+                  >
+                    <Image src={image.url} alt={`Image ${index + 1}`} fill style={{ objectFit: 'cover' }} />
+                    <div style={{
+                      position: 'absolute',
+                      bottom: '0.5rem',
+                      left: '0.5rem',
+                      right: '0.5rem',
+                      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                      color: 'white',
+                      padding: '0.25rem 0.5rem',
+                      borderRadius: '0.25rem',
+                      fontSize: '0.7rem'
+                    }}>
+                      From: {image.sourceAlbumTitle}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Notification Modal */}
+      {notificationModal.show && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '1rem'
+          }}
+          onClick={() => setNotificationModal({ ...notificationModal, show: false })}
+        >
+          <div
+            style={{
+              backgroundColor: colors.bgCard,
+              borderRadius: '1rem',
+              padding: '1.5rem',
+              width: '400px',
+              maxWidth: '90%',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Icon */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+              <div style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '50%',
+                backgroundColor: notificationModal.type === 'success' ? '#DCFCE7' :
+                                 notificationModal.type === 'error' ? '#FEE2E2' :
+                                 notificationModal.type === 'warning' ? '#FEF3C7' : '#DBEAFE',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                {notificationModal.type === 'success' && (
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2.5">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                )}
+                {notificationModal.type === 'error' && (
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2.5">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="15" y1="9" x2="9" y2="15"></line>
+                    <line x1="9" y1="9" x2="15" y2="15"></line>
+                  </svg>
+                )}
+                {notificationModal.type === 'warning' && (
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2.5">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                  </svg>
+                )}
+                {notificationModal.type === 'info' && (
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2.5">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                  </svg>
+                )}
+              </div>
+            </div>
+
+            <h3 style={{ fontSize: '1.15rem', fontWeight: '600', color: colors.textPrimary, margin: 0, marginBottom: '0.5rem', textAlign: 'center' }}>
+              {notificationModal.title}
+            </h3>
+            <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: 0, marginBottom: '1.25rem', textAlign: 'center', lineHeight: '1.5' }}>
+              {notificationModal.message}
+            </p>
+            <button
+              onClick={() => setNotificationModal({ ...notificationModal, show: false })}
+              style={{
+                width: '100%',
+                padding: '0.75rem 1rem',
+                borderRadius: '0.5rem',
+                border: '2px solid #062a63',
+                backgroundColor: '#083A85',
+                color: 'white',
+                fontSize: '0.95rem',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {confirmationModal.show && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '1rem'
+          }}
+          onClick={() => setConfirmationModal({ ...confirmationModal, show: false })}
+        >
+          <div
+            style={{
+              backgroundColor: colors.bgCard,
+              borderRadius: '1rem',
+              padding: '1.5rem',
+              width: '420px',
+              maxWidth: '90%',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Warning Icon */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+              <div style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '50%',
+                backgroundColor: '#FEE2E2',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2.5">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+              </div>
+            </div>
+
+            <h3 style={{ fontSize: '1.15rem', fontWeight: '600', color: colors.textPrimary, margin: 0, marginBottom: '0.5rem', textAlign: 'center' }}>
+              {confirmationModal.title}
+            </h3>
+            <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: 0, marginBottom: '1.5rem', textAlign: 'center', lineHeight: '1.5' }}>
+              {confirmationModal.message}
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                onClick={() => setConfirmationModal({ ...confirmationModal, show: false })}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem 1rem',
+                  borderRadius: '0.5rem',
+                  border: `2px solid ${colors.borderPrimary}`,
+                  backgroundColor: colors.bgCard,
+                  color: colors.textPrimary,
+                  fontSize: '0.95rem',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmationModal.onConfirm}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem 1rem',
+                  borderRadius: '0.5rem',
+                  border: '2px solid #DC2626',
+                  backgroundColor: '#DC2626',
+                  color: 'white',
+                  fontSize: '0.95rem',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                Confirm
               </button>
             </div>
           </div>

@@ -1014,7 +1014,7 @@ const PhotographerEventsPage = () => {
         setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], error: msg } }));
       } else {
         // Stream permanently ended — credentials cleared by backend
-        setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'ended', serverUrl: undefined, streamKey: undefined } }));
+        setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], connectionStatus: 'ended', whipUrl: undefined, whepUrl: undefined } }));
         setEvents(prev => prev.map(e => e.id === eventId ? { ...e, status: 'completed' as EventStatus } : e));
       }
     } catch (err) {
@@ -1029,7 +1029,7 @@ const PhotographerEventsPage = () => {
     const eventId = selectedEvent.id;
     const poll = async () => {
       try {
-        // Fetch stream config for RTMP credentials + connection status
+        // Fetch stream config for WHIP/WHEP credentials + connection status
         const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/events/${eventId}/stream/config`);
         if (res.ok) {
           const data = await res.json();
