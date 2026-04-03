@@ -819,7 +819,7 @@ export default function StreamPreview({
         </div>
       )}
 
-      {/* OBS guide shown inline when credentials are available */}
+      {/* Encoder Guide removed — OBS steps shown inline above Get RTMP button */}
 
       {/* Error */}
       {error && (
