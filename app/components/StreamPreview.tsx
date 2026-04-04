@@ -24,6 +24,7 @@ interface StreamPreviewProps {
   onResumeStream: () => void;
   onPauseStream: () => void;
   onEndStream: () => void;
+  onResetStream?: () => void;
   theme: 'light' | 'dark';
   colors: {
     bgCard: string;
@@ -125,6 +126,7 @@ export default function StreamPreview({
   onResumeStream,
   onPauseStream,
   onEndStream,
+  onResetStream,
   theme,
   colors,
 }: StreamPreviewProps) {
@@ -898,7 +900,7 @@ export default function StreamPreview({
         </div>
       )}
 
-      {/* Ended state message */}
+      {/* Ended state message + Reset option */}
       {isEnded && (
         <div style={{
           backgroundColor: isDark ? 'rgba(107,114,128,0.1)' : '#F9FAFB',
@@ -907,8 +909,19 @@ export default function StreamPreview({
           padding: '1rem',
           textAlign: 'center',
         }}>
-          <div style={{ fontSize: '0.85rem', fontWeight: 600, color: colors.textPrimary, marginBottom: '0.25rem' }}>Stream Completed</div>
-          <div style={{ fontSize: '0.73rem', color: colors.textSecondary }}>This stream has ended permanently. You can close this window.</div>
+          <div style={{ fontSize: '0.85rem', fontWeight: 600, color: colors.textPrimary, marginBottom: '0.25rem' }}>Stream Ended</div>
+          <div style={{ fontSize: '0.73rem', color: colors.textSecondary, marginBottom: onResetStream ? '0.75rem' : 0 }}>
+            This stream has ended. {onResetStream ? 'You can restart with a fresh connection.' : 'You can close this window.'}
+          </div>
+          {onResetStream && (
+            <button onClick={onResetStream} style={{
+              ...actionBtn('#0EA5E9'),
+              fontSize: '0.8rem',
+              padding: '0.55rem 1rem',
+            }}>
+              <BroadcastIcon /> Reset &amp; Restart Stream
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -1077,10 +1090,10 @@ export default function StreamPreview({
               <WarningIcon />
             </div>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
-              End Stream Permanently?
+              End Stream?
             </h3>
             <p style={{ fontSize: '0.82rem', color: colors.textSecondary, lineHeight: '1.5', margin: '0 0 1.25rem 0' }}>
-              This will <strong style={{ color: '#DC2626' }}>permanently end</strong> the live stream for <strong style={{ color: colors.textPrimary }}>{eventTitle}</strong>. All viewers will be disconnected and the stream cannot be resumed or restarted.
+              This will <strong style={{ color: '#DC2626' }}>end</strong> the live stream for <strong style={{ color: colors.textPrimary }}>{eventTitle}</strong>. All viewers will be disconnected. You can restart the stream later using Reset &amp; Restart.
             </p>
             <div style={{ display: 'flex', gap: '0.75rem' }}>
               <button
