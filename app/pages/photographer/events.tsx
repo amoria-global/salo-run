@@ -1022,6 +1022,36 @@ const PhotographerEventsPage = () => {
     }
   };
 
+  const handleResetStream = async (eventId: string) => {
+    try {
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/events/${eventId}/stream/reset`, { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        const sData = data.data || data;
+        setStreamConfigs(prev => ({
+          ...prev,
+          [eventId]: {
+            ...prev[eventId],
+            eventId,
+            whipUrl: sData.whipUrl || '',
+            whepUrl: sData.whepUrl || '',
+            connectionStatus: 'disconnected',
+            streamHealth: 'unknown' as StreamConfig['streamHealth'],
+            uploadSpeed: '0 Mbps',
+            viewerCount: 0,
+            peakViewers: 0,
+            error: undefined,
+          }
+        }));
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], error: err.message || 'Failed to reset stream.' } }));
+      }
+    } catch {
+      setStreamConfigs(prev => ({ ...prev, [eventId]: { ...prev[eventId], error: 'Failed to reset stream. Please try again.' } }));
+    }
+  };
+
   // Poll stream config every 5s when stream preview or setup modal is open
   useEffect(() => {
     if (!selectedEvent) return;
@@ -2333,6 +2363,7 @@ const PhotographerEventsPage = () => {
           onResumeStream={() => handleResumeStream(selectedEvent.id)}
           onPauseStream={() => handlePauseStream(selectedEvent.id)}
           onEndStream={() => handleEndStream(selectedEvent.id)}
+          onResetStream={() => handleResetStream(selectedEvent.id)}
           theme={actualTheme as 'light' | 'dark'}
           colors={colors}
         />
