@@ -81,6 +81,7 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
   const [isVerifying, setIsVerifying] = useState(false);
   const [capturedSelfie, setCapturedSelfie] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [isResending, setIsResending] = useState(false);
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const apiNamespace = role === 'client' ? 'customer' : role === 'photographer' ? 'photographer' : 'coordinator';
@@ -93,7 +94,7 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
     setStep('form'); setError(''); setWithdrawAmount(''); setDonationAmount(''); setCustomDonation('');
     setDonationSkipped(false); setShowCustomInput(false); setAccountsLoading(true);
     setVerificationId(''); setVerificationMethod(''); setOtpDigits(['', '', '', '', '', '']);
-    setVerificationError(''); setCapturedSelfie(null); setResendCooldown(0);
+    setVerificationError(''); setCapturedSelfie(null); setResendCooldown(0); setIsResending(false);
     const apiUrl = getApiUrl();
 
     dashboardAuthFetch(`${apiUrl}/api/remote/${apiNamespace}/withdrawal-methods`)
@@ -240,18 +241,30 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
       // Verification succeeded - process payout
       setStep('processing');
       const transactionId = result.data?.transactionId || result.data?.id;
-      if (transactionId) {
+      if (!transactionId) {
+        setError('Withdrawal could not be completed: missing transaction reference. Please contact support.');
+        setStep('failed');
+        setIsVerifying(false);
+        return;
+      }
+      try {
         const payoutResult = await processWithdrawal(String(transactionId));
         setStep(payoutResult.success ? 'success' : 'failed');
         if (!payoutResult.success) setError(payoutResult.error || 'Payout processing failed.');
-      } else { setStep('success'); }
-    } catch { setVerificationError('Network error. Please try again.'); }
+      } catch {
+        setError('Network error while processing payout. Please try again.');
+        setStep('failed');
+      }
+    } catch {
+      setVerificationError('Network error. Please try again.');
+    }
     setIsVerifying(false);
   };
 
   // Resend OTP
   const handleResendOtp = async () => {
-    if (resendCooldown > 0) return;
+    if (resendCooldown > 0 || isResending) return;
+    setIsResending(true);
     try {
       const apiUrl = getApiUrl();
       const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${apiNamespace}/withdraw/resend-otp`, {
@@ -268,6 +281,7 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
         setVerificationError(result.message || 'Failed to resend code.');
       }
     } catch { setVerificationError('Failed to resend code.'); }
+    setIsResending(false);
   };
 
   // OTP input handling
@@ -509,10 +523,11 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
                         Resend code in {resendCooldown}s
                       </span>
                     ) : (
-                      <button onClick={handleResendOtp} style={{
+                      <button onClick={handleResendOtp} disabled={isResending} style={{
                         fontSize: '0.8rem', color: '#083A85', background: 'none', border: 'none',
-                        cursor: 'pointer', textDecoration: 'underline', fontWeight: '500',
-                      }}>Resend verification code</button>
+                        cursor: isResending ? 'not-allowed' : 'pointer', textDecoration: 'underline',
+                        fontWeight: '500', opacity: isResending ? 0.6 : 1,
+                      }}>{isResending ? 'Sending…' : 'Resend verification code'}</button>
                     )}
                   </div>
                 </div>
