@@ -10,7 +10,7 @@ import KycBadge from '../../components/KycBadge';
 import KycVerificationModal from '../../components/KycVerificationModal';
 import { useTheme } from '../../context/ThemeContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
-import { getApiUrl, normalizeImageUrl } from '@/lib/api';
+import { getApiUrl, normalizeImageUrl, autoCapitalize, capitalizeWords } from '@/lib/api';
 import { getPlatformConfig } from '@/lib/platformConfig';
 
 // Configure localforage for profile form data
@@ -547,12 +547,12 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         method: isExisting ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          packageName: pkg.packageName,
+          packageName: capitalizeWords(pkg.packageName),
           price: parseFloat(pkg.price) || 0,
           currencyId: resolvedCurrencyId,
           priceUnit: pkg.priceUnit,
           durationHours: parseFloat(pkg.durationHours) || 0,
-          description: pkg.description,
+          description: autoCapitalize(pkg.description),
           isActive: pkg.isActive,
           hasLiveStream: pkg.hasLiveStream,
           includedPhotos: parseInt(pkg.includedPhotos) || 0,
@@ -667,7 +667,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     }
     setIsSavingAll(true);
     try {
-      const [firstName, ...rest] = basicInfo.fullName.trim().split(' ');
+      const [firstName, ...rest] = capitalizeWords(basicInfo.fullName.trim()).split(' ');
       const lastName = rest.join(' ');
       const success = await saveImportantDetailsToAPI({
         firstName: firstName || '',
@@ -675,10 +675,10 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         phone: basicInfo.phoneCode && basicInfo.phoneNumber
           ? `${basicInfo.phoneCode}${basicInfo.phoneNumber.replace(/\s/g, '')}`
           : undefined,
-        about: overviewData.about,
-        address: basicInfo.address,
+        about: autoCapitalize(overviewData.about),
+        address: capitalizeWords(basicInfo.address),
         specialtyIds: overviewData.specialties,
-        professionalPhilosophy: portfolioData.beliefs,
+        professionalPhilosophy: autoCapitalize(portfolioData.beliefs),
       });
       if (success) {
         showToast('success', 'Profile saved successfully!');
@@ -1340,11 +1340,11 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          degree: edu.degree,
-          institution: edu.institution,
+          degree: capitalizeWords(edu.degree),
+          institution: capitalizeWords(edu.institution),
           startDate: edu.fromYear ? `${edu.fromYear}-01-01` : '',
           endDate: edu.toYear === 'Present' ? '' : (edu.toYear ? `${edu.toYear}-01-01` : ''),
-          description: edu.description || '',
+          description: autoCapitalize(edu.description || ''),
         }),
       });
 
@@ -1390,10 +1390,10 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: training.name,
-          institution: training.issuer || '',
+          title: capitalizeWords(training.name),
+          institution: capitalizeWords(training.issuer || ''),
           yearObtained: training.year || '',
-          description: training.description || '',
+          description: autoCapitalize(training.description || ''),
           type: type,
         }),
       });
@@ -1440,7 +1440,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: skill.name,
+          name: capitalizeWords(skill.name),
           skillPercentage: skill.level,
         }),
       });
@@ -1487,7 +1487,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: name,
+          name: capitalizeWords(name),
         }),
       });
 
@@ -1720,8 +1720,8 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       const apiUrl = getApiUrl();
       const formData = new FormData();
       formData.append('requestDTO', new Blob([JSON.stringify({
-        title: project.title,
-        description: project.description || '',
+        title: capitalizeWords(project.title),
+        description: autoCapitalize(project.description || ''),
         year: parseInt(project.year) || new Date().getFullYear(),
       })], { type: 'application/json' }));
 
@@ -1893,12 +1893,12 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          position: exp.position,
-          company: exp.company,
-          location: exp.location || '',
+          position: capitalizeWords(exp.position),
+          company: capitalizeWords(exp.company),
+          location: capitalizeWords(exp.location || ''),
           startDate: exp.startDate ? `${exp.startDate}-01-01` : '',
           endDate: exp.endDate === 'Present' ? '' : (exp.endDate ? `${exp.endDate}-01-01` : ''),
-          description: exp.description || '',
+          description: autoCapitalize(exp.description || ''),
         }),
       });
       if (!response.ok) return false;
