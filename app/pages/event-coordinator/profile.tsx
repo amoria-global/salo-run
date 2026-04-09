@@ -7,7 +7,7 @@ import CountrySelect, { eastAfricanCountries } from '../../components/CountrySel
 import { useTheme } from '../../context/ThemeContext';
 import { useUserProfile } from '../../context/UserProfileContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
-import { getApiUrl } from '@/lib/api';
+import { getApiUrl, autoCapitalize, capitalizeWords } from '@/lib/api';
 import { getPlatformConfig } from '@/lib/platformConfig';
 import KycBadge from '../../components/KycBadge';
 import KycVerificationModal from '../../components/KycVerificationModal';
@@ -154,18 +154,18 @@ const ProfilePage = () => {
     setIsSaving(true);
     try {
       const apiUrl = getApiUrl();
-      const [firstName, ...lastParts] = formData.fullName.trim().split(' ');
+      const [firstName, ...lastParts] = capitalizeWords(formData.fullName.trim()).split(' ');
       const lastName = lastParts.join(' ');
 
       const payload: CoordinatorProfilePayload = {
         firstName: firstName || '',
         lastName: lastName || '',
         phone: `${formData.phoneCode}${formData.phoneNumber.replace(/\s/g, '')}`,
-        address,
-        organizationName: formData.organizationName,
-        businessType: formData.businessType,
+        address: capitalizeWords(address),
+        organizationName: capitalizeWords(formData.organizationName || ''),
+        businessType: capitalizeWords(formData.businessType || ''),
         taxId: formData.taxId,
-        businessAddress: formData.businessAddress,
+        businessAddress: capitalizeWords(formData.businessAddress || ''),
         website: formData.website,
       };
 
