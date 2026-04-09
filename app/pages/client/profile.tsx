@@ -7,7 +7,7 @@ import CountrySelect, { eastAfricanCountries } from '../../components/CountrySel
 import { useTheme } from '../../context/ThemeContext';
 import { useUserProfile } from '../../context/UserProfileContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
-import { getApiUrl } from '@/lib/api';
+import { getApiUrl, capitalizeWords } from '@/lib/api';
 import { getPlatformConfig } from '@/lib/platformConfig';
 import KycBadge from '../../components/KycBadge';
 import KycVerificationModal from '../../components/KycVerificationModal';
@@ -108,16 +108,17 @@ const ProfilePage = () => {
     setIsSaving(true);
     try {
       const apiUrl = getApiUrl();
-      const nameParts = formData.fullName.trim().split(/\s+/);
+      const nameParts = capitalizeWords(formData.fullName.trim()).split(/\s+/);
       const firstName = nameParts[0] || '';
       const lastName = nameParts.slice(1).join(' ') || '';
       const phone = `${formData.phoneCode}${formData.phoneNumber.replace(/\s/g, '')}`;
+      const capitalizedAddress = capitalizeWords(address);
 
       const params = new URLSearchParams();
       if (firstName) params.append('firstName', firstName);
       if (lastName) params.append('lastName', lastName);
       if (phone) params.append('phone', phone);
-      if (address) params.append('address', address);
+      if (capitalizedAddress) params.append('address', capitalizedAddress);
 
       const response = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/profile?${params.toString()}`, {
         method: 'PUT',

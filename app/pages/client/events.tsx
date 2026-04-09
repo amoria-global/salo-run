@@ -10,7 +10,7 @@ import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { StatCard } from '../../components/dashboard/StatCard';
-import { getApiUrl, normalizeImageUrl } from '@/lib/api';
+import { getApiUrl, normalizeImageUrl, autoCapitalize, capitalizeWords } from '@/lib/api';
 
 function parseTimeToApiString(timeStr: string): string {
   const [hours, minutes] = timeStr.split(':').map(Number);
@@ -1116,14 +1116,14 @@ const MyEventsPage = () => {
       const apiUrl = getApiUrl();
       const editNumericPrice = editPrice.replace(/[^\d]/g, '');
       const editPayload: Record<string, unknown> = {
-        title: editTitle,
-        description: editDescription,
+        title: capitalizeWords(editTitle),
+        description: autoCapitalize(editDescription),
         eventType: editCategory,
         eventDate: editDate,
         startTime: editTime ? parseTimeToApiString(editTime) : null,
         endTime: editEndTime ? parseTimeToApiString(editEndTime) : null,
-        location: [editVenueName, editAddress, editCity, editCountry].filter(Boolean).join(', '),
-        eventOrganizer: editOrganizer,
+        location: capitalizeWords([editVenueName, editAddress, editCity, editCountry].filter(Boolean).join(', ')),
+        eventOrganizer: capitalizeWords(editOrganizer),
         eventTags: editTags.length > 0 ? editTags.join(',') : editCategory,
         price: editNumericPrice ? Number(editNumericPrice) : 0,
         priceCurrency: editPriceCurrency || 'RWF',
@@ -1369,14 +1369,14 @@ const MyEventsPage = () => {
         const numericPrice = createPrice.replace(/[^\d]/g, '');
 
         const payload: Record<string, unknown> = {
-          title: createTitle,
-          description: createDescription || '',
+          title: capitalizeWords(createTitle),
+          description: autoCapitalize(createDescription || ''),
           eventType: createCategory,
           startTime: parseTimeToApiString(createTime),
           endTime: createEndTime ? parseTimeToApiString(createEndTime) : parseTimeToApiString(createTime),
           eventDate: createDate,
-          location: locationStr,
-          eventOrganizer: createOrganizer || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Organizer',
+          location: capitalizeWords(locationStr),
+          eventOrganizer: capitalizeWords(createOrganizer || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Organizer'),
           eventVisibility: createEventVisibility || 'PUBLIC',
           eventTags: tagsStr,
           price: numericPrice ? Number(numericPrice) : 0,
