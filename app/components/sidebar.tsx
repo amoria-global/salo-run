@@ -8,7 +8,7 @@ import { useTheme } from "../context/ThemeContext";
 import { useDashboardAuth, dashboardAuthFetch } from "../providers/AuthProvider";
 import { getLandingUrl } from "@/lib/urls";
 
-type UserRole = "photographer" | "client" | "event-coordinator";
+type UserRole = "photographer" | "client" | "event-coordinator" | "admin";
 
 interface NavigationItem {
   name: string;
@@ -25,6 +25,7 @@ const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
     { name: "Home", href: "/user/photographer/dashboard", icon: "bi-house" },
     { name: "Notifications", href: "/user/photographer/notifications", icon: "bi-bell" },
     { name: "Transactions", href: "/user/photographer/transaction", icon: "bi-arrow-repeat" },
+    { name: "Wallet", href: "/user/photographer/wallet", icon: "bi-wallet2" },
     { name: "Events", href: "/user/photographer/events", icon: "bi-calendar-event" },
     { name: "Inbox", href: "/user/photographer/inbox", icon: "bi-chat-dots" },
     { name: "Clients", href: "/user/photographer/clients", icon: "bi-people" },
@@ -37,6 +38,7 @@ const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
     { name: "Gallery", href: "/user/client/gallery", icon: "bi-image" },
     { name: "Photographers", href: "/user/client/photographers", icon: "bi-camera" },
     { name: "Payments", href: "/user/client/payments", icon: "bi-credit-card" },
+    { name: "Wallet", href: "/user/client/wallet", icon: "bi-wallet2" },
     { name: "Inbox", href: "/user/client/inbox", icon: "bi-chat-dots" },
   ],
   "event-coordinator": [
@@ -47,7 +49,11 @@ const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
     { name: "Gallery", href: "/user/event-coordinator/gallery", icon: "bi-image" },
     { name: "Photographers", href: "/user/event-coordinator/photographers", icon: "bi-camera" },
     { name: "Payments", href: "/user/event-coordinator/payments", icon: "bi-credit-card" },
+    { name: "Wallet", href: "/user/event-coordinator/wallet", icon: "bi-wallet2" },
     { name: "Inbox", href: "/user/event-coordinator/inbox", icon: "bi-chat-dots" },
+  ],
+  admin: [
+    { name: "Wallets", href: "/user/admin/wallets", icon: "bi-wallet2" },
   ],
 };
 
@@ -65,6 +71,10 @@ const getBottomNavigationItems = (role: UserRole): NavigationItem[] => {
       { name: "Preferences", href: "/user/event-coordinator/preferences", icon: "bi-sliders" },
       { name: "Logout", href: "/", icon: "bi-box-arrow-right" },
     ];
+  } else if (role === "admin") {
+    return [
+      { name: "Logout", href: "/", icon: "bi-box-arrow-right" },
+    ];
   } else {
     return [
       { name: "Profile", href: "/user/client/profile", icon: "bi-person" },
@@ -76,6 +86,9 @@ const getBottomNavigationItems = (role: UserRole): NavigationItem[] => {
 
 // Function to detect role from pathname
 const detectRoleFromPath = (pathname: string | null): UserRole => {
+  if (pathname && pathname.includes("/user/admin")) {
+    return "admin";
+  }
   if (pathname && pathname.includes("/user/photographer")) {
     return "photographer";
   }
