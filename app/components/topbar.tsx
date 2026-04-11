@@ -143,6 +143,9 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
   const [selfBalanceAmount, setSelfBalanceAmount] = useState(0);
   const [selfTipsAmount, setSelfTipsAmount] = useState(0);
   const [selfBonusAmount, setSelfBonusAmount] = useState(0);
+  // Canonical wallet snapshot (applies to all non-admin roles).
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [walletStatus, setWalletStatus] = useState<'ACTIVE' | 'SUSPENDED' | 'CLOSED' | null>(null);
   const [pendingPaymentWarning, setPendingPaymentWarning] = useState<{count: number; totalAmount: number; firstEvent: string; firstEventId?: string; firstPaymentId?: string} | null>(null);
   const [showPayNowModal, setShowPayNowModal] = useState(false);
   const [topbarPayment, setTopbarPayment] = useState<Payment | null>(null);
@@ -189,6 +192,36 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
     if (!token) return;
     const apiUrl = getApiUrl();
     try {
+      // Unified wallet snapshot for every authenticated non-admin role.
+      // This is the canonical source of truth — role-specific legacy endpoints
+      // below remain only as fallbacks for fields the wallet does not expose.
+      if (userRole !== 'admin') {
+        try {
+          const walletRes = await dashboardAuthFetch(`${apiUrl}/api/remote/wallet/me`, { method: 'GET' });
+          if (walletRes.ok) {
+            const walletJson = await walletRes.json();
+            if (walletJson.action === 1 && walletJson.data) {
+              const w = walletJson.data;
+              setWalletBalance(w.balanceAvailable ?? 0);
+              setWalletStatus(w.status ?? null);
+              // Feed role-specific self-* slots directly from the wallet so
+              // the existing topbar pills pick up authoritative numbers.
+              if (userRole === 'photographer') {
+                if (balanceAmount === undefined) setSelfBalanceAmount(w.balanceAvailable ?? 0);
+                if (tipsAmount === undefined) setSelfTipsAmount(w.balanceTips ?? 0);
+                if (bonusAmount === undefined) setSelfBonusAmount(w.balanceBonuses ?? 0);
+              } else if (userRole === 'event-coordinator') {
+                if (liveStreamFeeAmount === undefined) setSelfLiveStreamFee(w.balanceStreamFees ?? 0);
+              } else if (userRole === 'client') {
+                if (giftAmountProp === undefined) setGiftAmount(w.balanceGifts ?? 0);
+              }
+            }
+          }
+        } catch {
+          // silent — the legacy endpoints below still run as a safety net
+        }
+      }
+
       if (userRole === 'event-coordinator') {
         if (liveStreamFeeAmount === undefined) {
           const res = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/balance`, { method: 'GET' });
@@ -915,6 +948,39 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
             </div>
           )}
         </div>
+
+        {/* Wallet pill — shown for client / event-coordinator (photographer has its own Balance display below) */}
+        {(userRole === 'client' || userRole === 'event-coordinator') && walletBalance !== null && (
+          <div className="topbar-wallet" style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+          }}>
+            <i className="bi bi-wallet2" style={{ color: colors.textSecondary, fontSize: '1rem' }}></i>
+            <span style={{
+              fontSize: '1.12rem',
+              lineHeight: '1.5rem',
+              fontWeight: 600,
+              color: colors.textPrimary,
+            }}>Wallet:</span>
+            <span style={{
+              fontSize: '1.15rem',
+              lineHeight: '1.5rem',
+              fontWeight: 700,
+              color: walletBalance > 0 ? colors.brandPrimary : colors.textSecondary,
+            }}>${walletBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            {walletStatus === 'SUSPENDED' && (
+              <span style={{
+                padding: '2px 8px',
+                borderRadius: 9999,
+                fontSize: '0.65rem',
+                fontWeight: 700,
+                backgroundColor: '#FEE2E2',
+                color: '#991B1B',
+              }}>SUSPENDED</span>
+            )}
+          </div>
+        )}
 
         {/* Balance - Shows for photographer only */}
         {userRole === 'photographer' && (
