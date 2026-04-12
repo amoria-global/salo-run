@@ -193,8 +193,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
     const apiUrl = getApiUrl();
     try {
       // Unified wallet snapshot for every authenticated non-admin role.
-      // This is the canonical source of truth — role-specific legacy endpoints
-      // below remain only as fallbacks for fields the wallet does not expose.
+      // This is the canonical source of truth for all balance displays.
       if (userRole !== 'admin') {
         try {
           const walletRes = await dashboardAuthFetch(`${apiUrl}/api/remote/wallet/me`, { method: 'GET' });
@@ -204,55 +203,21 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
               const w = walletJson.data;
               setWalletBalance(w.balanceAvailable ?? 0);
               setWalletStatus(w.status ?? null);
-              // Feed role-specific self-* slots directly from the wallet so
-              // the existing topbar pills pick up authoritative numbers.
+              // Feed role-specific self-* slots directly from the wallet —
+              // this is the canonical source of truth, always takes priority.
               if (userRole === 'photographer') {
-                if (balanceAmount === undefined) setSelfBalanceAmount(w.balanceAvailable ?? 0);
-                if (tipsAmount === undefined) setSelfTipsAmount(w.balanceTips ?? 0);
-                if (bonusAmount === undefined) setSelfBonusAmount(w.balanceBonuses ?? 0);
+                setSelfBalanceAmount(w.balanceAvailable ?? 0);
+                setSelfTipsAmount(w.balanceTips ?? 0);
+                setSelfBonusAmount(w.balanceBonuses ?? 0);
               } else if (userRole === 'event-coordinator') {
-                if (liveStreamFeeAmount === undefined) setSelfLiveStreamFee(w.balanceStreamFees ?? 0);
+                setSelfLiveStreamFee(w.balanceStreamFees ?? 0);
               } else if (userRole === 'client') {
-                if (giftAmountProp === undefined) setGiftAmount(w.balanceGifts ?? 0);
+                setGiftAmount(w.balanceGifts ?? 0);
               }
             }
           }
         } catch {
-          // silent — the legacy endpoints below still run as a safety net
-        }
-      }
-
-      if (userRole === 'event-coordinator') {
-        if (liveStreamFeeAmount === undefined) {
-          const res = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/balance`, { method: 'GET' });
-          if (res.ok) {
-            const data = await res.json();
-            if (data.action === 1 && data.data) {
-              setSelfLiveStreamFee(data.data.totalEarnings ?? 0);
-            }
-          }
-        }
-      } else if (userRole === 'photographer') {
-        if (balanceAmount === undefined || tipsAmount === undefined || bonusAmount === undefined) {
-          const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/balance`, { method: 'GET' });
-          if (res.ok) {
-            const data = await res.json();
-            if (data.action === 1 && data.data) {
-              if (balanceAmount === undefined) setSelfBalanceAmount(Math.max(0, data.data.withdrawableBalance ?? data.data.availableBalance ?? data.data.totalPaid ?? 0));
-              if (tipsAmount === undefined) setSelfTipsAmount(data.data.totalTips ?? 0);
-              if (bonusAmount === undefined) setSelfBonusAmount(data.data.totalBonuses ?? data.data.bonus ?? 0);
-            }
-          }
-        }
-      } else {
-        if (giftAmountProp === undefined) {
-          const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/analytics`, { method: 'GET' });
-          if (res.ok) {
-            const data = await res.json();
-            if (data.action === 1 && data.data) {
-              setGiftAmount(data.data.gifts ?? 0);
-            }
-          }
+          // silent fail
         }
       }
 
@@ -280,11 +245,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
     } catch {
       // silent fail
     }
-  }, [token, userRole, giftAmountProp, liveStreamFeeAmount, balanceAmount, tipsAmount, bonusAmount]);
-
-  useEffect(() => {
-    if (giftAmountProp !== undefined) setGiftAmount(giftAmountProp);
-  }, [giftAmountProp]);
+  }, [token, userRole]);
 
   useEffect(() => {
     fetchNotifications();
@@ -999,8 +960,8 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
               fontSize: '1.15rem',
               lineHeight: '1.5rem',
               fontWeight: '700',
-              color: (balanceAmount ?? selfBalanceAmount) > 0 ? colors.brandPrimary : colors.textSecondary
-            }}>{formatPrice(balanceAmount ?? selfBalanceAmount)}</span>
+              color: (selfBalanceAmount) > 0 ? colors.brandPrimary : colors.textSecondary
+            }}>{formatPrice(selfBalanceAmount)}</span>
           </div>
         )}
 
@@ -1021,8 +982,8 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
               fontSize: '1.15rem',
               lineHeight: '1.5rem',
               fontWeight: '600',
-              color: (tipsAmount ?? selfTipsAmount) > 0 ? '#F59E0B' : colors.textSecondary
-            }}>{formatPrice(tipsAmount ?? selfTipsAmount)}</span>
+              color: (selfTipsAmount) > 0 ? '#F59E0B' : colors.textSecondary
+            }}>{formatPrice(selfTipsAmount)}</span>
           </div>
         )}
 
@@ -1045,13 +1006,13 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
             color: userRole === 'client'
               ? (giftAmount > 0 ? colors.statusSuccess : colors.brandPrimary)
               : userRole === 'event-coordinator'
-                ? ((liveStreamFeeAmount ?? selfLiveStreamFee) > 0 ? colors.statusSuccess : colors.brandPrimary)
-                : ((bonusAmount ?? selfBonusAmount) > 0 ? colors.statusSuccess : colors.brandPrimary)
+                ? ((selfLiveStreamFee) > 0 ? colors.statusSuccess : colors.brandPrimary)
+                : ((selfBonusAmount) > 0 ? colors.statusSuccess : colors.brandPrimary)
           }}>{formatPrice(userRole === 'client'
             ? giftAmount
             : userRole === 'event-coordinator'
-              ? (liveStreamFeeAmount ?? selfLiveStreamFee)
-              : (bonusAmount ?? selfBonusAmount))}</span>
+              ? (selfLiveStreamFee)
+              : (selfBonusAmount))}</span>
         </div>
 
         {/* Profile with Dropdown */}
@@ -1121,8 +1082,8 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
                 }}>{formatPrice(userRole === 'client'
                   ? giftAmount
                   : userRole === 'event-coordinator'
-                    ? (liveStreamFeeAmount ?? selfLiveStreamFee)
-                    : (balanceAmount ?? selfBalanceAmount))}</span>
+                    ? (selfLiveStreamFee)
+                    : (selfBalanceAmount))}</span>
                 <i style={{
                   fontSize: '0.75rem',
                   lineHeight: '1rem',
