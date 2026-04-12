@@ -206,7 +206,6 @@ interface PhotographerProfilePageProps {
 const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProfilePageProps) => {
   const { colors, actualTheme } = useTheme();
   const { token, user, refreshUserProfile } = useDashboardAuth();
-  const [balance, setBalance] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'portfolio' | 'experience' | 'packages'>('overview');
   const [savingEducation, setSavingEducation] = useState<string | null>(null);
   const [savingTraining, setSavingTraining] = useState<string | null>(null);
@@ -1056,22 +1055,6 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   useEffect(() => {
     fetchPendingChanges();
   }, [fetchPendingChanges]);
-
-  // Fetch balance for Topbar
-  useEffect(() => {
-    if (!token) return;
-    const fetchBalance = async () => {
-      try {
-        const apiUrl = getApiUrl();
-        const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/balance`);
-        const result = await res.json().catch(() => null);
-        if (result?.data) setBalance(result.data);
-      } catch (error) {
-        console.error('Failed to fetch balance:', error);
-      }
-    };
-    fetchBalance();
-  }, [token]);
 
   // Calculate profile completion percentage
   const profileCompletion = useMemo(() => {
@@ -2445,7 +2428,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         flexDirection: 'column',
         overflow: 'hidden'
       }}>
-        <Topbar userRole="photographer" tipsAmount={balance?.totalTips || 0} bonusAmount={balance?.totalBonuses || 0} balanceAmount={balance?.availableBalance || 0} />
+        <Topbar userRole="photographer" />
 
         <div className="mobile-main-content" style={{
           flex: 1,

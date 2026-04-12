@@ -119,16 +119,12 @@ const Notifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [activeFilter, setActiveFilter] = useState<'all' | NotificationType>('all');
   const [loading, setLoading] = useState(true);
-  const [balance, setBalance] = useState<any>(null);
 
   // Fetch notifications from API
   const fetchNotifications = useCallback(async () => {
     try {
       const apiUrl = getApiUrl();
-      const [notifRes, balRes] = await Promise.all([
-        dashboardAuthFetch(`${apiUrl}/api/remote/photographer/notifications?page=0&size=50`),
-        balance ? Promise.resolve(null) : dashboardAuthFetch(`${apiUrl}/api/remote/photographer/balance`),
-      ]);
+      const notifRes = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/notifications?page=0&size=50`);
 
       if (notifRes && notifRes.ok) {
         const data = await notifRes.json();
@@ -146,13 +142,6 @@ const Notifications = () => {
             actionUrl: n.link || undefined,
             referenceId: n.referenceId || undefined,
           })));
-        }
-      }
-
-      if (balRes && balRes.ok) {
-        const data = await balRes.json();
-        if (data.action === 1 && data.data) {
-          setBalance(data.data);
         }
       }
     } catch (err) {
@@ -484,7 +473,7 @@ const Notifications = () => {
         <Sidebar />
 
         <div className="notifications-content">
-          <Topbar userRole="photographer" tipsAmount={balance?.totalTips || 0} bonusAmount={balance?.totalBonuses || 0} balanceAmount={balance?.availableBalance || 0} />
+          <Topbar userRole="photographer" />
 
           <div className="notifications-main">
           {/* Header */}

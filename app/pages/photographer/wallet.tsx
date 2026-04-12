@@ -39,12 +39,7 @@ export default function PhotographerWalletPage() {
     <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar
-          userRole="photographer"
-          balanceAmount={wallet?.balanceAvailable ?? 0}
-          tipsAmount={wallet?.balanceTips ?? 0}
-          bonusAmount={wallet?.balanceBonuses ?? 0}
-        />
+        <Topbar userRole="photographer" />
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
           <div style={{ marginBottom: '1.5rem' }}>

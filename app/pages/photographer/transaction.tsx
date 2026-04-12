@@ -6,10 +6,12 @@ import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import WithdrawModal from '../../components/WithdrawModal';
+import WalletPanel from '../../components/WalletPanel';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { getApiUrl } from '@/lib/api';
+import { getMyWallet, type WalletDTO } from '@/lib/walletApi';
 import { fetchPlatformConfig, type PlatformConfig, DEFAULT_CONFIG } from '@/lib/platformConfig';
 
 // Icons
@@ -933,7 +935,7 @@ const TransactionsPage = () => {
   const [showTipsModal, setShowTipsModal] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [balance, setBalance] = useState<any>(null);
+  const [wallet, setWallet] = useState<WalletDTO | null>(null);
   const [analytics, setAnalytics] = useState<any>(null);
 
   useEffect(() => {
@@ -1009,11 +1011,13 @@ Amount: ${formatPrice(transaction.amountNum)}
   const fetchData = useCallback(async (page: number = 0) => {
     const apiUrl = getApiUrl();
     try {
-      const [txRes, balRes, analyticsRes] = await Promise.allSettled([
+      const [txRes, analyticsRes] = await Promise.allSettled([
         dashboardAuthFetch(`${apiUrl}/api/remote/photographer/transactions?page=${page}&size=8`),
-        dashboardAuthFetch(`${apiUrl}/api/remote/photographer/balance`),
         dashboardAuthFetch(`${apiUrl}/api/remote/photographer/analytics`),
       ]);
+
+      // Wallet — source of truth for balances
+      getMyWallet().then(w => setWallet(w)).catch(() => {});
 
       if (txRes.status === 'fulfilled' && txRes.value.ok) {
         const data = await txRes.value.json();
@@ -1039,29 +1043,10 @@ Amount: ${formatPrice(transaction.amountNum)}
         }
       }
 
-      if (balRes.status === 'fulfilled' && balRes.value.ok) {
-        const data = await balRes.value.json();
-        if (data.action === 1 && data.data) {
-          setBalance(data.data);
-          // Map tips from balance data if available
-          if (data.data.tips && Array.isArray(data.data.tips)) {
-            setTipsData(data.data.tips.map((t: any, i: number) => ({
-              id: t.id || i + 1,
-              clientName: t.clientName || t.customerName || 'Client',
-              amount: t.amount || 0,
-              date: t.date || t.createdAt || '',
-              eventName: t.eventName || t.description || 'Service',
-              message: t.message || '',
-            })));
-          }
-        }
-      }
-
       if (analyticsRes.status === 'fulfilled' && analyticsRes.value.ok) {
         const data = await analyticsRes.value.json();
         if (data.action === 1 && data.data) {
           setAnalytics(data.data);
-          // Map earnings chart data if available
           if (data.data.earningsChart && Array.isArray(data.data.earningsChart)) {
             setEarningsData(data.data.earningsChart.map((e: any) => ({
               date: e.date || e.label || '',
@@ -1102,19 +1087,18 @@ Amount: ${formatPrice(transaction.amountNum)}
   const totalPending = transactions.filter(t => t.status === 'pending' || t.status === 'in_progress' || t.status === 'initiated').reduce((sum, t) => sum + t.amountNum, 0);
   const totalWithdrawn = transactions.filter(t => t.status === 'withdrawn').reduce((sum, t) => sum + t.amountNum, 0);
 
-  // Balance values from API
-  const totalTips = balance?.totalTips || tipsData.reduce((sum, t) => sum + t.amount, 0);
+  // Wallet-based values (source of truth)
+  const totalTips = wallet?.balanceTips ?? tipsData.reduce((sum, t) => sum + t.amount, 0);
   const completedEventsCount = analytics?.completedEvents || analytics?.totalCompletedEvents || 0;
   const totalEventsAmount = analytics?.totalEarnings || totalCompleted + totalPending + totalWithdrawn;
   const BONUS_THRESHOLD = bonusStatus.threshold || platformConfig.photographer.bonusThreshold;
-  const platformBonus = balance?.totalBonuses || bonusStatus.amount || 0;
+  const platformBonus = wallet?.balanceBonuses ?? bonusStatus.amount ?? 0;
   const bonusApproved = bonusStatus.status === 'APPROVED';
   const bonusPending = bonusStatus.status === 'PENDING_APPROVAL';
   const bonusRejected = bonusStatus.status === 'REJECTED';
   const bonusEarned = bonusApproved;
   const bonusReached = completedEventsCount >= BONUS_THRESHOLD;
   const eventsToBonus = Math.max(0, BONUS_THRESHOLD - completedEventsCount);
-  const availableBalance = balance?.withdrawableBalance ?? balance?.availableBalance ?? 0;
 
   const resultsPerPage = 8;
   const totalResults = transactions.length;
@@ -1389,7 +1373,7 @@ Amount: ${formatPrice(transaction.amountNum)}
       `}</style>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar userRole="photographer" tipsAmount={totalTips} bonusAmount={platformBonus} balanceAmount={availableBalance} />
+        <Topbar userRole="photographer" />
         <div className="mobile-main-content" style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
 
           {/* Header with Withdraw Button */}
@@ -1421,34 +1405,12 @@ Amount: ${formatPrice(transaction.amountNum)}
             </button>
           </header>
 
-          {/* Available Balance Card */}
-          <div className="mobile-balance-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1.25rem', marginBottom: '1rem', boxShadow: colors.shadowSm }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div className="wallet-icon-container" style={{ width: '48px', height: '48px', backgroundColor: '#EFF6FF', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <WalletIcon />
-                </div>
-                <div>
-                  <div className="balance-label" style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Available to Withdraw</div>
-                  <div className="mobile-balance-amount" style={{ fontSize: '1.75rem', fontWeight: '700', color: colors.textPrimary }}>{formatPrice(availableBalance)}</div>
-                </div>
-              </div>
-              <div className="mobile-balance-stats" style={{ display: 'flex', gap: '2rem' }}>
-                <div>
-                  <div className="stat-label" style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Previous Deposit</div>
-                  <div className="stat-value" style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(balance?.lastDeposit || 0)}</div>
-                </div>
-                <div>
-                  <div className="stat-label" style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Last Withdrawal</div>
-                  <div className="stat-value" style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(balance?.lastWithdrawal || 0)}</div>
-                </div>
-                <div>
-                  <div className="stat-label" style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Active Account</div>
-                  <div className="stat-value" style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary }}>{balance?.activeAccount || '—'}</div>
-                </div>
-              </div>
+          {/* Wallet Summary */}
+          {wallet && (
+            <div style={{ marginBottom: '1rem' }}>
+              <WalletPanel wallet={wallet} role="photographer" compact />
             </div>
-          </div>
+          )}
 
           {/* Tips and Bonus Cards */}
           <div className="mobile-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
@@ -1572,7 +1534,7 @@ Amount: ${formatPrice(transaction.amountNum)}
                   <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Earnings</div>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '1rem' }}>
                     <span style={{ fontSize: '1.75rem', fontWeight: '700', color: colors.textPrimary }}>{formatPrice(totalCompleted + totalPending + totalWithdrawn)}</span>
-                    <span style={{ fontSize: '0.85rem', color: '#10B981', fontWeight: '500' }}>+23% vs last week</span>
+                    <span style={{ fontSize: '0.85rem', color: colors.textSecondary, fontWeight: '500' }}>This period</span>
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -1702,7 +1664,7 @@ Amount: ${formatPrice(transaction.amountNum)}
               <h2 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary }}>Transaction History</h2>
               <button style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: colors.bgCard, border: '2px solid #D1D5DB', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', fontSize: '0.85rem', color: colors.textSecondary, cursor: 'pointer' }}>
                 <CalendarIcon />
-                19 Nov - 29 Nov 2024
+                {new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
               </button>
             </div>
 

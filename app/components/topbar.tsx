@@ -91,15 +91,10 @@ function formatTimeAgo(dateStr: string): string {
 }
 
 interface TopbarProps {
-  bonusAmount?: number;
-  tipsAmount?: number; // Tips from viewers/clients
-  giftAmount?: number;
-  balanceAmount?: number; // For photographer - unwithdrawn paid amount + tips + bonuses
-  liveStreamFeeAmount?: number; // For event-coordinator - Live Stream Access Fee revenue
   userRole?: 'client' | 'photographer' | 'admin' | 'event-coordinator';
 }
 
-export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmountProp, balanceAmount, liveStreamFeeAmount, userRole = 'client' }: TopbarProps) {
+export default function Topbar({ userRole = 'client' }: TopbarProps) {
   const { colors, actualTheme, theme, setTheme } = useTheme();
   const { user, logout, token } = useDashboardAuth();
   const router = useRouter();
@@ -138,7 +133,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [giftAmount, setGiftAmount] = useState(giftAmountProp ?? 0);
+  const [giftAmount, setGiftAmount] = useState(0);
   const [selfLiveStreamFee, setSelfLiveStreamFee] = useState(0);
   const [selfBalanceAmount, setSelfBalanceAmount] = useState(0);
   const [selfTipsAmount, setSelfTipsAmount] = useState(0);
