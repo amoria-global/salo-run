@@ -3,10 +3,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
+import WalletPanel from '../../components/WalletPanel';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { getApiUrl } from '@/lib/api';
+import { getMyWallet, type WalletDTO } from '@/lib/walletApi';
 
 function formatTransactionDate(dateStr: string): string {
   if (!dateStr) return '';
@@ -40,6 +42,7 @@ const AllTransactions = () => {
   const [totalPages, setTotalPages] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [balance, setBalance] = useState<any>(null);
+  const [wallet, setWallet] = useState<WalletDTO | null>(null);
 
   const fetchTransactions = useCallback(async (page: number = 0) => {
     const apiUrl = getApiUrl();
@@ -76,6 +79,12 @@ const AllTransactions = () => {
           setBalance(data.data);
         }
       }
+
+      // Fetch wallet for the compact summary
+      try {
+        const w = await getMyWallet();
+        setWallet(w);
+      } catch { /* wallet is optional here */ }
     } catch (error) {
       console.error('[Transactions] Error fetching:', error);
     } finally {
@@ -289,7 +298,7 @@ const AllTransactions = () => {
                 fontSize: '0.875rem',
                 color: colors.textSecondary,
                 marginTop: '0.25rem'
-              }}>View and manage all your transactions</p>
+              }}>Your complete earnings and payment history</p>
             </div>
             <button
               onClick={() => window.history.back()}
@@ -397,66 +406,12 @@ const AllTransactions = () => {
             </div>
           </div>
 
-          {/* Stats Summary */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: '1rem',
-            marginBottom: '1rem'
-          }}>
-            <div style={{
-              backgroundColor: colors.bgCard,
-              borderRadius: '0.75rem',
-              padding: '1rem',
-              boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
-            }}>
-              <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>
-                Total Transactions
-              </div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.textPrimary }}>
-                {filteredTransactions.length}
-              </div>
+          {/* Wallet Summary */}
+          {wallet && (
+            <div style={{ marginBottom: '1rem' }}>
+              <WalletPanel wallet={wallet} role="photographer" compact />
             </div>
-            <div style={{
-              backgroundColor: colors.bgCard,
-              borderRadius: '0.75rem',
-              padding: '1rem',
-              boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
-            }}>
-              <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>
-                Total Amount
-              </div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
-                {formatPrice(filteredTransactions.reduce((sum, t) => sum + t.amount, 0))}
-              </div>
-            </div>
-            <div style={{
-              backgroundColor: colors.bgCard,
-              borderRadius: '0.75rem',
-              padding: '1rem',
-              boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
-            }}>
-              <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>
-                Pending
-              </div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#92400E' }}>
-                {filteredTransactions.filter(t => t.status === 'Pending').length}
-              </div>
-            </div>
-            <div style={{
-              backgroundColor: colors.bgCard,
-              borderRadius: '0.75rem',
-              padding: '1rem',
-              boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
-            }}>
-              <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>
-                In Progress
-              </div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#1E40AF' }}>
-                {filteredTransactions.filter(t => t.status === 'In progress').length}
-              </div>
-            </div>
-          </div>
+          )}
 
           {/* Transactions Table */}
           <div style={{

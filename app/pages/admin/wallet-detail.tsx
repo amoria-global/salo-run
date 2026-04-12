@@ -228,14 +228,16 @@ export default function AdminWalletDetailPage({ walletId }: AdminWalletDetailPag
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <WalletPanel
                 wallet={detail.wallet}
+                role="admin"
                 title="Wallet snapshot"
                 subtitle={`Customer ${detail.wallet.customerId}`}
               />
               <WalletMovementsTable
                 mode="admin"
                 walletId={walletId}
-                title="Recent movements (50)"
+                title="Recent movements"
                 refreshKey={refreshKey}
+                role="admin"
               />
             </div>
           )}

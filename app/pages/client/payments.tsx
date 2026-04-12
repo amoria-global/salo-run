@@ -14,6 +14,8 @@ import WithdrawModal from '../../components/WithdrawModal';
 import { initiateBookingPayment, pollPaymentStatus, getTelecomProvider, getPaymentMethodType, sanitizeErrorMessage, releaseEscrowFunds, isSurveyCompleted } from '@/lib/xentripay';
 import { getApiUrl } from '@/lib/api';
 import SatisfactionSurveyModal from '../../components/SatisfactionSurveyModal';
+import WalletPanel from '../../components/WalletPanel';
+import { getMyWallet, type WalletDTO } from '@/lib/walletApi';
 
 // Icons
 const DownloadIcon = () => (
@@ -1620,6 +1622,14 @@ const PaymentsPage = () => {
   const [showPayNowModal, setShowPayNowModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [payNowPayment, setPayNowPayment] = useState<Payment | null>(null);
+  const [wallet, setWallet] = useState<WalletDTO | null>(null);
+
+  // Fetch wallet for compact summary
+  useEffect(() => {
+    let cancelled = false;
+    getMyWallet().then(w => { if (!cancelled) setWallet(w); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
 
   const handleViewPayment = (payment: Payment) => {
@@ -2287,6 +2297,13 @@ Amount: ${formatPrice(payment.amountNum)}
                   </p>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Wallet Summary */}
+          {wallet && (
+            <div style={{ marginBottom: '1rem' }}>
+              <WalletPanel wallet={wallet} role="client" compact />
             </div>
           )}
 

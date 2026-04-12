@@ -14,6 +14,8 @@ import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvid
 import { initiateBookingPayment, pollPaymentStatus, getTelecomProvider, getPaymentMethodType, sanitizeErrorMessage, releaseEscrowFunds, isSurveyCompleted } from '@/lib/xentripay';
 import { getApiUrl } from '@/lib/api';
 import SatisfactionSurveyModal from '../../components/SatisfactionSurveyModal';
+import WalletPanel from '../../components/WalletPanel';
+import { getMyWallet, type WalletDTO } from '@/lib/walletApi';
 
 // Icons
 const DownloadIcon = () => (
@@ -1620,7 +1622,15 @@ const PaymentsPage = () => {
   const [showPayNowModal, setShowPayNowModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [payNowPayment, setPayNowPayment] = useState<Payment | null>(null);
+  const [wallet, setWallet] = useState<WalletDTO | null>(null);
   const [apiPayments, setApiPayments] = useState<Payment[]>([]);
+
+  // Fetch wallet for compact summary
+  useEffect(() => {
+    let cancelled = false;
+    getMyWallet().then(w => { if (!cancelled) setWallet(w); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
   const [isLoadingPayments, setIsLoadingPayments] = useState(false);
   const [streamFeeEvents, setStreamFeeEvents] = useState<Array<{
     id: string;
@@ -1992,6 +2002,13 @@ Amount: ${formatPrice(payment.amountNum)}
             </div>
           )}
 
+          {/* Wallet Summary */}
+          {wallet && (
+            <div style={{ marginBottom: '1rem' }}>
+              <WalletPanel wallet={wallet} role="event-coordinator" compact />
+            </div>
+          )}
+
           {/* Top Row - Spending Chart and Payment Summary */}
           <div className="mobile-top-row" style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '1rem', marginBottom: '1rem' }}>
 
@@ -2143,7 +2160,7 @@ Amount: ${formatPrice(payment.amountNum)}
                   <LiveStreamIcon />
                 </div>
                 <div>
-                  <h2 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Live Stream Fee Revenue</h2>
+                  <h2 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Live Stream Revenue</h2>
                   <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: 0 }}>From ticketed live-stream viewers on ConnektLive</p>
                 </div>
               </div>
@@ -2161,10 +2178,10 @@ Amount: ${formatPrice(payment.amountNum)}
                 }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.15rem' }}>
-                      {hasWithdrawalMethod ? 'Stream Fee Earnings' : 'Withdraw Your Stream Fee Earnings'}
+                      {hasWithdrawalMethod ? 'Stream Revenue Earnings' : 'Withdraw Your Stream Revenue Earnings'}
                     </div>
                     <div style={{ fontSize: '0.82rem', color: colors.textSecondary, lineHeight: '1.35' }}>
-                      {hasWithdrawalMethod ? 'Withdraw your stream fee earnings to your saved payment account.' : 'Set up your preferred account to receive payments from stream ticket sales.'}
+                      {hasWithdrawalMethod ? 'Withdraw your stream revenue earnings to your saved payment account.' : 'Set up your preferred account to receive payments from stream ticket sales.'}
                     </div>
                   </div>
                   {hasWithdrawalMethod ? (
@@ -2432,7 +2449,7 @@ Amount: ${formatPrice(payment.amountNum)}
           setSelectedStreamFeePaymentMethod(null);
           setValidationError(null);
         }}
-        title="Withdraw Stream Fee Revenue"
+        title="Withdraw Stream Revenue"
         maxWidth="500px"
       >
         <div>
@@ -2461,7 +2478,7 @@ Amount: ${formatPrice(payment.amountNum)}
             </div>
             <div>
               <div style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.25rem' }}>
-                Where should we send your stream fee earnings?
+                Where should we send your stream revenue earnings?
               </div>
               <div style={{ fontSize: '0.8rem', color: colors.textSecondary, lineHeight: '1.4' }}>
                 When viewers pay for access to your live streams, this is the account where you&apos;ll receive those payments.
@@ -2833,7 +2850,7 @@ Amount: ${formatPrice(payment.amountNum)}
         </div>
       </Modal>
 
-      {/* Note: Event Coordinators don't have donate prompts - they manage commercial event stream fees */}
+      {/* Note: Event Coordinators don't have donate prompts - they manage commercial event stream revenue */}
 
       {/* Print Styles */}
       <style>{`

@@ -47,7 +47,7 @@ export default function ClientWalletPage() {
               My Wallet
             </h1>
             <p style={{ fontSize: '0.875rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
-              {user?.firstName ? `${user.firstName}, your ` : 'Your '}lifetime spend, pending declarations, and refunds.
+              {user?.firstName ? `${user.firstName}, your ` : 'Your '}payments, tips, and refund history.
             </p>
           </div>
 
@@ -71,8 +71,8 @@ export default function ClientWalletPage() {
 
           {wallet && !loading && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <WalletPanel wallet={wallet} title="Client wallet" />
-              <WalletMovementsTable mode="me" title="Recent movements" />
+              <WalletPanel wallet={wallet} title="My Spending" role="client" />
+              <WalletMovementsTable mode="me" title="Activity" role="client" />
             </div>
           )}
         </div>

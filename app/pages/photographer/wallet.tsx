@@ -52,7 +52,7 @@ export default function PhotographerWalletPage() {
               My Wallet
             </h1>
             <p style={{ fontSize: '0.875rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
-              {user?.firstName ? `${user.firstName}, your ` : 'Your '}full balance snapshot and movement history.
+              {user?.firstName ? `${user.firstName}, your ` : 'Your '}earnings, tips, bonuses, and withdrawal history.
             </p>
           </div>
 
@@ -76,8 +76,8 @@ export default function PhotographerWalletPage() {
 
           {wallet && !loading && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <WalletPanel wallet={wallet} title="Photographer wallet" />
-              <WalletMovementsTable mode="me" title="Recent movements" />
+              <WalletPanel wallet={wallet} title="My Earnings" role="photographer" />
+              <WalletMovementsTable mode="me" title="Activity" role="photographer" />
             </div>
           )}
         </div>

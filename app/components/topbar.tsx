@@ -1000,7 +1000,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
               lineHeight: '1.5rem',
               fontWeight: '700',
               color: (balanceAmount ?? selfBalanceAmount) > 0 ? colors.brandPrimary : colors.textSecondary
-            }}>${(balanceAmount ?? selfBalanceAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            }}>{formatPrice(balanceAmount ?? selfBalanceAmount)}</span>
           </div>
         )}
 
@@ -1022,7 +1022,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
               lineHeight: '1.5rem',
               fontWeight: '600',
               color: (tipsAmount ?? selfTipsAmount) > 0 ? '#F59E0B' : colors.textSecondary
-            }}>${(tipsAmount ?? selfTipsAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            }}>{formatPrice(tipsAmount ?? selfTipsAmount)}</span>
           </div>
         )}
 
@@ -1037,7 +1037,7 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
             lineHeight: '1.5rem',
             fontWeight: '600',
             color: colors.textPrimary
-          }}>{userRole === 'client' ? 'Gifts:' : userRole === 'event-coordinator' ? 'Stream Fees:' : 'Bonus:'}</span>
+          }}>{userRole === 'client' ? 'Gifts:' : userRole === 'event-coordinator' ? 'Stream Revenue:' : 'Bonus:'}</span>
           <span style={{
             fontSize: '1.15rem',
             lineHeight: '1.5rem',
@@ -1047,11 +1047,11 @@ export default function Topbar({ bonusAmount, tipsAmount, giftAmount: giftAmount
               : userRole === 'event-coordinator'
                 ? ((liveStreamFeeAmount ?? selfLiveStreamFee) > 0 ? colors.statusSuccess : colors.brandPrimary)
                 : ((bonusAmount ?? selfBonusAmount) > 0 ? colors.statusSuccess : colors.brandPrimary)
-          }}>${(userRole === 'client'
+          }}>{formatPrice(userRole === 'client'
             ? giftAmount
             : userRole === 'event-coordinator'
               ? (liveStreamFeeAmount ?? selfLiveStreamFee)
-              : (bonusAmount ?? selfBonusAmount)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              : (bonusAmount ?? selfBonusAmount))}</span>
         </div>
 
         {/* Profile with Dropdown */}

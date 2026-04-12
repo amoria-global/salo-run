@@ -47,7 +47,7 @@ export default function EventCoordinatorWalletPage() {
               My Wallet
             </h1>
             <p style={{ fontSize: '0.875rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
-              {user?.firstName ? `${user.firstName}, your ` : 'Your '}event spend, stream fees, and pending declarations.
+              {user?.firstName ? `${user.firstName}, your ` : 'Your '}event payments, stream revenue, and balance.
             </p>
           </div>
 
@@ -71,8 +71,8 @@ export default function EventCoordinatorWalletPage() {
 
           {wallet && !loading && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <WalletPanel wallet={wallet} title="Event coordinator wallet" />
-              <WalletMovementsTable mode="me" title="Recent movements" />
+              <WalletPanel wallet={wallet} title="My Balance" role="event-coordinator" />
+              <WalletMovementsTable mode="me" title="Activity" role="event-coordinator" />
             </div>
           )}
         </div>
