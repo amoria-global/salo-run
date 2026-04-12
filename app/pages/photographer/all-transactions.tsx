@@ -41,19 +41,15 @@ const AllTransactions = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const [balance, setBalance] = useState<any>(null);
   const [wallet, setWallet] = useState<WalletDTO | null>(null);
 
   const fetchTransactions = useCallback(async (page: number = 0) => {
     const apiUrl = getApiUrl();
     try {
-      const [txRes, balRes] = await Promise.allSettled([
-        dashboardAuthFetch(`${apiUrl}/api/remote/photographer/transactions?page=${page}&size=20`),
-        balance ? Promise.resolve(null) : dashboardAuthFetch(`${apiUrl}/api/remote/photographer/balance`),
-      ]);
+      const txRes = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/transactions?page=${page}&size=20`);
 
-      if (txRes.status === 'fulfilled' && txRes.value.ok) {
-        const data = await txRes.value.json();
+      if (txRes.ok) {
+        const data = await txRes.json();
         if (data.action === 1 && data.data) {
           const content = Array.isArray(data.data) ? data.data : data.data.content || [];
           const mapped = content.map((t: any, index: number) => ({
@@ -70,13 +66,6 @@ const AllTransactions = () => {
           setTransactions(mapped);
           if (data.data.totalPages) setTotalPages(data.data.totalPages);
           if (data.data.number !== undefined) setCurrentPage(data.data.number);
-        }
-      }
-
-      if (balRes.status === 'fulfilled' && balRes.value && balRes.value.ok) {
-        const data = await balRes.value.json();
-        if (data.action === 1 && data.data) {
-          setBalance(data.data);
         }
       }
 
@@ -272,7 +261,7 @@ const AllTransactions = () => {
       <Sidebar />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar userRole="photographer" tipsAmount={balance?.totalTips || 0} bonusAmount={balance?.totalBonuses || 0} balanceAmount={balance?.availableBalance || 0} />
+        <Topbar userRole="photographer" />
 
         {/* Main Content */}
         <div style={{

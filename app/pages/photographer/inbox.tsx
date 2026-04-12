@@ -149,7 +149,6 @@ const InboxPage = () => {
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editMessageContent, setEditMessageContent] = useState('');
-  const [balance, setBalance] = useState<any>(null);
   const [isSending, setIsSending] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
   const [contentWarning, setContentWarning] = useState<string | null>(null);
@@ -323,23 +322,6 @@ const InboxPage = () => {
     setShowNewChatModal(false);
     setContactSearchQuery('');
   };
-
-  // Fetch balance
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/balance`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.action === 1 && data.data) {
-            setBalance(data.data);
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch balance:', err);
-      }
-    })();
-  }, [apiUrl]);
 
   const handleSelectConversation = useCallback((convId: string) => {
     setSelectedConversation(convId);
@@ -705,7 +687,7 @@ const InboxPage = () => {
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div className={`mobile-topbar ${selectedConversation ? 'mobile-chat-active' : ''}`}>
-          <Topbar userRole="photographer" tipsAmount={balance?.totalTips || 0} bonusAmount={balance?.totalBonuses || 0} balanceAmount={balance?.availableBalance || 0} />
+          <Topbar userRole="photographer" />
         </div>
         <div className="mobile-inbox-container" style={{ flex: 1, display: 'flex', overflow: 'hidden', margin: '0 1.25rem 1rem 1.25rem' }}>
 

@@ -1851,9 +1851,10 @@ Amount: ${formatPrice(payment.amountNum)}
     return true;
   };
 
-  const totalPages = 5;
   const resultsPerPage = 8;
   const totalResults = payments.length;
+  const totalPages = Math.max(1, Math.ceil(totalResults / resultsPerPage));
+  const paginatedPayments = payments.slice((currentPage - 1) * resultsPerPage, currentPage * resultsPerPage);
 
   return (
     <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary, overflow: 'hidden', width: '100%', maxWidth: '100vw' }}>
@@ -1961,7 +1962,7 @@ Amount: ${formatPrice(payment.amountNum)}
       `}</style>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar userRole="event-coordinator" liveStreamFeeAmount={totalStreamFees} />
+        <Topbar userRole="event-coordinator" />
         <div className="mobile-main-content" style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
 
           {/* Header */}
@@ -2290,7 +2291,7 @@ Amount: ${formatPrice(payment.amountNum)}
               <h2 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary }}>Payment History</h2>
               <button style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: colors.bgCard, border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', padding: '0.5rem 0.75rem', fontSize: '0.85rem', color: colors.textSecondary, cursor: 'pointer' }}>
                 <CalendarIcon />
-                19 Nov - 29 Nov 2024
+                {new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
               </button>
             </div>
 
@@ -2308,7 +2309,7 @@ Amount: ${formatPrice(payment.amountNum)}
                 </tr>
               </thead>
               <tbody>
-                {payments.map((payment) => (
+                {paginatedPayments.map((payment) => (
                   <tr key={payment.id} style={{ borderBottom: `2px solid ${colors.borderPrimary}` }}>
                     <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.85rem', color: colors.textSecondary }}>{payment.date}</td>
                     <td style={{ padding: '0.875rem 1.25rem' }}>
@@ -2395,20 +2396,22 @@ Amount: ${formatPrice(payment.amountNum)}
 
             {/* Pagination */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderTop: `2px solid ${colors.borderPrimary}` }}>
-              <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Showing {resultsPerPage} of {totalResults} Results</div>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Showing {Math.min(resultsPerPage, totalResults - (currentPage - 1) * resultsPerPage)} of {totalResults} Results</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 <button onClick={() => setCurrentPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1} style={{ background: 'none', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', padding: '0.5rem', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', opacity: currentPage === 1 ? 0.5 : 1 }}>
                   <ChevronLeftIcon />
                 </button>
-                {[1, 2, 3].map((page) => (
+                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map((page) => (
                   <button key={page} onClick={() => setCurrentPage(page)} style={{ width: '32px', height: '32px', border: currentPage === page ? '2px solid #062a63' : `2px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', backgroundColor: currentPage === page ? '#083A85' : colors.bgCard, color: currentPage === page ? 'white' : colors.textSecondary, fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer' }}>
                     {page}
                   </button>
                 ))}
-                <span style={{ padding: '0 0.5rem', color: colors.textSecondary }}>...</span>
-                <button onClick={() => setCurrentPage(totalPages)} style={{ width: '32px', height: '32px', border: currentPage === totalPages ? '2px solid #062a63' : `2px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', backgroundColor: currentPage === totalPages ? '#083A85' : colors.bgCard, color: currentPage === totalPages ? 'white' : colors.textSecondary, fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer' }}>
-                  {totalPages}
-                </button>
+                {totalPages > 5 && <>
+                  <span style={{ padding: '0 0.5rem', color: colors.textSecondary }}>...</span>
+                  <button onClick={() => setCurrentPage(totalPages)} style={{ width: '32px', height: '32px', border: currentPage === totalPages ? '2px solid #062a63' : `2px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', backgroundColor: currentPage === totalPages ? '#083A85' : colors.bgCard, color: currentPage === totalPages ? 'white' : colors.textSecondary, fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer' }}>
+                    {totalPages}
+                  </button>
+                </>}
                 <button onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages} style={{ background: 'none', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.375rem', padding: '0.5rem', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', opacity: currentPage === totalPages ? 0.5 : 1 }}>
                   <ChevronRightIcon />
                 </button>

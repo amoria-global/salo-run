@@ -595,7 +595,7 @@ const ClientDashboard = () => {
         flexDirection: 'column',
         overflow: 'hidden'
       }}>
-        <Topbar userRole="client" giftAmount={analytics?.gifts || 0} />
+        <Topbar userRole="client" />
 
         <div className="mobile-main-content" style={{
           flex: 1,
