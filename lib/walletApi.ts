@@ -33,6 +33,8 @@ export type WalletDirection = 'CREDIT' | 'DEBIT';
 export interface WalletDTO {
   id: string;
   customerId: string;
+  customerName: string | null;
+  customerEmail: string | null;
   customerType: string;
   balanceAvailable: number;
   balanceTips: number;
@@ -40,6 +42,8 @@ export interface WalletDTO {
   balanceGifts: number;
   balanceStreamFees: number;
   balanceDonations: number;
+  balanceAdRevenue: number;
+  balancePhotoPurchase: number;
   heldForDelivery: number;
   pendingAmount: number;
   blockedAmount: number;
@@ -50,6 +54,7 @@ export interface WalletDTO {
   suspensionReason?: string | null;
   suspendedAt?: string | null;
   lastReconciledAt?: string | null;
+  lastDriftAt?: string | null;
   consecutiveDriftCount: number;
   createdAt: string;
   updatedAt: string;
@@ -84,16 +89,20 @@ export interface SpringPage<T> {
 
 export interface ReconciliationResult {
   walletId: string;
-  driftDetected: boolean;
-  corrected: boolean;
-  suspended: boolean;
+  hasDrift: boolean;
+  wasCorrected: boolean;
+  wasSuspended: boolean;
   diff?: Record<string, { before: number; after: number }>;
-  reason?: string;
+  message?: string;
 }
 
 export interface AdminListWalletsParams {
   status?: WalletStatus | string;
   customerType?: string;
+  search?: string;
+  hasDrift?: boolean;
+  sortBy?: string;
+  sortDir?: 'asc' | 'desc';
   page?: number;
   size?: number;
 }
@@ -103,6 +112,18 @@ export interface AdjustWalletRequest {
   direction: WalletDirection;
   amount: number;
   reason: string;
+}
+
+export interface WalletAuditLogDTO {
+  id: string;
+  walletId: string;
+  eventType: string;
+  beforeSnapshot?: string | null;
+  afterSnapshot?: string | null;
+  diffSummary?: string | null;
+  reason?: string | null;
+  actorId?: string | null;
+  createdAt: string;
 }
 
 interface BackendEnvelope<T> {
@@ -164,10 +185,21 @@ export function adminListWallets(
   const qs = new URLSearchParams();
   if (params.status) qs.set('status', params.status);
   if (params.customerType) qs.set('customerType', params.customerType);
+  if (params.search) qs.set('search', params.search);
+  if (params.hasDrift) qs.set('hasDrift', 'true');
+  if (params.sortBy) qs.set('sortBy', params.sortBy);
+  if (params.sortDir) qs.set('sortDir', params.sortDir);
   qs.set('page', String(params.page ?? 0));
   qs.set('size', String(params.size ?? 20));
   return request<SpringPage<WalletDTO>>(
     `/api/remote/admin/wallets?${qs.toString()}`
+  );
+}
+
+export function adminProvisionWallets(): Promise<{ provisioned: number }> {
+  return request<{ provisioned: number }>(
+    '/api/remote/admin/wallets/provision-all',
+    { method: 'POST' }
   );
 }
 
@@ -178,6 +210,16 @@ export interface AdminWalletDetail {
 
 export function adminGetWallet(id: string): Promise<AdminWalletDetail> {
   return request<AdminWalletDetail>(`/api/remote/admin/wallets/${id}`);
+}
+
+export function adminGetAuditLogs(
+  walletId: string,
+  page: number = 0,
+  size: number = 20
+): Promise<SpringPage<WalletAuditLogDTO>> {
+  return request<SpringPage<WalletAuditLogDTO>>(
+    `/api/remote/admin/wallets/${walletId}/audit-logs?page=${page}&size=${size}`
+  );
 }
 
 export function adminReconcileWallet(
