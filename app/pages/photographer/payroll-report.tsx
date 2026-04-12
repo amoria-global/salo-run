@@ -259,7 +259,7 @@ const PayrollReport = () => {
                     textTransform: 'uppercase',
                     letterSpacing: '0.05em',
                     fontWeight: '600'
-                  }}>Total Amount</div>
+                  }}>Total Earnings</div>
                   <div style={{
                     fontSize: '1.5rem',
                     fontWeight: '700',
@@ -366,7 +366,7 @@ const PayrollReport = () => {
                   color: colors.textPrimary,
                   marginBottom: '1.5rem',
                   marginTop: 0
-                }}>Transaction Details</h2>
+                }}>Earnings Breakdown</h2>
 
                 <table style={{
                   width: '100%',

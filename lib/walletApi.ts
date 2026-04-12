@@ -23,7 +23,10 @@ export type WalletCategory =
   | 'BLOCKED'
   | 'WITHDRAWAL'
   | 'REFUND'
-  | 'CLIENT_SPEND';
+  | 'CLIENT_SPEND'
+  | 'AD_REVENUE'
+  | 'PHOTO_PURCHASE'
+  | 'PLATFORM_FEE';
 
 export type WalletDirection = 'CREDIT' | 'DEBIT';
 
