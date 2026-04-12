@@ -221,8 +221,8 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
     const rolePrefix = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
     // Coordinator uses /streams/{eventId}/chats, customer uses /events/{eventId}/chats
     const chatsPath = userRole === 'event-coordinator'
-      ? `${apiUrl}/api/remote/${rolePrefix}/streams/${eventId}/chats`
-      : `${apiUrl}/api/remote/${rolePrefix}/events/${eventId}/chats`;
+      ? `${apiUrl}/api/remote/${rolePrefix}/streams/${eventId}/chats?page=0&size=500`
+      : `${apiUrl}/api/remote/${rolePrefix}/events/${eventId}/chats?page=0&size=500`;
     try {
       const res = await dashboardAuthFetch(chatsPath);
       if (res.ok) {
@@ -1073,8 +1073,25 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
                     position: 'relative',
                   }}
                 >
-                  <div style={{ position: 'relative', height: '100px', backgroundColor: video.thumbnailUrl ? 'transparent' : '#0D1B2A' }}>
-                    <img src={video.thumbnailUrl || '/coverr.jpg'} alt={`Video from ${video.viewerUsername}`} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: video.thumbnailUrl ? 'cover' : 'contain' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; (e.currentTarget as HTMLImageElement).style.objectFit = 'contain'; const p = e.currentTarget.parentElement; if (p) p.style.backgroundColor = '#0D1B2A'; }} />
+                  <div style={{ position: 'relative', height: '100px', backgroundColor: '#0D1B2A' }}>
+                    {video.videoUrl ? (
+                      <video
+                        src={`${video.videoUrl}#t=0.1`}
+                        muted
+                        playsInline
+                        preload="metadata"
+                        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                        onLoadedMetadata={(e) => { try { (e.currentTarget as HTMLVideoElement).currentTime = 0.1; } catch {} }}
+                      />
+                    ) : (
+                      <img src={video.thumbnailUrl || '/coverr.jpg'} alt={`Video from ${video.viewerUsername}`} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }} />
+                    )}
+                    {/* Play icon overlay */}
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                      <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+                      </div>
+                    </div>
                     {!video.viewed && (
                       <div style={{
                         position: 'absolute',
