@@ -82,6 +82,12 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
   const [capturedSelfie, setCapturedSelfie] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [isResending, setIsResending] = useState(false);
+
+  // Fee preview (returned from initiate response)
+  const [feePreview, setFeePreview] = useState<{
+    totalFee: number; percentageFee: number; additionalCharge: number;
+    netAmount: number; feePercentage: number;
+  } | null>(null);
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const apiNamespace = role === 'client' ? 'customer' : role === 'photographer' ? 'photographer' : 'coordinator';
@@ -94,7 +100,7 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
     setStep('form'); setError(''); setWithdrawAmount(''); setDonationAmount(''); setCustomDonation('');
     setDonationSkipped(false); setShowCustomInput(false); setAccountsLoading(true);
     setVerificationId(''); setVerificationMethod(''); setOtpDigits(['', '', '', '', '', '']);
-    setVerificationError(''); setCapturedSelfie(null); setResendCooldown(0); setIsResending(false);
+    setVerificationError(''); setCapturedSelfie(null); setResendCooldown(0); setIsResending(false); setFeePreview(null);
     const apiUrl = getApiUrl();
 
     dashboardAuthFetch(`${apiUrl}/api/remote/${apiNamespace}/withdrawal-methods`)
@@ -185,8 +191,17 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
         }
         setStep('failed'); setIsWithdrawing(false); return;
       }
-      // Success: move to verification step
+      // Success: capture fee preview and move to verification step
       const data = result.data;
+      if (data.feePreview) {
+        setFeePreview({
+          totalFee: data.feePreview.totalFee ?? 0,
+          percentageFee: data.feePreview.percentageFee ?? 0,
+          additionalCharge: data.feePreview.additionalCharge ?? 0,
+          netAmount: data.feePreview.netAmount ?? 0,
+          feePercentage: data.feePreview.feePercentage ?? 0,
+        });
+      }
       setVerificationId(data.verificationId);
       setVerificationMethod(data.method);
       setMaskedDestination(data.maskedDestination || '');
@@ -436,6 +451,41 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
           {/* Verification Step */}
           {step === 'verification' && (
             <div style={{ padding: '0.5rem 0' }}>
+              {/* Fee preview card */}
+              {feePreview && (
+                <div style={{
+                  marginBottom: '1.25rem', padding: '1rem', borderRadius: '0.75rem',
+                  border: `1px solid ${actualTheme === 'dark' ? 'rgba(255,255,255,0.1)' : '#E5E7EB'}`,
+                  background: actualTheme === 'dark' ? 'rgba(255,255,255,0.03)' : '#F9FAFB',
+                }}>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.textSecondary, marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                    Withdrawal Summary
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                    <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Amount</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: colors.textPrimary }}>
+                      RF {Math.round(parsedAmount).toLocaleString()}
+                    </span>
+                  </div>
+                  {feePreview.totalFee > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                      <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
+                        Fee ({feePreview.feePercentage}%{feePreview.additionalCharge > 0 ? ' + flat' : ''})
+                      </span>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#D97706' }}>
+                        -RF {Math.round(feePreview.totalFee * rwfRate).toLocaleString()}
+                      </span>
+                    </div>
+                  )}
+                  <div style={{ borderTop: `1px solid ${actualTheme === 'dark' ? 'rgba(255,255,255,0.1)' : '#E5E7EB'}`, paddingTop: '0.5rem', marginTop: '0.25rem', display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 600, color: colors.textPrimary }}>You receive</span>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#059669' }}>
+                      RF {Math.round(feePreview.netAmount * rwfRate).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              )}
+
               {/* Verification icon */}
               <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
                 <div style={{
