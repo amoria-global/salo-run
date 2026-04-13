@@ -360,6 +360,8 @@ export function selectWalletStats(
         { label: 'Stream bonus', value: w.balanceStreamFees, color: 'blue', hidden: w.balanceStreamFees === 0 },
         { label: 'Photo sales', value: w.balanceGifts, color: 'blue', hidden: w.balanceGifts === 0 },
         { label: 'Donations', value: w.balanceDonations, color: 'purple', hidden: w.balanceDonations === 0 },
+        { label: 'Held for delivery', value: w.deliveryHeldAmount || 0, color: 'amber', hidden: !w.deliveryHeldAmount || w.deliveryHeldAmount === 0 },
+        { label: 'Held for survey', value: w.surveyHeldAmount || 0, color: 'red', hidden: !w.surveyHeldAmount || w.surveyHeldAmount === 0 },
         { label: 'Total withdrawn', value: w.totalWithdrawn, color: 'neutral', hidden: w.totalWithdrawn === 0 },
       ],
       pendingChip:
