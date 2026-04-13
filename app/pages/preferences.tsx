@@ -106,11 +106,20 @@ const CheckIcon = () => (
 );
 
 // Component to handle URL params - needs Suspense boundary
-const TabParamHandler = ({ setActiveTab }: { setActiveTab: (tab: 'appearance' | 'payments' | 'notifications' | 'security') => void }) => {
+const TabParamHandler = ({
+  setActiveTab,
+  setShowAddPaymentModal
+}: {
+  setActiveTab: (tab: 'appearance' | 'payments' | 'notifications' | 'security') => void;
+  setShowAddPaymentModal: (show: boolean) => void;
+}) => {
   const searchParams = useSearchParams();
 
   useEffect(() => {
     const tab = searchParams.get('tab');
+    const action = searchParams.get('action');
+
+    // Auto-switch to payments tab
     if (tab === 'payments') {
       setActiveTab('payments');
     } else if (tab === 'notifications') {
@@ -118,7 +127,14 @@ const TabParamHandler = ({ setActiveTab }: { setActiveTab: (tab: 'appearance' | 
     } else if (tab === 'security') {
       setActiveTab('security');
     }
-  }, [searchParams, setActiveTab]);
+
+    // Auto-open add payment modal if action=add-method
+    if (action === 'add-method' && tab === 'payments') {
+      setTimeout(() => {
+        setShowAddPaymentModal(true);
+      }, 300); // Small delay to ensure tab content is rendered
+    }
+  }, [searchParams, setActiveTab, setShowAddPaymentModal]);
 
   return null;
 };
@@ -745,7 +761,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
       `}</style>
       {/* Handle URL params for tab selection */}
       <Suspense fallback={null}>
-        <TabParamHandler setActiveTab={setActiveTab} />
+        <TabParamHandler setActiveTab={setActiveTab} setShowAddPaymentModal={setShowAddPaymentModal} />
       </Suspense>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>

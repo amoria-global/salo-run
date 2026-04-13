@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
-import WalletPanel from '../../components/WalletPanel';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
@@ -394,13 +393,6 @@ const AllTransactions = () => {
               ))}
             </div>
           </div>
-
-          {/* Wallet Summary */}
-          {wallet && (
-            <div style={{ marginBottom: '1rem' }}>
-              <WalletPanel wallet={wallet} role="photographer" compact />
-            </div>
-          )}
 
           {/* Transactions Table */}
           <div style={{

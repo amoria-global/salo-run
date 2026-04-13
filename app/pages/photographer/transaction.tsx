@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import WithdrawModal from '../../components/WithdrawModal';
-import WalletPanel from '../../components/WalletPanel';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
@@ -1404,13 +1403,6 @@ Amount: ${formatPrice(transaction.amountNum)}
               Withdraw Funds
             </button>
           </header>
-
-          {/* Wallet Summary */}
-          {wallet && (
-            <div style={{ marginBottom: '1rem' }}>
-              <WalletPanel wallet={wallet} role="photographer" compact />
-            </div>
-          )}
 
           {/* Tips and Bonus Cards */}
           <div className="mobile-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>

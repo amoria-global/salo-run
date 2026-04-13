@@ -741,13 +741,43 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
                   {accountsLoading ? (
                     <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: 0, textAlign: 'center', padding: '1rem 0' }}>Loading accounts...</p>
                   ) : accounts.length === 0 ? (
-                    <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: 0, textAlign: 'center', padding: '1rem 0' }}>
-                      No withdrawal accounts saved.{' '}
-                      <span onClick={() => { onClose(); window.location.href = prefsPath; }}
-                        style={{ color: '#083A85', fontWeight: '500', cursor: 'pointer', textDecoration: 'underline' }}>
-                        Add one in Preferences → Payments
-                      </span>
-                    </p>
+                    <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+                      <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>💳</div>
+                      <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
+                        No Withdrawal Methods
+                      </h3>
+                      <p style={{ fontSize: '0.875rem', color: colors.textSecondary, margin: '0 0 1.5rem 0', lineHeight: '1.5' }}>
+                        You need to add a withdrawal method before you can withdraw funds.
+                      </p>
+                      <button
+                        onClick={() => {
+                          onClose();
+                          window.location.href = `${prefsPath}&action=add-method`;
+                        }}
+                        style={{
+                          padding: '0.75rem 1.5rem',
+                          backgroundColor: '#7c3aed',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '0.5rem',
+                          fontSize: '0.875rem',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#6d28d9';
+                          e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.15)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = '#7c3aed';
+                          e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+                        }}
+                      >
+                        + Add Withdrawal Method
+                      </button>
+                    </div>
                   ) : null}
                   {accounts.map(account => (
                     <div key={account.id} onClick={() => setSelectedAccount(account.id)} className="mobile-account-item"
