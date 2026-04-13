@@ -14,7 +14,6 @@ import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvid
 import { initiateBookingPayment, pollPaymentStatus, getTelecomProvider, getPaymentMethodType, sanitizeErrorMessage, releaseEscrowFunds, isSurveyCompleted } from '@/lib/xentripay';
 import { getApiUrl } from '@/lib/api';
 import SatisfactionSurveyModal from '../../components/SatisfactionSurveyModal';
-import WalletPanel from '../../components/WalletPanel';
 import { getMyWallet, type WalletDTO } from '@/lib/walletApi';
 
 // Icons
@@ -2000,13 +1999,6 @@ Amount: ${formatPrice(payment.amountNum)}
                   </p>
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* Wallet Summary */}
-          {wallet && (
-            <div style={{ marginBottom: '1rem' }}>
-              <WalletPanel wallet={wallet} role="event-coordinator" compact />
             </div>
           )}
 
