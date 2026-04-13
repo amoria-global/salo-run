@@ -36,7 +36,8 @@ export interface WalletDTO {
   customerName: string | null;
   customerEmail: string | null;
   customerType: string;
-  balanceAvailable: number;
+  balanceAvailable: number; // Computed: sum of all withdrawable categories
+  balanceBooking: number;   // Raw BALANCE category (booking earnings)
   balanceTips: number;
   balanceBonuses: number;
   balanceGifts: number;
@@ -45,6 +46,8 @@ export interface WalletDTO {
   balanceAdRevenue: number;
   balancePhotoPurchase: number;
   heldForDelivery: number;
+  deliveryHeldAmount?: number; // Aggregated delivery-held amounts from declarations
+  surveyHeldAmount?: number;   // Aggregated survey-held amounts from declarations
   pendingAmount: number;
   blockedAmount: number;
   totalWithdrawn: number;
