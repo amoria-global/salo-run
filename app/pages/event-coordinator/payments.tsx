@@ -1643,7 +1643,19 @@ const PaymentsPage = () => {
     status: string;
   }>>([]);
   const [totalStreamingRevenue, setTotalStreamingRevenue] = useState(0);
-
+  const [giftPayments, setGiftPayments] = useState<Array<{
+    id: string;
+    eventTitle: string;
+    amount: number;
+    netAmount: number;
+    currency: string;
+    giftMessage: string | null;
+    customerPhone: string;
+    method: string;
+    status: string;
+    date: string;
+  }>>([]);
+  const [totalGiftRevenue, setTotalGiftRevenue] = useState(0);
 
   // Fetch payments from coordinator API
   const fetchPayments = useCallback(async () => {
@@ -1720,12 +1732,43 @@ const PaymentsPage = () => {
     }
   }, []);
 
+  // Fetch gift payments
+  const fetchGifts = useCallback(async () => {
+    try {
+      const apiUrl = getApiUrl();
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/payments?type=GIFT&page=0&size=100`);
+      if (response.ok) {
+        const result = await response.json();
+        const data = result?.data?.content || result?.data || [];
+        if (Array.isArray(data) && data.length > 0) {
+          const mapped = data.map((p: any) => ({
+            id: p.id || '',
+            eventTitle: p.eventTitle || 'Live Stream',
+            amount: p.amountInUsd || p.amount || 0,
+            netAmount: p.withdrawableAmount || p.netAmount || (p.amount ? p.amount * 0.65 : 0),
+            currency: p.currencyAbbreviation || p.currency || 'RWF',
+            giftMessage: p.giftMessage || null,
+            customerPhone: p.senderName || p.viewerName || p.customerPhone || p.viewerEmail || '',
+            method: p.paymentMethod || '-',
+            status: (p.status || 'pending').toLowerCase(),
+            date: p.paymentCompletedAt || p.dueDate || p.createdAt || '',
+          }));
+          setGiftPayments(mapped);
+          setTotalGiftRevenue(mapped.filter((g: { status: string }) => g.status === 'completed').reduce((sum: number, g: { netAmount: number }) => sum + g.netAmount, 0));
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch gift payments:', err);
+    }
+  }, []);
+
   useEffect(() => {
     if (user?.id) {
       fetchPayments();
       fetchStreams();
+      fetchGifts();
     }
-  }, [user?.id, fetchPayments, fetchStreams]);
+  }, [user?.id, fetchPayments, fetchStreams, fetchGifts]);
 
   const handleViewPayment = (payment: Payment) => {
     setSelectedPayment(payment);
@@ -2272,6 +2315,79 @@ Amount: ${formatPrice(payment.amountNum)}
                       ))}
                     </tbody>
                   </table>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Gift Earnings Section */}
+          <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)', overflow: 'hidden', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderBottom: `2px solid ${colors.borderPrimary}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, #F20C8F 0%, #EC4899 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+                </div>
+                <div>
+                  <h2 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Gift Earnings</h2>
+                  <p style={{ fontSize: '0.75rem', color: colors.textSecondary, margin: 0 }}>Gifts received from live-stream viewers</p>
+                </div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '0.7rem', color: colors.textSecondary }}>Total Gifts (65%)</div>
+                <div style={{ fontSize: '1.15rem', fontWeight: '700', color: '#F20C8F' }}>{formatPrice(totalGiftRevenue)}</div>
+              </div>
+            </div>
+            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+              {giftPayments.length === 0 ? (
+                <div style={{ padding: '2rem', textAlign: 'center', color: colors.textSecondary, fontSize: '0.85rem' }}>
+                  No gifts received yet. Gifts from live-stream viewers will appear here.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '0.75rem' }}>
+                  {giftPayments.map((gift) => {
+                    const isPhoneOnly = gift.customerPhone && /^\d+$/.test(gift.customerPhone.replace(/[+\s]/g, ''));
+                    const senderDisplay = isPhoneOnly
+                      ? gift.customerPhone.replace(/(\d{3})\d{4}(\d{3})/, '$1****$2')
+                      : (gift.customerPhone || 'Anonymous');
+                    return (
+                      <div key={gift.id} style={{
+                        padding: '0.75rem 1rem',
+                        borderRadius: '0.5rem',
+                        border: `1px solid ${colors.borderPrimary}`,
+                        backgroundColor: colors.bgTertiary,
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: gift.giftMessage ? '0.5rem' : 0 }}>
+                          <div>
+                            <div style={{ fontSize: '0.82rem', fontWeight: 600, color: colors.textPrimary }}>{senderDisplay}</div>
+                            <div style={{ fontSize: '0.7rem', color: colors.textSecondary, marginTop: '0.1rem' }}>{gift.eventTitle} &bull; {gift.date ? new Date(gift.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '-'}</div>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#F20C8F' }}>{gift.currency} {gift.netAmount.toLocaleString()}</div>
+                            <span style={{
+                              fontSize: '0.65rem', fontWeight: 600,
+                              padding: '0.1rem 0.4rem', borderRadius: '0.25rem',
+                              backgroundColor: gift.status === 'completed' ? '#ECFDF5' : '#FEF3C7',
+                              color: gift.status === 'completed' ? '#059669' : '#D97706',
+                              textTransform: 'uppercase',
+                            }}>{gift.status}</span>
+                          </div>
+                        </div>
+                        {gift.giftMessage && (
+                          <div style={{
+                            backgroundColor: actualTheme === 'dark' ? 'rgba(242,12,143,0.06)' : '#FDF2F8',
+                            borderLeft: '3px solid #F20C8F',
+                            borderRadius: '0 0.35rem 0.35rem 0',
+                            padding: '0.5rem 0.75rem',
+                            fontSize: '0.78rem',
+                            color: colors.textSecondary,
+                            fontStyle: 'italic',
+                          }}>
+                            &ldquo;{gift.giftMessage}&rdquo;
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
