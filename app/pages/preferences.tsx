@@ -211,6 +211,21 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
   const [isSavingVerificationMethod, setIsSavingVerificationMethod] = useState(false);
   const [verificationMethodMessage, setVerificationMethodMessage] = useState('');
 
+  // Two-factor authentication states
+  const [totpEnabled, setTotpEnabled] = useState(user?.twoFactorEnabled || false);
+  const [totpRequired, setTotpRequired] = useState(false);
+  const [totpStep, setTotpStep] = useState<'idle' | 'setup' | 'verify'>('idle');
+  const [totpQrCode, setTotpQrCode] = useState('');
+  const [totpSecret, setTotpSecret] = useState('');
+  const [totpCode, setTotpCode] = useState(['', '', '', '', '', '']);
+  const [totpLoading, setTotpLoading] = useState(false);
+  const [totpMessage, setTotpMessage] = useState('');
+  const [totpMessageType, setTotpMessageType] = useState<'success' | 'error'>('success');
+  const [showDisableConfirm, setShowDisableConfirm] = useState(false);
+  const [disableCode, setDisableCode] = useState(['', '', '', '', '', '']);
+  const totpInputRefs = React.useRef<(HTMLInputElement | null)[]>([]);
+  const disableInputRefs = React.useRef<(HTMLInputElement | null)[]>([]);
+
   // Notification settings states
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [pushNotifications, setPushNotifications] = useState(true);
@@ -362,6 +377,163 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
       setTimeout(() => setVerificationMethodMessage(''), 4000);
     }
   }, [userType, user, updateUser]);
+
+  // Load TOTP status when security tab is active
+  useEffect(() => {
+    if (activeTab !== 'security') return;
+    const fetchTotpStatus = async () => {
+      try {
+        const apiUrl = getApiUrl();
+        const response = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/totp/status`);
+        if (!response.ok) return;
+        const result = await response.json();
+        if (result.action === 1) {
+          setTotpEnabled(result.twoFactorEnabled);
+          setTotpRequired(result.twoFactorRequired);
+        }
+      } catch { /* silent */ }
+    };
+    fetchTotpStatus();
+  }, [activeTab]);
+
+  // Auto-start setup if redirected with setup2fa flag
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('setup2fa') === 'true' && !totpEnabled && totpStep === 'idle') {
+      handleTotpSetup();
+    }
+  }, [totpEnabled, totpRequired]);
+
+  const handleTotpSetup = useCallback(async () => {
+    setTotpLoading(true);
+    setTotpMessage('');
+    try {
+      const apiUrl = getApiUrl();
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/totp/setup`, {
+        method: 'POST',
+      });
+      const result = await response.json();
+      if (result.action === 1) {
+        setTotpQrCode(result.qrCode);
+        setTotpSecret(result.secret);
+        setTotpStep('setup');
+        setTotpCode(['', '', '', '', '', '']);
+      } else {
+        setTotpMessage(result.message || 'Failed to start setup');
+        setTotpMessageType('error');
+      }
+    } catch {
+      setTotpMessage('Failed to start setup');
+      setTotpMessageType('error');
+    } finally {
+      setTotpLoading(false);
+    }
+  }, []);
+
+  const handleTotpEnable = useCallback(async () => {
+    const code = totpCode.join('');
+    if (code.length !== 6) return;
+    setTotpLoading(true);
+    setTotpMessage('');
+    try {
+      const apiUrl = getApiUrl();
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/totp/enable`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      });
+      const result = await response.json();
+      if (result.action === 1) {
+        setTotpEnabled(true);
+        setTotpStep('idle');
+        setTotpMessage('Two-factor authentication enabled successfully');
+        setTotpMessageType('success');
+        updateUser({ twoFactorEnabled: true });
+      } else {
+        setTotpMessage(result.message || 'Invalid code');
+        setTotpMessageType('error');
+      }
+    } catch {
+      setTotpMessage('Failed to enable 2FA');
+      setTotpMessageType('error');
+    } finally {
+      setTotpLoading(false);
+      setTimeout(() => setTotpMessage(''), 5000);
+    }
+  }, [totpCode, updateUser]);
+
+  const handleTotpDisable = useCallback(async () => {
+    const code = disableCode.join('');
+    if (code.length !== 6) return;
+    setTotpLoading(true);
+    setTotpMessage('');
+    try {
+      const apiUrl = getApiUrl();
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/totp/disable`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      });
+      const result = await response.json();
+      if (result.action === 1) {
+        setTotpEnabled(false);
+        setShowDisableConfirm(false);
+        setDisableCode(['', '', '', '', '', '']);
+        setTotpMessage('Two-factor authentication disabled');
+        setTotpMessageType('success');
+        updateUser({ twoFactorEnabled: false });
+      } else {
+        setTotpMessage(result.message || 'Failed to disable');
+        setTotpMessageType('error');
+      }
+    } catch {
+      setTotpMessage('Failed to disable 2FA');
+      setTotpMessageType('error');
+    } finally {
+      setTotpLoading(false);
+      setTimeout(() => setTotpMessage(''), 5000);
+    }
+  }, [disableCode, updateUser]);
+
+  const handleTotpCodeChange = (index: number, value: string, refs: React.MutableRefObject<(HTMLInputElement | null)[]>, setter: React.Dispatch<React.SetStateAction<string[]>>) => {
+    if (value && !/^\d$/.test(value)) return;
+    setter(prev => {
+      const next = [...prev];
+      next[index] = value;
+      return next;
+    });
+    if (value && index < 5) {
+      refs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleTotpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>, refs: React.MutableRefObject<(HTMLInputElement | null)[]>, setter: React.Dispatch<React.SetStateAction<string[]>>) => {
+    if (e.key === 'Backspace') {
+      setter(prev => {
+        if (!prev[index] && index > 0) {
+          refs.current[index - 1]?.focus();
+          return prev;
+        }
+        const next = [...prev];
+        next[index] = '';
+        return next;
+      });
+    } else if (e.key === 'ArrowLeft' && index > 0) {
+      refs.current[index - 1]?.focus();
+    } else if (e.key === 'ArrowRight' && index < 5) {
+      refs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleTotpPaste = (e: React.ClipboardEvent, refs: React.MutableRefObject<(HTMLInputElement | null)[]>, setter: React.Dispatch<React.SetStateAction<string[]>>) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (pasted.length > 0) {
+      setter(pasted.split('').concat(Array(6 - pasted.length).fill('')));
+      refs.current[Math.min(pasted.length, 5)]?.focus();
+    }
+  };
 
   // Load bank providers when modal opens
   useEffect(() => {
@@ -1655,6 +1827,251 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
 
           {/* Security Tab */}
           {activeTab === 'security' && (
+            <>
+            {/* Two-Factor Authentication Card */}
+            <div className="mobile-pref-card" style={{
+              backgroundColor: colors.bgSecondary,
+              borderRadius: '1rem',
+              padding: '1.5rem',
+              boxShadow: colors.shadowMd,
+              border: `2px solid ${colors.borderPrimary}`,
+              marginBottom: '1.5rem',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
+                  Two-Factor Authentication
+                </h2>
+                {totpEnabled && (
+                  <span style={{
+                    fontSize: '0.75rem', fontWeight: '600', color: '#166534',
+                    backgroundColor: '#DCFCE7', padding: '0.25rem 0.75rem',
+                    borderRadius: '1rem', border: '1px solid #BBF7D0',
+                  }}>Enabled</span>
+                )}
+              </div>
+              <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1rem 0' }}>
+                Add an extra layer of security by requiring a code from your authenticator app when signing in.
+              </p>
+
+              {/* Mandatory banner */}
+              {totpRequired && !totpEnabled && (
+                <div style={{
+                  padding: '0.75rem 1rem', borderRadius: '0.5rem', marginBottom: '1rem',
+                  backgroundColor: '#FEF3C7', border: '1px solid #FDE68A',
+                  display: 'flex', alignItems: 'flex-start', gap: '0.5rem',
+                }}>
+                  <i className="bi bi-exclamation-triangle" style={{ color: '#92400E', fontSize: '1rem', marginTop: '0.1rem' }} />
+                  <p style={{ fontSize: '0.85rem', color: '#92400E', margin: 0, lineHeight: '1.5' }}>
+                    Two-factor authentication is required for accounts with a balance. Please set it up to continue using your dashboard.
+                  </p>
+                </div>
+              )}
+
+              {/* Status message */}
+              {totpMessage && (
+                <div style={{
+                  padding: '0.75rem 1rem', borderRadius: '0.5rem', marginBottom: '1rem',
+                  fontSize: '0.85rem',
+                  backgroundColor: totpMessageType === 'success' ? '#DCFCE7' : '#FEE2E2',
+                  color: totpMessageType === 'success' ? '#166534' : '#991B1B',
+                  border: `1px solid ${totpMessageType === 'success' ? '#BBF7D0' : '#FECACA'}`,
+                }}>
+                  {totpMessage}
+                </div>
+              )}
+
+              {/* Idle state: show enable or disable button */}
+              {totpStep === 'idle' && !totpEnabled && (
+                <button
+                  onClick={handleTotpSetup}
+                  disabled={totpLoading}
+                  style={{
+                    padding: '0.75rem 1.5rem', borderRadius: '0.5rem',
+                    backgroundColor: '#083A85', color: 'white', border: 'none',
+                    fontWeight: '600', fontSize: '0.9rem', cursor: totpLoading ? 'not-allowed' : 'pointer',
+                    opacity: totpLoading ? 0.7 : 1, transition: 'all 0.2s',
+                  }}
+                >
+                  {totpLoading ? 'Setting up...' : totpRequired ? 'Set Up Now' : 'Enable 2FA'}
+                </button>
+              )}
+
+              {/* Enabled state: show disable button */}
+              {totpStep === 'idle' && totpEnabled && !showDisableConfirm && (
+                <button
+                  onClick={() => { if (!totpRequired) { setShowDisableConfirm(true); setDisableCode(['', '', '', '', '', '']); } }}
+                  disabled={totpRequired}
+                  title={totpRequired ? 'Cannot disable while your account has a balance' : ''}
+                  style={{
+                    padding: '0.75rem 1.5rem', borderRadius: '0.5rem',
+                    backgroundColor: 'transparent', color: totpRequired ? colors.textSecondary : '#DC2626',
+                    border: `1px solid ${totpRequired ? colors.borderPrimary : '#DC2626'}`,
+                    fontWeight: '600', fontSize: '0.9rem',
+                    cursor: totpRequired ? 'not-allowed' : 'pointer',
+                    opacity: totpRequired ? 0.5 : 1, transition: 'all 0.2s',
+                  }}
+                >
+                  Disable 2FA
+                </button>
+              )}
+
+              {/* Disable confirmation: enter TOTP code to disable */}
+              {showDisableConfirm && (
+                <div style={{ marginTop: '0.5rem' }}>
+                  <p style={{ fontSize: '0.9rem', color: colors.textSecondary, marginBottom: '0.75rem' }}>
+                    Enter a code from your authenticator app to disable 2FA:
+                  </p>
+                  <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', marginBottom: '1rem' }}>
+                    {disableCode.map((digit, i) => (
+                      <input
+                        key={i}
+                        ref={el => { disableInputRefs.current[i] = el; }}
+                        type="text" inputMode="numeric" maxLength={1} value={digit}
+                        onChange={e => handleTotpCodeChange(i, e.target.value, disableInputRefs, setDisableCode)}
+                        onKeyDown={e => handleTotpKeyDown(i, e, disableInputRefs, setDisableCode)}
+                        onPaste={e => handleTotpPaste(e, disableInputRefs, setDisableCode)}
+                        style={{
+                          width: '44px', height: '50px', textAlign: 'center', fontSize: '1.25rem',
+                          fontWeight: '700', borderRadius: '0.5rem',
+                          border: `2px solid ${digit ? '#DC2626' : colors.borderPrimary}`,
+                          backgroundColor: colors.bgTertiary, color: colors.textPrimary,
+                          outline: 'none', transition: 'border-color 0.2s',
+                        }}
+                        onFocus={e => { e.currentTarget.style.borderColor = '#DC2626'; }}
+                        onBlur={e => { if (!digit) e.currentTarget.style.borderColor = colors.borderPrimary; }}
+                      />
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    <button
+                      onClick={handleTotpDisable}
+                      disabled={totpLoading || disableCode.some(d => !d)}
+                      style={{
+                        padding: '0.625rem 1.25rem', borderRadius: '0.5rem',
+                        backgroundColor: '#DC2626', color: 'white', border: 'none',
+                        fontWeight: '600', fontSize: '0.875rem',
+                        cursor: (totpLoading || disableCode.some(d => !d)) ? 'not-allowed' : 'pointer',
+                        opacity: (totpLoading || disableCode.some(d => !d)) ? 0.6 : 1,
+                      }}
+                    >
+                      {totpLoading ? 'Disabling...' : 'Confirm Disable'}
+                    </button>
+                    <button
+                      onClick={() => { setShowDisableConfirm(false); setDisableCode(['', '', '', '', '', '']); }}
+                      style={{
+                        padding: '0.625rem 1.25rem', borderRadius: '0.5rem',
+                        backgroundColor: 'transparent', color: colors.textSecondary,
+                        border: `1px solid ${colors.borderPrimary}`,
+                        fontWeight: '600', fontSize: '0.875rem', cursor: 'pointer',
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Setup step: show QR code */}
+              {totpStep === 'setup' && (
+                <div>
+                  <div style={{
+                    backgroundColor: actualTheme === 'dark' ? '#1F2937' : '#F9FAFB',
+                    borderRadius: '0.75rem', padding: '1.5rem',
+                    border: `1px solid ${colors.borderPrimary}`, textAlign: 'center',
+                    marginBottom: '1.25rem',
+                  }}>
+                    <p style={{ fontSize: '0.9rem', color: colors.textSecondary, marginBottom: '1rem' }}>
+                      Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)
+                    </p>
+                    {totpQrCode && (
+                      <div style={{ display: 'inline-block', padding: '0.75rem', backgroundColor: 'white', borderRadius: '0.5rem', marginBottom: '1rem' }}>
+                        <img src={totpQrCode} alt="TOTP QR Code" style={{ width: '200px', height: '200px' }} />
+                      </div>
+                    )}
+                    <div style={{ marginTop: '0.75rem' }}>
+                      <p style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.5rem' }}>
+                        Or enter this key manually:
+                      </p>
+                      <div
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                          padding: '0.5rem 1rem', backgroundColor: colors.bgTertiary,
+                          borderRadius: '0.375rem', border: `1px solid ${colors.borderPrimary}`,
+                          cursor: 'pointer',
+                        }}
+                        onClick={() => {
+                          navigator.clipboard.writeText(totpSecret);
+                          setTotpMessage('Secret copied to clipboard');
+                          setTotpMessageType('success');
+                          setTimeout(() => setTotpMessage(''), 2000);
+                        }}
+                      >
+                        <code style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, letterSpacing: '0.05em' }}>
+                          {totpSecret}
+                        </code>
+                        <i className="bi bi-clipboard" style={{ fontSize: '0.85rem', color: colors.textSecondary }} />
+                      </div>
+                    </div>
+                  </div>
+
+                  <p style={{ fontSize: '0.9rem', color: colors.textPrimary, fontWeight: '600', marginBottom: '0.75rem' }}>
+                    Enter the 6-digit code from your app:
+                  </p>
+                  <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', marginBottom: '1rem' }}>
+                    {totpCode.map((digit, i) => (
+                      <input
+                        key={i}
+                        ref={el => { totpInputRefs.current[i] = el; }}
+                        type="text" inputMode="numeric" maxLength={1} value={digit}
+                        onChange={e => handleTotpCodeChange(i, e.target.value, totpInputRefs, setTotpCode)}
+                        onKeyDown={e => handleTotpKeyDown(i, e, totpInputRefs, setTotpCode)}
+                        onPaste={e => handleTotpPaste(e, totpInputRefs, setTotpCode)}
+                        style={{
+                          width: '44px', height: '50px', textAlign: 'center', fontSize: '1.25rem',
+                          fontWeight: '700', borderRadius: '0.5rem',
+                          border: `2px solid ${digit ? '#083A85' : colors.borderPrimary}`,
+                          backgroundColor: colors.bgTertiary, color: colors.textPrimary,
+                          outline: 'none', transition: 'border-color 0.2s',
+                        }}
+                        onFocus={e => { e.currentTarget.style.borderColor = '#083A85'; }}
+                        onBlur={e => { if (!digit) e.currentTarget.style.borderColor = colors.borderPrimary; }}
+                      />
+                    ))}
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    <button
+                      onClick={handleTotpEnable}
+                      disabled={totpLoading || totpCode.some(d => !d)}
+                      style={{
+                        padding: '0.75rem 1.5rem', borderRadius: '0.5rem',
+                        backgroundColor: '#083A85', color: 'white', border: 'none',
+                        fontWeight: '600', fontSize: '0.9rem',
+                        cursor: (totpLoading || totpCode.some(d => !d)) ? 'not-allowed' : 'pointer',
+                        opacity: (totpLoading || totpCode.some(d => !d)) ? 0.6 : 1,
+                      }}
+                    >
+                      {totpLoading ? 'Verifying...' : 'Verify & Enable'}
+                    </button>
+                    {!totpRequired && (
+                      <button
+                        onClick={() => { setTotpStep('idle'); setTotpCode(['', '', '', '', '', '']); setTotpMessage(''); }}
+                        style={{
+                          padding: '0.75rem 1.5rem', borderRadius: '0.5rem',
+                          backgroundColor: 'transparent', color: colors.textSecondary,
+                          border: `1px solid ${colors.borderPrimary}`,
+                          fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer',
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Withdrawal Verification Card */}
             <div className="mobile-pref-card" style={{
               backgroundColor: colors.bgSecondary,
               borderRadius: '1rem',
@@ -1842,6 +2259,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                 </div>
               </div>
             </div>
+            </>
           )}
         </div>
       </div>
