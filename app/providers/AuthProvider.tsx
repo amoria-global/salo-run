@@ -135,6 +135,7 @@ export interface DashboardUser {
   reviewComment?: string;
   kycStatus?: string;
   preferredWithdrawalVerification?: string;
+  twoFactorEnabled?: boolean;
 }
 
 /**
@@ -350,6 +351,7 @@ function mapProfileData(data: any): DashboardUser {
     reviewComment: data.reviewComment || undefined,
     kycStatus: data.kycStatus || undefined,
     preferredWithdrawalVerification: data.preferredWithdrawalVerification || 'EMAIL_OTP',
+    twoFactorEnabled: data.twoFactorEnabled === true,
   };
 }
 
@@ -634,6 +636,43 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
       return () => window.removeEventListener('storage', handleStorageChange);
     }
   }, []);
+
+  // 2FA enforcement: if user has balance > 0 and no 2FA, redirect to preferences setup
+  useEffect(() => {
+    if (!token || !user || isLoading) return;
+    // Skip if already on the preferences page (avoid redirect loop)
+    if (typeof window !== 'undefined' && window.location.search.includes('setup2fa=true')) return;
+
+    // Only check if 2FA is not already enabled
+    if (user.twoFactorEnabled) return;
+
+    const checkTotpRequirement = async () => {
+      try {
+        const apiUrl = getApiUrl();
+        const response = await fetch(`${apiUrl}/api/remote/customer/totp/status`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'api-token': getApiKey(),
+          },
+        });
+        if (!response.ok) return;
+        const result = await response.json();
+        if (result.action === 1 && result.twoFactorRequired && !result.twoFactorEnabled) {
+          // Redirect to preferences security tab with setup2fa flag
+          if (typeof window !== 'undefined') {
+            const role = user.customerType?.toLowerCase() === 'event_coordinator'
+              ? 'event-coordinator'
+              : user.customerType?.toLowerCase() || 'photographer';
+            window.location.href = `/user/${role}/preferences?tab=security&setup2fa=true`;
+          }
+        }
+      } catch {
+        // Silently fail — don't block the user if the check fails
+      }
+    };
+
+    checkTotpRequirement();
+  }, [token, user, isLoading]);
 
   // Inactivity timeout for client & coordinator roles (1 hour)
   const lastActivityRef = useRef(Date.now());
