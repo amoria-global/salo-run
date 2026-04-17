@@ -11,7 +11,7 @@ import { getApiUrl, normalizeImageUrl } from '@/lib/api';
 import { getPlatformConfig } from '@/lib/platformConfig';
 import StreamPreview from '../../components/StreamPreview';
 import AlbumTypeSelector, { type AlbumType } from '../../components/AlbumTypeSelector';
-import PaidAlbumForm from '../../components/PaidAlbumForm';
+import PaidAlbumForm, { MIN_PAID_ALBUM_PRICE_RWF, isPaidAlbumPriceInvalid } from '../../components/PaidAlbumForm';
 import FreeAlbumForm from '../../components/FreeAlbumForm';
 import SendFreeInvitationModal from '../../components/SendFreeInvitationModal';
 
@@ -474,6 +474,8 @@ const PhotographerEventsPage = () => {
   const [standaloneAlbumType, setStandaloneAlbumType] = useState<AlbumType>('PAID');
   const [paidAlbumPrice, setPaidAlbumPrice] = useState('');
   const [paidAlbumCurrencyId, setPaidAlbumCurrencyId] = useState('');
+  const paidAlbumCurrencyCode = currencies.find(c => c.code === paidAlbumCurrencyId || (c.id || c.code) === paidAlbumCurrencyId)?.code || '';
+  const paidAlbumPriceInvalid = isPaidAlbumPriceInvalid(paidAlbumPrice, paidAlbumCurrencyCode);
   const [freeAlbumEmail, setFreeAlbumEmail] = useState('');
   const [showSendFreeInvitationModal, setShowSendFreeInvitationModal] = useState(false);
   const [freeAlbumToSend, setFreeAlbumToSend] = useState<{ albumId: string; title: string; email: string; accessCode: string } | null>(null);
@@ -1336,9 +1338,15 @@ const PhotographerEventsPage = () => {
     if (isStandalone && !albumTitle) return;
 
     // Validate PAID/FREE album fields
-    if (isStandalone && standaloneAlbumType === 'PAID' && (!paidAlbumPrice || !paidAlbumCurrencyId)) {
-      alert('Please fill in price and currency for PAID album');
-      return;
+    if (isStandalone && standaloneAlbumType === 'PAID') {
+      if (!paidAlbumPrice || !paidAlbumCurrencyId) {
+        alert('Please fill in price and currency for PAID album');
+        return;
+      }
+      if (paidAlbumPriceInvalid) {
+        alert(`Minimum price for a PAID album in RWF is ${MIN_PAID_ALBUM_PRICE_RWF}. Mobile Money collections below ${MIN_PAID_ALBUM_PRICE_RWF} RWF are rejected by the payment provider.`);
+        return;
+      }
     }
     if (isStandalone && standaloneAlbumType === 'FREE' && !freeAlbumEmail) {
       alert('Please enter recipient email for FREE album');
@@ -2608,7 +2616,7 @@ const PhotographerEventsPage = () => {
                     disabled={
                       !albumTitle ||
                       (createAlbumMode === 'event' && !createAlbumEventId) ||
-                      (createAlbumMode === 'standalone' && standaloneAlbumType === 'PAID' && (!paidAlbumPrice || !paidAlbumCurrencyId)) ||
+                      (createAlbumMode === 'standalone' && standaloneAlbumType === 'PAID' && (!paidAlbumPrice || !paidAlbumCurrencyId || paidAlbumPriceInvalid)) ||
                       (createAlbumMode === 'standalone' && standaloneAlbumType === 'FREE' && !freeAlbumEmail) ||
                       isUploadingAlbum
                     }
@@ -2617,7 +2625,7 @@ const PhotographerEventsPage = () => {
                       opacity: (
                         !albumTitle ||
                         (createAlbumMode === 'event' && !createAlbumEventId) ||
-                        (createAlbumMode === 'standalone' && standaloneAlbumType === 'PAID' && (!paidAlbumPrice || !paidAlbumCurrencyId)) ||
+                        (createAlbumMode === 'standalone' && standaloneAlbumType === 'PAID' && (!paidAlbumPrice || !paidAlbumCurrencyId || paidAlbumPriceInvalid)) ||
                         (createAlbumMode === 'standalone' && standaloneAlbumType === 'FREE' && !freeAlbumEmail) ||
                         isUploadingAlbum
                       ) ? 0.5 : 1
