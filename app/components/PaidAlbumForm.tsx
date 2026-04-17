@@ -2,6 +2,18 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 
+// Mobile Money (Rwanda) rejects collections below 100 RWF. The minimum only
+// applies when the album is priced in RWF — other currencies pass through
+// different rails and do not share this constraint.
+export const MIN_PAID_ALBUM_PRICE_RWF = 100;
+
+export const isPaidAlbumPriceInvalid = (price: string, currencyCode: string): boolean => {
+  if (currencyCode !== 'RWF') return false;
+  const n = parseFloat(price);
+  if (isNaN(n)) return false;
+  return n < MIN_PAID_ALBUM_PRICE_RWF;
+};
+
 const CURRENCY_FLAG_MAP: Record<string, string> = {
   USD: 'us', RWF: 'rw', EUR: 'eu', KES: 'ke', UGX: 'ug', TZS: 'tz', GBP: 'gb',
   NGN: 'ng', ZAR: 'za', GHS: 'gh', XAF: 'cm', XOF: 'sn', ETB: 'et', MAD: 'ma',
@@ -62,6 +74,8 @@ const PaidAlbumForm: React.FC<PaidAlbumFormProps> = ({
   const selectedCurrency = currencies.find(c => c.code === currencyId || (c.id || c.code) === currencyId);
   const selectedCode = selectedCurrency?.code || '';
   const selectedFlag = CURRENCY_FLAG_MAP[selectedCode] || '';
+  const priceInvalid = isPaidAlbumPriceInvalid(pricePerImage, selectedCode);
+  const isRwf = selectedCode === 'RWF';
 
   return (
     <div style={{ marginBottom: '1rem' }}>
@@ -197,28 +211,33 @@ const PaidAlbumForm: React.FC<PaidAlbumFormProps> = ({
           <input
             id="pricePerImage"
             type="number"
-            min="0"
-            step="0.01"
+            min={isRwf ? MIN_PAID_ALBUM_PRICE_RWF : 0}
+            step={isRwf ? 1 : 0.01}
             value={pricePerImage}
             onChange={(e) => onPriceChange(e.target.value)}
-            placeholder="Enter price (e.g., 10.00)"
+            placeholder={isRwf ? `Enter price (min ${MIN_PAID_ALBUM_PRICE_RWF})` : 'Enter price'}
             disabled={disabled}
             style={{
               flex: 1,
               padding: '0.6rem 0.75rem',
               fontSize: '0.85rem',
-              border: `1px solid ${colors.border}`,
+              border: `1px solid ${priceInvalid ? '#ef4444' : colors.border}`,
               borderRadius: '0.4rem',
               background: colors.background,
               color: colors.textPrimary,
               outline: 'none',
               transition: 'border-color 0.2s',
             }}
-            onFocus={(e) => (e.target.style.borderColor = '#3b82f6')}
-            onBlur={(e) => (e.target.style.borderColor = colors.border)}
+            onFocus={(e) => (e.target.style.borderColor = priceInvalid ? '#ef4444' : '#3b82f6')}
+            onBlur={(e) => (e.target.style.borderColor = priceInvalid ? '#ef4444' : colors.border)}
             required
           />
         </div>
+        {priceInvalid && (
+          <div style={{ fontSize: '0.7rem', color: '#ef4444', marginTop: '0.35rem' }}>
+            Minimum price is {MIN_PAID_ALBUM_PRICE_RWF} RWF. Mobile Money collections below {MIN_PAID_ALBUM_PRICE_RWF} RWF are rejected by the payment provider.
+          </div>
+        )}
       </div>
 
       {/* Commission Notice */}
