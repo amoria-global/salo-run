@@ -8,7 +8,6 @@ import { useDashboardAuth, dashboardAuthFetch } from "../providers/AuthProvider"
 import { useCurrency } from "../context/CurrencyContext";
 
 import { getApiUrl } from '@/lib/api';
-import WithdrawModal from './WithdrawModal';
 import PayNowModal from './UnlockModal';
 import type { Payment } from './UnlockModal';
 
@@ -127,7 +126,6 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
     }
   };
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -1157,21 +1155,19 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
                   Profile settings
                 </a>
 
-                <button
-                  onClick={() => { setIsDropdownOpen(false); setShowWithdrawModal(true); }}
+                <a
+                  href={`/user/${userRole}/wallet`}
+                  onClick={() => setIsDropdownOpen(false)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.75rem',
                     padding: '0.75rem',
                     borderRadius: '0.5rem',
-                    border: 'none',
-                    background: 'none',
+                    textDecoration: 'none',
                     color: colors.textSecondary,
                     fontSize: '0.95rem',
                     fontWeight: '500',
-                    cursor: 'pointer',
-                    width: '100%',
                     transition: 'background-color 0.2s'
                   }}
                   onMouseEnter={(e) => {
@@ -1181,9 +1177,9 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
                     e.currentTarget.style.backgroundColor = 'transparent';
                   }}
                 >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
-                  Withdraw
-                </button>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+                  Wallet
+                </a>
 
                 <button
                   onClick={() => {
@@ -1345,14 +1341,6 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
     )}
 
     {/* Logout Confirmation Modal */}
-    {/* Withdraw Modal */}
-    <WithdrawModal
-      isOpen={showWithdrawModal}
-      onClose={() => setShowWithdrawModal(false)}
-      role={userRole === 'photographer' ? 'photographer' : userRole === 'event-coordinator' ? 'event-coordinator' : 'client'}
-      colors={colors}
-      actualTheme={actualTheme}
-    />
     <PayNowModal
       isOpen={showPayNowModal}
       onClose={() => { setShowPayNowModal(false); setTopbarPayment(null); }}
