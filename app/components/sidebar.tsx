@@ -26,6 +26,7 @@ const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
     { name: "Notifications", href: "/user/photographer/notifications", icon: "bi-bell" },
     { name: "Transactions", href: "/user/photographer/transaction", icon: "bi-arrow-repeat" },
     { name: "Wallet", href: "/user/photographer/wallet", icon: "bi-wallet2" },
+    { name: "Donate", href: "/user/photographer/donate", icon: "bi-heart-fill" },
     { name: "Events", href: "/user/photographer/events", icon: "bi-calendar-event" },
     { name: "Inbox", href: "/user/photographer/inbox", icon: "bi-chat-dots" },
     { name: "Clients", href: "/user/photographer/clients", icon: "bi-people" },
@@ -39,6 +40,7 @@ const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
     { name: "Photographers", href: "/user/client/photographers", icon: "bi-camera" },
     { name: "Payments", href: "/user/client/payments", icon: "bi-credit-card" },
     { name: "Wallet", href: "/user/client/wallet", icon: "bi-wallet2" },
+    { name: "Donate", href: "/user/client/donate", icon: "bi-heart-fill" },
     { name: "Inbox", href: "/user/client/inbox", icon: "bi-chat-dots" },
   ],
   "event-coordinator": [
@@ -50,6 +52,7 @@ const roleNavigationMap: Record<UserRole, NavigationItem[]> = {
     { name: "Photographers", href: "/user/event-coordinator/photographers", icon: "bi-camera" },
     { name: "Payments", href: "/user/event-coordinator/payments", icon: "bi-credit-card" },
     { name: "Wallet", href: "/user/event-coordinator/wallet", icon: "bi-wallet2" },
+    { name: "Donate", href: "/user/event-coordinator/donate", icon: "bi-heart-fill" },
     { name: "Inbox", href: "/user/event-coordinator/inbox", icon: "bi-chat-dots" },
   ],
   admin: [
