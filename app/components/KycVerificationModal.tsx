@@ -50,6 +50,21 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
   const [documentType, setDocumentType] = useState<DocumentType>('');
   const [govIdFront, setGovIdFront] = useState<File | null>(null);
   const [govIdFrontPreview, setGovIdFrontPreview] = useState('');
+  const [govIdRatioWarning, setGovIdRatioWarning] = useState('');
+  // Separate warning fired when the front image looks like a face photo (big face)
+  // rather than a real document. Gates Next the same way the ratio warning does.
+  const [govIdFaceWarning, setGovIdFaceWarning] = useState('');
+  // Server-side OCR validation result — checked while on Step 3 so the user is
+  // gated right there instead of at submit.
+  const [govIdOcrWarning, setGovIdOcrWarning] = useState('');
+  const [govIdOcrStatus, setGovIdOcrStatus] = useState<'idle' | 'checking' | 'ok' | 'error'>('idle');
+
+  // Side-validation warnings — distinguish FRONT from BACK of ID / license.
+  const [govIdFrontSideWarning, setGovIdFrontSideWarning] = useState('');
+  const [govIdBackSideWarning, setGovIdBackSideWarning] = useState('');
+  const [govIdSideCheckStatus, setGovIdSideCheckStatus] = useState<'idle' | 'checking' | 'ok'>('idle');
+
+  const imageLandmarkerRef = useRef<unknown>(null);
   const [govIdBack, setGovIdBack] = useState<File | null>(null);
   const [govIdBackPreview, setGovIdBackPreview] = useState('');
   const [idCameraSide, setIdCameraSide] = useState<null | 'front' | 'back'>(null);
@@ -519,6 +534,13 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
     setGovIdFrontPreview('');
     setGovIdBack(null);
     setGovIdBackPreview('');
+    setGovIdRatioWarning('');
+    setGovIdFaceWarning('');
+    setGovIdOcrWarning('');
+    setGovIdOcrStatus('idle');
+    setGovIdFrontSideWarning('');
+    setGovIdBackSideWarning('');
+    setGovIdSideCheckStatus('idle');
     setIdCameraSide(null);
     setCameraError('');
 
@@ -618,18 +640,226 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
     reader.readAsDataURL(file);
   };
 
-  const handleGovIdFrontChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setGovIdFront(file);
-    readFilePreview(file, setGovIdFrontPreview);
+  // Center-crop an uploaded image to the expected aspect ratio for the selected
+  // document type. Keeps uploaded files visually consistent with camera captures.
+  // Target ratios:
+  //   PASSPORT     → 1.40:1 (photo-page)
+  //   NATIONAL_ID  → 1.58:1 (credit-card)
+  //   DRIVER_LICENSE → 1.58:1 (credit-card)
+  const autoCropToDocRatio = (file: File, type: DocumentType): Promise<File> => {
+    return new Promise((resolve) => {
+      if (!type) { resolve(file); return; }
+      const targetRatio = type === 'PASSPORT' ? 1.40 : 1.58;
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        try {
+          const srcRatio = img.width / img.height;
+          // If the image is already close to the target (±3%), skip the crop
+          if (Math.abs(srcRatio - targetRatio) / targetRatio < 0.03) {
+            URL.revokeObjectURL(url);
+            resolve(file);
+            return;
+          }
+          let cropW: number, cropH: number;
+          if (srcRatio > targetRatio) {
+            // Image is wider than target → crop horizontally
+            cropH = img.height;
+            cropW = cropH * targetRatio;
+          } else {
+            // Image is taller than target → crop vertically
+            cropW = img.width;
+            cropH = cropW / targetRatio;
+          }
+          const sx = (img.width - cropW) / 2;
+          const sy = (img.height - cropH) / 2;
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.round(cropW);
+          canvas.height = Math.round(cropH);
+          const ctx = canvas.getContext('2d');
+          if (!ctx) { URL.revokeObjectURL(url); resolve(file); return; }
+          ctx.drawImage(img, sx, sy, cropW, cropH, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob(blob => {
+            URL.revokeObjectURL(url);
+            if (!blob) { resolve(file); return; }
+            resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+          }, 'image/jpeg', 0.92);
+        } catch {
+          URL.revokeObjectURL(url);
+          resolve(file);
+        }
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+      img.src = url;
+    });
   };
 
-  const handleGovIdBackChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // Server-side side-check — asks backend whether the image looks like FRONT or BACK.
+  // Clear rejection (SIDE_WRONG) blocks Next; anything else passes through.
+  const checkDocSideOnServer = async (file: File, side: 'FRONT' | 'BACK') => {
+    setGovIdSideCheckStatus('checking');
+    try {
+      const apiUrl = getApiUrl();
+      const fd = new FormData();
+      fd.append('side', side);
+      fd.append('image', file);
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/kyc/validate-doc-side`, {
+        method: 'POST', body: fd,
+      });
+      const data = await res.json();
+      const msg = data.status === 'SIDE_WRONG' ? (data.message || 'Wrong side uploaded.') : '';
+      if (side === 'FRONT') setGovIdFrontSideWarning(msg);
+      else setGovIdBackSideWarning(msg);
+    } catch {
+      // Network error — don't block; backend submit will still run the same check.
+    } finally {
+      setGovIdSideCheckStatus('ok');
+    }
+  };
+
+  // Lazily create a second FaceLandmarker in IMAGE mode for checking still photos
+  // (the main one is VIDEO mode, used for liveness). Model weights are cached so
+  // the second instance loads almost instantly after the first.
+  const ensureImageLandmarker = async () => {
+    if (imageLandmarkerRef.current) return imageLandmarkerRef.current;
+    try {
+      const vision = await import('@mediapipe/tasks-vision');
+      const fileset = await vision.FilesetResolver.forVisionTasks(
+        'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.34/wasm'
+      );
+      const lm = await vision.FaceLandmarker.createFromOptions(fileset, {
+        baseOptions: {
+          modelAssetPath:
+            'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
+        },
+        runningMode: 'IMAGE',
+        numFaces: 1,
+      });
+      imageLandmarkerRef.current = lm;
+      return lm;
+    } catch {
+      return null;
+    }
+  };
+
+  // Server-side OCR document-type check. Runs as soon as the user captures or
+  // uploads the front image so we can gate Next right here (instead of at submit).
+  const checkDocTypeOnServer = async (file: File, type: DocumentType) => {
+    if (!type) return;
+    setGovIdOcrStatus('checking');
+    setGovIdOcrWarning('');
+    try {
+      const apiUrl = getApiUrl();
+      const fd = new FormData();
+      fd.append('documentType', type);
+      fd.append('image', file);
+      const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/kyc/validate-doc-type`, {
+        method: 'POST',
+        body: fd,
+      });
+      const data = await res.json();
+      const status = data.status;
+      if (status === 'MISMATCH' || status === 'NOT_A_DOCUMENT') {
+        // Clear rejection — the image is not the selected document type.
+        setGovIdOcrWarning(data.message || 'The uploaded document does not match the selected type.');
+        setGovIdOcrStatus('error');
+      } else if (status === 'MATCH') {
+        // Positive confirmation — user sees green "verified" state.
+        setGovIdOcrWarning('');
+        setGovIdOcrStatus('ok');
+      } else {
+        // UNCERTAIN / SKIPPED / ERROR — let through; backend final-check on submit,
+        // admin review catches anything actually wrong via risk score.
+        setGovIdOcrWarning('');
+        setGovIdOcrStatus('ok');
+      }
+    } catch {
+      // Network error or endpoint unavailable — don't block on this, backend will
+      // still run the same check at final submission.
+      setGovIdOcrStatus('idle');
+    }
+  };
+
+  // Run face detection on the ID image. Real IDs have a small face photo
+  // (<15% of card area). A webcam selfie used as ID has a face filling 25-50%+
+  // of the frame. If detected coverage is high, flag as a face photo.
+  const checkIdFaceCoverage = async (file: File) => {
+    const lm = await ensureImageLandmarker() as {
+      detect: (img: ImageBitmap) => {
+        faceLandmarks: Array<Array<{ x: number; y: number }>>;
+      };
+    } | null;
+    if (!lm) return;
+    try {
+      const bitmap = await createImageBitmap(file);
+      const result = lm.detect(bitmap);
+      bitmap.close();
+      if (!result.faceLandmarks || result.faceLandmarks.length === 0) {
+        setGovIdFaceWarning('');
+        return;
+      }
+      const pts = result.faceLandmarks[0];
+      let minX = 1, maxX = 0, minY = 1, maxY = 0;
+      for (const p of pts) {
+        if (p.x < minX) minX = p.x; if (p.x > maxX) maxX = p.x;
+        if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y;
+      }
+      const faceArea = (maxX - minX) * (maxY - minY);
+      if (faceArea > 0.20) {
+        setGovIdFaceWarning('This looks like a face photo, not an identification document. The face fills too much of the image. Please photograph the entire document (ID card or passport page).');
+      } else {
+        setGovIdFaceWarning('');
+      }
+    } catch {
+      setGovIdFaceWarning('');
+    }
+  };
+
+  // Quick client-side heuristic: credit-card IDs are ~1.58:1, passport photo
+  // pages are closer to 1.4:1. If the image doesn't match the selected type,
+  // we show a non-blocking warning before the user submits.
+  const checkGovIdRatio = (file: File, selectedType: DocumentType) => {
+    if (!selectedType) { setGovIdRatioWarning(''); return; }
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const ratio = img.width / img.height;
+      URL.revokeObjectURL(url);
+      // Normalise: compare the wider-over-taller ratio regardless of orientation
+      const normalized = Math.max(ratio, 1 / ratio);
+      const isCardShape = normalized >= 1.45 && normalized <= 1.75;
+      const isPassportShape = normalized >= 1.25 && normalized <= 1.55;
+      if (selectedType === 'PASSPORT' && isCardShape && !isPassportShape) {
+        setGovIdRatioWarning('This image looks like a credit-card shaped ID, not a passport page. Double-check your selection.');
+      } else if ((selectedType === 'NATIONAL_ID' || selectedType === 'DRIVER_LICENSE')
+                 && isPassportShape && !isCardShape) {
+        setGovIdRatioWarning('This image looks like a passport page, not a credit-card shaped ID. Double-check your selection.');
+      } else {
+        setGovIdRatioWarning('');
+      }
+    };
+    img.src = url;
+  };
+
+  const handleGovIdFrontChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.files?.[0];
+    if (!raw) return;
+    const file = await autoCropToDocRatio(raw, documentType);
+    setGovIdFront(file);
+    readFilePreview(file, setGovIdFrontPreview);
+    checkGovIdRatio(file, documentType);
+    checkIdFaceCoverage(file);
+    checkDocTypeOnServer(file, documentType);
+    checkDocSideOnServer(file, 'FRONT');
+  };
+
+  const handleGovIdBackChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.files?.[0];
+    if (!raw) return;
+    const file = await autoCropToDocRatio(raw, documentType);
     setGovIdBack(file);
     readFilePreview(file, setGovIdBackPreview);
+    checkDocSideOnServer(file, 'BACK');
   };
 
   // ID card camera: open, capture, stop
@@ -682,8 +912,16 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
       if (!blob) return;
       const file = new File([blob], `id-${side}-${Date.now()}.jpg`, { type: 'image/jpeg' });
       const url = URL.createObjectURL(blob);
-      if (side === 'front') { setGovIdFront(file); setGovIdFrontPreview(url); }
-      else { setGovIdBack(file); setGovIdBackPreview(url); }
+      if (side === 'front') {
+        setGovIdFront(file); setGovIdFrontPreview(url);
+        checkGovIdRatio(file, documentType);
+        checkIdFaceCoverage(file);
+        checkDocTypeOnServer(file, documentType);
+        checkDocSideOnServer(file, 'FRONT');
+      } else {
+        setGovIdBack(file); setGovIdBackPreview(url);
+        checkDocSideOnServer(file, 'BACK');
+      }
       stopIdCamera();
     }, 'image/jpeg', 0.92);
   };
@@ -767,6 +1005,19 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
     if (s === 3) {
       if (!documentType || !govIdFront) return false;
       if (documentType !== 'PASSPORT' && !govIdBack) return false;
+      // Hard-block when any client or server check flagged the image:
+      //  - aspect-ratio mismatch
+      //  - face fills too much of the frame
+      //  - server-side OCR says the document type doesn't match
+      //  - server-side OCR check still in progress
+      //  - side-detection found user uploaded FRONT in BACK slot (or vice versa)
+      if (govIdRatioWarning) return false;
+      if (govIdFaceWarning) return false;
+      if (govIdOcrWarning) return false;
+      if (govIdOcrStatus === 'checking') return false;
+      if (govIdFrontSideWarning) return false;
+      if (govIdBackSideWarning) return false;
+      if (govIdSideCheckStatus === 'checking') return false;
       return true;
     }
     return true;
@@ -1351,7 +1602,27 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
                       {docOptions.map(opt => {
                         const selected = documentType === opt.value;
                         return (
-                          <button key={opt.value} onClick={() => setDocumentType(opt.value)} className="kyc-doctype-btn" style={{
+                          <button key={opt.value} onClick={() => {
+                            // Switching document type wipes any uploaded ID images
+                            // and clears all validation warnings. Users should start
+                            // fresh for the new type — old uploads would be invalid.
+                            if (documentType && documentType !== opt.value) {
+                              setGovIdFront(null);
+                              setGovIdFrontPreview('');
+                              setGovIdBack(null);
+                              setGovIdBackPreview('');
+                              setGovIdRatioWarning('');
+                              setGovIdFaceWarning('');
+                              setGovIdOcrWarning('');
+                              setGovIdOcrStatus('idle');
+                              setGovIdFrontSideWarning('');
+                              setGovIdBackSideWarning('');
+                              setGovIdSideCheckStatus('idle');
+                              if (govIdFrontInputRef.current) govIdFrontInputRef.current.value = '';
+                              if (govIdBackInputRef.current) govIdBackInputRef.current.value = '';
+                            }
+                            setDocumentType(opt.value);
+                          }} className="kyc-doctype-btn" style={{
                             flex: 1, padding: '0.75rem 0.5rem',
                             border: `2px solid ${selected ? '#083A85' : colors.borderPrimary}`,
                             borderRadius: '0.5rem',
@@ -1371,6 +1642,95 @@ export default function KycVerificationModal({ isOpen, onClose, onSuccess, color
                         <p style={{ fontSize: '0.75rem', color: colors.textSecondary, margin: '0 0 0.75rem 0' }}>
                           Place your document on a flat surface with good lighting. Align it inside the frame.
                         </p>
+
+                        {govIdOcrStatus === 'checking' && !govIdRatioWarning && !govIdFaceWarning && (
+                          <div style={{
+                            padding: '0.6rem 0.85rem', marginBottom: '0.75rem',
+                            borderRadius: '0.5rem',
+                            background: colors.bgTertiary, border: `1px solid ${colors.borderPrimary}`,
+                            color: colors.textSecondary, fontSize: '0.8rem',
+                            display: 'flex', gap: '0.6rem', alignItems: 'center',
+                          }}>
+                            <div style={{
+                              width: '12px', height: '12px',
+                              border: '2px solid #E5E7EB', borderTopColor: '#083A85',
+                              borderRadius: '50%',
+                              animation: prefersReducedMotion ? 'none' : 'spin 0.8s linear infinite',
+                            }} />
+                            <span>Checking that the document matches the selected type…</span>
+                            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                          </div>
+                        )}
+
+                        {(govIdRatioWarning || govIdFaceWarning || govIdOcrWarning) && (
+                          <div role="alert" style={{
+                            padding: '0.75rem 1rem', marginBottom: '0.75rem',
+                            borderRadius: '0.5rem',
+                            background: '#FEF2F2', border: '1px solid #FECACA',
+                            color: '#991B1B', fontSize: '0.82rem',
+                            display: 'flex', gap: '0.6rem', alignItems: 'flex-start',
+                          }}>
+                            <span aria-hidden="true" style={{ fontSize: '1rem' }}>&#9888;</span>
+                            <div>
+                              <strong style={{ display: 'block', marginBottom: '0.2rem' }}>
+                                {govIdOcrWarning ? 'Wrong document — cannot continue'
+                                  : govIdFaceWarning ? 'This does not look like a document — cannot continue'
+                                  : 'Document type mismatch — cannot continue'}
+                              </strong>
+                              <span>
+                                {govIdOcrWarning || govIdFaceWarning || govIdRatioWarning}
+                                {' '}Retake the photo, upload a different one, or change the document type above.
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        {govIdFrontSideWarning && (
+                          <div role="alert" style={{
+                            padding: '0.75rem 1rem', marginBottom: '0.75rem',
+                            borderRadius: '0.5rem',
+                            background: '#FEF2F2', border: '1px solid #FECACA',
+                            color: '#991B1B', fontSize: '0.82rem',
+                            display: 'flex', gap: '0.6rem', alignItems: 'flex-start',
+                          }}>
+                            <span aria-hidden="true" style={{ fontSize: '1rem' }}>&#9888;</span>
+                            <div>
+                              <strong style={{ display: 'block', marginBottom: '0.2rem' }}>Wrong side in FRONT slot</strong>
+                              <span>{govIdFrontSideWarning}</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {govIdBackSideWarning && (
+                          <div role="alert" style={{
+                            padding: '0.75rem 1rem', marginBottom: '0.75rem',
+                            borderRadius: '0.5rem',
+                            background: '#FEF2F2', border: '1px solid #FECACA',
+                            color: '#991B1B', fontSize: '0.82rem',
+                            display: 'flex', gap: '0.6rem', alignItems: 'flex-start',
+                          }}>
+                            <span aria-hidden="true" style={{ fontSize: '1rem' }}>&#9888;</span>
+                            <div>
+                              <strong style={{ display: 'block', marginBottom: '0.2rem' }}>Wrong side in BACK slot</strong>
+                              <span>{govIdBackSideWarning}</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Positive confirmation when OCR verifies the document matches. */}
+                        {govIdOcrStatus === 'ok' && !govIdRatioWarning && !govIdFaceWarning
+                          && !govIdOcrWarning && govIdFront && (
+                          <div style={{
+                            padding: '0.6rem 0.85rem', marginBottom: '0.75rem',
+                            borderRadius: '0.5rem',
+                            background: '#ECFDF5', border: '1px solid #A7F3D0',
+                            color: '#065F46', fontSize: '0.82rem',
+                            display: 'flex', gap: '0.5rem', alignItems: 'center',
+                          }}>
+                            <span aria-hidden="true" style={{ fontSize: '0.95rem' }}>&#10003;</span>
+                            <span>Document verified — you can continue.</span>
+                          </div>
+                        )}
 
                         <div className="kyc-id-row" style={{ display: 'flex', gap: '0.75rem' }}>
                           {renderSideCard(
