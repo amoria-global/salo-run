@@ -1530,6 +1530,8 @@ const MyEventsPage = () => {
         return { backgroundColor: '#D1FAE5', color: '#059669' };
       case 'completed':
         return { backgroundColor: '#DC2626', color: '#FFFFFF' };
+      case 'awaiting_review':
+        return { backgroundColor: '#D97706', color: '#FFFFFF' };
       case 'paused':
         return { backgroundColor: '#F59E0B', color: '#FFFFFF' };
       default:
@@ -1548,7 +1550,7 @@ const MyEventsPage = () => {
     } else if (activeTab === 'published') {
       return matchesSearch && statusLower === 'published';
     } else if (activeTab === 'past') {
-      return matchesSearch && statusLower === 'completed';
+      return matchesSearch && (statusLower === 'completed' || statusLower === 'awaiting_review');
     }
     return matchesSearch;
   });
@@ -1558,7 +1560,10 @@ const MyEventsPage = () => {
     return s === 'upcoming' || s === 'ongoing' || s === 'live' || s === 'paused';
   }).length;
   const publishedCount = events.filter(e => e.status.toLowerCase() === 'published').length;
-  const completedCount = events.filter(e => e.status.toLowerCase() === 'completed').length;
+  const completedCount = events.filter(e => {
+    const s = e.status.toLowerCase();
+    return s === 'completed' || s === 'awaiting_review';
+  }).length;
   const pastCount = completedCount;
 
   return (
@@ -2039,7 +2044,7 @@ const MyEventsPage = () => {
                     });
                     if (res.ok) {
                       if (completionFeedbackStatus === 'COMPLETED') {
-                        setEvents(prev => prev.map(e => e.id === completionModalEvent.id ? { ...e, status: 'COMPLETED' as EventStatus, completionStatus: 'COMPLETED' } : e));
+                        setEvents(prev => prev.map(e => e.id === completionModalEvent.id ? { ...e, status: 'AWAITING_REVIEW' as EventStatus, completionStatus: 'COMPLETED' } : e));
                       } else {
                         setEvents(prev => prev.map(e => e.id === completionModalEvent.id ? { ...e, completionStatus: 'PENDING_CUSTOMER_CONFIRMATION' } : e));
                       }
