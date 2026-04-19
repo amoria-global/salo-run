@@ -371,8 +371,8 @@ export function pollPaymentStatus(
     onFailure: (data: XentriPayStatusResponse) => void;
     onError: (error: string) => void;
   },
-  intervalMs: number = 5000,
-  maxAttempts: number = 60
+  intervalMs: number = 2000,
+  maxAttempts: number = 150
 ): () => void {
   let attempts = 0;
   let stopped = false;
