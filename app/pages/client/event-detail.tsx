@@ -203,6 +203,8 @@ function getStatusColor(status: string): string {
     case 'PARTIAL':
     case 'PARTIALLY_PAID':
       return '#F59E0B';
+    case 'AWAITING_REVIEW':
+      return '#D97706';
     case 'CANCELLED':
     case 'FAILED':
       return '#EF4444';
@@ -222,6 +224,7 @@ function getStatusLabel(status: string): string {
     case 'PENDING': return 'Pending';
     case 'PARTIAL': return 'Partially Paid';
     case 'PARTIALLY_PAID': return 'Partially Paid';
+    case 'AWAITING_REVIEW': return 'Awaiting Review';
     case 'CANCELLED': return 'Cancelled';
     case 'FAILED': return 'Failed';
     default: return status || 'Unknown';
