@@ -8,7 +8,7 @@ import { getLandingUrl } from '@/lib/urls';
  * - Redirects to home app login if no token found
  * - Allows access to auth pages without token
  */
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
   // Check for token in URL query params (passed from home app)
