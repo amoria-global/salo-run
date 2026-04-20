@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import Sidebar from '../components/sidebar';
+import Topbar from '../components/topbar';
 import { useTheme } from '../context/ThemeContext';
 import { useDashboardAuth } from '../providers/AuthProvider';
 import {
@@ -25,7 +27,13 @@ const CATEGORIES = [
 
 type Step = 'form' | 'payment' | 'polling' | 'success' | 'failed';
 
-export default function DonatePage() {
+type DonateRole = 'photographer' | 'client' | 'event-coordinator';
+
+interface DonatePageProps {
+  userRole?: DonateRole;
+}
+
+export default function DonatePage({ userRole = 'client' }: DonatePageProps) {
   const { colors, actualTheme } = useTheme();
   const { user } = useDashboardAuth();
 
@@ -201,6 +209,11 @@ export default function DonatePage() {
   const accent = '#F20C8F';
 
   return (
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary, overflow: 'hidden', width: '100%' }}>
+      <Sidebar />
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <Topbar userRole={userRole} />
+        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', backgroundColor: colors.bgPrimary }}>
     <div style={{ padding: 'clamp(16px, 3vw, 32px)', maxWidth: '720px', margin: '0 auto' }}>
       {/* Header */}
       <div style={{ textAlign: 'center', marginBottom: '28px' }}>
@@ -492,6 +505,9 @@ export default function DonatePage() {
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
+    </div>
+        </div>
+      </div>
     </div>
   );
 }

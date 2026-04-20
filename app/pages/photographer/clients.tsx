@@ -482,6 +482,12 @@ export default function Clients() {
         }
       }
 
+      // Newest-added first. joinDate is mapped from firstContactedAt / joinDate / createdAt.
+      clientsMapped.sort((a, b) => {
+        const ta = a.joinDate ? new Date(a.joinDate).getTime() : 0;
+        const tb = b.joinDate ? new Date(b.joinDate).getTime() : 0;
+        return tb - ta;
+      });
       setClients(clientsMapped);
     } catch (err) {
       console.error('Failed to fetch clients:', err);

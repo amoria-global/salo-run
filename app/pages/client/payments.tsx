@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
@@ -15,6 +15,7 @@ import { initiateBookingPayment, pollPaymentStatus, getTelecomProvider, getPayme
 import { getApiUrl } from '@/lib/api';
 import SatisfactionSurveyModal from '../../components/SatisfactionSurveyModal';
 import { getMyWallet, type WalletDTO } from '@/lib/walletApi';
+import { useHighlightOnMount } from '@/lib/useHighlightOnMount';
 
 // Icons
 const DownloadIcon = () => (
@@ -1706,6 +1707,15 @@ Amount: ${formatPrice(payment.amountNum)}
   }, [activeTimeFilter, fetchSpendingTrend]);
 
   const [payments, setPayments] = useState<Payment[]>([]);
+  // Pop-highlight the matching row if arrived from "Go to notification".
+  // Match on declarationId because `payment.id` is a display-only sequence.
+  const highlightId = useHighlightOnMount();
+  const highlightRowRef = useRef<HTMLTableRowElement | null>(null);
+  useEffect(() => {
+    if (highlightId && highlightRowRef.current) {
+      highlightRowRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [highlightId, payments.length]);
   const [totalPages, setTotalPages] = useState(1);
   const [totalResults, setTotalResults] = useState(0);
   const resultsPerPage = 8;
@@ -1756,6 +1766,13 @@ Amount: ${formatPrice(payment.amountNum)}
       const result = await response.json();
       const pageData = result.data;
       const content = pageData?.content || [];
+
+      // Newest-created first. Mapped shape formats date string, so sort raw.
+      content.sort((a: any, b: any) => {
+        const ta = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const tb = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return tb - ta;
+      });
 
       const mapped: Payment[] = content.map((item: any, index: number) => ({
         id: index + 1 + (page - 1) * resultsPerPage,
@@ -2642,8 +2659,15 @@ Amount: ${formatPrice(payment.amountNum)}
                 </tr>
               </thead>
               <tbody>
-                {payments.map((payment) => (
-                  <tr key={payment.id} style={{ borderBottom: `2px solid ${colors.borderPrimary}` }}>
+                {payments.map((payment) => {
+                  const isHighlighted = highlightId != null && String(payment.declarationId) === highlightId;
+                  return (
+                  <tr
+                    key={payment.id}
+                    ref={isHighlighted ? highlightRowRef : null}
+                    className={isHighlighted ? 'notif-highlight-pop' : undefined}
+                    style={{ borderBottom: `2px solid ${colors.borderPrimary}` }}
+                  >
                     <td style={{ padding: '0.875rem 1.25rem', fontSize: '0.85rem', color: colors.textSecondary }}>{payment.date}</td>
                     <td style={{ padding: '0.875rem 1.25rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -2769,7 +2793,8 @@ Amount: ${formatPrice(payment.amountNum)}
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
             </div>
