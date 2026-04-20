@@ -127,6 +127,10 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
   };
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  // Accordion: at most one notification expanded at a time inside the dropdown.
+  // Mark-as-read fires when a row transitions from expanded → collapsed
+  // (switching rows, clicking the same row again, or closing the dropdown).
+  const [expandedNotifId, setExpandedNotifId] = useState<string | null>(null);
   const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -244,13 +248,25 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
     fetchNotifications();
     fetchFinancials();
     const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
+    // Re-sync immediately when any surface (sidebar, notifications page,
+    // other tabs) signals that the unread count changed.
+    const onBadgeUpdate = () => { fetchNotifications(); };
+    window.addEventListener('badge-update', onBadgeUpdate);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('badge-update', onBadgeUpdate);
+    };
   }, [fetchNotifications, fetchFinancials]);
 
   const markAsRead = async (id: string) => {
     const wasUnread = notifications.find(n => n.id === id && !n.read);
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-    if (wasUnread) setUnreadCount(prev => Math.max(0, prev - 1));
+    if (wasUnread) {
+      setUnreadCount(prev => Math.max(0, prev - 1));
+      // Tell the sidebar (and anyone else listening) the count changed so
+      // its badge updates immediately instead of lagging 30s until next poll.
+      window.dispatchEvent(new Event('badge-update'));
+    }
     const apiUrl = getApiUrl();
     const base = userRole === 'event-coordinator' ? 'coordinator' : userRole === 'photographer' ? 'photographer' : 'customer';
     try {
@@ -263,6 +279,7 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
   const markAllAsRead = async () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     setUnreadCount(0);
+    window.dispatchEvent(new Event('badge-update'));
     const apiUrl = getApiUrl();
     const base = userRole === 'event-coordinator' ? 'coordinator' : userRole === 'photographer' ? 'photographer' : 'customer';
     try {
@@ -270,6 +287,20 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
     } catch {
       // silent fail
     }
+  };
+
+  // Accordion toggle for the in-dropdown reader. Opening a new row auto-collapses
+  // (and marks as read) whichever row was previously expanded. Clicking the same
+  // row again collapses and marks it as read too.
+  const handleToggleExpand = (notificationId: string) => {
+    setExpandedNotifId(prev => {
+      if (prev === notificationId) {
+        markAsRead(prev);
+        return null;
+      }
+      if (prev) markAsRead(prev);
+      return notificationId;
+    });
   };
 
   const handleNotificationClick = (notification: NotificationItem) => {
@@ -322,9 +353,14 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
       }
     }
 
-    // Fallback to actionUrl from backend if no match
-    dest = dest || notification.actionUrl || null;
-    if (dest) router.push(dest);
+    // Fallback chain: specific route → backend actionUrl → role's full notifications page.
+    // Without the final fallback, clicks on SYSTEM / unrecognized-type notifications silently
+    // mark-as-read and vanish, leaving users with no way to reopen the detail.
+    const rolePath = userRole === 'photographer' ? 'photographer'
+      : userRole === 'event-coordinator' ? 'event-coordinator'
+      : 'client';
+    dest = dest || notification.actionUrl || `/user/${rolePath}/notifications`;
+    router.push(dest);
   };
 
   const getNotificationIcon = (type: string) => {
@@ -359,6 +395,17 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  // When the notifications dropdown closes for any reason (click outside, X button,
+  // bell toggle, or clicking a notification row), mark whatever was expanded as read
+  // and reset so reopening starts clean.
+  useEffect(() => {
+    if (!isNotificationsOpen && expandedNotifId) {
+      markAsRead(expandedNotifId);
+      setExpandedNotifId(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isNotificationsOpen]);
 
   return (
     <>
@@ -626,7 +673,7 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
               boxShadow: colors.shadowLg,
               border: `2px solid ${colors.borderPrimary}`,
               width: '360px',
-              maxHeight: '480px',
+              maxHeight: '380px',
               zIndex: 50,
               overflow: 'hidden'
             }}>
@@ -682,9 +729,9 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
                 </div>
               </div>
 
-              {/* Notifications List */}
+              {/* Notifications List — sized for ~3 rows visible; rest scrolls. */}
               <div style={{
-                maxHeight: '380px',
+                maxHeight: '270px',
                 overflowY: 'auto'
               }}>
                 {notifications.length === 0 ? (
@@ -698,10 +745,11 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
                 ) : (
                   notifications.map((notification) => {
                     const iconStyle = getNotificationIcon(notification.type);
+                    const isExpanded = expandedNotifId === notification.id;
                     return (
                       <div
                         key={notification.id}
-                        onClick={() => handleNotificationClick(notification)}
+                        onClick={() => handleToggleExpand(notification.id)}
                         style={{
                           display: 'flex',
                           gap: '0.75rem',
@@ -764,9 +812,11 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
                             fontSize: '0.8rem',
                             color: colors.textSecondary,
                             margin: '0.25rem 0 0 0',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
+                            overflow: isExpanded ? 'visible' : 'hidden',
+                            textOverflow: isExpanded ? 'clip' : 'ellipsis',
+                            whiteSpace: isExpanded ? 'normal' : 'nowrap',
+                            wordBreak: isExpanded ? 'break-word' : 'normal',
+                            lineHeight: isExpanded ? 1.5 : undefined,
                           }}>
                             {notification.message}
                           </p>
