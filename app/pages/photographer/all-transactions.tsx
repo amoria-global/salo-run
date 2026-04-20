@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
@@ -8,6 +8,7 @@ import { useCurrency } from '@/app/context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { getApiUrl } from '@/lib/api';
 import { getMyWallet, type WalletDTO } from '@/lib/walletApi';
+import { useHighlightOnMount } from '@/lib/useHighlightOnMount';
 
 function formatTransactionDate(dateStr: string): string {
   if (!dateStr) return '';
@@ -41,6 +42,15 @@ const AllTransactions = () => {
   const [totalPages, setTotalPages] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [wallet, setWallet] = useState<WalletDTO | null>(null);
+  // If navigated in from a "Go to notification" link, scroll-to + pop-animate
+  // the matching transaction row.
+  const highlightId = useHighlightOnMount();
+  const highlightRowRef = useRef<HTMLTableRowElement | null>(null);
+  useEffect(() => {
+    if (highlightId && highlightRowRef.current) {
+      highlightRowRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [highlightId, transactions.length]);
 
   const fetchTransactions = useCallback(async (page: number = 0) => {
     const apiUrl = getApiUrl();
@@ -51,6 +61,12 @@ const AllTransactions = () => {
         const data = await txRes.json();
         if (data.action === 1 && data.data) {
           const content = Array.isArray(data.data) ? data.data : data.data.content || [];
+          // Newest-created first. Mapped shape formats date string, so sort raw.
+          content.sort((a: any, b: any) => {
+            const ta = (a?.createdAt || a?.date) ? new Date(a.createdAt || a.date).getTime() : 0;
+            const tb = (b?.createdAt || b?.date) ? new Date(b.createdAt || b.date).getTime() : 0;
+            return tb - ta;
+          });
           const mapped = content.map((t: any, index: number) => ({
             id: t.id || index + 1,
             date: formatTransactionDate(t.createdAt || t.date || ''),
@@ -476,9 +492,12 @@ const AllTransactions = () => {
                 <tbody>
                   {filteredTransactions.map((transaction) => {
                     const statusStyle = getStatusColor(transaction.status);
+                    const isHighlighted = highlightId != null && String(transaction.id) === highlightId;
                     return (
                       <tr
                         key={transaction.id}
+                        ref={isHighlighted ? highlightRowRef : null}
+                        className={isHighlighted ? 'notif-highlight-pop' : undefined}
                         style={{
                           borderBottom: '1px solid #F3F4F6'
                         }}

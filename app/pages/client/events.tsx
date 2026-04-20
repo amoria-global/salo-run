@@ -802,6 +802,13 @@ const MyEventsPage = () => {
           };
         });
 
+        // Newest-created first. ISO timestamps include milliseconds so ties
+        // inside the same second break naturally by ms precision.
+        mappedEvents.sort((a, b) => {
+          const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return tb - ta;
+        });
         setEvents(mappedEvents);
       }
     } catch (err) {
