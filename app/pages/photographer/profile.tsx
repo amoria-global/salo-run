@@ -597,6 +597,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   const [isRestoringDraft, setIsRestoringDraft] = useState(false);
   const [showDraftRestoredNotice, setShowDraftRestoredNotice] = useState(false);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const skipNextUserSync = useRef(false);
 
   // Input validation error states
   const [validationErrors, setValidationErrors] = useState({
@@ -656,14 +657,6 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   // Save all changes handler for the "Save Changes" button
   const handleSaveAllChanges = async () => {
     if (!token) return;
-    if (!basicInfo.address?.trim()) {
-      showToast('error', 'Location / Working Area is required.');
-      return;
-    }
-    if (!packages || packages.length === 0) {
-      showToast('error', 'At least one delivery package is required. Go to the Packages tab to create one.');
-      return;
-    }
     setIsSavingAll(true);
     try {
       const [firstName, ...rest] = capitalizeWords(basicInfo.fullName.trim()).split(' ');
@@ -876,6 +869,10 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
   // Load user data from auth context
   useEffect(() => {
+    if (skipNextUserSync.current) {
+      skipNextUserSync.current = false;
+      return;
+    }
     if (user) {
       // Strip country code prefix from phone number to avoid duplication with the selector
       let phone = user.phone || '';
@@ -1520,6 +1517,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         showToast('success', 'Some changes submitted for admin approval');
         await fetchPendingChanges();
       }
+      skipNextUserSync.current = true;
       await refreshUserProfile();
       return true;
     } catch (error) {
