@@ -94,6 +94,12 @@ async function proxyRequest(
     const headers: HeadersInit = {};
     const authHeader = request.headers.get('authorization');
     if (authHeader) headers['Authorization'] = authHeader;
+    // Forward the browser's cookies to the backend so it can read the
+    // amoria_auth HttpOnly session cookie (for the cookie-based auth
+    // rollout). All cookies carried here are already scoped to
+    // dashboard.connekyt.com, so there's no leak of other-origin state.
+    const cookieHeader = request.headers.get('cookie');
+    if (cookieHeader) headers['Cookie'] = cookieHeader;
     const fetchOptions: RequestInit = {
       method,
       headers,
@@ -122,22 +128,32 @@ async function proxyRequest(
     const response = await fetch(url.toString(), fetchOptions);
     const contentType = response.headers.get('content-type') || '';
 
+    // Build response headers: CORS + any Set-Cookie echoed from the backend.
+    // Echoing Set-Cookie as-is means the browser will scope the cookie to
+    // dashboard.connekyt.com (when the backend sends no Domain) or to
+    // .connekyt.com (when Domain=.connekyt.com is configured in prod). A
+    // cookie with Domain=backend.connekyt.com would be rejected by the
+    // browser here — that's expected and safe.
+    const responseHeaders = new Headers(cors);
+    const setCookies = typeof response.headers.getSetCookie === 'function'
+      ? response.headers.getSetCookie()
+      : [];
+    for (const sc of setCookies) responseHeaders.append('Set-Cookie', sc);
+
     if (contentType.startsWith('image/') || contentType.startsWith('application/octet-stream')) {
+      responseHeaders.set('Content-Type', contentType);
+      responseHeaders.set('Cache-Control', 'public, max-age=86400');
       const buffer = await response.arrayBuffer();
       return new NextResponse(buffer, {
         status: response.status,
-        headers: {
-          ...cors,
-          'Content-Type': contentType,
-          'Cache-Control': 'public, max-age=86400',
-        },
+        headers: responseHeaders,
       });
     }
 
     const data = await response.json().catch(() => ({}));
     return NextResponse.json(data, {
       status: response.status,
-      headers: cors,
+      headers: responseHeaders,
     });
   } catch (error) {
     const aborted = error instanceof Error && error.name === 'AbortError';
