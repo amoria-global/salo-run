@@ -1870,9 +1870,8 @@ Amount: ${formatPrice(payment.amountNum)}
   useEffect(() => {
     if (!showStreamFeeWithdrawModal) return;
     const apiUrl = getApiUrl();
-    const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
     fetch(`${apiUrl}/api/remote/withdrawals/xentripay/providers`, {
-      headers: { 'Authorization': `Bearer ${token}`, 'api-token': apiKey },
+      headers: { 'Authorization': `Bearer ${token}` },
     })
       .then(res => res.json())
       .then(result => setBankProviders(result?.data?.banks || []))
