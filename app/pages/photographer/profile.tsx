@@ -778,23 +778,37 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     };
   }, [isRestoringDraft, saveProfileDraft]);
 
-  // Fetch available specialties from API on mount
+  // Fetch available specialties from API on mount (with retry on transient network failures)
   useEffect(() => {
+    let cancelled = false;
     const fetchSpecialties = async () => {
-      try {
-        const apiUrl = getApiUrl();
-        const response = await fetch(`${apiUrl}/api/remote/public/specialties`);
-        if (response.ok) {
+      const apiUrl = getApiUrl();
+      const url = `${apiUrl}/api/remote/photographer-categories`;
+      const maxAttempts = 3;
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          const response = await fetch(url);
+          if (!response.ok) {
+            console.error('Failed to fetch specialties, status:', response.status);
+            return;
+          }
           const result = await response.json();
+          if (cancelled) return;
           if (result.data && Array.isArray(result.data)) {
             setAvailableSpecialties(result.data.map((s: { id: string; name: string }) => ({ id: s.id, name: s.name })));
           }
+          return;
+        } catch (error) {
+          if (attempt === maxAttempts) {
+            console.error('Failed to fetch specialties after retries:', error);
+            return;
+          }
+          await new Promise(r => setTimeout(r, 400 * attempt));
         }
-      } catch (error) {
-        console.error('Failed to fetch specialties:', error);
       }
     };
     fetchSpecialties();
+    return () => { cancelled = true; };
   }, []);
 
   // Fetch currencies on mount
@@ -2478,86 +2492,6 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                   </span>
                 );
               })()}
-              {/* Edit Toggle Switch */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem'
-              }}>
-                <span style={{
-                  fontSize: '0.9rem',
-                  color: colors.textSecondary
-                }}>Edit</span>
-                <button
-                  onClick={() => setIsEditEnabled(!isEditEnabled)}
-                  style={{
-                    width: '48px',
-                    height: '26px',
-                    borderRadius: '13px',
-                    border: 'none',
-                    cursor: 'pointer',
-                    position: 'relative',
-                    backgroundColor: isEditEnabled ? '#083A85' : (actualTheme === 'dark' ? '#4B5563' : '#D1D5DB'),
-                    transition: 'background-color 0.2s'
-                  }}
-                >
-                  <div style={{
-                    width: '22px',
-                    height: '22px',
-                    borderRadius: '50%',
-                    backgroundColor: colors.bgCard,
-                    position: 'absolute',
-                    top: '2px',
-                    left: isEditEnabled ? '24px' : '2px',
-                    transition: 'left 0.2s',
-                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)'
-                  }} />
-                </button>
-                <span style={{
-                  fontSize: '0.9rem',
-                  fontWeight: '500',
-                  color: isEditEnabled ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : '#6B7280'
-                }}>
-                  {isEditEnabled ? 'Enabled' : 'Disabled'}
-                </span>
-              </div>
-              {/* Save / Submit Button */}
-              {(() => {
-                const btnLabel = !isAccountAccepted
-                  ? 'Submit Profile'
-                  : pendingChanges.length > 0
-                  ? 'Submit Changes'
-                  : 'Save Changes';
-                const btnSavingLabel = !isAccountAccepted
-                  ? 'Submitting...'
-                  : pendingChanges.length > 0
-                  ? 'Submitting...'
-                  : 'Saving...';
-                return (
-                  <button
-                    className="save-button-enhanced"
-                    disabled={!isEditEnabled || isSavingAll}
-                    onClick={handleSaveAllChanges}
-                    style={{
-                      backgroundColor: isEditEnabled && !isSavingAll ? '#083A85' : colors.bgTertiary,
-                      color: isEditEnabled ? 'white' : colors.textSecondary,
-                      border: isEditEnabled ? '2px solid #062a63' : `2px solid ${colors.borderPrimary}`,
-                      borderRadius: '0.5rem',
-                      padding: '0.75rem 1.5rem',
-                      fontSize: '0.95rem',
-                      fontWeight: '600',
-                      cursor: isEditEnabled && !isSavingAll ? 'pointer' : 'not-allowed',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      opacity: isEditEnabled && !isSavingAll ? 1 : 0.6,
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    {isSavingAll ? btnSavingLabel : btnLabel}
-                  </button>
-                );
-              })()}
             </div>
           </div>
 
@@ -2714,6 +2648,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           {/* Profile Completion Card */}
           <div className="mobile-card completion-card-enhanced" style={{
             ...cardStyle,
+            backgroundColor: undefined,
             background: 'linear-gradient(135deg, #083A85 0%, #0a4da8 100%)',
             color: 'white',
             marginBottom: '1.5rem'
@@ -3182,26 +3117,108 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
             {/* Right Section - Tabbed Form */}
             <div className="mobile-profile-right">
-              {/* Tabs */}
-              <div className="mobile-tabs" style={{
+              {/* Tabs + Edit / Submit controls */}
+              <div className="mobile-tabs-bar" style={{
                 display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '0.75rem',
                 backgroundColor: colors.bgCard,
                 borderRadius: '0.75rem 0.75rem 0 0',
                 borderBottom: '1px solid #E5E7EB',
-                marginBottom: 0
+                marginBottom: 0,
+                padding: '0 0.5rem'
               }}>
-                <button onClick={() => setActiveTab('overview')} style={tabStyle(activeTab === 'overview')}>
-                  Overview
-                </button>
-                <button onClick={() => setActiveTab('portfolio')} style={tabStyle(activeTab === 'portfolio')}>
-                  Portfolio
-                </button>
-                <button onClick={() => setActiveTab('experience')} style={tabStyle(activeTab === 'experience')}>
-                  Working Experience
-                </button>
-                <button onClick={() => setActiveTab('packages')} style={tabStyle(activeTab === 'packages')}>
-                  Delivery Packages
-                </button>
+                <div className="mobile-tabs" style={{ display: 'flex', flex: 1, minWidth: 0 }}>
+                  <button onClick={() => setActiveTab('overview')} style={tabStyle(activeTab === 'overview')}>
+                    Overview
+                  </button>
+                  <button onClick={() => setActiveTab('portfolio')} style={tabStyle(activeTab === 'portfolio')}>
+                    Portfolio
+                  </button>
+                  <button onClick={() => setActiveTab('experience')} style={tabStyle(activeTab === 'experience')}>
+                    Working Experience
+                  </button>
+                  <button onClick={() => setActiveTab('packages')} style={tabStyle(activeTab === 'packages')}>
+                    Delivery Packages
+                  </button>
+                </div>
+                <div className="mobile-tabs-actions" style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  padding: '0.5rem 0.25rem',
+                  flexShrink: 0
+                }}>
+                  {/* Edit Toggle Switch */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Edit</span>
+                    <button
+                      onClick={() => setIsEditEnabled(!isEditEnabled)}
+                      style={{
+                        width: '44px',
+                        height: '24px',
+                        borderRadius: '12px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        position: 'relative',
+                        backgroundColor: isEditEnabled ? '#083A85' : (actualTheme === 'dark' ? '#4B5563' : '#D1D5DB'),
+                        transition: 'background-color 0.2s'
+                      }}
+                    >
+                      <div style={{
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        backgroundColor: colors.bgCard,
+                        position: 'absolute',
+                        top: '2px',
+                        left: isEditEnabled ? '22px' : '2px',
+                        transition: 'left 0.2s',
+                        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)'
+                      }} />
+                    </button>
+                  </div>
+                  {/* Save / Submit Button */}
+                  {(() => {
+                    const btnLabel = !isAccountAccepted
+                      ? 'Submit Profile'
+                      : pendingChanges.length > 0
+                      ? 'Submit Changes'
+                      : 'Save Changes';
+                    const btnSavingLabel = !isAccountAccepted
+                      ? 'Submitting...'
+                      : pendingChanges.length > 0
+                      ? 'Submitting...'
+                      : 'Saving...';
+                    return (
+                      <button
+                        className="save-button-enhanced"
+                        disabled={!isEditEnabled || isSavingAll}
+                        onClick={handleSaveAllChanges}
+                        style={{
+                          backgroundColor: isEditEnabled && !isSavingAll ? '#083A85' : colors.bgTertiary,
+                          color: isEditEnabled ? 'white' : colors.textSecondary,
+                          border: isEditEnabled ? '2px solid #062a63' : `2px solid ${colors.borderPrimary}`,
+                          borderRadius: '0.5rem',
+                          padding: '0.5rem 1rem',
+                          fontSize: '0.875rem',
+                          fontWeight: '600',
+                          cursor: isEditEnabled && !isSavingAll ? 'pointer' : 'not-allowed',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          opacity: isEditEnabled && !isSavingAll ? 1 : 0.6,
+                          transition: 'all 0.2s',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {isSavingAll ? btnSavingLabel : btnLabel}
+                      </button>
+                    );
+                  })()}
+                </div>
               </div>
 
               {/* Tab Content */}
@@ -3210,8 +3227,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                 borderRadius: '0 0 0.75rem 0.75rem',
                 padding: '1.5rem',
                 boxShadow: colors.shadowSm,
-                border: `2px solid ${colors.borderPrimary}`,
-                borderTop: 'none'
+                borderRight: `2px solid ${colors.borderPrimary}`,
+                borderBottom: `2px solid ${colors.borderPrimary}`,
+                borderLeft: `2px solid ${colors.borderPrimary}`
               }}>
                 {/* Overview Tab */}
                 {activeTab === 'overview' && (
