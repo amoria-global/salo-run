@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import Sidebar from '../../components/sidebar';
@@ -137,6 +137,8 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [activeFilter, setActiveFilter] = useState<'all' | NotificationType>('all');
   const [loading, setLoading] = useState(true);
+  // Modal: clicking a row opens it; closing the modal auto-marks as read.
+  const [selectedNotif, setSelectedNotif] = useState<Notification | null>(null);
 
   const fetchNotifications = async () => {
     if (!token || !user?.id) return;
@@ -149,6 +151,12 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
       if (!response.ok) throw new Error('Failed to fetch notifications');
       const result = await response.json();
       const data = result?.data?.content || result?.data || [];
+      // Newest-created first. Mapped shape drops raw timestamp, so sort here.
+      data.sort((a: any, b: any) => {
+        const ta = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const tb = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return tb - ta;
+      });
       const mapped: Notification[] = data.map((n: { id: string; title: string; message: string; type: string; isRead: boolean; link?: string; createdAt: string; referenceId?: string }) => ({
         id: n.id,
         type: mapBackendType(n.type, userRole),
@@ -209,6 +217,38 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
       console.error('Failed to mark notification as read:', err);
     }
   };
+
+  // Modal open/close. Closing always marks the notification as read.
+  const openNotifModal = (n: Notification) => { setSelectedNotif(n); };
+  const closeNotifModal = () => {
+    if (selectedNotif) markAsRead(selectedNotif.id);
+    setSelectedNotif(null);
+  };
+
+  const selectedRef = useRef<Notification | null>(null);
+  useEffect(() => { selectedRef.current = selectedNotif; }, [selectedNotif]);
+
+  useEffect(() => {
+    return () => {
+      const n = selectedRef.current;
+      if (!n) return;
+      const apiUrl = getApiUrl();
+      const readEndpoint = userRole === 'event-coordinator'
+        ? `${apiUrl}/api/remote/coordinator/notifications/${n.id}/read`
+        : `${apiUrl}/api/remote/customer/notifications/${n.id}/read`;
+      dashboardAuthFetch(readEndpoint, { method: 'PATCH', headers: { 'Content-Type': 'application/json' } })
+        .catch(() => { /* swallow — user is leaving the page */ });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!selectedNotif) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeNotifModal(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedNotif]);
 
   const getNotificationDest = (notification: Notification): string | null => {
     const base = userRole === 'event-coordinator' ? '/user/event-coordinator' : '/user/client';
@@ -759,7 +799,7 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
                   <div
                     key={notification.id}
                     className="notification-item"
-                    onClick={() => { markAsRead(notification.id); if (dest) window.location.href = dest; }}
+                    onClick={() => openNotifModal(notification)}
                     style={{
                       display: 'flex',
                       gap: '0.875rem',
@@ -898,20 +938,22 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
                               Read
                             </button>
                           )}
-                          {dest && (
-                            <Link
-                              href={dest}
-                              onClick={(e) => e.stopPropagation()}
-                              style={{
-                                fontSize: '0.78rem', fontWeight: 600, textDecoration: 'none',
-                                color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
-                                display: 'flex', alignItems: 'center', gap: '0.25rem',
-                              }}
-                            >
-                              View
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                            </Link>
-                          )}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); openNotifModal(notification); }}
+                            style={{
+                              background: 'none', border: 'none', cursor: 'pointer', padding: '0.2rem',
+                              color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
+                              display: 'flex', alignItems: 'center',
+                              transition: 'opacity 0.2s',
+                            }}
+                            title="View details"
+                            aria-label="View details"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                              <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                          </button>
                           <button
                             onClick={(e) => { e.stopPropagation(); deleteNotification(notification.id); }}
                             style={{
@@ -936,6 +978,170 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
         </div>
       </div>
       </div>
+
+      {/* Notification review modal. Opens on row click; closing (X, backdrop,
+          Esc, or View) auto-marks the notification as read. */}
+      {selectedNotif && (() => {
+        const iconStyle = getNotificationIcon(selectedNotif.type);
+        const dest = getNotificationDest(selectedNotif);
+        const refId = selectedNotif.referenceId;
+        const isUnread = !selectedNotif.read;
+        const destWithHighlight = dest && refId
+          ? (dest.includes('?') ? `${dest}&highlight=${encodeURIComponent(refId)}` : `${dest}?highlight=${encodeURIComponent(refId)}`)
+          : dest;
+        return (
+          <div
+            onClick={closeNotifModal}
+            style={{
+              position: 'fixed', inset: 0,
+              backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: '1rem', zIndex: 9998,
+            }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                backgroundColor: colors.bgCard,
+                borderRadius: '1rem',
+                border: `1.5px solid ${colors.borderPrimary}`,
+                width: '100%', maxWidth: '560px',
+                maxHeight: '85vh', display: 'flex', flexDirection: 'column',
+                boxShadow: '0 20px 50px -10px rgba(0,0,0,0.4)',
+              }}
+            >
+              <div style={{
+                display: 'flex', alignItems: 'flex-start', gap: '0.875rem',
+                padding: '1.25rem 1.5rem 1rem',
+                borderBottom: `1px solid ${colors.borderPrimary}`,
+              }}>
+                <div style={{
+                  width: '44px', height: '44px', borderRadius: '12px',
+                  background: iconStyle.bg, color: iconStyle.color,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0, overflow: 'hidden',
+                }}>
+                  {selectedNotif.avatar
+                    ? <Image src={selectedNotif.avatar} alt="" width={44} height={44} style={{ objectFit: 'cover', borderRadius: '12px' }} />
+                    : iconStyle.icon}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontSize: '1.05rem', fontWeight: 700, color: colors.textPrimary,
+                    marginBottom: '0.25rem',
+                  }}>
+                    {selectedNotif.title}
+                  </div>
+                  <div style={{
+                    display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap',
+                    fontSize: '0.75rem', color: colors.textSecondary,
+                  }}>
+                    <span>{selectedNotif.timestamp}</span>
+                    <span style={{
+                      fontSize: '0.68rem', fontWeight: 600,
+                      color: iconStyle.color, backgroundColor: iconStyle.bg,
+                      padding: '0.1rem 0.5rem', borderRadius: '4px',
+                      textTransform: 'capitalize',
+                    }}>
+                      {selectedNotif.type}
+                    </span>
+                    {selectedNotif.amount && (
+                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#16A34A' }}>
+                        {formatPrice(selectedNotif.amount)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={closeNotifModal}
+                  aria-label="Close"
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: colors.textSecondary, fontSize: '1.5rem', lineHeight: 1,
+                    padding: 0, marginLeft: '0.25rem', flexShrink: 0,
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+
+              <div style={{
+                padding: '1.25rem 1.5rem',
+                overflowY: 'auto', flex: 1,
+                fontSize: '0.92rem', lineHeight: 1.6, color: colors.textPrimary,
+                whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+              }}>
+                {selectedNotif.message}
+              </div>
+
+              <div style={{
+                display: 'flex', gap: '0.5rem', justifyContent: 'flex-end',
+                padding: '0.875rem 1.5rem',
+                borderTop: `1px solid ${colors.borderPrimary}`, flexWrap: 'wrap',
+              }}>
+                <button
+                  onClick={async () => {
+                    const id = selectedNotif.id;
+                    setSelectedNotif(null);
+                    await deleteNotification(id);
+                  }}
+                  style={{
+                    background: 'none',
+                    border: `1.5px solid ${actualTheme === 'dark' ? '#B91C1C' : '#FCA5A5'}`,
+                    color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626',
+                    padding: '0.5rem 1rem', borderRadius: '0.5rem',
+                    fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  Delete
+                </button>
+                {isUnread && (
+                  <button
+                    onClick={() => { markAsRead(selectedNotif.id); setSelectedNotif(null); }}
+                    style={{
+                      background: 'none',
+                      border: `1.5px solid ${colors.borderPrimary}`,
+                      color: colors.textPrimary,
+                      padding: '0.5rem 1rem', borderRadius: '0.5rem',
+                      fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
+                    }}
+                  >
+                    Mark as read
+                  </button>
+                )}
+                {destWithHighlight && (
+                  <Link
+                    href={destWithHighlight}
+                    onClick={() => { if (isUnread) markAsRead(selectedNotif.id); setSelectedNotif(null); }}
+                    style={{
+                      textDecoration: 'none',
+                      backgroundColor: '#083A85', color: '#fff',
+                      padding: '0.5rem 1rem', borderRadius: '0.5rem',
+                      fontSize: '0.85rem', fontWeight: 600,
+                      display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                    }}
+                  >
+                    Go to notification
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  </Link>
+                )}
+                <button
+                  onClick={closeNotifModal}
+                  style={{
+                    background: 'none',
+                    border: `1.5px solid ${colors.borderPrimary}`,
+                    color: colors.textPrimary,
+                    padding: '0.5rem 1rem', borderRadius: '0.5rem',
+                    fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </>
   );
 };

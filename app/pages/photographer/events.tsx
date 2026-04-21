@@ -12,6 +12,7 @@ import { getPlatformConfig } from '@/lib/platformConfig';
 import StreamPreview from '../../components/StreamPreview';
 import AlbumTypeSelector, { type AlbumType } from '../../components/AlbumTypeSelector';
 import PaidAlbumForm, { MIN_PAID_ALBUM_PRICE_RWF, isPaidAlbumPriceInvalid } from '../../components/PaidAlbumForm';
+import { useHighlightOnMount } from '@/lib/useHighlightOnMount';
 import FreeAlbumForm from '../../components/FreeAlbumForm';
 import SendFreeInvitationModal from '../../components/SendFreeInvitationModal';
 
@@ -412,6 +413,13 @@ const PhotographerEventsPage = () => {
     localStorage.setItem('connekt_events_tab', activeTab);
   }, [activeTab]);
   const [events, setEvents] = useState<AssignedEvent[]>([]);
+  const highlightId = useHighlightOnMount();
+  const highlightCardRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (highlightId && highlightCardRef.current) {
+      highlightCardRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [highlightId, events.length]);
   const [eventFilter, setEventFilter] = useState<'all' | 'upcoming' | 'ongoing' | 'completed'>('all');
   const [eventSearch, setEventSearch] = useState('');
   const [selectedEvent, setSelectedEvent] = useState<AssignedEvent | null>(null);
@@ -682,6 +690,13 @@ const PhotographerEventsPage = () => {
                 mapped.forEach(ev => { if (publishedIds.has(ev.id)) ev.isPublished = true; });
               }
             } catch { /* ignore */ }
+            // Newest-created first. ISO timestamps include milliseconds so ties
+            // inside the same second break naturally by ms precision.
+            mapped.sort((a, b) => {
+              const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+              const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+              return tb - ta;
+            });
             setEvents(mapped);
           } else {
             setEvents([]);
@@ -747,6 +762,12 @@ const PhotographerEventsPage = () => {
               location: a.location || '',
               albumDate: a.albumDate || '',
             }));
+            // Newest-created first. Ties break by ms inside the ISO timestamp.
+            mapped.sort((a: Album, b: Album) => {
+              const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+              const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+              return tb - ta;
+            });
             setAlbums(mapped);
           } else {
             setAlbums([]);
@@ -1751,9 +1772,17 @@ const PhotographerEventsPage = () => {
                     const badge = getStatusBadge(event.status);
                     const streamCfg = event.hasLiveStream ? streamConfigs[event.id] : null;
                     const isLive = streamCfg?.connectionStatus === 'connected';
+                    const isHighlighted = highlightId != null && String(event.id) === highlightId;
                     return (
                       /* Outer glow wrapper — blurred image border */
-                      <div key={event.id} style={{ position: 'relative', height: '450px', borderRadius: '1.25rem', overflow: 'hidden', transition: 'transform 0.3s ease', willChange: 'transform' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.03)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}>
+                      <div
+                        key={event.id}
+                        ref={isHighlighted ? highlightCardRef : null}
+                        className={isHighlighted ? 'notif-highlight-pop' : undefined}
+                        style={{ position: 'relative', height: '450px', borderRadius: '1.25rem', overflow: 'hidden', transition: 'transform 0.3s ease', willChange: 'transform' }}
+                        onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.03)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+                      >
                         <img src={event.coverImage || '/coverr.jpg'} alt="" style={{ position: 'absolute', inset: '-10px', width: 'calc(100% + 20px)', height: 'calc(100% + 20px)', objectFit: 'cover', filter: 'blur(14px) brightness(0.7)', pointerEvents: 'none' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; }} />
                         {/* Inner card — clickable to open details */}
                         <div

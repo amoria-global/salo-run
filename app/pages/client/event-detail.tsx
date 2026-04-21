@@ -12,6 +12,7 @@ import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvid
 import { getApiUrl, normalizeImageUrl } from '@/lib/api';
 import PayNowModal from '@/app/components/UnlockModal';
 import type { Payment } from '@/app/components/UnlockModal';
+import { useHighlightOnMount } from '@/lib/useHighlightOnMount';
 
 // ── Icons ────────────────────────────────────────────────────────────────────
 
@@ -252,6 +253,10 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
   const { token } = useDashboardAuth();
 
   const eventId = params?.id as string;
+  // If arrived here from a "Go to notification" link, play the pop animation
+  // on the main event card so the user sees which event they were pointed to.
+  const highlightId = useHighlightOnMount();
+  const shouldHighlight = highlightId != null && highlightId === eventId;
 
   const [event, setEvent] = useState<EventData | null>(null);
   const [payments, setPayments] = useState<PaymentData[]>([]);
@@ -1642,7 +1647,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <Topbar userRole={userRole} />
         <div
-          className="event-detail-content"
+          className={shouldHighlight ? 'event-detail-content notif-highlight-pop' : 'event-detail-content'}
           style={{
             flex: 1,
             overflowY: 'auto',
