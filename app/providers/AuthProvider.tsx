@@ -286,6 +286,7 @@ async function attemptDashboardTokenRefresh(currentToken: string): Promise<strin
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ refreshToken: storedRefreshToken }),
+          credentials: 'include',
         }
       );
       if (response.ok) {
@@ -725,6 +726,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ refreshToken: storedRefreshToken }),
+          credentials: 'include',
         }
       );
 
@@ -912,27 +914,32 @@ export async function dashboardAuthFetch(
   url: string,
   options: RequestInit = {}
 ): Promise<Response> {
-  let currentToken = (typeof window !== 'undefined' ? localStorage.getItem('authToken') : null) || getCookieToken();
-
-  // If no token in storage, try refreshing from the refresh token before giving up
-  if (!currentToken) {
-    const refreshed = await attemptDashboardTokenRefresh('');
-    if (refreshed) {
-      currentToken = refreshed;
-    } else {
-      // No token and no refresh possible — return a synthetic 401 so callers
-      // handle it gracefully instead of crashing with an unhandled exception
-      return new Response(JSON.stringify({ action: 0, message: 'No auth token available' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-  }
+  // Auth source priority:
+  //   1. Bearer from localStorage/authToken cookie — legacy, still dominant for
+  //      existing sessions that predate the .connekyt.com HttpOnly cookie.
+  //   2. The amoria_auth HttpOnly cookie — travels automatically on cross-
+  //      origin requests as long as credentials: 'include' is set below, since
+  //      dashboard.connekyt.com and backend.connekyt.com share a registrable
+  //      site (connekyt.com → SameSite=Lax permits the subresource cookie).
+  //
+  // When (1) isn't available, we fall through to a cookie-only request
+  // instead of synthesising a 401 — that unblocks users whose session moved
+  // to cookie-only (no localStorage token) after the JWT-in-URL handoff was
+  // removed from the landing app.
+  const currentToken = (typeof window !== 'undefined' ? localStorage.getItem('authToken') : null) || getCookieToken();
 
   const headers: Record<string, string> = {
-    'Authorization': `Bearer ${currentToken}`,
     ...(options.headers as Record<string, string> || {}),
   };
+  if (currentToken) {
+    headers['Authorization'] = `Bearer ${currentToken}`;
+  }
+
+  // credentials: 'include' makes the browser send the amoria_auth HttpOnly
+  // cookie on this cross-origin request. Backend CORS allow-list is strict
+  // and Access-Control-Allow-Credentials is set, so the cookie only travels
+  // to our own domains.
+  const fetchOpts: RequestInit = { ...options, headers, credentials: 'include' };
 
   // Retry network-level failures (e.g. dev backend reloading) up to 2 extra times
   // with short backoff. Only retries on fetch throws — HTTP error statuses pass through.
@@ -953,12 +960,14 @@ export async function dashboardAuthFetch(
     throw new Error(`Network request failed for ${u}: ${lastErr instanceof Error ? lastErr.message : 'Failed to fetch'}`);
   };
 
-  let response = await fetchWithRetry(url, { ...options, headers });
+  let response = await fetchWithRetry(url, fetchOpts);
 
   if (response.status === 401) {
-    const newToken = await attemptDashboardTokenRefresh(currentToken);
+    // Try one refresh cycle. Works for both Bearer-holding sessions (uses the
+    // stored refresh token) and cookie-only sessions (refresh endpoint reads
+    // its own cookie if present).
+    const newToken = await attemptDashboardTokenRefresh(currentToken || '');
     if (!newToken) {
-      // Refresh failed — for photographers, redirect to login to prevent stale data
       if (typeof window !== 'undefined') {
         const isPhotographer = window.location.pathname.includes('/photographer') ||
           document.cookie.includes('userRole=photographer');
@@ -970,17 +979,15 @@ export async function dashboardAuthFetch(
       }
       return response;
     }
-    if (newToken) {
-      headers['Authorization'] = `Bearer ${newToken}`;
-      // ReadableStream bodies are consumed after the first fetch and cannot be retried.
-      // FormData, string, ArrayBuffer etc. are safe to reuse.
-      const bodyIsStream = options.body instanceof ReadableStream;
-      if (bodyIsStream) {
-        console.warn('[Dashboard Auth] Cannot retry 401: request body is a ReadableStream (already consumed)');
-        return response;
-      }
-      response = await fetchWithRetry(url, { ...options, headers });
+    headers['Authorization'] = `Bearer ${newToken}`;
+    // ReadableStream bodies are consumed after the first fetch and cannot be retried.
+    // FormData, string, ArrayBuffer etc. are safe to reuse.
+    const bodyIsStream = options.body instanceof ReadableStream;
+    if (bodyIsStream) {
+      console.warn('[Dashboard Auth] Cannot retry 401: request body is a ReadableStream (already consumed)');
+      return response;
     }
+    response = await fetchWithRetry(url, { ...options, headers, credentials: 'include' });
   }
 
   return response;
