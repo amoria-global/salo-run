@@ -1,6 +1,6 @@
 /**
  * Wallet API helpers for the dashboard.
- * All calls go through dashboardAuthFetch so Bearer token, api-token header,
+ * All calls go through dashboardAuthFetch so Bearer token header,
  * and 401 → refresh → retry are handled for free.
  */
 

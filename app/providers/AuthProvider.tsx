@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams, usePathname } from 'next/navigation';
-import { getApiUrl, getApiKey, normalizeImageUrl } from '@/lib/api';
+import { getApiUrl, normalizeImageUrl } from '@/lib/api';
 import { getPlatformConfig } from '@/lib/platformConfig';
 
 /**
@@ -284,7 +284,6 @@ async function attemptDashboardTokenRefresh(currentToken: string): Promise<strin
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'api-token': getApiKey(),
           },
           body: JSON.stringify({ refreshToken: storedRefreshToken }),
         }
@@ -370,7 +369,6 @@ async function tryFetchProfile(
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
-        'api-token': getApiKey(),
       },
     });
 
@@ -652,7 +650,6 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
         const response = await fetch(`${apiUrl}/api/remote/customer/totp/status`, {
           headers: {
             'Authorization': `Bearer ${token}`,
-            'api-token': getApiKey(),
           },
         });
         if (!response.ok) return;
@@ -726,7 +723,6 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'api-token': getApiKey(),
           },
           body: JSON.stringify({ refreshToken: storedRefreshToken }),
         }
@@ -906,7 +902,7 @@ export function useDashboardAuth(): AuthContextType {
 
 /**
  * Authenticated fetch utility for dashboard pages.
- * Automatically adds Bearer token and api-token headers.
+ * Automatically adds the Bearer token header.
  * On 401, attempts token refresh and retries the request once.
  * Pages can use this instead of raw fetch() for automatic token refresh.
  *
@@ -935,7 +931,6 @@ export async function dashboardAuthFetch(
 
   const headers: Record<string, string> = {
     'Authorization': `Bearer ${currentToken}`,
-    'api-token': getApiKey(),
     ...(options.headers as Record<string, string> || {}),
   };
 

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useDashboardAuth } from '../providers/AuthProvider';
 
-import { getApiUrl, getApiKey } from '@/lib/api';
+import { getApiUrl} from '@/lib/api';
 
 interface CompleteProfileModalProps {
   isOpen: boolean;
@@ -297,7 +297,6 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, onC
     const apiUrl = getApiUrl();
     const headers: Record<string, string> = {
       'Authorization': `Bearer ${token}`,
-      'api-token': getApiKey(),
     };
     if (body !== undefined) {
       headers['Content-Type'] = 'application/json';

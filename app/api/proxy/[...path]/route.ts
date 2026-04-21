@@ -49,7 +49,7 @@ function corsHeadersFor(origin: string | null): Record<string, string> {
       'Access-Control-Allow-Origin': origin,
       'Access-Control-Allow-Credentials': 'true',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, api-token',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       'Vary': 'Origin',
     };
   }
@@ -94,9 +94,6 @@ async function proxyRequest(
     const headers: HeadersInit = {};
     const authHeader = request.headers.get('authorization');
     if (authHeader) headers['Authorization'] = authHeader;
-    const apiToken = request.headers.get('api-token');
-    if (apiToken) headers['api-token'] = apiToken;
-
     const fetchOptions: RequestInit = {
       method,
       headers,

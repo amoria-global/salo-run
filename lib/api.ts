@@ -10,10 +10,6 @@ export function getLandingUrl(): string {
   return process.env.NEXT_PUBLIC_LANDING_URL as string;
 }
 
-export function getApiKey(): string {
-  return process.env.NEXT_PUBLIC_API_KEY as string;
-}
-
 /**
  * Auto-capitalize: uppercase first letter of each sentence and after full stops.
  * Also capitalizes the first letter of the entire string.
