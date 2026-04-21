@@ -128,14 +128,12 @@ Create a `.env.local` file in the project root:
 ```env
 NEXT_PUBLIC_LANDING_URL=http://localhost:3000
 NEXT_PUBLIC_API_URL=<backend-api-url>
-NEXT_PUBLIC_API_KEY=<your-api-key>
 ```
 
 | Variable | Description |
 |----------|-------------|
 | `NEXT_PUBLIC_LANDING_URL` | URL of the home/landing app (for login redirects) |
 | `NEXT_PUBLIC_API_URL` | Backend API server address |
-| `NEXT_PUBLIC_API_KEY` | API key for backend authentication |
 
 ### Scripts
 

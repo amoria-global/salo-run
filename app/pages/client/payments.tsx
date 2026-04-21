@@ -1677,14 +1677,12 @@ Amount: ${formatPrice(payment.amountNum)}
     if (!token) return;
     try {
       const apiUrl = getApiUrl();
-      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
       const response = await fetch(
         `${apiUrl}/api/remote/customer/payments/spending-trend?period=${period}`,
         {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`,
-            'api-token': apiKey,
           },
         }
       );
@@ -1751,14 +1749,12 @@ Amount: ${formatPrice(payment.amountNum)}
     if (!token) return;
     try {
       const apiUrl = getApiUrl();
-      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
       const response = await fetch(
         `${apiUrl}/api/remote/customer/payments?page=${page - 1}&size=${resultsPerPage}`,
         {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`,
-            'api-token': apiKey,
           },
         }
       );
@@ -1818,14 +1814,12 @@ Amount: ${formatPrice(payment.amountNum)}
     if (!token) return;
     try {
       const apiUrl = getApiUrl();
-      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
       const response = await fetch(
         `${apiUrl}/api/remote/customer/payments/balance`,
         {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`,
-            'api-token': apiKey,
           },
         }
       );
@@ -1862,14 +1856,12 @@ Amount: ${formatPrice(payment.amountNum)}
     if (!token) return;
     try {
       const apiUrl = getApiUrl();
-      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
       const response = await fetch(
         `${apiUrl}/api/remote/customer/payments/stats`,
         {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`,
-            'api-token': apiKey,
           },
         }
       );
@@ -1910,14 +1902,12 @@ Amount: ${formatPrice(payment.amountNum)}
     if (!token) return;
     try {
       const apiUrl = getApiUrl();
-      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
       const response = await fetch(
         `${apiUrl}/api/remote/customer/payments/gift-streams`,
         {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`,
-            'api-token': apiKey,
           },
         }
       );
@@ -1989,9 +1979,8 @@ Amount: ${formatPrice(payment.amountNum)}
   useEffect(() => {
     if (!showGiftsPaymentMethodModal) return;
     const apiUrl = getApiUrl();
-    const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
     fetch(`${apiUrl}/api/remote/withdrawals/xentripay/providers`, {
-      headers: { 'Authorization': `Bearer ${token}`, 'api-token': apiKey },
+      headers: { 'Authorization': `Bearer ${token}` },
     })
       .then(res => res.json())
       .then(result => setBankProviders(result?.data?.banks || []))
@@ -2053,7 +2042,6 @@ Amount: ${formatPrice(payment.amountNum)}
 
     try {
       const apiUrl = getApiUrl();
-      const apiKey = process.env.NEXT_PUBLIC_API_KEY || '';
       const params = new URLSearchParams({
         methodType,
         accountName,
@@ -2069,7 +2057,6 @@ Amount: ${formatPrice(payment.amountNum)}
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`,
-            'api-token': apiKey,
           },
         }
       );
