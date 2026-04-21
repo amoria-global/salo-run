@@ -1022,6 +1022,12 @@ Amount: ${formatPrice(transaction.amountNum)}
         const data = await txRes.value.json();
         if (data.action === 1 && data.data) {
           const content = Array.isArray(data.data) ? data.data : data.data.content || [];
+          // Newest-created first. Mapped shape formats date string, so sort raw.
+          content.sort((a: any, b: any) => {
+            const ta = (a?.createdAt || a?.date) ? new Date(a.createdAt || a.date).getTime() : 0;
+            const tb = (b?.createdAt || b?.date) ? new Date(b.createdAt || b.date).getTime() : 0;
+            return tb - ta;
+          });
           const mapped: Transaction[] = content.map((t: any, i: number) => ({
             id: t.id || i + 1,
             date: formatTxDate(t.createdAt || t.date || ''),

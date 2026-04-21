@@ -9,6 +9,7 @@ import { useCurrency } from '../../context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { getApiUrl, normalizeImageUrl } from '@/lib/api';
 import PayNowModal, { Payment as PayNowPayment } from '../../components/UnlockModal';
+import { useHighlightOnMount } from '@/lib/useHighlightOnMount';
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
 
@@ -196,6 +197,9 @@ const PaymentDetailPage: React.FC<PaymentDetailPageProps> = ({ userRole }) => {
   const router = useRouter();
   const params = useParams();
   const id = params?.id as string;
+  // Pop-animate the main card if arrived via "Go to notification" for this id.
+  const highlightId = useHighlightOnMount();
+  const shouldHighlight = highlightId != null && highlightId === id;
 
   const [payment, setPayment] = useState<PaymentDeclaration | null>(null);
   const [loading, setLoading] = useState(true);
@@ -461,7 +465,7 @@ Escrow Status: ${getEscrowStatusLabel(payment.escrowStatus || '')}
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <Topbar userRole={userRole} />
-        <div className="pd-main-content" style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, padding: '1.25rem' }}>
+        <div className={shouldHighlight ? 'pd-main-content notif-highlight-pop' : 'pd-main-content'} style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, padding: '1.25rem' }}>
 
           {/* ── Back Button ────────────────────────────────────────────── */}
           <button

@@ -1,4 +1,4 @@
 import DonatePage from '@/app/pages/donate';
 export default function Page() {
-  return <DonatePage />;
+  return <DonatePage userRole="client" />;
 }

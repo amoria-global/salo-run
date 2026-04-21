@@ -361,6 +361,13 @@ const ClientStreamsPage = ({ userRole = 'client' }: StreamsPageProps) => {
             videoMessages: uniqueVideos,
           };
         });
+        // Newest-created first. Prefer streamDate (when the stream happened);
+        // fall back to any createdAt the payload exposes.
+        loaded.sort((a, b) => {
+          const ta = a.streamDate ? new Date(a.streamDate).getTime() : 0;
+          const tb = b.streamDate ? new Date(b.streamDate).getTime() : 0;
+          return tb - ta;
+        });
         setStreams(loaded);
       }
     } catch (err) {
