@@ -934,12 +934,26 @@ export async function dashboardAuthFetch(
     ...(options.headers as Record<string, string> || {}),
   };
 
-  let response: Response;
-  try {
-    response = await fetch(url, { ...options, headers });
-  } catch (err) {
-    throw new Error(`Network request failed for ${url}: ${err instanceof Error ? err.message : 'Failed to fetch'}`);
-  }
+  // Retry network-level failures (e.g. dev backend reloading) up to 2 extra times
+  // with short backoff. Only retries on fetch throws — HTTP error statuses pass through.
+  const fetchWithRetry = async (u: string, init: RequestInit): Promise<Response> => {
+    const bodyIsStream = init.body instanceof ReadableStream;
+    const maxAttempts = bodyIsStream ? 1 : 3;
+    let lastErr: unknown;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        return await fetch(u, init);
+      } catch (err) {
+        lastErr = err;
+        if (attempt < maxAttempts) {
+          await new Promise(r => setTimeout(r, 300 * attempt));
+        }
+      }
+    }
+    throw new Error(`Network request failed for ${u}: ${lastErr instanceof Error ? lastErr.message : 'Failed to fetch'}`);
+  };
+
+  let response = await fetchWithRetry(url, { ...options, headers });
 
   if (response.status === 401) {
     const newToken = await attemptDashboardTokenRefresh(currentToken);
@@ -965,11 +979,7 @@ export async function dashboardAuthFetch(
         console.warn('[Dashboard Auth] Cannot retry 401: request body is a ReadableStream (already consumed)');
         return response;
       }
-      try {
-        response = await fetch(url, { ...options, headers });
-      } catch (err) {
-        throw new Error(`Network request failed on token-refresh retry for ${url}: ${err instanceof Error ? err.message : 'Failed to fetch'}`);
-      }
+      response = await fetchWithRetry(url, { ...options, headers });
     }
   }
 

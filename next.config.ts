@@ -1,11 +1,35 @@
 import type { NextConfig } from "next";
 
 const apiUrl = new URL(process.env.NEXT_PUBLIC_API_URL!);
+const isDev = process.env.NODE_ENV !== 'production';
+
+// Allow the configured API origin in connect-src and img-src so browser fetches
+// to the backend (especially http://localhost:<port> in dev) aren't blocked by CSP.
+const apiOriginHttp = `${apiUrl.protocol}//${apiUrl.host}`;
+const apiOriginWs = `${apiUrl.protocol === 'https:' ? 'wss:' : 'ws:'}//${apiUrl.host}`;
 
 // Dashboard security headers. Slightly tighter than landing since the dashboard
 // is authenticated-only — no public unauthenticated surface that loads
 // third-party widgets. Adjust CSP after 1 week of report-only observation if
 // we enable reporting.
+const cspDirectives = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  `img-src 'self' data: blob: ${apiOriginHttp} https://backend.connekyt.com https://*.cloudflarestream.com`,
+  "font-src 'self' data: https://fonts.gstatic.com",
+  `connect-src 'self' ${apiOriginHttp} ${apiOriginWs} https://backend.connekyt.com https://connekyt.com wss://backend.connekyt.com`,
+  "media-src 'self' blob: https://*.cloudflarestream.com",
+  "frame-src 'self' https://customer-ngk2huwatflljurq.cloudflarestream.com https://*.cloudflarestream.com",
+  "frame-ancestors 'self'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "object-src 'none'",
+];
+// upgrade-insecure-requests rewrites http:// → https:// which breaks plain
+// http://localhost dev backends. Only apply in production.
+if (!isDev) cspDirectives.push("upgrade-insecure-requests");
+
 const SECURITY_HEADERS = [
   { key: 'Strict-Transport-Security', value: 'max-age=15552000; includeSubDomains' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
@@ -17,21 +41,7 @@ const SECURITY_HEADERS = [
   },
   {
     key: 'Content-Security-Policy',
-    value: [
-      "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      "img-src 'self' data: blob: https://backend.connekyt.com https://*.cloudflarestream.com",
-      "font-src 'self' data: https://fonts.gstatic.com",
-      "connect-src 'self' https://backend.connekyt.com https://connekyt.com wss://backend.connekyt.com",
-      "media-src 'self' blob: https://*.cloudflarestream.com",
-      "frame-src 'self' https://customer-ngk2huwatflljurq.cloudflarestream.com https://*.cloudflarestream.com",
-      "frame-ancestors 'self'",
-      "base-uri 'self'",
-      "form-action 'self'",
-      "object-src 'none'",
-      "upgrade-insecure-requests",
-    ].join('; '),
+    value: cspDirectives.join('; '),
   },
 ];
 
