@@ -11,16 +11,19 @@ import { getLandingUrl } from '@/lib/urls';
 export function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
-  // Check for token in URL query params (passed from home app)
+  // Auth sources, in priority order:
+  //  1. `amoria_auth` — HttpOnly cookie set by backend on .connekyt.com scope;
+  //     the primary mechanism going forward.
+  //  2. `authToken` — legacy JS-visible cookie set by the dashboard itself,
+  //     kept while the frontend still uses it.
+  //  3. `?token=…` — legacy URL handoff from the landing app. Removed by the
+  //     landing security/remove-url-token-handoff change, but still accepted
+  //     here so older open tabs don't break.
+  const amoriaAuthCookie = request.cookies.get('amoria_auth')?.value;
+  const cookieToken = request.cookies.get('authToken')?.value;
   const urlToken = searchParams.get('token');
 
-  // Check for token in cookies (set by the app after initial load)
-  const cookieToken = request.cookies.get('authToken')?.value;
-
-  // Check localStorage token via a custom header (set by client-side)
-  //Note: localStorage isn't directly accessible in middleware, so we rely on URL token or cookies
-
-  const hasToken = !!urlToken || !!cookieToken;
+  const hasToken = !!amoriaAuthCookie || !!cookieToken || !!urlToken;
 
   // Define public paths that don't require authentication
   const publicPaths = [
