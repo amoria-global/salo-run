@@ -751,11 +751,37 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
   /**
    * Logout - clear all auth data
    */
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    setIsLoggingOut(true);
+
+    // Tell the backend to revoke the refresh token AND clear the amoria_auth
+    // HttpOnly cookie (via Set-Cookie Max-Age=0 with Domain=.connekyt.com).
+    // That cookie is HttpOnly so JS can't delete it — only the backend can.
+    // Without this round-trip, the landing app would still see the user as
+    // authenticated because the .connekyt.com cookie would survive the
+    // redirect, breaking cross-app logout sync.
+    try {
+      const currentToken = (typeof window !== 'undefined'
+          ? localStorage.getItem('authToken') : null) || getCookieToken();
+      const refreshTokenValue = getRefreshToken();
+      await fetch(`${getApiUrl()}/api/remote/auth/logout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token: currentToken,
+          refreshToken: refreshTokenValue,
+        }),
+        credentials: 'include',
+      });
+    } catch (err) {
+      // Fall through — if the backend is unreachable we still complete local
+      // logout and redirect. The cookie will expire on its own eventually.
+      console.warn('[Dashboard Auth] Backend logout failed; clearing locally only', err);
+    }
+
     clearAuthFromStorage();
     setUser(null);
     setToken(null);
-    setIsLoggingOut(true);
 
     if (typeof window !== 'undefined') {
       const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL as string;
