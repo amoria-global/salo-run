@@ -1,0 +1,35 @@
+name: build
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+        continue-on-error: true
+
+      - name: Build
+        env:
+          # Dummy values so `new URL(process.env.NEXT_PUBLIC_API_URL)` in
+          # next.config.ts doesn't crash during static analysis. Real values
+          # live in Vercel / server environment.
+          NEXT_PUBLIC_API_URL: "https://backend.connekyt.com/"
+          NEXT_PUBLIC_LANDING_URL: "https://connekyt.com"
+        run: npm run build
