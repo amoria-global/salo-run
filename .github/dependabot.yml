@@ -1,0 +1,29 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Africa/Kigali"
+    # Security advisories still open individual PRs regardless of the grouping below.
+    open-pull-requests-limit: 10
+    # Group non-security patch & minor bumps into a single weekly PR so the
+    # auto-merge workflow can eat them in one go. Major version bumps stay as
+    # individual PRs so a human reviews the breaking-change possibility.
+    groups:
+      npm-minor-patch:
+        update-types:
+          - "patch"
+          - "minor"
+    labels:
+      - "dependencies"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"
+      - "github-actions"
