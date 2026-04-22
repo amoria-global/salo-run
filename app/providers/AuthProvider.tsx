@@ -275,7 +275,7 @@ let refreshPromise: Promise<string | null> | null = null;
  * Uses a mutex so concurrent 401s only trigger one refresh call.
  * Returns the new token on success, or null on failure.
  */
-async function attemptDashboardTokenRefresh(currentToken: string): Promise<string | null> {
+async function attemptDashboardTokenRefresh(currentToken: string | null): Promise<string | null> {
   if (isRefreshing && refreshPromise) return refreshPromise;
   isRefreshing = true;
 
