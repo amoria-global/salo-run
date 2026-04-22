@@ -159,34 +159,27 @@ const REFRESH_TOKEN_KEY = 'refreshToken';
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 /**
- * Atomically save token to all storage locations
- * Prevents partial state writes during navigation
+ * Auth tokens are no longer stored in JS-accessible storage.
+ *
+ * Historically the JWT was written to localStorage and a non-HttpOnly cookie
+ * so dashboardAuthFetch could attach it as a Bearer header. That made it
+ * stealable via any XSS that executed on any dashboard page.
+ *
+ * We now rely on the `amoria_auth` HttpOnly cookie (scoped to .connekyt.com)
+ * that the backend sets on login. The browser sends it automatically on
+ * cross-origin fetches as long as `credentials: 'include'` is set — which
+ * dashboardAuthFetch now does. JS never reads or writes the JWT.
+ *
+ * These writer functions are kept as explicit no-ops to preserve call-sites
+ * across the provider. Any future attempt to persist a token will hit these
+ * and do nothing instead of silently reintroducing the exposure.
  */
-function saveTokenToStorage(token: string): void {
-  if (typeof window === 'undefined') return;
-
-  try {
-    // Save to localStorage first (fastest)
-    localStorage.setItem('authToken', token);
-
-    // Then save to cookie (can't fail silently)
-    const maxAge = 60 * 60 * 24; // 1 day — matches backend refresh token expiry
-    document.cookie = `authToken=${token}; path=/; max-age=${maxAge}; samesite=lax`;
-  } catch (error) {
-    console.error('[Dashboard Auth] Failed to save token to storage:', error);
-    // Don't throw - partial save is better than no save
-  }
+function saveTokenToStorage(_token: string): void {
+  // Intentionally a no-op. See docblock above.
 }
 
-function saveRefreshTokenToStorage(refreshToken: string): void {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-    const maxAge = 60 * 60 * 24; // 1 day
-    document.cookie = `refreshToken=${refreshToken}; path=/; max-age=${maxAge}; samesite=lax`;
-  } catch (error) {
-    console.error('[Dashboard Auth] Failed to save refresh token:', error);
-  }
+function saveRefreshTokenToStorage(_refreshToken: string): void {
+  // Intentionally a no-op. See docblock above.
 }
 
 function getRefreshToken(): string | null {
@@ -230,12 +223,28 @@ function getCookieToken(): string | null {
 }
 
 /**
- * Set token in cookie
+ * No-op: we no longer write the JWT to a JS-visible cookie. See docblock on
+ * saveTokenToStorage above. Kept as a function so existing call sites compile.
  */
-function setTokenCookie(token: string): void {
-  if (typeof document === 'undefined') return;
-  const maxAge = 60 * 60 * 24; // 1 day — matches backend refresh token expiry
-  document.cookie = `authToken=${token}; path=/; max-age=${maxAge}; samesite=lax`;
+function setTokenCookie(_token: string): void {
+  // Intentionally a no-op.
+}
+
+/**
+ * One-shot migration: clear any legacy JWTs lingering in localStorage or the
+ * old authToken cookie from before cookie-only auth shipped. Runs once per
+ * page load on the client; is cheap and idempotent after that.
+ */
+function clearLegacyJwtStorage(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    document.cookie = 'authToken=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+    document.cookie = 'refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+  } catch {
+    // Storage can be blocked in some privacy modes — ignore.
+  }
 }
 
 /**
@@ -361,16 +370,20 @@ function mapProfileData(data: any): DashboardUser {
  */
 async function tryFetchProfile(
   endpoint: string,
-  token: string,
+  token: string | null,
   roleName: string
 ): Promise<{ user: DashboardUser | null; status: number }> {
   try {
     const url = `${getApiUrl()}${endpoint}`;
+    const headers: Record<string, string> = {};
+    // Bearer is only attached if the caller happens to have a token (legacy
+    // in-memory value). The amoria_auth HttpOnly cookie — sent because of
+    // credentials: 'include' — is the primary auth signal.
+    if (token) headers['Authorization'] = `Bearer ${token}`;
     const response = await fetch(url, {
       method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
+      headers,
+      credentials: 'include',
     });
 
     if (!response.ok) {
@@ -411,7 +424,7 @@ const PROFILE_ENDPOINTS = [
  * Tries photographer, coordinator, and customer endpoints in order.
  * On 401, attempts token refresh and retries all endpoints.
  */
-async function fetchUserProfile(token: string): Promise<{ user: DashboardUser | null; reason: 'success' | 'unauthorized' | 'server_error' | 'network_error' }> {
+async function fetchUserProfile(token: string | null): Promise<{ user: DashboardUser | null; reason: 'success' | 'unauthorized' | 'server_error' | 'network_error' }> {
   try {
     // Try each role endpoint until one succeeds
     let got401 = false;
@@ -466,97 +479,63 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  // Initialize from URL token, cookie, or localStorage
+  // Initialize auth using the amoria_auth HttpOnly cookie the backend set on
+  // the landing app's login. JS can't read that cookie, but the browser sends
+  // it automatically on every fetch to backend.connekyt.com (credentials:
+  // 'include' is set inside fetchUserProfile). So the only state we need
+  // here is "call the backend; if profile comes back, the user is
+  // authenticated".
   useEffect(() => {
     const initAuth = async () => {
-      // Check for token in URL params (primary method)
+      // One-shot migration: wipe any legacy JWT from localStorage/authToken
+      // cookie. The HttpOnly amoria_auth cookie is the only JWT on the
+      // client going forward. Runs before any other auth work so an XSS that
+      // fires during initAuth can't grab a stale token.
+      clearLegacyJwtStorage();
+
+      // Legacy handoff: landing used to redirect with ?token=… in the URL.
+      // The landing app no longer emits that, but strip it on the way in so
+      // the JWT doesn't linger in browser history on any open tab from
+      // before the migration.
       const urlToken = searchParams.get('token');
-      const urlRefreshToken = searchParams.get('refreshToken');
-
-      // CRITICAL: When a new URL token arrives (new login), clear the previous session
-      // entirely to prevent stale user data from a prior login being shown.
-      if (urlToken) {
-        clearAuthFromStorage();
-        setUser(null);
-        setToken(null);
-        // Save the new token immediately so dashboardAuthFetch calls during
-        // the async profile fetch below don't fail with "No auth token available"
-        saveTokenToStorage(urlToken);
+      if (urlToken && typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('token');
+        url.searchParams.delete('refreshToken');
+        url.searchParams.delete('email');
+        window.history.replaceState({}, '', url.pathname + url.search);
       }
 
-      // Check for token in cookie
-      const cookieToken = getCookieToken();
-      // Check localStorage (will have urlToken if we just saved it above)
-      const storedToken = typeof window !== 'undefined' ? localStorage.getItem(AUTH_TOKEN_KEY) : null;
-      const storedUserStr = typeof window !== 'undefined' ? localStorage.getItem(AUTH_USER_KEY) : null;
+      // Read any cached user profile so the UI has something to render
+      // instantly while the authoritative fetch is in flight. The cache is
+      // profile data only (name, role, etc.) — it does NOT contain a JWT.
+      const storedUserStr = typeof window !== 'undefined'
+          ? localStorage.getItem(AUTH_USER_KEY) : null;
 
-      // Store refresh token if provided via URL or cookie
-      if (urlRefreshToken) {
-        saveRefreshTokenToStorage(urlRefreshToken);
-      }
+      // Always attempt the profile fetch — no Bearer token needed; the cookie
+      // carries auth. If it succeeds, we're authenticated. If it 401s, we're
+      // not, and we'll show the logged-out UI (middleware will redirect to
+      // the landing login on any /user/* navigation).
+      const { user: userProfile, reason } = await fetchUserProfile(null);
 
-      // Priority: URL > cookie > localStorage
-      const activeToken = urlToken || cookieToken || storedToken;
-
-      if (activeToken) {
-        // Fetch profile summary - this also validates the token (will fail if token is invalid)
-        const { user: userProfile, reason } = await fetchUserProfile(activeToken);
-
-        if (userProfile) {
-          // Token may have been refreshed during profile fetch — use latest from storage
-          const latestToken = (typeof window !== 'undefined' ? localStorage.getItem(AUTH_TOKEN_KEY) : null) || activeToken;
-          setToken(latestToken);
-          setUser(userProfile);
-
-          // Save token and user to cookie and localStorage atomically
-          if (typeof window !== 'undefined') {
-            saveTokenToStorage(latestToken);
-            localStorage.setItem(AUTH_USER_KEY, JSON.stringify(userProfile));
-            // Store role cookie for middleware route protection
-            if (userProfile.customerType) {
-              document.cookie = `userRole=${userProfile.customerType.toLowerCase()}; path=/; max-age=${60*60*24}; samesite=lax`;
-            }
+      if (userProfile) {
+        setUser(userProfile);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(AUTH_USER_KEY, JSON.stringify(userProfile));
+          if (userProfile.customerType) {
+            document.cookie = `userRole=${userProfile.customerType.toLowerCase()}; path=/; max-age=${60*60*24}; samesite=lax`;
           }
-
-          // Clean up URL token params (security: don't leave tokens in history)
-          if (urlToken && typeof window !== 'undefined') {
-            const url = new URL(window.location.href);
-            url.searchParams.delete('token');
-            url.searchParams.delete('refreshToken');
-            url.searchParams.delete('email'); // Clean up email too if present (legacy)
-            window.history.replaceState({}, '', url.pathname + url.search);
-          }
-        } else if (reason === 'server_error' || reason === 'network_error') {
-          // Backend is down or returning 500 — keep the token
-          // Only use cached data if this is NOT a fresh login (no urlToken) and cache exists
-          if (!urlToken && storedUserStr) {
-            try {
-              const storedUser = JSON.parse(storedUserStr);
-              setToken(activeToken);
-              setUser(storedUser);
-              saveTokenToStorage(activeToken);
-            } catch {
-              setToken(activeToken);
-              saveTokenToStorage(activeToken);
-            }
-          } else {
-            // Fresh login with backend down, or no cache — keep token but don't use stale data
-            setToken(activeToken);
-            saveTokenToStorage(activeToken);
-          }
-        } else if (storedUserStr && storedToken === activeToken) {
-          // Unauthorized but have cached data — use briefly (will redirect soon anyway)
-          try {
-            const storedUser = JSON.parse(storedUserStr);
-            setToken(activeToken);
-            setUser(storedUser);
-          } catch {
-            clearAuthFromStorage();
-          }
-        } else {
-          // Unauthorized, no cache — clear storage
-          clearAuthFromStorage();
         }
+      } else if (reason === 'server_error' || reason === 'network_error') {
+        // Backend is down — fall back to cached profile so the UI renders.
+        // The user is still "authenticated" per the cookie; we just can't
+        // talk to the backend right now. Real 401s clear state below.
+        if (storedUserStr) {
+          try { setUser(JSON.parse(storedUserStr)); } catch { /* ignore */ }
+        }
+      } else {
+        // reason === 'unauthorized': cookie is missing/expired.
+        // Leave user null; fetchUserProfile already redirected photographers.
       }
 
       setIsLoading(false);
@@ -565,68 +544,51 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     initAuth();
   }, [searchParams]);
 
-  // Proactively refresh token and profile every 4 hours (access token expires in 5h).
-  // The 401-retry logic in dashboardAuthFetch is the primary refresh mechanism;
-  // this interval just reduces how often the 401 fallback is triggered.
+  // Proactively re-fetch the profile every 4 hours. The backend's
+  // /profile-summary call triggers JwtAuthFilter, which handles silent
+  // refresh server-side if the token is near expiry — so the cookie value
+  // stays fresh without us doing anything client-side. This interval also
+  // surfaces the user as logged out the moment the session becomes invalid
+  // (e.g. the refresh token is revoked), without waiting for them to click
+  // something that hits the backend.
   useEffect(() => {
-    if (!token) return;
+    if (!user) return;
 
-    const INTERVAL = 4 * 60 * 60 * 1000; // 4 hours — well within 5h access token lifetime
+    const INTERVAL = 4 * 60 * 60 * 1000; // 4 hours
 
     const intervalId = setInterval(async () => {
-      const newToken = await attemptDashboardTokenRefresh(token);
-      if (newToken) {
-        setToken(newToken);
-        const { user: userProfile } = await fetchUserProfile(newToken);
-        if (userProfile) {
-          setUser(userProfile);
-          if (typeof window !== 'undefined') {
-            localStorage.setItem(AUTH_USER_KEY, JSON.stringify(userProfile));
-            if (userProfile.customerType) {
-              document.cookie = `userRole=${userProfile.customerType.toLowerCase()}; path=/; max-age=${60*60*24}; samesite=lax`;
-            }
+      const { user: userProfile, reason } = await fetchUserProfile(null);
+      if (userProfile) {
+        setUser(userProfile);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(AUTH_USER_KEY, JSON.stringify(userProfile));
+          if (userProfile.customerType) {
+            document.cookie = `userRole=${userProfile.customerType.toLowerCase()}; path=/; max-age=${60*60*24}; samesite=lax`;
           }
         }
-      } else {
-        // Refresh failed — clear auth and redirect to login
-        console.warn('[Dashboard Auth] Token refresh failed — redirecting to login');
+      } else if (reason === 'unauthorized') {
+        console.warn('[Dashboard Auth] Session invalidated — redirecting to login');
         clearAuthFromStorage();
         setUser(null);
-        setToken(null);
         const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL as string;
         window.location.href = `${landingUrl}/user/auth/login?session_expired=true`;
       }
+      // server_error / network_error: keep current user state, try again next tick.
     }, INTERVAL);
 
     return () => clearInterval(intervalId);
-  }, [token]);
+  }, [user]);
 
-  // Listen for storage events (cross-tab sync)
+  // Cross-tab sync: when another tab clears the cached user profile (logout
+  // in a different tab), reflect that here. We no longer listen for
+  // AUTH_TOKEN_KEY changes because the JWT no longer lives in localStorage.
   useEffect(() => {
     const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === AUTH_USER_KEY) {
-        if (event.newValue) {
-          try {
-            const newUser = JSON.parse(event.newValue);
-            setUser(newUser);
-          } catch {
-            setUser(null);
-          }
-        } else {
-          // User was removed (logged out in another tab)
-          setUser(null);
-        }
-      }
-
-      // Also check for token changes
-      if (event.key === AUTH_TOKEN_KEY) {
-        if (!event.newValue) {
-          // Token removed
-          setToken(null);
-          setUser(null);
-        } else {
-          setToken(event.newValue);
-        }
+      if (event.key !== AUTH_USER_KEY) return;
+      if (event.newValue) {
+        try { setUser(JSON.parse(event.newValue)); } catch { setUser(null); }
+      } else {
+        setUser(null);
       }
     };
 
@@ -808,13 +770,8 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
    * Call this after any profile update operation to get fresh data
    */
   const refreshUserProfile = useCallback(async (): Promise<boolean> => {
-    if (!token) {
-      console.error('[Dashboard Auth] No token available for profile refresh');
-      return false;
-    }
-
-    const { user: userProfile } = await fetchUserProfile(token);
-
+    // No token needed — the amoria_auth HttpOnly cookie carries auth.
+    const { user: userProfile } = await fetchUserProfile(null);
     if (userProfile) {
       setUser(userProfile);
       if (typeof window !== 'undefined') {
@@ -822,14 +779,16 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
       }
       return true;
     }
-
     return false;
-  }, [token]);
+  }, []);
 
   const value: AuthContextType = {
     user,
+    // `token` is kept in the context for source-compat but is intentionally
+    // always null — the JWT is never surfaced to JS. Components should
+    // derive auth state from `isAuthenticated` or `user` instead.
     token,
-    isAuthenticated: !!token && !isLoading,
+    isAuthenticated: !!user && !isLoading,
     isLoading,
     logout,
     refreshToken: refreshTokenFn,
