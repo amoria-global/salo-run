@@ -571,6 +571,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
       const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/events/${event.id}/publish`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
       });
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
@@ -593,6 +594,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
       const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/events/${event.id}/unpublish`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
       });
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
@@ -616,6 +618,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
       const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/events/${event.id}/pause`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
       });
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
@@ -638,6 +641,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
       const res = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/events/${event.id}/resume`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
       });
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
