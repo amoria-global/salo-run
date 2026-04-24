@@ -719,6 +719,10 @@ const MyEventsPage = () => {
   const [unpublishingEventId, setUnpublishingEventId] = useState<string | null>(null);
   const [publishConfirmEvent, setPublishConfirmEvent] = useState<Event | null>(null);
   const [unpublishConfirmEvent, setUnpublishConfirmEvent] = useState<Event | null>(null);
+  // Surfaced when the backend rejects an unpublish because the event is
+  // currently live. The creator has to wait for the photographer to end the
+  // stream before they can take the event offline.
+  const [ongoingUnpublishBlock, setOngoingUnpublishBlock] = useState<{ title: string; photographerName: string | null } | null>(null);
   const [noPhotographerEvent, setNoPhotographerEvent] = useState<Event | null>(null);
   const [pendingBookingEvent, setPendingBookingEvent] = useState<Event | null>(null);
   const [noPhotoEvent, setNoPhotoEvent] = useState<Event | null>(null);
@@ -836,7 +840,7 @@ const MyEventsPage = () => {
   }, [user, fetchMyEvents]);
 
   const handlePublishEvent = async (eventId: string) => {
-    if (!token) return;
+    if (!user) return;
     setPublishConfirmEvent(null);
     setPublishingEventId(eventId);
     try {
@@ -864,7 +868,12 @@ const MyEventsPage = () => {
   };
 
   const handleUnpublishEvent = async (eventId: string) => {
-    if (!token) return;
+    if (!user) return;
+    // Capture the title before closing the confirm modal — used below if the
+    // backend rejects with EVENT_ONGOING so the block modal can name it.
+    const targetTitle = unpublishConfirmEvent?.title
+      ?? events.find(e => e.id === eventId)?.title
+      ?? 'this event';
     setUnpublishConfirmEvent(null);
     setUnpublishingEventId(eventId);
     try {
@@ -876,6 +885,15 @@ const MyEventsPage = () => {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        // Backend returns 409 + { error: "EVENT_ONGOING", photographerName } when
+        // the event is live. Show the dedicated block modal instead of alert().
+        if (response.status === 409 && errorData?.error === 'EVENT_ONGOING') {
+          setOngoingUnpublishBlock({
+            title: targetTitle,
+            photographerName: errorData?.photographerName ?? null,
+          });
+          return;
+        }
         throw new Error(errorData.message || `Failed to unpublish event (${response.status})`);
       }
 
@@ -1366,7 +1384,7 @@ const MyEventsPage = () => {
     try {
       // Call the backend API
       let backendEventId: string | null = null;
-      if (token) {
+      if (user) {
         const apiUrl = getApiUrl();
         const locationStr = [createVenueName, createAddress, createCity, createCountry].filter(Boolean).join(', ');
         const tagsStr = createTags.length > 0 ? createTags.join(',') : createCategory;
@@ -1959,7 +1977,19 @@ const MyEventsPage = () => {
                         )}
                         {event.status.toUpperCase() !== 'COMPLETED' && (
                           (event.isPublished || event.status.toUpperCase() === 'PUBLISHED' || event.status.toUpperCase() === 'ONGOING') ? (
-                            <button onClick={() => setUnpublishConfirmEvent(event)} disabled={unpublishingEventId === event.id} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.4rem 0.5rem', backgroundColor: '#d19d0d', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: unpublishingEventId === event.id ? 'not-allowed' : 'pointer', fontSize: '0.75rem', fontWeight: 600, opacity: unpublishingEventId === event.id ? 0.7 : 1 }}>
+                            <button onClick={() => {
+                              // Short-circuit straight to the block modal when the event is live —
+                              // backend will reject the unpublish anyway, so skip the "Are you sure?"
+                              // prompt and tell the creator what they actually need to do.
+                              if (event.status.toUpperCase() === 'ONGOING') {
+                                setOngoingUnpublishBlock({
+                                  title: event.title,
+                                  photographerName: event.photographerName || null,
+                                });
+                              } else {
+                                setUnpublishConfirmEvent(event);
+                              }
+                            }} disabled={unpublishingEventId === event.id} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', padding: '0.4rem 0.5rem', backgroundColor: '#d19d0d', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '0.375rem', cursor: unpublishingEventId === event.id ? 'not-allowed' : 'pointer', fontSize: '0.75rem', fontWeight: 600, opacity: unpublishingEventId === event.id ? 0.7 : 1 }}>
                               {unpublishingEventId === event.id ? 'Unpublishing...' : 'Unpublish'}
                             </button>
                           ) : (
@@ -3475,6 +3505,61 @@ const MyEventsPage = () => {
                 Unpublish
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/*
+        Block modal shown instead of the generic unpublish confirm when the
+        event is currently ONGOING (live stream in progress). The creator can't
+        unpublish from here — the photographer has to end the stream first.
+      */}
+      {ongoingUnpublishBlock && (
+        <div
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 1100, padding: '1rem'
+          }}
+          onClick={() => setOngoingUnpublishBlock(null)}
+        >
+          <div
+            style={{
+              backgroundColor: colors.bgCard, borderRadius: '1rem',
+              padding: '1.5rem', width: '440px', maxWidth: '92%',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+              <div style={{
+                width: '64px', height: '64px', borderRadius: '50%',
+                backgroundColor: '#fee2e2',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>
+                <i className="bi bi-broadcast" style={{ fontSize: '2rem', color: '#dc2626' }}></i>
+              </div>
+            </div>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: '700', color: colors.textPrimary, margin: 0, marginBottom: '0.75rem', textAlign: 'center' }}>
+              Event is currently live
+            </h2>
+            <p style={{ fontSize: '0.92rem', color: colors.textSecondary, margin: 0, marginBottom: '0.5rem', textAlign: 'center', lineHeight: '1.55' }}>
+              <strong style={{ color: colors.textPrimary }}>&quot;{ongoingUnpublishBlock.title}&quot;</strong> can&apos;t be unpublished while the stream is still running. Viewers are watching right now.
+            </p>
+            <p style={{ fontSize: '0.88rem', color: colors.textSecondary, margin: 0, marginBottom: '1.5rem', textAlign: 'center', lineHeight: '1.55' }}>
+              {ongoingUnpublishBlock.photographerName
+                ? <>Please contact the assigned photographer, <strong style={{ color: colors.textPrimary }}>{ongoingUnpublishBlock.photographerName}</strong>, to end the event stream. Once the stream ends you&apos;ll be able to unpublish.</>
+                : <>Please contact the assigned photographer to end the event stream. Once the stream ends you&apos;ll be able to unpublish.</>}
+            </p>
+            <button
+              onClick={() => setOngoingUnpublishBlock(null)}
+              style={{
+                width: '100%', padding: '0.75rem 1rem', borderRadius: '0.5rem',
+                border: `2px solid ${colors.borderPrimary}`, backgroundColor: colors.bgCard,
+                color: colors.textPrimary, fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer'
+              }}
+            >Got it</button>
           </div>
         </div>
       )}

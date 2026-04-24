@@ -1804,7 +1804,7 @@ const PhotographerEventsPage = () => {
                               </div>
                               <div style={{ backgroundColor: badge.bg, color: badge.color, padding: '0.25rem 0.65rem', borderRadius: '2rem', fontSize: '0.67rem', fontWeight: 700 }}>{badge.label}</div>
                             </div>
-                            {event.hasLiveStream && (
+                            {event.hasLiveStream && event.status !== 'completed' && (
                               <div style={{ backgroundColor: isLive ? '#DC2626' : 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', color: 'white', padding: '0.25rem 0.6rem', borderRadius: '2rem', fontSize: '0.67rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.25rem', animation: isLive ? 'pulse 2s infinite' : 'none' }}>
                                 <BroadcastIcon /> {isLive ? 'LIVE' : 'Stream'}
                               </div>
@@ -1812,7 +1812,7 @@ const PhotographerEventsPage = () => {
                           </div>
 
                           {/* Viewer count for live */}
-                          {isLive && streamCfg && (
+                          {isLive && streamCfg && event.status !== 'completed' && (
                             <div style={{ position: 'absolute', top: '2.5rem', right: '0.6rem', backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', color: 'white', padding: '0.15rem 0.5rem', borderRadius: '2rem', fontSize: '0.65rem', fontWeight: 600, pointerEvents: 'none' }}>{streamCfg.viewerCount.toLocaleString()} viewers</div>
                           )}
 

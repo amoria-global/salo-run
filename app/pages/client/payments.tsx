@@ -1612,7 +1612,7 @@ const PaymentsPage = () => {
   const { colors, actualTheme } = useTheme();
   const { formatPrice } = useCurrency();
   const { profile } = useUserProfile();
-  const { token } = useDashboardAuth();
+  const { token, user } = useDashboardAuth();
   const router = useRouter();
   const [activeTimeFilter, setActiveTimeFilter] = useState<'1W' | '1M' | '3M' | '6M' | '1Y'>('1W');
   const [currentPage, setCurrentPage] = useState(1);
@@ -1674,17 +1674,12 @@ Amount: ${formatPrice(payment.amountNum)}
   const [spendingData, setSpendingData] = useState<{ date: string; value: number }[]>([]);
 
   const fetchSpendingTrend = useCallback(async (period: string) => {
-    if (!token) return;
+    if (!user) return;
     try {
       const apiUrl = getApiUrl();
-      const response = await fetch(
+      const response = await dashboardAuthFetch(
         `${apiUrl}/api/remote/customer/payments/spending-trend?period=${period}`,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-        }
+        { headers: { 'Content-Type': 'application/json' } }
       );
       if (!response.ok) return;
       const result = await response.json();
@@ -1698,7 +1693,7 @@ Amount: ${formatPrice(payment.amountNum)}
     } catch (err) {
       console.error('Failed to fetch spending trend:', err);
     }
-  }, [token]);
+  }, [user]);
 
   useEffect(() => {
     fetchSpendingTrend(activeTimeFilter);
@@ -1746,17 +1741,12 @@ Amount: ${formatPrice(payment.amountNum)}
 
   // Fetch payment history from API
   const fetchPayments = useCallback(async (page: number) => {
-    if (!token) return;
+    if (!user) return;
     try {
       const apiUrl = getApiUrl();
-      const response = await fetch(
+      const response = await dashboardAuthFetch(
         `${apiUrl}/api/remote/customer/payments?page=${page - 1}&size=${resultsPerPage}`,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-        }
+        { headers: { 'Content-Type': 'application/json' } }
       );
       if (!response.ok) return;
       const result = await response.json();
@@ -1798,7 +1788,7 @@ Amount: ${formatPrice(payment.amountNum)}
     } catch (err) {
       console.error('Failed to fetch payments:', err);
     }
-  }, [token, resultsPerPage]);
+  }, [user, resultsPerPage]);
 
   useEffect(() => {
     fetchPayments(currentPage);
@@ -1811,17 +1801,12 @@ Amount: ${formatPrice(payment.amountNum)}
   const [streamingEarnings, setStreamingEarnings] = useState(0);
 
   const fetchBalance = useCallback(async () => {
-    if (!token) return;
+    if (!user) return;
     try {
       const apiUrl = getApiUrl();
-      const response = await fetch(
+      const response = await dashboardAuthFetch(
         `${apiUrl}/api/remote/customer/payments/balance`,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-        }
+        { headers: { 'Content-Type': 'application/json' } }
       );
       if (!response.ok) return;
       const result = await response.json();
@@ -1834,7 +1819,7 @@ Amount: ${formatPrice(payment.amountNum)}
     } catch (err) {
       console.error('Failed to fetch balance:', err);
     }
-  }, [token]);
+  }, [user]);
 
   useEffect(() => {
     fetchBalance();
@@ -1853,17 +1838,12 @@ Amount: ${formatPrice(payment.amountNum)}
   });
 
   const fetchStats = useCallback(async () => {
-    if (!token) return;
+    if (!user) return;
     try {
       const apiUrl = getApiUrl();
-      const response = await fetch(
+      const response = await dashboardAuthFetch(
         `${apiUrl}/api/remote/customer/payments/stats`,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-        }
+        { headers: { 'Content-Type': 'application/json' } }
       );
       if (!response.ok) return;
       const result = await response.json();
@@ -1883,7 +1863,7 @@ Amount: ${formatPrice(payment.amountNum)}
     } catch (err) {
       console.error('Failed to fetch stats:', err);
     }
-  }, [token]);
+  }, [user]);
 
   useEffect(() => {
     fetchStats();
@@ -1899,17 +1879,12 @@ Amount: ${formatPrice(payment.amountNum)}
   }[]>([]);
 
   const fetchGiftStreams = useCallback(async () => {
-    if (!token) return;
+    if (!user) return;
     try {
       const apiUrl = getApiUrl();
-      const response = await fetch(
+      const response = await dashboardAuthFetch(
         `${apiUrl}/api/remote/customer/payments/gift-streams`,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-        }
+        { headers: { 'Content-Type': 'application/json' } }
       );
       if (!response.ok) return;
       const result = await response.json();
@@ -1930,7 +1905,7 @@ Amount: ${formatPrice(payment.amountNum)}
     } catch (err) {
       console.error('Failed to fetch gift streams:', err);
     }
-  }, [token]);
+  }, [user]);
 
   useEffect(() => {
     fetchGiftStreams();
@@ -1947,7 +1922,7 @@ Amount: ${formatPrice(payment.amountNum)}
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
 
   useEffect(() => {
-    if (!token) return;
+    if (!user) return;
     (async () => {
       try {
         const apiUrl = getApiUrl();
@@ -1960,7 +1935,7 @@ Amount: ${formatPrice(payment.amountNum)}
         }
       } catch { /* ignore */ }
     })();
-  }, [token]);
+  }, [user]);
 
   // State for gifts payment method modal
   const [showGiftsPaymentMethodModal, setShowGiftsPaymentMethodModal] = useState(false);
@@ -1979,13 +1954,11 @@ Amount: ${formatPrice(payment.amountNum)}
   useEffect(() => {
     if (!showGiftsPaymentMethodModal) return;
     const apiUrl = getApiUrl();
-    fetch(`${apiUrl}/api/remote/withdrawals/xentripay/providers`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-    })
+    dashboardAuthFetch(`${apiUrl}/api/remote/withdrawals/xentripay/providers`)
       .then(res => res.json())
       .then(result => setBankProviders(result?.data?.banks || []))
       .catch(() => setBankProviders([]));
-  }, [showGiftsPaymentMethodModal, token]);
+  }, [showGiftsPaymentMethodModal, user]);
 
   // Validate payment method selection
   const validateGiftPaymentMethod = (): boolean => {
@@ -2001,7 +1974,7 @@ Amount: ${formatPrice(payment.amountNum)}
 
   const saveWithdrawalMethod = async () => {
     if (!validateGiftPaymentMethod()) return;
-    if (!selectedGiftPaymentMethod || !token) return;
+    if (!selectedGiftPaymentMethod || !user) return;
 
     let methodType = '';
     let accountName = '';
@@ -2050,14 +2023,11 @@ Amount: ${formatPrice(payment.amountNum)}
       });
       if (bankName) params.append('bankName', bankName);
 
-      const response = await fetch(
+      const response = await dashboardAuthFetch(
         `${apiUrl}/api/remote/customer/withdrawal-methods?${params.toString()}`,
         {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
+          headers: { 'Content-Type': 'application/json' },
         }
       );
 

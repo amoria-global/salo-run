@@ -610,10 +610,13 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     const checkTotpRequirement = async () => {
       try {
         const apiUrl = getApiUrl();
+        // Use credentials: 'include' so the HttpOnly amoria_auth cookie
+        // authenticates cookie-only sessions (empty local Bearer token).
+        const headers: Record<string, string> = {};
+        if (token) headers['Authorization'] = `Bearer ${token}`;
         const response = await fetch(`${apiUrl}/api/remote/customer/totp/status`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
+          headers,
+          credentials: 'include',
         });
         if (!response.ok) return;
         const result = await response.json();
