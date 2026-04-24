@@ -297,7 +297,7 @@ export default function Clients() {
 
   // Fetch bookings from API
   const fetchBookings = useCallback(async () => {
-    if (!token) return;
+    if (!user) return;
     setBookingsLoading(true);
     try {
       const response = await dashboardAuthFetch(`${getApiUrl()}/api/remote/photographer/bookings`);
@@ -310,16 +310,16 @@ export default function Clients() {
     } finally {
       setBookingsLoading(false);
     }
-  }, [token]);
+  }, [user]);
 
   // Fetch bookings on mount
   useEffect(() => {
-    if (token) fetchBookings();
-  }, [token, fetchBookings]);
+    if (user) fetchBookings();
+  }, [user, fetchBookings]);
 
   // Accept a booking
   const acceptBooking = async (bookingId: string) => {
-    if (!token) return;
+    if (!user) return;
     setProcessingBookingId(bookingId);
     try {
       const response = await dashboardAuthFetch(
@@ -339,7 +339,7 @@ export default function Clients() {
 
   // Reject a booking
   const rejectBooking = async (bookingId: string) => {
-    if (!token) return;
+    if (!user) return;
     setProcessingBookingId(bookingId);
     try {
       const response = await dashboardAuthFetch(

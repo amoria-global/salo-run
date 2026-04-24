@@ -151,7 +151,7 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
   const currencyRef = useRef<HTMLDivElement>(null);
 
   const fetchNotifications = useCallback(async () => {
-    if (!token) return;
+    if (!user) return;
     const apiUrl = getApiUrl();
     const notifBase = userRole === 'event-coordinator' ? 'coordinator' : userRole === 'photographer' ? 'photographer' : 'customer';
     try {
@@ -183,10 +183,10 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
     } catch {
       // silent fail
     }
-  }, [token, userRole]);
+  }, [user, userRole]);
 
   const fetchFinancials = useCallback(async () => {
-    if (!token) return;
+    if (!user) return;
     const apiUrl = getApiUrl();
     try {
       // Unified wallet snapshot for every authenticated non-admin role.
@@ -242,7 +242,7 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
     } catch {
       // silent fail
     }
-  }, [token, userRole]);
+  }, [user, userRole]);
 
   useEffect(() => {
     fetchNotifications();
