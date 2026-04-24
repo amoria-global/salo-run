@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Pragati_Narrow } from "next/font/google";
 import "./globals.css";
+import "bootstrap-icons/font/bootstrap-icons.css";
 import { DashboardAuthProvider } from "./providers/AuthProvider";
 import { ThemeProvider } from "./context/ThemeContext";
 import { UserProfileProvider } from "./context/UserProfileContext";
@@ -24,12 +25,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
-        <link
-          rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
-        />
-      </head>
       <body className={`${pragatiNarrow.variable} font-sans antialiased`}>
         <DashboardAuthProvider>
           <ThemeProvider>
