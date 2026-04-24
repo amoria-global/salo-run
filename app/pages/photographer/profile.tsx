@@ -459,8 +459,8 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   };
 
   const savePackageToAPI = async (pkg: DeliveryPackage) => {
-    if (!token) {
-      showToast('error', 'No auth token available');
+    if (!user) {
+      showToast('error', 'Not authenticated');
       return;
     }
     if (!pkg.packageName) {
@@ -618,7 +618,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
   // Fetch pending changes for approved accounts
   const fetchPendingChanges = useCallback(async () => {
-    if (!token || !isAccountAccepted) return;
+    if (!user || !isAccountAccepted) return;
     try {
       const apiUrl = getApiUrl();
       const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/pending-changes`);
@@ -631,7 +631,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     } catch (error) {
       console.error('Failed to fetch pending changes:', error);
     }
-  }, [token, isAccountAccepted]);
+  }, [user, isAccountAccepted]);
 
   // Helper: check if a field has pending changes (matches fieldName or fieldCategory)
   const getFieldPendingChanges = useCallback((fieldName: string) => {
@@ -656,7 +656,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
   // Save all changes handler for the "Save Changes" button
   const handleSaveAllChanges = async () => {
-    if (!token) return;
+    if (!user) return;
     setIsSavingAll(true);
     try {
       const [firstName, ...rest] = capitalizeWords(basicInfo.fullName.trim()).split(' ');
@@ -690,7 +690,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
   // Save all availability days
   const handleSaveAvailability = async () => {
-    if (!token) return;
+    if (!user) return;
     setIsSavingAvailability(true);
     try {
       const daysToSave = daysOfWeek.filter(day => basicInfo.availability?.[day]?.enabled);
@@ -1316,8 +1316,8 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
   // Save education to API
   const saveEducationToAPI = async (edu: Education) => {
-    if (!token) {
-      console.error('No auth token available');
+    if (!user) {
+      console.error('Not authenticated');
       return false;
     }
 
@@ -1366,8 +1366,8 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
   // Add training/certification to API
   const addTrainingToAPI = async (training: Training, type: 'TRAINING' | 'CERTIFICATION' = 'TRAINING') => {
-    if (!token) {
-      console.error('No auth token available');
+    if (!user) {
+      console.error('Not authenticated');
       return false;
     }
 
@@ -1416,8 +1416,8 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
   // Add skill to API
   const addSkillToAPI = async (skill: Skill) => {
-    if (!token) {
-      console.error('No auth token available');
+    if (!user) {
+      console.error('Not authenticated');
       return false;
     }
 
@@ -1463,8 +1463,8 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
   // Add equipment to API
   const addEquipmentToAPI = async (name: string) => {
-    if (!token) {
-      console.error('No auth token available');
+    if (!user) {
+      console.error('Not authenticated');
       return false;
     }
 
@@ -1517,7 +1517,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     specialtyIds?: string[];
     professionalPhilosophy?: string;
   }): Promise<boolean> => {
-    if (!token) return false;
+    if (!user) return false;
     try {
       const apiUrl = getApiUrl();
       const response = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/update-important-details`, {
@@ -1562,7 +1562,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       }
     }, 2000);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+  }, [user]);
 
   // Cleanup debounce timer on unmount
   useEffect(() => {
@@ -1590,8 +1590,8 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
   // Add availability to API
   const addAvailabilityToAPI = async (day: string, startTime: string, endTime: string) => {
-    if (!token) {
-      console.error('No auth token available');
+    if (!user) {
+      console.error('Not authenticated');
       return false;
     }
 
@@ -1627,8 +1627,8 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
   // Save profile picture to API
   const saveProfilePictureToAPI = async (file: File) => {
-    if (!token) {
-      console.error('No auth token available');
+    if (!user) {
+      console.error('Not authenticated');
       return false;
     }
 
@@ -1663,8 +1663,8 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
   // Save cover photo to API
   const saveCoverPhotoToAPI = async (file: File) => {
-    if (!token) {
-      console.error('No auth token available');
+    if (!user) {
+      console.error('Not authenticated');
       return false;
     }
 
@@ -1699,8 +1699,8 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
   // Add project to API (multipart/form-data)
   const addProjectToAPI = async (project: Project, imageFile?: File) => {
-    if (!token) {
-      console.error('No auth token available');
+    if (!user) {
+      console.error('Not authenticated');
       return false;
     }
 
@@ -1760,7 +1760,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
   // Delete skill from API
   const deleteSkillFromAPI = async (skillId: string) => {
-    if (!token) return false;
+    if (!user) return false;
     try {
       const apiUrl = getApiUrl();
       const response = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/delete-professional-skills/${skillId}`, {
@@ -1779,7 +1779,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
   // Delete equipment from API
   const deleteEquipmentFromAPI = async (equipmentId: string) => {
-    if (!token) return false;
+    if (!user) return false;
     try {
       const apiUrl = getApiUrl();
       const response = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/delete-equipment/${equipmentId}`, {
@@ -1798,7 +1798,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
   // Delete education from API
   const deleteEducationFromAPI = async (educationId: string) => {
-    if (!token) return false;
+    if (!user) return false;
     try {
       const apiUrl = getApiUrl();
       const response = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/delete-education-level/${educationId}`, {
@@ -1817,7 +1817,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
   // Delete availability from API
   const deleteAvailabilityFromAPI = async (availabilityId: string) => {
-    if (!token) return false;
+    if (!user) return false;
     try {
       const apiUrl = getApiUrl();
       const response = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/delete-availability/${availabilityId}`, {
@@ -1836,7 +1836,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
   // Delete project from API
   const deleteProjectFromAPI = async (projectId: string) => {
-    if (!token) return false;
+    if (!user) return false;
     try {
       const apiUrl = getApiUrl();
       const response = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/delete-add-project-portfolio/${projectId}`, {
@@ -1855,7 +1855,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
   // Delete training/certification from API
   const deleteTrainingFromAPI = async (trainingId: string) => {
-    if (!token) return false;
+    if (!user) return false;
     try {
       const apiUrl = getApiUrl();
       const response = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/delete-trainting-certification/${trainingId}`, {
@@ -1876,7 +1876,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   const [savingExperience, setSavingExperience] = useState<string | null>(null);
 
   const saveExperienceToAPI = async (exp: Experience) => {
-    if (!token) return false;
+    if (!user) return false;
     if (!exp.position || !exp.company) {
       showToast('error', 'Position and company are required');
       return false;
@@ -1915,7 +1915,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   };
 
   const deleteExperienceFromAPI = async (experienceId: string) => {
-    if (!token) return false;
+    if (!user) return false;
     try {
       const apiUrl = getApiUrl();
       const response = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/delete-work-experience/${experienceId}`, {

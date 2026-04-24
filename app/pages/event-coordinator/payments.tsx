@@ -1870,13 +1870,11 @@ Amount: ${formatPrice(payment.amountNum)}
   useEffect(() => {
     if (!showStreamFeeWithdrawModal) return;
     const apiUrl = getApiUrl();
-    fetch(`${apiUrl}/api/remote/withdrawals/xentripay/providers`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-    })
+    dashboardAuthFetch(`${apiUrl}/api/remote/withdrawals/xentripay/providers`)
       .then(res => res.json())
       .then(result => setBankProviders(result?.data?.banks || []))
       .catch(() => setBankProviders([]));
-  }, [showStreamFeeWithdrawModal, token]);
+  }, [showStreamFeeWithdrawModal, user]);
 
   // Check if Rwanda requires mobile money selection
   const isRwanda = profile.country === 'Rwanda';

@@ -12,6 +12,20 @@ const apiOriginWs = `${apiUrl.protocol === 'https:' ? 'wss:' : 'ws:'}//${apiUrl.
 // is authenticated-only — no public unauthenticated surface that loads
 // third-party widgets. Adjust CSP after 1 week of report-only observation if
 // we enable reporting.
+// CSP whitelist for third-party asset hosts the UI was already loading before
+// the CSP hardening. Added here (rather than migrating everything self-hosted)
+// to avoid reverting feature work:
+//   - cdn.jsdelivr.net       — Bootstrap Icons CSS/font (layout.tsx <link>), and
+//                              MediaPipe tasks-vision WASM loaded by KYC
+//                              verification (KycVerificationModal).
+//   - flagcdn.com            — currency flag PNGs in the topbar switcher.
+//   - storage.googleapis.com — MediaPipe face-landmarker model downloaded by
+//                              KycVerificationModal at verification time.
+//   - *.cloudflarestream.com — WHEP HTTP handshake for live-stream preview
+//                              playback (StreamPreview + WHEPPlayer).
+//   - i.pinimg.com / images.unsplash.com — placeholder client/photo images in
+//                              photographer/gallery.tsx (seed/mock data still
+//                              rendered on first load before real data arrives).
 const cspDirectives = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval'",

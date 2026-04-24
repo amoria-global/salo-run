@@ -123,7 +123,7 @@ export default function Sidebar() {
   const lastInboxEventTimeRef = useRef<number>(0);
 
   const fetchBadgeCounts = useCallback(async () => {
-    if (!token) return;
+    if (!user) return;
     const fetchStartTime = Date.now();
     const apiUrl = getApiUrl();
     const notifPrefix = currentRole === 'photographer' ? 'photographer' : currentRole === 'event-coordinator' ? 'coordinator' : 'customer';
@@ -156,7 +156,7 @@ export default function Sidebar() {
     } catch {
       // silent fail
     }
-  }, [token, currentRole, pathname, currentUserId]);
+  }, [user, currentRole, pathname, currentUserId]);
 
   useEffect(() => {
     fetchBadgeCounts();
