@@ -28,11 +28,20 @@ const apiOriginWs = `${apiUrl.protocol === 'https:' ? 'wss:' : 'ws:'}//${apiUrl.
 //                              rendered on first load before real data arrives).
 const cspDirectives = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  `img-src 'self' data: blob: ${apiOriginHttp} https://backend.connekyt.com https://*.cloudflarestream.com`,
-  "font-src 'self' data: https://fonts.gstatic.com",
-  `connect-src 'self' ${apiOriginHttp} ${apiOriginWs} http://localhost:8081 https://backend.connekyt.com https://connekyt.com wss://backend.connekyt.com`,
+  // cdn.jsdelivr.net — MediaPipe tasks-vision WASM script loaded by KYC verification flow
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net",
+  // cdn.jsdelivr.net — Bootstrap Icons CSS stylesheet (layout.tsx)
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
+  // flagcdn.com           — currency flag PNGs in the topbar switcher
+  // i.pinimg.com          — placeholder client avatars in photographer/gallery.tsx
+  // images.unsplash.com   — placeholder photo thumbnails in photographer/gallery.tsx
+  `img-src 'self' data: blob: ${apiOriginHttp} https://backend.connekyt.com https://*.cloudflarestream.com https://flagcdn.com https://i.pinimg.com https://images.unsplash.com`,
+  // cdn.jsdelivr.net — Bootstrap Icons webfont files
+  "font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net",
+  // cdn.jsdelivr.net        — MediaPipe WASM binary fetched by KYC verification
+  // storage.googleapis.com  — MediaPipe face-landmarker model download
+  // *.cloudflarestream.com  — WHEP HTTP handshake for live-stream preview playback
+  `connect-src 'self' ${apiOriginHttp} ${apiOriginWs} https://backend.connekyt.com https://connekyt.com wss://backend.connekyt.com https://cdn.jsdelivr.net https://storage.googleapis.com https://*.cloudflarestream.com`,
   "media-src 'self' blob: https://*.cloudflarestream.com",
   "frame-src 'self' https://customer-ngk2huwatflljurq.cloudflarestream.com https://*.cloudflarestream.com",
   "frame-ancestors 'self'",
