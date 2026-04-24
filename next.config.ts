@@ -28,11 +28,11 @@ const apiOriginWs = `${apiUrl.protocol === 'https:' ? 'wss:' : 'ws:'}//${apiUrl.
 //                              rendered on first load before real data arrives).
 const cspDirectives = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
-  `img-src 'self' data: blob: ${apiOriginHttp} https://backend.connekyt.com https://*.cloudflarestream.com https://flagcdn.com https://i.pinimg.com https://images.unsplash.com`,
-  "font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net",
-  `connect-src 'self' ${apiOriginHttp} ${apiOriginWs} https://backend.connekyt.com https://connekyt.com wss://backend.connekyt.com https://cdn.jsdelivr.net https://storage.googleapis.com https://*.cloudflarestream.com`,
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  `img-src 'self' data: blob: ${apiOriginHttp} https://backend.connekyt.com https://*.cloudflarestream.com`,
+  "font-src 'self' data: https://fonts.gstatic.com",
+  `connect-src 'self' ${apiOriginHttp} ${apiOriginWs} http://localhost:8081 https://backend.connekyt.com https://connekyt.com wss://backend.connekyt.com`,
   "media-src 'self' blob: https://*.cloudflarestream.com",
   "frame-src 'self' https://customer-ngk2huwatflljurq.cloudflarestream.com https://*.cloudflarestream.com",
   "frame-ancestors 'self'",
