@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext';
-import { useDashboardAuth } from '../providers/AuthProvider';
+import { useDashboardAuth, dashboardAuthFetch } from '../providers/AuthProvider';
 
 import { getApiUrl} from '@/lib/api';
 
@@ -295,15 +295,16 @@ const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({ isOpen, onC
   // Shared API call helper
   const apiCall = async (label: string, endpoint: string, body?: Record<string, unknown>): Promise<boolean> => {
     const apiUrl = getApiUrl();
-    const headers: Record<string, string> = {
-      'Authorization': `Bearer ${token}`,
-    };
+    // dashboardAuthFetch attaches Bearer when available *and* sends the
+    // amoria_auth HttpOnly cookie via credentials: 'include', so cookie-only
+    // sessions (no localStorage Bearer) still authenticate correctly.
+    const headers: Record<string, string> = {};
     if (body !== undefined) {
       headers['Content-Type'] = 'application/json';
     }
     try {
       setSubmissionStatus(`Saving ${label}...`);
-      const response = await fetch(`${apiUrl}${endpoint}`, {
+      const response = await dashboardAuthFetch(`${apiUrl}${endpoint}`, {
         method: 'POST',
         headers,
         body: body !== undefined ? JSON.stringify(body) : undefined,

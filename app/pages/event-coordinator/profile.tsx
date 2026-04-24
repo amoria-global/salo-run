@@ -117,7 +117,7 @@ const ProfilePage = () => {
 
   // Load coordinator business fields from API
   useEffect(() => {
-    if (!token) return;
+    if (!user) return;
     const loadProfile = async () => {
       try {
         const apiUrl = getApiUrl();
@@ -141,11 +141,11 @@ const ProfilePage = () => {
       }
     };
     loadProfile();
-  }, [token]);
+  }, [user]);
 
   // Save profile to API
   const handleSaveProfile = async () => {
-    if (!token) return;
+    if (!user) return;
     const address = [formData.sector, formData.district, formData.province, formData.country].filter(Boolean).join(', ');
     if (!address.trim()) {
       alert('Location / Address is required. Please fill in at least your district and country.');
@@ -257,7 +257,7 @@ const ProfilePage = () => {
       reader.readAsDataURL(file);
 
       // Upload to API via dedicated profile picture endpoint
-      if (token) {
+      if (user) {
         setIsUploadingImage(true);
         try {
           const apiUrl = getApiUrl();
