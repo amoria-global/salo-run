@@ -104,7 +104,11 @@ const PaymentCurrencyPreview: React.FC<PaymentCurrencyPreviewProps> = ({
     <div
       ref={rootRef}
       style={{
-        background: colors.bgSecondary,
+        // Transparent bg so the panel adopts whatever color the host modal
+        // paints it on (balance-card blue, white form bg, dark KYC bg, etc.)
+        // instead of imposing its own card color. Border + theme-aware text
+        // keep contrast regardless of the backdrop.
+        background: "transparent",
         border: `1px solid ${colors.borderPrimary}`,
         borderRadius: "0.75rem",
         padding: "0.75rem",
