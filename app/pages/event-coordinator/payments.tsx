@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
+import PaymentCurrencyPreview from '../../components/PaymentCurrencyPreview';
 import { useTheme } from '../../context/ThemeContext';
 import { useUserProfile } from '../../context/UserProfileContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
@@ -1163,6 +1164,22 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment, onP
                   onBlur={(e) => { e.currentTarget.style.borderColor = customDonation ? '#F20C8F' : colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }} />
                 </div>
               )}
+              {/* Donation amount preview — the tier buttons + custom input
+                  are USD-denominated internally (see donationValue below),
+                  so the panel converts from USD using the live backend
+                  rates. Display-only; submit still carries USD as
+                  canonical. */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.75rem' }}>
+                <PaymentCurrencyPreview
+                  fromCurrency="USD"
+                  amounts={[{
+                    label: 'Donation amount',
+                    amount: donationAmount === 'custom'
+                      ? (parseFloat(customDonation) || 0)
+                      : (parseFloat(donationAmount) || 0),
+                  }]}
+                />
+              </div>
             </>
           )}
           <button onClick={handleSkipDonation} style={{
