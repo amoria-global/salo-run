@@ -5,6 +5,7 @@ import { dashboardAuthFetch } from '../providers/AuthProvider';
 import { getApiUrl } from '@/lib/api';
 import { processWithdrawal, sanitizeErrorMessage } from '@/lib/xentripay';
 import { useCurrency } from '../context/CurrencyContext';
+import PaymentCurrencyPreview from './PaymentCurrencyPreview';
 import { HeartIcon } from './UnlockModal';
 import KycVerificationModal from './KycVerificationModal';
 import FaceScanCapture from './FaceScanCapture';
@@ -50,8 +51,33 @@ const MobileMoneyIcon = () => (
 );
 
 export default function WithdrawModal({ isOpen, onClose, role, colors, actualTheme }: WithdrawModalProps) {
-  const { currencies } = useCurrency();
+  const { currencies, currency: globalCurrency } = useCurrency();
   const rwfRate = currencies.find(c => c.code === 'RWF')?.rate || 1460;
+
+  // Display currency for the entire modal — every visible amount + the input
+  // prefix + quick-amount presets re-render in this currency. Defaults to
+  // whatever the user picked in the topbar but is then controlled by the
+  // currency-preview panel's selector at the top of the modal.
+  // Internally amounts continue to be tracked in RWF/USD as before; this
+  // state only affects display + how the user's typed input is interpreted.
+  const [displayCurrency, setDisplayCurrency] = useState<typeof globalCurrency>(globalCurrency);
+  useEffect(() => { setDisplayCurrency(globalCurrency); }, [globalCurrency]);
+  const displayInfo = currencies.find(c => c.code === displayCurrency)
+    || currencies.find(c => c.code === 'RWF')!;
+  const displayRate = displayInfo.rate || 1;
+  // Convert helpers: RWF/USD amounts -> the user's chosen display currency.
+  const rwfToDisplay = (rwf: number) => (rwf / rwfRate) * displayRate;
+  const usdToDisplay = (usd: number) => usd * displayRate;
+  // Format an RWF amount as it should appear in the modal's chosen display
+  // currency, with the right symbol + decimal precision.
+  const fmtFromRwf = (rwf: number) => `${displayInfo.symbol}${rwfToDisplay(rwf).toLocaleString('en-US', {
+    minimumFractionDigits: displayInfo.decimals,
+    maximumFractionDigits: displayInfo.decimals,
+  })}`;
+  const fmtFromUsd = (usd: number) => `${displayInfo.symbol}${usdToDisplay(usd).toLocaleString('en-US', {
+    minimumFractionDigits: displayInfo.decimals,
+    maximumFractionDigits: displayInfo.decimals,
+  })}`;
 
   const [accounts, setAccounts] = useState<WithdrawAccount[]>([]);
   const [accountsLoading, setAccountsLoading] = useState(false);
@@ -144,17 +170,35 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
     return () => clearTimeout(timer);
   }, [resendCooldown]);
 
+  // Source/total balances are stored on the wire in USD; convert to RWF
+  // (the legacy canonical for this modal's math) once and to display
+  // currency when rendering.
   const sourceBalanceRwf = Math.floor((selectedSource?.availableBalance || 0) * rwfRate);
   const totalBalanceRwf = Math.floor(sources.reduce((sum, s) => sum + s.availableBalance, 0) * rwfRate);
-  const parsedAmount = parseFloat(withdrawAmount) || 0;
-  const donationValue = donationAmount === 'custom' ? (parseFloat(customDonation) || 0) : (parseFloat(donationAmount) || 0);
-  const donationAddressed = donationSkipped || donationValue > 0;
-  const amountError = withdrawAmount !== '' && parsedAmount <= 0
+
+  // The user types `withdrawAmount` in the chosen displayCurrency. We derive
+  // an RWF equivalent (for balance comparisons / errors against the legacy
+  // RWF totals) and a USD equivalent (which is what the backend submit
+  // expects on the wire — see /withdraw/initiate body below).
+  const parsedDisplayAmount = parseFloat(withdrawAmount) || 0;
+  const parsedUsdAmount = displayRate > 0 ? parsedDisplayAmount / displayRate : 0;
+  const parsedRwfAmount = parsedUsdAmount * rwfRate;
+
+  // Donation amount uses the same display-currency semantics: presets are
+  // pre-converted to displayCurrency at render time (further down), and
+  // customDonation is what the user typed in displayCurrency.
+  const donationDisplayValue = donationAmount === 'custom'
+    ? (parseFloat(customDonation) || 0)
+    : (parseFloat(donationAmount) || 0);
+  const donationUsdValue = displayRate > 0 ? donationDisplayValue / displayRate : 0;
+  const donationAddressed = donationSkipped || donationDisplayValue > 0;
+
+  const amountError = withdrawAmount !== '' && parsedDisplayAmount <= 0
     ? 'Please enter a withdrawal amount greater than zero.'
-    : parsedAmount > sourceBalanceRwf
-      ? `Insufficient ${selectedSource?.label || ''} balance. Available: RF ${sourceBalanceRwf.toLocaleString()}`
+    : parsedRwfAmount > sourceBalanceRwf
+      ? `Insufficient ${selectedSource?.label || ''} balance. Available: ${fmtFromRwf(sourceBalanceRwf)}`
       : '';
-  const isWithdrawValid = parsedAmount > 0 && parsedAmount <= sourceBalanceRwf;
+  const isWithdrawValid = parsedRwfAmount > 0 && parsedRwfAmount <= sourceBalanceRwf;
   const isValid = isWithdrawValid && selectedAccount && donationAddressed && accounts.length > 0;
 
   const handleSelectDonation = (amount: string) => {
@@ -175,7 +219,12 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
       const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${apiNamespace}/withdraw/initiate`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: parsedAmount / rwfRate, withdrawalMethodId: selectedAccount, donationAmount: donationValue / rwfRate,
+          // Submit USD on the wire — backend canonical. parsedUsdAmount and
+          // donationUsdValue are derived above from the user's typed
+          // displayCurrency input via /displayRate.
+          amount: parsedUsdAmount,
+          withdrawalMethodId: selectedAccount,
+          donationAmount: donationUsdValue,
           isGiftWithdrawal: selectedSource?.isGiftWithdrawal || false,
           source: selectedSource?.source?.toUpperCase() || 'BALANCE',
         }),
@@ -464,7 +513,7 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
                     <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Amount</span>
                     <span style={{ fontSize: '0.85rem', fontWeight: 600, color: colors.textPrimary }}>
-                      RF {Math.round(parsedAmount).toLocaleString()}
+                      {fmtFromRwf(parsedRwfAmount)}
                     </span>
                   </div>
                   {feePreview.totalFee > 0 && (
@@ -473,14 +522,14 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
                         Fee ({feePreview.feePercentage}%{feePreview.additionalCharge > 0 ? ' + flat' : ''})
                       </span>
                       <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#D97706' }}>
-                        -RF {Math.round(feePreview.totalFee * rwfRate).toLocaleString()}
+                        -{fmtFromUsd(feePreview.totalFee)}
                       </span>
                     </div>
                   )}
                   <div style={{ borderTop: `1px solid ${actualTheme === 'dark' ? 'rgba(255,255,255,0.1)' : '#E5E7EB'}`, paddingTop: '0.5rem', marginTop: '0.25rem', display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ fontSize: '0.9rem', fontWeight: 600, color: colors.textPrimary }}>You receive</span>
                     <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#059669' }}>
-                      RF {Math.round(feePreview.netAmount * rwfRate).toLocaleString()}
+                      {fmtFromUsd(feePreview.netAmount)}
                     </span>
                   </div>
                 </div>
@@ -646,26 +695,60 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
               {/* Available Balance Card */}
               <div className="mobile-balance-display" style={{
                 background: 'linear-gradient(135deg, #083A85 0%, #1E40AF 100%)',
-                borderRadius: '0.875rem', padding: '1.25rem', marginBottom: '1.5rem',
+                borderRadius: '0.875rem', padding: '1.25rem', marginBottom: '1rem',
                 position: 'relative', overflow: 'hidden',
               }}>
                 <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '100px', height: '100px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
                 <div style={{ position: 'absolute', bottom: '-30px', right: '40px', width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
                 <div style={{ position: 'relative', zIndex: 1 }}>
                   <div className="mobile-balance-display-text" style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.8)', marginBottom: '0.5rem', fontWeight: '500' }}>
-                    Available Balance (RWF)
+                    Available Balance ({displayCurrency})
                   </div>
                   <div className="mobile-balance-display-amount" style={{ fontSize: '2rem', fontWeight: '700', color: 'white', letterSpacing: '-0.02em' }}>
-                    RF {totalBalanceRwf.toLocaleString()}
+                    {fmtFromRwf(totalBalanceRwf)}
                   </div>
                 </div>
+              </div>
+
+              {/* Currency preview panel — pinned top-right under the balance
+                  card, always visible. Shows every relevant RWF amount on the
+                  modal converted to the user's preferred currency. Display-
+                  only; the actual withdrawal still submits in RWF and the
+                  backend converts to USD canonically before XentriPay. */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.5rem' }}>
+                <PaymentCurrencyPreview
+                  fromCurrency="RWF"
+                  amounts={[
+                    { label: 'Available balance', amount: totalBalanceRwf },
+                    { label: 'Amount entered', amount: parsedRwfAmount },
+                  ]}
+                  onCurrencyChange={(code) => {
+                    // When user picks a new display currency, the modal
+                    // re-renders every visible amount in that currency
+                    // (balance card, input prefix, quick presets, fee
+                    // preview). The user's typed input semantics flip too:
+                    // if they had "10" while on RWF, switching to USD now
+                    // means the RWF rate equivalent (10 / 1460 ≈ 0.0068).
+                    // Convert the input string so the underlying RWF amount
+                    // stays the same instead of changing meaning.
+                    const oldRate = displayInfo.rate || 1;
+                    const newInfo = currencies.find(c => c.code === code) || displayInfo;
+                    const newRate = newInfo.rate || 1;
+                    if (withdrawAmount && oldRate > 0 && newRate > 0) {
+                      const inUsd = parsedDisplayAmount / oldRate;
+                      const inNew = inUsd * newRate;
+                      setWithdrawAmount(inNew ? inNew.toFixed(newInfo.decimals) : '');
+                    }
+                    setDisplayCurrency(code);
+                  }}
+                />
               </div>
 
               {/* Amount Input */}
               <div className="mobile-input-section" style={{ marginBottom: '1.5rem' }}>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>Amount</label>
                 <div style={{ position: 'relative' }}>
-                  <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', fontSize: '1.1rem', fontWeight: '600', color: colors.textSecondary }}>RF</span>
+                  <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', fontSize: '1.1rem', fontWeight: '600', color: colors.textSecondary }}>{displayInfo.symbol}</span>
                   <input type="text" placeholder="0.00" value={withdrawAmount}
                     onChange={e => setWithdrawAmount(e.target.value)}
                     style={{
@@ -678,19 +761,29 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
                     onBlur={e => { e.currentTarget.style.borderColor = '#E5E7EB'; e.currentTarget.style.boxShadow = 'none'; }}
                   />
                 </div>
-                {/* Quick amount buttons */}
+                {/* Quick amount buttons. Presets are RWF-canonical (5K, 10K,
+                    25K, 50K — meaningful "small / medium / large / cap"
+                    withdrawals from the perspective of the wallet's RWF
+                    balance). Each render-pass converts to the user's chosen
+                    display currency for both the label and the value the
+                    button writes into the input. */}
                 <div className="mobile-quick-amounts" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', marginTop: '0.75rem' }}>
-                  {['5000', '10000', '25000', '50000'].map(amount => (
-                    <button key={amount} onClick={() => setWithdrawAmount(amount)}
-                      style={{
-                        padding: '0.5rem', border: withdrawAmount === amount ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                        borderRadius: '0.5rem', background: withdrawAmount === amount ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
-                        color: withdrawAmount === amount ? '#083A85' : colors.textSecondary, fontSize: '0.8rem', fontWeight: '600',
-                        cursor: 'pointer', transition: 'all 0.2s',
-                      }}>
-                      RF {parseInt(amount).toLocaleString()}
-                    </button>
-                  ))}
+                  {[5000, 10000, 25000, 50000].map(rwfPreset => {
+                    const dispVal = rwfToDisplay(rwfPreset);
+                    const dispStr = dispVal.toFixed(displayInfo.decimals);
+                    const selected = withdrawAmount === dispStr;
+                    return (
+                      <button key={rwfPreset} onClick={() => setWithdrawAmount(dispStr)}
+                        style={{
+                          padding: '0.5rem', border: selected ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                          borderRadius: '0.5rem', background: selected ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
+                          color: selected ? '#083A85' : colors.textSecondary, fontSize: '0.8rem', fontWeight: '600',
+                          cursor: 'pointer', transition: 'all 0.2s',
+                        }}>
+                        {fmtFromRwf(rwfPreset)}
+                      </button>
+                    );
+                  })}
                 </div>
                 {amountError && (
                   <div style={{
@@ -725,7 +818,7 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
                           }}>
                           <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem', fontWeight: '500' }}>{s.label}</div>
                           <div style={{ fontSize: '0.9rem', fontWeight: '600', color: isDisabled ? colors.textSecondary : colors.textPrimary }}>
-                            RF {Math.floor(s.availableBalance * rwfRate).toLocaleString()}
+                            {fmtFromUsd(s.availableBalance)}
                           </div>
                         </button>
                       );
@@ -840,7 +933,7 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
               {/* Donation Section */}
               <div style={{
                 marginBottom: '1.25rem', padding: '1rem', borderRadius: '0.75rem',
-                border: `2px solid ${donationSkipped ? colors.borderPrimary : (donationValue > 0 ? '#F20C8F' : 'rgba(242, 12, 143, 0.3)')}`,
+                border: `2px solid ${donationSkipped ? colors.borderPrimary : (donationDisplayValue > 0 ? '#F20C8F' : 'rgba(242, 12, 143, 0.3)')}`,
                 background: actualTheme === 'dark'
                   ? 'linear-gradient(135deg, rgba(242, 12, 143, 0.08) 0%, rgba(255, 107, 157, 0.03) 100%)'
                   : 'linear-gradient(135deg, rgba(242, 12, 143, 0.05) 0%, rgba(255, 107, 157, 0.02) 100%)',
@@ -859,20 +952,29 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
 
                 {!donationSkipped && (
                   <>
+                    {/* Donation presets are RWF-canonical (500/1000/2500/5000),
+                        rendered + stored in the user's chosen display currency
+                        so the donation flow obeys the same per-modal currency
+                        switching as the withdrawal amount above. */}
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                      {['500', '1000', '2500', '5000'].map(amount => (
-                        <button key={amount} onClick={() => handleSelectDonation(amount)}
-                          style={{
-                            padding: '0.4rem 0.75rem',
-                            border: donationAmount === amount ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`,
-                            borderRadius: '0.5rem',
-                            background: donationAmount === amount ? (actualTheme === 'dark' ? 'rgba(242, 12, 143, 0.15)' : 'rgba(242, 12, 143, 0.08)') : colors.bgCard,
-                            color: donationAmount === amount ? '#F20C8F' : colors.textSecondary,
-                            fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', flex: '1', minWidth: '0',
-                          }}>
-                          RF {parseInt(amount).toLocaleString()}
-                        </button>
-                      ))}
+                      {[500, 1000, 2500, 5000].map(rwfPreset => {
+                        const dispVal = rwfToDisplay(rwfPreset);
+                        const dispStr = dispVal.toFixed(displayInfo.decimals);
+                        const selected = donationAmount === dispStr;
+                        return (
+                          <button key={rwfPreset} onClick={() => handleSelectDonation(dispStr)}
+                            style={{
+                              padding: '0.4rem 0.75rem',
+                              border: selected ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`,
+                              borderRadius: '0.5rem',
+                              background: selected ? (actualTheme === 'dark' ? 'rgba(242, 12, 143, 0.15)' : 'rgba(242, 12, 143, 0.08)') : colors.bgCard,
+                              color: selected ? '#F20C8F' : colors.textSecondary,
+                              fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', flex: '1', minWidth: '0',
+                            }}>
+                            {fmtFromRwf(rwfPreset)}
+                          </button>
+                        );
+                      })}
                       <button onClick={() => handleSelectDonation('custom')}
                         style={{
                           padding: '0.4rem 0.75rem',
