@@ -653,7 +653,7 @@ const PhotographerEventsPage = () => {
               endTime: e.endTime || '',
               duration: '',
               location: e.location || { address: '', city: '', country: '' },
-              coverImage: normalizeImg(e.coverImage || e.bannerImage) || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800',
+              coverImage: normalizeImg(e.coverImage || e.bannerImage) || '',
               status: (() => {
                 switch ((e.eventStatus || e.status || '')?.toUpperCase()) {
                   case 'PENDING': case 'PROPOSED': case 'ASSIGNED': return 'pending';
@@ -742,7 +742,7 @@ const PhotographerEventsPage = () => {
               eventTitle: a.eventTitle || '',
               clientId: a.clientId || '',
               clientName: a.clientName || '',
-              coverImage: normalizeImg(a.coverImage || a.thumbnail) || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800',
+              coverImage: normalizeImg(a.coverImage || a.thumbnail) || '',
               images: (a.images || []).map((img: any) => normalizeImg(typeof img === 'string' ? img : img?.fileUrl || img?.url || '') || '').filter(Boolean),
               photoCount: a.photoCount || a.imageCount || 0,
               views: a.views || 0,
