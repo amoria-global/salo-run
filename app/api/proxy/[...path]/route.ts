@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL as string;
+// In production both vars resolve to https://backend.connekyt.com.
+// In local dev they decouple so the frontend can route every API call through
+// this same-origin proxy (NEXT_PUBLIC_API_URL=http://localhost:3001/api/proxy)
+// while the proxy itself still talks to the live backend (BACKEND_API_URL).
+// Without this split, setting NEXT_PUBLIC_API_URL to the proxy URL would make
+// the proxy try to call itself recursively.
+const API_BASE_URL = (process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL) as string;
 
 const ALLOWED_ORIGINS = new Set<string>([
   'https://connekyt.com',
@@ -129,16 +135,25 @@ async function proxyRequest(
     const contentType = response.headers.get('content-type') || '';
 
     // Build response headers: CORS + any Set-Cookie echoed from the backend.
-    // Echoing Set-Cookie as-is means the browser will scope the cookie to
-    // dashboard.connekyt.com (when the backend sends no Domain) or to
-    // .connekyt.com (when Domain=.connekyt.com is configured in prod). A
-    // cookie with Domain=backend.connekyt.com would be rejected by the
-    // browser here — that's expected and safe.
+    // In production the backend sets Domain=.connekyt.com so the cookie is
+    // shared across connekyt.com, dashboard.connekyt.com, backend.connekyt.com.
+    // In local dev the proxy's host is localhost — a Domain=.connekyt.com
+    // attribute on a Set-Cookie returned from localhost gets rejected by the
+    // browser as a cross-domain cookie. Strip the Domain attribute in that
+    // case so the cookie becomes host-only on `localhost`. Host-only cookies
+    // match by hostname only (port-agnostic), so a cookie set during login on
+    // localhost:3000 will also be sent to localhost:3001 — exactly what we
+    // need to bridge landing → dashboard locally.
+    const proxyHost = (request.headers.get('host') || '').toLowerCase();
+    const isLocalhost = proxyHost.startsWith('localhost') || proxyHost.startsWith('127.0.0.1');
     const responseHeaders = new Headers(cors);
     const setCookies = typeof response.headers.getSetCookie === 'function'
       ? response.headers.getSetCookie()
       : [];
-    for (const sc of setCookies) responseHeaders.append('Set-Cookie', sc);
+    for (const sc of setCookies) {
+      const rewritten = isLocalhost ? sc.replace(/;\s*Domain=[^;]+/i, '') : sc;
+      responseHeaders.append('Set-Cookie', rewritten);
+    }
 
     if (contentType.startsWith('image/') || contentType.startsWith('application/octet-stream')) {
       responseHeaders.set('Content-Type', contentType);

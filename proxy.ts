@@ -11,6 +11,30 @@ import { getLandingUrl } from '@/lib/urls';
 export function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
+  // Skip auth redirects on every non-navigation request (RSC prefetches, RSC
+  // payload fetches on Link click, server actions, server-component fetches).
+  // Cross-origin redirects on a `fetch()` are blocked by the browser and
+  // surface as
+  //    TypeError: Failed to fetch RSC payload for …. Falling back to browser navigation
+  // even though the actual navigation that follows works fine.
+  //
+  // `Sec-Fetch-Dest` is set by every modern browser:
+  //   document            → top-level navigation (real click / URL bar / hard reload)
+  //   empty / iframe / …  → fetch(), RSC prefetch, RSC click-fetch, etc.
+  // Only the document case should be redirected. Everything else gets the
+  // page rendered (or, for RSC, the same payload that the SSR navigation
+  // would have produced) and lets AuthProvider on the client redirect if it
+  // detects no session.
+  //
+  // Header names are case-insensitive per RFC 9110 so `headers.get` matches
+  // any casing Next or the browser uses.
+  const fetchDest = request.headers.get('sec-fetch-dest');
+  const isBackgroundFetch =
+    fetchDest !== null && fetchDest !== 'document';
+  if (isBackgroundFetch && pathname.startsWith('/user')) {
+    return NextResponse.next();
+  }
+
   // Auth sources, in priority order:
   //  1. `amoria_auth` — HttpOnly cookie set by backend on .connekyt.com scope;
   //     the primary mechanism going forward.
