@@ -6,6 +6,8 @@ import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import Image from 'next/image';
 import { useTheme } from '../../context/ThemeContext';
+import { dashboardAuthFetch } from '../../providers/AuthProvider';
+import { getApiUrl, normalizeImageUrl } from '@/lib/api';
 
 // Configure localforage for gallery album form data
 const galleryFormStorage = localforage.createInstance({
@@ -198,285 +200,39 @@ const CheckCircleIcon = () => (
   </svg>
 );
 
-// Clients list for sharing - matching clients from clients page
-const clientsList = [
-  {
-    id: '1',
-    firstName: 'Sarah',
-    lastName: 'Johnson',
-    email: 'sarah.j@email.com',
-    profileImage: 'https://i.pinimg.com/1200x/e3/5e/d4/e35ed4e14e498e62d9bf66c987731f49.jpg'
-  },
-  {
-    id: '2',
-    firstName: 'Michael',
-    lastName: 'Chen',
-    email: 'mchen@email.com',
-    profileImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg'
-  },
-  {
-    id: '3',
-    firstName: 'Emily',
-    lastName: 'Rodriguez',
-    email: 'emily.r@email.com',
-    profileImage: 'https://i.pinimg.com/1200x/09/23/45/092345eac1919407e0c49f67e285b831.jpg'
-  },
-  {
-    id: '4',
-    firstName: 'David',
-    lastName: 'Park',
-    email: 'dpark@email.com',
-    profileImage: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg'
-  },
-  {
-    id: '5',
-    firstName: 'Lisa',
-    lastName: 'Thompson',
-    email: 'lisa.t@email.com',
-    profileImage: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg'
-  },
-  {
-    id: '6',
-    firstName: 'James',
-    lastName: 'Wilson',
-    email: 'jwilson@email.com',
-    profileImage: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg'
-  }
-];
+// Clients fetched from GET /api/remote/photographer/clients (PhotographerClientDTO),
+// flattened to the lookup fields the upload + share-to-client flows actually use.
+interface Client {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  profileImage: string;
+}
 
-// Sample gallery data with real images
-const galleryData = [
-  {
-    id: 1,
-    title: 'Wedding Ceremony',
-    category: 'Wedding',
-    date: 'Jan 15, 2025',
-    client: 'Sarah & James',
-    clientId: '1', // Sarah Johnson
-    clientAvatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg',
-    views: 1234,
-    likes: 245,
-    downloads: 89,
-    thumbnail: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800',
-    featured: true,
-    sharedWithClient: true,
-    photoCount: 156,
-    liked: true,
-    images: [
-      'https://images.unsplash.com/photo-1519741497674-611481863552?w=1200',
-      'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=1200',
-      'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=1200',
-      'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=1200',
-      'https://images.unsplash.com/photo-1606216794074-735e91aa2c92?w=1200',
-      'https://images.unsplash.com/photo-1591604466107-ec97de577aff?w=1200',
-      'https://images.unsplash.com/photo-1529636798458-92182e662485?w=1200',
-      'https://images.unsplash.com/photo-1544078751-58fee2d8a03b?w=1200'
-    ]
-  },
-  {
-    id: 2,
-    title: 'Portrait Session',
-    category: 'Portrait',
-    date: 'Jan 14, 2025',
-    client: 'Emily Rodriguez',
-    clientId: '3', // Emily Rodriguez
-    clientAvatar: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg',
-    views: 856,
-    likes: 132,
-    downloads: 45,
-    thumbnail: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=800',
-    featured: false,
-    sharedWithClient: true,
-    photoCount: 48,
-    liked: false,
-    images: [
-      'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=1200',
-      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=1200',
-      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1200',
-      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=1200',
-      'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=1200',
-      'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=1200'
-    ]
-  },
-  {
-    id: 3,
-    title: 'Corporate Event',
-    category: 'Event',
-    date: 'Jan 13, 2025',
-    client: 'Tech Corp Inc',
-    clientId: '4', // David Park
-    clientAvatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
-    views: 567,
-    likes: 98,
-    downloads: 34,
-    thumbnail: 'https://images.unsplash.com/photo-1560439514-4e9645039924?w=800',
-    featured: true,
-    sharedWithClient: false,
-    photoCount: 234,
-    liked: false,
-    images: [
-      'https://images.unsplash.com/photo-1560439514-4e9645039924?w=1200',
-      'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200',
-      'https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200',
-      'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200',
-      'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200',
-      'https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200',
-      'https://images.unsplash.com/photo-1591115765373-5207764f72e7?w=1200'
-    ]
-  },
-  {
-    id: 4,
-    title: 'Product Photography',
-    category: 'Product',
-    date: 'Jan 12, 2025',
-    client: 'Fashion Brand',
-    clientId: '5', // Lisa Thompson
-    clientAvatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg',
-    views: 1567,
-    likes: 367,
-    downloads: 156,
-    thumbnail: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800',
-    featured: false,
-    sharedWithClient: true,
-    photoCount: 67,
-    liked: true,
-    images: [
-      'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200',
-      'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=1200',
-      'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=1200',
-      'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=1200',
-      'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=1200',
-      'https://images.unsplash.com/photo-1560343090-f0409e92791a?w=1200'
-    ]
-  },
-  {
-    id: 5,
-    title: 'Family Portraits',
-    category: 'Portrait',
-    date: 'Jan 11, 2025',
-    client: 'The Johnson Family',
-    clientId: '1', // Sarah Johnson
-    clientAvatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
-    views: 423,
-    likes: 89,
-    downloads: 23,
-    thumbnail: 'https://images.unsplash.com/photo-1511895426328-dc8714191300?w=800',
-    featured: false,
-    sharedWithClient: false,
-    photoCount: 89,
-    liked: false,
-    images: [
-      'https://images.unsplash.com/photo-1511895426328-dc8714191300?w=1200',
-      'https://images.unsplash.com/photo-1606216794074-735e91aa2c92?w=1200',
-      'https://images.unsplash.com/photo-1581579438747-1dc8d17bbce4?w=1200',
-      'https://images.unsplash.com/photo-1609220136736-443140cffec6?w=1200',
-      'https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=1200'
-    ]
-  },
-  {
-    id: 6,
-    title: 'Beach Wedding',
-    category: 'Wedding',
-    date: 'Jan 10, 2025',
-    client: 'Mike & Lisa',
-    clientId: '5', // Lisa Thompson
-    clientAvatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg',
-    views: 2345,
-    likes: 456,
-    downloads: 234,
-    thumbnail: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800',
-    featured: true,
-    sharedWithClient: true,
-    photoCount: 312,
-    liked: true,
-    images: [
-      'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=1200',
-      'https://images.unsplash.com/photo-1519741497674-611481863552?w=1200',
-      'https://images.unsplash.com/photo-1529636798458-92182e662485?w=1200',
-      'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=1200',
-      'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=1200',
-      'https://images.unsplash.com/photo-1591604466107-ec97de577aff?w=1200',
-      'https://images.unsplash.com/photo-1544078751-58fee2d8a03b?w=1200',
-      'https://images.unsplash.com/photo-1583939003579-730e3918a45a?w=1200'
-    ]
-  },
-  {
-    id: 7,
-    title: 'Fashion Editorial',
-    category: 'Fashion',
-    date: 'Jan 9, 2025',
-    client: 'Vogue Studios',
-    clientId: '3', // Emily Rodriguez
-    clientAvatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg',
-    views: 3456,
-    likes: 789,
-    downloads: 345,
-    thumbnail: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=800',
-    featured: true,
-    sharedWithClient: true,
-    photoCount: 145,
-    liked: false,
-    images: [
-      'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=1200',
-      'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200',
-      'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=1200',
-      'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=1200',
-      'https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=1200',
-      'https://images.unsplash.com/photo-1495385794356-15371f348c31?w=1200',
-      'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1200'
-    ]
-  },
-  {
-    id: 8,
-    title: 'Architecture Series',
-    category: 'Architecture',
-    date: 'Jan 8, 2025',
-    client: 'City Developers',
-    clientId: '4', // David Park
-    clientAvatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
-    views: 678,
-    likes: 134,
-    downloads: 67,
-    thumbnail: 'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=800',
-    featured: false,
-    sharedWithClient: false,
-    photoCount: 78,
-    liked: false,
-    images: [
-      'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=1200',
-      'https://images.unsplash.com/photo-1487958449943-2429e8be8625?w=1200',
-      'https://images.unsplash.com/photo-1488972685288-c3fd157d7c7a?w=1200',
-      'https://images.unsplash.com/photo-1511818966892-d7d671e672a2?w=1200',
-      'https://images.unsplash.com/photo-1479839672679-a46483c0e7c8?w=1200',
-      'https://images.unsplash.com/photo-1518005020951-eccb494ad742?w=1200'
-    ]
-  },
-  {
-    id: 9,
-    title: 'Birthday Celebration',
-    category: 'Event',
-    date: 'Jan 7, 2025',
-    client: 'Michael Chen',
-    clientId: '2', // Michael Chen
-    clientAvatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
-    views: 345,
-    likes: 67,
-    downloads: 12,
-    thumbnail: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=800',
-    featured: false,
-    sharedWithClient: true,
-    photoCount: 98,
-    liked: false,
-    images: [
-      'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=1200',
-      'https://images.unsplash.com/photo-1464349153735-7db50ed83c84?w=1200',
-      'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=1200',
-      'https://images.unsplash.com/photo-1504196606672-aef5c9cefc92?w=1200',
-      'https://images.unsplash.com/photo-1527529482837-4698179dc6ce?w=1200',
-      'https://images.unsplash.com/photo-1496843916299-590492c751f4?w=1200'
-    ]
-  }
-];
+// Album shape used across the photographer gallery page. Sourced from
+// GET /api/remote/photographer/albums (GalleryResponseDTO summary), with
+// `images` flattened to plain string URLs since the rest of this page
+// treats album images as a list of URLs, not media-item objects.
+interface Album {
+  id: string;
+  title: string;
+  category: string;
+  date: string;
+  client: string;
+  clientId: string;
+  clientAvatar: string;
+  views: number;
+  likes: number;
+  downloads: number;
+  thumbnail: string;
+  featured: boolean;
+  sharedWithClient: boolean;
+  photoCount: number;
+  liked: boolean;
+  images: string[];
+}
+
 
 interface GalleryProps {
   userType?: 'photographer' | 'client';
@@ -484,26 +240,29 @@ interface GalleryProps {
 
 const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
   const { colors, actualTheme } = useTheme();
-  const [photos, setPhotos] = useState(galleryData);
+  const [photos, setPhotos] = useState<Album[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [isLoadingAlbums, setIsLoadingAlbums] = useState(true);
+  const [albumsError, setAlbumsError] = useState<string | null>(null);
   const [filterCategory, setFilterCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showUploadModal, setShowUploadModal] = useState(false);
-  const [selectedPhoto, setSelectedPhoto] = useState<typeof galleryData[0] | null>(null);
+  const [selectedPhoto, setSelectedPhoto] = useState<Album | null>(null);
   const [showViewModal, setShowViewModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
-  const [sharePhoto, setSharePhoto] = useState<typeof galleryData[0] | null>(null);
+  const [sharePhoto, setSharePhoto] = useState<Album | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
 
   // Image Viewer State
   const [showImageViewer, setShowImageViewer] = useState(false);
-  const [viewerAlbum, setViewerAlbum] = useState<typeof galleryData[0] | null>(null);
+  const [viewerAlbum, setViewerAlbum] = useState<Album | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   // Multi-Select Gallery View State
   const [showMultiSelectView, setShowMultiSelectView] = useState(false);
-  const [multiSelectAlbum, setMultiSelectAlbum] = useState<typeof galleryData[0] | null>(null);
+  const [multiSelectAlbum, setMultiSelectAlbum] = useState<Album | null>(null);
   const [selectedImages, setSelectedImages] = useState<number[]>([]);
   const [isSelectMode, setIsSelectMode] = useState(false);
 
@@ -527,13 +286,94 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
 
   // Delete confirmation modal state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [albumToDelete, setAlbumToDelete] = useState<typeof galleryData[0] | null>(null);
+  const [albumToDelete, setAlbumToDelete] = useState<Album | null>(null);
 
   // Notification modal state
   const [notificationModal, setNotificationModal] = useState<{ show: boolean; title: string; message: string; type: 'success' | 'info' | 'warning' | 'error' }>({ show: false, title: '', message: '', type: 'info' });
 
   // Confirmation modal state
   const [confirmationModal, setConfirmationModal] = useState<{ show: boolean; title: string; message: string; onConfirm: () => void }>({ show: false, title: '', message: '', onConfirm: () => {} });
+
+  // Pull this photographer's albums + clients from the backend on mount.
+  // Both endpoints already exist server-side; the page used to ship a
+  // hardcoded sample set instead of calling them.
+  const fetchAlbums = useCallback(async () => {
+    setIsLoadingAlbums(true);
+    setAlbumsError(null);
+    try {
+      const apiUrl = getApiUrl();
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/albums`);
+      if (!response.ok) throw new Error(`Failed to fetch albums: ${response.status}`);
+      const json = await response.json();
+      const list: Record<string, unknown>[] = json?.action === 1 && Array.isArray(json?.data) ? json.data : [];
+
+      const formatDate = (raw: unknown): string => {
+        if (typeof raw !== 'string' || !raw) return '';
+        const d = new Date(raw);
+        if (isNaN(d.getTime())) return raw;
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      };
+
+      const mapped: Album[] = list.map((a) => {
+        const rawImages = Array.isArray(a.images) ? (a.images as Record<string, unknown>[]) : [];
+        const imageUrls = rawImages
+          .map((img) => normalizeImageUrl((img?.fileUrl as string) || '') || '')
+          .filter(Boolean);
+        const cover = normalizeImageUrl((a.coverImage as string) || '') || imageUrls[0] || '';
+        const eventDate = (a.eventDate as string) || (a.albumDate as string) || (a.createdAt as string) || '';
+        return {
+          id: String(a.id ?? ''),
+          title: (a.title as string) || (a.eventTitle as string) || 'Untitled Album',
+          category: (a.category as string) || 'General',
+          date: formatDate(eventDate),
+          client: (a.clientName as string) || '',
+          clientId: a.clientId ? String(a.clientId) : '',
+          clientAvatar: '',
+          views: 0,
+          likes: 0,
+          downloads: 0,
+          thumbnail: cover,
+          featured: false,
+          sharedWithClient: a.sent === true,
+          photoCount: typeof a.imageCount === 'number' ? a.imageCount : 0,
+          liked: false,
+          images: imageUrls,
+        };
+      });
+
+      setPhotos(mapped);
+    } catch (err) {
+      setAlbumsError(err instanceof Error ? err.message : 'Failed to load albums');
+      setPhotos([]);
+    } finally {
+      setIsLoadingAlbums(false);
+    }
+  }, []);
+
+  const fetchClients = useCallback(async () => {
+    try {
+      const apiUrl = getApiUrl();
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/clients`);
+      if (!response.ok) return;
+      const json = await response.json();
+      const list: Record<string, unknown>[] = json?.action === 1 && Array.isArray(json?.data) ? json.data : [];
+      const mapped: Client[] = list.map((c) => ({
+        id: String(c.id ?? ''),
+        firstName: (c.firstName as string) || '',
+        lastName: (c.lastName as string) || '',
+        email: (c.email as string) || '',
+        profileImage: normalizeImageUrl((c.profilePicture as string) || '') || '',
+      }));
+      setClients(mapped);
+    } catch {
+      setClients([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAlbums();
+    fetchClients();
+  }, [fetchAlbums, fetchClients]);
 
   // Auto-save state for add album modal
   const [isRestoringDraft, setIsRestoringDraft] = useState(false);
@@ -644,13 +484,13 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
     }
   };
 
-  const toggleShareStatus = (photoId: number) => {
+  const toggleShareStatus = (photoId: string) => {
     setPhotos(photos.map(photo =>
       photo.id === photoId ? { ...photo, sharedWithClient: !photo.sharedWithClient } : photo
     ));
   };
 
-  const openDeleteModal = (photo: typeof galleryData[0]) => {
+  const openDeleteModal = (photo: Album) => {
     setAlbumToDelete(photo);
     setShowDeleteModal(true);
   };
@@ -684,7 +524,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
-  const getShareLink = (photo: typeof galleryData[0]) => {
+  const getShareLink = (photo: Album) => {
     return `https://connekt.app/gallery/${photo.id}/${photo.title.toLowerCase().replace(/\s+/g, '-')}`;
   };
 
@@ -707,17 +547,23 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
     }
 
     // Get selected client details
-    const selectedClient = clientsList.find(c => c.id === uploadClientId);
+    const selectedClient = clients.find(c => c.id === uploadClientId);
 
-    // Create ONE album with all selected images
-    const newAlbum = {
-      id: photos.length + 1,
+    // Create ONE album with all selected images.
+    // NOTE: this currently only updates local state — the file does not yet
+    // POST to /api/remote/photographer/albums. Wiring the actual upload is
+    // tracked separately. The optimistic id is a client-side UUID so it
+    // stays unique even after a backend refetch overwrites this entry.
+    const newAlbum: Album = {
+      id: typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `tmp-${Date.now()}`,
       title: uploadTitle,
       category: uploadCategory.charAt(0).toUpperCase() + uploadCategory.slice(1),
       date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
       client: selectedClient ? `${selectedClient.firstName} ${selectedClient.lastName}` : '',
       clientId: uploadClientId,
-      clientAvatar: selectedClient?.profileImage || 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
+      clientAvatar: selectedClient?.profileImage || '',
       views: 0,
       likes: 0,
       downloads: 0,
@@ -742,7 +588,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
   const categories = ['All', 'Wedding', 'Portrait', 'Event', 'Product', 'Fashion', 'Architecture'];
 
   // Image Viewer Functions
-  const openImageViewer = (album: typeof galleryData[0], startIndex: number = 0) => {
+  const openImageViewer = (album: Album, startIndex: number = 0) => {
     setViewerAlbum(album);
     setCurrentImageIndex(startIndex);
     setShowImageViewer(true);
@@ -781,7 +627,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
   };
 
   // Multi-Select Gallery Functions
-  const openMultiSelectView = (album: typeof galleryData[0]) => {
+  const openMultiSelectView = (album: Album) => {
     setMultiSelectAlbum(album);
     setSelectedImages([]);
     setIsSelectMode(false);
@@ -907,7 +753,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
   const handleShareToClient = () => {
     if (!selectedClientId) return;
 
-    const client = clientsList.find(c => c.id === selectedClientId);
+    const client = clients.find(c => c.id === selectedClientId);
     if (!client) return;
 
     // Simulate sharing
@@ -1833,8 +1679,51 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
             </div>
           )}
 
-          {/* No Results */}
-          {filteredPhotos.length === 0 && (
+          {/* Loading / Error / Empty states */}
+          {isLoadingAlbums && (
+            <div style={{
+              backgroundColor: colors.bgCard,
+              borderRadius: '0.75rem',
+              padding: '4rem 1.5rem',
+              textAlign: 'center',
+              border: `1px solid ${colors.borderPrimary}`,
+              color: colors.textSecondary,
+              fontSize: '0.95rem',
+            }}>
+              Loading your gallery…
+            </div>
+          )}
+          {!isLoadingAlbums && albumsError && (
+            <div style={{
+              backgroundColor: colors.bgCard,
+              borderRadius: '0.75rem',
+              padding: '4rem 1.5rem',
+              textAlign: 'center',
+              border: `1px solid ${colors.borderPrimary}`
+            }}>
+              <i className="bi bi-exclamation-triangle" style={{ fontSize: '3rem', color: '#DC2626', marginBottom: '1rem' }}></i>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 600, color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
+                Couldn&apos;t load your gallery
+              </h3>
+              <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1rem 0' }}>{albumsError}</p>
+              <button
+                onClick={fetchAlbums}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '0.5rem',
+                  border: `2px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}`,
+                  backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EBF5FF',
+                  color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Try again
+              </button>
+            </div>
+          )}
+          {!isLoadingAlbums && !albumsError && photos.length === 0 && (
             <div style={{
               backgroundColor: colors.bgCard,
               borderRadius: '0.75rem',
@@ -1848,7 +1737,29 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                 fontWeight: '600',
                 color: colors.textPrimary,
                 margin: '0 0 0.5rem 0'
-              }}>No albums found</h3>
+              }}>No albums yet</h3>
+              <p style={{
+                fontSize: '0.95rem',
+                color: colors.textSecondary,
+                margin: 0
+              }}>Albums you create from completed events will appear here.</p>
+            </div>
+          )}
+          {!isLoadingAlbums && !albumsError && photos.length > 0 && filteredPhotos.length === 0 && (
+            <div style={{
+              backgroundColor: colors.bgCard,
+              borderRadius: '0.75rem',
+              padding: '4rem 1.5rem',
+              textAlign: 'center',
+              border: `1px solid ${colors.borderPrimary}`
+            }}>
+              <i className="bi bi-images" style={{ fontSize: '4rem', color: '#D1D5DB', marginBottom: '1rem' }}></i>
+              <h3 style={{
+                fontSize: '1.25rem',
+                fontWeight: '600',
+                color: colors.textPrimary,
+                margin: '0 0 0.5rem 0'
+              }}>No albums match your filters</h3>
               <p style={{
                 fontSize: '0.95rem',
                 color: colors.textSecondary,
@@ -2158,7 +2069,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                   overflowY: 'auto',
                   backgroundColor: colors.bgCard
                 }}>
-                  {clientsList.map((client) => (
+                  {clients.map((client) => (
                     <label
                       key={client.id}
                       style={{
@@ -2823,7 +2734,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
 
             {/* Send to Client Section */}
             {(() => {
-              const dedicatedClient = clientsList.find(c => c.id === sharePhoto.clientId);
+              const dedicatedClient = clients.find(c => c.id === sharePhoto.clientId);
               return dedicatedClient ? (
                 <div style={{
                   backgroundColor: actualTheme === 'dark' ? '#064E3B' : '#F0FDF4',
@@ -2983,7 +2894,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
           >
             {!shareToClientSuccess ? (
               (() => {
-                const dedicatedClient = clientsList.find(c => c.id === multiSelectAlbum.clientId);
+                const dedicatedClient = clients.find(c => c.id === multiSelectAlbum.clientId);
                 return dedicatedClient ? (
                   <>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
@@ -3106,7 +3017,7 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                   Sent Successfully!
                 </h3>
                 <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: 0 }}>
-                  {clientsList.find(c => c.id === multiSelectAlbum?.clientId)?.firstName} will receive a notification with the selected images.
+                  {clients.find(c => c.id === multiSelectAlbum?.clientId)?.firstName} will receive a notification with the selected images.
                 </p>
               </div>
             )}

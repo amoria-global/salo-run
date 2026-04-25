@@ -423,7 +423,7 @@ export default function Clients() {
             email: c.email || '',
             phone: c.phone || c.phoneNumber || '',
             profileImage: normalizeImg(c.profilePicture || c.profileImage || undefined),
-            coverImage: normalizeImg(c.coverImage || undefined) || 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800',
+            coverImage: normalizeImg(c.coverImage || undefined) || '',
             location: {
               city: c.city || c.location?.city || '',
               country: c.country || c.location?.country || '',
@@ -462,7 +462,7 @@ export default function Clients() {
               email: '',
               phone: '',
               profileImage: normalizeImg(partner.image || conv.partnerImage || conv.image || undefined),
-              coverImage: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800',
+              coverImage: '',
               location: { city: '', country: '' },
               totalBookings: 0,
               totalSpent: 0,
