@@ -5,6 +5,8 @@ import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
 import Image from 'next/image';
 import { useTheme } from '../../context/ThemeContext';
+import { dashboardAuthFetch } from '../../providers/AuthProvider';
+import { getApiUrl, normalizeImageUrl } from '@/lib/api';
 
 // Icons
 const CloseIcon = () => (
@@ -162,7 +164,7 @@ const TrashIcon = () => (
 // Photobook Interfaces
 interface PhotobookImage {
   url: string;
-  sourceAlbumId: number;
+  sourceAlbumId: string;
   sourceAlbumTitle: string;
   addedAt: string;
 }
@@ -177,128 +179,30 @@ interface Photobook {
   maxImages: number;
 }
 
-// Sample album data from photographers/freelancers
-const clientAlbumsData = [
-  {
-    id: 1,
-    title: 'Johnson Wedding - Ceremony',
-    photographer: 'Sarah Anderson',
-    photographerAvatar: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg',
-    category: 'Wedding',
-    date: 'Dec 15, 2024',
-    receivedDate: 'Dec 18, 2024',
-    thumbnail: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=400',
-    photoCount: 45,
-    downloadedCount: 12,
-    favoriteCount: 8,
-    images: [
-      'https://images.unsplash.com/photo-1519741497674-611481863552?w=800',
-      'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800',
-      'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=800',
-      'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=800',
-      'https://images.unsplash.com/photo-1606216794074-735e91aa2c92?w=800',
-      'https://images.unsplash.com/photo-1591604466107-ec97de577aff?w=800'
-    ]
-  },
-  {
-    id: 2,
-    title: 'Johnson Wedding - Reception',
-    photographer: 'Sarah Anderson',
-    photographerAvatar: 'https://i.pinimg.com/1200x/84/1b/a6/841ba626d4bb44b8906d8c25400e261f.jpg',
-    category: 'Wedding',
-    date: 'Dec 15, 2024',
-    receivedDate: 'Dec 18, 2024',
-    thumbnail: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=400',
-    photoCount: 78,
-    downloadedCount: 35,
-    favoriteCount: 22,
-    images: [
-      'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800',
-      'https://images.unsplash.com/photo-1519741497674-611481863552?w=800',
-      'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=800',
-      'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=800'
-    ]
-  },
-  {
-    id: 3,
-    title: 'Family Portrait Session',
-    photographer: 'Mike Chen',
-    photographerAvatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
-    category: 'Portrait',
-    date: 'Nov 28, 2024',
-    receivedDate: 'Dec 2, 2024',
-    thumbnail: 'https://images.unsplash.com/photo-1511895426328-dc8714191300?w=400',
-    photoCount: 32,
-    downloadedCount: 28,
-    favoriteCount: 15,
-    images: [
-      'https://images.unsplash.com/photo-1511895426328-dc8714191300?w=800',
-      'https://images.unsplash.com/photo-1609220136736-443140cffec6?w=800',
-      'https://images.unsplash.com/photo-1581579438747-1dc8d17bbce4?w=800'
-    ]
-  },
-  {
-    id: 4,
-    title: 'Company Annual Gala',
-    photographer: 'David Kim',
-    photographerAvatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
-    category: 'Event',
-    date: 'Nov 15, 2024',
-    receivedDate: 'Nov 20, 2024',
-    thumbnail: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400',
-    photoCount: 124,
-    downloadedCount: 45,
-    favoriteCount: 30,
-    images: [
-      'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800',
-      'https://images.unsplash.com/photo-1505236858219-8359eb29e329?w=800',
-      'https://images.unsplash.com/photo-1511578314322-379afb476865?w=800',
-      'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800',
-      'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=800'
-    ]
-  },
-  {
-    id: 5,
-    title: 'Product Catalog - Spring Collection',
-    photographer: 'Emily Zhang',
-    photographerAvatar: 'https://i.pinimg.com/1200x/8e/5e/69/8e5e6976723a4d5f4e0999a9dd5ac8c6.jpg',
-    category: 'Product',
-    date: 'Oct 10, 2024',
-    receivedDate: 'Oct 15, 2024',
-    thumbnail: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400',
-    photoCount: 56,
-    downloadedCount: 56,
-    favoriteCount: 18,
-    images: [
-      'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800',
-      'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800',
-      'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=800'
-    ]
-  },
-  {
-    id: 6,
-    title: 'Birthday Celebration',
-    photographer: 'Alex Rivera',
-    photographerAvatar: 'https://i.pinimg.com/1200x/e9/1f/59/e91f59ed85a702d7252f2b0c8e02c7d2.jpg',
-    category: 'Event',
-    date: 'Sep 22, 2024',
-    receivedDate: 'Sep 25, 2024',
-    thumbnail: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=400',
-    photoCount: 89,
-    downloadedCount: 67,
-    favoriteCount: 42,
-    images: [
-      'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=800',
-      'https://images.unsplash.com/photo-1464349153735-7db50ed83c84?w=800',
-      'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=800',
-      'https://images.unsplash.com/photo-1527529482837-4698179dc6ce?w=800'
-    ]
-  }
-];
+// Album shape used across the gallery page. Sourced from
+// GET /api/remote/customer/albums (ClientAlbumResponseDTO on the backend),
+// flattened so `images` is a plain string[] of full URLs — the rest of
+// this page treats images as URLs, not media-item objects.
+interface Album {
+  id: string;
+  title: string;
+  photographer: string;
+  photographerAvatar: string;
+  category: string;
+  date: string;
+  receivedDate: string;
+  thumbnail: string;
+  photoCount: number;
+  downloadedCount: number;
+  favoriteCount: number;
+  images: string[];
+}
 
 const ClientGallery = () => {
   const { colors, actualTheme } = useTheme();
-  const [albums, setAlbums] = useState(clientAlbumsData);
+  const [albums, setAlbums] = useState<Album[]>([]);
+  const [isLoadingAlbums, setIsLoadingAlbums] = useState(true);
+  const [albumsError, setAlbumsError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('All');
@@ -306,27 +210,27 @@ const ClientGallery = () => {
 
   // Modal states
   const [showViewModal, setShowViewModal] = useState(false);
-  const [selectedAlbum, setSelectedAlbum] = useState<typeof clientAlbumsData[0] | null>(null);
+  const [selectedAlbum, setSelectedAlbum] = useState<Album | null>(null);
 
   // Multi-select view states
   const [showMultiSelectView, setShowMultiSelectView] = useState(false);
-  const [multiSelectAlbum, setMultiSelectAlbum] = useState<typeof clientAlbumsData[0] | null>(null);
+  const [multiSelectAlbum, setMultiSelectAlbum] = useState<Album | null>(null);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [isSelectMode, setIsSelectMode] = useState(false);
 
   // Image viewer states
   const [showImageViewer, setShowImageViewer] = useState(false);
-  const [viewerAlbum, setViewerAlbum] = useState<typeof clientAlbumsData[0] | null>(null);
+  const [viewerAlbum, setViewerAlbum] = useState<Album | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   // Share modal states
   const [showShareModal, setShowShareModal] = useState(false);
-  const [shareAlbum, setShareAlbum] = useState<typeof clientAlbumsData[0] | null>(null);
+  const [shareAlbum, setShareAlbum] = useState<Album | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
 
   // Delete confirmation modal state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [albumToDelete, setAlbumToDelete] = useState<typeof clientAlbumsData[0] | null>(null);
+  const [albumToDelete, setAlbumToDelete] = useState<Album | null>(null);
 
   // Photobook states
   const [photobook, setPhotobook] = useState<Photobook | null>(null);
@@ -339,18 +243,68 @@ const ClientGallery = () => {
 
   // Add to Photobook states
   const [showAddToPhotobookModal, setShowAddToPhotobookModal] = useState(false);
-  const [addToPhotobookAlbum, setAddToPhotobookAlbum] = useState<typeof clientAlbumsData[0] | null>(null);
+  const [addToPhotobookAlbum, setAddToPhotobookAlbum] = useState<Album | null>(null);
   const [selectedImagesForPhotobook, setSelectedImagesForPhotobook] = useState<string[]>([]);
   const [showThumbnailSelector, setShowThumbnailSelector] = useState(false);
 
   // Track removed albums (hidden after adding to photobook)
-  const [removedAlbumIds, setRemovedAlbumIds] = useState<number[]>([]);
+  const [removedAlbumIds, setRemovedAlbumIds] = useState<string[]>([]);
 
   // Notification modal state
   const [notificationModal, setNotificationModal] = useState<{ show: boolean; title: string; message: string; type: 'success' | 'info' | 'warning' | 'error' }>({ show: false, title: '', message: '', type: 'info' });
 
   // Confirmation modal state
   const [confirmationModal, setConfirmationModal] = useState<{ show: boolean; title: string; message: string; onConfirm: () => void }>({ show: false, title: '', message: '', onConfirm: () => {} });
+
+  // Fetch the signed-in customer's albums from the backend.
+  // Backend returns ClientAlbumResponseDTO whose images field is a list of
+  // media-item objects; we flatten to URL strings here so the rest of the
+  // page (which treats images as string[]) doesn't have to change.
+  const fetchAlbums = useCallback(async () => {
+    setIsLoadingAlbums(true);
+    setAlbumsError(null);
+    try {
+      const apiUrl = getApiUrl();
+      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/customer/albums`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch albums: ${response.status}`);
+      }
+      const json = await response.json();
+      const list: Record<string, unknown>[] = json?.action === 1 && Array.isArray(json?.data) ? json.data : [];
+
+      const mapped: Album[] = list.map((a) => {
+        const rawImages = Array.isArray(a.images) ? (a.images as Record<string, unknown>[]) : [];
+        const imageUrls = rawImages
+          .map((img) => normalizeImageUrl((img?.fileUrl as string) || '') || '')
+          .filter(Boolean);
+        return {
+          id: String(a.id ?? ''),
+          title: (a.title as string) || 'Untitled Album',
+          photographer: (a.photographer as string) || 'Unknown photographer',
+          photographerAvatar: normalizeImageUrl((a.photographerAvatar as string) || '') || '',
+          category: (a.category as string) || 'General',
+          date: (a.date as string) || '',
+          receivedDate: (a.receivedDate as string) || '',
+          thumbnail: normalizeImageUrl((a.thumbnail as string) || '') || imageUrls[0] || '',
+          photoCount: typeof a.photoCount === 'number' ? a.photoCount : 0,
+          downloadedCount: typeof a.downloadedCount === 'number' ? a.downloadedCount : 0,
+          favoriteCount: typeof a.favoriteCount === 'number' ? a.favoriteCount : 0,
+          images: imageUrls,
+        };
+      });
+
+      setAlbums(mapped);
+    } catch (err) {
+      setAlbumsError(err instanceof Error ? err.message : 'Failed to load albums');
+      setAlbums([]);
+    } finally {
+      setIsLoadingAlbums(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAlbums();
+  }, [fetchAlbums]);
 
   const categories = ['All', 'Wedding', 'Portrait', 'Event', 'Product'];
   const photographers = ['All', ...Array.from(new Set(albums.map(a => a.photographer)))];
@@ -377,7 +331,7 @@ const ClientGallery = () => {
   // Max images limit for photobook (placeholder - will be set by backend later)
   const MAX_PHOTOBOOK_IMAGES = 10;
 
-  const openMultiSelectView = (album: typeof clientAlbumsData[0]) => {
+  const openMultiSelectView = (album: Album) => {
     setMultiSelectAlbum(album);
     setSelectedImages([]);
     // Auto-enter select mode when photobook exists
@@ -392,7 +346,7 @@ const ClientGallery = () => {
     setIsSelectMode(false);
   };
 
-  const openImageViewer = (album: typeof clientAlbumsData[0], startIndex: number = 0) => {
+  const openImageViewer = (album: Album, startIndex: number = 0) => {
     setViewerAlbum(album);
     setCurrentImageIndex(startIndex);
     setShowImageViewer(true);
@@ -436,7 +390,7 @@ const ClientGallery = () => {
     }
   };
 
-  const openDeleteModal = (album: typeof clientAlbumsData[0]) => {
+  const openDeleteModal = (album: Album) => {
     setAlbumToDelete(album);
     setShowDeleteModal(true);
   };
@@ -514,7 +468,7 @@ const ClientGallery = () => {
     }
   };
 
-  const getShareLink = (album: typeof clientAlbumsData[0]) => {
+  const getShareLink = (album: Album) => {
     return `https://connekt.com/gallery/${album.id}`;
   };
 
@@ -958,6 +912,61 @@ const ClientGallery = () => {
                   )}
                 </div>
               </div>
+            </div>
+          ) : isLoadingAlbums ? (
+            <div style={{
+              padding: '3rem 1rem',
+              textAlign: 'center',
+              backgroundColor: colors.bgCard,
+              borderRadius: '0.75rem',
+              border: `1px solid ${colors.borderPrimary}`,
+              color: colors.textSecondary,
+              fontSize: '0.95rem',
+            }}>
+              Loading your gallery…
+            </div>
+          ) : albumsError ? (
+            <div style={{
+              padding: '3rem 1rem',
+              textAlign: 'center',
+              backgroundColor: colors.bgCard,
+              borderRadius: '0.75rem',
+              border: `1px solid ${colors.borderPrimary}`,
+            }}>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: colors.textPrimary, margin: 0, marginBottom: '0.5rem' }}>
+                Couldn&apos;t load your albums
+              </h3>
+              <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: 0, marginBottom: '1rem' }}>{albumsError}</p>
+              <button
+                onClick={fetchAlbums}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '0.5rem',
+                  border: `2px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}`,
+                  backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EBF5FF',
+                  color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Try again
+              </button>
+            </div>
+          ) : albums.length === 0 ? (
+            <div style={{
+              padding: '3rem 1rem',
+              textAlign: 'center',
+              backgroundColor: colors.bgCard,
+              borderRadius: '0.75rem',
+              border: `1px solid ${colors.borderPrimary}`,
+            }}>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: colors.textPrimary, margin: 0, marginBottom: '0.5rem' }}>
+                No albums yet
+              </h3>
+              <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: 0 }}>
+                Albums shared by your photographers after a completed event will appear here.
+              </p>
             </div>
           ) : viewMode === 'grid' ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem' }}>
@@ -3076,7 +3085,7 @@ const ClientGallery = () => {
                     onClick={() => {
                       // Open image viewer
                       setViewerAlbum({
-                        id: 0,
+                        id: '',
                         title: photobook.name,
                         photographer: '',
                         photographerAvatar: '',
