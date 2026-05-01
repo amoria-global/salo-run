@@ -237,6 +237,7 @@ interface Event {
   coverImage: string;
   bannerImage?: string;
   price: string;
+  priceCurrency?: string;
   groupDiscountPercentage?: number;
   guestCount: number;
   maxGuests: number;
@@ -822,6 +823,7 @@ const MyEventsPage = () => {
             coverImage: photo,
             bannerImage: photo,
             price: evt.price ? `${evt.price}` : (evt.isEventFree ? 'Free' : 'Free'),
+            priceCurrency: (evt.streamFeeCurrencyAbbreviation as string) || (evt.priceCurrency as string) || 'RWF',
             groupDiscountPercentage: (evt.groupDiscountPercentage as number) ?? 0,
             guestCount: (evt.guestCount as number) || 0,
             maxGuests: (evt.maxGuests as number) || 0,
@@ -1066,6 +1068,7 @@ const MyEventsPage = () => {
     setEditCity(event.location.city);
     setEditCountry(event.location.country);
     setEditPrice(event.price || '');
+    setEditPriceCurrency(event.priceCurrency || 'RWF');
     setEditGroupDiscount(event.groupDiscountPercentage !== undefined && event.groupDiscountPercentage !== null ? String(event.groupDiscountPercentage) : '0');
     setEditMaxGuests(event.maxGuests.toString());
     setEditOrganizer(event.organizer || '');

@@ -213,6 +213,7 @@ interface Event {
   coverImage: string;
   bannerImage?: string;
   price: string;
+  priceCurrency?: string;
   hasLiveStream: boolean;
   isPublished: boolean;
   guestCount: number;
@@ -778,6 +779,7 @@ const MyEventsPage = () => {
             coverImage: photo,
             bannerImage: photo,
             price: evt.price ? `${evt.price}` : (evt.isEventFree ? 'Free' : 'Free'),
+            priceCurrency: (evt.streamFeeCurrencyAbbreviation as string) || (evt.priceCurrency as string) || 'RWF',
             hasLiveStream: (evt.hasLiveStream as boolean) ?? false,
             isPublished: evt.isPublished === true,
             guestCount: (evt.guestCount as number) || 0,
@@ -1090,6 +1092,7 @@ const MyEventsPage = () => {
     setEditCity(event.location.city);
     setEditCountry(event.location.country);
     setEditPrice(event.price || '');
+    setEditPriceCurrency(event.priceCurrency || 'RWF');
     setEditMaxGuests(event.maxGuests.toString());
     setEditOrganizer(event.organizer || '');
     setEditTags(event.tags || []);
