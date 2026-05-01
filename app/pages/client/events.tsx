@@ -11,6 +11,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { StatCard } from '../../components/dashboard/StatCard';
 import { getApiUrl, normalizeImageUrl, autoCapitalize, capitalizeWords } from '@/lib/api';
+import { isEventPriceInvalid, getMinEventPriceLabel } from '../../components/eventPriceValidation';
 
 function parseTimeToApiString(timeStr: string): string {
   const [hours, minutes] = timeStr.split(':').map(Number);
@@ -1105,10 +1106,9 @@ const MyEventsPage = () => {
   const handleEditEvent = async () => {
     if (!editEvent || !editTitle || !editCategory || !editDate || !editTime) return;
 
-    // Minimum stream access fee: 100 RWF
-    const editNumPrice = Number((editPrice || '').replace(/[^\d]/g, ''));
-    if (editNumPrice > 0 && editNumPrice < 100) {
-      setSubmitError('Live Stream Access Fee must be at least 100 RWF.');
+    // Currency-aware minimum stream access fee
+    if (isEventPriceInvalid(editPrice || '', editPriceCurrency)) {
+      setSubmitError(`Live Stream Access Fee must be at least ${getMinEventPriceLabel(editPriceCurrency)}.`);
       return;
     }
 
@@ -1371,10 +1371,9 @@ const MyEventsPage = () => {
       return;
     }
 
-    // Minimum stream access fee: 100 RWF
-    const numPrice = Number((createPrice || '').replace(/[^\d]/g, ''));
-    if (numPrice > 0 && numPrice < 100) {
-      setSubmitError('Live Stream Access Fee must be at least 100 RWF.');
+    // Currency-aware minimum stream access fee
+    if (isEventPriceInvalid(createPrice || '', createPriceCurrency)) {
+      setSubmitError(`Live Stream Access Fee must be at least ${getMinEventPriceLabel(createPriceCurrency)}.`);
       return;
     }
 
