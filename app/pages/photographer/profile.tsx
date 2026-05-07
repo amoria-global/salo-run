@@ -251,32 +251,32 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   };
 
   // Package tier definitions
-  // Essential (tier 1): photographer sets specific photo/video counts, no unlimited
-  // Custom    (tier 2): photographer sets specific photo/video counts, no unlimited
-  // Premium   (tier 3): "Unlimited photos & videos" locked and always included
-  const PACKAGE_TIER: Record<string, number> = { Essential: 1, Custom: 2, Premium: 3 };
-  const TIER_LABELS: Record<string, string> = { Essential: 'Starter', Custom: 'Standard', Premium: 'Premium' };
+  // Silver (tier 1): photographer sets specific photo/video counts, no unlimited
+  // Gold    (tier 2): photographer sets specific photo/video counts, no unlimited
+  // Diamond  (tier 3): "Unlimited photos & videos" locked and always included
+  const PACKAGE_TIER: Record<string, number> = { Silver: 1, Gold: 2, Diamond: 3 };
+  const TIER_LABELS: Record<string, string> = { Silver: 'Silver', Gold: 'Gold', Diamond: 'Diamond' };
   const TIER_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-    Essential: { bg: actualTheme === 'dark' ? '#1C3238' : '#ECFDF5', text: actualTheme === 'dark' ? '#34D399' : '#065F46', border: '#10B981' },
-    Custom:    { bg: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF', text: actualTheme === 'dark' ? '#60A5FA' : '#083A85', border: '#3B82F6' },
-    Premium:   { bg: actualTheme === 'dark' ? '#2D1B69' : '#F5F3FF', text: actualTheme === 'dark' ? '#A78BFA' : '#4C1D95', border: '#8B5CF6' },
+    Silver:  { bg: actualTheme === 'dark' ? '#1C3238' : '#ECFDF5', text: actualTheme === 'dark' ? '#34D399' : '#065F46', border: '#10B981' },
+    Gold:    { bg: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF', text: actualTheme === 'dark' ? '#60A5FA' : '#083A85', border: '#3B82F6' },
+    Diamond: { bg: actualTheme === 'dark' ? '#2D1B69' : '#F5F3FF', text: actualTheme === 'dark' ? '#A78BFA' : '#4C1D95', border: '#8B5CF6' },
   };
 
-  // Features selectable by photographer (excludes "Unlimited photos & videos" for Essential/Custom)
+  // Features selectable by photographer (excludes "Unlimited photos & videos" for Silver/Gold)
   const SELECTABLE_FEATURES: Record<string, string[]> = {
-    Essential: [
+    Silver: [
       'Online gallery storage (provided by platform)',
       'Professional editing',
       'Printed photo album',
       'Other preferences',
     ],
-    Custom: [
+    Gold: [
       'Online gallery storage (provided by platform)',
       'Professional editing',
       'Printed photo album',
       'Other preferences',
     ],
-    Premium: [
+    Diamond: [
       'Online gallery storage (provided by platform)',
       'Professional editing',
       'Printed photo album',
@@ -296,8 +296,8 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
   // Legacy helper kept for savePackageToAPI — returns features to persist
   const getFeaturesForPackage = (packageName: string) => {
-    if (packageName === 'Premium') {
-      return SELECTABLE_FEATURES['Premium'] || [];
+    if (packageName === 'Diamond') {
+      return SELECTABLE_FEATURES['Diamond'] || [];
     }
     return SELECTABLE_FEATURES[packageName] || [];
   };
@@ -411,8 +411,8 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           const existing = updated.features.find(f => f.featureName === featureName);
           return { id: existing?.id || `feat-${idx}`, featureName, isIncluded: existing ? existing.isIncluded : true, displayOrder: idx };
         });
-        // Only Premium packages have live streaming
-        updated.hasLiveStream = value === 'Premium';
+        // Only Diamond packages have live streaming
+        updated.hasLiveStream = value === 'Diamond';
       }
       return updated;
     }));
@@ -468,37 +468,37 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       return;
     }
 
-    // Validate delivery days order: Premium < Custom < Essential
+    // Validate delivery days order: Diamond < Gold < Silver
     const days = parseInt(pkg.deliveryDays) || 0;
     if (days > 0) {
-      const premiumPkg = packages.find(p => p.packageName === 'Premium' && p.id !== pkg.id);
-      const customPkg = packages.find(p => p.packageName === 'Custom' && p.id !== pkg.id);
-      const essentialPkg = packages.find(p => p.packageName === 'Essential' && p.id !== pkg.id);
+      const premiumPkg = packages.find(p => p.packageName === 'Diamond' && p.id !== pkg.id);
+      const customPkg = packages.find(p => p.packageName === 'Gold' && p.id !== pkg.id);
+      const essentialPkg = packages.find(p => p.packageName === 'Silver' && p.id !== pkg.id);
       const premiumDays = parseInt(premiumPkg?.deliveryDays || '0') || 0;
       const customDays = parseInt(customPkg?.deliveryDays || '0') || 0;
       const essentialDays = parseInt(essentialPkg?.deliveryDays || '0') || 0;
 
-      if (pkg.packageName === 'Premium') {
-        if (customDays > 0 && days >= customDays) { showToast('error', `Premium delivery (${days}d) must be faster than Custom (${customDays}d)`); return; }
-        if (essentialDays > 0 && days >= essentialDays) { showToast('error', `Premium delivery (${days}d) must be faster than Essential (${essentialDays}d)`); return; }
+      if (pkg.packageName === 'Diamond') {
+        if (customDays > 0 && days >= customDays) { showToast('error', `Diamond delivery (${days}d) must be faster than Gold (${customDays}d)`); return; }
+        if (essentialDays > 0 && days >= essentialDays) { showToast('error', `Diamond delivery (${days}d) must be faster than Silver (${essentialDays}d)`); return; }
       }
-      if (pkg.packageName === 'Custom') {
-        if (premiumDays > 0 && days <= premiumDays) { showToast('error', `Custom delivery (${days}d) must be slower than Premium (${premiumDays}d)`); return; }
-        if (essentialDays > 0 && days >= essentialDays) { showToast('error', `Custom delivery (${days}d) must be faster than Essential (${essentialDays}d)`); return; }
+      if (pkg.packageName === 'Gold') {
+        if (premiumDays > 0 && days <= premiumDays) { showToast('error', `Gold delivery (${days}d) must be slower than Diamond (${premiumDays}d)`); return; }
+        if (essentialDays > 0 && days >= essentialDays) { showToast('error', `Gold delivery (${days}d) must be faster than Silver (${essentialDays}d)`); return; }
       }
-      if (pkg.packageName === 'Essential') {
-        if (customDays > 0 && days <= customDays) { showToast('error', `Essential delivery (${days}d) must be slower than Custom (${customDays}d)`); return; }
-        if (premiumDays > 0 && days <= premiumDays) { showToast('error', `Essential delivery (${days}d) must be slower than Premium (${premiumDays}d)`); return; }
+      if (pkg.packageName === 'Silver') {
+        if (customDays > 0 && days <= customDays) { showToast('error', `Silver delivery (${days}d) must be slower than Gold (${customDays}d)`); return; }
+        if (premiumDays > 0 && days <= premiumDays) { showToast('error', `Silver delivery (${days}d) must be slower than Diamond (${premiumDays}d)`); return; }
       }
     }
 
-    // Validate photo/video counts: Premium > Custom > Essential
+    // Validate photo/video counts: Diamond > Gold > Silver
     const photos = parseInt(pkg.includedPhotos) || 0;
     const videos = parseInt(pkg.includedVideos) || 0;
     if (photos > 0 || videos > 0) {
-      const premiumPkg = packages.find(p => p.packageName === 'Premium' && p.id !== pkg.id);
-      const customPkg = packages.find(p => p.packageName === 'Custom' && p.id !== pkg.id);
-      const essentialPkg = packages.find(p => p.packageName === 'Essential' && p.id !== pkg.id);
+      const premiumPkg = packages.find(p => p.packageName === 'Diamond' && p.id !== pkg.id);
+      const customPkg = packages.find(p => p.packageName === 'Gold' && p.id !== pkg.id);
+      const essentialPkg = packages.find(p => p.packageName === 'Silver' && p.id !== pkg.id);
       const pPhotos = parseInt(premiumPkg?.includedPhotos || '0') || 0;
       const cPhotos = parseInt(customPkg?.includedPhotos || '0') || 0;
       const ePhotos = parseInt(essentialPkg?.includedPhotos || '0') || 0;
@@ -506,21 +506,21 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       const cVideos = parseInt(customPkg?.includedVideos || '0') || 0;
       const eVideos = parseInt(essentialPkg?.includedVideos || '0') || 0;
 
-      if (pkg.packageName === 'Premium') {
-        if (photos > 0 && cPhotos > 0 && photos <= cPhotos) { showToast('error', `Premium photos (${photos}) must be more than Custom (${cPhotos})`); return; }
-        if (photos > 0 && ePhotos > 0 && photos <= ePhotos) { showToast('error', `Premium photos (${photos}) must be more than Essential (${ePhotos})`); return; }
-        if (videos > 0 && cVideos > 0 && videos <= cVideos) { showToast('error', `Premium videos (${videos}) must be more than Custom (${cVideos})`); return; }
-        if (videos > 0 && eVideos > 0 && videos <= eVideos) { showToast('error', `Premium videos (${videos}) must be more than Essential (${eVideos})`); return; }
+      if (pkg.packageName === 'Diamond') {
+        if (photos > 0 && cPhotos > 0 && photos <= cPhotos) { showToast('error', `Diamond photos (${photos}) must be more than Gold (${cPhotos})`); return; }
+        if (photos > 0 && ePhotos > 0 && photos <= ePhotos) { showToast('error', `Diamond photos (${photos}) must be more than Silver (${ePhotos})`); return; }
+        if (videos > 0 && cVideos > 0 && videos <= cVideos) { showToast('error', `Diamond videos (${videos}) must be more than Gold (${cVideos})`); return; }
+        if (videos > 0 && eVideos > 0 && videos <= eVideos) { showToast('error', `Diamond videos (${videos}) must be more than Silver (${eVideos})`); return; }
       }
-      if (pkg.packageName === 'Custom') {
-        if (photos > 0 && pPhotos > 0 && photos >= pPhotos) { showToast('error', `Custom photos (${photos}) must be less than Premium (${pPhotos})`); return; }
-        if (photos > 0 && ePhotos > 0 && photos <= ePhotos) { showToast('error', `Custom photos (${photos}) must be more than Essential (${ePhotos})`); return; }
-        if (videos > 0 && pVideos > 0 && videos >= pVideos) { showToast('error', `Custom videos (${videos}) must be less than Premium (${pVideos})`); return; }
-        if (videos > 0 && eVideos > 0 && videos <= eVideos) { showToast('error', `Custom videos (${videos}) must be more than Essential (${eVideos})`); return; }
+      if (pkg.packageName === 'Gold') {
+        if (photos > 0 && pPhotos > 0 && photos >= pPhotos) { showToast('error', `Gold photos (${photos}) must be less than Diamond (${pPhotos})`); return; }
+        if (photos > 0 && ePhotos > 0 && photos <= ePhotos) { showToast('error', `Gold photos (${photos}) must be more than Silver (${ePhotos})`); return; }
+        if (videos > 0 && pVideos > 0 && videos >= pVideos) { showToast('error', `Gold videos (${videos}) must be less than Diamond (${pVideos})`); return; }
+        if (videos > 0 && eVideos > 0 && videos <= eVideos) { showToast('error', `Gold videos (${videos}) must be more than Silver (${eVideos})`); return; }
       }
-      if (pkg.packageName === 'Essential') {
-        if (photos > 0 && cPhotos > 0 && photos >= cPhotos) { showToast('error', `Essential photos (${photos}) must be less than Custom (${cPhotos})`); return; }
-        if (videos > 0 && cVideos > 0 && videos >= cVideos) { showToast('error', `Essential videos (${videos}) must be less than Custom (${cVideos})`); return; }
+      if (pkg.packageName === 'Silver') {
+        if (photos > 0 && cPhotos > 0 && photos >= cPhotos) { showToast('error', `Silver photos (${photos}) must be less than Gold (${cPhotos})`); return; }
+        if (videos > 0 && cVideos > 0 && videos >= cVideos) { showToast('error', `Silver videos (${videos}) must be less than Gold (${cVideos})`); return; }
       }
     }
 
@@ -1027,7 +1027,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           durationHours: String(p.durationHours ?? ''),
           description: p.description || '',
           isActive: p.isActive ?? true,
-          hasLiveStream: p.packageName === 'Premium' ? true : (p.hasLiveStream ?? false),
+          hasLiveStream: p.packageName === 'Diamond' ? true : (p.hasLiveStream ?? false),
           features: (() => {
             const apiFeatures = (p.features || []).map((f: any) => ({
               id: f.id || String(Date.now()),
@@ -2148,24 +2148,28 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   };
 
   const tabStyle = (isActive: boolean) => ({
-    padding: '0.75rem 1.5rem',
-    fontSize: '0.95rem',
-    fontWeight: '600' as const,
+    padding: '14px 20px',
+    fontSize: '0.92rem',
+    fontWeight: 600 as const,
     color: isActive ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.textSecondary,
-    backgroundColor: isActive ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : 'transparent',
+    backgroundColor: 'transparent',
     border: 'none',
-    borderBottom: isActive ? `3px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}` : '3px solid transparent',
+    borderBottom: isActive
+      ? `2px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}`
+      : '2px solid transparent',
     cursor: 'pointer',
-    transition: 'all 0.2s'
+    transition: 'color 180ms ease, border-color 180ms ease',
+    whiteSpace: 'nowrap' as const,
+    letterSpacing: '-0.005em',
   });
 
   const cardStyle = {
     backgroundColor: colors.bgCard,
-    borderRadius: '0.75rem',
-    padding: '1.5rem',
-    boxShadow: colors.shadowSm,
-    border: `2px solid ${colors.borderPrimary}`,
-    marginBottom: '1.25rem'
+    borderRadius: '16px',
+    padding: '24px',
+    boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+    border: `1px solid ${colors.borderPrimary}`,
+    marginBottom: '20px',
   };
 
   const sectionTitleStyle = {
@@ -2452,42 +2456,59 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           <div className="mobile-page-header" style={{
             display: 'flex',
             justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '1.5rem'
+            alignItems: 'flex-end',
+            marginBottom: '24px',
+            flexWrap: 'wrap',
+            gap: 12,
           }}>
-            <h1 style={{
-              fontSize: '1.5rem',
-              fontWeight: '700',
-              color: colors.textPrimary,
-              margin: 0,
-            }}>Edit Profile</h1>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              {/* Profile Review Status Badge */}
+            <div style={{ minWidth: 0 }}>
+              <div style={{
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                color: '#F20C8F',
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                marginBottom: 6,
+              }}>Profile</div>
+              <h1 style={{
+                fontSize: '1.85rem',
+                fontWeight: 800,
+                letterSpacing: '-0.02em',
+                color: colors.textPrimary,
+                margin: 0,
+              }}>Edit profile</h1>
+              <p style={{
+                margin: '4px 0 0',
+                fontSize: '0.92rem',
+                color: colors.textSecondary,
+              }}>Keep your information current so clients find and trust you.</p>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               {user?.profileReviewStatus && (() => {
                 const status = user.profileReviewStatus.toLowerCase();
                 const config = status === 'accepted'
-                  ? { label: 'Account Active', bg: '#03a329', icon: 'bi-check-circle-fill' }
+                  ? { label: 'Account active',     dot: '#10B981', toneClass: 'ck-status-success', icon: 'bi-check-circle-fill' }
                   : status === 'rejected'
-                  ? { label: 'Changes Needed', bg: '#d41919', icon: 'bi-x-circle-fill' }
+                  ? { label: 'Changes needed',     dot: '#DC2626', toneClass: 'ck-status-error',   icon: 'bi-exclamation-circle-fill' }
                   : profileCompletion < 85
-                  ? { label: 'Profile Incomplete', bg: '#e68a00', icon: 'bi-pencil-square' }
-                  : { label: 'Under Review', bg: '#0066cc', icon: 'bi-hourglass-split' };
+                  ? { label: 'Profile incomplete', dot: '#F59E0B', toneClass: 'ck-status-warning', icon: 'bi-pencil-square' }
+                  : { label: 'Under review',       dot: '#3B82F6', toneClass: 'ck-status-info',    icon: 'bi-hourglass-split' };
                 return (
-                  <span style={{
+                  <span className={config.toneClass} style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '0.35rem',
-                    padding: '0.25rem 0.75rem',
-                    borderRadius: '9999px',
-                    fontSize: '0.75rem',
-                    fontWeight: '600',
-                    color: 'white',
-                    backgroundColor: config.bg,
-                    border: 'none',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
+                    gap: 8,
+                    padding: '7px 14px',
+                    borderRadius: 9999,
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    letterSpacing: '0.01em',
                   }}>
-                    <i className={`bi ${config.icon}`} style={{ fontSize: '12px' }}></i>
+                    <span style={{
+                      width: 8, height: 8, borderRadius: 9999,
+                      background: config.dot,
+                      boxShadow: '0 0 0 3px rgba(255,255,255,0.55)',
+                    }} />
                     {config.label}
                   </span>
                 );
@@ -2646,96 +2667,112 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           )}
 
           {/* Profile Completion Card */}
-          <div className="mobile-card completion-card-enhanced" style={{
-            ...cardStyle,
-            backgroundColor: undefined,
-            background: 'linear-gradient(135deg, #083A85 0%, #0a4da8 100%)',
-            color: 'white',
-            marginBottom: '1.5rem'
-          }}>
-            <div className="mobile-completion-card" style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-              {/* Circular Progress */}
-              <div style={{ position: 'relative', width: '120px', height: '120px', flexShrink: 0 }}>
-                <svg width="120" height="120" viewBox="0 0 120 120" style={{ transform: 'rotate(-90deg)' }}>
-                  <circle
-                    cx="60"
-                    cy="60"
-                    r="52"
-                    fill="none"
-                    stroke="rgba(255,255,255,0.2)"
-                    strokeWidth="12"
-                  />
-                  <circle
-                    cx="60"
-                    cy="60"
-                    r="52"
-                    fill="none"
-                    stroke={getCompletionColor(profileCompletion)}
-                    strokeWidth="12"
-                    strokeDasharray={`${(profileCompletion / 100) * 327} 327`}
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <div style={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  textAlign: 'center'
-                }}>
-                  <div style={{ fontSize: '1.75rem', fontWeight: '700' }}>{profileCompletion}%</div>
-                  <div style={{ fontSize: '0.75rem', opacity: 0.8 }}>Complete</div>
+          {profileCompletion < 100 && (
+            <div className="mobile-card completion-card-enhanced" style={{
+              backgroundColor: colors.bgCard,
+              border: `1px solid ${colors.borderPrimary}`,
+              borderRadius: '16px',
+              padding: '20px 24px',
+              marginBottom: '20px',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+              position: 'relative',
+              overflow: 'hidden',
+            }}>
+              {/* subtle gradient accent strip */}
+              <div style={{
+                position: 'absolute',
+                top: 0, left: 0, right: 0, height: 3,
+                background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
+              }} />
+              <div className="mobile-completion-card" style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+                {/* Circular Progress */}
+                <div style={{ position: 'relative', width: 96, height: 96, flexShrink: 0 }}>
+                  <svg width="96" height="96" viewBox="0 0 96 96" style={{ transform: 'rotate(-90deg)' }}>
+                    <circle cx="48" cy="48" r="42" fill="none" stroke={colors.borderPrimary} strokeWidth="8" />
+                    <circle
+                      cx="48" cy="48" r="42"
+                      fill="none"
+                      stroke="url(#ck-progress-gradient)"
+                      strokeWidth="8"
+                      strokeDasharray={`${(profileCompletion / 100) * 264} 264`}
+                      strokeLinecap="round"
+                    />
+                    <defs>
+                      <linearGradient id="ck-progress-gradient" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stopColor="#083A85" />
+                        <stop offset="100%" stopColor="#F20C8F" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  <div style={{
+                    position: 'absolute', top: '50%', left: '50%',
+                    transform: 'translate(-50%, -50%)', textAlign: 'center',
+                  }}>
+                    <div style={{
+                      fontSize: '1.4rem', fontWeight: 800, lineHeight: 1,
+                      color: colors.textPrimary, letterSpacing: '-0.02em',
+                    }}>{profileCompletion}%</div>
+                    <div style={{
+                      fontSize: '0.65rem', fontWeight: 700,
+                      color: colors.textSecondary, marginTop: 2,
+                      textTransform: 'uppercase', letterSpacing: '0.08em',
+                    }}>Complete</div>
+                  </div>
                 </div>
-              </div>
 
-              {/* Completion Info */}
-              <div style={{ flex: 1 }}>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: '700', marginBottom: '0.5rem' }}>
-                  Complete Your Profile
-                </h2>
-                <p style={{ fontSize: '0.9rem', opacity: 0.9, marginBottom: '1rem', lineHeight: '1.5' }}>
-                  A complete profile helps clients find you and understand your expertise.
-                  Fill in all sections to maximize your visibility and booking potential.
-                </p>
-                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                  {profileCompletion < 100 && (
-                    <>
-                      {!overviewData.about && (
-                        <span style={{
-                          backgroundColor: 'rgba(255,255,255,0.2)',
-                          padding: '0.25rem 0.75rem',
-                          borderRadius: '1rem',
-                          fontSize: '0.8rem'
-                        }}>
-                          + Add bio
-                        </span>
-                      )}
-                      {overviewData.specialties.length < 2 && (
-                        <span style={{
-                          backgroundColor: 'rgba(255,255,255,0.2)',
-                          padding: '0.25rem 0.75rem',
-                          borderRadius: '1rem',
-                          fontSize: '0.8rem'
-                        }}>
-                          + Add specialties
-                        </span>
-                      )}
-                      {portfolioData.skills.length < 2 && (
-                        <span style={{
-                          backgroundColor: 'rgba(255,255,255,0.2)',
-                          padding: '0.25rem 0.75rem',
-                          borderRadius: '1rem',
-                          fontSize: '0.8rem'
-                        }}>
-                          + Add skills
-                        </span>
-                      )}
-                    </>
-                  )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <h2 style={{
+                    fontSize: '1.05rem', fontWeight: 800,
+                    color: colors.textPrimary, margin: 0,
+                    letterSpacing: '-0.01em',
+                  }}>
+                    Complete your profile
+                  </h2>
+                  <p style={{
+                    fontSize: '0.88rem', color: colors.textSecondary,
+                    margin: '4px 0 12px', lineHeight: 1.5,
+                  }}>
+                    A complete profile helps clients find you and trust your expertise.
+                  </p>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {!overviewData.about && (
+                      <button onClick={() => setActiveTab('overview')} style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        padding: '6px 12px', borderRadius: 9999,
+                        background: 'rgba(8,58,133,0.08)', color: '#083A85',
+                        border: '1px solid rgba(8,58,133,0.18)',
+                        fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer',
+                      }}>
+                        <i className="bi bi-plus-lg" style={{ fontSize: 11 }} /> Add bio
+                      </button>
+                    )}
+                    {overviewData.specialties.length < 2 && (
+                      <button onClick={() => setActiveTab('overview')} style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        padding: '6px 12px', borderRadius: 9999,
+                        background: 'rgba(8,58,133,0.08)', color: '#083A85',
+                        border: '1px solid rgba(8,58,133,0.18)',
+                        fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer',
+                      }}>
+                        <i className="bi bi-plus-lg" style={{ fontSize: 11 }} /> Add specialties
+                      </button>
+                    )}
+                    {portfolioData.skills.length < 2 && (
+                      <button onClick={() => setActiveTab('portfolio')} style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        padding: '6px 12px', borderRadius: 9999,
+                        background: 'rgba(242,12,143,0.08)', color: '#F20C8F',
+                        border: '1px solid rgba(242,12,143,0.20)',
+                        fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer',
+                      }}>
+                        <i className="bi bi-plus-lg" style={{ fontSize: 11 }} /> Add skills
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Main Content Grid */}
           <div className="mobile-profile-section" style={{
@@ -2748,84 +2785,63 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
               {/* Profile Card */}
               <div className="profile-card-enhanced" style={{
                 backgroundColor: colors.bgCard,
-                borderRadius: '0.75rem',
+                borderRadius: '16px',
                 overflow: 'hidden',
-                boxShadow: colors.shadowSm,
-                border: `2px solid ${colors.borderPrimary}`
+                boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                border: `1px solid ${colors.borderPrimary}`,
               }}>
                 {/* Hidden file inputs */}
-                <input
-                  type="file"
-                  ref={profileInputRef}
-                  onChange={handleProfileImageUpload}
-                  accept="image/*"
-                  style={{ display: 'none' }}
-                />
-                <input
-                  type="file"
-                  ref={bannerInputRef}
-                  onChange={handleBannerImageUpload}
-                  accept="image/*"
-                  style={{ display: 'none' }}
-                />
+                <input type="file" ref={profileInputRef} onChange={handleProfileImageUpload} accept="image/*" style={{ display: 'none' }} />
+                <input type="file" ref={bannerInputRef} onChange={handleBannerImageUpload} accept="image/*" style={{ display: 'none' }} />
 
-                {/* Banner */}
+                {/* Banner — Connekyt brand gradient */}
                 <div style={{
-                  height: '100px',
-                  background: bannerImage ? `url(${bannerImage}) center/cover no-repeat` : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  position: 'relative'
+                  height: 96,
+                  background: bannerImage
+                    ? `url(${bannerImage}) center/cover no-repeat`
+                    : 'linear-gradient(135deg, #083A85 0%, #0a4da8 55%, #F20C8F 130%)',
+                  position: 'relative',
                 }}>
                   <button
                     onClick={() => isEditEnabled && bannerInputRef.current?.click()}
                     disabled={!isEditEnabled}
                     style={{
-                      position: 'absolute',
-                      top: '0.5rem',
-                      right: '0.5rem',
-                      backgroundColor: isEditEnabled ? '#083A85' : '#6B7280',
-                      border: '2px solid white',
-                      borderRadius: '50%',
-                      width: '36px',
-                      height: '36px',
-                      padding: 0,
+                      position: 'absolute', top: 10, right: 10,
+                      backgroundColor: 'rgba(255,255,255,0.18)',
+                      border: '1px solid rgba(255,255,255,0.4)',
+                      borderRadius: 9999,
+                      width: 32, height: 32, padding: 0,
                       cursor: isEditEnabled ? 'pointer' : 'not-allowed',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      opacity: isEditEnabled ? 1 : 0.5,
-                      boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
-                    }}>
-                    <CameraIcon />
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      opacity: isEditEnabled ? 1 : 0.4,
+                      backdropFilter: 'blur(6px)',
+                      color: '#fff',
+                    }}
+                    aria-label="Change banner"
+                  >
+                    <i className="bi bi-camera" style={{ fontSize: 13 }} />
                   </button>
                 </div>
 
                 {/* Avatar */}
                 <div style={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  marginTop: '-50px',
-                  position: 'relative'
+                  display: 'flex', justifyContent: 'center',
+                  marginTop: -48, position: 'relative',
                 }}>
                   <div style={{ position: 'relative' }}>
                     <div style={{
-                      width: '100px',
-                      height: '100px',
+                      width: 96, height: 96,
                       borderRadius: '50%',
                       overflow: 'hidden',
-                      border: '4px solid white',
-                      backgroundColor: colors.bgTertiary,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
+                      border: `4px solid ${colors.bgCard}`,
+                      background: profileImage ? colors.bgTertiary : 'linear-gradient(135deg, #083A85 0%, #0a4da8 100%)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.10)',
                     }}>
                       {profileImage ? (
-                        <img
-                          src={profileImage}
-                          alt="Profile"
-                          style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                        />
+                        <img src={profileImage} alt="Profile" style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
                       ) : (
-                        <span style={{ fontSize: '2rem', color: colors.textSecondary }}>
+                        <span style={{ fontSize: '2rem', color: '#fff', fontWeight: 700 }}>
                           {basicInfo.fullName ? basicInfo.fullName.charAt(0).toUpperCase() : '?'}
                         </span>
                       )}
@@ -2834,23 +2850,21 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       onClick={() => isEditEnabled && profileInputRef.current?.click()}
                       disabled={!isEditEnabled}
                       style={{
-                        position: 'absolute',
-                        bottom: '-2px',
-                        left: '-2px',
-                        backgroundColor: isEditEnabled ? '#083A85' : '#6B7280',
-                        border: '2px solid white',
+                        position: 'absolute', bottom: -2, left: -2,
+                        backgroundColor: '#083A85',
+                        border: `2px solid ${colors.bgCard}`,
                         borderRadius: '50%',
-                        width: '34px',
-                        height: '34px',
+                        width: 30, height: 30,
                         cursor: isEditEnabled ? 'pointer' : 'not-allowed',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
                         opacity: isEditEnabled ? 1 : 0.5,
-                        boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+                        boxShadow: '0 4px 10px rgba(8,58,133,0.30)',
                         zIndex: 2,
-                      }}>
-                      <CameraIcon />
+                        color: '#fff',
+                      }}
+                      aria-label="Change avatar"
+                    >
+                      <i className="bi bi-camera" style={{ fontSize: 12 }} />
                     </button>
                     {/* Verified Badge */}
                     <div style={{
@@ -3123,14 +3137,17 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                 flexWrap: 'wrap',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                gap: '0.75rem',
+                gap: 12,
                 backgroundColor: colors.bgCard,
-                borderRadius: '0.75rem 0.75rem 0 0',
-                borderBottom: '1px solid #E5E7EB',
+                borderRadius: '16px 16px 0 0',
+                borderBottom: `1px solid ${colors.borderPrimary}`,
+                borderTop: `1px solid ${colors.borderPrimary}`,
+                borderLeft: `1px solid ${colors.borderPrimary}`,
+                borderRight: `1px solid ${colors.borderPrimary}`,
                 marginBottom: 0,
-                padding: '0 0.5rem'
+                padding: '4px 12px 0',
               }}>
-                <div className="mobile-tabs" style={{ display: 'flex', flex: 1, minWidth: 0 }}>
+                <div className="mobile-tabs" style={{ display: 'flex', flex: 1, minWidth: 0, gap: 4 }}>
                   <button onClick={() => setActiveTab('overview')} style={tabStyle(activeTab === 'overview')}>
                     Overview
                   </button>
@@ -3138,82 +3155,97 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                     Portfolio
                   </button>
                   <button onClick={() => setActiveTab('experience')} style={tabStyle(activeTab === 'experience')}>
-                    Working Experience
+                    Working experience
                   </button>
                   <button onClick={() => setActiveTab('packages')} style={tabStyle(activeTab === 'packages')}>
-                    Delivery Packages
+                    Delivery packages
                   </button>
                 </div>
                 <div className="mobile-tabs-actions" style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.75rem',
-                  padding: '0.5rem 0.25rem',
-                  flexShrink: 0
+                  gap: 12,
+                  padding: '8px 4px',
+                  flexShrink: 0,
                 }}>
                   {/* Edit Toggle Switch */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Edit</span>
+                  <label style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '6px 12px',
+                    border: `1px solid ${colors.borderPrimary}`,
+                    borderRadius: 9999,
+                    background: isEditEnabled ? 'rgba(8,58,133,0.06)' : 'transparent',
+                    cursor: 'pointer',
+                    transition: 'background 180ms',
+                  }}>
+                    <span style={{
+                      fontSize: '0.82rem',
+                      color: isEditEnabled ? '#083A85' : colors.textSecondary,
+                      fontWeight: 600,
+                    }}>{isEditEnabled ? 'Editing' : 'Edit'}</span>
                     <button
+                      type="button"
                       onClick={() => setIsEditEnabled(!isEditEnabled)}
+                      aria-label="Toggle edit"
                       style={{
-                        width: '44px',
-                        height: '24px',
-                        borderRadius: '12px',
-                        border: 'none',
-                        cursor: 'pointer',
-                        position: 'relative',
+                        width: 36, height: 20, borderRadius: 9999, border: 'none',
+                        cursor: 'pointer', position: 'relative',
                         backgroundColor: isEditEnabled ? '#083A85' : (actualTheme === 'dark' ? '#4B5563' : '#D1D5DB'),
-                        transition: 'background-color 0.2s'
+                        transition: 'background-color 180ms',
+                        padding: 0,
                       }}
                     >
-                      <div style={{
-                        width: '20px',
-                        height: '20px',
-                        borderRadius: '50%',
-                        backgroundColor: colors.bgCard,
-                        position: 'absolute',
-                        top: '2px',
-                        left: isEditEnabled ? '22px' : '2px',
-                        transition: 'left 0.2s',
-                        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)'
+                      <span style={{
+                        width: 16, height: 16, borderRadius: '50%',
+                        backgroundColor: '#fff',
+                        position: 'absolute', top: 2,
+                        left: isEditEnabled ? 18 : 2,
+                        transition: 'left 180ms',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.20)',
                       }} />
                     </button>
-                  </div>
+                  </label>
                   {/* Save / Submit Button */}
                   {(() => {
                     const btnLabel = !isAccountAccepted
-                      ? 'Submit Profile'
+                      ? 'Submit profile'
                       : pendingChanges.length > 0
-                      ? 'Submit Changes'
-                      : 'Save Changes';
-                    const btnSavingLabel = !isAccountAccepted
-                      ? 'Submitting...'
-                      : pendingChanges.length > 0
-                      ? 'Submitting...'
-                      : 'Saving...';
+                      ? 'Submit changes'
+                      : 'Save changes';
+                    const btnSavingLabel = 'Saving…';
+                    const enabled = isEditEnabled && !isSavingAll;
                     return (
                       <button
                         className="save-button-enhanced"
-                        disabled={!isEditEnabled || isSavingAll}
+                        disabled={!enabled}
                         onClick={handleSaveAllChanges}
                         style={{
-                          backgroundColor: isEditEnabled && !isSavingAll ? '#083A85' : colors.bgTertiary,
-                          color: isEditEnabled ? 'white' : colors.textSecondary,
-                          border: isEditEnabled ? '2px solid #062a63' : `2px solid ${colors.borderPrimary}`,
-                          borderRadius: '0.5rem',
-                          padding: '0.5rem 1rem',
-                          fontSize: '0.875rem',
-                          fontWeight: '600',
-                          cursor: isEditEnabled && !isSavingAll ? 'pointer' : 'not-allowed',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.5rem',
-                          opacity: isEditEnabled && !isSavingAll ? 1 : 0.6,
-                          transition: 'all 0.2s',
-                          whiteSpace: 'nowrap'
+                          background: enabled ? '#083A85' : colors.bgTertiary,
+                          color: enabled ? '#fff' : colors.textSecondary,
+                          border: 'none',
+                          borderRadius: 10,
+                          padding: '9px 18px',
+                          fontSize: '0.88rem',
+                          fontWeight: 600,
+                          cursor: enabled ? 'pointer' : 'not-allowed',
+                          display: 'flex', alignItems: 'center', gap: 8,
+                          opacity: enabled ? 1 : 0.55,
+                          transition: 'all 180ms',
+                          whiteSpace: 'nowrap',
+                          boxShadow: enabled ? '0 6px 14px rgba(8,58,133,0.22)' : 'none',
                         }}
                       >
+                        {isSavingAll && (
+                          <span style={{
+                            width: 14, height: 14,
+                            border: '2px solid rgba(255,255,255,0.4)',
+                            borderTopColor: '#fff',
+                            borderRadius: '50%',
+                            display: 'inline-block',
+                            animation: 'ck-spin 0.8s linear infinite',
+                          }} />
+                        )}
+                        {!isSavingAll && <i className="bi bi-check2" style={{ fontSize: 14 }} />}
                         {isSavingAll ? btnSavingLabel : btnLabel}
                       </button>
                     );
@@ -3224,12 +3256,12 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
               {/* Tab Content */}
               <div style={{
                 backgroundColor: colors.bgCard,
-                borderRadius: '0 0 0.75rem 0.75rem',
-                padding: '1.5rem',
-                boxShadow: colors.shadowSm,
-                borderRight: `2px solid ${colors.borderPrimary}`,
-                borderBottom: `2px solid ${colors.borderPrimary}`,
-                borderLeft: `2px solid ${colors.borderPrimary}`
+                borderRadius: '0 0 16px 16px',
+                padding: '24px',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                borderRight: `1px solid ${colors.borderPrimary}`,
+                borderBottom: `1px solid ${colors.borderPrimary}`,
+                borderLeft: `1px solid ${colors.borderPrimary}`,
               }}>
                 {/* Overview Tab */}
                 {activeTab === 'overview' && (
@@ -5086,7 +5118,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                 </div>
 
                                 {/* Media coverage */}
-                                <p style={{ fontSize: '0.8rem', fontWeight: '600', color: pkg.packageName === 'Premium' ? (actualTheme === 'dark' ? '#A78BFA' : '#7C3AED') : colors.textSecondary, marginBottom: '0.25rem' }}>
+                                <p style={{ fontSize: '0.8rem', fontWeight: '600', color: pkg.packageName === 'Diamond' ? (actualTheme === 'dark' ? '#A78BFA' : '#7C3AED') : colors.textSecondary, marginBottom: '0.25rem' }}>
                                   {[pkg.includedPhotos ? `${pkg.includedPhotos} photos` : '', pkg.includedVideos ? `${pkg.includedVideos} videos` : ''].filter(Boolean).join(' · ') || 'Set photo/video count'}
                                 </p>
                               </div>
@@ -5255,7 +5287,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                     onChange={(e) => updatePackage(pkg.id, 'packageName', e.target.value)}
                                     disabled={!isPackageEditEnabled} style={pkgSelectStyle}>
                                     <option value="">Select a package</option>
-                                    {['Essential', 'Custom', 'Premium']
+                                    {['Silver', 'Gold', 'Diamond']
                                       .filter(name => name === pkg.packageName || !packages.some(p => p.id !== pkg.id && p.packageName === name))
                                       .map(name => (
                                         <option key={name} value={name}>{name}</option>
@@ -5281,7 +5313,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                       }} />
                                     </div>
                                   </div>
-                                  {pkg.packageName === 'Premium' && (
+                                  {pkg.packageName === 'Diamond' && (
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.5rem', borderRadius: '1rem', backgroundColor: actualTheme === 'dark' ? '#4C1D9520' : '#F5F3FF', border: `1px solid ${actualTheme === 'dark' ? '#A78BFA30' : '#DDD6FE'}` }}>
                                       <svg width="12" height="12" viewBox="0 0 24 24" fill={actualTheme === 'dark' ? '#A78BFA' : '#7C3AED'}><circle cx="12" cy="12" r="4"/><path d="M4.93 4.93a10 10 0 0 1 14.14 0" stroke={actualTheme === 'dark' ? '#A78BFA' : '#7C3AED'} strokeWidth="2" fill="none" strokeLinecap="round"/><path d="M7.76 7.76a6 6 0 0 1 8.48 0" stroke={actualTheme === 'dark' ? '#A78BFA' : '#7C3AED'} strokeWidth="2" fill="none" strokeLinecap="round"/></svg>
                                       <span style={{ fontSize: '0.7rem', fontWeight: '600', color: actualTheme === 'dark' ? '#A78BFA' : '#7C3AED' }}>Live Stream</span>
@@ -5364,37 +5396,37 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                               <div style={{ marginBottom: '1.25rem' }}>
                                 <label style={labelStyle}>Time Delivery (days) *</label>
                                 <p style={{ fontSize: '0.75rem', color: colors.textTertiary, margin: '0 0 0.5rem 0' }}>
-                                  {pkg.packageName === 'Premium' ? 'Premium should have the fastest delivery time.' : pkg.packageName === 'Custom' ? 'Must be faster than Essential but slower than Premium.' : pkg.packageName === 'Essential' ? 'Essential has the longest delivery time.' : 'Set the number of days for photo delivery.'}
+                                  {pkg.packageName === 'Diamond' ? 'Diamond should have the fastest delivery time.' : pkg.packageName === 'Gold' ? 'Must be faster than Silver but slower than Diamond.' : pkg.packageName === 'Silver' ? 'Silver has the longest delivery time.' : 'Set the number of days for photo delivery.'}
                                 </p>
                                 <input type="number" min="1" value={pkg.deliveryDays}
                                   onChange={(e) => {
                                     const newVal = e.target.value;
                                     updatePackage(pkg.id, 'deliveryDays', newVal);
                                   }}
-                                  placeholder={pkg.packageName === 'Premium' ? 'e.g., 3' : pkg.packageName === 'Custom' ? 'e.g., 7' : pkg.packageName === 'Essential' ? 'e.g., 14' : 'e.g., 7'}
+                                  placeholder={pkg.packageName === 'Diamond' ? 'e.g., 3' : pkg.packageName === 'Gold' ? 'e.g., 7' : pkg.packageName === 'Silver' ? 'e.g., 14' : 'e.g., 7'}
                                   disabled={!isPackageEditEnabled} style={pkgInputStyle} />
                                 {/* Validation warning */}
                                 {(() => {
                                   const days = parseInt(pkg.deliveryDays) || 0;
                                   if (days <= 0) return null;
-                                  const premiumPkg = packages.find(p => p.packageName === 'Premium');
-                                  const customPkg = packages.find(p => p.packageName === 'Custom');
-                                  const essentialPkg = packages.find(p => p.packageName === 'Essential');
+                                  const premiumPkg = packages.find(p => p.packageName === 'Diamond');
+                                  const customPkg = packages.find(p => p.packageName === 'Gold');
+                                  const essentialPkg = packages.find(p => p.packageName === 'Silver');
                                   const premiumDays = parseInt(premiumPkg?.deliveryDays || '0') || 0;
                                   const customDays = parseInt(customPkg?.deliveryDays || '0') || 0;
                                   const essentialDays = parseInt(essentialPkg?.deliveryDays || '0') || 0;
 
-                                  if (pkg.packageName === 'Premium') {
-                                    if (customDays > 0 && days >= customDays) return <p style={{ fontSize: '0.75rem', color: '#EF4444', margin: '0.35rem 0 0 0' }}>Premium delivery must be faster (fewer days) than Custom ({customDays} days)</p>;
-                                    if (essentialDays > 0 && days >= essentialDays) return <p style={{ fontSize: '0.75rem', color: '#EF4444', margin: '0.35rem 0 0 0' }}>Premium delivery must be faster (fewer days) than Essential ({essentialDays} days)</p>;
+                                  if (pkg.packageName === 'Diamond') {
+                                    if (customDays > 0 && days >= customDays) return <p style={{ fontSize: '0.75rem', color: '#EF4444', margin: '0.35rem 0 0 0' }}>Diamond delivery must be faster (fewer days) than Gold ({customDays} days)</p>;
+                                    if (essentialDays > 0 && days >= essentialDays) return <p style={{ fontSize: '0.75rem', color: '#EF4444', margin: '0.35rem 0 0 0' }}>Diamond delivery must be faster (fewer days) than Silver ({essentialDays} days)</p>;
                                   }
-                                  if (pkg.packageName === 'Custom') {
-                                    if (premiumDays > 0 && days <= premiumDays) return <p style={{ fontSize: '0.75rem', color: '#EF4444', margin: '0.35rem 0 0 0' }}>Custom delivery must be slower (more days) than Premium ({premiumDays} days)</p>;
-                                    if (essentialDays > 0 && days >= essentialDays) return <p style={{ fontSize: '0.75rem', color: '#EF4444', margin: '0.35rem 0 0 0' }}>Custom delivery must be faster (fewer days) than Essential ({essentialDays} days)</p>;
+                                  if (pkg.packageName === 'Gold') {
+                                    if (premiumDays > 0 && days <= premiumDays) return <p style={{ fontSize: '0.75rem', color: '#EF4444', margin: '0.35rem 0 0 0' }}>Gold delivery must be slower (more days) than Diamond ({premiumDays} days)</p>;
+                                    if (essentialDays > 0 && days >= essentialDays) return <p style={{ fontSize: '0.75rem', color: '#EF4444', margin: '0.35rem 0 0 0' }}>Gold delivery must be faster (fewer days) than Silver ({essentialDays} days)</p>;
                                   }
-                                  if (pkg.packageName === 'Essential') {
-                                    if (customDays > 0 && days <= customDays) return <p style={{ fontSize: '0.75rem', color: '#EF4444', margin: '0.35rem 0 0 0' }}>Essential delivery must be slower (more days) than Custom ({customDays} days)</p>;
-                                    if (premiumDays > 0 && days <= premiumDays) return <p style={{ fontSize: '0.75rem', color: '#EF4444', margin: '0.35rem 0 0 0' }}>Essential delivery must be slower (more days) than Premium ({premiumDays} days)</p>;
+                                  if (pkg.packageName === 'Silver') {
+                                    if (customDays > 0 && days <= customDays) return <p style={{ fontSize: '0.75rem', color: '#EF4444', margin: '0.35rem 0 0 0' }}>Silver delivery must be slower (more days) than Gold ({customDays} days)</p>;
+                                    if (premiumDays > 0 && days <= premiumDays) return <p style={{ fontSize: '0.75rem', color: '#EF4444', margin: '0.35rem 0 0 0' }}>Silver delivery must be slower (more days) than Diamond ({premiumDays} days)</p>;
                                   }
                                   return null;
                                 })()}
@@ -5424,46 +5456,46 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                       <label style={{ ...labelStyle, fontSize: '0.78rem', color: colors.textSecondary }}>Photos included</label>
                                       <input type="number" min="0" value={pkg.includedPhotos}
                                         onChange={(e) => updatePackage(pkg.id, 'includedPhotos', e.target.value)}
-                                        placeholder={pkg.packageName === 'Premium' ? 'e.g. 500' : 'e.g. 100'} disabled={!isPackageEditEnabled} style={pkgInputStyle} />
+                                        placeholder={pkg.packageName === 'Diamond' ? 'e.g. 500' : 'e.g. 100'} disabled={!isPackageEditEnabled} style={pkgInputStyle} />
                                     </div>
                                     <div>
                                       <label style={{ ...labelStyle, fontSize: '0.78rem', color: colors.textSecondary }}>Videos included</label>
                                       <input type="number" min="0" value={pkg.includedVideos}
                                         onChange={(e) => updatePackage(pkg.id, 'includedVideos', e.target.value)}
-                                        placeholder={pkg.packageName === 'Premium' ? 'e.g. 20' : 'e.g. 5'} disabled={!isPackageEditEnabled} style={pkgInputStyle} />
+                                        placeholder={pkg.packageName === 'Diamond' ? 'e.g. 20' : 'e.g. 5'} disabled={!isPackageEditEnabled} style={pkgInputStyle} />
                                     </div>
                                   </div>
-                                  {/* Validation: Premium must have more than other packages */}
-                                  {pkg.packageName === 'Premium' && (() => {
+                                  {/* Validation: Diamond must have more than other packages */}
+                                  {pkg.packageName === 'Diamond' && (() => {
                                     const premPhotos = parseInt(pkg.includedPhotos) || 0;
                                     const premVideos = parseInt(pkg.includedVideos) || 0;
-                                    const customPkg = packages.find(p => p.packageName === 'Custom');
-                                    const essentialPkg = packages.find(p => p.packageName === 'Essential');
+                                    const customPkg = packages.find(p => p.packageName === 'Gold');
+                                    const essentialPkg = packages.find(p => p.packageName === 'Silver');
                                     const customPhotos = parseInt(customPkg?.includedPhotos || '0') || 0;
                                     const essentialPhotos = parseInt(essentialPkg?.includedPhotos || '0') || 0;
                                     const customVideos = parseInt(customPkg?.includedVideos || '0') || 0;
                                     const essentialVideos = parseInt(essentialPkg?.includedVideos || '0') || 0;
                                     const warnings: string[] = [];
-                                    if (premPhotos > 0 && customPhotos > 0 && premPhotos <= customPhotos) warnings.push(`Premium photos (${premPhotos}) must be more than Custom (${customPhotos})`);
-                                    if (premPhotos > 0 && essentialPhotos > 0 && premPhotos <= essentialPhotos) warnings.push(`Premium photos (${premPhotos}) must be more than Essential (${essentialPhotos})`);
-                                    if (premVideos > 0 && customVideos > 0 && premVideos <= customVideos) warnings.push(`Premium videos (${premVideos}) must be more than Custom (${customVideos})`);
-                                    if (premVideos > 0 && essentialVideos > 0 && premVideos <= essentialVideos) warnings.push(`Premium videos (${premVideos}) must be more than Essential (${essentialVideos})`);
+                                    if (premPhotos > 0 && customPhotos > 0 && premPhotos <= customPhotos) warnings.push(`Diamond photos (${premPhotos}) must be more than Gold (${customPhotos})`);
+                                    if (premPhotos > 0 && essentialPhotos > 0 && premPhotos <= essentialPhotos) warnings.push(`Diamond photos (${premPhotos}) must be more than Silver (${essentialPhotos})`);
+                                    if (premVideos > 0 && customVideos > 0 && premVideos <= customVideos) warnings.push(`Diamond videos (${premVideos}) must be more than Gold (${customVideos})`);
+                                    if (premVideos > 0 && essentialVideos > 0 && premVideos <= essentialVideos) warnings.push(`Diamond videos (${premVideos}) must be more than Silver (${essentialVideos})`);
                                     return warnings.length > 0 ? <div style={{ marginBottom: '0.5rem' }}>{warnings.map((w, i) => <p key={i} style={{ fontSize: '0.75rem', color: '#EF4444', margin: '0.2rem 0 0 0' }}>{w}</p>)}</div> : null;
                                   })()}
-                                  {pkg.packageName === 'Custom' && (() => {
+                                  {pkg.packageName === 'Gold' && (() => {
                                     const photos = parseInt(pkg.includedPhotos) || 0;
                                     const videos = parseInt(pkg.includedVideos) || 0;
-                                    const premiumPkg = packages.find(p => p.packageName === 'Premium');
-                                    const essentialPkg = packages.find(p => p.packageName === 'Essential');
+                                    const premiumPkg = packages.find(p => p.packageName === 'Diamond');
+                                    const essentialPkg = packages.find(p => p.packageName === 'Silver');
                                     const premPhotos = parseInt(premiumPkg?.includedPhotos || '0') || 0;
                                     const essentialPhotos = parseInt(essentialPkg?.includedPhotos || '0') || 0;
                                     const premVideos = parseInt(premiumPkg?.includedVideos || '0') || 0;
                                     const essentialVideos = parseInt(essentialPkg?.includedVideos || '0') || 0;
                                     const warnings: string[] = [];
-                                    if (photos > 0 && premPhotos > 0 && photos >= premPhotos) warnings.push(`Custom photos (${photos}) must be less than Premium (${premPhotos})`);
-                                    if (photos > 0 && essentialPhotos > 0 && photos <= essentialPhotos) warnings.push(`Custom photos (${photos}) must be more than Essential (${essentialPhotos})`);
-                                    if (videos > 0 && premVideos > 0 && videos >= premVideos) warnings.push(`Custom videos (${videos}) must be less than Premium (${premVideos})`);
-                                    if (videos > 0 && essentialVideos > 0 && videos <= essentialVideos) warnings.push(`Custom videos (${videos}) must be more than Essential (${essentialVideos})`);
+                                    if (photos > 0 && premPhotos > 0 && photos >= premPhotos) warnings.push(`Gold photos (${photos}) must be less than Diamond (${premPhotos})`);
+                                    if (photos > 0 && essentialPhotos > 0 && photos <= essentialPhotos) warnings.push(`Gold photos (${photos}) must be more than Silver (${essentialPhotos})`);
+                                    if (videos > 0 && premVideos > 0 && videos >= premVideos) warnings.push(`Gold videos (${videos}) must be less than Diamond (${premVideos})`);
+                                    if (videos > 0 && essentialVideos > 0 && videos <= essentialVideos) warnings.push(`Gold videos (${videos}) must be more than Silver (${essentialVideos})`);
                                     return warnings.length > 0 ? <div style={{ marginBottom: '0.5rem' }}>{warnings.map((w, i) => <p key={i} style={{ fontSize: '0.75rem', color: '#EF4444', margin: '0.2rem 0 0 0' }}>{w}</p>)}</div> : null;
                                   })()}
 
@@ -5472,7 +5504,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                                     <label style={{ ...labelStyle, fontSize: '0.78rem', color: colors.textSecondary }}>Printed photobook photos</label>
                                     <input type="number" min="0" value={pkg.photobookPhotos}
                                       onChange={(e) => updatePackage(pkg.id, 'photobookPhotos', e.target.value)}
-                                      placeholder={pkg.packageName === 'Premium' ? 'e.g. 50' : 'e.g. 20'} disabled={!isPackageEditEnabled} style={pkgInputStyle} />
+                                      placeholder={pkg.packageName === 'Diamond' ? 'e.g. 50' : 'e.g. 20'} disabled={!isPackageEditEnabled} style={pkgInputStyle} />
                                     <span style={{ fontSize: '0.7rem', color: colors.textSecondary, marginTop: '0.25rem', display: 'block' }}>
                                       Number of photos the client can select for their printed photo album. Extra selections will be charged per photo.
                                     </span>
