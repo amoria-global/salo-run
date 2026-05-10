@@ -822,7 +822,20 @@ const MyEventsPage = () => {
             },
             coverImage: photo,
             bannerImage: photo,
-            price: evt.price ? `${evt.price}` : (evt.isEventFree ? 'Free' : 'Free'),
+            // The "price" field on the UI event card is the LIVE STREAM FEE
+            // (per-viewer access charge), not the photographer's package
+            // price. Reading evt.price here was a long-standing bug — it
+            // pulled the wrong number, so the edit modal showed "Free"
+            // even when the coordinator had set a stream fee. Now we
+            // prefer evt.streamFee (which the booking + edit endpoints
+            // both write to) and only fall back to evt.price for legacy
+            // rows that pre-date the streamFee column.
+            price: (() => {
+              const sf = (evt as Record<string, unknown>).streamFee;
+              if (sf !== undefined && sf !== null && Number(sf) > 0) return `${sf}`;
+              if (evt.price) return `${evt.price}`;
+              return 'Free';
+            })(),
             priceCurrency: (evt.streamFeeCurrencyAbbreviation as string) || (evt.priceCurrency as string) || 'RWF',
             groupDiscountPercentage: (evt.groupDiscountPercentage as number) ?? 0,
             guestCount: (evt.guestCount as number) || 0,
