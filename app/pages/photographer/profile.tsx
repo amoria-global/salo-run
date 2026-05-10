@@ -266,19 +266,19 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   const SELECTABLE_FEATURES: Record<string, string[]> = {
     Silver: [
       'Online gallery storage (provided by platform)',
-      'Professional editing',
+      'Digital Memory Sharing Experience',
       'Printed photo album',
       'Other preferences',
     ],
     Gold: [
       'Online gallery storage (provided by platform)',
-      'Professional editing',
+      'Digital Memory Sharing Experience',
       'Printed photo album',
       'Other preferences',
     ],
     Diamond: [
       'Online gallery storage (provided by platform)',
-      'Professional editing',
+      'Digital Memory Sharing Experience',
       'Printed photo album',
       'Live-streaming',
       'Other preferences',
@@ -288,7 +288,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   // All possible features (used for display of "not included" items)
   const ALL_FEATURES = [
     'Online gallery storage (provided by platform)',
-    'Professional editing',
+    'Digital Memory Sharing Experience',
     'Printed photo album',
     'Live-streaming',
     'Other preferences',
