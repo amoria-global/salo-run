@@ -1604,32 +1604,43 @@ const MyEventsPage = () => {
         <div className="mobile-main-content" style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
 
           {/* Header */}
-          <header className="mobile-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-            <div>
-              <h1 className="mobile-title" style={{ fontSize: '1.8rem', lineHeight: '2rem', color: colors.textPrimary, fontWeight: '600' }}>My Events</h1>
-              <p className="mobile-subtitle" style={{ fontSize: '0.95rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
-                Create and manage your events
+          <header className="mobile-header" style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-end',
+            gap: 16,
+            flexWrap: 'wrap',
+            margin: '8px 0 22px',
+          }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                color: '#F20C8F',
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                marginBottom: 6,
+              }}>Events</div>
+              <h1 className="mobile-title" style={{
+                margin: 0,
+                fontSize: '1.85rem',
+                fontWeight: 800,
+                letterSpacing: '-0.02em',
+                color: colors.textPrimary,
+              }}>My events</h1>
+              <p className="mobile-subtitle" style={{
+                margin: '4px 0 0',
+                fontSize: '0.92rem',
+                color: colors.textSecondary,
+              }}>
+                Create and manage your events.
               </p>
             </div>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="mobile-create-btn"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                backgroundColor: '#083A85',
-                color: 'white',
-                border: 'none',
-                borderRadius: '0.5rem',
-                padding: '0.75rem 1.25rem',
-                fontSize: '0.9rem',
-                fontWeight: '600',
-                cursor: 'pointer'
-              }}
+              className="ck-btn ck-btn-primary mobile-create-btn"
             >
-              <PlusIcon />
-              Create Event
+              <i className="bi bi-plus-lg" /> Create event
             </button>
           </header>
 
@@ -1642,29 +1653,14 @@ const MyEventsPage = () => {
           </div>
 
           {/* Search */}
-          <div style={{ marginBottom: '1.5rem' }}>
-            <div className="mobile-search" style={{ position: 'relative', maxWidth: '400px' }}>
-              <div style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }}>
-                <SearchIcon />
-              </div>
-              <input
-                type="text"
-                placeholder="Search events..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 1rem 0.75rem 2.75rem',
-                  border: `2px solid ${colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.95rem',
-                  fontWeight: '500',
-                  color: colors.textPrimary,
-                  backgroundColor: colors.bgCard,
-                  outline: 'none'
-                }}
-              />
-            </div>
+          <div className="ck-search mobile-search" style={{ maxWidth: 400, marginBottom: 18 }}>
+            <i className="bi bi-search" />
+            <input
+              type="search"
+              placeholder="Search events…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
 
           {/* Tabs */}
