@@ -3541,6 +3541,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                     </div>
 
                     {/* Equipment section removed per product request */}
+                  </div>
+                )}
+
                 {/* Portfolio Tab */}
                 {activeTab === 'portfolio' && (
                   <div>
@@ -3694,7 +3697,6 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                           <span style={pendingTagStyle}>Pending</span>
                         </div>
                       ))}
-                    </div>
 
                     {/* Training & Workshops section removed per product request */}
                     {/* Featured Projects */}
