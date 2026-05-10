@@ -1,34 +1,164 @@
+@import url('https://fonts.googleapis.com/css2?family=Pragati+Narrow:wght@400;700&family=Inter:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Connekyt brand */
+  --ck-blue: #083A85;
+  --ck-blue-soft: #0a4da8;
+  --ck-pink: #F20C8F;
+  --ck-pink-soft: #FF3DA0;
+
+  /* Surfaces (Airbnb-style milky white with visible contrast) */
+  --ck-surface: #FFFFFF;        /* cards */
+  --ck-surface-soft: #F2F3F5;   /* page background — clearly off-white */
+  --ck-surface-muted: #E9EAEE;  /* hovers, inputs, soft fills */
+  --ck-overlay: rgba(17, 24, 39, 0.45);
+
+  /* Strokes */
+  --ck-stroke: #DCDDE2;
+  --ck-stroke-soft: #E6E7EC;
+
+  /* Type */
+  --ck-text: #14161A;
+  --ck-text-soft: #4A4D55;
+  --ck-text-muted: #797D86;
+
+  /* Motion / radii */
+  --ck-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --ck-radius-sm: 8px;
+  --ck-radius: 12px;
+  --ck-radius-lg: 16px;
+  --ck-radius-xl: 20px;
+  --ck-radius-2xl: 24px;
+
+  /* Elevation */
+  --ck-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --ck-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  --ck-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.12);
+  --ck-shadow-modal: 0 20px 60px rgba(0, 0, 0, 0.18);
+
+  /* Background/foreground (for tailwind theme) */
+  --background: var(--ck-surface-soft);
+  --foreground: var(--ck-text);
+}
+
+/* Dark mode tokens — applied via [data-theme="dark"] */
+[data-theme="dark"] {
+  --ck-surface: #1E2944;          /* cards — clearly lighter than page */
+  --ck-surface-soft: #0B1120;     /* page background — deeper navy so cards pop */
+  --ck-surface-muted: #2B3754;    /* hovers, soft fills, tab rails */
+  --ck-overlay: rgba(0, 0, 0, 0.65);
+
+  --ck-stroke: #3D4D70;           /* visible against the surface */
+  --ck-stroke-soft: #2B3754;
+
+  --ck-text: #F2F4F8;
+  --ck-text-soft: #B6BFD2;
+  --ck-text-muted: #8993AA;
+
+  --ck-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --ck-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+  --ck-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.55);
+  --ck-shadow-modal: 0 20px 60px rgba(0, 0, 0, 0.65);
+
+  --background: var(--ck-surface-soft);
+  --foreground: var(--ck-text);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-pragati-narrow);
+  --font-sans: var(--font-pragati-narrow), 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Inter', var(--font-pragati-narrow), sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(8, 58, 133, 0.25) transparent;
+  box-sizing: border-box;
 }
 
-/* Pop animation for "Go to notification" destination rows/cards. Driven by
- * useHighlightOnMount() — destination pages apply class="notif-highlight-pop"
- * to the matching row when the ?highlight=<id> query param is present.
- * Total 6.5s, tuned so the ring is clearly visible for a solid ~5 seconds
- * (12% → 88% of the timeline) before fading out. */
+html, body {
+  background: var(--ck-surface-soft);
+  color: var(--ck-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(8, 58, 133, 0.22);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: rgba(147, 197, 253, 0.30);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(8, 58, 133, 0.4);
+  background-clip: padding-box;
+}
+
+/* ============================================
+   Connekyt Dashboard — Motion & Animations
+   ============================================ */
+@keyframes ck-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes ck-fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ck-modal-pop {
+  0% { opacity: 0; transform: translateY(16px) scale(0.96); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes ck-slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes ck-shimmer {
+  0% { background-position: -800px 0; }
+  100% { background-position: 800px 0; }
+}
+
+@keyframes ck-spin {
+  to { transform: rotate(360deg); }
+}
+
+.ck-fade-in { animation: ck-fade-in 220ms var(--ck-ease) both; }
+.ck-fade-in-up { animation: ck-fade-in-up 280ms var(--ck-ease) both; }
+.ck-modal-pop { animation: ck-modal-pop 320ms var(--ck-ease) both; }
+
+.ck-skeleton {
+  background: linear-gradient(90deg, var(--ck-surface-muted) 0%, var(--ck-surface) 50%, var(--ck-surface-muted) 100%);
+  background-size: 800px 100%;
+  animation: ck-shimmer 1.4s linear infinite;
+  border-radius: var(--ck-radius-sm);
+}
+
+/* ============================================
+   Notification highlight (kept from original)
+   ============================================ */
 @keyframes notifHighlightPop {
-  0%    { transform: scale(1);     box-shadow: 0 0 0 0  rgba(59,130,246,0);    }
-  5%    { transform: scale(1.025); box-shadow: 0 0 0 7px rgba(59,130,246,0.45); }
-  12%   { transform: scale(1);     box-shadow: 0 0 0 6px rgba(59,130,246,0.35); }
-  88%   { transform: scale(1);     box-shadow: 0 0 0 6px rgba(59,130,246,0.32); }
-  100%  { transform: scale(1);     box-shadow: 0 0 0 0  rgba(59,130,246,0);    }
+  0%    { transform: scale(1);     box-shadow: 0 0 0 0  rgba(8, 58, 133, 0);    }
+  5%    { transform: scale(1.02);  box-shadow: 0 0 0 8px rgba(8, 58, 133, 0.18); }
+  12%   { transform: scale(1);     box-shadow: 0 0 0 6px rgba(8, 58, 133, 0.12); }
+  88%   { transform: scale(1);     box-shadow: 0 0 0 6px rgba(8, 58, 133, 0.12); }
+  100%  { transform: scale(1);     box-shadow: 0 0 0 0  rgba(8, 58, 133, 0);    }
 }
 
 .notif-highlight-pop {
@@ -36,28 +166,718 @@
   scroll-margin-top: 100px;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
+/* ============================================
+   Connekyt UI utility classes
+   ============================================ */
+.ck-card {
+  background: var(--ck-surface);
+  border: 1px solid var(--ck-stroke);
+  border-radius: var(--ck-radius-lg);
+  box-shadow: var(--ck-shadow-sm);
+  transition: box-shadow 220ms var(--ck-ease), transform 220ms var(--ck-ease), border-color 220ms var(--ck-ease);
+  color: var(--ck-text);
+}
+.ck-card-hover:hover {
+  box-shadow: var(--ck-shadow);
+  border-color: #C8CAD2;
+  transform: translateY(-1px);
+}
+[data-theme="dark"] .ck-card-hover:hover {
+  border-color: #3A476A;
 }
 
-/* Global Scrollbar — Connekyt Purple */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(139, 92, 246, 0.25) transparent;
+.ck-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
-::-webkit-scrollbar {
+.ck-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 180ms var(--ck-ease);
+  white-space: nowrap;
+  user-select: none;
+  text-decoration: none;
+}
+.ck-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.ck-btn-primary {
+  background: var(--ck-blue);
+  color: #fff;
+}
+.ck-btn-primary:hover:not(:disabled) {
+  background: #0c4aa3;
+  box-shadow: 0 6px 14px rgba(8, 58, 133, 0.28);
+}
+
+.ck-btn-accent {
+  background: linear-gradient(135deg, var(--ck-pink) 0%, #ff4fae 100%);
+  color: #fff;
+  box-shadow: 0 6px 14px rgba(242, 12, 143, 0.22);
+}
+.ck-btn-accent:hover:not(:disabled) { transform: translateY(-1px); }
+
+.ck-btn-ghost {
+  background: transparent;
+  color: var(--ck-text);
+  border-color: var(--ck-stroke);
+}
+.ck-btn-ghost:hover:not(:disabled) {
+  background: var(--ck-surface-muted);
+  border-color: #BFC2CB;
+}
+[data-theme="dark"] .ck-btn-ghost:hover:not(:disabled) {
+  border-color: #3A476A;
+}
+
+.ck-btn-soft {
+  background: var(--ck-surface-muted);
+  color: var(--ck-text);
+}
+.ck-btn-soft:hover:not(:disabled) { background: #DCDEE4; }
+[data-theme="dark"] .ck-btn-soft:hover:not(:disabled) { background: #2D3756; }
+
+.ck-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--ck-stroke);
+  border-radius: 10px;
+  background: var(--ck-surface);
+  color: var(--ck-text);
+  font-size: 0.95rem;
+  transition: border-color 180ms var(--ck-ease), box-shadow 180ms var(--ck-ease);
+  outline: none;
+}
+.ck-input:focus {
+  border-color: var(--ck-blue);
+  box-shadow: 0 0 0 3px rgba(8, 58, 133, 0.12);
+}
+[data-theme="dark"] .ck-input:focus {
+  border-color: #60A5FA;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.18);
+}
+
+.ck-section-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--ck-text);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+.ck-section-subtitle {
+  font-size: 0.9rem;
+  color: var(--ck-text-soft);
+  margin: 0;
+}
+
+.ck-divider {
+  height: 1px;
+  background: var(--ck-stroke);
+  border: 0;
+}
+
+/* Modal/Wizard surface — Airbnb-inspired milky-white */
+.ck-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+  z-index: 9998;
+  animation: ck-fade-in 180ms var(--ck-ease) both;
+}
+.ck-modal-shell {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 9999;
+  pointer-events: none;
+}
+.ck-modal-card {
+  pointer-events: auto;
+  background: var(--ck-surface);
+  color: var(--ck-text);
+  border-radius: var(--ck-radius-xl);
+  box-shadow: var(--ck-shadow-modal);
+  width: 100%;
+  max-width: 560px;
+  max-height: calc(100vh - 32px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: ck-modal-pop 320ms var(--ck-ease) both;
+}
+.ck-modal-card.lg { max-width: 720px; }
+.ck-modal-card.xl { max-width: 920px; }
+.ck-modal-card.sm { max-width: 420px; }
+
+.ck-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--ck-stroke);
+}
+.ck-modal-body {
+  padding: 22px;
+  overflow-y: auto;
+  flex: 1;
+}
+.ck-modal-footer {
+  padding: 16px 22px;
+  border-top: 1px solid var(--ck-stroke);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  background: var(--ck-surface-soft);
+}
+.ck-modal-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--ck-text);
+  transition: background 180ms var(--ck-ease);
+}
+.ck-modal-close:hover { background: var(--ck-surface-muted); }
+
+@media (max-width: 640px) {
+  .ck-modal-shell { align-items: flex-end; padding: 0; }
+  .ck-modal-card {
+    max-width: 100%;
+    max-height: 92vh;
+    border-radius: 20px 20px 0 0;
+    animation: ck-slide-up 320ms var(--ck-ease) both;
+  }
+}
+
+/* Wizard step rail */
+.ck-wizard-rail {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--ck-stroke);
+  background: var(--ck-surface-soft);
+}
+.ck-wizard-step {
+  flex: 1;
+  height: 4px;
+  border-radius: 9999px;
+  background: var(--ck-stroke);
+  transition: background 220ms var(--ck-ease);
+}
+.ck-wizard-step.active { background: var(--ck-blue); }
+.ck-wizard-step.done { background: var(--ck-blue); opacity: 0.55; }
+
+/* Empty state */
+.ck-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--ck-text-soft);
+}
+.ck-empty .ck-empty-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 9999px;
+  background: var(--ck-surface-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: var(--ck-blue);
+  margin-bottom: 16px;
+}
+
+/* Page header */
+.ck-page {
+  padding: 8px 24px 32px;
+  background: var(--ck-surface-soft);
+}
+.ck-page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 8px 0 22px;
+}
+.ck-page-title {
+  font-size: 1.85rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ck-text);
+  margin: 0;
+}
+.ck-page-subtitle {
+  font-size: 0.95rem;
+  color: var(--ck-text-soft);
+  margin: 4px 0 0;
+}
+
+@media (max-width: 768px) {
+  .ck-page { padding: 4px 12px 24px; }
+  .ck-page-title { font-size: 1.45rem; }
+}
+
+/* Tab pills */
+.ck-tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--ck-surface-muted);
+  border: 1px solid var(--ck-stroke);
+}
+.ck-tab {
+  padding: 8px 16px;
+  border-radius: 9px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ck-text-soft);
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  transition: background 180ms var(--ck-ease), color 180ms var(--ck-ease);
+  white-space: nowrap;
+}
+.ck-tab.active {
+  background: var(--ck-surface);
+  color: var(--ck-text);
+  box-shadow: var(--ck-shadow-sm);
+}
+.ck-tab:hover:not(.active) { color: var(--ck-text); }
+
+/* Search field */
+.ck-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.ck-search > i {
+  position: absolute;
+  left: 14px;
+  color: var(--ck-text-muted);
+  pointer-events: none;
+}
+.ck-search > input {
+  width: 100%;
+  padding: 11px 14px 11px 40px;
+  border: 1px solid var(--ck-stroke);
+  background: var(--ck-surface);
+  border-radius: 10px;
+  font-size: 0.92rem;
+  outline: none;
+  color: var(--ck-text);
+  transition: border-color 180ms var(--ck-ease), box-shadow 180ms var(--ck-ease);
+}
+.ck-search > input:focus {
+  border-color: var(--ck-blue);
+  box-shadow: 0 0 0 3px rgba(8, 58, 133, 0.12);
+}
+
+/* Avatar */
+.ck-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #083A85 0%, #0a4da8 100%);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.ck-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Status pills */
+.ck-status-success { background: #ECFDF5; color: #065F46; }
+.ck-status-warning { background: #FFFBEB; color: #92400E; }
+.ck-status-error   { background: #FEF2F2; color: #991B1B; }
+.ck-status-info    { background: #EFF6FF; color: #1E40AF; }
+.ck-status-muted   { background: var(--ck-surface-muted); color: var(--ck-text-soft); }
+
+[data-theme="dark"] .ck-status-success { background: rgba(16, 185, 129, 0.15); color: #6EE7B7; }
+[data-theme="dark"] .ck-status-warning { background: rgba(245, 158, 11, 0.15); color: #FCD34D; }
+[data-theme="dark"] .ck-status-error   { background: rgba(220, 38, 38, 0.15); color: #FCA5A5; }
+[data-theme="dark"] .ck-status-info    { background: rgba(59, 130, 246, 0.15); color: #93C5FD; }
+
+/* Spinner */
+.ck-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(8, 58, 133, 0.25);
+  border-top-color: var(--ck-blue);
+  border-radius: 50%;
+  animation: ck-spin 0.8s linear infinite;
+  display: inline-block;
+}
+[data-theme="dark"] .ck-spinner {
+  border-color: rgba(147, 197, 253, 0.30);
+  border-top-color: #60A5FA;
+}
+
+/* Soft hover row for tables/list items */
+.ck-row {
+  display: flex;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 10px;
+  transition: background 180ms var(--ck-ease);
+  color: var(--ck-text);
+}
+.ck-row:hover { background: var(--ck-surface-muted); }
+
+/* Gradient text */
+.ck-gradient-text {
+  background: linear-gradient(135deg, #083A85 0%, #F20C8F 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+[data-theme="dark"] .ck-gradient-text {
+  background: linear-gradient(135deg, #93C5FD 0%, #F472B6 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Sidebar */
+.ck-side-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--ck-text-soft);
+  text-decoration: none;
+  transition: background 180ms var(--ck-ease), color 180ms var(--ck-ease), padding-left 180ms var(--ck-ease);
+  position: relative;
+}
+.ck-side-link i {
+  font-size: 18px;
+  width: 22px;
+  text-align: center;
+  flex-shrink: 0;
+  transition: color 180ms var(--ck-ease), transform 180ms var(--ck-ease);
+}
+.ck-side-link:hover {
+  background: var(--ck-surface-muted);
+  color: var(--ck-text);
+}
+.ck-side-link:hover i {
+  color: var(--ck-blue);
+  transform: translateX(1px);
+}
+.ck-side-link.active {
+  background: linear-gradient(135deg, rgba(8, 58, 133, 0.12) 0%, rgba(242, 12, 143, 0.08) 100%);
+  color: var(--ck-blue);
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  padding-left: 14px;
+  box-shadow: inset 0 0 0 1px rgba(8, 58, 133, 0.08);
+}
+.ck-side-link.active i {
+  color: var(--ck-pink);
+}
+.ck-side-link.active::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  top: 6px;
+  bottom: 6px;
+  width: 4px;
+  background: linear-gradient(180deg, #083A85 0%, #F20C8F 100%);
+  border-radius: 0 6px 6px 0;
+  box-shadow: 0 0 12px rgba(242, 12, 143, 0.45);
+}
+.ck-side-link.active::after {
+  content: '';
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
   width: 6px;
   height: 6px;
+  border-radius: 9999px;
+  background: var(--ck-pink);
+  box-shadow: 0 0 0 3px rgba(242, 12, 143, 0.15);
+  opacity: 0.85;
 }
-::-webkit-scrollbar-track {
-  background: transparent;
+
+[data-theme="dark"] .ck-side-link.active {
+  background: linear-gradient(135deg, rgba(99, 162, 255, 0.20) 0%, rgba(255, 99, 184, 0.12) 100%);
+  color: #DCE9FF;
+  box-shadow: inset 0 0 0 1px rgba(99, 162, 255, 0.20);
 }
-::-webkit-scrollbar-thumb {
-  background: rgba(139, 92, 246, 0.25);
-  border-radius: 3px;
+[data-theme="dark"] .ck-side-link.active i { color: #F472B6; }
+[data-theme="dark"] .ck-side-link.active::before {
+  background: linear-gradient(180deg, #60A5FA 0%, #F472B6 100%);
+  box-shadow: 0 0 14px rgba(99, 162, 255, 0.55);
 }
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(139, 92, 246, 0.4);
+[data-theme="dark"] .ck-side-link.active::after {
+  background: #F472B6;
+  box-shadow: 0 0 0 3px rgba(244, 114, 182, 0.20);
 }
+
+/* Section header inside the sidebar */
+.ck-side-section {
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: var(--ck-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 14px 14px 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ck-side-section::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--ck-stroke) 0%, transparent 100%);
+}
+
+/* Topbar */
+.ck-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: var(--ck-surface);
+  border-bottom: 1px solid var(--ck-stroke);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  color: var(--ck-text);
+}
+@media (max-width: 768px) {
+  .ck-topbar { padding: 10px 12px 10px 56px; }
+}
+
+/* ============================================
+   Connekyt brand text — adapts to theme
+   ============================================ */
+.ck-brand-text {
+  color: var(--ck-blue);
+  transition: color 220ms var(--ck-ease);
+}
+[data-theme="dark"] .ck-brand-text {
+  background: linear-gradient(135deg, #93C5FD 0%, #F472B6 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* ============================================
+   Dark-mode polish — make every interactive
+   surface feel intentional in the dark theme
+   ============================================ */
+
+/* Page surfaces in dark mode get a subtle vertical gradient so they don't
+   look like dead-flat slabs. */
+[data-theme="dark"] body {
+  background:
+    radial-gradient(ellipse at top, rgba(99, 162, 255, 0.06), transparent 60%),
+    radial-gradient(ellipse at bottom right, rgba(244, 114, 182, 0.04), transparent 60%),
+    var(--ck-surface-soft);
+  background-attachment: fixed;
+}
+
+/* Cards in dark mode — visible border + stronger shadow + inner light edge
+   so they clearly read as elevated rather than blending with the page. */
+[data-theme="dark"] .ck-card {
+  border-color: var(--ck-stroke);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+[data-theme="dark"] .ck-card-hover:hover {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08) inset, 0 16px 32px rgba(0, 0, 0, 0.50);
+  border-color: #4F6090;
+}
+
+/* Sidebar in dark mode gets a soft top-left brand glow so the rail
+   doesn't look like a flat black panel. */
+[data-theme="dark"] aside.sidebar-container,
+[data-theme="dark"] .sidebar-container {
+  background:
+    radial-gradient(ellipse at top left, rgba(99, 162, 255, 0.08), transparent 50%),
+    var(--ck-surface) !important;
+}
+
+/* Active sidebar link — stronger glow in dark mode */
+[data-theme="dark"] .ck-side-link.active {
+  background: linear-gradient(135deg, rgba(99, 162, 255, 0.20) 0%, rgba(244, 114, 182, 0.12) 100%);
+  color: #93C5FD;
+  box-shadow: inset 1px 0 0 rgba(99, 162, 255, 0.25);
+}
+[data-theme="dark"] .ck-side-link.active::before {
+  background: linear-gradient(180deg, #60A5FA 0%, #F472B6 100%);
+  box-shadow: 0 0 12px rgba(99, 162, 255, 0.40);
+}
+
+/* Inputs and search fields — ensure focus is unmistakable in dark mode */
+[data-theme="dark"] .ck-input,
+[data-theme="dark"] .ck-search > input {
+  background: var(--ck-surface);
+  color: var(--ck-text);
+}
+
+/* Status pill stronger borders in dark mode */
+[data-theme="dark"] .ck-status-success { border: 1px solid rgba(110, 231, 183, 0.20); }
+[data-theme="dark"] .ck-status-warning { border: 1px solid rgba(252, 211, 77, 0.20); }
+[data-theme="dark"] .ck-status-error   { border: 1px solid rgba(252, 165, 165, 0.20); }
+[data-theme="dark"] .ck-status-info    { border: 1px solid rgba(147, 197, 253, 0.20); }
+
+/* Modal shell — softer shadow + brand-glow accent in dark mode */
+[data-theme="dark"] .ck-modal-card {
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+[data-theme="dark"] .ck-modal-backdrop {
+  background: rgba(0, 0, 0, 0.65);
+}
+
+/* Tab pills — must clearly show against the dark page surface */
+[data-theme="dark"] .ck-tabs {
+  background: var(--ck-surface-muted);
+  border-color: var(--ck-stroke);
+}
+[data-theme="dark"] .ck-tab {
+  color: var(--ck-text-soft);
+}
+[data-theme="dark"] .ck-tab.active {
+  background: var(--ck-surface);
+  color: #F2F4F8;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08) inset, 0 4px 10px rgba(0, 0, 0, 0.35);
+}
+
+/* Ghost button border must be visible in dark mode */
+[data-theme="dark"] .ck-btn-ghost {
+  border-color: var(--ck-stroke);
+  background: rgba(255, 255, 255, 0.03);
+}
+[data-theme="dark"] .ck-btn-ghost:hover:not(:disabled) {
+  background: var(--ck-surface-muted);
+  border-color: #4F6090;
+}
+
+/* Soft button stays distinct on dark surfaces */
+[data-theme="dark"] .ck-btn-soft {
+  background: var(--ck-surface-muted);
+  color: var(--ck-text);
+}
+
+/* Soft hover row */
+[data-theme="dark"] .ck-row:hover { background: var(--ck-surface-muted); }
+
+/* Focus rings on dark-mode primary buttons stay visible against the page */
+[data-theme="dark"] .ck-btn-primary:focus-visible {
+  outline: 2px solid #60A5FA;
+  outline-offset: 2px;
+}
+[data-theme="dark"] .ck-btn-accent:focus-visible {
+  outline: 2px solid #F472B6;
+  outline-offset: 2px;
+}
+
+/* Avatars in dark mode use a brighter gradient so initials read clearly */
+[data-theme="dark"] .ck-avatar {
+  background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%);
+}
+
+/* Mobile menu button on dark theme */
+[data-theme="dark"] .mobile-menu-button {
+  background: var(--ck-surface) !important;
+  border-color: var(--ck-stroke) !important;
+  color: var(--ck-text) !important;
+}
+
+/* Empty-state icon tile pops in dark mode */
+[data-theme="dark"] .ck-empty .ck-empty-icon {
+  background: rgba(99, 162, 255, 0.10);
+  color: #93C5FD;
+}
+
+/* Wizard rail — ensure the inactive segment is visible on the dark surface */
+[data-theme="dark"] .ck-wizard-rail {
+  background: var(--ck-surface-soft);
+}
+[data-theme="dark"] .ck-wizard-step {
+  background: var(--ck-stroke);
+}
+[data-theme="dark"] .ck-wizard-step.active {
+  background: linear-gradient(90deg, #60A5FA, #F472B6);
+}
+
+/* Spinner gets a stronger track in dark mode */
+[data-theme="dark"] .ck-spinner {
+  border-color: rgba(255, 255, 255, 0.12);
+  border-top-color: #93C5FD;
+}
+
+/* Skeleton */
+[data-theme="dark"] .ck-skeleton {
+  background: linear-gradient(90deg, #1B2843 0%, #2A3A5E 50%, #1B2843 100%);
+  background-size: 800px 100%;
+}
+
+/* Dashboard hero gradient on home pages — needs more alpha in dark mode
+   so the wash actually shows over the dark surface. */
+[data-theme="dark"] .dashboard-hero {
+  background:
+    linear-gradient(135deg, rgba(99, 162, 255, 0.10) 0%, rgba(244, 114, 182, 0.08) 100%),
+    var(--ck-surface) !important;
+  border-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* Mini stats card inside the hero stays distinct in dark mode */
+[data-theme="dark"] .hero-stats-card {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Topbar wallet pill / balance pill — readable in dark mode */
+[data-theme="dark"] .topbar-wallet {
+  background: var(--ck-surface-muted) !important;
+  border-color: var(--ck-stroke) !important;
+}
+
+/* Notifications dropdown rows on dark theme */
+[data-theme="dark"] .notifications-container > div:nth-child(2) {
+  background: var(--ck-surface);
+  border-color: var(--ck-stroke);
+}
+

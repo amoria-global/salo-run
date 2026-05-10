@@ -72,33 +72,54 @@ const WalletMovementsTable: React.FC<WalletMovementsTableProps> = ({
   }, [loadAdmin, refreshKey]);
 
   return (
-    <div
-      style={{
-        backgroundColor: colors.bgCard,
-        borderRadius: '0.75rem',
-        padding: '1rem 0',
-        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-        border: `1px solid ${colors.borderPrimary}`,
-      }}
-    >
+    <div className="ck-card" style={{ padding: 0, overflow: 'hidden' }}>
       {title && (
-        <div style={{ padding: '0 1rem 0.5rem', fontSize: '1rem', fontWeight: 600, color: colors.textPrimary }}>
-          {title}
+        <div style={{
+          padding: '18px 24px 12px',
+          borderBottom: '1px solid var(--ck-stroke)',
+          background: 'var(--ck-surface)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+        }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: 8,
+            background: 'rgba(8,58,133,0.08)',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+          }}>
+            <i className="bi bi-arrow-left-right" style={{ color: 'var(--ck-blue)', fontSize: 14 }} />
+          </div>
+          <div>
+            <div style={{
+              fontSize: '0.65rem',
+              fontWeight: 700,
+              color: 'var(--ck-text-muted)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+            }}>Transactions</div>
+            <div style={{
+              fontSize: '1rem', fontWeight: 700, color: 'var(--ck-text)',
+              letterSpacing: '-0.005em',
+            }}>{title}</div>
+          </div>
         </div>
       )}
 
       {adminError && (
-        <div
-          style={{
-            padding: '0.75rem',
-            margin: '0 1rem 0.5rem',
-            borderRadius: '0.5rem',
-            backgroundColor: colors.statusErrorBg,
-            color: colors.statusError,
-            fontSize: '0.8125rem',
-          }}
-        >
-          {adminError}
+        <div style={{
+          padding: '10px 14px',
+          margin: '12px 18px',
+          borderRadius: 10,
+          background: '#FEF2F2',
+          border: '1px solid #FECACA',
+          color: '#991B1B',
+          fontSize: '0.85rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+        }}>
+          <i className="bi bi-exclamation-octagon-fill" /> {adminError}
         </div>
       )}
 

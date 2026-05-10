@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useTheme } from '../context/ThemeContext';
 import { dashboardAuthFetch } from '../providers/AuthProvider';
 import { getApiUrl } from '@/lib/api';
+import Modal from './ui/Modal';
+import Button from './ui/Button';
 
 interface PendingDeclaration {
   id: string;
@@ -22,21 +23,16 @@ interface PendingMilestonePaymentModalProps {
 }
 
 export default function PendingMilestonePaymentModal({ isOpen, onClose }: PendingMilestonePaymentModalProps) {
-  const { colors, actualTheme } = useTheme();
   const [pendingPayments, setPendingPayments] = useState<PendingDeclaration[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch pending payments when modal opens
   useEffect(() => {
     if (!isOpen) return;
-
     (async () => {
       try {
         const res = await dashboardAuthFetch(`${getApiUrl()}/api/remote/payments/pending-declarations`);
         const data = await res.json();
-        if (data.action === 1) {
-          setPendingPayments(data.data || []);
-        }
+        if (data.action === 1) setPendingPayments(data.data || []);
       } catch (err) {
         console.error('Failed to fetch pending payments:', err);
       } finally {
@@ -52,183 +48,79 @@ export default function PendingMilestonePaymentModal({ isOpen, onClose }: Pendin
   const isOverdue = firstPayment.isOverdue;
 
   return (
-    // Fixed overlay with blur backdrop
-    <div style={{
-      position: "fixed",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: "rgba(0, 0, 0, 0.5)",
-      backdropFilter: "blur(4px)",
-      WebkitBackdropFilter: "blur(4px)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      zIndex: 9999,
-    }}>
-      {/* Modal Card */}
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          backgroundColor: colors.bgCard,
-          borderRadius: "0.75rem",
-          padding: "2rem",
-          maxWidth: "500px",
-          width: "90%",
-          boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
-          textAlign: "center",
-        }}
-      >
-        {/* Icon Circle */}
-        <div style={{
-          width: "64px",
-          height: "64px",
-          borderRadius: "50%",
-          backgroundColor: isOverdue
-            ? (actualTheme === "dark" ? "#7F1D1D" : "#FEE2E2")
-            : (actualTheme === "dark" ? "#78350F" : "#FEF3C7"),
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          margin: "0 auto 1.25rem",
-        }}>
-          <i
-            className={isOverdue ? "bi bi-exclamation-triangle-fill" : "bi bi-clock-history"}
-            style={{
-              fontSize: "32px",
-              color: isOverdue ? "#DC2626" : "#F59E0B"
-            }}
-          />
-        </div>
-
-        {/* Title */}
-        <h3 style={{
-          fontSize: "1.35rem",
-          fontWeight: "700",
-          color: colors.textPrimary,
-          margin: "0 0 1rem",
-        }}>
-          {isOverdue ? "Payment Overdue" : "Payment Required"}
-        </h3>
-
-        {/* Payment Details */}
-        <div style={{
-          backgroundColor: actualTheme === "dark" ? "#1E293B" : "#F8FAFC",
-          border: `1.5px solid ${colors.borderPrimary}`,
-          borderRadius: "0.5rem",
-          padding: "1rem 1.25rem",
-          marginBottom: "1.5rem",
-          textAlign: "left",
-        }}>
-          <div style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "baseline",
-            marginBottom: "0.5rem",
-          }}>
-            <span style={{
-              fontSize: "0.875rem",
-              color: colors.textSecondary,
-            }}>Event</span>
-            <span style={{
-              fontSize: "1rem",
-              fontWeight: "600",
-              color: colors.textPrimary,
-            }}>{firstPayment.eventName}</span>
-          </div>
-
-          <div style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "baseline",
-            marginBottom: "0.5rem",
-          }}>
-            <span style={{
-              fontSize: "0.875rem",
-              color: colors.textSecondary,
-            }}>Amount Due</span>
-            <span style={{
-              fontSize: "1.25rem",
-              fontWeight: "700",
-              color: isOverdue ? "#DC2626" : "#F59E0B",
-            }}>
-              {firstPayment.currency} {firstPayment.amount.toLocaleString()}
-            </span>
-          </div>
-
-          <div style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "baseline",
-          }}>
-            <span style={{
-              fontSize: "0.875rem",
-              color: colors.textSecondary,
-            }}>Milestone</span>
-            <span style={{
-              fontSize: "0.875rem",
-              color: colors.textPrimary,
-            }}>
-              {firstPayment.milestoneSequence === 1 ? "First Payment" : "Second Payment"}
-              {" "}({firstPayment.escrowPercentage}%)
-            </span>
-          </div>
-        </div>
-
-        {/* Additional Payments Indicator */}
-        {remainingCount > 0 && (
-          <p style={{
-            fontSize: "0.875rem",
-            color: colors.textSecondary,
-            margin: "0 0 1.5rem",
-            fontStyle: "italic",
-          }}>
-            + {remainingCount} more pending payment{remainingCount > 1 ? "s" : ""}
-          </p>
-        )}
-
-        {/* Action Buttons */}
-        <div style={{
-          display: "flex",
-          gap: "0.75rem",
-        }}>
-          <button
-            onClick={() => {
-              window.location.href = '/client/payments';
-            }}
-            style={{
-              flex: 1,
-              padding: "0.75rem",
-              border: "none",
-              borderRadius: "0.5rem",
-              backgroundColor: isOverdue ? "#DC2626" : "#F59E0B",
-              color: "white",
-              fontSize: "1rem",
-              fontWeight: "600",
-              cursor: "pointer",
-            }}
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="sm"
+      title={isOverdue ? 'Payment overdue' : 'Payment required'}
+      description={isOverdue ? 'Your milestone payment is past due.' : 'A scheduled milestone payment is pending.'}
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>Later</Button>
+          <Button
+            variant={isOverdue ? 'danger' : 'primary'}
+            onClick={() => { window.location.href = '/user/client/payments'; }}
+            iconLeft={<i className="bi bi-credit-card" />}
           >
-            Pay Now
-          </button>
-
-          <button
-            onClick={onClose}
-            style={{
-              padding: "0.75rem 1.25rem",
-              border: `1px solid ${colors.borderPrimary}`,
-              borderRadius: "0.5rem",
-              backgroundColor: "transparent",
-              color: colors.textSecondary,
-              fontSize: "1rem",
-              fontWeight: "500",
-              cursor: "pointer",
-            }}
-          >
-            Later
-          </button>
-        </div>
+            Pay now
+          </Button>
+        </>
+      }
+    >
+      <div style={{
+        width: 56, height: 56, borderRadius: 9999,
+        background: isOverdue ? '#FEE2E2' : '#FEF3C7',
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        margin: '4px auto 14px',
+      }}>
+        <i
+          className={`bi ${isOverdue ? 'bi-exclamation-triangle-fill' : 'bi-clock-history'}`}
+          style={{ fontSize: 24, color: isOverdue ? '#DC2626' : '#F59E0B' }}
+        />
       </div>
-    </div>
+
+      <div style={{
+        background: 'var(--ck-surface-soft)',
+        border: '1px solid var(--ck-stroke)',
+        borderRadius: 12,
+        padding: 16,
+      }}>
+        <Row label="Event" value={firstPayment.eventName} />
+        <Row
+          label="Amount due"
+          value={`${firstPayment.currency} ${firstPayment.amount.toLocaleString()}`}
+          valueStyle={{ color: isOverdue ? '#DC2626' : '#F59E0B', fontSize: '1.05rem', fontWeight: 800 }}
+        />
+        <Row
+          label="Milestone"
+          value={`${firstPayment.milestoneSequence === 1 ? 'First payment' : 'Second payment'} (${firstPayment.escrowPercentage}%)`}
+          last
+        />
+      </div>
+
+      {remainingCount > 0 && (
+        <p style={{
+          marginTop: 14, marginBottom: 0,
+          fontSize: '0.85rem', color: 'var(--ck-text-soft)',
+          textAlign: 'center', fontStyle: 'italic',
+        }}>
+          + {remainingCount} more pending payment{remainingCount > 1 ? 's' : ''}
+        </p>
+      )}
+    </Modal>
   );
 }
+
+const Row = ({ label, value, valueStyle, last }: { label: string; value: React.ReactNode; valueStyle?: React.CSSProperties; last?: boolean; }) => (
+  <div style={{
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    paddingBottom: last ? 0 : 10,
+    marginBottom: last ? 0 : 10,
+    borderBottom: last ? 'none' : '1px solid var(--ck-stroke-soft)',
+  }}>
+    <span style={{ fontSize: '0.82rem', color: 'var(--ck-text-soft)', fontWeight: 500 }}>{label}</span>
+    <span style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--ck-text)', textAlign: 'right', ...valueStyle }}>{value}</span>
+  </div>
+);

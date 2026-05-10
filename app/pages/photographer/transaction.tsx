@@ -1382,74 +1382,127 @@ Amount: ${formatPrice(transaction.amountNum)}
         <div className="mobile-main-content" style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
 
           {/* Header with Withdraw Button */}
-          <header className="mobile-header" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <h1 className="mobile-title" style={{ fontSize: '1.8rem', lineHeight: '2rem', color: colors.textPrimary, fontWeight: '600' }}>Transactions</h1>
-              <p style={{ fontSize: '0.95rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
-                Manage your earnings and view transaction history
+          <header className="mobile-header" style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-end',
+            gap: 16,
+            flexWrap: 'wrap',
+            margin: '8px 0 22px',
+          }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                color: '#F20C8F',
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                marginBottom: 6,
+              }}>Money</div>
+              <h1 className="mobile-title" style={{
+                margin: 0,
+                fontSize: '1.85rem',
+                fontWeight: 800,
+                letterSpacing: '-0.02em',
+                color: colors.textPrimary,
+              }}>Transactions</h1>
+              <p style={{
+                margin: '4px 0 0',
+                fontSize: '0.92rem',
+                color: colors.textSecondary,
+              }}>
+                Manage your earnings and view transaction history.
               </p>
             </div>
             <button
               onClick={() => hasPaymentAccount === false ? setShowSetupModal(true) : setShowWithdrawModal(true)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                backgroundColor: '#083A85',
-                color: 'white',
-                border: 'none',
-                borderRadius: '0.5rem',
-                padding: '0.75rem 1.5rem',
-                fontSize: '0.9rem',
-                fontWeight: '600',
-                cursor: 'pointer'
-              }}
+              className="ck-btn ck-btn-primary"
+              style={{ padding: '11px 20px', fontSize: '0.92rem' }}
             >
-              <WithdrawIcon />
-              Withdraw Funds
+              <i className="bi bi-bank" /> Withdraw funds
             </button>
           </header>
 
           {/* Tips and Bonus Cards */}
-          <div className="mobile-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+          <div className="mobile-grid-2" style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: 16,
+            marginBottom: 16,
+          }}>
             {/* Tips Section - From Clients */}
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1.25rem', boxShadow: colors.shadowSm }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                    <div style={{ width: '32px', height: '32px', backgroundColor: actualTheme === 'dark' ? '#14532D' : '#F0FDF4', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <span style={{ fontSize: '1rem' }}>💝</span>
-                    </div>
-                    <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Tips from Clients</h3>
+            <div className="ck-card" style={{ padding: 20, borderTop: '3px solid #10B981' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, minWidth: 0 }}>
+                  <div style={{
+                    width: 40, height: 40, borderRadius: 10,
+                    background: 'rgba(16,185,129,0.10)',
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                  }}>
+                    <i className="bi bi-coin" style={{ color: '#10B981', fontSize: 16 }} />
                   </div>
-                  <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: 0 }}>Appreciation from your clients</p>
+                  <div style={{ minWidth: 0 }}>
+                    <h3 style={{
+                      margin: 0,
+                      fontSize: '1rem',
+                      fontWeight: 800,
+                      letterSpacing: '-0.005em',
+                      color: 'var(--ck-text)',
+                    }}>Tips from clients</h3>
+                    <p style={{ fontSize: '0.82rem', color: 'var(--ck-text-soft)', margin: '2px 0 0' }}>Appreciation from your clients</p>
+                  </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>{formatPrice(totalTips)}</div>
-                  <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>{tipsData.length} tips received</div>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div style={{
+                    fontSize: '1.5rem',
+                    fontWeight: 800,
+                    letterSpacing: '-0.02em',
+                    color: '#10B981',
+                    lineHeight: 1.1,
+                  }}>{formatPrice(totalTips)}</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--ck-text-soft)', marginTop: 2 }}>{tipsData.length} tips received</div>
                 </div>
               </div>
 
               {/* Recent Tips List */}
-              <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, paddingTop: '1rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary }}>Recent Tips</span>
+              <div style={{ borderTop: '1px solid var(--ck-stroke)', paddingTop: 14 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                  <span style={{
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    color: 'var(--ck-text-muted)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.06em',
+                  }}>Recent tips</span>
                   <button
                     onClick={() => setShowTipsModal(true)}
-                    style={{ fontSize: '0.8rem', color: '#16A34A', fontWeight: '500', background: 'none', border: 'none', cursor: 'pointer' }}
+                    style={{
+                      fontSize: '0.78rem', color: '#10B981',
+                      fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer',
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                    }}
                   >
-                    View All
+                    View all <i className="bi bi-arrow-right" style={{ fontSize: 11 }} />
                   </button>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '120px', overflowY: 'auto' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 120, overflowY: 'auto' }}>
                   {tipsData.map((tip) => (
-                    <div key={tip.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', backgroundColor: actualTheme === 'dark' ? '#14532D' : '#F0FDF4', borderRadius: '0.375rem', border: `1px solid ${actualTheme === 'dark' ? '#166534' : '#BBF7D0'}` }}>
-                      <div>
-                        <div style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>{tip.clientName}</div>
-                        <div style={{ fontSize: '0.7rem', color: colors.textSecondary }}>{tip.eventName} • {tip.date}</div>
-                        {tip.message && <div style={{ fontSize: '0.7rem', color: actualTheme === 'dark' ? '#4ADE80' : '#166534', fontStyle: 'italic', marginTop: '0.125rem' }}>&ldquo;{tip.message}&rdquo;</div>}
+                    <div key={tip.id} style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '8px 10px',
+                      background: 'rgba(16,185,129,0.06)',
+                      borderRadius: 8,
+                      border: '1px solid rgba(16,185,129,0.18)',
+                    }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--ck-text)' }}>{tip.clientName}</div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--ck-text-soft)' }}>{tip.eventName} · {tip.date}</div>
+                        {tip.message && <div style={{ fontSize: '0.7rem', color: '#065F46', fontStyle: 'italic', marginTop: 2 }}>&ldquo;{tip.message}&rdquo;</div>}
                       </div>
-                      <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#16A34A' }}>+${tip.amount}</div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#10B981' }}>+${tip.amount}</div>
                     </div>
                   ))}
                 </div>
@@ -1457,64 +1510,167 @@ Amount: ${formatPrice(transaction.amountNum)}
             </div>
 
             {/* Platform Bonus Section */}
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1.25rem', boxShadow: colors.shadowSm }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                    <div style={{ width: '32px', height: '32px', backgroundColor: actualTheme === 'dark' ? '#14532D' : '#F0FDF4', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <span style={{ fontSize: '1rem' }}>🎁</span>
-                    </div>
-                    <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Platform Bonus</h3>
+            <div className="ck-card" style={{
+              padding: 20,
+              borderTop: `3px solid ${bonusApproved ? '#10B981' : bonusPending ? '#F59E0B' : bonusRejected ? '#DC2626' : '#F20C8F'}`,
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, minWidth: 0 }}>
+                  <div style={{
+                    width: 40, height: 40, borderRadius: 10,
+                    background: bonusApproved
+                      ? 'rgba(16,185,129,0.10)'
+                      : bonusPending
+                        ? 'rgba(245,158,11,0.12)'
+                        : bonusRejected
+                          ? 'rgba(220,38,38,0.10)'
+                          : 'rgba(242,12,143,0.10)',
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                  }}>
+                    <i className="bi bi-gift-fill" style={{
+                      color: bonusApproved ? '#10B981' : bonusPending ? '#F59E0B' : bonusRejected ? '#DC2626' : '#F20C8F',
+                      fontSize: 16,
+                    }} />
                   </div>
-                  <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: 0 }}>
-                    {bonusApproved ? 'Bonus earned for completing your first ' + BONUS_THRESHOLD + ' events!'
-                      : bonusPending ? 'Bonus pending admin approval'
-                      : bonusRejected ? 'Bonus request was not approved'
-                      : `Complete your first ${BONUS_THRESHOLD} events to earn ${formatPrice(platformConfig.photographer.bonusAmount)}`}
-                  </p>
+                  <div style={{ minWidth: 0 }}>
+                    <h3 style={{
+                      margin: 0,
+                      fontSize: '1rem',
+                      fontWeight: 800,
+                      letterSpacing: '-0.005em',
+                      color: 'var(--ck-text)',
+                    }}>Platform bonus</h3>
+                    <p style={{ fontSize: '0.82rem', color: 'var(--ck-text-soft)', margin: '2px 0 0', lineHeight: 1.4 }}>
+                      {bonusApproved ? `Bonus earned for completing your first ${BONUS_THRESHOLD} events!`
+                        : bonusPending ? 'Bonus pending admin approval'
+                        : bonusRejected ? 'Bonus request was not approved'
+                        : `Complete your first ${BONUS_THRESHOLD} events to earn ${formatPrice(platformConfig.photographer.bonusAmount, platformConfig.photographer.bonusCurrencyId)}`}
+                    </p>
+                  </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: bonusApproved ? '#16A34A' : bonusPending ? '#F59E0B' : bonusRejected ? '#DC2626' : colors.textSecondary }}>{bonusApproved ? formatPrice(platformBonus) : formatPrice(platformConfig.photographer.bonusAmount)}</div>
-                  <div style={{ fontSize: '0.75rem', color: bonusPending ? '#F59E0B' : bonusRejected ? '#DC2626' : colors.textSecondary }}>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div style={{
+                    fontSize: '1.5rem',
+                    fontWeight: 800,
+                    letterSpacing: '-0.02em',
+                    lineHeight: 1.1,
+                    color: bonusApproved ? '#10B981' : bonusPending ? '#F59E0B' : bonusRejected ? '#DC2626' : 'var(--ck-text)',
+                  }}>{bonusApproved ? (wallet?.balanceBonuses != null ? formatPrice(wallet.balanceBonuses) : formatPrice(bonusStatus.amount ?? 0, bonusStatus.currencyAbbreviation)) : formatPrice(platformConfig.photographer.bonusAmount, platformConfig.photographer.bonusCurrencyId)}</div>
+                  <div style={{
+                    fontSize: '0.72rem',
+                    color: bonusPending ? '#F59E0B' : bonusRejected ? '#DC2626' : 'var(--ck-text-soft)',
+                    marginTop: 2,
+                    fontWeight: 600,
+                  }}>
                     {bonusApproved ? 'Bonus earned' : bonusPending ? 'Pending approval' : bonusRejected ? 'Not approved' : 'Not yet earned'}
                   </div>
                 </div>
               </div>
 
               {/* Progress to Bonus */}
-              <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, paddingTop: '1rem' }}>
+              <div style={{ borderTop: '1px solid var(--ck-stroke)', paddingTop: 14 }}>
                 {bonusRejected && bonusStatus.adminComment && (
-                  <div style={{ padding: '0.75rem', backgroundColor: actualTheme === 'dark' ? '#7F1D1D20' : '#FEF2F2', borderRadius: '0.375rem', border: `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}`, marginBottom: '0.75rem' }}>
-                    <div style={{ fontSize: '0.75rem', fontWeight: '600', color: actualTheme === 'dark' ? '#FCA5A5' : '#991B1B', marginBottom: '0.2rem' }}>Admin Comment</div>
-                    <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{bonusStatus.adminComment}</div>
+                  <div style={{
+                    padding: 12,
+                    background: '#FEF2F2',
+                    borderRadius: 10,
+                    border: '1px solid #FECACA',
+                    marginBottom: 12,
+                  }}>
+                    <div style={{
+                      fontSize: '0.7rem', fontWeight: 700,
+                      color: '#991B1B',
+                      textTransform: 'uppercase', letterSpacing: '0.06em',
+                      marginBottom: 4,
+                    }}>Admin comment</div>
+                    <div style={{ fontSize: '0.82rem', color: '#7F1D1D' }}>{bonusStatus.adminComment}</div>
                   </div>
                 )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary }}>
-                    {bonusApproved ? 'Bonus Achieved' : bonusPending ? 'Pending Approval' : 'Progress to Bonus'}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <span style={{
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    color: 'var(--ck-text-muted)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.06em',
+                  }}>
+                    {bonusApproved ? 'Bonus achieved' : bonusPending ? 'Pending approval' : 'Progress to bonus'}
                   </span>
-                  <span style={{ fontSize: '0.8rem', fontWeight: '600', color: bonusApproved ? '#16A34A' : bonusPending ? '#F59E0B' : '#2563EB' }}>
+                  <span style={{
+                    fontSize: '0.78rem', fontWeight: 700,
+                    color: bonusApproved ? '#10B981' : bonusPending ? '#F59E0B' : 'var(--ck-blue)',
+                  }}>
                     {Math.min(completedEventsCount, BONUS_THRESHOLD)}/{BONUS_THRESHOLD} events
                   </span>
                 </div>
-                <div style={{ width: '100%', height: '8px', backgroundColor: colors.borderPrimary, borderRadius: '9999px', overflow: 'hidden', marginBottom: '0.75rem' }}>
-                  <div style={{ width: `${Math.min(100, (completedEventsCount / BONUS_THRESHOLD) * 100)}%`, height: '100%', backgroundColor: bonusApproved ? '#16A34A' : bonusPending ? '#F59E0B' : '#2563EB', borderRadius: '9999px', transition: 'width 0.3s ease' }} />
+                <div style={{
+                  width: '100%', height: 8,
+                  background: 'var(--ck-surface-muted)',
+                  borderRadius: 9999, overflow: 'hidden',
+                  marginBottom: 12,
+                }}>
+                  <div style={{
+                    width: `${Math.min(100, (completedEventsCount / BONUS_THRESHOLD) * 100)}%`,
+                    height: '100%',
+                    background: bonusApproved
+                      ? 'linear-gradient(90deg, #10B981, #34D399)'
+                      : bonusPending
+                        ? 'linear-gradient(90deg, #F59E0B, #FBBF24)'
+                        : 'linear-gradient(90deg, #083A85, #F20C8F)',
+                    borderRadius: 9999,
+                    transition: 'width 480ms var(--ck-ease)',
+                  }} />
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ padding: '0.5rem 0.75rem', backgroundColor: actualTheme === 'dark' ? '#14532D' : '#F0FDF4', borderRadius: '0.375rem', border: `1px solid ${actualTheme === 'dark' ? '#166534' : '#BBF7D0'}` }}>
-                    <div style={{ fontSize: '0.7rem', color: actualTheme === 'dark' ? '#4ADE80' : '#166534', marginBottom: '0.125rem' }}>Completed Events</div>
-                    <div style={{ fontSize: '1rem', fontWeight: '700', color: '#16A34A' }}>{completedEventsCount}</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+                  <div style={{
+                    flex: 1,
+                    padding: '8px 12px',
+                    background: 'rgba(16,185,129,0.06)',
+                    borderRadius: 10,
+                    border: '1px solid rgba(16,185,129,0.18)',
+                  }}>
+                    <div style={{
+                      fontSize: '0.66rem', fontWeight: 700,
+                      color: '#065F46',
+                      textTransform: 'uppercase', letterSpacing: '0.06em',
+                    }}>Completed events</div>
+                    <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#10B981', marginTop: 2 }}>{completedEventsCount}</div>
                   </div>
                   {!bonusReached && (
-                    <div style={{ padding: '0.5rem 0.75rem', backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF', borderRadius: '0.375rem', border: `1px solid ${actualTheme === 'dark' ? '#1E40AF' : '#BFDBFE'}` }}>
-                      <div style={{ fontSize: '0.7rem', color: actualTheme === 'dark' ? '#60A5FA' : '#1E40AF', marginBottom: '0.125rem' }}>Events Remaining</div>
-                      <div style={{ fontSize: '1rem', fontWeight: '700', color: '#2563EB' }}>{eventsToBonus}</div>
+                    <div style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      background: 'rgba(8,58,133,0.06)',
+                      borderRadius: 10,
+                      border: '1px solid rgba(8,58,133,0.18)',
+                    }}>
+                      <div style={{
+                        fontSize: '0.66rem', fontWeight: 700,
+                        color: 'var(--ck-blue)',
+                        textTransform: 'uppercase', letterSpacing: '0.06em',
+                      }}>Events remaining</div>
+                      <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--ck-blue)', marginTop: 2 }}>{eventsToBonus}</div>
                     </div>
                   )}
                   {bonusReached && (
-                    <div style={{ padding: '0.5rem 0.75rem', backgroundColor: bonusApproved ? (actualTheme === 'dark' ? '#14532D' : '#F0FDF4') : bonusPending ? (actualTheme === 'dark' ? '#78350F' : '#FEF3C7') : (actualTheme === 'dark' ? '#7F1D1D' : '#FEF2F2'), borderRadius: '0.375rem', border: `1px solid ${bonusApproved ? (actualTheme === 'dark' ? '#166534' : '#BBF7D0') : bonusPending ? (actualTheme === 'dark' ? '#92400E' : '#FCD34D') : (actualTheme === 'dark' ? '#991B1B' : '#FECACA')}` }}>
-                      <div style={{ fontSize: '0.7rem', color: bonusApproved ? (actualTheme === 'dark' ? '#4ADE80' : '#166534') : bonusPending ? (actualTheme === 'dark' ? '#FCD34D' : '#92400E') : (actualTheme === 'dark' ? '#FCA5A5' : '#991B1B'), marginBottom: '0.125rem' }}>Status</div>
-                      <div style={{ fontSize: '1rem', fontWeight: '700', color: bonusApproved ? '#16A34A' : bonusPending ? '#F59E0B' : '#DC2626' }}>{bonusApproved ? 'Approved' : bonusPending ? 'Pending' : 'Rejected'}</div>
+                    <div style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      background: bonusApproved ? 'rgba(16,185,129,0.06)' : bonusPending ? 'rgba(245,158,11,0.08)' : '#FEF2F2',
+                      borderRadius: 10,
+                      border: `1px solid ${bonusApproved ? 'rgba(16,185,129,0.18)' : bonusPending ? 'rgba(245,158,11,0.30)' : '#FECACA'}`,
+                    }}>
+                      <div style={{
+                        fontSize: '0.66rem', fontWeight: 700,
+                        color: bonusApproved ? '#065F46' : bonusPending ? '#92400E' : '#991B1B',
+                        textTransform: 'uppercase', letterSpacing: '0.06em',
+                      }}>Status</div>
+                      <div style={{
+                        fontSize: '1.05rem', fontWeight: 800,
+                        color: bonusApproved ? '#10B981' : bonusPending ? '#F59E0B' : '#DC2626',
+                        marginTop: 2,
+                      }}>{bonusApproved ? 'Approved' : bonusPending ? 'Pending' : 'Rejected'}</div>
                     </div>
                   )}
                 </div>
@@ -1526,94 +1682,106 @@ Amount: ${formatPrice(transaction.amountNum)}
           <div className="mobile-chart-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '1rem', marginBottom: '1rem' }}>
 
             {/* Earnings Chart */}
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1.25rem', boxShadow: colors.shadowSm }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
-                <div>
-                  <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Earnings</div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '1rem' }}>
-                    <span style={{ fontSize: '1.75rem', fontWeight: '700', color: colors.textPrimary }}>{formatPrice(totalCompleted + totalPending + totalWithdrawn)}</span>
-                    <span style={{ fontSize: '0.85rem', color: colors.textSecondary, fontWeight: '500' }}>This period</span>
+            <div className="ck-card" style={{ padding: 20 }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                gap: 14,
+                marginBottom: 18,
+                flexWrap: 'wrap',
+              }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    color: 'var(--ck-text-muted)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.06em',
+                    marginBottom: 4,
+                  }}>Total earnings</div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+                    <span style={{
+                      fontSize: '1.85rem',
+                      fontWeight: 800,
+                      letterSpacing: '-0.02em',
+                      color: 'var(--ck-text)',
+                      lineHeight: 1.05,
+                    }}>{formatPrice(totalCompleted + totalPending + totalWithdrawn)}</span>
+                    <span className="ck-pill" style={{
+                      background: 'var(--ck-surface-muted)',
+                      color: 'var(--ck-text-soft)',
+                      fontWeight: 600,
+                      padding: '3px 10px',
+                    }}>This period</span>
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                   {/* Chart Type Selector */}
-                  <div style={{ display: 'flex', gap: '0.25rem', backgroundColor: colors.bgTertiary, borderRadius: '0.375rem', padding: '0.25rem' }}>
-                    <button
-                      onClick={() => setChartType('line')}
-                      style={{
-                        padding: '0.375rem',
-                        border: 'none',
-                        borderRadius: '0.25rem',
-                        cursor: 'pointer',
-                        backgroundColor: chartType === 'line' ? colors.bgCard : 'transparent',
-                        boxShadow: chartType === 'line' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        transition: 'all 0.2s'
-                      }}
-                      title="Line Chart"
-                    >
-                      <LineChartIcon active={chartType === 'line'} />
-                    </button>
-                    <button
-                      onClick={() => setChartType('bar')}
-                      style={{
-                        padding: '0.375rem',
-                        border: 'none',
-                        borderRadius: '0.25rem',
-                        cursor: 'pointer',
-                        backgroundColor: chartType === 'bar' ? colors.bgCard : 'transparent',
-                        boxShadow: chartType === 'bar' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        transition: 'all 0.2s'
-                      }}
-                      title="Bar Chart"
-                    >
-                      <BarChartIcon active={chartType === 'bar'} />
-                    </button>
-                    <button
-                      onClick={() => setChartType('scatter')}
-                      style={{
-                        padding: '0.375rem',
-                        border: 'none',
-                        borderRadius: '0.25rem',
-                        cursor: 'pointer',
-                        backgroundColor: chartType === 'scatter' ? colors.bgCard : 'transparent',
-                        boxShadow: chartType === 'scatter' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        transition: 'all 0.2s'
-                      }}
-                      title="Scatter Chart"
-                    >
-                      <ScatterChartIcon active={chartType === 'scatter'} />
-                    </button>
+                  <div style={{
+                    display: 'inline-flex', gap: 2, padding: 3,
+                    background: 'var(--ck-surface-muted)',
+                    border: '1px solid var(--ck-stroke)',
+                    borderRadius: 10,
+                  }}>
+                    {([
+                      { key: 'line', icon: 'bi-graph-up', title: 'Line chart' },
+                      { key: 'bar', icon: 'bi-bar-chart-fill', title: 'Bar chart' },
+                      { key: 'scatter', icon: 'bi-grid-1x2-fill', title: 'Scatter chart' },
+                    ] as const).map(c => {
+                      const active = chartType === c.key;
+                      return (
+                        <button
+                          key={c.key}
+                          onClick={() => setChartType(c.key as typeof chartType)}
+                          title={c.title}
+                          aria-label={c.title}
+                          style={{
+                            width: 32, height: 32, borderRadius: 7,
+                            border: 'none', cursor: 'pointer',
+                            background: active ? 'var(--ck-surface)' : 'transparent',
+                            color: active ? 'var(--ck-blue)' : 'var(--ck-text-soft)',
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                            boxShadow: active ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+                            transition: 'background 180ms, color 180ms',
+                          }}
+                        >
+                          <i className={`bi ${c.icon}`} style={{ fontSize: 13 }} />
+                        </button>
+                      );
+                    })}
                   </div>
                   {/* Time Period Filter */}
-                  <div style={{ display: 'flex', gap: '0.25rem', backgroundColor: colors.bgTertiary, borderRadius: '0.375rem', padding: '0.25rem' }}>
-                    {(['1W', '1M', '3M', '6M', '1Y'] as const).map((period) => (
-                      <button
-                        key={period}
-                        onClick={() => setActiveTimeFilter(period)}
-                        style={{
-                          padding: '0.375rem 0.625rem',
-                          border: 'none',
-                          borderRadius: '0.25rem',
-                          fontSize: '0.75rem',
-                          cursor: 'pointer',
-                          backgroundColor: activeTimeFilter === period ? '#083A85' : 'transparent',
-                          color: activeTimeFilter === period ? 'white' : '#6B7280',
-                          fontWeight: '600',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        {period}
-                      </button>
-                    ))}
+                  <div style={{
+                    display: 'inline-flex', gap: 2, padding: 3,
+                    background: 'var(--ck-surface-muted)',
+                    border: '1px solid var(--ck-stroke)',
+                    borderRadius: 10,
+                  }}>
+                    {(['1W', '1M', '3M', '6M', '1Y'] as const).map((period) => {
+                      const active = activeTimeFilter === period;
+                      return (
+                        <button
+                          key={period}
+                          onClick={() => setActiveTimeFilter(period)}
+                          style={{
+                            padding: '6px 12px',
+                            border: 'none',
+                            borderRadius: 7,
+                            fontSize: '0.74rem',
+                            cursor: 'pointer',
+                            background: active ? 'var(--ck-blue)' : 'transparent',
+                            color: active ? '#ffffff' : 'var(--ck-text-soft)',
+                            fontWeight: 700,
+                            transition: 'background 180ms, color 180ms, box-shadow 180ms',
+                            boxShadow: active ? '0 4px 10px rgba(8,58,133,0.22)' : 'none',
+                            letterSpacing: '0.02em',
+                          }}
+                        >
+                          {period}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -1621,13 +1789,34 @@ Amount: ${formatPrice(transaction.amountNum)}
             </div>
 
             {/* Earnings Summary */}
-            <div className="mobile-earnings-summary" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1.25rem', boxShadow: colors.shadowSm }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <div>
-                  <div style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>Earnings Summary</div>
-                  <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Current Period</div>
+            <div className="mobile-earnings-summary ck-card" style={{ padding: 20 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12, gap: 10 }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    color: 'var(--ck-text-muted)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.06em',
+                    marginBottom: 4,
+                  }}>Current period</div>
+                  <div style={{
+                    fontSize: '1rem',
+                    fontWeight: 800,
+                    letterSpacing: '-0.005em',
+                    color: 'var(--ck-text)',
+                  }}>Earnings summary</div>
                 </div>
-                <button onClick={() => setShowReportModal(true)} style={{ fontSize: '0.85rem', color: '#2563EB', textDecoration: 'none', fontWeight: '500', background: 'none', border: 'none', cursor: 'pointer' }}>View report</button>
+                <button
+                  onClick={() => setShowReportModal(true)}
+                  style={{
+                    fontSize: '0.78rem', color: 'var(--ck-blue)',
+                    textDecoration: 'none', fontWeight: 600,
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    flexShrink: 0,
+                  }}
+                >View report <i className="bi bi-arrow-right" style={{ fontSize: 11 }} /></button>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                 <div style={{ textAlign: 'center' }}>

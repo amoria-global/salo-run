@@ -4,7 +4,6 @@ import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
-import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
 import {
   adminListWallets,
@@ -13,12 +12,12 @@ import {
   type WalletStatus,
   type SpringPage,
 } from '@/lib/walletApi';
+import { Card, PageHeader, Search, Tabs, Badge, Button, EmptyState } from '../../components/ui';
 
 const STATUS_OPTIONS: WalletStatus[] = ['ACTIVE', 'SUSPENDED', 'CLOSED'];
 const CUSTOMER_TYPE_OPTIONS = ['photographer', 'client', 'event-coordinator'];
 
 export default function AdminWalletsPage() {
-  const { colors, actualTheme } = useTheme();
   const { formatPrice } = useCurrency();
 
   const [status, setStatus] = useState<WalletStatus>('ACTIVE');
@@ -31,8 +30,6 @@ export default function AdminWalletsPage() {
   const [data, setData] = useState<SpringPage<WalletDTO> | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Provision state
   const [provisioning, setProvisioning] = useState(false);
   const [provisionMsg, setProvisionMsg] = useState<string | null>(null);
 
@@ -58,17 +55,11 @@ export default function AdminWalletsPage() {
     }
   }, [status, customerType, search, hasDrift, sortBy, sortDir, page]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useEffect(() => { load(); }, [load]);
 
-  // Debounce search
   const [searchInput, setSearchInput] = useState('');
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setSearch(searchInput);
-      setPage(0);
-    }, 400);
+    const timer = setTimeout(() => { setSearch(searchInput); setPage(0); }, 400);
     return () => clearTimeout(timer);
   }, [searchInput]);
 
@@ -93,473 +84,276 @@ export default function AdminWalletsPage() {
   const totalPages = data?.totalPages ?? 1;
   const content = data?.content ?? [];
 
+  const statusTone = (s: WalletStatus): 'success' | 'error' | 'muted' => {
+    if (s === 'ACTIVE') return 'success';
+    if (s === 'SUSPENDED') return 'error';
+    return 'muted';
+  };
+
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
+    <div style={{ display: 'flex', height: '100vh', background: 'var(--ck-surface-soft)', overflow: 'hidden' }}>
       <Sidebar />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
         <Topbar userRole="admin" />
 
-        <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
-          {/* Header */}
-          <div
-            style={{
-              marginBottom: '1.5rem',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'flex-start',
-              gap: '1rem',
-              flexWrap: 'wrap',
-            }}
-          >
-            <div>
-              <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: colors.textPrimary, margin: 0 }}>
-                Wallets
-              </h1>
-              <p style={{ fontSize: '0.875rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
-                Inspect, reconcile, suspend, or manually adjust customer wallets.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={handleProvision}
-              disabled={provisioning}
-              style={{
-                padding: '0.5rem 1rem',
-                borderRadius: '0.5rem',
-                border: 'none',
-                backgroundColor: '#083A85',
-                color: 'white',
-                fontSize: '0.8125rem',
-                fontWeight: 600,
-                cursor: provisioning ? 'not-allowed' : 'pointer',
-                opacity: provisioning ? 0.6 : 1,
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {provisioning ? 'Provisioning\u2026' : 'Provision missing wallets'}
-            </button>
-          </div>
+        <main className="ck-page" style={{ overflowY: 'auto', flex: 1 }}>
+          <PageHeader
+            eyebrow="Admin"
+            title="Wallets"
+            subtitle="Inspect, reconcile, suspend, or manually adjust customer wallets."
+            actions={
+              <Button
+                variant="primary"
+                onClick={handleProvision}
+                loading={provisioning}
+                iconLeft={<i className="bi bi-plus-circle" />}
+              >
+                Provision missing
+              </Button>
+            }
+          />
 
-          {/* Provision feedback */}
           {provisionMsg && (
-            <div
-              style={{
-                padding: '0.75rem 1rem',
-                borderRadius: '0.5rem',
-                backgroundColor: '#DBEAFE',
-                color: '#1E40AF',
-                fontSize: '0.8125rem',
-                marginBottom: '1rem',
-              }}
-            >
-              {provisionMsg}
-            </div>
+            <Card style={{ marginBottom: 14, background: '#EFF6FF', borderColor: '#BFDBFE' }} padding={12}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#1E40AF', fontSize: '0.88rem' }}>
+                <i className="bi bi-info-circle-fill" />
+                <span>{provisionMsg}</span>
+              </div>
+            </Card>
           )}
 
           {/* Filters */}
-          <div
-            style={{
-              backgroundColor: colors.bgCard,
-              borderRadius: '0.75rem',
-              padding: '1rem',
-              marginBottom: '1rem',
-              display: 'flex',
-              gap: '1rem',
-              flexWrap: 'wrap',
-              alignItems: 'center',
-              boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)',
-            }}
-          >
-            {/* Search */}
-            <input
-              type="text"
-              placeholder="Search name, email\u2026"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              style={{
-                padding: '0.375rem 0.75rem',
-                borderRadius: '0.375rem',
-                border: `1px solid ${colors.borderPrimary}`,
-                backgroundColor: colors.bgPrimary,
-                color: colors.textPrimary,
-                fontSize: '0.8125rem',
-                minWidth: '180px',
-                flex: '1 1 180px',
-                maxWidth: '300px',
-              }}
-            />
+          <Card padding={16} style={{ marginBottom: 16 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, alignItems: 'center' }}>
+              <div style={{ flex: '1 1 240px', minWidth: 200, maxWidth: 320 }}>
+                <Search
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onClear={() => setSearchInput('')}
+                  placeholder="Search name, email…"
+                />
+              </div>
 
-            {/* Status */}
-            <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.8125rem', color: colors.textSecondary, fontWeight: 500 }}>
-                Status:
-              </span>
-              {STATUS_OPTIONS.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => { setStatus(s); setPage(0); }}
-                  style={pillStyle(colors, status === s)}
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--ck-text-soft)' }}>Status</span>
+                <Tabs
+                  active={status}
+                  onChange={(k) => { setStatus(k as WalletStatus); setPage(0); }}
+                  items={STATUS_OPTIONS.map(s => ({ key: s, label: s.charAt(0) + s.slice(1).toLowerCase() }))}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--ck-text-soft)' }}>Type</span>
+                <Tabs
+                  active={customerType || 'all'}
+                  onChange={(k) => { setCustomerType(k === 'all' ? '' : k); setPage(0); }}
+                  items={[
+                    { key: 'all', label: 'All' },
+                    ...CUSTOMER_TYPE_OPTIONS.map(t => ({ key: t, label: t.replace('-', ' ') })),
+                  ]}
+                />
+              </div>
+
+              <label style={{
+                fontSize: '0.85rem', fontWeight: 500,
+                display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer',
+                padding: '7px 12px', borderRadius: 9999, border: '1px solid var(--ck-stroke)',
+                background: hasDrift ? 'rgba(242,12,143,0.08)' : 'var(--ck-surface)',
+                color: hasDrift ? '#F20C8F' : 'var(--ck-text)',
+              }}>
+                <input
+                  type="checkbox"
+                  checked={hasDrift}
+                  onChange={(e) => { setHasDrift(e.target.checked); setPage(0); }}
+                  style={{ accentColor: '#F20C8F' }}
+                />
+                Drift only
+              </label>
+
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginLeft: 'auto' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--ck-text-soft)' }}>Sort</span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="ck-input"
+                  style={{ width: 'auto', padding: '7px 10px', fontSize: '0.85rem' }}
                 >
-                  {s}
-                </button>
-              ))}
-            </div>
-
-            {/* Customer type */}
-            <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.8125rem', color: colors.textSecondary, fontWeight: 500 }}>
-                Type:
-              </span>
-              <button
-                onClick={() => { setCustomerType(''); setPage(0); }}
-                style={pillStyle(colors, customerType === '')}
-              >
-                All
-              </button>
-              {CUSTOMER_TYPE_OPTIONS.map((t) => (
+                  <option value="createdAt">Created</option>
+                  <option value="balance">Balance</option>
+                  <option value="driftCount">Drift Count</option>
+                  <option value="lastReconciled">Last Reconciled</option>
+                </select>
                 <button
-                  key={t}
-                  onClick={() => { setCustomerType(t); setPage(0); }}
-                  style={pillStyle(colors, customerType === t)}
+                  type="button"
+                  onClick={() => setSortDir(sortDir === 'asc' ? 'desc' : 'asc')}
+                  className="ck-btn ck-btn-ghost"
+                  style={{ padding: '7px 12px', fontSize: '0.82rem' }}
+                  aria-label={sortDir === 'asc' ? 'Sort ascending' : 'Sort descending'}
                 >
-                  {t}
+                  <i className={`bi ${sortDir === 'asc' ? 'bi-sort-up' : 'bi-sort-down'}`} /> {sortDir.toUpperCase()}
                 </button>
-              ))}
+              </div>
             </div>
-
-            {/* Drift toggle */}
-            <label
-              style={{
-                fontSize: '0.8125rem',
-                color: colors.textSecondary,
-                fontWeight: 500,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.25rem',
-                cursor: 'pointer',
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={hasDrift}
-                onChange={(e) => { setHasDrift(e.target.checked); setPage(0); }}
-              />
-              Drift only
-            </label>
-
-            {/* Sort */}
-            <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.8125rem', color: colors.textSecondary, fontWeight: 500 }}>
-                Sort:
-              </span>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                style={{
-                  padding: '0.375rem',
-                  borderRadius: '0.375rem',
-                  border: `1px solid ${colors.borderPrimary}`,
-                  fontSize: '0.75rem',
-                  backgroundColor: colors.bgPrimary,
-                  color: colors.textPrimary,
-                }}
-              >
-                <option value="createdAt">Created</option>
-                <option value="balance">Balance</option>
-                <option value="driftCount">Drift Count</option>
-                <option value="lastReconciled">Last Reconciled</option>
-              </select>
-              <button
-                type="button"
-                onClick={() => setSortDir(sortDir === 'asc' ? 'desc' : 'asc')}
-                style={{
-                  padding: '0.375rem 0.5rem',
-                  borderRadius: '0.375rem',
-                  border: `1px solid ${colors.borderPrimary}`,
-                  fontSize: '0.75rem',
-                  cursor: 'pointer',
-                  backgroundColor: colors.bgPrimary,
-                  color: colors.textPrimary,
-                }}
-              >
-                {sortDir === 'asc' ? '\u2191 ASC' : '\u2193 DESC'}
-              </button>
-            </div>
-          </div>
+          </Card>
 
           {error && (
-            <div
-              style={{
-                padding: '1rem',
-                borderRadius: '0.5rem',
-                backgroundColor: '#FEF2F2',
-                color: '#991B1B',
-                fontSize: '0.875rem',
-                marginBottom: '1rem',
-              }}
-            >
-              {error}
-            </div>
+            <Card style={{ marginBottom: 14, background: '#FEF2F2', borderColor: '#FECACA' }} padding={14}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#991B1B', fontSize: '0.88rem' }}>
+                <i className="bi bi-exclamation-octagon-fill" />
+                <span>{error}</span>
+              </div>
+            </Card>
           )}
 
           {/* Table */}
-          <div
-            style={{
-              backgroundColor: colors.bgCard,
-              borderRadius: '0.75rem',
-              padding: '1rem',
-              boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)',
-              overflowX: 'auto',
-            }}
-          >
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: `1px solid ${colors.borderPrimary}` }}>
-                  <Th colors={colors}>Customer</Th>
-                  <Th colors={colors}>Type</Th>
-                  <Th colors={colors}>Status</Th>
-                  <Th colors={colors} align="right">Available</Th>
-                  <Th colors={colors} align="right">Held</Th>
-                  <Th colors={colors} align="right">Pending</Th>
-                  <Th colors={colors}>Last reconciled</Th>
-                  <Th colors={colors}>Drift</Th>
-                  <Th colors={colors}></Th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading && content.length === 0 && (
-                  <tr>
-                    <td
-                      colSpan={9}
-                      style={{
-                        padding: '2rem',
-                        textAlign: 'center',
-                        fontSize: '0.875rem',
-                        color: colors.textSecondary,
-                      }}
-                    >
-                      Loading wallets\u2026
-                    </td>
+          <Card padding={0} style={{ overflow: 'hidden' }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ background: 'var(--ck-surface-soft)' }}>
+                    <Th>Customer</Th>
+                    <Th>Type</Th>
+                    <Th>Status</Th>
+                    <Th align="right">Available</Th>
+                    <Th align="right">Held</Th>
+                    <Th align="right">Pending</Th>
+                    <Th>Last reconciled</Th>
+                    <Th>Drift</Th>
+                    <Th></Th>
                   </tr>
-                )}
-                {!loading && content.length === 0 && (
-                  <tr>
-                    <td
-                      colSpan={9}
-                      style={{
-                        padding: '2rem',
-                        textAlign: 'center',
-                        fontSize: '0.875rem',
-                        color: colors.textSecondary,
-                      }}
-                    >
-                      No wallets match these filters.
-                    </td>
-                  </tr>
-                )}
-                {content.map((w) => (
-                  <tr key={w.id} style={{ borderBottom: `1px solid ${colors.borderPrimary}` }}>
-                    <Td colors={colors}>
-                      <div>
-                        <div style={{ fontWeight: 500, fontSize: '0.8125rem' }}>
-                          {w.customerName || 'Unknown'}
+                </thead>
+                <tbody>
+                  {loading && content.length === 0 && (
+                    <tr>
+                      <td colSpan={9} style={{ padding: 32 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, color: 'var(--ck-text-soft)' }}>
+                          <span className="ck-spinner" /> Loading wallets…
                         </div>
-                        <div style={{ fontSize: '0.7rem', color: colors.textSecondary }}>
-                          {w.customerEmail || w.customerId.slice(0, 8) + '\u2026'}
+                      </td>
+                    </tr>
+                  )}
+                  {!loading && content.length === 0 && (
+                    <tr>
+                      <td colSpan={9} style={{ padding: 0 }}>
+                        <EmptyState
+                          icon={<i className="bi bi-wallet2" />}
+                          title="No wallets match"
+                          description="Try adjusting filters or clearing the search."
+                        />
+                      </td>
+                    </tr>
+                  )}
+                  {content.map((w) => (
+                    <tr
+                      key={w.id}
+                      style={{ borderTop: '1px solid var(--ck-stroke)' }}
+                    >
+                      <Td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <span className="ck-avatar" style={{ width: 32, height: 32, fontSize: '0.78rem' }}>
+                            {(w.customerName || w.customerEmail || 'U').charAt(0).toUpperCase()}
+                          </span>
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--ck-text)' }}>
+                              {w.customerName || 'Unknown'}
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--ck-text-soft)' }}>
+                              {w.customerEmail || w.customerId.slice(0, 8) + '…'}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </Td>
-                    <Td colors={colors}>{w.customerType}</Td>
-                    <Td colors={colors}>
-                      <StatusPill status={w.status} />
-                    </Td>
-                    <Td colors={colors} align="right">
-                      <span
-                        style={{
-                          fontWeight: 600,
-                          color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
-                        }}
-                      >
-                        {formatPrice(w.balanceAvailable)}
-                      </span>
-                    </Td>
-                    <Td colors={colors} align="right">{formatPrice(w.heldForDelivery)}</Td>
-                    <Td colors={colors} align="right">{formatPrice(w.pendingAmount)}</Td>
-                    <Td colors={colors}>
-                      {w.lastReconciledAt
-                        ? new Date(w.lastReconciledAt).toLocaleDateString()
-                        : '\u2014'}
-                    </Td>
-                    <Td colors={colors}>
-                      {w.consecutiveDriftCount > 0 ? (
-                        <span style={{ color: '#92400E', fontWeight: 600 }}>
-                          x{w.consecutiveDriftCount}
-                        </span>
-                      ) : (
-                        '\u2014'
-                      )}
-                    </Td>
-                    <Td colors={colors}>
-                      <Link
-                        href={`/user/admin/wallets/${w.id}`}
-                        style={{
-                          padding: '0.375rem 0.75rem',
-                          borderRadius: '0.375rem',
-                          backgroundColor: '#083A85',
-                          color: 'white',
-                          fontSize: '0.75rem',
-                          fontWeight: 600,
-                          textDecoration: 'none',
-                          display: 'inline-block',
-                        }}
-                      >
-                        Inspect
-                      </Link>
-                    </Td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      </Td>
+                      <Td>
+                        <span className="ck-pill" style={{ background: 'rgba(8,58,133,0.06)', color: 'var(--ck-blue)', textTransform: 'capitalize' }}>{w.customerType}</span>
+                      </Td>
+                      <Td><Badge tone={statusTone(w.status)}>{w.status}</Badge></Td>
+                      <Td align="right">
+                        <span style={{ fontWeight: 700, color: 'var(--ck-blue)' }}>{formatPrice(w.balanceAvailable)}</span>
+                      </Td>
+                      <Td align="right">{formatPrice(w.heldForDelivery)}</Td>
+                      <Td align="right">{formatPrice(w.pendingAmount)}</Td>
+                      <Td>{w.lastReconciledAt ? new Date(w.lastReconciledAt).toLocaleDateString() : '—'}</Td>
+                      <Td>
+                        {w.consecutiveDriftCount > 0
+                          ? <Badge tone="warning">×{w.consecutiveDriftCount}</Badge>
+                          : '—'}
+                      </Td>
+                      <Td>
+                        <Link
+                          href={`/user/admin/wallets/${w.id}`}
+                          className="ck-btn ck-btn-primary"
+                          style={{ padding: '6px 12px', fontSize: '0.78rem' }}
+                        >
+                          Inspect <i className="bi bi-arrow-right" />
+                        </Link>
+                      </Td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
 
           {/* Pagination */}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginTop: '1rem',
-              fontSize: '0.8125rem',
-              color: colors.textSecondary,
-            }}
-          >
-            <span>
-              Page {page + 1} of {totalPages} &middot; {data?.totalElements ?? 0} total
-            </span>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button
-                type="button"
-                onClick={() => page > 0 && setPage(page - 1)}
-                disabled={page === 0 || loading}
-                style={pagBtn(colors, page > 0 && !loading)}
-              >
-                Previous
-              </button>
-              <button
-                type="button"
-                onClick={() => page < totalPages - 1 && setPage(page + 1)}
-                disabled={page >= totalPages - 1 || loading}
-                style={pagBtn(colors, page < totalPages - 1 && !loading)}
-              >
-                Next
-              </button>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginTop: 14,
+            fontSize: '0.85rem',
+            color: 'var(--ck-text-soft)',
+          }}>
+            <span>Page {page + 1} of {totalPages} · {data?.totalElements ?? 0} total</span>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Button variant="ghost" size="sm" disabled={page === 0 || loading} onClick={() => page > 0 && setPage(page - 1)}>
+                <i className="bi bi-arrow-left" /> Previous
+              </Button>
+              <Button variant="ghost" size="sm" disabled={page >= totalPages - 1 || loading} onClick={() => page < totalPages - 1 && setPage(page + 1)}>
+                Next <i className="bi bi-arrow-right" />
+              </Button>
             </div>
           </div>
-        </div>
+        </main>
       </div>
     </div>
   );
 }
 
-// ==================== Small helpers ====================
-
-function StatusPill({ status }: { status: WalletStatus }) {
-  const map: Record<WalletStatus, { bg: string; fg: string }> = {
-    ACTIVE: { bg: '#DCFCE7', fg: '#166534' },
-    SUSPENDED: { bg: '#FEE2E2', fg: '#991B1B' },
-    CLOSED: { bg: '#F3F4F6', fg: '#374151' },
-  };
-  const c = map[status];
-  return (
-    <span
-      style={{
-        padding: '2px 10px',
-        borderRadius: 9999,
-        fontSize: '0.7rem',
-        fontWeight: 600,
-        backgroundColor: c.bg,
-        color: c.fg,
-      }}
-    >
-      {status}
-    </span>
-  );
-}
-
-type ColorsType = ReturnType<typeof useTheme>['colors'];
-
-function pillStyle(colors: ColorsType, active: boolean): React.CSSProperties {
-  return {
-    padding: '0.375rem 0.75rem',
-    borderRadius: '0.375rem',
-    border: 'none',
-    fontSize: '0.75rem',
-    fontWeight: 500,
-    cursor: 'pointer',
-    backgroundColor: active ? '#083A85' : colors.bgTertiary,
-    color: active ? 'white' : colors.textSecondary,
-  };
-}
-
 function Th({
-  colors,
   children,
   align = 'left',
 }: {
-  colors: ColorsType;
   children?: React.ReactNode;
   align?: 'left' | 'right';
 }) {
   return (
-    <th
-      style={{
-        textAlign: align,
-        padding: '0.625rem 0.5rem',
-        fontSize: '0.65rem',
-        fontWeight: 600,
-        color: colors.textSecondary,
-        textTransform: 'uppercase',
-        letterSpacing: '0.05em',
-      }}
-    >
-      {children}
-    </th>
+    <th style={{
+      textAlign: align,
+      padding: '12px 16px',
+      fontSize: '0.7rem',
+      fontWeight: 700,
+      color: 'var(--ck-text-muted)',
+      textTransform: 'uppercase',
+      letterSpacing: '0.06em',
+    }}>{children}</th>
   );
 }
 
 function Td({
-  colors,
   children,
   align = 'left',
 }: {
-  colors: ColorsType;
   children?: React.ReactNode;
   align?: 'left' | 'right';
 }) {
   return (
-    <td
-      style={{
-        textAlign: align,
-        padding: '0.75rem 0.5rem',
-        fontSize: '0.8125rem',
-        color: colors.textPrimary,
-      }}
-    >
-      {children}
-    </td>
+    <td style={{
+      textAlign: align,
+      padding: '14px 16px',
+      fontSize: '0.88rem',
+      color: 'var(--ck-text)',
+      verticalAlign: 'middle',
+    }}>{children}</td>
   );
-}
-
-function pagBtn(colors: ColorsType, enabled: boolean): React.CSSProperties {
-  return {
-    padding: '0.375rem 0.875rem',
-    borderRadius: '0.375rem',
-    border: `1px solid ${colors.borderPrimary}`,
-    backgroundColor: enabled ? colors.bgCard : colors.bgTertiary,
-    color: enabled ? colors.textPrimary : colors.textSecondary,
-    fontSize: '0.75rem',
-    fontWeight: 500,
-    cursor: enabled ? 'pointer' : 'not-allowed',
-    opacity: enabled ? 1 : 0.6,
-  };
 }

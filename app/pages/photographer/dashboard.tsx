@@ -162,6 +162,26 @@ interface Client {
   avatar?: string;
 }
 
+const HeroMiniStat: React.FC<{ label: string; value: string; color: string }> = ({ label, value, color }) => (
+  <div style={{ textAlign: 'center', padding: '4px 6px' }}>
+    <div style={{
+      fontSize: '0.68rem',
+      fontWeight: 700,
+      color: '#797D86',
+      textTransform: 'uppercase',
+      letterSpacing: '0.06em',
+    }}>{label}</div>
+    <div style={{
+      fontSize: '1.15rem',
+      fontWeight: 800,
+      letterSpacing: '-0.01em',
+      marginTop: 4,
+      color,
+      lineHeight: 1.1,
+    }}>{value}</div>
+  </div>
+);
+
 const PhotographerDashboard = () => {
   const { colors, actualTheme } = useTheme();
   const { formatPrice } = useCurrency();
@@ -474,11 +494,13 @@ const PhotographerDashboard = () => {
   // Show profile completion modal when profile fields are missing
   useEffect(() => {
     if (user && user.customerType?.toLowerCase() === 'photographer') {
-      const isIncomplete = !user.about || !user.address ||
-        !user.specialties?.length || !user.equipments?.length ||
-        !user.professionalPhilosophy || !user.professionalSkills?.length ||
-        !user.educationLevels?.length ||
-        (!user.certifications?.length && !user.trainings?.length);
+      // Profile is complete when the surfaces still shown to clients are
+      // populated: contact details, specialties, education/certifications.
+      // Equipment/About/Philosophy/Skills/Training were removed from the
+      // profile editor.
+      const isIncomplete = !user.address
+        || !user.specialties?.length
+        || !user.educationLevels?.length;
 
       if (isIncomplete) {
         const skipped = localStorage.getItem('profileModalSkipped');
@@ -768,90 +790,63 @@ const PhotographerDashboard = () => {
           padding-bottom: 1rem;
         }
 
-        .dashboard-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-top: 0.125rem;
-        }
-
-        .header-stats {
-          background-color: ${colors.bgCard};
-          border-radius: 0.5rem;
-          padding-left: 1.5rem;
-          padding-right: 1.5rem;
-          padding-top: 0.75rem;
-          padding-bottom: 0.75rem;
-          box-shadow: ${colors.shadowSm};
-          border: 2px solid ${colors.borderPrimary};
-          display: flex;
-          gap: 2rem;
-        }
-
         .filter-buttons {
-          display: flex;
-          gap: 0.5rem;
           margin-bottom: 1rem;
         }
 
         .stat-cards-grid {
           display: grid;
           grid-template-columns: repeat(5, 1fr);
-          gap: 0.75rem;
-          margin-bottom: 1rem;
+          gap: 14px;
+          margin-bottom: 22px;
         }
 
         .main-grid {
           display: grid;
-          grid-template-columns: 1fr 320px;
-          gap: 1rem;
+          grid-template-columns: 1fr 340px;
+          gap: 16px;
         }
 
-        /* Mobile responsive styles */
+        @media (max-width: 1100px) {
+          .stat-cards-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+          }
+        }
+        @media (max-width: 1024px) {
+          .dashboard-header {
+            grid-template-columns: 1fr !important;
+          }
+          .hero-stats-card {
+            min-width: 0 !important;
+          }
+          .main-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
         @media (max-width: 768px) {
           .dashboard-main {
             padding-left: 0.75rem !important;
             padding-right: 0.75rem !important;
             padding-top: 0.75rem !important;
           }
-
           .dashboard-header {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-            gap: 1rem !important;
+            padding: 22px 18px 18px !important;
           }
-
-          .header-stats {
-            width: 100% !important;
-            padding-left: 1rem !important;
-            padding-right: 1rem !important;
-            gap: 1rem !important;
-            overflow-x: auto !important;
-            justify-content: center !important;
-          }
-
-          .filter-buttons {
-            overflow-x: auto !important;
-            flex-wrap: nowrap !important;
-            width: 100% !important;
-          }
-
           .stat-cards-grid {
-            grid-template-columns: 1fr !important;
-            gap: 0.5rem !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 10px !important;
           }
-
-          .main-grid {
-            grid-template-columns: 1fr !important;
-            gap: 0.75rem !important;
+          .filter-buttons {
+            overflow-x: auto;
           }
         }
-
-        /* Extra small mobile (phones in portrait) */
         @media (max-width: 480px) {
           .dashboard-main {
             padding-left: 0.5rem !important;
             padding-right: 0.5rem !important;
+          }
+          .stat-cards-grid {
+            grid-template-columns: 1fr !important;
           }
         }
       `}</style>
@@ -863,43 +858,63 @@ const PhotographerDashboard = () => {
           <Topbar userRole="photographer" />
 
           <div className="dashboard-main">
-            <header className="dashboard-header">
-            <div>
+            <header className="dashboard-header ck-fade-in-up" style={{
+              position: 'relative',
+              borderRadius: 20,
+              padding: '28px 28px 24px',
+              background: 'linear-gradient(135deg, rgba(8,58,133,0.05) 0%, rgba(242,12,143,0.05) 100%)',
+              border: `1px solid ${colors.borderPrimary}`,
+              marginBottom: 22,
+              display: 'grid',
+              gridTemplateColumns: 'minmax(0, 1fr) auto',
+              gap: 20,
+              alignItems: 'center',
+              overflow: 'hidden',
+            }}>
+              {/* decorative accent */}
+              <div style={{
+                position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+                background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
+              }} />
+            <div style={{ minWidth: 0 }}>
+              <div style={{
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                color: '#F20C8F',
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                marginBottom: 8,
+              }}>Photographer dashboard</div>
               <h1 style={{
-                fontSize: '1.8rem',
-                lineHeight: '2rem',
+                margin: 0,
+                fontSize: 'clamp(1.6rem, 3vw, 2.1rem)',
+                fontWeight: 800,
+                letterSpacing: '-0.02em',
                 color: colors.textPrimary,
-                fontWeight: '600',
-                transition: 'opacity 0.3s ease'
+                lineHeight: 1.1,
+                transition: 'opacity 0.3s ease',
               }}>
-                {currentGreeting}, <span style={{ fontWeight: '600', color: colors.brandPrimary }}>{user?.firstName || 'there'}</span>
+                {currentGreeting}, <span className="ck-gradient-text">{user?.firstName || 'there'}</span>
               </h1>
               <p style={{
-                fontSize: '0.875rem',
+                fontSize: '0.95rem',
                 color: colors.textSecondary,
-                marginTop: '0.25rem'
+                margin: '8px 0 0',
               }}>
                 {staticMessage}
               </p>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 18, flexWrap: 'wrap' }}>
               <button
                 onClick={toggleComparisonMode}
                 title={isComparisonMode ? 'Exit comparison mode' : 'Set target goals and compare them against your real stats to track progress'}
+                className="ck-btn"
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.5rem 1rem',
-                  borderRadius: '0.5rem',
-                  border: isComparisonMode ? '2px solid #F20C8F' : '2px solid #0c943e',
-                  backgroundColor: isComparisonMode ? '#F20C8F' : '#0c943e',
-                  color: isComparisonMode ? 'white' : 'white',
-                  cursor: 'pointer',
-                  fontSize: '0.875rem',
-                  fontWeight: '500',
-                  transition: 'all 0.3s',
-                  boxShadow: colors.shadowSm
+                  background: isComparisonMode
+                    ? 'linear-gradient(135deg, #F20C8F 0%, #ff4fae 100%)'
+                    : 'var(--ck-blue)',
+                  color: '#fff',
+                  border: 'none',
+                  boxShadow: isComparisonMode ? '0 6px 14px rgba(242,12,143,0.22)' : '0 6px 14px rgba(8,58,133,0.22)',
                 }}
               >
                 <CompareIcon />
@@ -1102,177 +1117,68 @@ const PhotographerDashboard = () => {
                   </button>
                 </>
               )}
-              <div style={{
-              backgroundColor: colors.bgCard,
-              borderRadius: '0.5rem',
-              paddingLeft: '1.5rem',
-              paddingRight: '1.5rem',
-              paddingTop: '0.75rem',
-              paddingBottom: '0.75rem',
-              boxShadow: colors.shadowSm,
-              border: `2px solid ${colors.borderPrimary}`,
-              display: 'flex',
-              gap: '2rem'
-            }}>
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center'
-              }}>
-                <span style={{
-                  fontSize: '1rem',
-                  lineHeight: '1rem',
-                  fontWeight: '600',
-                  marginBottom: '0.25rem',
-                  color: colors.brandPrimary
-                }}>Earnings</span>
-                <span style={{
-                  fontSize: '1.25rem',
-                  lineHeight: '1.75rem',
-                  fontWeight: '700',
-                  color: colors.textPrimary
-                }}>{formatPrice(analytics?.totalEarnings || analytics?.earnings || 0)}</span>
               </div>
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center'
-              }}>
-                <span style={{
-                  fontSize: '1rem',
-                  lineHeight: '1rem',
-                  fontWeight: '600',
-                  marginBottom: '0.25rem',
-                  color: colors.brandPrimary
-                }}>Clients</span>
-                <span style={{
-                  fontSize: '1.25rem',
-                  lineHeight: '1.75rem',
-                  fontWeight: '700',
-                  color: colors.textPrimary
-                }}>{analytics?.totalClients || analytics?.clients || 0}</span>
-              </div>
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center'
-              }}>
-                <span style={{
-                  fontSize: '1rem',
-                  lineHeight: '1rem',
-                  fontWeight: '600',
-                  marginBottom: '0.25rem',
-                  color: colors.brandPrimary
-                }}>Accuracy</span>
-                <span style={{
-                  fontSize: '1.25rem',
-                  lineHeight: '1.75rem',
-                  fontWeight: '700',
-                  color: colors.textPrimary
-                }}>{analytics?.accuracy ? `${analytics.accuracy}%` : '0%'}</span>
-              </div>
-              {balance?.heldForDelivery > 0 && (
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center'
-              }}>
-                <span style={{
-                  fontSize: '1rem',
-                  lineHeight: '1rem',
-                  fontWeight: '600',
-                  marginBottom: '0.25rem',
-                  color: '#F59E0B'
-                }}>Held for Delivery</span>
-                <span style={{
-                  fontSize: '1.25rem',
-                  lineHeight: '1.75rem',
-                  fontWeight: '700',
-                  color: colors.textPrimary
-                }}>{formatPrice(balance.heldForDelivery)}</span>
-              </div>
-              )}
             </div>
+            <div className="hero-stats-card" style={{
+              backgroundColor: colors.bgCard,
+              borderRadius: 16,
+              padding: 16,
+              boxShadow: colors.shadowSm,
+              border: `1px solid ${colors.borderPrimary}`,
+              display: 'grid',
+              gridTemplateColumns: balance?.heldForDelivery > 0 ? 'repeat(4, minmax(96px, 1fr))' : 'repeat(3, minmax(96px, 1fr))',
+              gap: 8,
+              minWidth: balance?.heldForDelivery > 0 ? 420 : 320,
+              position: 'relative',
+              zIndex: 1,
+            }}>
+              <HeroMiniStat label="Earnings" value={formatPrice(analytics?.totalEarnings || analytics?.earnings || 0)} color="#083A85" />
+              <HeroMiniStat label="Clients"  value={String(analytics?.totalClients || analytics?.clients || 0)} color="#F20C8F" />
+              <HeroMiniStat label="Accuracy" value={analytics?.accuracy ? `${analytics.accuracy}%` : '0%'} color="#10B981" />
+              {balance?.heldForDelivery > 0 && (
+                <HeroMiniStat label="Held" value={formatPrice(balance.heldForDelivery)} color="#F59E0B" />
+              )}
             </div>
           </header>
 
-      <div className="filter-buttons">
-        <button
-          onClick={() => setActiveFilter('today')}
-          style={{
-            paddingLeft: '0.875rem',
-            paddingRight: '0.875rem',
-            paddingTop: '0.375rem',
-            paddingBottom: '0.375rem',
-            border: activeFilter === 'today' ? '2px solid #C0096D' : `2px solid ${colors.borderPrimary}`,
-            borderRadius: '0.375rem',
-            fontSize: '0.9rem',
-            lineHeight: '1rem',
-            cursor: 'pointer',
-            transition: 'all 0.3s',
-            backgroundColor: activeFilter === 'today' ? '#F20C8F' : colors.bgCard,
-            color: activeFilter === 'today' ? 'white' : colors.textSecondary
-          }}
-        >
-          Today
-        </button>
-        <button
-          onClick={() => setActiveFilter('week')}
-          style={{
-            paddingLeft: '0.875rem',
-            paddingRight: '0.875rem',
-            paddingTop: '0.375rem',
-            paddingBottom: '0.375rem',
-            border: activeFilter === 'week' ? '2px solid #C0096D' : `2px solid ${colors.borderPrimary}`,
-            borderRadius: '0.375rem',
-            fontSize: '0.9rem',
-            lineHeight: '1rem',
-            cursor: 'pointer',
-            transition: 'all 0.3s',
-            backgroundColor: activeFilter === 'week' ? '#F20C8F' : colors.bgCard,
-            color: activeFilter === 'week' ? 'white' : colors.textSecondary
-          }}
-        >
-          This week
-        </button>
-        <button
-          onClick={() => setActiveFilter('month')}
-          style={{
-            paddingLeft: '0.875rem',
-            paddingRight: '0.875rem',
-            paddingTop: '0.375rem',
-            paddingBottom: '0.375rem',
-            border: activeFilter === 'month' ? '2px solid #C0096D' : `2px solid ${colors.borderPrimary}`,
-            borderRadius: '0.375rem',
-            fontSize: '0.9rem',
-            lineHeight: '1rem',
-            cursor: 'pointer',
-            transition: 'all 0.3s',
-            backgroundColor: activeFilter === 'month' ? '#F20C8F' : colors.bgCard,
-            color: activeFilter === 'month' ? 'white' : colors.textSecondary
-          }}
-        >
-          This Month
-        </button>
-        <button
-          onClick={() => setActiveFilter('custom')}
-          style={{
-            paddingLeft: '0.875rem',
-            paddingRight: '0.875rem',
-            paddingTop: '0.375rem',
-            paddingBottom: '0.375rem',
-            border: activeFilter === 'custom' ? '2px solid #C0096D' : `2px solid ${colors.borderPrimary}`,
-            borderRadius: '0.375rem',
-            fontSize: '0.9rem',
-            lineHeight: '1rem',
-            cursor: 'pointer',
-            transition: 'all 0.3s',
-            backgroundColor: activeFilter === 'custom' ? '#F20C8F' : colors.bgCard,
-            color: activeFilter === 'custom' ? 'white' : colors.textSecondary
-          }}
-        >
-          Custom
-        </button>
+      <div className="filter-buttons" style={{
+        display: 'inline-flex',
+        gap: 4,
+        padding: 4,
+        borderRadius: 12,
+        background: colors.bgTertiary,
+        border: `1px solid ${colors.borderPrimary}`,
+        marginBottom: 18,
+      }}>
+        {([
+          { key: 'today', label: 'Today' },
+          { key: 'week',  label: 'This week' },
+          { key: 'month', label: 'This month' },
+          { key: 'custom', label: 'Custom' },
+        ] as const).map((f) => {
+          const active = activeFilter === f.key;
+          return (
+            <button
+              key={f.key}
+              onClick={() => setActiveFilter(f.key)}
+              style={{
+                padding: '8px 16px',
+                borderRadius: 9,
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                color: active ? colors.textPrimary : colors.textSecondary,
+                background: active ? colors.bgCard : 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'background 180ms ease, color 180ms ease',
+                boxShadow: active ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {f.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Comparison mode guide banner */}
