@@ -1671,37 +1671,8 @@ const PhotographerEventsPage = () => {
   const completedEvents = events.filter(e => e.status === 'completed');
   const eventCounts = { all: events.length, upcoming: events.filter(e => e.status === 'upcoming').length, ongoing: events.filter(e => e.status === 'ongoing').length, completed: completedEvents.length };
 
-  const viewToggleBtnStyle = (isActive: boolean): React.CSSProperties => ({
-    display: 'flex', alignItems: 'center', gap: 8,
-    padding: '10px 18px',
-    background: isActive
-      ? 'linear-gradient(135deg, #083A85 0%, #0a4da8 100%)'
-      : 'transparent',
-    color: isActive ? '#ffffff' : 'var(--ck-text-soft)',
-    border: 'none',
-    borderRadius: 10,
-    fontSize: '0.88rem',
-    fontWeight: 700,
-    letterSpacing: '-0.005em',
-    cursor: 'pointer',
-    transition: 'background 200ms ease, color 200ms ease, transform 200ms ease, box-shadow 200ms ease',
-    boxShadow: isActive ? '0 4px 12px rgba(8, 58, 133, 0.30)' : 'none',
-    whiteSpace: 'nowrap',
-    transform: isActive ? 'translateY(-1px)' : 'translateY(0)',
-  });
-  const filterBtnStyle = (isActive: boolean): React.CSSProperties => ({
-    padding: '8px 16px',
-    borderRadius: 9,
-    border: 'none',
-    backgroundColor: isActive ? 'var(--ck-surface)' : 'transparent',
-    color: isActive ? 'var(--ck-text)' : 'var(--ck-text-soft)',
-    fontSize: '0.85rem',
-    fontWeight: 600,
-    cursor: 'pointer',
-    transition: 'background 180ms, color 180ms',
-    boxShadow: isActive ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
-    whiteSpace: 'nowrap',
-  });
+  const viewToggleBtnStyle = (isActive: boolean): React.CSSProperties => ({ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.625rem 1.25rem', backgroundColor: isActive ? '#F20C8F' : 'transparent', color: isActive ? 'white' : (actualTheme === 'dark' ? '#94A3B8' : '#64748B'), border: 'none', borderRadius: '0.5rem', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', boxShadow: isActive ? '0 2px 8px rgba(242, 12, 143, 0.4)' : 'none' });
+  const filterBtnStyle = (isActive: boolean): React.CSSProperties => ({ padding: '0.4rem 0.875rem', borderRadius: '0.375rem', border: isActive ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`, backgroundColor: isActive ? '#F20C8F' : colors.bgCard, color: isActive ? 'white' : colors.textSecondary, fontSize: '0.8rem', fontWeight: 500, cursor: 'pointer', transition: 'all 0.2s' });
   const cardStyle: React.CSSProperties = { backgroundColor: colors.bgCard, borderRadius: '0.75rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowSm, overflow: 'hidden', transition: 'box-shadow 0.2s' };
   const modalOverlay: React.CSSProperties = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 };
   const modalContent = (maxW: string): React.CSSProperties => ({ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1.5rem', width: '92%', maxWidth: maxW, maxHeight: '90vh', overflowY: 'auto' as const, boxShadow: colors.shadowLg });
@@ -1730,92 +1701,37 @@ const PhotographerEventsPage = () => {
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
       `}</style>
 
-      <div style={{ display: 'flex', height: '100vh', background: 'var(--ck-surface-soft)', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
         <Sidebar />
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <Topbar userRole="photographer" />
-          <div className="events-page-main" style={{ flex: 1, overflowY: 'auto', padding: '8px 24px 32px' }}>
+          <div className="events-page-main" style={{ flex: 1, overflowY: 'auto', padding: '1.25rem' }}>
 
             {/* Page Header + View Toggle */}
-            <header className="events-page-header" style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'flex-end',
-              gap: 16,
-              flexWrap: 'wrap',
-              margin: '8px 0 22px',
-            }}>
-              <div style={{ minWidth: 0 }}>
-                <div style={{
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
-                  color: '#F20C8F',
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase',
-                  marginBottom: 6,
-                }}>Library</div>
-                <h1 style={{
-                  margin: 0,
-                  fontSize: '1.85rem',
-                  fontWeight: 800,
-                  letterSpacing: '-0.02em',
-                  color: 'var(--ck-text)',
-                }}>Events & albums</h1>
-                <p style={{ margin: '4px 0 0', fontSize: '0.92rem', color: 'var(--ck-text-soft)' }}>
+            <header className="events-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <div>
+                <h1 style={{ fontSize: '1.8rem', lineHeight: '2rem', fontWeight: 600, color: colors.textPrimary, margin: 0 }}>Events & Albums</h1>
+                <p style={{ fontSize: '0.95rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
                   {activeTab === 'events'
-                    ? 'Manage your assigned events, live streams, and event lifecycle.'
-                    : activeTab === 'albums'
-                    ? 'Browse and manage your created photo albums.'
-                    : 'Curate and share photobooks with your clients.'}
+                    ? 'Manage your assigned events, live streams, and event lifecycle'
+                    : 'Browse and manage your created photo albums'}
                 </p>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
-                <span style={{
-                  fontSize: '0.65rem',
-                  fontWeight: 700,
-                  color: 'var(--ck-text-muted)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.08em',
-                }}>View</span>
-                <div className="ck-view-switcher" role="tablist" aria-label="Switch view" style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 4,
-                  background: 'var(--ck-surface)',
-                  border: '1px solid var(--ck-stroke)',
-                  padding: 4,
-                  borderRadius: 12,
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-                }}>
-                  <button
-                    onClick={() => setActiveTab('events')}
-                    role="tab"
-                    aria-selected={activeTab === 'events'}
-                    style={viewToggleBtnStyle(activeTab === 'events')}
-                    onMouseEnter={(e) => { if (activeTab !== 'events') e.currentTarget.style.background = 'var(--ck-surface-muted)'; }}
-                    onMouseLeave={(e) => { if (activeTab !== 'events') e.currentTarget.style.background = 'transparent'; }}
-                  >
-                    <i className="bi bi-calendar-event" style={{ fontSize: 15 }} /> Events
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('albums')}
-                    role="tab"
-                    aria-selected={activeTab === 'albums'}
-                    style={viewToggleBtnStyle(activeTab === 'albums')}
-                    onMouseEnter={(e) => { if (activeTab !== 'albums') e.currentTarget.style.background = 'var(--ck-surface-muted)'; }}
-                    onMouseLeave={(e) => { if (activeTab !== 'albums') e.currentTarget.style.background = 'transparent'; }}
-                  >
-                    <i className="bi bi-images" style={{ fontSize: 15 }} /> Albums
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('photobooks')}
-                    role="tab"
-                    aria-selected={activeTab === 'photobooks'}
-                    style={viewToggleBtnStyle(activeTab === 'photobooks')}
-                    onMouseEnter={(e) => { if (activeTab !== 'photobooks') e.currentTarget.style.background = 'var(--ck-surface-muted)'; }}
-                    onMouseLeave={(e) => { if (activeTab !== 'photobooks') e.currentTarget.style.background = 'transparent'; }}
-                  >
-                    <i className="bi bi-book" style={{ fontSize: 15 }} /> Photobooks
-                  </button>
-                </div>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '0.25rem',
+                backgroundColor: actualTheme === 'dark' ? '#1E293B' : '#E2E8F0',
+                padding: '0.375rem', borderRadius: '0.75rem',
+                boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.1)'
+              }}>
+                <button onClick={() => setActiveTab('events')} style={viewToggleBtnStyle(activeTab === 'events')}>
+                  <EventsViewIcon active={activeTab === 'events'} /> Events
+                </button>
+                <button onClick={() => setActiveTab('albums')} style={viewToggleBtnStyle(activeTab === 'albums')}>
+                  <AlbumsViewIcon active={activeTab === 'albums'} /> Albums
+                </button>
+                <button onClick={() => setActiveTab('photobooks')} style={viewToggleBtnStyle(activeTab === 'photobooks')}>
+                  <PhotobooksViewIcon active={activeTab === 'photobooks'} /> Photobooks
+                </button>
               </div>
             </header>
 
@@ -1823,83 +1739,30 @@ const PhotographerEventsPage = () => {
             {activeTab === 'events' && (
               <>
                 {/* Stat Cards */}
-                <div className="events-page-stats" style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-                  gap: 14,
-                  marginBottom: 22,
-                }}>
+                <div className="events-page-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem', marginBottom: '1.25rem' }}>
                   {([
-                    { label: 'Total events', value: eventCounts.all,        icon: 'bi-calendar-event',      tint: 'rgba(8,58,133,0.10)',  color: '#083A85' },
-                    { label: 'Upcoming',     value: eventCounts.upcoming,   icon: 'bi-calendar-plus',       tint: 'rgba(245,158,11,0.12)', color: '#F59E0B' },
-                    { label: 'Ongoing',      value: eventCounts.ongoing,    icon: 'bi-broadcast',           tint: 'rgba(59,130,246,0.10)', color: '#3B82F6' },
-                    { label: 'Completed',    value: eventCounts.completed,  icon: 'bi-check2-circle',       tint: 'rgba(16,185,129,0.10)', color: '#10B981' },
-                  ] as const).map(s => (
-                    <div key={s.label} className="ck-card ck-card-hover" style={{
-                      padding: 18,
-                      borderTop: `3px solid ${s.color}`,
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div style={{
-                          width: 40, height: 40, borderRadius: 10,
-                          background: s.tint,
-                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                          flexShrink: 0,
-                        }}>
-                          <i className={`bi ${s.icon}`} style={{ color: s.color, fontSize: 16 }} />
-                        </div>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--ck-text-soft)' }}>{s.label}</div>
-                          <div style={{
-                            fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.02em',
-                            color: s.color, lineHeight: 1.1, marginTop: 2,
-                          }}>{s.value}</div>
-                        </div>
-                      </div>
+                    { label: 'Total Events', value: eventCounts.all, accent: colors.brandPrimary },
+                    { label: 'Upcoming', value: eventCounts.upcoming, accent: '#F59E0B' },
+                    { label: 'Ongoing', value: eventCounts.ongoing, accent: '#3B82F6' },
+                    { label: 'Completed', value: eventCounts.completed, accent: '#10B981' },
+                  ] as const).map(stat => (
+                    <div key={stat.label} style={{ backgroundColor: colors.bgCard, borderRadius: '0.5rem', padding: '0.875rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowSm, borderLeft: `4px solid ${stat.accent}` }}>
+                      <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>{stat.label}</div>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 700, color: colors.textPrimary }}>{stat.value}</div>
                     </div>
                   ))}
                 </div>
 
                 {/* Filters + Search */}
-                <div className="events-page-filters" style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  marginBottom: 18,
-                  flexWrap: 'wrap',
-                  justifyContent: 'space-between',
-                }}>
-                  <div style={{
-                    display: 'inline-flex', gap: 4, padding: 4,
-                    background: 'var(--ck-surface-muted)',
-                    border: '1px solid var(--ck-stroke)',
-                    borderRadius: 12,
-                  }}>
-                    {(['all', 'upcoming', 'ongoing', 'completed'] as const).map(f => (
-                      <button key={f} onClick={() => setEventFilter(f)} style={filterBtnStyle(eventFilter === f)}>
-                        {f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}
-                        {f !== 'all' && (
-                          <span style={{
-                            marginLeft: 6,
-                            padding: '1px 7px',
-                            fontSize: '0.7rem',
-                            fontWeight: 600,
-                            borderRadius: 9999,
-                            background: eventFilter === f ? 'rgba(8,58,133,0.10)' : 'rgba(0,0,0,0.05)',
-                            color: eventFilter === f ? 'var(--ck-blue)' : 'var(--ck-text-soft)',
-                          }}>{eventCounts[f]}</span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="ck-search" style={{ minWidth: 260, maxWidth: 320 }}>
-                    <i className="bi bi-search" />
-                    <input
-                      type="search"
-                      placeholder="Search events…"
-                      value={eventSearch}
-                      onChange={e => setEventSearch(e.target.value)}
-                    />
+                <div className="events-page-filters" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+                  {(['all', 'upcoming', 'ongoing', 'completed'] as const).map(f => (
+                    <button key={f} onClick={() => setEventFilter(f)} style={filterBtnStyle(eventFilter === f)}>
+                      {f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)} {f !== 'all' && <span style={{ marginLeft: '0.25rem', opacity: 0.8 }}>({eventCounts[f]})</span>}
+                    </button>
+                  ))}
+                  <div style={{ marginLeft: 'auto', position: 'relative', minWidth: '200px' }}>
+                    <div style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' }}><SearchIcon /></div>
+                    <input placeholder="Search events..." value={eventSearch} onChange={e => setEventSearch(e.target.value)} style={{ ...inputStyle, paddingLeft: '2.5rem', fontSize: '0.85rem', padding: '0.5rem 0.75rem 0.5rem 2.5rem' }} />
                   </div>
                 </div>
 
@@ -2054,45 +1917,8 @@ const PhotographerEventsPage = () => {
                   })}
                 </div>
                 {filteredEvents.length === 0 && (
-                  <div className="ck-card" style={{
-                    padding: '60px 24px',
-                    textAlign: 'center',
-                  }}>
-                    <div style={{
-                      width: 72, height: 72, borderRadius: 9999,
-                      background: 'linear-gradient(135deg, rgba(8,58,133,0.08) 0%, rgba(242,12,143,0.06) 100%)',
-                      border: '1px solid var(--ck-stroke)',
-                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                      marginBottom: 16,
-                    }}>
-                      <i className="bi bi-calendar-event" style={{
-                        fontSize: 28,
-                        background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
-                        WebkitBackgroundClip: 'text',
-                        backgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        color: 'transparent',
-                      }} />
-                    </div>
-                    <h3 style={{
-                      margin: '0 0 6px',
-                      fontSize: '1.05rem', fontWeight: 800,
-                      letterSpacing: '-0.01em',
-                      color: 'var(--ck-text)',
-                    }}>
-                      {eventSearch || eventFilter !== 'all' ? 'No matches' : 'No events yet'}
-                    </h3>
-                    <p style={{
-                      margin: 0,
-                      fontSize: '0.9rem',
-                      color: 'var(--ck-text-soft)',
-                      maxWidth: 360,
-                      marginInline: 'auto',
-                    }}>
-                      {eventSearch || eventFilter !== 'all'
-                        ? 'Try a different search or filter to find what you’re looking for.'
-                        : 'Once clients book you for events, they will show up here.'}
-                    </p>
+                  <div style={{ textAlign: 'center', padding: '3rem', color: colors.textTertiary }}>
+                    <CalendarIcon /><p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>No events found</p>
                   </div>
                 )}
               </>
@@ -2102,119 +1928,35 @@ const PhotographerEventsPage = () => {
             {activeTab === 'albums' && (
               <>
                 {/* Stats */}
-                <div className="events-page-stats" style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-                  gap: 14,
-                  marginBottom: 22,
-                }}>
+                <div className="events-page-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem', marginBottom: '1.25rem' }}>
                   {([
-                    { label: 'Total albums', value: albums.length,                                       icon: 'bi-collection',  tint: 'rgba(8,58,133,0.10)',  color: '#083A85' },
-                    { label: 'Shared',       value: albums.filter(a => a.shared).length,                  icon: 'bi-share-fill',  tint: 'rgba(16,185,129,0.10)', color: '#10B981' },
-                    { label: 'Total photos', value: albums.reduce((s, a) => s + a.photoCount, 0),         icon: 'bi-images',      tint: 'rgba(245,158,11,0.12)', color: '#F59E0B' },
-                    { label: 'Total views',  value: albums.reduce((s, a) => s + a.views, 0),              icon: 'bi-eye',         tint: 'rgba(139,92,246,0.10)', color: '#8B5CF6' },
-                  ] as const).map(s => (
-                    <div key={s.label} className="ck-card ck-card-hover" style={{
-                      padding: 18,
-                      borderTop: `3px solid ${s.color}`,
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div style={{
-                          width: 40, height: 40, borderRadius: 10,
-                          background: s.tint,
-                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                          flexShrink: 0,
-                        }}>
-                          <i className={`bi ${s.icon}`} style={{ color: s.color, fontSize: 16 }} />
-                        </div>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--ck-text-soft)' }}>{s.label}</div>
-                          <div style={{
-                            fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.02em',
-                            color: s.color, lineHeight: 1.1, marginTop: 2,
-                          }}>{s.value.toLocaleString()}</div>
-                        </div>
-                      </div>
+                    { label: 'Total Albums', value: albums.length, accent: colors.brandPrimary },
+                    { label: 'Shared', value: albums.filter(a => a.shared).length, accent: '#10B981' },
+                    { label: 'Total Photos', value: albums.reduce((s, a) => s + a.photoCount, 0), accent: '#F59E0B' },
+                    { label: 'Total Views', value: albums.reduce((s, a) => s + a.views, 0), accent: '#8B5CF6' },
+                  ] as const).map(stat => (
+                    <div key={stat.label} style={{ backgroundColor: colors.bgCard, borderRadius: '0.5rem', padding: '0.875rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowSm, borderLeft: `4px solid ${stat.accent}` }}>
+                      <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>{stat.label}</div>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 700, color: colors.textPrimary }}>{stat.value.toLocaleString()}</div>
                     </div>
                   ))}
                 </div>
 
                 {/* Filters + Search + Actions */}
-                <div className="events-page-filters" style={{
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  marginBottom: 18, flexWrap: 'wrap',
-                }}>
-                  <div style={{
-                    display: 'inline-flex', gap: 4, padding: 4,
-                    background: 'var(--ck-surface-muted)',
-                    border: '1px solid var(--ck-stroke)',
-                    borderRadius: 12,
-                  }}>
-                    {(['all', 'shared', 'unshared'] as const).map(f => (
-                      <button key={f} onClick={() => setAlbumFilter(f)} style={filterBtnStyle(albumFilter === f)}>
-                        {f.charAt(0).toUpperCase() + f.slice(1)}
-                      </button>
-                    ))}
-                  </div>
-                  <div role="tablist" aria-label="Album view mode" style={{
-                    display: 'inline-flex', gap: 2, padding: 3,
-                    background: 'var(--ck-surface)',
-                    border: '1px solid var(--ck-stroke)',
-                    borderRadius: 10,
-                    boxShadow: 'var(--ck-shadow-sm)',
-                  }}>
-                    <button
-                      onClick={() => setAlbumViewMode('grid')}
-                      aria-label="Grid view"
-                      title="Grid view"
-                      role="tab"
-                      aria-selected={albumViewMode === 'grid'}
-                      style={{
-                        width: 36, height: 36, borderRadius: 7,
-                        border: 'none', cursor: 'pointer',
-                        background: albumViewMode === 'grid' ? 'var(--ck-blue)' : 'transparent',
-                        color: albumViewMode === 'grid' ? '#ffffff' : 'var(--ck-text-soft)',
-                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                        boxShadow: albumViewMode === 'grid' ? '0 4px 10px rgba(8, 58, 133, 0.22)' : 'none',
-                        transition: 'background 180ms, color 180ms, box-shadow 180ms',
-                      }}
-                      onMouseEnter={(e) => { if (albumViewMode !== 'grid') e.currentTarget.style.background = 'var(--ck-surface-muted)'; }}
-                      onMouseLeave={(e) => { if (albumViewMode !== 'grid') e.currentTarget.style.background = 'transparent'; }}
-                    >
-                      <i className="bi bi-grid-fill" style={{ fontSize: 13 }} />
+                <div className="events-page-filters" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+                  {(['all', 'shared', 'unshared'] as const).map(f => (
+                    <button key={f} onClick={() => setAlbumFilter(f)} style={filterBtnStyle(albumFilter === f)}>
+                      {f.charAt(0).toUpperCase() + f.slice(1)}
                     </button>
-                    <button
-                      onClick={() => setAlbumViewMode('list')}
-                      aria-label="List view"
-                      title="List view"
-                      role="tab"
-                      aria-selected={albumViewMode === 'list'}
-                      style={{
-                        width: 36, height: 36, borderRadius: 7,
-                        border: 'none', cursor: 'pointer',
-                        background: albumViewMode === 'list' ? 'var(--ck-blue)' : 'transparent',
-                        color: albumViewMode === 'list' ? '#ffffff' : 'var(--ck-text-soft)',
-                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                        boxShadow: albumViewMode === 'list' ? '0 4px 10px rgba(8, 58, 133, 0.22)' : 'none',
-                        transition: 'background 180ms, color 180ms, box-shadow 180ms',
-                      }}
-                      onMouseEnter={(e) => { if (albumViewMode !== 'list') e.currentTarget.style.background = 'var(--ck-surface-muted)'; }}
-                      onMouseLeave={(e) => { if (albumViewMode !== 'list') e.currentTarget.style.background = 'transparent'; }}
-                    >
-                      <i className="bi bi-list-ul" style={{ fontSize: 16 }} />
-                    </button>
+                  ))}
+                  <div style={{ display: 'flex', gap: '0.25rem', marginLeft: '0.5rem' }}>
+                    <button onClick={() => setAlbumViewMode('grid')} style={{ ...smallActionBtn, borderColor: albumViewMode === 'grid' ? colors.brandPrimary : colors.borderPrimary }}><GridIcon active={albumViewMode === 'grid'} /></button>
+                    <button onClick={() => setAlbumViewMode('list')} style={{ ...smallActionBtn, borderColor: albumViewMode === 'list' ? colors.brandPrimary : colors.borderPrimary }}><ListIcon active={albumViewMode === 'list'} /></button>
                   </div>
-                  <button onClick={() => handleOpenCreateAlbum()} className="ck-btn ck-btn-primary" style={{ padding: '8px 14px', fontSize: '0.82rem' }}>
-                    <i className="bi bi-plus-lg" /> New album
-                  </button>
-                  <div className="ck-search" style={{ marginLeft: 'auto', minWidth: 240, maxWidth: 320 }}>
-                    <i className="bi bi-search" />
-                    <input
-                      type="search"
-                      placeholder="Search albums…"
-                      value={albumSearch}
-                      onChange={e => setAlbumSearch(e.target.value)}
-                    />
+                  <button onClick={() => handleOpenCreateAlbum()} style={{ ...primaryBtn, marginLeft: '0.5rem', padding: '0.4rem 0.875rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}><PlusIcon /> New Album</button>
+                  <div style={{ marginLeft: 'auto', position: 'relative', minWidth: '200px' }}>
+                    <div style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' }}><SearchIcon /></div>
+                    <input placeholder="Search albums..." value={albumSearch} onChange={e => setAlbumSearch(e.target.value)} style={{ ...inputStyle, paddingLeft: '2.5rem', fontSize: '0.85rem', padding: '0.5rem 0.75rem 0.5rem 2.5rem' }} />
                   </div>
                 </div>
 
@@ -2388,27 +2130,8 @@ const PhotographerEventsPage = () => {
                   })}
                 </div>
                 {filteredAlbums.length === 0 && (
-                  <div className="ck-card" style={{ padding: '60px 24px', textAlign: 'center' }}>
-                    <div style={{
-                      width: 72, height: 72, borderRadius: 9999,
-                      background: 'linear-gradient(135deg, rgba(8,58,133,0.08) 0%, rgba(242,12,143,0.06) 100%)',
-                      border: '1px solid var(--ck-stroke)',
-                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                      marginBottom: 16,
-                    }}>
-                      <i className="bi bi-images" style={{
-                        fontSize: 28,
-                        background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
-                        WebkitBackgroundClip: 'text', backgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent', color: 'transparent',
-                      }} />
-                    </div>
-                    <h3 style={{ margin: '0 0 6px', fontSize: '1.05rem', fontWeight: 800, letterSpacing: '-0.01em', color: 'var(--ck-text)' }}>
-                      No albums yet
-                    </h3>
-                    <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--ck-text-soft)', maxWidth: 360, marginInline: 'auto' }}>
-                      Create one from an event or start a personal album to get going.
-                    </p>
+                  <div style={{ textAlign: 'center', padding: '3rem', color: colors.textTertiary }}>
+                    <ImageIcon /><p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>No albums found. Create one from an event or start a personal album!</p>
                   </div>
                 )}
               </>
@@ -2418,38 +2141,15 @@ const PhotographerEventsPage = () => {
             {activeTab === 'photobooks' && (
               <>
                 {/* Stats */}
-                <div className="events-page-stats" style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-                  gap: 14,
-                  marginBottom: 22,
-                }}>
+                <div className="events-page-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '1.25rem' }}>
                   {([
-                    { label: 'Received photobooks', value: receivedPhotobooks.length,                                                         icon: 'bi-book',           tint: 'rgba(8,58,133,0.10)',  color: '#083A85' },
-                    { label: 'Total photos',        value: receivedPhotobooks.reduce((s, pb) => s + pb.images.length, 0),                     icon: 'bi-images',         tint: 'rgba(245,158,11,0.12)', color: '#F59E0B' },
-                    { label: 'Recent',              value: receivedPhotobooks.filter(pb => { const d = new Date(pb.sentAt || pb.createdAt); return (Date.now() - d.getTime()) < 7 * 24 * 60 * 60 * 1000; }).length, icon: 'bi-clock-history', tint: 'rgba(16,185,129,0.10)', color: '#10B981' },
-                  ] as const).map(s => (
-                    <div key={s.label} className="ck-card ck-card-hover" style={{
-                      padding: 18,
-                      borderTop: `3px solid ${s.color}`,
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div style={{
-                          width: 40, height: 40, borderRadius: 10,
-                          background: s.tint,
-                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                          flexShrink: 0,
-                        }}>
-                          <i className={`bi ${s.icon}`} style={{ color: s.color, fontSize: 16 }} />
-                        </div>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--ck-text-soft)' }}>{s.label}</div>
-                          <div style={{
-                            fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.02em',
-                            color: s.color, lineHeight: 1.1, marginTop: 2,
-                          }}>{s.value}</div>
-                        </div>
-                      </div>
+                    { label: 'Received Photobooks', value: receivedPhotobooks.length, accent: colors.brandPrimary },
+                    { label: 'Total Photos', value: receivedPhotobooks.reduce((s, pb) => s + pb.images.length, 0), accent: '#F59E0B' },
+                    { label: 'Recent', value: receivedPhotobooks.filter(pb => { const d = new Date(pb.sentAt || pb.createdAt); return (Date.now() - d.getTime()) < 7 * 24 * 60 * 60 * 1000; }).length, accent: '#10B981' },
+                  ] as const).map(stat => (
+                    <div key={stat.label} style={{ backgroundColor: colors.bgCard, borderRadius: '0.5rem', padding: '0.875rem', border: `2px solid ${colors.borderPrimary}`, boxShadow: colors.shadowSm, borderLeft: `4px solid ${stat.accent}` }}>
+                      <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>{stat.label}</div>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 700, color: colors.textPrimary }}>{stat.value}</div>
                     </div>
                   ))}
                 </div>

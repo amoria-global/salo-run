@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
+import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { getApiUrl, normalizeImageUrl } from '@/lib/api';
@@ -16,31 +18,125 @@ import {
   MoneyIcon,
   ClockIcon,
   UsersIcon,
-  StarIcon,
+  StarIcon
 } from '../../components/dashboard';
-import { Card, Tabs, EmptyState, Badge } from '../../components/ui';
 
+// Live Stream Fee Icon
 const LiveStreamFeeIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ background: 'linear-gradient(135deg, #F20C8F 0%, #083A85 100%)', WebkitBackgroundClip: 'text', backgroundClip: 'text' }}>
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <circle cx="12" cy="12" r="3" fill="currentColor"/>
     <path d="M4.93 4.93a10 10 0 0 1 14.14 0M7.76 7.76a6 6 0 0 1 8.48 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
     <path d="M19.07 4.93a10 10 0 0 1 0 14.14M16.24 7.76a6 6 0 0 1 0 8.48" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
   </svg>
 );
 
-const greetingFor = (hour: number) => {
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  if (hour < 21) return 'Good evening';
-  return 'Good night';
+// Eye icon for view details
+const EyeIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
+  </svg>
+);
+
+// Alert Icons
+const AlertTriangleIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <line x1="12" y1="9" x2="12" y2="13" stroke="#DC2626" strokeWidth="2" strokeLinecap="round"/>
+    <circle cx="12" cy="17" r="1" fill="#DC2626"/>
+  </svg>
+);
+
+const CreditCardIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="1" y="4" width="22" height="16" rx="2" stroke="currentColor" strokeWidth="2"/>
+    <line x1="1" y1="10" x2="23" y2="10" stroke="currentColor" strokeWidth="2"/>
+  </svg>
+);
+
+const RefreshIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M1 4V10H7M23 20V14H17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14L18.36 18.36A9 9 0 0 1 3.51 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const ChevronRightIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+// Heartwarming greeting variations based on time of day
+const getGreetings = (timeOfDay: string) => {
+  const morningGreetings = [
+    "Good Morning",
+    "Rise and Shine",
+    "Beautiful Morning",
+    "Lovely Morning",
+    "Wonderful Morning",
+    "Great Morning",
+    "Happy Morning",
+    "Blessed Morning"
+  ];
+
+  const afternoonGreetings = [
+    "Good Afternoon",
+    "Lovely Afternoon",
+    "Beautiful Afternoon",
+    "Wonderful Afternoon",
+    "Great Afternoon",
+    "Happy Afternoon",
+    "Blessed Afternoon",
+    "Amazing Afternoon"
+  ];
+
+  const eveningGreetings = [
+    "Good Evening",
+    "Lovely Evening",
+    "Beautiful Evening",
+    "Wonderful Evening",
+    "Great Evening",
+    "Happy Evening",
+    "Peaceful Evening",
+    "Relaxing Evening"
+  ];
+
+  const nightGreetings = [
+    "Good Night",
+    "Peaceful Night",
+    "Lovely Night",
+    "Beautiful Night",
+    "Wonderful Night",
+    "Quiet Night",
+    "Restful Night",
+    "Starry Night"
+  ];
+
+  switch (timeOfDay) {
+    case 'morning': return morningGreetings;
+    case 'afternoon': return afternoonGreetings;
+    case 'evening': return eveningGreetings;
+    default: return nightGreetings;
+  }
 };
 
-const getStaticMessage = () => {
+// Static subtitle based on time of day
+const getStaticMessage = (timeOfDay: string) => {
+  switch (timeOfDay) {
+    case 'morning': return "Ready to manage your upcoming events?";
+    case 'afternoon': return "Perfect time to check your live stream earnings!";
+    case 'evening': return "Time to review today's event performance!";
+    default: return "Late night planning? Your events dashboard awaits!";
+  }
+};
+
+const getTimeOfDay = () => {
   const hour = new Date().getHours();
-  if (hour < 12) return 'Ready to manage your upcoming events?';
-  if (hour < 17) return 'Time to check stream earnings and event performance.';
-  if (hour < 21) return 'Wrap up the day with a quick review.';
-  return 'Late-night planning? Your dashboard is ready.';
+  if (hour >= 5 && hour < 12) return 'morning';
+  if (hour >= 12 && hour < 17) return 'afternoon';
+  if (hour >= 17 && hour < 21) return 'evening';
+  return 'night';
 };
 
 interface PendingPayment {
@@ -77,37 +173,22 @@ interface CoordinatorAnalyticsData {
   unreadContactMessages: number;
 }
 
-const HeroMiniStat: React.FC<{ label: string; value: string; color: string }> = ({ label, value, color }) => (
-  <div style={{ textAlign: 'center', padding: '4px 6px' }}>
-    <div style={{
-      fontSize: '0.68rem',
-      fontWeight: 700,
-      color: 'var(--ck-text-muted)',
-      textTransform: 'uppercase',
-      letterSpacing: '0.06em',
-    }}>{label}</div>
-    <div style={{
-      fontSize: '1.15rem',
-      fontWeight: 800,
-      letterSpacing: '-0.01em',
-      marginTop: 4,
-      color,
-      lineHeight: 1.1,
-    }}>{value}</div>
-  </div>
-);
-
 const EventCoordinatorDashboard = () => {
+  const { colors, actualTheme } = useTheme();
   const { formatPrice } = useCurrency();
   const { user } = useDashboardAuth();
-
+  const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<'today' | 'week' | 'month' | 'custom'>('week');
   const [customDateFrom, setCustomDateFrom] = useState('');
   const [customDateTo, setCustomDateTo] = useState('');
-
+  const [timeOfDay, setTimeOfDay] = useState(getTimeOfDay());
+  const [greetingIndex, setGreetingIndex] = useState(0);
+  const [greetings, setGreetings] = useState(getGreetings(getTimeOfDay()));
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [showPayNowModal, setShowPayNowModal] = useState(false);
   const [payNowPayment, setPayNowPayment] = useState<Payment | null>(null);
 
+  // API data state
   const [analytics, setAnalytics] = useState<CoordinatorAnalyticsData | null>(null);
   const [balanceData, setBalanceData] = useState<any>(null);
   const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([]);
@@ -121,45 +202,38 @@ const EventCoordinatorDashboard = () => {
     { day: 'Wed', value1: 0, value2: 0 },
     { day: 'Thu', value1: 0, value2: 0 },
     { day: 'Fri', value1: 0, value2: 0 },
-    { day: 'Sat', value1: 0, value2: 0 },
+    { day: 'Sat', value1: 0, value2: 0 }
   ]);
+  const [isLoading, setIsLoading] = useState(true);
   const [trends, setTrends] = useState<Record<string, { value: number; changePercent: number; trend: string }> | null>(null);
 
+  // Fetch trends data based on active filter
   const fetchTrends = useCallback(async (period: string, from?: string, to?: string) => {
     const apiUrl = getApiUrl();
     try {
       let url = `${apiUrl}/api/remote/coordinator/analytics/trends?period=${period}`;
-      if (period === 'custom' && from && to) url += `&from=${from}&to=${to}`;
+      if (period === 'custom' && from && to) {
+        url += `&from=${from}&to=${to}`;
+      }
       const res = await dashboardAuthFetch(url);
       if (res.ok) {
         const data = await res.json();
-        if (data.action === 1 && data.data) setTrends(data.data);
+        if (data.action === 1 && data.data) {
+          setTrends(data.data);
+        }
       }
     } catch (error) {
       console.error('[Coordinator Dashboard] Error fetching trends:', error);
     }
   }, []);
 
+  // Refetch trends when filter changes
   useEffect(() => {
-    if (activeFilter === 'custom') return;
+    if (activeFilter === 'custom') return; // custom waits for Apply button
     fetchTrends(activeFilter);
   }, [activeFilter, fetchTrends]);
 
-  // Performance chart fetch
-  useEffect(() => {
-    const apiUrl = getApiUrl();
-    const period = activeFilter === 'custom' && customDateFrom && customDateTo
-      ? `custom&from=${customDateFrom}&to=${customDateTo}`
-      : activeFilter;
-    dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/analytics/performance?period=${period}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(d => {
-        if (d?.action === 1 && Array.isArray(d.data)) {
-          setPerformanceData(d.data.map((x: any) => ({ day: x.day || '', value1: Number(x.value1) || 0, value2: Number(x.value2) || 0 })));
-        }
-      }).catch(() => {});
-  }, [activeFilter, customDateFrom, customDateTo]);
-
+  // Fetch all dashboard data
   const fetchDashboardData = useCallback(async () => {
     const apiUrl = getApiUrl();
     try {
@@ -171,31 +245,42 @@ const EventCoordinatorDashboard = () => {
         dashboardAuthFetch(`${apiUrl}/api/remote/coordinator/notifications?page=0&size=6`),
       ]);
 
+      // Analytics
       if (analyticsRes.status === 'fulfilled' && analyticsRes.value.ok) {
         const data = await analyticsRes.value.json();
-        if (data.action === 1 && data.data) setAnalytics(data.data);
+        if (data.action === 1 && data.data) {
+          setAnalytics(data.data);
+        }
       }
+
+      // Balance
       if (balanceRes.status === 'fulfilled' && balanceRes.value.ok) {
         const data = await balanceRes.value.json();
-        if (data.action === 1 && data.data) setBalanceData(data.data);
+        if (data.action === 1 && data.data) {
+          setBalanceData(data.data);
+        }
       }
+
+      // Payments → pendingPayments + recentPayments
       if (paymentsRes.status === 'fulfilled' && paymentsRes.value.ok) {
         const data = await paymentsRes.value.json();
         if (data.action === 1 && data.data) {
           const items = data.data.content || data.data || [];
+          // Pending payments
           const pending: PendingPayment[] = items
             .filter((p: any) => p.status !== 'COMPLETED' && p.status !== 'SUCCESS')
             .map((p: any) => ({
               id: p.id || '',
               eventName: p.eventTitle || p.eventName || 'Event',
               photographerName: p.photographerName || 'Photographer',
-              photographerImage: normalizeImageUrl(p.photographerImage || undefined) || '',
+              photographerImage: normalizeImageUrl(p.photographerImage || undefined),
               amount: p.amountInUsd ?? p.amount ?? 0,
               paidAmount: p.paidAmountInUsd ?? p.paidAmount ?? 0,
               dueDate: p.dueDate ? p.dueDate.split('T')[0] : '',
               status: p.status === 'FAILED' ? 'failed' : p.status === 'PARTIAL' ? 'partially_paid' : 'pending' as PendingPayment['status'],
             }));
           setPendingPayments(pending);
+          // Recent transactions — show all non-completed (pending/unpaid)
           const pendingTxns = items
             .filter((p: any) => p.status !== 'COMPLETED' && p.status !== 'SUCCESS')
             .slice(0, 5)
@@ -208,6 +293,8 @@ const EventCoordinatorDashboard = () => {
           setRecentPayments(pendingTxns);
         }
       }
+
+      // Photographers
       if (photographersRes.status === 'fulfilled' && photographersRes.value.ok) {
         const data = await photographersRes.value.json();
         if (data.action === 1 && data.data) {
@@ -218,11 +305,13 @@ const EventCoordinatorDashboard = () => {
             name: p.firstName && p.lastName ? `${p.firstName} ${p.lastName}` : p.name || 'Photographer',
             event: p.specialties?.[0]?.name || p.specialties?.[0] || p.specializations?.[0] || '',
             status: 'Completed' as const,
-            avatar: normalizeImageUrl(p.profilePicture || p.profileImage || undefined) || '',
+            avatar: normalizeImageUrl(p.profilePicture || p.profileImage || undefined),
           }));
           setPhotographers(mapped);
         }
       }
+
+      // Notifications → recentActivities
       if (notificationsRes.status === 'fulfilled' && notificationsRes.value.ok) {
         const data = await notificationsRes.value.json();
         if (data.action === 1 && data.data) {
@@ -236,10 +325,15 @@ const EventCoordinatorDashboard = () => {
       }
     } catch (error) {
       console.error('[Coordinator Dashboard] Error fetching dashboard data:', error);
+    } finally {
+      setIsLoading(false);
     }
   }, [formatPrice]);
 
-  useEffect(() => { fetchDashboardData(); }, [fetchDashboardData]);
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
+
 
   const handlePayNow = (pending: PendingPayment) => {
     const payment: Payment = {
@@ -261,334 +355,975 @@ const EventCoordinatorDashboard = () => {
     setShowPayNowModal(true);
   };
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (activeDropdown) {
+        setActiveDropdown(null);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [activeDropdown]);
+
+  useEffect(() => {
+    // Update time of day and greetings
+    const updateTimeOfDay = () => {
+      const newTimeOfDay = getTimeOfDay();
+      if (newTimeOfDay !== timeOfDay) {
+        setTimeOfDay(newTimeOfDay);
+        setGreetings(getGreetings(newTimeOfDay));
+        setGreetingIndex(0);
+      }
+    };
+
+    // Cycle through greetings every 5 seconds
+    const greetingInterval = setInterval(() => {
+      setGreetingIndex((prev) => (prev + 1) % greetings.length);
+    }, 5000);
+
+    // Check time of day every minute
+    const timeInterval = setInterval(updateTimeOfDay, 60000);
+
+    return () => {
+      clearInterval(greetingInterval);
+      clearInterval(timeInterval);
+    };
+  }, [timeOfDay, greetings.length]);
+
+  const currentGreeting = greetings[greetingIndex];
+  const staticMessage = getStaticMessage(timeOfDay);
+
   const totalPendingAmount = pendingPayments.reduce((sum, p) => sum + (p.amount - p.paidAmount), 0);
   const hasFailedPayments = pendingPayments.some(p => p.status === 'failed');
-  const periodLabel = activeFilter === 'today' ? 'yesterday' : activeFilter === 'month' ? 'last month' : activeFilter === 'custom' && customDateFrom && customDateTo ? `${customDateFrom} → ${customDateTo}` : 'last week';
-  const greeting = greetingFor(new Date().getHours());
 
-  const trendFor = (key: string) => {
-    const t = trends?.[key];
-    if (!t) return { percentage: '0%', trend: 'up' as 'up' | 'down' };
-    return {
-      percentage: `${Math.abs(t.changePercent ?? 0).toFixed(1)}%`,
-      trend: (t.trend === 'down' ? 'down' : 'up') as 'up' | 'down',
-    };
+  const toggleDropdown = (id: string) => {
+    setActiveDropdown(activeDropdown === id ? null : id);
   };
 
   return (
     <>
-      <div style={{ display: 'flex', height: '100vh', background: 'var(--ck-surface-soft)', width: '100%', overflow: 'hidden' }}>
-        <Sidebar />
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
-          <Topbar userRole="event-coordinator" />
+    <div style={{
+      display: 'flex',
+      height: '100vh',
+      backgroundColor: colors.bgPrimary,
+      overflow: 'hidden',
+      width: '100%',
+      maxWidth: '100vw'
+    }}>
+      <style jsx>{`
+        @media (max-width: 1024px) {
+          .mobile-stats-grid {
+            grid-template-columns: repeat(3, 1fr) !important;
+          }
+          .mobile-main-grid {
+            grid-template-columns: 1fr !important;
+            gap: 1rem !important;
+          }
+        }
+        @media (max-width: 768px) {
+          .mobile-main-content {
+            padding: 1rem !important;
+            padding-bottom: 8rem !important;
+          }
+          .mobile-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 1rem !important;
+            margin-bottom: 1.5rem !important;
+          }
+          .mobile-header h1 {
+            font-size: 1.5rem !important;
+          }
+          .mobile-header-stats {
+            width: 100% !important;
+            flex-direction: column !important;
+            gap: 0.75rem !important;
+            padding: 1rem !important;
+          }
+          .mobile-header-stat {
+            width: 100% !important;
+            flex-direction: row !important;
+            justify-content: space-between !important;
+            padding: 0.75rem !important;
+            border-bottom: 2px solid ${colors.borderPrimary} !important;
+          }
+          .mobile-header-stat:last-child {
+            border-bottom: none !important;
+          }
+          .mobile-filter-tabs {
+            flex-wrap: wrap !important;
+            gap: 0.5rem !important;
+          }
+          .mobile-filter-tabs button {
+            font-size: 0.85rem !important;
+            padding: 0.5rem 0.75rem !important;
+          }
+          .mobile-custom-date-row {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 0.5rem !important;
+          }
+          .mobile-stats-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.75rem !important;
+          }
+          .mobile-main-grid {
+            grid-template-columns: 1fr !important;
+            gap: 1rem !important;
+          }
+          .mobile-pending-payments {
+            padding: 1rem !important;
+          }
+          .mobile-pending-payments > div:first-child {
+            flex-direction: column !important;
+            gap: 0.75rem !important;
+          }
+          .mobile-pending-payments > div:first-child > a {
+            align-self: flex-start !important;
+          }
+          .mobile-card {
+            padding: 1rem !important;
+            min-width: 0 !important;
+            box-sizing: border-box !important;
+          }
+          .mobile-main-grid {
+            min-width: 0 !important;
+            box-sizing: border-box !important;
+            width: 100% !important;
+          }
+          .mobile-main-grid > div {
+            min-width: 0 !important;
+          }
+        }
+        @media (max-width: 640px) {
+          .mobile-main-content {
+            padding: 0.75rem !important;
+            padding-bottom: 10rem !important;
+          }
+          .mobile-header h1 {
+            font-size: 1.3rem !important;
+          }
+          .mobile-filter-tabs button {
+            font-size: 0.8rem !important;
+            padding: 0.5rem 0.625rem !important;
+          }
+          .mobile-stats-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .mobile-pending-payments > div:nth-child(2) {
+            flex-direction: column !important;
+            overflow-x: visible !important;
+          }
+          .mobile-pending-payments > div:nth-child(2) > div {
+            min-width: 100% !important;
+            flex: 1 1 100% !important;
+          }
+        }
+        @media (max-width: 480px) {
+          .mobile-filter-tabs {
+            gap: 0.35rem !important;
+          }
+          .mobile-filter-tabs button {
+            font-size: 0.75rem !important;
+            padding: 0.4rem 0.5rem !important;
+          }
+        }
+      `}</style>
+      <Sidebar />
 
-          <main className="ck-page" style={{ overflowY: 'auto', flex: 1 }}>
-            {/* Hero greeting */}
-            <section className="ck-fade-in-up dashboard-hero" style={{
-              position: 'relative',
-              borderRadius: 20,
-              padding: '28px 28px 24px',
-              background: 'linear-gradient(135deg, rgba(8,58,133,0.05) 0%, rgba(242,12,143,0.05) 100%)',
-              border: '1px solid var(--ck-stroke)',
-              marginBottom: 22,
-              display: 'grid',
-              gridTemplateColumns: 'minmax(0, 1fr) auto',
-              gap: 20,
-              alignItems: 'center',
-              overflow: 'hidden',
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden'
+      }}>
+        <Topbar userRole="event-coordinator" />
+
+        <div className="mobile-main-content" style={{
+          flex: 1,
+          overflowY: 'auto',
+          backgroundColor: colors.bgPrimary,
+          paddingLeft: '1.25rem',
+          paddingRight: '1.25rem',
+          paddingTop: '1rem',
+          paddingBottom: '1rem'
+        }}>
+          {/* KYC Warning Banner */}
+          {user && user.kycStatus !== 'APPROVED' && user.customerType !== 'Viewer' && (
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem',
+              padding: '0.75rem 1rem', marginBottom: '1rem', borderRadius: '0.5rem',
+              backgroundColor: user.kycStatus === 'REJECTED'
+                ? (actualTheme === 'dark' ? '#7F1D1D' : '#FEF2F2')
+                : user.kycStatus === 'PENDING'
+                  ? (actualTheme === 'dark' ? '#78350F' : '#FFFBEB')
+                  : (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF'),
+              color: user.kycStatus === 'REJECTED'
+                ? (actualTheme === 'dark' ? '#FCA5A5' : '#991B1B')
+                : user.kycStatus === 'PENDING'
+                  ? (actualTheme === 'dark' ? '#FDE68A' : '#92400E')
+                  : (actualTheme === 'dark' ? '#93C5FD' : '#1E40AF'),
+              border: `1px solid ${user.kycStatus === 'REJECTED' ? '#F87171' : user.kycStatus === 'PENDING' ? '#F59E0B' : '#3B82F6'}40`,
             }}>
-              <div style={{
-                position: 'absolute', top: 0, left: 0, right: 0, height: 3,
-                background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
-              }} />
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--ck-pink)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>
-                  Coordinator dashboard
-                </div>
-                <h1 style={{
-                  margin: 0,
-                  fontSize: 'clamp(1.6rem, 3vw, 2.1rem)',
-                  fontWeight: 800,
-                  letterSpacing: '-0.02em',
-                  color: 'var(--ck-text)',
-                  lineHeight: 1.1,
-                }}>
-                  {greeting}, <span className="ck-gradient-text">{user?.firstName || 'there'}</span>
-                </h1>
-                <p style={{ margin: '8px 0 0', color: 'var(--ck-text-soft)', fontSize: '0.95rem' }}>{getStaticMessage()}</p>
-                <div style={{ display: 'flex', gap: 10, marginTop: 18, flexWrap: 'wrap' }}>
-                  <Link href="/user/event-coordinator/events" className="ck-btn ck-btn-primary">
-                    <i className="bi bi-calendar-event" /> My events
-                  </Link>
-                  <Link href="/user/event-coordinator/streams" className="ck-btn ck-btn-ghost">
-                    <i className="bi bi-broadcast" /> Live streams
-                  </Link>
-                </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, fontSize: '0.85rem' }}>
+                <span style={{ fontSize: '1.1rem' }}>{user.kycStatus === 'REJECTED' ? '\u2716' : user.kycStatus === 'PENDING' ? '\u23F3' : '\u26A0'}</span>
+                <span style={{ fontWeight: 600 }}>
+                  {user.kycStatus === 'PENDING' && 'Your KYC verification is under review'}
+                  {user.kycStatus === 'REJECTED' && 'Your KYC verification was rejected. Please resubmit.'}
+                  {(!user.kycStatus || user.kycStatus === 'NOT_SUBMITTED') && 'Complete KYC verification to unlock withdrawals and all features'}
+                </span>
               </div>
-
-              <div className="hero-stats-card" style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, minmax(96px, 1fr))',
-                gap: 8,
-                background: 'var(--ck-surface)',
-                border: '1px solid var(--ck-stroke)',
-                borderRadius: 16,
-                padding: 16,
-                minWidth: 320,
-                boxShadow: 'var(--ck-shadow-sm)',
-                position: 'relative',
-                zIndex: 1,
-              }}>
-                <HeroMiniStat label="Revenue" value={formatPrice(analytics?.totalRevenue || 0)} color="#083A85" />
-                <HeroMiniStat label="Events" value={String(analytics?.totalEvents || 0)} color="#F20C8F" />
-                <HeroMiniStat label="Streams" value={String(analytics?.activeStreams || 0)} color="#10B981" />
-              </div>
-            </section>
-
-            {/* Filter row */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', marginBottom: 18 }}>
-              <Tabs
-                active={activeFilter}
-                onChange={(k) => setActiveFilter(k as any)}
-                items={[
-                  { key: 'today', label: 'Today' },
-                  { key: 'week', label: 'This week' },
-                  { key: 'month', label: 'This month' },
-                  { key: 'custom', label: 'Custom' },
-                ]}
-              />
-              {activeFilter === 'custom' && (
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                  <input type="date" value={customDateFrom} onChange={(e) => setCustomDateFrom(e.target.value)}
-                    className="ck-input" style={{ width: 'auto', padding: '8px 12px', fontSize: '0.85rem' }} />
-                  <span style={{ color: 'var(--ck-text-muted)' }}>→</span>
-                  <input type="date" value={customDateTo} onChange={(e) => setCustomDateTo(e.target.value)}
-                    className="ck-input" style={{ width: 'auto', padding: '8px 12px', fontSize: '0.85rem' }} />
-                  <button
-                    className="ck-btn ck-btn-primary"
-                    style={{ padding: '8px 16px', fontSize: '0.85rem' }}
-                    onClick={() => { if (customDateFrom && customDateTo) fetchTrends('custom', customDateFrom, customDateTo); }}
-                    disabled={!customDateFrom || !customDateTo}
-                  >Apply</button>
-                </div>
+              {user.kycStatus !== 'PENDING' && (
+                <button
+                  onClick={() => router.push('/user/event-coordinator/profile')}
+                  style={{
+                    backgroundColor: user.kycStatus === 'REJECTED' ? '#EF4444' : '#3B82F6',
+                    color: '#FFFFFF', border: 'none', padding: '0.35rem 0.85rem', borderRadius: '0.375rem',
+                    fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
+                  }}
+                >
+                  {user.kycStatus === 'REJECTED' ? 'Resubmit KYC' : 'Complete KYC'}
+                </button>
               )}
             </div>
+          )}
 
-            {/* Stat cards */}
-            <div className="stats-grid" style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
-              gap: 14,
-              marginBottom: 22,
-            }}>
-              <StatCard title="Total Revenue" value={formatPrice(analytics?.totalRevenue || 0)} {...trendFor('totalRevenue')} timeframe={periodLabel} icon={<MoneyIcon />} accentColor="#083A85" />
-              <StatCard title="Pending" value={formatPrice(analytics?.totalPending || 0)} {...trendFor('totalPending')} timeframe={periodLabel} icon={<ClockIcon />} accentColor="#F59E0B" />
-              <StatCard title="Events" value={String(analytics?.totalEvents || 0)} {...trendFor('totalEvents')} timeframe={periodLabel} icon={<UsersIcon />} href="/user/event-coordinator/events" accentColor="#3B82F6" />
-              <StatCard title="Photographers" value={String(analytics?.totalPhotographers || 0)} {...trendFor('totalPhotographers')} timeframe={periodLabel} icon={<StarIcon />} href="/user/event-coordinator/photographers" accentColor="#F20C8F" />
-              <StatCard title="Stream Revenue" value={formatPrice(balanceData?.balanceStreamFees ?? 0)} {...trendFor('streamRevenue')} timeframe={periodLabel} icon={<LiveStreamFeeIcon />} accentColor="#10B981" />
+          <header className="mobile-header" style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginTop: '0.125rem'
+          }}>
+            <div>
+              <h1 style={{
+                fontSize: '1.8rem',
+                lineHeight: '2rem',
+                color: colors.textPrimary,
+                fontWeight: '600',
+                transition: 'opacity 0.3s ease'
+              }}>
+                {currentGreeting}, <span style={{ fontWeight: '600', color: colors.brandPrimary }}>{user?.firstName || 'there'}</span>
+              </h1>
+              <p style={{
+                fontSize: '0.875rem',
+                color: colors.textSecondary,
+                marginTop: '0.25rem'
+              }}>
+                {staticMessage}
+              </p>
             </div>
-
-            {/* Pending Payments Alert */}
-            {pendingPayments.length > 0 && (
-              <Card style={{
-                marginBottom: 22,
-                background: hasFailedPayments ? 'linear-gradient(135deg, #FEF2F2 0%, #FFFFFF 60%)' : 'linear-gradient(135deg, #FFFBEB 0%, #FFFFFF 60%)',
-                border: hasFailedPayments ? '1px solid #FECACA' : '1px solid #FDE68A',
-              }} padding={20}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 14 }}>
-                  <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-                    <div style={{
-                      width: 44, height: 44, borderRadius: 12,
-                      background: hasFailedPayments ? '#FEE2E2' : '#FEF3C7',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      flexShrink: 0,
-                    }}>
-                      <i className="bi bi-exclamation-triangle" style={{ color: hasFailedPayments ? '#DC2626' : '#F59E0B', fontSize: 20 }} />
-                    </div>
-                    <div>
-                      <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: hasFailedPayments ? '#991B1B' : '#92400E' }}>
-                        {hasFailedPayments ? 'Payment action required' : 'Pending payments'}
-                      </h3>
-                      <p style={{ margin: '4px 0 0', fontSize: '0.92rem', color: hasFailedPayments ? '#991B1B' : '#92400E', opacity: 0.85 }}>
-                        {pendingPayments.length} payment{pendingPayments.length > 1 ? 's' : ''} totaling <strong>{formatPrice(totalPendingAmount)}</strong>
-                      </p>
-                    </div>
-                  </div>
-                  <Link href="/user/event-coordinator/payments" className="ck-btn ck-btn-soft" style={{ background: 'rgba(255,255,255,0.7)' }}>
-                    View all <i className="bi bi-arrow-right" />
-                  </Link>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
-                  {pendingPayments.slice(0, 4).map((p) => (
-                    <div key={p.id} className="ck-card" style={{
-                      padding: 14, display: 'flex', alignItems: 'center', gap: 12,
-                      background: 'var(--ck-surface)',
-                      borderColor: p.status === 'failed' ? '#FECACA' : 'var(--ck-stroke)',
-                    }}>
-                      {p.photographerImage ? (
-                        <img src={p.photographerImage} alt={p.photographerName} style={{ width: 38, height: 38, borderRadius: 9999, objectFit: 'cover', flexShrink: 0 }}
-                          onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                      ) : (
-                        <span className="ck-avatar" style={{ width: 38, height: 38 }}>{p.photographerName.charAt(0).toUpperCase()}</span>
-                      )}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.9rem', fontWeight: 600, color: 'var(--ck-text)' }}>
-                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.photographerName}</span>
-                          {p.status === 'failed' && <Badge tone="error">Failed</Badge>}
-                          {p.status === 'partially_paid' && <Badge tone="info">Partial</Badge>}
-                        </div>
-                        <div style={{ fontSize: '0.78rem', color: 'var(--ck-text-soft)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.eventName}</div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '0.95rem', fontWeight: 800, color: p.status === 'failed' ? '#DC2626' : 'var(--ck-blue)' }}>
-                          {formatPrice(p.amount - p.paidAmount)}
-                        </div>
-                        <button onClick={() => handlePayNow(p)} className="ck-btn"
-                          style={{
-                            marginTop: 4, padding: '5px 10px', fontSize: '0.72rem',
-                            background: p.status === 'failed' ? '#DC2626' : 'var(--ck-blue)',
-                            color: '#fff', border: 'none',
-                          }}>
-                          <i className={`bi ${p.status === 'failed' ? 'bi-arrow-clockwise' : 'bi-credit-card'}`} />
-                          {p.status === 'failed' ? 'Retry' : 'Pay'}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            )}
-
-            {/* Main grid */}
-            <div className="main-grid" style={{
-              display: 'grid',
-              gridTemplateColumns: 'minmax(0, 1fr) 340px',
-              gap: 16,
+            <div className="mobile-header-stats" style={{
+              backgroundColor: colors.bgCard,
+              borderRadius: '0.5rem',
+              paddingLeft: '1.5rem',
+              paddingRight: '1.5rem',
+              paddingTop: '0.75rem',
+              paddingBottom: '0.75rem',
+              boxShadow: colors.shadowSm,
+              border: `2px solid ${colors.borderPrimary}`,
+              display: 'flex',
+              gap: '2rem'
             }}>
-              <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
-                <Card padding={20}>
-                  <div style={{ marginBottom: 14 }}>
-                    <h2 className="ck-section-title" style={{ fontSize: '1.05rem' }}>Performance</h2>
-                    <p className="ck-section-subtitle" style={{ fontSize: '0.82rem' }}>Activity over the {periodLabel}</p>
-                  </div>
-                  <PerformanceChart data={performanceData} height={210} />
-                </Card>
-
-                <Card padding={20}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                    <div>
-                      <h2 className="ck-section-title" style={{ fontSize: '1.05rem' }}>Photographers</h2>
-                      <p className="ck-section-subtitle" style={{ fontSize: '0.82rem' }}>Approved photographers ready to assign</p>
-                    </div>
-                    <Link href="/user/event-coordinator/photographers" style={{ fontSize: '0.85rem', color: 'var(--ck-blue)', textDecoration: 'none', fontWeight: 600 }}>
-                      See all →
-                    </Link>
-                  </div>
-                  {photographers.length === 0 ? (
-                    <EmptyState
-                      icon={<i className="bi bi-camera" />}
-                      title="No photographers yet"
-                      description="Approved photographers will appear here."
-                    />
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                      {photographers.map((ph) => (
-                        <div key={ph.id} className="ck-row" style={{ gap: 12 }}>
-                          {ph.avatar ? (
-                            <img src={ph.avatar} alt={ph.name} style={{ width: 36, height: 36, borderRadius: 9999, objectFit: 'cover', flexShrink: 0 }}
-                              onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                          ) : (
-                            <span className="ck-avatar">{ph.name.charAt(0).toUpperCase()}</span>
-                          )}
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: '0.92rem', fontWeight: 600, color: 'var(--ck-text)' }}>{ph.name}</div>
-                            <div style={{ fontSize: '0.78rem', color: 'var(--ck-text-soft)' }}>{ph.event}</div>
-                          </div>
-                          <Badge tone="success">Approved</Badge>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </Card>
+              <div className="mobile-header-stat" style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center'
+              }}>
+                <span style={{
+                  fontSize: '1rem',
+                  lineHeight: '1rem',
+                  fontWeight: '600',
+                  marginBottom: '0.25rem',
+                  color: colors.brandPrimary
+                }}>Revenue</span>
+                <span style={{
+                  fontSize: '1.25rem',
+                  lineHeight: '1.75rem',
+                  fontWeight: '700',
+                  color: colors.textPrimary
+                }}>{formatPrice(analytics?.totalRevenue ?? balanceData?.totalDeclared ?? 0)}</span>
               </div>
+              <div className="mobile-header-stat" style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center'
+              }}>
+                <span style={{
+                  fontSize: '1rem',
+                  lineHeight: '1rem',
+                  fontWeight: '600',
+                  marginBottom: '0.25rem',
+                  color: colors.brandPrimary
+                }}>Events</span>
+                <span style={{
+                  fontSize: '1.25rem',
+                  lineHeight: '1.75rem',
+                  fontWeight: '700',
+                  color: colors.textPrimary
+                }}>{analytics?.totalEvents ?? 0}</span>
+              </div>
+              <div className="mobile-header-stat" style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center'
+              }}>
+                <span style={{
+                  fontSize: '1rem',
+                  lineHeight: '1rem',
+                  fontWeight: '600',
+                  marginBottom: '0.25rem',
+                  color: colors.brandPrimary
+                }}>Viewers</span>
+                <span style={{
+                  fontSize: '1.25rem',
+                  lineHeight: '1.75rem',
+                  fontWeight: '700',
+                  color: colors.textPrimary
+                }}>{(analytics?.activeStreams ?? 0).toLocaleString()}</span>
+              </div>
+            </div>
+          </header>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                <Card padding={20}>
-                  <h2 className="ck-section-title" style={{ fontSize: '1.05rem', marginBottom: 12 }}>Recent activity</h2>
-                  {recentActivities.length === 0 ? (
-                    <EmptyState icon={<i className="bi bi-activity" />} title="Nothing yet" description="Updates show up here as they happen." />
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                      {recentActivities.map((activity, i) => <ActivityItem key={i} {...activity} />)}
-                    </div>
-                  )}
-                </Card>
+      <div className="mobile-filter-tabs" style={{
+        display: 'flex',
+        gap: '0.5rem',
+        marginBottom: '1rem'
+      }}>
+        <button
+          onClick={() => setActiveFilter('today')}
+          style={{
+            paddingLeft: '0.875rem',
+            paddingRight: '0.875rem',
+            paddingTop: '0.375rem',
+            paddingBottom: '0.375rem',
+            border: activeFilter === 'today' ? '2px solid #C0096D' : `2px solid ${colors.borderPrimary}`,
+            borderRadius: '0.375rem',
+            fontSize: '0.9rem',
+            lineHeight: '1rem',
+            cursor: 'pointer',
+            transition: 'all 0.3s',
+            backgroundColor: activeFilter === 'today' ? '#F20C8F' : colors.bgCard,
+            color: activeFilter === 'today' ? 'white' : colors.textSecondary
+          }}
+        >
+          Today
+        </button>
+        <button
+          onClick={() => setActiveFilter('week')}
+          style={{
+            paddingLeft: '0.875rem',
+            paddingRight: '0.875rem',
+            paddingTop: '0.375rem',
+            paddingBottom: '0.375rem',
+            border: activeFilter === 'week' ? '2px solid #C0096D' : `2px solid ${colors.borderPrimary}`,
+            borderRadius: '0.375rem',
+            fontSize: '0.9rem',
+            lineHeight: '1rem',
+            cursor: 'pointer',
+            transition: 'all 0.3s',
+            backgroundColor: activeFilter === 'week' ? '#F20C8F' : colors.bgCard,
+            color: activeFilter === 'week' ? 'white' : colors.textSecondary
+          }}
+        >
+          This week
+        </button>
+        <button
+          onClick={() => setActiveFilter('month')}
+          style={{
+            paddingLeft: '0.875rem',
+            paddingRight: '0.875rem',
+            paddingTop: '0.375rem',
+            paddingBottom: '0.375rem',
+            border: activeFilter === 'month' ? '2px solid #C0096D' : `2px solid ${colors.borderPrimary}`,
+            borderRadius: '0.375rem',
+            fontSize: '0.9rem',
+            lineHeight: '1rem',
+            cursor: 'pointer',
+            transition: 'all 0.3s',
+            backgroundColor: activeFilter === 'month' ? '#F20C8F' : colors.bgCard,
+            color: activeFilter === 'month' ? 'white' : colors.textSecondary
+          }}
+        >
+          This Month
+        </button>
+        <button
+          onClick={() => setActiveFilter('custom')}
+          style={{
+            paddingLeft: '0.875rem',
+            paddingRight: '0.875rem',
+            paddingTop: '0.375rem',
+            paddingBottom: '0.375rem',
+            border: activeFilter === 'custom' ? '2px solid #C0096D' : `2px solid ${colors.borderPrimary}`,
+            borderRadius: '0.375rem',
+            fontSize: '0.9rem',
+            lineHeight: '1rem',
+            cursor: 'pointer',
+            transition: 'all 0.3s',
+            backgroundColor: activeFilter === 'custom' ? '#F20C8F' : colors.bgCard,
+            color: activeFilter === 'custom' ? 'white' : colors.textSecondary
+          }}
+        >
+          Custom
+        </button>
+      </div>
 
-                <Card padding={20}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                    <h2 className="ck-section-title" style={{ fontSize: '1.05rem' }}>Recent payments</h2>
-                    <Link href="/user/event-coordinator/payments" style={{ fontSize: '0.85rem', color: 'var(--ck-blue)', textDecoration: 'none', fontWeight: 600 }}>
-                      See all →
-                    </Link>
-                  </div>
-                  {recentPayments.length === 0 ? (
-                    <EmptyState icon={<i className="bi bi-credit-card-2-front" />} title="No payments yet" description="Your transactions will show here." />
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      {recentPayments.map((payment, i) => <PaymentItem key={i} {...payment} />)}
-                    </div>
-                  )}
-                </Card>
+      {activeFilter === 'custom' && (
+        <div className="mobile-custom-date-row" style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          marginBottom: '1rem',
+          flexWrap: 'wrap'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <label style={{ fontSize: '0.85rem', color: colors.textSecondary, whiteSpace: 'nowrap' }}>From</label>
+            <input
+              type="date"
+              value={customDateFrom}
+              onChange={(e) => setCustomDateFrom(e.target.value)}
+              style={{
+                padding: '0.4rem 0.6rem',
+                borderRadius: '0.375rem',
+                border: `1px solid ${colors.borderPrimary}`,
+                backgroundColor: colors.bgCard,
+                color: colors.textPrimary,
+                fontSize: '0.85rem',
+                outline: 'none'
+              }}
+            />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <label style={{ fontSize: '0.85rem', color: colors.textSecondary, whiteSpace: 'nowrap' }}>To</label>
+            <input
+              type="date"
+              value={customDateTo}
+              onChange={(e) => setCustomDateTo(e.target.value)}
+              style={{
+                padding: '0.4rem 0.6rem',
+                borderRadius: '0.375rem',
+                border: `1px solid ${colors.borderPrimary}`,
+                backgroundColor: colors.bgCard,
+                color: colors.textPrimary,
+                fontSize: '0.85rem',
+                outline: 'none'
+              }}
+            />
+          </div>
+          <button
+            onClick={() => {
+              if (customDateFrom && customDateTo) {
+                fetchTrends('custom', customDateFrom, customDateTo);
+              }
+            }}
+            disabled={!customDateFrom || !customDateTo}
+            style={{
+              padding: '0.4rem 1rem',
+              borderRadius: '0.375rem',
+              border: 'none',
+              backgroundColor: (!customDateFrom || !customDateTo) ? colors.borderPrimary : '#F20C8F',
+              color: (!customDateFrom || !customDateTo) ? colors.textSecondary : 'white',
+              fontSize: '0.85rem',
+              cursor: (!customDateFrom || !customDateTo) ? 'not-allowed' : 'pointer',
+              fontWeight: '600',
+              transition: 'all 0.3s'
+            }}
+          >
+            Apply
+          </button>
+        </div>
+      )}
 
-                <Card padding={20} style={{
-                  background: 'linear-gradient(135deg, var(--ck-pink) 0%, #ff4fae 100%)',
-                  color: '#fff',
-                  border: 'none',
+      <div className="mobile-stats-grid" style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(5, 1fr)',
+        gap: '0.75rem',
+        marginBottom: '1rem'
+      }}>
+        <StatCard
+          title="Total Revenue"
+          value={formatPrice(trends?.totalRevenue?.value ?? analytics?.totalRevenue ?? balanceData?.totalDeclared ?? 0)}
+          percentage={trends?.totalRevenue ? `${Math.abs(trends.totalRevenue.changePercent).toFixed(1)}%` : undefined}
+          timeframe={activeFilter === 'today' ? 'vs yesterday' : activeFilter === 'week' ? 'vs last week' : activeFilter === 'month' ? 'vs last month' : 'vs previous'}
+          trend={trends?.totalRevenue?.trend === 'down' ? 'down' : 'up'}
+          icon={<MoneyIcon />}
+          accentColor="#083A85"
+        />
+        <StatCard
+          title="Pending"
+          value={formatPrice(trends?.pending?.value ?? analytics?.totalPending ?? balanceData?.totalPending ?? 0)}
+          percentage={trends?.pending ? `${Math.abs(trends.pending.changePercent).toFixed(1)}%` : undefined}
+          timeframe={activeFilter === 'today' ? 'vs yesterday' : activeFilter === 'week' ? 'vs last week' : activeFilter === 'month' ? 'vs last month' : 'vs previous'}
+          trend={trends?.pending?.trend === 'down' ? 'down' : 'up'}
+          icon={<ClockIcon />}
+          accentColor="#F59E0B"
+        />
+        <StatCard
+          title="Events"
+          value={String(trends?.events?.value ?? analytics?.totalEvents ?? 0)}
+          percentage={trends?.events ? `${Math.abs(trends.events.changePercent).toFixed(1)}%` : undefined}
+          timeframe={activeFilter === 'today' ? 'vs yesterday' : activeFilter === 'week' ? 'vs last week' : activeFilter === 'month' ? 'vs last month' : 'vs previous'}
+          trend={trends?.events?.trend === 'down' ? 'down' : 'up'}
+          icon={<UsersIcon />}
+          href="/user/event-coordinator/events"
+          accentColor="#3B82F6"
+        />
+        <StatCard
+          title="Stream Fees"
+          value={formatPrice(trends?.streamFees?.value ?? balanceData?.totalEarnings ?? 0)}
+          percentage={trends?.streamFees ? `${Math.abs(trends.streamFees.changePercent).toFixed(1)}%` : undefined}
+          timeframe={activeFilter === 'today' ? 'vs yesterday' : activeFilter === 'week' ? 'vs last week' : activeFilter === 'month' ? 'vs last month' : 'vs previous'}
+          trend={trends?.streamFees?.trend === 'down' ? 'down' : 'up'}
+          icon={<LiveStreamFeeIcon />}
+          accentColor="#10B981"
+        />
+        <StatCard
+          title="Photographers"
+          value={String(trends?.photographers?.value ?? analytics?.totalPhotographers ?? 0)}
+          percentage={trends?.photographers ? `${Math.abs(trends.photographers.changePercent).toFixed(1)}%` : undefined}
+          timeframe={activeFilter === 'today' ? 'vs yesterday' : activeFilter === 'week' ? 'vs last week' : activeFilter === 'month' ? 'vs last month' : 'vs previous'}
+          trend={trends?.photographers?.trend === 'down' ? 'down' : 'up'}
+          icon={<StarIcon />}
+          href="/user/event-coordinator/photographers"
+          accentColor="#8B5CF6"
+        />
+      </div>
+
+      {/* Pending Payments Alert */}
+      {pendingPayments.length > 0 && (
+        <div className="mobile-pending-payments" style={{
+          backgroundColor: hasFailedPayments ? (actualTheme === 'dark' ? '#450A0A' : '#FEF2F2') : (actualTheme === 'dark' ? '#422006' : '#FFFBEB'),
+          border: `1px solid ${hasFailedPayments ? (actualTheme === 'dark' ? '#991B1B' : '#FECACA') : (actualTheme === 'dark' ? '#854D0E' : '#FDE68A')}`,
+          borderRadius: '0.75rem',
+          padding: '1rem 1.25rem',
+          marginBottom: '1rem'
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            marginBottom: '0.75rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{
+                backgroundColor: hasFailedPayments ? (actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2') : (actualTheme === 'dark' ? '#78350F' : '#FEF3C7'),
+                borderRadius: '0.5rem',
+                padding: '0.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <AlertTriangleIcon />
+              </div>
+              <div>
+                <h3 style={{
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  color: hasFailedPayments ? (actualTheme === 'dark' ? '#FCA5A5' : '#DC2626') : (actualTheme === 'dark' ? '#FCD34D' : '#D97706'),
+                  margin: 0
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <i className="bi bi-broadcast" style={{ fontSize: 18 }} />
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '0.95rem', fontWeight: 700 }}>Go live with your events</div>
-                      <div style={{ fontSize: '0.82rem', opacity: 0.9, marginTop: 2 }}>Stream events and earn revenue.</div>
-                    </div>
-                  </div>
-                  <Link href="/user/event-coordinator/streams" className="ck-btn"
-                    style={{ marginTop: 14, background: 'rgba(255,255,255,0.18)', color: '#fff', border: '1px solid rgba(255,255,255,0.25)', width: '100%' }}>
-                    Manage streams <i className="bi bi-arrow-right" />
-                  </Link>
-                </Card>
+                  {hasFailedPayments ? 'Payment Action Required' : 'Pending Payments'}
+                </h3>
+                <p style={{
+                  fontSize: '0.85rem',
+                  color: hasFailedPayments ? (actualTheme === 'dark' ? '#FCA5A5' : '#991B1B') : (actualTheme === 'dark' ? '#FCD34D' : '#92400E'),
+                  margin: '0.25rem 0 0 0'
+                }}>
+                  You have {pendingPayments.length} payment{pendingPayments.length > 1 ? 's' : ''} totaling <strong>{formatPrice(totalPendingAmount)}</strong> that need{pendingPayments.length === 1 ? 's' : ''} attention
+                </p>
               </div>
             </div>
-          </main>
+            <Link
+              href="/user/event-coordinator/payments"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+                fontSize: '0.85rem',
+                fontWeight: '600',
+                color: actualTheme === 'dark' ? '#60A5FA' : '#C0096D',
+                textDecoration: 'none'
+              }}
+            >
+              View All
+              <ChevronRightIcon />
+            </Link>
+          </div>
+
+          <div style={{
+            display: 'flex',
+            gap: '0.75rem',
+            overflowX: 'auto',
+            paddingBottom: '0.25rem'
+          }}>
+            {pendingPayments.map((payment) => (
+              <div
+                key={payment.id}
+                style={{
+                  flex: '0 0 auto',
+                  backgroundColor: colors.bgCard,
+                  borderRadius: '0.5rem',
+                  padding: '0.75rem 1rem',
+                  minWidth: '280px',
+                  border: payment.status === 'failed' ? `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}` : `2px solid ${colors.borderPrimary}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem'
+                }}
+              >
+                <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                  </svg>
+                  {payment.photographerImage && (
+                    <img src={payment.photographerImage} alt={payment.photographerName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                  )}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{
+                    fontSize: '0.9rem',
+                    fontWeight: '500',
+                    color: colors.textPrimary,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}>
+                    {payment.photographerName}
+                    {payment.status === 'failed' && (
+                      <span style={{
+                        fontSize: '0.65rem',
+                        fontWeight: '600',
+                        padding: '0.125rem 0.375rem',
+                        borderRadius: '9999px',
+                        backgroundColor: actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2',
+                        color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626'
+                      }}>
+                        FAILED
+                      </span>
+                    )}
+                    {payment.status === 'partially_paid' && (
+                      <span style={{
+                        fontSize: '0.65rem',
+                        fontWeight: '600',
+                        padding: '0.125rem 0.375rem',
+                        borderRadius: '9999px',
+                        backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#DBEAFE',
+                        color: actualTheme === 'dark' ? '#60A5FA' : '#2563EB'
+                      }}>
+                        PARTIAL
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>
+                    {payment.eventName}
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{
+                    fontSize: '1rem',
+                    fontWeight: '700',
+                    color: payment.status === 'failed' ? (actualTheme === 'dark' ? '#FCA5A5' : '#DC2626') : (actualTheme === 'dark' ? '#60A5FA' : '#C0096D')
+                  }}>
+                    {formatPrice(payment.amount - payment.paidAmount)}
+                  </div>
+                  <button
+                    onClick={() => handlePayNow(payment)}
+                    style={{
+                      fontSize: '0.75rem',
+                      fontWeight: '600',
+                      color: 'white',
+                      backgroundColor: payment.status === 'failed' ? '#DC2626' : '#083A85',
+                      border: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.25rem',
+                      borderRadius: '0.375rem',
+                      padding: '0.375rem 0.75rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {payment.status === 'failed' ? (
+                      <>
+                        <RefreshIcon />
+                        Retry
+                      </>
+                    ) : (
+                      <>
+                        <CreditCardIcon />
+                        Pay Now
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="mobile-main-grid" style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 320px',
+        gap: '1rem'
+      }}>
+        <div>
+          <section className="mobile-card" style={{
+            backgroundColor: colors.bgCard,
+            borderRadius: '0.5rem',
+            padding: '1rem',
+            boxShadow: colors.shadowSm,
+            marginBottom: '1rem'
+          }}>
+            <h2 style={{
+              fontSize: '1.2rem',
+              lineHeight: '1.25rem',
+              fontWeight: '100',
+              color: colors.textPrimary,
+              marginBottom: '1rem'
+            }}>Event Performance</h2>
+            <PerformanceChart data={performanceData} height={200} />
+          </section>
+
+          <section className="mobile-card" style={{
+            backgroundColor: colors.bgCard,
+            borderRadius: '0.5rem',
+            padding: '1rem',
+            boxShadow: colors.shadowSm
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '0.75rem'
+            }}>
+              <h2 style={{
+                fontSize: '1.2rem',
+                lineHeight: '1.25rem',
+                fontWeight: '100',
+                color: colors.textPrimary
+              }}>Photographers</h2>
+              <Link href="/user/event-coordinator/photographers" style={{
+                fontSize: '1rem',
+                lineHeight: '1rem',
+                color: colors.textLink,
+                fontWeight: '500',
+                textDecoration: 'none'
+              }}>See all</Link>
+            </div>
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.625rem'
+            }}>
+              {photographers.map((photographer) => {
+                const getStatusStyle = () => {
+                  switch (photographer.status) {
+                    case 'In Progress':
+                      return { backgroundColor: actualTheme === 'dark' ? '#831843' : '#FCE7F3', color: actualTheme === 'dark' ? '#F9A8D4' : '#C0096D' };
+                    case 'Completed':
+                      return { backgroundColor: actualTheme === 'dark' ? '#064E3B' : '#D1FAE5', color: actualTheme === 'dark' ? '#34D399' : '#059669' };
+                    case 'Pending':
+                      return { backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FEF3C7', color: actualTheme === 'dark' ? '#FBBF24' : '#D97706' };
+                    default:
+                      return {};
+                  }
+                };
+
+                return (
+                  <div
+                    key={photographer.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.625rem',
+                      padding: '0.5rem',
+                      borderRadius: '0.375rem',
+                      transition: 'background-color 0.3s',
+                      position: 'relative',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => router.push('/user/event-coordinator/photographers')}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = colors.bgHover}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  >
+                    <div style={{ width: '2.25rem', height: '2.25rem', borderRadius: '9999px', overflow: 'hidden', flexShrink: 0, backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                      </svg>
+                      {photographer.avatar && (
+                        <img src={photographer.avatar} alt={photographer.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                      )}
+                    </div>
+                    <div style={{
+                      flex: 1,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.125rem'
+                    }}>
+                      <span style={{
+                        fontSize: '1rem',
+                        lineHeight: '1.25rem',
+                        fontWeight: '700',
+                        color: colors.textPrimary
+                      }}>{photographer.name}</span>
+                      <span style={{
+                        fontSize: '0.85rem',
+                        lineHeight: '1rem',
+                        color: colors.textSecondary
+                      }}>{photographer.event}</span>
+                    </div>
+                    <span style={{
+                      paddingLeft: '0.625rem',
+                      paddingRight: '0.625rem',
+                      paddingTop: '0.25rem',
+                      paddingBottom: '0.25rem',
+                      borderRadius: '0.25rem',
+                      fontSize: '0.85rem',
+                      lineHeight: '1rem',
+                      fontWeight: '600',
+                      ...getStatusStyle()
+                    }}>{photographer.status === 'Completed' ? 'Approved' : photographer.status}</span>
+                    <div style={{ position: 'relative' }}>
+                      <button
+                        style={{
+                          padding: '0.25rem',
+                          color: colors.textTertiary,
+                          fontSize: '1.25rem',
+                          lineHeight: '1.75rem',
+                          border: 'none',
+                          background: 'none',
+                          cursor: 'pointer',
+                          transition: 'color 0.3s'
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleDropdown(photographer.id);
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.color = colors.textSecondary}
+                        onMouseLeave={(e) => e.currentTarget.style.color = colors.textTertiary}
+                      >
+                        <span>⋮</span>
+                      </button>
+                      {activeDropdown === photographer.id && (
+                        <div style={{
+                          position: 'absolute',
+                          top: '100%',
+                          right: 0,
+                          backgroundColor: colors.bgCard,
+                          borderRadius: '0.5rem',
+                          boxShadow: colors.shadowMd,
+                          border: `2px solid ${colors.borderPrimary}`,
+                          zIndex: 10,
+                          minWidth: '140px',
+                          overflow: 'hidden'
+                        }}>
+                          <Link
+                            href="/user/event-coordinator/photographers"
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.5rem',
+                              padding: '0.625rem 0.875rem',
+                              fontSize: '0.875rem',
+                              color: colors.textPrimary,
+                              textDecoration: 'none',
+                              transition: 'background-color 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = colors.bgHover}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                          >
+                            <EyeIcon />
+                            View Details
+                          </Link>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        </div>
+
+        <div>
+          <section className="mobile-card" style={{
+            backgroundColor: colors.bgCard,
+            borderRadius: '0.5rem',
+            padding: '1rem',
+            boxShadow: colors.shadowSm,
+            marginBottom: '1rem'
+          }}>
+            <h2 style={{
+              fontSize: '1.2rem',
+              lineHeight: '1.25rem',
+              fontWeight: '100',
+              color: colors.textPrimary,
+              marginBottom: '0.875rem'
+            }}>Recent Activities</h2>
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.75rem'
+            }}>
+              {recentActivities.map((activity, index) => (
+                <ActivityItem key={index} {...activity} />
+              ))}
+            </div>
+          </section>
+
+          <section className="mobile-card" style={{
+            backgroundColor: colors.bgCard,
+            borderRadius: '0.5rem',
+            padding: '1rem',
+            boxShadow: colors.shadowSm
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '0.75rem'
+            }}>
+              <h2 style={{
+                fontSize: '1.2rem',
+                lineHeight: '1.25rem',
+                fontWeight: '100',
+                color: colors.textPrimary
+              }}>Recent Transactions</h2>
+              <Link href="/user/event-coordinator/payments" style={{
+                fontSize: '1rem',
+                lineHeight: '1rem',
+                color: colors.textLink,
+                fontWeight: '500',
+                textDecoration: 'none'
+              }}>See all</Link>
+            </div>
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.625rem'
+            }}>
+              {recentPayments.map((payment, index) => (
+                <PaymentItem key={index} {...payment} />
+              ))}
+            </div>
+          </section>
         </div>
       </div>
+        </div>
+      </div>
+    </div>
 
       <PayNowModal
         isOpen={showPayNowModal}
         onClose={() => setShowPayNowModal(false)}
         payment={payNowPayment}
-        onPaymentSuccess={() => { setShowPayNowModal(false); fetchDashboardData(); }}
       />
-
-      <style jsx>{`
-        @media (max-width: 1100px) {
-          .stats-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
-        }
-        @media (max-width: 1024px) {
-          .main-grid { grid-template-columns: 1fr !important; }
-          .dashboard-hero { grid-template-columns: 1fr !important; }
-          .hero-stats-card { min-width: 0 !important; }
-        }
-        @media (max-width: 768px) {
-          .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
-          .dashboard-hero { padding: 22px 18px 18px !important; }
-        }
-        @media (max-width: 480px) {
-          .stats-grid { grid-template-columns: 1fr !important; }
-        }
-      `}</style>
     </>
   );
 };

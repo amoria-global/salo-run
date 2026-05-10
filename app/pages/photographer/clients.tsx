@@ -780,46 +780,16 @@ export default function Clients() {
 
         <div className="mobile-main-content" style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
           {/* Header */}
-          <header className="mobile-header" style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-end',
-            gap: 16,
-            flexWrap: 'wrap',
-            margin: '8px 0 22px',
-          }}>
-            <div className="mobile-header-title" style={{ minWidth: 0 }}>
-              <div style={{
-                fontSize: '0.78rem',
-                fontWeight: 700,
-                color: '#F20C8F',
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                marginBottom: 6,
-              }}>Network</div>
-              <h1 style={{
-                margin: 0,
-                fontSize: '1.85rem',
-                fontWeight: 800,
-                letterSpacing: '-0.02em',
-                color: colors.textPrimary,
-              }}>My clients</h1>
-              <p style={{
-                margin: '4px 0 0',
-                fontSize: '0.92rem',
-                color: colors.textSecondary,
-              }}>
-                Clients who&apos;ve booked your services — manage your relationships.
+          <header className="mobile-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+            <div className="mobile-header-title">
+              <h1 style={{ fontSize: '1.8rem', lineHeight: '2rem', color: colors.textPrimary, fontWeight: '600' }}>My Clients</h1>
+              <p style={{ fontSize: '0.95rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
+                Clients who&apos;ve booked your services - manage relationships
               </p>
             </div>
-            <div className="mobile-header-controls" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div className="mobile-header-controls" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               {/* Sort Dropdown */}
-              <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
-                <i className="bi bi-arrow-down-up" style={{
-                  position: 'absolute', left: 14, top: '50%',
-                  transform: 'translateY(-50%)', pointerEvents: 'none',
-                  fontSize: 13, color: 'var(--ck-text-soft)',
-                }} />
+              <div style={{ position: 'relative' }}>
                 <select
                   value={`${sortBy}-${sortOrder}`}
                   onChange={(e) => {
@@ -827,298 +797,258 @@ export default function Clients() {
                     setSortBy(newSort as typeof sortBy);
                     setSortOrder(newOrder as typeof sortOrder);
                   }}
-                  aria-label="Sort clients"
                   style={{
                     appearance: 'none',
-                    background: 'var(--ck-surface)',
-                    border: '1px solid var(--ck-stroke)',
-                    borderRadius: 10,
-                    padding: '9px 38px 9px 36px',
-                    fontSize: '0.85rem',
-                    fontWeight: 600,
-                    color: 'var(--ck-text)',
-                    cursor: 'pointer',
-                    minWidth: 180,
-                    boxShadow: 'var(--ck-shadow-sm)',
-                    transition: 'border-color 180ms, box-shadow 180ms',
-                  }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--ck-blue)';
-                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(8, 58, 133, 0.12)';
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--ck-stroke)';
-                    e.currentTarget.style.boxShadow = 'var(--ck-shadow-sm)';
+                    backgroundColor: colors.bgCard,
+                    border: `2px solid ${colors.borderPrimary}`,
+                    borderRadius: '0.5rem',
+                    padding: '0.5rem 2rem 0.5rem 0.75rem',
+                    fontSize: '0.9rem',
+                    color: colors.textPrimary,
+                    cursor: 'pointer'
                   }}
                 >
-                  <option value="recent-desc">Most recent</option>
-                  <option value="recent-asc">Oldest first</option>
-                  <option value="bookings-desc">Most bookings</option>
-                  <option value="spent-desc">Highest spent</option>
+                  <option value="recent-desc">Most Recent</option>
+                  <option value="recent-asc">Oldest First</option>
+                  <option value="bookings-desc">Most Bookings</option>
+                  <option value="spent-desc">Highest Spent</option>
                 </select>
-                <i className="bi bi-chevron-down" style={{
-                  position: 'absolute', right: 14, top: '50%',
-                  transform: 'translateY(-50%)', pointerEvents: 'none',
-                  fontSize: 11, color: 'var(--ck-text-soft)',
-                }} />
+                <div style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+                  <SortIcon />
+                </div>
               </div>
               {/* View Mode Toggle */}
-              <div role="tablist" aria-label="View mode" style={{
-                display: 'inline-flex', gap: 2, padding: 3,
-                background: 'var(--ck-surface)',
-                border: '1px solid var(--ck-stroke)',
-                borderRadius: 10,
-                boxShadow: 'var(--ck-shadow-sm)',
-              }}>
+              <div style={{ display: 'flex', gap: '0.25rem', backgroundColor: colors.bgTertiary, borderRadius: '0.375rem', padding: '0.25rem' }}>
                 <button
                   onClick={() => setViewMode('grid')}
-                  aria-label="Grid view"
-                  title="Grid view"
-                  role="tab"
-                  aria-selected={viewMode === 'grid'}
                   style={{
-                    width: 36, height: 36, borderRadius: 7,
-                    border: 'none', cursor: 'pointer',
-                    background: viewMode === 'grid' ? 'var(--ck-blue)' : 'transparent',
-                    color: viewMode === 'grid' ? '#ffffff' : 'var(--ck-text-soft)',
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                    boxShadow: viewMode === 'grid' ? '0 4px 10px rgba(8, 58, 133, 0.22)' : 'none',
-                    transition: 'background 180ms, color 180ms, box-shadow 180ms',
+                    padding: '0.375rem',
+                    border: 'none',
+                    borderRadius: '0.25rem',
+                    cursor: 'pointer',
+                    backgroundColor: viewMode === 'grid' ? colors.bgCard : 'transparent',
+                    boxShadow: viewMode === 'grid' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.2s'
                   }}
-                  onMouseEnter={(e) => { if (viewMode !== 'grid') e.currentTarget.style.background = 'var(--ck-surface-muted)'; }}
-                  onMouseLeave={(e) => { if (viewMode !== 'grid') e.currentTarget.style.background = 'transparent'; }}
                 >
-                  <i className="bi bi-grid-fill" style={{ fontSize: 13 }} />
+                  <GridIcon active={viewMode === 'grid'} />
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
-                  aria-label="List view"
-                  title="List view"
-                  role="tab"
-                  aria-selected={viewMode === 'list'}
                   style={{
-                    width: 36, height: 36, borderRadius: 7,
-                    border: 'none', cursor: 'pointer',
-                    background: viewMode === 'list' ? 'var(--ck-blue)' : 'transparent',
-                    color: viewMode === 'list' ? '#ffffff' : 'var(--ck-text-soft)',
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                    boxShadow: viewMode === 'list' ? '0 4px 10px rgba(8, 58, 133, 0.22)' : 'none',
-                    transition: 'background 180ms, color 180ms, box-shadow 180ms',
+                    padding: '0.375rem',
+                    border: 'none',
+                    borderRadius: '0.25rem',
+                    cursor: 'pointer',
+                    backgroundColor: viewMode === 'list' ? colors.bgCard : 'transparent',
+                    boxShadow: viewMode === 'list' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.2s'
                   }}
-                  onMouseEnter={(e) => { if (viewMode !== 'list') e.currentTarget.style.background = 'var(--ck-surface-muted)'; }}
-                  onMouseLeave={(e) => { if (viewMode !== 'list') e.currentTarget.style.background = 'transparent'; }}
                 >
-                  <i className="bi bi-list-ul" style={{ fontSize: 16 }} />
+                  <ListIcon active={viewMode === 'list'} />
                 </button>
               </div>
             </div>
           </header>
 
-          {/* Page Tabs: Clients | Bookings — prominent view switcher */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 22 }}>
-            <span style={{
-              fontSize: '0.65rem',
-              fontWeight: 700,
-              color: 'var(--ck-text-muted)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-            }}>View</span>
-            <div role="tablist" aria-label="Switch view" style={{
-              display: 'inline-flex', alignItems: 'center', gap: 4,
-              background: 'var(--ck-surface)',
-              border: '1px solid var(--ck-stroke)',
-              padding: 4,
-              borderRadius: 12,
-              boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-              width: 'fit-content',
-            }}>
-              {[
-                { key: 'clients' as PageTab, label: 'Clients', icon: 'bi-people-fill', count: clients.length },
-                { key: 'bookings' as PageTab, label: 'Bookings', icon: 'bi-calendar2-check-fill', count: bookings.length },
-              ].map(tab => {
-                const active = pageTab === tab.key;
-                return (
-                  <button
-                    key={tab.key}
-                    onClick={() => setPageTab(tab.key)}
-                    role="tab"
-                    aria-selected={active}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 8,
-                      padding: '10px 18px',
-                      background: active ? 'linear-gradient(135deg, #083A85 0%, #0a4da8 100%)' : 'transparent',
-                      color: active ? '#ffffff' : 'var(--ck-text-soft)',
-                      border: 'none',
-                      borderRadius: 10,
-                      fontSize: '0.88rem',
-                      fontWeight: 700,
-                      letterSpacing: '-0.005em',
-                      cursor: 'pointer',
-                      transition: 'background 200ms ease, color 200ms ease, transform 200ms ease, box-shadow 200ms ease',
-                      boxShadow: active ? '0 4px 12px rgba(8, 58, 133, 0.30)' : 'none',
-                      whiteSpace: 'nowrap',
-                      transform: active ? 'translateY(-1px)' : 'translateY(0)',
-                    }}
-                    onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = 'var(--ck-surface-muted)'; }}
-                    onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = 'transparent'; }}
-                  >
-                    <i className={`bi ${tab.icon}`} style={{ fontSize: 15 }} />
-                    {tab.label}
-                    <span style={{
-                      padding: '1px 8px',
-                      borderRadius: 9999,
-                      fontSize: '0.72rem',
-                      fontWeight: 700,
-                      background: active ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.06)',
-                      color: active ? '#ffffff' : 'var(--ck-text-soft)',
-                    }}>{tab.count}</span>
-                    {tab.key === 'bookings' && pendingCount > 0 && (
-                      <span style={{
-                        padding: '1px 8px', borderRadius: 9999,
-                        fontSize: '0.7rem', fontWeight: 700,
-                        background: active ? 'rgba(255,255,255,0.22)' : '#FEF3C7',
-                        color: active ? '#ffffff' : '#92400E',
-                      }}>{pendingCount} pending</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+          {/* Page Tabs: Clients | Bookings */}
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+            {[
+              { key: 'clients' as PageTab, label: 'Clients', count: clients.length },
+              { key: 'bookings' as PageTab, label: 'Bookings', count: bookings.length, pendingCount },
+            ].map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setPageTab(tab.key)}
+                style={{
+                  padding: '0.625rem 1.25rem',
+                  border: pageTab === tab.key ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                  borderRadius: '0.5rem',
+                  backgroundColor: pageTab === tab.key ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
+                  color: pageTab === tab.key ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.textSecondary,
+                  fontSize: '0.9rem',
+                  fontWeight: pageTab === tab.key ? '600' : '500',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  transition: 'all 0.2s',
+                }}
+              >
+                {tab.label}
+                <span style={{
+                  backgroundColor: pageTab === tab.key ? 'rgba(8, 58, 133, 0.15)' : colors.bgTertiary,
+                  padding: '0.125rem 0.5rem',
+                  borderRadius: '9999px',
+                  fontSize: '0.8rem',
+                }}>
+                  {tab.count}
+                </span>
+                {tab.key === 'bookings' && pendingCount > 0 && (
+                  <span style={{
+                    backgroundColor: '#FEF3C7',
+                    color: '#B45309',
+                    padding: '0.125rem 0.5rem',
+                    borderRadius: '9999px',
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                  }}>
+                    {pendingCount} pending
+                  </span>
+                )}
+              </button>
+            ))}
           </div>
 
           {/* Clients Tab Content */}
           {pageTab === 'clients' && (<>
           {/* Stats Cards */}
-          <div className="mobile-stats-grid" style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
-            gap: 14,
-            marginBottom: 22,
-          }}>
-            {([
-              { label: 'Total clients',    value: String(clients.length),                                            icon: 'bi-people-fill',     tint: 'rgba(8,58,133,0.10)',  color: '#083A85' },
-              { label: 'Total bookings',   value: String(clients.reduce((sum, c) => sum + c.totalBookings, 0)),       icon: 'bi-calendar2-check', tint: 'rgba(59,130,246,0.10)', color: '#3B82F6' },
-              { label: 'Total earned',     value: formatPrice(clients.reduce((sum, c) => sum + c.totalSpent, 0)),     icon: 'bi-cash-coin',       tint: 'rgba(16,185,129,0.10)', color: '#10B981' },
-              { label: 'Tips',             value: formatPrice(totalTips),                                             icon: 'bi-coin',            tint: 'rgba(245,158,11,0.12)', color: '#F59E0B', sub: 'From clients' },
-              { label: 'Bonus',            value: formatPrice(platformBonus),                                         icon: 'bi-gift-fill',       tint: 'rgba(22,163,74,0.10)',  color: '#16A34A', sub: `${totalCompletedEvents}/10 events (${bonusEligibleSets > 0 ? '10%' : '0%'})` },
-              { label: 'Favorites',        value: String(clients.filter(c => c.isFavorite).length),                   icon: 'bi-heart-fill',      tint: 'rgba(242,12,143,0.10)', color: '#F20C8F' },
-              { label: 'Pending payments', value: formatPrice(totalPendingAmount),                                    icon: 'bi-hourglass-split', tint: 'rgba(220,38,38,0.10)',  color: '#DC2626' },
-            ] as const).map(s => (
-              <div key={s.label} className="ck-card ck-card-hover mobile-stats-card" style={{
-                padding: 16,
-                borderTop: `3px solid ${s.color}`,
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                  <div style={{
-                    width: 32, height: 32, borderRadius: 8,
-                    background: s.tint,
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                    flexShrink: 0,
-                  }}>
-                    <i className={`bi ${s.icon}`} style={{ color: s.color, fontSize: 13 }} />
-                  </div>
-                  <div style={{
-                    fontSize: '0.74rem', fontWeight: 600,
-                    color: 'var(--ck-text-soft)',
-                    minWidth: 0,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}>{s.label}</div>
-                </div>
-                <div style={{
-                  fontSize: '1.35rem', fontWeight: 800, letterSpacing: '-0.02em',
-                  color: s.color, lineHeight: 1.1,
-                }}>{s.value}</div>
-                {('sub' in s) && s.sub && (
-                  <div style={{ fontSize: '0.7rem', color: 'var(--ck-text-muted)', marginTop: 4 }}>{s.sub}</div>
-                )}
+          <div className="mobile-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+            <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #083A85' }}>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Clients</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.brandPrimary }}>{clients.length}</div>
+            </div>
+            <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #3B82F6' }}>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Bookings</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.brandPrimary }}>
+                {clients.reduce((sum, c) => sum + c.totalBookings, 0)}
               </div>
+            </div>
+            <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #10B981' }}>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Earned</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.brandPrimary }}>
+                {formatPrice(clients.reduce((sum, c) => sum + c.totalSpent, 0))}
+              </div>
+            </div>
+            <div className="mobile-stats-card" style={{ backgroundColor: totalTips > 0 ? (actualTheme === 'dark' ? '#78350F' : '#FFFBEB') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', borderTop: totalTips > 0 ? `1px solid ${actualTheme === 'dark' ? '#92400E' : '#FCD34D'}` : `2px solid ${colors.borderPrimary}`, borderRight: totalTips > 0 ? `1px solid ${actualTheme === 'dark' ? '#92400E' : '#FCD34D'}` : `2px solid ${colors.borderPrimary}`, borderBottom: totalTips > 0 ? `1px solid ${actualTheme === 'dark' ? '#92400E' : '#FCD34D'}` : `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #F59E0B' }}>
+              <div style={{ fontSize: '0.85rem', color: totalTips > 0 ? (actualTheme === 'dark' ? '#FCD34D' : '#92400E') : colors.textSecondary, marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <GiftIcon />
+                Tips
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: totalTips > 0 ? (actualTheme === 'dark' ? '#FCD34D' : '#F59E0B') : colors.textSecondary }}>
+                {formatPrice(totalTips)}
+              </div>
+              <div style={{ fontSize: '0.7rem', color: colors.textSecondary, marginTop: '0.25rem' }}>From clients</div>
+            </div>
+            <div className="mobile-stats-card" style={{ backgroundColor: platformBonus > 0 ? (actualTheme === 'dark' ? '#14532D' : '#F0FDF4') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: platformBonus > 0 ? `1px solid ${actualTheme === 'dark' ? '#166534' : '#BBF7D0'}` : `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #16A34A' }}>
+              <div style={{ fontSize: '0.85rem', color: platformBonus > 0 ? (actualTheme === 'dark' ? '#4ADE80' : '#166534') : colors.textSecondary, marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <GiftIcon />
+                Bonus
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: platformBonus > 0 ? (actualTheme === 'dark' ? '#4ADE80' : '#16A34A') : colors.textSecondary }}>
+                {formatPrice(platformBonus)}
+              </div>
+              <div style={{ fontSize: '0.7rem', color: colors.textSecondary, marginTop: '0.25rem' }}>{totalCompletedEvents}/10 events ({bonusEligibleSets > 0 ? '10%' : '0%'})</div>
+            </div>
+            <div className="mobile-stats-card" style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #F20C8F' }}>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Favorites</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#F20C8F' }}>
+                {clients.filter(c => c.isFavorite).length}
+              </div>
+            </div>
+            <div className="mobile-stats-card" style={{ backgroundColor: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#7F1D1D' : '#FEF2F2') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: totalPendingAmount > 0 ? `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}` : `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #DC2626' }}>
+              <div style={{ fontSize: '0.85rem', color: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#FCA5A5' : '#B91C1C') : colors.textSecondary, marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                {totalPendingAmount > 0 && <AlertCircleIcon />}
+                Pending Payments
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#FCA5A5' : '#DC2626') : colors.textSecondary }}>
+                {formatPrice(totalPendingAmount)}
+              </div>
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div className="mobile-tabs" style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
+            {[
+              { key: 'all', label: 'All Clients', count: clients.length },
+              { key: 'active', label: 'Active', count: clients.filter(c => c.status === 'active').length },
+              { key: 'favorites', label: 'Favorites', count: clients.filter(c => c.isFavorite).length },
+              { key: 'pending_payments', label: 'Pending Payments', count: clientsWithPendingPayments.length, alert: true }
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveFilter(tab.key as FilterType)}
+                style={{
+                  padding: '0.5rem 1rem',
+                  border: 'none',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.9rem',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  backgroundColor: activeFilter === tab.key
+                    ? ((tab as { alert?: boolean }).alert ? '#F20C8F' : '#083A85')
+                    : colors.bgCard,
+                  color: activeFilter === tab.key ? 'white' : colors.textSecondary,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                {tab.label}
+                <span style={{
+                  backgroundColor: activeFilter === tab.key
+                    ? 'rgba(255,255,255,0.2)'
+                    : ((tab as { alert?: boolean }).alert && tab.count > 0 ? '#FEE2E2' : colors.bgTertiary),
+                  color: (tab as { alert?: boolean }).alert && tab.count > 0 && activeFilter !== tab.key ? '#DC2626' : undefined,
+                  padding: '0.125rem 0.5rem',
+                  borderRadius: '9999px',
+                  fontSize: '0.8rem'
+                }}>
+                  {tab.count}
+                </span>
+              </button>
             ))}
           </div>
 
-          {/* Filter Tabs */}
-          <div className="mobile-tabs" style={{
-            display: 'inline-flex',
-            gap: 4, padding: 4,
-            background: 'var(--ck-surface-muted)',
-            border: '1px solid var(--ck-stroke)',
-            borderRadius: 12,
-            marginBottom: 18,
-            flexWrap: 'wrap',
-          }}>
-            {[
-              { key: 'all', label: 'All clients', count: clients.length },
-              { key: 'active', label: 'Active', count: clients.filter(c => c.status === 'active').length },
-              { key: 'favorites', label: 'Favorites', count: clients.filter(c => c.isFavorite).length },
-              { key: 'pending_payments', label: 'Pending payments', count: clientsWithPendingPayments.length, alert: true }
-            ].map((tab) => {
-              const active = activeFilter === tab.key;
-              const isAlert = (tab as { alert?: boolean }).alert && tab.count > 0;
-              return (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveFilter(tab.key as FilterType)}
-                  style={{
-                    padding: '8px 16px',
-                    border: 'none',
-                    borderRadius: 9,
-                    fontSize: '0.85rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    background: active ? 'var(--ck-surface)' : 'transparent',
-                    color: active ? 'var(--ck-text)' : 'var(--ck-text-soft)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    transition: 'background 180ms, color 180ms',
-                    boxShadow: active ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {tab.label}
-                  <span style={{
-                    padding: '1px 7px',
-                    fontSize: '0.7rem',
-                    fontWeight: 700,
-                    borderRadius: 9999,
-                    background: active
-                      ? (isAlert ? '#FEE2E2' : 'rgba(8,58,133,0.10)')
-                      : (isAlert ? '#FEE2E2' : 'rgba(0,0,0,0.06)'),
-                    color: active
-                      ? (isAlert ? '#DC2626' : 'var(--ck-blue)')
-                      : (isAlert ? '#DC2626' : 'var(--ck-text-soft)'),
-                  }}>
-                    {tab.count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
           {/* Search and Filters */}
-          <div className="mobile-search-bar" style={{ display: 'flex', gap: 10, marginBottom: 18 }}>
-            <div className="ck-search" style={{ flex: 1 }}>
-              <i className="bi bi-search" />
+          <div className="mobile-search-bar" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+            {/* Search */}
+            <div style={{ flex: 1, position: 'relative' }}>
+              <div style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }}>
+                <SearchIcon />
+              </div>
               <input
-                type="search"
-                placeholder="Search your clients…"
+                type="text"
+                placeholder="Search your clients..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem 0.75rem 2.75rem',
+                  border: `2px solid ${colors.borderPrimary}`,
+                  borderRadius: '0.5rem',
+                  fontSize: '0.95rem',
+                  fontWeight: '500',
+                  color: colors.textPrimary,
+                  backgroundColor: colors.bgCard,
+                  outline: 'none'
+                }}
               />
             </div>
+            {/* Filter Button */}
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="ck-btn"
               style={{
-                background: showFilters ? 'var(--ck-blue)' : 'var(--ck-surface)',
-                color: showFilters ? '#fff' : 'var(--ck-text)',
-                border: showFilters ? 'none' : '1px solid var(--ck-stroke)',
-                fontWeight: 600,
-                boxShadow: showFilters ? '0 4px 10px rgba(8,58,133,0.22)' : 'var(--ck-shadow-sm)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                backgroundColor: showFilters ? '#083A85' : colors.bgCard,
+                color: showFilters ? 'white' : colors.textSecondary,
+                border: `2px solid ${colors.borderPrimary}`,
+                borderRadius: '0.5rem',
+                padding: '0.75rem 1rem',
+                fontSize: '0.9rem',
+                cursor: 'pointer'
               }}
             >
-              <i className="bi bi-sliders" /> Filters
+              <FilterIcon />
+              Filters
             </button>
           </div>
 

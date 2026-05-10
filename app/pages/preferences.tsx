@@ -941,118 +941,73 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
         <div className="mobile-pref-content" style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
 
           {/* Header */}
-          <header style={{ marginBottom: 22 }}>
-            <div style={{
-              fontSize: '0.78rem',
-              fontWeight: 700,
-              color: '#F20C8F',
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              marginBottom: 6,
-            }}>Settings</div>
-            <h1 className="mobile-pref-title" style={{
-              margin: 0,
-              fontSize: '1.85rem',
-              fontWeight: 800,
-              letterSpacing: '-0.02em',
-              color: colors.textPrimary,
-            }}>Preferences</h1>
-            <p className="mobile-pref-subtitle" style={{
-              margin: '4px 0 0',
-              fontSize: '0.92rem',
-              color: colors.textSecondary,
-            }}>
-              Customize your dashboard experience and manage payment settings.
+          <header style={{ marginBottom: '1.5rem' }}>
+            <h1 className="mobile-pref-title" style={{ fontSize: '1.8rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
+              Preferences
+            </h1>
+            <p className="mobile-pref-subtitle" style={{ fontSize: '0.95rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
+              Customize your dashboard experience and manage payment settings
             </p>
           </header>
 
-          {/* Tabs — segmented pill control */}
-          <div role="tablist" aria-label="Preferences sections" className="mobile-pref-tabs" style={{
-            display: 'inline-flex',
-            gap: 4,
-            background: 'var(--ck-surface)',
-            border: '1px solid var(--ck-stroke)',
-            padding: 4,
-            borderRadius: 12,
-            marginBottom: 22,
-            boxShadow: 'var(--ck-shadow-sm)',
-            flexWrap: 'wrap',
+          {/* Tabs */}
+          <div className="mobile-pref-tabs" style={{
+            display: 'flex',
+            gap: '0.25rem',
+            backgroundColor: colors.bgTertiary,
+            borderRadius: '0.5rem',
+            padding: '0.25rem',
+            width: 'fit-content',
+            marginBottom: '1.5rem'
           }}>
             {[
-              { key: 'appearance' as const, label: 'Appearance', icon: 'bi-palette-fill' },
-              { key: 'payments' as const, label: 'Payment accounts', icon: 'bi-wallet2' },
-              { key: 'notifications' as const, label: 'Notifications', icon: 'bi-bell-fill' },
-              { key: 'security' as const, label: 'Security', icon: 'bi-shield-lock-fill' },
-            ].map((tab) => {
-              const active = activeTab === tab.key;
-              return (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
-                  role="tab"
-                  aria-selected={active}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    padding: '10px 18px',
-                    background: active ? 'linear-gradient(135deg, #083A85 0%, #0a4da8 100%)' : 'transparent',
-                    color: active ? '#ffffff' : 'var(--ck-text-soft)',
-                    border: 'none',
-                    borderRadius: 10,
-                    fontSize: '0.88rem',
-                    fontWeight: 700,
-                    letterSpacing: '-0.005em',
-                    cursor: 'pointer',
-                    transition: 'background 200ms ease, color 200ms ease, transform 200ms ease, box-shadow 200ms ease',
-                    boxShadow: active ? '0 4px 12px rgba(8, 58, 133, 0.30)' : 'none',
-                    whiteSpace: 'nowrap',
-                    transform: active ? 'translateY(-1px)' : 'translateY(0)',
-                  }}
-                  onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = 'var(--ck-surface-muted)'; }}
-                  onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = 'transparent'; }}
-                >
-                  <i className={`bi ${tab.icon}`} style={{ fontSize: 14 }} />
-                  {tab.label}
-                </button>
-              );
-            })}
+              { key: 'appearance' as const, label: 'Appearance', icon: 'bi-palette' },
+              { key: 'payments' as const, label: 'Payment Accounts', icon: 'bi-wallet2' },
+              { key: 'notifications' as const, label: 'Notifications', icon: 'bi-bell' },
+              { key: 'security' as const, label: 'Security', icon: 'bi-shield-lock' }
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.625rem 1.25rem',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.9rem',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  backgroundColor: activeTab === tab.key ? colors.bgSecondary : 'transparent',
+                  color: activeTab === tab.key ? colors.textPrimary : colors.textSecondary,
+                  boxShadow: activeTab === tab.key ? colors.shadowSm : 'none',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <i className={`bi ${tab.icon}`} style={{ fontSize: '1rem' }}></i>
+                {tab.label}
+              </button>
+            ))}
           </div>
 
           {/* Appearance Tab */}
           {activeTab === 'appearance' && (
-            <div className="mobile-pref-card ck-card" style={{
-              padding: 24,
+            <div className="mobile-pref-card" style={{
+              backgroundColor: colors.bgSecondary,
+              borderRadius: '1rem',
+              padding: '1.5rem',
+              boxShadow: colors.shadowMd,
+              border: `2px solid ${colors.borderPrimary}`
             }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 18 }}>
-                <div style={{
-                  width: 38, height: 38, borderRadius: 10,
-                  background: 'rgba(8,58,133,0.08)',
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  flexShrink: 0,
-                }}>
-                  <i className="bi bi-palette-fill" style={{ color: 'var(--ck-blue)', fontSize: 16 }} />
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <h2 style={{
-                    margin: 0,
-                    fontSize: '1.05rem',
-                    fontWeight: 800,
-                    letterSpacing: '-0.005em',
-                    color: 'var(--ck-text)',
-                  }}>Theme mode</h2>
-                  <p style={{
-                    margin: '4px 0 0',
-                    fontSize: '0.88rem',
-                    color: 'var(--ck-text-soft)',
-                    lineHeight: 1.4,
-                  }}>
-                    Choose how the dashboard looks to you. Select a single theme, or sync with your system settings.
-                  </p>
-                </div>
-              </div>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
+                Theme Mode
+              </h2>
+              <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1.5rem 0' }}>
+                Choose how the dashboard looks to you. Select a single theme, or sync with your system settings.
+              </p>
 
-              <div className="mobile-theme-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, maxWidth: 520 }}>
+              <div className="mobile-theme-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', maxWidth: '480px' }}>
                 {themeOptions.map((option) => (
                   <button
                     key={option.mode}
@@ -1064,18 +1019,18 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
-                      gap: 8,
-                      padding: 12,
-                      borderRadius: 12,
-                      border: '1px solid',
-                      borderColor: theme === option.mode ? 'var(--ck-blue)' : 'var(--ck-stroke)',
-                      background: theme === option.mode
-                        ? 'rgba(8, 58, 133, 0.05)'
-                        : 'var(--ck-surface)',
+                      gap: '0.5rem',
+                      padding: '0.75rem',
+                      borderRadius: '0.5rem',
+                      border: theme === option.mode
+                        ? `2px solid ${colors.brandPrimary}`
+                        : `2px solid ${colors.borderPrimary}`,
+                      backgroundColor: theme === option.mode
+                        ? actualTheme === 'dark' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(8, 58, 133, 0.05)'
+                        : colors.bgTertiary,
                       cursor: 'pointer',
-                      transition: 'all 180ms var(--ck-ease)',
-                      position: 'relative',
-                      boxShadow: theme === option.mode ? '0 0 0 3px rgba(8,58,133,0.10)' : 'none',
+                      transition: 'all 0.2s',
+                      position: 'relative'
                     }}
                   >
                     {/* Preview */}

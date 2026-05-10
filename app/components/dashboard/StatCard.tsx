@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import { useTheme } from '../../context/ThemeContext';
 
 interface StatCardProps {
   title: string;
@@ -11,16 +12,19 @@ interface StatCardProps {
   trend?: 'up' | 'down';
   href?: string;
   accentColor?: string;
+  // Comparison mode props
   isComparisonMode?: boolean;
   targetValue?: string;
 }
 
+// Helper to parse numeric value from string like "$2,600" or "3.9/5"
 const parseNumericValue = (value: string): number => {
   const cleaned = value.replace(/[$,]/g, '');
   const match = cleaned.match(/[\d.]+/);
   return match ? parseFloat(match[0]) : 0;
 };
 
+// Calculate progress percentage
 const calculateProgress = (current: string, target: string): number => {
   const currentNum = parseNumericValue(current);
   const targetNum = parseNumericValue(target);
@@ -38,103 +42,155 @@ export const StatCard: React.FC<StatCardProps> = ({
   href,
   accentColor,
   isComparisonMode = false,
-  targetValue,
+  targetValue
 }) => {
+  const { colors } = useTheme();
+
   const progress = isComparisonMode && targetValue ? calculateProgress(value, targetValue) : 0;
   const isGoalMet = progress >= 100;
 
   return (
-    <div className="ck-card ck-card-hover" style={{
-      padding: 18,
+    <div style={{
+      backgroundColor: colors.bgCard,
+      borderRadius: '0.5rem',
+      padding: '0.875rem',
+      boxShadow: colors.shadowSm,
+      height: '100%',
+      borderTop: isComparisonMode ? `2px solid ${isGoalMet ? colors.statusSuccess : colors.brandAccent}` : `2px solid ${colors.borderPrimary}`,
+      borderRight: isComparisonMode ? `2px solid ${isGoalMet ? colors.statusSuccess : colors.brandAccent}` : `2px solid ${colors.borderPrimary}`,
+      borderBottom: isComparisonMode ? `2px solid ${isGoalMet ? colors.statusSuccess : colors.brandAccent}` : `2px solid ${colors.borderPrimary}`,
+      borderLeft: accentColor ? `4px solid ${accentColor}` : (isComparisonMode ? `2px solid ${isGoalMet ? colors.statusSuccess : colors.brandAccent}` : `2px solid ${colors.borderPrimary}`),
       position: 'relative',
-      overflow: 'hidden',
-      ...(accentColor ? { borderTop: `3px solid ${accentColor}` } : {}),
+      overflow: 'hidden'
     }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
-        <span style={{
-          fontSize: '0.85rem',
-          fontWeight: 500,
-          color: 'var(--ck-text-soft)',
-          letterSpacing: '0.01em',
-        }}>{title}</span>
-        <div style={{
-          width: 40, height: 40, borderRadius: 10,
-          background: 'linear-gradient(135deg, rgba(8,58,133,0.08) 0%, rgba(242,12,143,0.06) 100%)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 18,
-          flexShrink: 0,
-        }}>{icon}</div>
-      </div>
-
-      <div style={{
-        fontSize: '1.6rem',
-        fontWeight: 800,
-        letterSpacing: '-0.02em',
-        color: 'var(--ck-text)',
-        lineHeight: 1.15,
-        marginBottom: isComparisonMode && targetValue ? 6 : 8,
-      }}>{value}</div>
-
+      {/* Progress bar background for comparison mode */}
       {isComparisonMode && targetValue && (
-        <>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            <span style={{ fontSize: '0.72rem', color: 'var(--ck-text-muted)' }}>Target:</span>
-            <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#F20C8F' }}>{targetValue}</span>
-            <span className="ck-pill" style={{
-              background: isGoalMet ? 'rgba(16,185,129,0.10)' : 'rgba(242,12,143,0.10)',
-              color: isGoalMet ? '#065F46' : '#F20C8F',
-            }}>{progress.toFixed(0)}%</span>
-          </div>
+        <div style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: '4px',
+          backgroundColor: colors.borderPrimary
+        }}>
           <div style={{
-            height: 4,
-            background: 'var(--ck-stroke)',
-            borderRadius: 9999,
-            overflow: 'hidden',
-            marginBottom: 12,
-          }}>
-            <div style={{
-              height: '100%',
-              width: `${progress}%`,
-              background: isGoalMet ? 'linear-gradient(90deg, #10B981, #34D399)' : 'linear-gradient(90deg, #F20C8F, #FF3DA0)',
-              transition: 'width 480ms var(--ck-ease)',
-            }} />
-          </div>
-        </>
+            height: '100%',
+            width: `${progress}%`,
+            backgroundColor: isGoalMet ? colors.statusSuccess : '#F20C8F',
+            transition: 'width 0.5s ease-in-out'
+          }} />
+        </div>
       )}
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 20 }}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        marginBottom: '0.5rem',
+        minHeight: '2.25rem'
+      }}>
+        <span style={{
+          fontSize: '0.9rem',
+          lineHeight: '1rem',
+          color: colors.textSecondary
+        }}>{title}</span>
+        <div style={{
+          width: '2.25rem',
+          height: '2.25rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '1.25rem',
+          lineHeight: '1.75rem',
+          flexShrink: 0
+        }}>
+          {icon}
+        </div>
+      </div>
+
+      {/* Current Value */}
+      <div style={{
+        fontSize: '1.5rem',
+        lineHeight: '2rem',
+        fontWeight: '700',
+        marginBottom: isComparisonMode && targetValue ? '0.25rem' : '0.375rem',
+        color: colors.textPrimary
+      }}>{value}</div>
+
+      {/* Target Value (Comparison Mode) */}
+      {isComparisonMode && targetValue && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          marginBottom: '0.375rem'
+        }}>
+          <span style={{
+            fontSize: '0.75rem',
+            color: colors.textTertiary
+          }}>Target:</span>
+          <span style={{
+            fontSize: '0.875rem',
+            fontWeight: '600',
+            color: '#F20C8F'
+          }}>{targetValue}</span>
+          <span style={{
+            fontSize: '0.7rem',
+            padding: '0.125rem 0.375rem',
+            borderRadius: '0.25rem',
+            backgroundColor: isGoalMet ? 'rgba(16, 185, 129, 0.1)' : 'rgba(242, 12, 143, 0.1)',
+            color: isGoalMet ? colors.statusSuccess : '#F20C8F',
+            fontWeight: '600'
+          }}>
+            {progress.toFixed(0)}%
+          </span>
+        </div>
+      )}
+
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between'
+      }}>
         {percentage ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{
-              display: 'inline-flex', alignItems: 'center', gap: 4,
-              fontSize: '0.78rem', fontWeight: 700,
-              color: trend === 'up' ? '#065F46' : '#991B1B',
-              padding: '2px 7px',
-              borderRadius: 9999,
-              background: trend === 'up' ? '#ECFDF5' : '#FEF2F2',
-            }}>
-              <i className={`bi ${trend === 'up' ? 'bi-arrow-up-right' : 'bi-arrow-down-right'}`} style={{ fontSize: 10 }} />
-              {trend === 'up' ? '+' : ''}{percentage}
-            </span>
-            {timeframe && <span style={{ fontSize: '0.75rem', color: 'var(--ck-text-muted)' }}>{timeframe}</span>}
-          </div>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.375rem'
+        }}>
+          <span style={{
+            fontSize: '0.85rem',
+            lineHeight: '1rem',
+            fontWeight: '600',
+            color: trend === 'up' ? colors.statusSuccess : colors.statusError
+          }}>
+            {trend === 'up' ? '+' : ''}{percentage}
+          </span>
+          <span style={{
+            fontSize: '0.85rem',
+            lineHeight: '1rem',
+            color: colors.textTertiary
+          }}>{timeframe}</span>
+        </div>
         ) : <div />}
         {href && (
           <a
             href={href}
-            title="View details"
             style={{
-              width: 28, height: 28, borderRadius: 9999,
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              background: 'var(--ck-surface-muted)',
-              color: 'var(--ck-blue)',
-              transition: 'background 180ms',
-              textDecoration: 'none',
+              padding: '0.25rem',
+              cursor: 'pointer',
+              transition: 'opacity 0.3s',
+              textDecoration: 'none'
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(8,58,133,0.10)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--ck-surface-muted)'; }}
+            title={`View ${href.split('/').pop()?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'details'}`}
+            onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+            onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
           >
-            <i className="bi bi-arrow-up-right" style={{ fontSize: 12 }} />
+            <i style={{
+              fontSize: '0.875rem',
+              lineHeight: '1.25rem',
+              color: colors.textLink
+            }} className="bi bi-box-arrow-up-right"></i>
           </a>
         )}
       </div>

@@ -32,85 +32,90 @@ export default function EventCoordinatorWalletPage() {
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
-    <div style={{ display: 'flex', height: '100vh', background: 'var(--ck-surface-soft)', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: colors.bgPrimary }}>
       <Sidebar />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <Topbar userRole="event-coordinator" />
 
-        <main className="ck-page" style={{ overflowY: 'auto', flex: 1 }}>
-          <header style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-end',
-            gap: 16,
-            flexWrap: 'wrap',
-            margin: '8px 0 22px',
-          }}>
-            <div style={{ minWidth: 0 }}>
-              <div style={{
-                fontSize: '0.78rem',
-                fontWeight: 700,
-                color: '#F20C8F',
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                marginBottom: 6,
-              }}>Money</div>
-              <h1 style={{
-                margin: 0,
-                fontSize: '1.85rem',
-                fontWeight: 800,
-                letterSpacing: '-0.02em',
-                color: colors.textPrimary,
-              }}>My wallet</h1>
-              <p style={{
-                margin: '4px 0 0',
-                fontSize: '0.92rem',
-                color: colors.textSecondary,
-              }}>
-                {user?.firstName ? `${user.firstName}, your` : 'Your'} event payments, stream revenue, and balance.
+        <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
+          <div style={{ marginBottom: '1.5rem', display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem' }}>
+            <div style={{ flex: '1 1 auto', minWidth: '200px' }}>
+              <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: colors.textPrimary, margin: 0 }}>
+                My Wallet
+              </h1>
+              <p style={{ fontSize: '0.875rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
+                {user?.firstName ? `${user.firstName}, your ` : 'Your '}event payments, stream revenue, and balance.
               </p>
             </div>
             <button
               onClick={() => setShowWithdrawModal(true)}
-              className="ck-btn ck-btn-primary"
-              style={{ padding: '11px 20px', fontSize: '0.92rem' }}
+              style={{
+                padding: '0.75rem 1.5rem',
+                backgroundColor: '#7c3aed',
+                color: 'white',
+                border: 'none',
+                borderRadius: '0.5rem',
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                transition: 'all 0.2s',
+                whiteSpace: 'nowrap',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#6d28d9';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+                e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.15)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#7c3aed';
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+              }}
             >
-              <i className="bi bi-bank" /> Withdraw funds
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M2 17L12 22L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Withdraw Funds
             </button>
-          </header>
+          </div>
 
           {loading && (
-            <div className="ck-card" style={{ padding: 22, display: 'flex', alignItems: 'center', gap: 10, color: colors.textSecondary }}>
-              <span className="ck-spinner" /> Loading wallet…
-            </div>
+            <div style={{ color: colors.textSecondary, fontSize: '0.875rem' }}>Loading wallet…</div>
           )}
 
           {error && !loading && (
-            <div style={{
-              padding: '14px 18px',
-              borderRadius: 12,
-              background: '#FEF2F2',
-              border: '1px solid #FECACA',
-              color: '#991B1B',
-              fontSize: '0.9rem',
-              fontWeight: 600,
-              display: 'flex', alignItems: 'center', gap: 10,
-            }}>
-              <i className="bi bi-exclamation-octagon-fill" /> {error}
+            <div
+              style={{
+                padding: '1rem',
+                borderRadius: '0.5rem',
+                backgroundColor: '#FEF2F2',
+                color: '#991B1B',
+                fontSize: '0.875rem',
+              }}
+            >
+              {error}
             </div>
           )}
 
           {wallet && !loading && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <WalletPanel wallet={wallet} title="My balance" role="event-coordinator" />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <WalletPanel wallet={wallet} title="My Balance" role="event-coordinator" />
               <WalletMovementsTable mode="me" title="Activity" role="event-coordinator" />
             </div>
           )}
-        </main>
+        </div>
       </div>
 
       <WithdrawModal

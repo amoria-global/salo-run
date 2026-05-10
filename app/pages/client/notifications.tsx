@@ -366,11 +366,11 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
   return (
     <>
       <style jsx>{`
+        /* Desktop styles */
         .notifications-container {
           display: flex;
           height: 100vh;
-          background: var(--ck-surface-soft);
-          overflow: hidden;
+          background-color: ${colors.bgPrimary};
         }
 
         .notifications-content {
@@ -378,58 +378,50 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
           display: flex;
           flex-direction: column;
           overflow: hidden;
-          min-width: 0;
         }
 
         .notifications-main {
           flex: 1;
           overflow-y: auto;
-          padding: 8px 24px 32px;
+          padding: 1.5rem;
         }
 
         .notifications-header {
           display: flex;
           justify-content: space-between;
-          align-items: flex-end;
-          gap: 16px;
-          flex-wrap: wrap;
-          margin: 8px 0 22px;
+          align-items: center;
+          margin-bottom: 1.5rem;
         }
 
         .header-actions {
           display: flex;
-          gap: 10px;
+          gap: 0.75rem;
         }
 
         .stats-grid {
           display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 14px;
-          margin-bottom: 22px;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 1rem;
+          margin-bottom: 1.5rem;
         }
 
-        .filter-pills {
-          display: inline-flex;
-          gap: 4px;
-          padding: 4px;
-          border-radius: 12px;
-          background: var(--ck-surface-muted);
-          border: 1px solid var(--ck-stroke);
-          flex-wrap: nowrap;
+        .stat-card {
+          background-color: ${colors.bgCard};
+          border-radius: 0.75rem;
+          padding: 1.25rem;
+          border: 2px solid ${colors.borderPrimary};
         }
 
         .filters-section {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          flex-wrap: wrap;
-          gap: 12px;
-          margin-bottom: 14px;
+          margin-bottom: 1rem;
         }
 
         .filter-buttons {
           display: flex;
-          gap: 6px;
+          gap: 0.5rem;
           flex-wrap: wrap;
         }
 
@@ -593,162 +585,177 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
           <div className="notifications-main">
             {/* Header */}
             <div className="notifications-header">
-              <div style={{ minWidth: 0 }}>
-                <div style={{
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
-                  color: '#F20C8F',
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase',
-                  marginBottom: 6,
-                }}>Inbox</div>
-                <h1 style={{
-                  margin: 0,
-                  fontSize: '1.85rem',
-                  fontWeight: 800,
-                  letterSpacing: '-0.02em',
-                  color: 'var(--ck-text)',
-                  display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
-                }}>
-                  Notifications
-                  {unreadCount > 0 && (
-                    <span style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 6,
-                      padding: '4px 12px',
-                      borderRadius: 9999,
-                      background: 'rgba(242,12,143,0.10)',
-                      color: '#F20C8F',
-                      fontSize: '0.78rem',
-                      fontWeight: 700,
-                      letterSpacing: '0.01em',
-                    }}>
-                      <span style={{
-                        width: 6, height: 6, borderRadius: 9999, background: '#F20C8F',
-                        boxShadow: '0 0 0 3px rgba(242,12,143,0.25)',
-                      }} />
-                      {unreadCount} unread
-                    </span>
-                  )}
-                </h1>
-                <p style={{ margin: '4px 0 0', color: 'var(--ck-text-soft)', fontSize: '0.92rem' }}>
-                  Stay updated with new albums, {userRole === 'event-coordinator' ? 'stream fees' : 'gifts'}, bookings, and account activity.
-                </p>
-              </div>
-
-              <div className="header-actions">
+            <div>
+              <h1 style={{
+                fontSize: '1.8rem',
+                fontWeight: '700',
+                color: colors.textPrimary,
+                margin: 0,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem'
+              }}>
+                Notifications
                 {unreadCount > 0 && (
-                  <button
-                    onClick={markAllAsRead}
-                    className="ck-btn ck-btn-ghost"
-                  >
-                    <i className="bi bi-check2-all" /> Mark all read
-                  </button>
-                )}
-                {notifications.some(n => n.read) && (
-                  <button
-                    onClick={deleteAllRead}
-                    className="ck-btn ck-btn-ghost"
-                    title="Delete read notifications"
-                    style={{ color: '#DC2626' }}
-                  >
-                    <i className="bi bi-broom" /> Clear read
-                  </button>
-                )}
-                {notifications.length > 0 && (
-                  <button
-                    onClick={deleteAllNotifications}
-                    className="ck-btn"
-                    title="Delete all notifications"
-                    style={{
-                      background: '#FEF2F2',
-                      color: '#991B1B',
-                      border: '1px solid #FECACA',
-                    }}
-                  >
-                    <i className="bi bi-trash" /> Delete all
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Stats Cards */}
-            <div className="stats-grid">
-              {(() => {
-                const stats = [
-                  { label: 'Total notifications', value: notifications.length, icon: 'bi-bell-fill', tint: 'rgba(8,58,133,0.10)', color: '#083A85' },
-                  { label: 'Unread', value: unreadCount, icon: 'bi-circle-fill', tint: 'rgba(242,12,143,0.10)', color: '#F20C8F' },
-                  { label: 'New albums', value: notifications.filter(n => n.type === 'album').length, icon: 'bi-images', tint: 'rgba(139,92,246,0.10)', color: '#8B5CF6' },
-                  {
-                    label: userRole === 'event-coordinator' ? 'Stream fees' : 'Gifts received',
-                    value: notifications.filter(n => n.type === (userRole === 'event-coordinator' ? 'streamfee' : 'gift')).length,
-                    icon: userRole === 'event-coordinator' ? 'bi-broadcast' : 'bi-gift-fill',
-                    tint: 'rgba(16,185,129,0.10)', color: '#10B981',
-                  },
-                ];
-                return stats.map((s) => (
-                  <div key={s.label} className="ck-card ck-card-hover" style={{
-                    padding: 18,
-                    borderTop: `3px solid ${s.color}`,
+                  <span style={{
+                    backgroundColor: '#EF4444',
+                    color: 'white',
+                    fontSize: '0.875rem',
+                    fontWeight: '600',
+                    padding: '0.25rem 0.75rem',
+                    borderRadius: '9999px'
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div style={{
-                        width: 40, height: 40, borderRadius: 10,
-                        background: s.tint,
-                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                        flexShrink: 0,
-                      }}>
-                        <i className={`bi ${s.icon}`} style={{ color: s.color, fontSize: 16 }} />
-                      </div>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{
-                          fontSize: '0.78rem', fontWeight: 600, color: 'var(--ck-text-soft)',
-                        }}>{s.label}</div>
-                        <div style={{
-                          fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.02em',
-                          color: s.color, lineHeight: 1.1, marginTop: 2,
-                        }}>{s.value}</div>
-                      </div>
-                    </div>
-                  </div>
-                ));
-              })()}
+                    {unreadCount} new
+                  </span>
+                )}
+              </h1>
+              <p style={{
+                fontSize: '0.95rem',
+                color: colors.textSecondary,
+                marginTop: '0.25rem'
+              }}>
+                Stay updated with new albums, {userRole === 'event-coordinator' ? 'stream fees' : 'gifts'}, bookings, and account activity
+              </p>
             </div>
 
-            {/* Filters + meta */}
-            <div className="filters-section">
-              <div className="filter-pills">
-                {filterOptions.map(option => {
-                  const active = activeFilter === option.value;
-                  return (
-                    <button
-                      key={option.value}
-                      onClick={() => setActiveFilter(option.value)}
-                      style={{
-                        padding: '8px 16px',
-                        border: 'none',
-                        background: active ? 'var(--ck-surface)' : 'transparent',
-                        color: active ? 'var(--ck-text)' : 'var(--ck-text-soft)',
-                        borderRadius: 9,
-                        fontSize: '0.875rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        transition: 'background 180ms, color 180ms',
-                        boxShadow: active ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {option.label}
-                    </button>
-                  );
-                })}
-              </div>
-              <div style={{ fontSize: '0.85rem', color: 'var(--ck-text-soft)' }}>
-                Showing <strong style={{ color: 'var(--ck-text)' }}>{filteredNotifications.length}</strong> notification{filteredNotifications.length !== 1 ? 's' : ''}
+            <div className="header-actions">
+              {unreadCount > 0 && (
+                <button
+                  onClick={markAllAsRead}
+                  style={{
+                    padding: '0.625rem 1rem',
+                    backgroundColor: colors.bgCard,
+                    border: `2px solid ${colors.borderPrimary}`,
+                    borderRadius: '0.5rem',
+                    fontSize: '0.875rem',
+                    fontWeight: '500',
+                    color: colors.textPrimary,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <CheckIcon />
+                  Mark all as read
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Stats Cards */}
+          <div className="stats-grid">
+            <div className="stat-card" style={{ borderLeft: '4px solid #083A85' }}>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Notifications</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{notifications.length}</div>
+            </div>
+            <div className="stat-card" style={{ borderLeft: '4px solid #EF4444' }}>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Unread</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#EF4444' }}>{unreadCount}</div>
+            </div>
+            <div className="stat-card" style={{ borderLeft: '4px solid #9333EA' }}>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>New Albums</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#9333EA' }}>
+                {notifications.filter(n => n.type === 'album').length}
               </div>
             </div>
+            <div className="stat-card" style={{ borderLeft: '4px solid #16A34A' }}>
+              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>
+                {userRole === 'event-coordinator' ? 'Stream Fees' : 'Gifts Received'}
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>
+                {notifications.filter(n => n.type === (userRole === 'event-coordinator' ? 'streamfee' : 'gift')).length}
+              </div>
+            </div>
+          </div>
 
-            {/* Notifications List */}
-            <div className="ck-card" style={{ padding: 6, overflow: 'hidden' }}>
+          {/* Filters */}
+          <div className="filters-section">
+            <div className="filter-buttons">
+              {filterOptions.map(option => (
+                <button
+                  key={option.value}
+                  onClick={() => setActiveFilter(option.value)}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    border: activeFilter === option.value ? 'none' : `2px solid ${colors.borderPrimary}`,
+                    backgroundColor: activeFilter === option.value ? '#083A85' : colors.bgCard,
+                    color: activeFilter === option.value ? 'white' : colors.textSecondary,
+                    borderRadius: '0.5rem',
+                    fontSize: '0.875rem',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              {notifications.some(n => n.read) && (
+                <button
+                  onClick={deleteAllRead}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    backgroundColor: actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2',
+                    border: `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}`,
+                    borderRadius: '0.5rem',
+                    fontSize: '0.85rem',
+                    fontWeight: '500',
+                    color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.375rem',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <TrashIcon />
+                  Clear read
+                </button>
+              )}
+              {notifications.length > 0 && (
+                <button
+                  onClick={deleteAllNotifications}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    backgroundColor: actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2',
+                    border: `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}`,
+                    borderRadius: '0.5rem',
+                    fontSize: '0.85rem',
+                    fontWeight: '500',
+                    color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.375rem',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <TrashIcon />
+                  Delete all
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Results Count */}
+          <div style={{ marginBottom: '1rem' }}>
+            <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>
+              Showing {filteredNotifications.length} notification{filteredNotifications.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+
+          {/* Notifications List */}
+          <div style={{
+            backgroundColor: colors.bgCard,
+            borderRadius: '0.75rem',
+            border: `2px solid ${colors.borderPrimary}`,
+            overflow: 'hidden'
+          }}>
             {filteredNotifications.length === 0 ? (
               <div style={{
                 padding: '4rem 1.5rem',
