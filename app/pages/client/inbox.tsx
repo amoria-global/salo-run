@@ -720,132 +720,106 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
         <div className={`mobile-topbar ${selectedConversation ? 'mobile-chat-active' : ''}`}>
           <Topbar userRole={userRole} />
         </div>
-        <div className="mobile-inbox-container" style={{
-          flex: 1, display: 'flex', overflow: 'hidden',
-          margin: '0 24px 24px 24px',
-          gap: 0,
-          background: 'var(--ck-surface)',
-          border: '1px solid var(--ck-stroke)',
-          borderRadius: 16,
-          boxShadow: 'var(--ck-shadow-sm)',
-        }}>
+        <div className="mobile-inbox-container" style={{ flex: 1, display: 'flex', overflow: 'hidden', margin: '0 1.25rem 1rem 1.25rem' }}>
 
           {/* Conversations List */}
           <div className={`mobile-conversations-list ${selectedConversation ? 'mobile-chat-active' : ''}`} style={{
             width: '340px',
-            backgroundColor: 'var(--ck-surface)',
-            borderRadius: '16px 0 0 16px',
-            borderRight: '1px solid var(--ck-stroke)',
+            backgroundColor: colors.bgCard,
+            borderRadius: '0.75rem 0 0 0.75rem',
+            border: '1px solid #D1D5DB',
+            borderRight: '1px solid #E5E7EB',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
           }}>
             {/* Header */}
-            <div className="mobile-conversations-list-header" style={{
-              padding: '18px 18px 14px',
-              borderBottom: '1px solid var(--ck-stroke)',
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 14 }}>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{
-                    fontSize: '0.7rem',
-                    fontWeight: 700,
-                    color: '#F20C8F',
-                    letterSpacing: '0.08em',
-                    textTransform: 'uppercase',
-                    marginBottom: 4,
-                  }}>Inbox</div>
-                  <h1 style={{
-                    margin: 0,
-                    fontSize: '1.2rem',
-                    fontWeight: 800,
-                    letterSpacing: '-0.01em',
-                    color: 'var(--ck-text)',
-                  }}>Messages</h1>
-                </div>
+            <div className="mobile-conversations-list-header" style={{ padding: '1rem', borderBottom: '1px solid #E5E7EB' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h1 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Messages</h1>
                 <button
                   onClick={() => { setShowNewChatModal(true); setContactSearchQuery(''); fetchContacts(); }}
-                  className="ck-btn ck-btn-primary"
-                  style={{ padding: '7px 12px', fontSize: '0.78rem' }}
-                  title="Start a new conversation"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.375rem',
+                    padding: '0.375rem 0.75rem',
+                    border: '2px solid #062a63',
+                    borderRadius: '0.375rem',
+                    backgroundColor: '#083A85',
+                    color: 'white',
+                    fontSize: '0.8rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                  }}
                 >
-                  <i className="bi bi-plus-lg" style={{ fontSize: 12 }} /> New
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  New Chat
                 </button>
               </div>
 
               {/* Search */}
-              <div className="ck-search" style={{ marginBottom: 12 }}>
-                <i className="bi bi-search" />
+              <div style={{ position: 'relative', marginBottom: '0.75rem' }}>
+                <div style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' }}>
+                  <SearchIcon />
+                </div>
                 <input
-                  type="search"
-                  placeholder="Search conversations…"
+                  type="text"
+                  placeholder="Search conversations..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.625rem 1rem 0.625rem 2.5rem',
+                    border: `2px solid ${colors.borderPrimary}`,
+                    borderRadius: '0.5rem',
+                    fontSize: '0.9rem',
+                    fontWeight: '500',
+                    color: colors.textPrimary,
+                    backgroundColor: colors.bgCard,
+                    outline: 'none'
+                  }}
                 />
               </div>
 
               {/* Filter Tabs */}
-              <div className="mobile-filter-tabs" style={{
-                display: 'inline-flex',
-                gap: 4,
-                padding: 4,
-                borderRadius: 10,
-                background: 'var(--ck-surface-muted)',
-                border: '1px solid var(--ck-stroke)',
-              }}>
-                {(['all', 'unread', 'pinned'] as const).map((filter) => {
-                  const active = activeFilter === filter;
-                  return (
-                    <button
-                      key={filter}
-                      onClick={() => setActiveFilter(filter)}
-                      style={{
-                        padding: '5px 12px',
-                        border: 'none',
-                        borderRadius: 7,
-                        fontSize: '0.78rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        background: active ? 'var(--ck-surface)' : 'transparent',
-                        color: active ? 'var(--ck-text)' : 'var(--ck-text-soft)',
-                        textTransform: 'capitalize',
-                        transition: 'background 180ms, color 180ms',
-                        boxShadow: active ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
-                      }}
-                    >
-                      {filter}
-                    </button>
-                  );
-                })}
+              <div className="mobile-filter-tabs" style={{ display: 'flex', gap: '0.25rem' }}>
+                {(['all', 'unread', 'pinned'] as const).map((filter) => (
+                  <button
+                    key={filter}
+                    onClick={() => setActiveFilter(filter)}
+                    style={{
+                      padding: '0.375rem 0.75rem',
+                      border: 'none',
+                      borderRadius: '0.25rem',
+                      fontSize: '0.8rem',
+                      fontWeight: '500',
+                      cursor: 'pointer',
+                      backgroundColor: activeFilter === filter ? '#083A85' : 'transparent',
+                      color: activeFilter === filter ? 'white' : '#6B7280',
+                      textTransform: 'capitalize',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {filter}
+                  </button>
+                ))}
               </div>
             </div>
 
             {/* Conversations */}
             <div style={{ flex: 1, overflowY: 'auto' }}>
               {filteredConversations.length === 0 && (
-                <div style={{
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                  padding: '48px 24px', textAlign: 'center',
-                }}>
-                  <div style={{
-                    width: 64, height: 64, borderRadius: 9999,
-                    background: 'var(--ck-surface-muted)',
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                    marginBottom: 14,
-                  }}>
-                    <i className="bi bi-chat-left-dots" style={{ fontSize: 24, color: 'var(--ck-blue)' }} />
-                  </div>
-                  <h3 style={{
-                    margin: '0 0 6px',
-                    fontSize: '0.95rem', fontWeight: 700,
-                    color: 'var(--ck-text)',
-                  }}>
-                    {searchQuery || activeFilter !== 'all' ? 'No matches' : 'No conversations yet'}
-                  </h3>
-                  <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--ck-text-soft)', maxWidth: 220 }}>
-                    {searchQuery || activeFilter !== 'all'
-                      ? 'Try a different search or filter.'
-                      : `Your chats with ${userRole === 'event-coordinator' ? 'photographers' : 'photographers'} will appear here.`}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', textAlign: 'center', color: colors.textSecondary }}>
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" style={{ marginBottom: '0.75rem' }}>
+                    <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <p style={{ margin: 0, fontSize: '0.9rem' }}>
+                    {searchQuery || activeFilter !== 'all' ? 'No conversations match your filter' : 'No conversations yet. Start a new chat!'}
                   </p>
                 </div>
               )}
@@ -965,12 +939,14 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
           {/* Chat Area */}
           <div className={`mobile-chat-area ${selectedConversation ? 'mobile-chat-active' : ''}`} style={{
             flex: 1,
-            backgroundColor: 'var(--ck-surface)',
-            borderRadius: '0 16px 16px 0',
+            backgroundColor: colors.bgCard,
+            borderRadius: '0 0.75rem 0.75rem 0',
+            border: `2px solid ${colors.borderPrimary}`,
+            borderLeft: 'none',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
-            minWidth: 0,
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
           }}>
             {selectedConv && otherParticipant ? (
               <>
@@ -1426,49 +1402,24 @@ const InboxPage = ({ userRole = 'client' }: InboxPageProps) => {
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: 32,
-                background: 'linear-gradient(180deg, var(--ck-surface) 0%, var(--ck-surface-soft) 100%)',
+                color: colors.textSecondary
               }}>
                 <div style={{
-                  width: 84, height: 84,
-                  borderRadius: 9999,
-                  background: 'linear-gradient(135deg, rgba(8,58,133,0.08) 0%, rgba(242,12,143,0.06) 100%)',
-                  border: '1px solid var(--ck-stroke)',
+                  width: '80px',
+                  height: '80px',
+                  backgroundColor: colors.bgTertiary,
+                  borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  marginBottom: 18,
-                  boxShadow: 'var(--ck-shadow-sm)',
+                  marginBottom: '1rem'
                 }}>
-                  <i className="bi bi-chat-left-dots" style={{
-                    fontSize: 32,
-                    background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
-                    WebkitBackgroundClip: 'text',
-                    backgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    color: 'transparent',
-                  }} />
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
                 </div>
-                <h3 style={{
-                  margin: '0 0 6px',
-                  fontSize: '1.15rem',
-                  fontWeight: 800,
-                  letterSpacing: '-0.01em',
-                  color: 'var(--ck-text)',
-                }}>Select a conversation</h3>
-                <p style={{
-                  margin: '0 0 20px',
-                  fontSize: '0.92rem',
-                  color: 'var(--ck-text-soft)',
-                  textAlign: 'center',
-                  maxWidth: 360,
-                }}>Choose a chat from the list — or start a new one to reach out.</p>
-                <button
-                  onClick={() => { setShowNewChatModal(true); setContactSearchQuery(''); fetchContacts(); }}
-                  className="ck-btn ck-btn-primary"
-                >
-                  <i className="bi bi-plus-lg" /> Start a new chat
-                </button>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.5rem' }}>Select a conversation</h3>
+                <p style={{ fontSize: '0.9rem', color: colors.textSecondary }}>Choose a conversation from the list to start messaging</p>
               </div>
             )}
           </div>

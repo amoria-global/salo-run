@@ -6,11 +6,63 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "../context/ThemeContext";
 import { useDashboardAuth, dashboardAuthFetch } from "../providers/AuthProvider";
 import { useCurrency } from "../context/CurrencyContext";
+
 import { getApiUrl } from '@/lib/api';
 import PayNowModal from './UnlockModal';
 import type { Payment } from './UnlockModal';
-import Modal from './ui/Modal';
-import Button from './ui/Button';
+
+// Icons for dropdown menu
+const ProfileIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="2"/>
+    <path d="M5 20C5 17.2386 7.23858 15 10 15H14C16.7614 15 19 17.2386 19 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
+
+const PreferencesIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="6" cy="8" r="2" stroke="currentColor" strokeWidth="2"/>
+    <circle cx="6" cy="16" r="2" stroke="currentColor" strokeWidth="2"/>
+    <line x1="10" y1="8" x2="20" y2="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    <line x1="10" y1="16" x2="20" y2="16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    <line x1="2" y1="8" x2="4" y2="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    <line x1="2" y1="16" x2="4" y2="16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
+
+const LogoutIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <polyline points="16,17 21,12 16,7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <line x1="21" y1="12" x2="9" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const CheckIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const CloseIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const SunIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth="2"/>
+    <path d="M12 1V3M12 21V23M4.22 4.22L5.64 5.64M18.36 18.36L19.78 19.78M1 12H3M21 12H23M4.22 19.78L5.64 18.36M18.36 5.64L19.78 4.22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
+
+const MoonIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
 
 interface NotificationItem {
   id: string;
@@ -29,59 +81,74 @@ function formatTimeAgo(dateStr: string): string {
   const diffMs = now.getTime() - date.getTime();
   const diffMins = Math.floor(diffMs / 60000);
   if (diffMins < 1) return 'just now';
-  if (diffMins < 60) return `${diffMins}m`;
+  if (diffMins < 60) return `${diffMins} min ago`;
   const diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) return `${diffHours}h`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
   const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 30) return `${diffDays}d`;
-  return `${Math.floor(diffDays / 30)}mo`;
+  if (diffDays < 30) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+  return `${Math.floor(diffDays / 30)} month${Math.floor(diffDays / 30) > 1 ? 's' : ''} ago`;
 }
 
 interface TopbarProps {
   userRole?: 'client' | 'photographer' | 'admin' | 'event-coordinator';
 }
 
-const roleLabel = (r: string) => r === 'photographer' ? 'Photographer'
-  : r === 'admin' ? 'Admin'
-  : r === 'event-coordinator' ? 'Event Coordinator'
-  : 'Client';
-
 export default function Topbar({ userRole = 'client' }: TopbarProps) {
-  const { actualTheme, setTheme } = useTheme();
-  const { user, logout } = useDashboardAuth();
+  const { colors, actualTheme, theme, setTheme } = useTheme();
+  const { user, logout, token } = useDashboardAuth();
   const router = useRouter();
   const { currency, setCurrency, formatPrice, currencies } = useCurrency();
 
+  const getUserDisplayName = () => {
+    if (user?.firstName && user?.lastName) {
+      return `${user.firstName} ${user.lastName}`;
+    }
+    if (user?.firstName) {
+      return user.firstName;
+    }
+    if (user?.email) {
+      return user.email.split('@')[0];
+    }
+    return 'User';
+  };
+
+  const getRoleDisplayName = (role: string) => {
+    switch (role) {
+      case 'photographer':
+        return 'Photographer';
+      case 'admin':
+        return 'Admin';
+      case 'event-coordinator':
+        return 'Event Coordinator';
+      case 'client':
+      default:
+        return 'Client';
+    }
+  };
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  // Accordion: at most one notification expanded at a time inside the dropdown.
+  // Mark-as-read fires when a row transitions from expanded → collapsed
+  // (switching rows, clicking the same row again, or closing the dropdown).
   const [expandedNotifId, setExpandedNotifId] = useState<string | null>(null);
   const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
-
-  // Wallet & financial data
   const [giftAmount, setGiftAmount] = useState(0);
   const [selfLiveStreamFee, setSelfLiveStreamFee] = useState(0);
   const [selfBalanceAmount, setSelfBalanceAmount] = useState(0);
   const [selfTipsAmount, setSelfTipsAmount] = useState(0);
   const [selfBonusAmount, setSelfBonusAmount] = useState(0);
+  // Canonical wallet snapshot (applies to all non-admin roles).
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [walletStatus, setWalletStatus] = useState<'ACTIVE' | 'SUSPENDED' | 'CLOSED' | null>(null);
   const [pendingPaymentWarning, setPendingPaymentWarning] = useState<{count: number; totalAmount: number; firstEvent: string; firstEventId?: string; firstPaymentId?: string} | null>(null);
   const [showPayNowModal, setShowPayNowModal] = useState(false);
   const [topbarPayment, setTopbarPayment] = useState<Payment | null>(null);
-
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const currencyRef = useRef<HTMLDivElement>(null);
-
-  const getUserDisplayName = () => {
-    if (user?.firstName && user?.lastName) return `${user.firstName} ${user.lastName}`;
-    if (user?.firstName) return user.firstName;
-    if (user?.email) return user.email.split('@')[0];
-    return 'User';
-  };
 
   const fetchNotifications = useCallback(async () => {
     if (!user) return;
@@ -92,6 +159,7 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
         dashboardAuthFetch(`${apiUrl}/api/remote/${notifBase}/notifications?page=0&size=20`, { method: 'GET' }),
         dashboardAuthFetch(`${apiUrl}/api/remote/${notifBase}/notifications/unread-count`, { method: 'GET' }),
       ]);
+
       if (notifRes.status === 'fulfilled' && notifRes.value.ok) {
         const data = await notifRes.value.json();
         if (data.action === 1 && (Array.isArray(data.data) || data.data?.content)) {
@@ -112,13 +180,17 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
         const data = await countRes.value.json();
         if (data.action === 1) setUnreadCount(data.data ?? 0);
       }
-    } catch { /* silent */ }
+    } catch {
+      // silent fail
+    }
   }, [user, userRole]);
 
   const fetchFinancials = useCallback(async () => {
     if (!user) return;
     const apiUrl = getApiUrl();
     try {
+      // Unified wallet snapshot for every authenticated non-admin role.
+      // This is the canonical source of truth for all balance displays.
       if (userRole !== 'admin') {
         try {
           const walletRes = await dashboardAuthFetch(`${apiUrl}/api/remote/wallet/me`, { method: 'GET' });
@@ -128,6 +200,8 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
               const w = walletJson.data;
               setWalletBalance(w.balanceAvailable ?? 0);
               setWalletStatus(w.status ?? null);
+              // Feed role-specific self-* slots directly from the wallet —
+              // this is the canonical source of truth, always takes priority.
               if (userRole === 'photographer') {
                 setSelfBalanceAmount(w.balanceAvailable ?? 0);
                 setSelfTipsAmount(w.balanceTips ?? 0);
@@ -139,9 +213,12 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
               }
             }
           }
-        } catch { /* silent */ }
+        } catch {
+          // silent fail
+        }
       }
 
+      // Fetch pending payments for client and coordinator roles
       if (userRole === 'client' || userRole === 'event-coordinator') {
         const pendingBase = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
         const pendingRes = await dashboardAuthFetch(`${apiUrl}/api/remote/${pendingBase}/payments/pending`, { method: 'GET' });
@@ -162,13 +239,17 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
           }
         }
       }
-    } catch { /* silent */ }
+    } catch {
+      // silent fail
+    }
   }, [user, userRole]);
 
   useEffect(() => {
     fetchNotifications();
     fetchFinancials();
     const interval = setInterval(fetchNotifications, 30000);
+    // Re-sync immediately when any surface (sidebar, notifications page,
+    // other tabs) signals that the unread count changed.
     const onBadgeUpdate = () => { fetchNotifications(); };
     window.addEventListener('badge-update', onBadgeUpdate);
     return () => {
@@ -182,11 +263,17 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
     if (wasUnread) {
       setUnreadCount(prev => Math.max(0, prev - 1));
+      // Tell the sidebar (and anyone else listening) the count changed so
+      // its badge updates immediately instead of lagging 30s until next poll.
       window.dispatchEvent(new Event('badge-update'));
     }
     const apiUrl = getApiUrl();
     const base = userRole === 'event-coordinator' ? 'coordinator' : userRole === 'photographer' ? 'photographer' : 'customer';
-    try { await dashboardAuthFetch(`${apiUrl}/api/remote/${base}/notifications/${id}/read`, { method: 'PATCH' }); } catch { /* silent */ }
+    try {
+      await dashboardAuthFetch(`${apiUrl}/api/remote/${base}/notifications/${id}/read`, { method: 'PATCH' });
+    } catch {
+      // silent fail
+    }
   };
 
   const markAllAsRead = async () => {
@@ -195,12 +282,22 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
     window.dispatchEvent(new Event('badge-update'));
     const apiUrl = getApiUrl();
     const base = userRole === 'event-coordinator' ? 'coordinator' : userRole === 'photographer' ? 'photographer' : 'customer';
-    try { await dashboardAuthFetch(`${apiUrl}/api/remote/${base}/notifications/read-all`, { method: 'PATCH' }); } catch { /* silent */ }
+    try {
+      await dashboardAuthFetch(`${apiUrl}/api/remote/${base}/notifications/read-all`, { method: 'PATCH' });
+    } catch {
+      // silent fail
+    }
   };
 
+  // Accordion toggle for the in-dropdown reader. Opening a new row auto-collapses
+  // (and marks as read) whichever row was previously expanded. Clicking the same
+  // row again collapses and marks it as read too.
   const handleToggleExpand = (notificationId: string) => {
     setExpandedNotifId(prev => {
-      if (prev === notificationId) { markAsRead(prev); return null; }
+      if (prev === notificationId) {
+        markAsRead(prev);
+        return null;
+      }
       if (prev) markAsRead(prev);
       return notificationId;
     });
@@ -217,40 +314,48 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
       switch (t) {
         case 'payment': case 'tip': case 'bonus': case 'withdrawal': dest = '/user/photographer/transaction'; break;
         case 'booking': case 'event':
+          dest = refId ? `/user/photographer/events/${refId}` : '/user/photographer/events'; break;
         case 'album': case 'media':
-        case 'streaming':
-        case 'photobook':
           dest = refId ? `/user/photographer/events/${refId}` : '/user/photographer/events'; break;
         case 'security': dest = '/user/photographer/profile'; break;
+        case 'streaming':
+          dest = refId ? `/user/photographer/events/${refId}` : '/user/photographer/events'; break;
+        case 'photobook':
+          dest = refId ? `/user/photographer/events/${refId}` : '/user/photographer/events'; break;
       }
     } else if (userRole === 'event-coordinator') {
       switch (t) {
         case 'booking': case 'event':
-        case 'photobook':
           dest = refId ? `/user/event-coordinator/events/${refId}` : '/user/event-coordinator/events'; break;
         case 'payment': case 'streamfee': case 'streaming':
           dest = refId ? `/user/event-coordinator/payments/${refId}` : '/user/event-coordinator/payments'; break;
         case 'album': case 'media':
-          dest = '/user/event-coordinator/gallery'; break;
+          dest = refId ? `/user/event-coordinator/gallery` : '/user/event-coordinator/gallery'; break;
         case 'photographer': dest = '/user/event-coordinator/home'; break;
         case 'security': dest = '/user/event-coordinator/profile'; break;
+        case 'photobook':
+          dest = refId ? `/user/event-coordinator/events/${refId}` : '/user/event-coordinator/events'; break;
       }
     } else {
       switch (t) {
         case 'booking': case 'event':
-        case 'photobook':
           dest = refId ? `/user/client/events/${refId}` : '/user/client/events'; break;
         case 'payment':
           dest = refId ? `/user/client/payments/${refId}` : '/user/client/payments'; break;
         case 'gift': dest = '/user/client/payments'; break;
         case 'album': case 'media':
-          dest = '/user/client/gallery'; break;
+          dest = refId ? `/user/client/gallery` : '/user/client/gallery'; break;
         case 'photographer': dest = '/user/client/photographers'; break;
         case 'security': dest = '/user/client/profile'; break;
         case 'streaming': dest = '/user/client/streams'; break;
+        case 'photobook':
+          dest = refId ? `/user/client/events/${refId}` : '/user/client/events'; break;
       }
     }
 
+    // Fallback chain: specific route → backend actionUrl → role's full notifications page.
+    // Without the final fallback, clicks on SYSTEM / unrecognized-type notifications silently
+    // mark-as-read and vanish, leaving users with no way to reopen the detail.
     const rolePath = userRole === 'photographer' ? 'photographer'
       : userRole === 'event-coordinator' ? 'event-coordinator'
       : 'client';
@@ -260,26 +365,40 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case 'payment': return { bg: '#ECFDF5', color: '#10B981', icon: 'bi-cash-coin' };
-      case 'booking': return { bg: '#EFF6FF', color: '#083A85', icon: 'bi-calendar-event' };
-      case 'gift':    return { bg: 'rgba(242,12,143,0.10)', color: '#F20C8F', icon: 'bi-gift' };
-      case 'system':  return { bg: '#F5F5F7', color: '#595959', icon: 'bi-gear' };
-      case 'security':return { bg: '#FFFBEB', color: '#F59E0B', icon: 'bi-shield-lock' };
-      case 'streaming':return { bg: '#FEF2F2', color: '#DC2626', icon: 'bi-broadcast' };
-      default:        return { bg: '#F5F5F7', color: '#595959', icon: 'bi-bell' };
+      case 'payment':
+        return { bg: '#DCFCE7', color: '#16A34A', icon: '$' };
+      case 'booking':
+        return { bg: '#DBEAFE', color: '#2563EB', icon: '📅' };
+      case 'system':
+        return { bg: '#F3E8FF', color: '#9333EA', icon: '⚙' };
+      default:
+        return { bg: '#F3F4F6', color: '#6B7280', icon: '•' };
     }
   };
 
+  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) setIsDropdownOpen(false);
-      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) setIsNotificationsOpen(false);
-      if (currencyRef.current && !currencyRef.current.contains(event.target as Node)) setIsCurrencyOpen(false);
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
+        setIsNotificationsOpen(false);
+      }
+      if (currencyRef.current && !currencyRef.current.contains(event.target as Node)) {
+        setIsCurrencyOpen(false);
+      }
     };
+
     document.addEventListener('mousedown', handleClickOutside);
-    return () => { document.removeEventListener('mousedown', handleClickOutside); };
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
 
+  // When the notifications dropdown closes for any reason (click outside, X button,
+  // bell toggle, or clicking a notification row), mark whatever was expanded as read
+  // and reset so reopening starts clean.
   useEffect(() => {
     if (!isNotificationsOpen && expandedNotifId) {
       markAsRead(expandedNotifId);
@@ -288,658 +407,1094 @@ export default function Topbar({ userRole = 'client' }: TopbarProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isNotificationsOpen]);
 
-  const moneyLabel = userRole === 'client' ? 'Gifts'
-    : userRole === 'event-coordinator' ? 'Stream'
-    : userRole === 'photographer' ? 'Tips'
-    : 'Balance';
-  const moneyValue = userRole === 'client' ? giftAmount
-    : userRole === 'event-coordinator' ? selfLiveStreamFee
-    : userRole === 'photographer' ? selfTipsAmount
-    : 0;
-
   return (
     <>
-      <header className="ck-topbar">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-          <h1 style={{
-            margin: 0,
-            fontSize: '1rem',
-            fontWeight: 700,
-            color: 'var(--ck-text)',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }} className="topbar-title">
-            {roleLabel(userRole)} Dashboard
-          </h1>
-        </div>
-
-        <div className="topbar-right" style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-          flexShrink: 0,
-        }}>
-          {/* Wallet pill — clients & coordinators */}
-          {(userRole === 'client' || userRole === 'event-coordinator') && walletBalance !== null && (
-            <Link href={`/user/${userRole}/wallet`} className="topbar-wallet" style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '7px 12px',
-              borderRadius: 9999,
-              background: 'var(--ck-surface-muted)',
-              border: '1px solid var(--ck-stroke)',
-              textDecoration: 'none',
-              color: 'var(--ck-text)',
-              fontSize: '0.85rem',
-              fontWeight: 600,
-              whiteSpace: 'nowrap',
-            }}>
-              <i className="bi bi-wallet2" style={{ color: 'var(--ck-blue)', fontSize: 14 }} />
-              <span>${walletBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              {walletStatus === 'SUSPENDED' && (
-                <span className="ck-pill ck-status-error" style={{ fontSize: '0.6rem', padding: '1px 6px' }}>SUSPENDED</span>
-              )}
-            </Link>
-          )}
-
-          {/* Photographer-only money chips */}
-          {userRole === 'photographer' && (
-            <>
-              <div className="topbar-balance" style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '6px 12px',
-                borderRadius: 9999,
-                background: 'var(--ck-surface-muted)',
-                border: '1px solid var(--ck-stroke)',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-              }}>
-                <i className="bi bi-bank" style={{ color: 'var(--ck-blue)', fontSize: 14 }} />
-                <span style={{ color: 'var(--ck-text-soft)' }}>Balance</span>
-                <span style={{ color: 'var(--ck-text)', fontWeight: 700 }}>{formatPrice(selfBalanceAmount)}</span>
-              </div>
-              <div className="topbar-tips" style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '6px 12px',
-                borderRadius: 9999,
-                background: 'rgba(242,12,143,0.08)',
-                border: '1px solid rgba(242,12,143,0.18)',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-              }}>
-                <i className="bi bi-coin" style={{ color: '#F20C8F', fontSize: 14 }} />
-                <span style={{ color: '#F20C8F', fontWeight: 700 }}>{formatPrice(selfTipsAmount)}</span>
-              </div>
-            </>
-          )}
-
-          {/* Theme toggle */}
-          <button
-            onClick={() => setTheme(actualTheme === 'dark' ? 'light' : 'dark')}
-            aria-label="Toggle theme"
-            className="topbar-theme-btn"
-            style={{
-              border: '1px solid var(--ck-stroke)',
-              background: 'var(--ck-surface)',
-              borderRadius: 9999,
-              width: 36,
-              height: 36,
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              color: 'var(--ck-text-soft)',
-            }}
-            title={actualTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-          >
-            <i className={`bi ${actualTheme === 'dark' ? 'bi-sun' : 'bi-moon'}`} style={{ fontSize: 15 }} />
-          </button>
-
-          {/* Currency */}
-          <div ref={currencyRef} style={{ position: 'relative' }}>
-            <button
-              onClick={() => setIsCurrencyOpen(!isCurrencyOpen)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '7px 12px',
-                borderRadius: 9999,
-                border: '1px solid var(--ck-stroke)',
-                background: 'var(--ck-surface)',
-                color: 'var(--ck-text)',
-                fontSize: '0.82rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              <img src={`https://flagcdn.com/w40/${currencies.find(c => c.code === currency)?.flag}.png`} alt="" style={{ width: 18, height: 14, objectFit: 'cover', borderRadius: 2 }} />
-              {currency}
-              <i className="bi bi-chevron-down" style={{ fontSize: 10, transform: isCurrencyOpen ? 'rotate(180deg)' : 'none', transition: 'transform 180ms' }} />
-            </button>
-            {isCurrencyOpen && (
-              <div style={{
-                position: 'absolute',
-                top: 'calc(100% + 8px)',
-                right: 0,
-                background: 'var(--ck-surface)',
-                borderRadius: 14,
-                boxShadow: 'var(--ck-shadow-lg)',
-                border: '1px solid var(--ck-stroke)',
-                padding: 6,
-                minWidth: 220,
-                zIndex: 50,
-              }}>
-                {currencies.map((c) => (
-                  <button
-                    key={c.code}
-                    onClick={() => { setCurrency(c.code); setIsCurrencyOpen(false); }}
-                    style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      width: '100%', padding: '8px 10px',
-                      borderRadius: 8, border: 'none',
-                      background: currency === c.code ? 'var(--ck-surface-muted)' : 'transparent',
-                      color: 'var(--ck-text)',
-                      fontSize: '0.85rem',
-                      fontWeight: currency === c.code ? 600 : 500,
-                      cursor: 'pointer',
-                      gap: 8,
-                    }}
-                    onMouseEnter={(e) => { if (currency !== c.code) e.currentTarget.style.background = 'var(--ck-surface-muted)'; }}
-                    onMouseLeave={(e) => { if (currency !== c.code) e.currentTarget.style.background = 'transparent'; }}
-                  >
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <img src={`https://flagcdn.com/w40/${c.flag}.png`} alt="" style={{ width: 20, height: 15, objectFit: 'cover', borderRadius: 2 }} />
-                      <span style={{ fontWeight: 700 }}>{c.code}</span>
-                      <span style={{ color: 'var(--ck-text-soft)' }}>{c.name}</span>
-                    </span>
-                    {currency === c.code && <i className="bi bi-check-lg" style={{ color: 'var(--ck-blue)' }} />}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Notifications */}
-          <div ref={notificationsRef} style={{ position: 'relative' }}>
-            <button
-              onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-              style={{
-                position: 'relative',
-                width: 36, height: 36,
-                borderRadius: 9999,
-                background: 'var(--ck-surface)',
-                border: '1px solid var(--ck-stroke)',
-                cursor: 'pointer',
-                color: 'var(--ck-text-soft)',
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              }}
-              aria-label="Notifications"
-            >
-              <i className="bi bi-bell" style={{ fontSize: 15 }} />
-              {unreadCount > 0 && (
-                <span style={{
-                  position: 'absolute',
-                  top: -4, right: -4,
-                  background: '#F20C8F',
-                  color: 'white',
-                  fontSize: 10,
-                  fontWeight: 700,
-                  borderRadius: 9999,
-                  minWidth: 18,
-                  height: 18,
-                  padding: '0 4px',
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '0 0 0 2px var(--ck-surface)',
-                }}>{unreadCount > 9 ? '9+' : unreadCount}</span>
-              )}
-            </button>
-
-            {isNotificationsOpen && (
-              <div style={{
-                position: 'absolute',
-                top: 'calc(100% + 10px)',
-                right: 0,
-                background: 'var(--ck-surface)',
-                borderRadius: 16,
-                boxShadow: 'var(--ck-shadow-lg)',
-                border: '1px solid var(--ck-stroke)',
-                width: 380,
-                maxWidth: 'calc(100vw - 24px)',
-                zIndex: 50,
-                overflow: 'hidden',
-              }} className="ck-fade-in-up">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', borderBottom: '1px solid var(--ck-stroke)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700 }}>Notifications</h3>
-                    {unreadCount > 0 && (
-                      <span className="ck-pill" style={{ background: 'rgba(242,12,143,0.10)', color: '#F20C8F', padding: '2px 8px' }}>
-                        {unreadCount} new
-                      </span>
-                    )}
-                  </div>
-                  {unreadCount > 0 && (
-                    <button onClick={markAllAsRead} style={{
-                      background: 'none', border: 'none', color: 'var(--ck-blue)',
-                      fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer',
-                    }}>Mark all read</button>
-                  )}
-                </div>
-
-                <div style={{ maxHeight: 360, overflowY: 'auto' }}>
-                  {notifications.length === 0 ? (
-                    <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--ck-text-soft)' }}>
-                      <i className="bi bi-bell-slash" style={{ fontSize: 26, color: 'var(--ck-text-muted)', display: 'block', marginBottom: 8 }} />
-                      <div style={{ fontSize: '0.88rem' }}>You're all caught up</div>
-                    </div>
-                  ) : (
-                    notifications.map((notification) => {
-                      const ico = getNotificationIcon(notification.type);
-                      const isExpanded = expandedNotifId === notification.id;
-                      return (
-                        <div
-                          key={notification.id}
-                          onClick={() => handleToggleExpand(notification.id)}
-                          style={{
-                            display: 'flex', gap: 12,
-                            padding: '12px 18px',
-                            borderBottom: '1px solid var(--ck-stroke-soft)',
-                            background: notification.read ? 'transparent' : 'rgba(8,58,133,0.03)',
-                            cursor: 'pointer',
-                            transition: 'background 180ms',
-                          }}
-                          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--ck-surface-muted)'; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.background = notification.read ? 'transparent' : 'rgba(8,58,133,0.03)'; }}
-                        >
-                          <div style={{
-                            width: 36, height: 36, borderRadius: 9999,
-                            background: ico.bg,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            flexShrink: 0,
-                          }}>
-                            <i className={`bi ${ico.icon}`} style={{ color: ico.color, fontSize: 14 }} />
-                          </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
-                              <span style={{
-                                fontSize: '0.88rem',
-                                fontWeight: notification.read ? 500 : 700,
-                                color: 'var(--ck-text)',
-                              }}>{notification.title}</span>
-                              <span style={{ fontSize: '0.7rem', color: 'var(--ck-text-muted)', flexShrink: 0 }}>{notification.time}</span>
-                            </div>
-                            <p style={{
-                              margin: '4px 0 0',
-                              fontSize: '0.8rem',
-                              color: 'var(--ck-text-soft)',
-                              overflow: isExpanded ? 'visible' : 'hidden',
-                              textOverflow: isExpanded ? 'clip' : 'ellipsis',
-                              whiteSpace: isExpanded ? 'normal' : 'nowrap',
-                              wordBreak: isExpanded ? 'break-word' : 'normal',
-                              lineHeight: 1.4,
-                            }}>{notification.message}</p>
-                            {isExpanded && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); handleNotificationClick(notification); }}
-                                style={{
-                                  marginTop: 8,
-                                  padding: '5px 10px',
-                                  borderRadius: 8,
-                                  border: '1px solid var(--ck-blue)',
-                                  background: 'transparent',
-                                  color: 'var(--ck-blue)',
-                                  fontSize: '0.78rem',
-                                  fontWeight: 600,
-                                  cursor: 'pointer',
-                                }}
-                              >Open <i className="bi bi-arrow-right" /></button>
-                            )}
-                          </div>
-                          {!notification.read && (
-                            <span style={{ width: 8, height: 8, borderRadius: 9999, background: '#F20C8F', alignSelf: 'center', flexShrink: 0 }} />
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-
-                <div style={{ padding: 12, borderTop: '1px solid var(--ck-stroke)', textAlign: 'center', background: 'var(--ck-surface-soft)' }}>
-                  <Link
-                    href={`/user/${userRole === 'admin' ? 'client' : userRole}/notifications`}
-                    style={{ color: 'var(--ck-blue)', fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none' }}
-                    onClick={() => setIsNotificationsOpen(false)}
-                  >View all notifications →</Link>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Profile */}
-          <div ref={dropdownRef} style={{ position: 'relative' }}>
-            <button
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: 4,
-                paddingRight: 10,
-                borderRadius: 9999,
-                background: 'var(--ck-surface)',
-                border: '1px solid var(--ck-stroke)',
-                cursor: 'pointer',
-              }}
-            >
-              {user?.profilePicture ? (
-                <img src={user.profilePicture} alt="" style={{ width: 30, height: 30, borderRadius: 9999, objectFit: 'cover' }} />
-              ) : (
-                <span className="ck-avatar" style={{ width: 30, height: 30, fontSize: '0.78rem' }}>
-                  {user?.firstName ? user.firstName.charAt(0).toUpperCase() : '?'}
-                </span>
-              )}
-              <span className="topbar-profile-info" style={{
-                fontSize: '0.85rem', fontWeight: 600, color: 'var(--ck-text)',
-                whiteSpace: 'nowrap',
-                maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis',
-              }}>
-                {getUserDisplayName().split(' ')[0]}
-              </span>
-              <i className="bi bi-chevron-down" style={{
-                fontSize: 10, color: 'var(--ck-text-soft)',
-                transform: isDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 180ms',
-              }} />
-            </button>
-
-            {isDropdownOpen && (
-              <div style={{
-                position: 'absolute',
-                top: 'calc(100% + 10px)',
-                right: 0,
-                background: 'var(--ck-surface)',
-                borderRadius: 16,
-                boxShadow: 'var(--ck-shadow-lg)',
-                border: '1px solid var(--ck-stroke)',
-                minWidth: 250,
-                overflow: 'hidden',
-                zIndex: 50,
-              }} className="ck-fade-in-up">
-                <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--ck-stroke)' }}>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--ck-text)' }}>{getUserDisplayName()}</div>
-                  {user?.email && <div style={{ fontSize: '0.8rem', color: 'var(--ck-text-soft)', marginTop: 2 }}>{user.email}</div>}
-                  <div style={{ marginTop: 8 }}>
-                    <span className="ck-pill" style={{ background: 'rgba(8,58,133,0.08)', color: 'var(--ck-blue)' }}>
-                      <i className="bi bi-person-badge" /> {roleLabel(userRole)}
-                    </span>
-                  </div>
-                </div>
-
-                <div style={{ padding: 6 }}>
-                  <Link href={`/user/${userRole}/profile`} onClick={() => setIsDropdownOpen(false)}
-                    className="ck-row" style={{ textDecoration: 'none', color: 'var(--ck-text)' }}>
-                    <i className="bi bi-person" style={{ fontSize: 16, marginRight: 10, color: 'var(--ck-text-soft)' }} />
-                    <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>Profile</span>
-                  </Link>
-                  {userRole !== 'admin' && (
-                    <Link href={`/user/${userRole}/wallet`} onClick={() => setIsDropdownOpen(false)}
-                      className="ck-row" style={{ textDecoration: 'none', color: 'var(--ck-text)' }}>
-                      <i className="bi bi-wallet2" style={{ fontSize: 16, marginRight: 10, color: 'var(--ck-text-soft)' }} />
-                      <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>Wallet</span>
-                    </Link>
-                  )}
-                  {userRole !== 'admin' && (
-                    <Link href={`/user/${userRole}/preferences`} onClick={() => setIsDropdownOpen(false)}
-                      className="ck-row" style={{ textDecoration: 'none', color: 'var(--ck-text)' }}>
-                      <i className="bi bi-sliders" style={{ fontSize: 16, marginRight: 10, color: 'var(--ck-text-soft)' }} />
-                      <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>Preferences</span>
-                    </Link>
-                  )}
-                </div>
-                <div style={{ height: 1, background: 'var(--ck-stroke)' }} />
-                <button
-                  onClick={() => { setIsDropdownOpen(false); setShowLogoutModal(true); }}
-                  className="ck-row"
-                  style={{
-                    width: '100%',
-                    border: 'none',
-                    background: 'transparent',
-                    cursor: 'pointer',
-                    color: '#DC2626',
-                    margin: 6,
-                    padding: '12px 14px',
-                  }}
-                >
-                  <i className="bi bi-box-arrow-right" style={{ fontSize: 16, marginRight: 10 }} />
-                  <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Sign out</span>
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
-
-      {/* ───────────── Pending payment banner ───────────── */}
-      {pendingPaymentWarning && (userRole === 'client' || userRole === 'event-coordinator') && (
-        <div style={{
-          margin: '10px 24px 0',
-          padding: '14px 18px',
-          background: 'var(--ck-surface)',
-          border: '1px solid var(--ck-stroke)',
-          borderLeft: '3px solid #F59E0B',
-          borderRadius: 12,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 14,
-          boxShadow: 'var(--ck-shadow-sm)',
-        }}>
-          <span style={{
-            width: 36, height: 36, borderRadius: 10,
-            background: 'rgba(245, 158, 11, 0.10)',
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
-          }}>
-            <i className="bi bi-exclamation-triangle-fill" style={{ color: '#F59E0B', fontSize: 16 }} />
-          </span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{
-              fontSize: '0.88rem',
-              fontWeight: 700,
-              color: 'var(--ck-text)',
-              letterSpacing: '-0.005em',
-            }}>
-              Payment required · {formatPrice(pendingPaymentWarning.totalAmount)}
-            </div>
-            <div style={{
-              fontSize: '0.78rem',
-              color: 'var(--ck-text-soft)',
-              marginTop: 2,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}>
-              {pendingPaymentWarning.firstEvent}
-              {pendingPaymentWarning.count > 1 ? ` and ${pendingPaymentWarning.count - 1} other${pendingPaymentWarning.count - 1 > 1 ? 's' : ''}` : ''}
-            </div>
-          </div>
-          <button
-            onClick={async () => {
-              const paymentId = pendingPaymentWarning?.firstPaymentId;
-              if (!paymentId) {
-                const base = userRole === 'event-coordinator' ? '/user/event-coordinator' : '/user/client';
-                router.push(`${base}/payments`);
-                return;
-              }
-              try {
-                const apiUrl = getApiUrl();
-                const pendingBase = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
-                const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${pendingBase}/payments/${paymentId}`, { method: 'GET' });
-                if (res.ok) {
-                  const data = await res.json();
-                  if (data.action === 1 && data.data) {
-                    const p = data.data;
-                    setTopbarPayment({
-                      id: typeof p.id === 'string' ? parseInt(p.id, 10) || 0 : p.id,
-                      declarationId: String(p.id),
-                      eventId: p.eventId,
-                      date: p.createdAt,
-                      eventName: p.eventTitle || pendingPaymentWarning.firstEvent,
-                      eventType: p.paymentType || '',
-                      photographerName: p.photographerName || '',
-                      photographerImage: p.photographerImage || '',
-                      method: '',
-                      amount: `${p.currencyAbbreviation || ''} ${p.amount || 0}`,
-                      amountNum: p.amount || 0,
-                      paidAmount: p.paidAmount || 0,
-                      status: (p.status?.toLowerCase() || 'pending') as any,
-                      invoiceNumber: `INV-${String(p.id).substring(0, 8).toUpperCase()}`,
-                    });
-                    setShowPayNowModal(true);
-                    return;
-                  }
-                }
-              } catch { /* fallback */ }
-              const base = userRole === 'event-coordinator' ? '/user/event-coordinator' : '/user/client';
-              router.push(`${base}/payments/${paymentId}`);
-            }}
-            style={{
-              flexShrink: 0,
-              padding: '8px 16px',
-              fontSize: '0.82rem',
-              fontWeight: 600,
-              borderRadius: 9,
-              border: 'none',
-              background: '#F59E0B',
-              color: '#fff',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              transition: 'all 180ms',
-              boxShadow: '0 4px 10px rgba(245,158,11,0.25)',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = '#D97706'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = '#F59E0B'; }}
-          >
-            Pay now <i className="bi bi-arrow-right" style={{ fontSize: 12 }} />
-          </button>
-        </div>
-      )}
-
-      {/* ───────────── KYC banner ───────────── */}
-      {user && user.kycStatus !== 'APPROVED' && userRole !== 'admin' && user.customerType !== 'Viewer' && !pendingPaymentWarning && (() => {
-        const isPending = user.kycStatus === 'PENDING';
-        const isRejected = user.kycStatus === 'REJECTED';
-        const cfg = isRejected
-          ? { accent: '#DC2626', tint: 'rgba(220,38,38,0.10)', icon: 'bi-shield-exclamation', title: 'KYC verification rejected', detail: 'Your submission needs corrections. Resubmit to continue.' }
-          : isPending
-          ? { accent: '#3B82F6', tint: 'rgba(59,130,246,0.10)', icon: 'bi-shield-check', title: 'KYC under review', detail: 'We’re verifying your details. This typically takes a few hours.' }
-          : { accent: '#083A85', tint: 'rgba(8,58,133,0.10)', icon: 'bi-shield-lock', title: 'Verify your identity', detail: 'Complete KYC to unlock withdrawals and full platform features.' };
-        return (
-          <div style={{
-            margin: '10px 24px 0',
-            padding: '14px 18px',
-            background: 'var(--ck-surface)',
-            border: '1px solid var(--ck-stroke)',
-            borderLeft: `3px solid ${cfg.accent}`,
-            borderRadius: 12,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 14,
-            boxShadow: 'var(--ck-shadow-sm)',
-          }}>
-            <span style={{
-              width: 36, height: 36, borderRadius: 10,
-              background: cfg.tint,
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0,
-            }}>
-              <i className={`bi ${cfg.icon}`} style={{ color: cfg.accent, fontSize: 16 }} />
-            </span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{
-                fontSize: '0.88rem',
-                fontWeight: 700,
-                color: 'var(--ck-text)',
-                letterSpacing: '-0.005em',
-              }}>{cfg.title}</div>
-              <div style={{
-                fontSize: '0.78rem',
-                color: 'var(--ck-text-soft)',
-                marginTop: 2,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}>{cfg.detail}</div>
-            </div>
-            {!isPending && (
-              <button
-                onClick={() => router.push(`/user/${userRole}/profile`)}
-                style={{
-                  flexShrink: 0,
-                  padding: '8px 16px',
-                  fontSize: '0.82rem',
-                  fontWeight: 600,
-                  borderRadius: 9,
-                  border: 'none',
-                  background: cfg.accent,
-                  color: '#fff',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  transition: 'all 180ms',
-                  boxShadow: `0 4px 10px ${isRejected ? 'rgba(220,38,38,0.25)' : 'rgba(8,58,133,0.25)'}`,
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
-              >
-                {isRejected ? 'Resubmit' : 'Complete KYC'} <i className="bi bi-arrow-right" style={{ fontSize: 12 }} />
-              </button>
-            )}
-          </div>
-        );
-      })()}
-
-      <PayNowModal
-        isOpen={showPayNowModal}
-        onClose={() => { setShowPayNowModal(false); setTopbarPayment(null); }}
-        payment={topbarPayment}
-        onPaymentSuccess={() => { setShowPayNowModal(false); setTopbarPayment(null); fetchFinancials(); }}
-      />
-
-      <Modal
-        isOpen={showLogoutModal}
-        onClose={() => setShowLogoutModal(false)}
-        size="sm"
-        title="Sign out of Connekyt?"
-        description="You'll need to sign in again to access your dashboard."
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setShowLogoutModal(false)}>Cancel</Button>
-            <Button variant="danger" onClick={() => { setShowLogoutModal(false); logout(); }}>Sign out</Button>
-          </>
-        }
-      >
-        <div style={{
-          width: 56, height: 56, borderRadius: 9999,
-          background: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          margin: '4px auto 8px',
-        }}>
-          <i className="bi bi-box-arrow-right" style={{ color: '#DC2626', fontSize: 22 }} />
-        </div>
-        <p style={{ textAlign: 'center', color: 'var(--ck-text-soft)', margin: 0 }}>
-          Your session will end on this device.
-        </p>
-      </Modal>
-
       <style jsx>{`
-        @media (max-width: 768px) {
-          .topbar-title { display: none; }
-          .topbar-wallet, .topbar-balance, .topbar-tips { display: none !important; }
-          .topbar-profile-info { display: none; }
+        /* Desktop styles - keep everything as is */
+        .topbar-container {
+          /* All desktop styles are handled by inline styles */
         }
-        @media (max-width: 1024px) {
-          .topbar-balance, .topbar-tips { display: none !important; }
+
+        /* Mobile responsive styles */
+        @media (max-width: 768px) {
+          .topbar-container {
+            border-radius: 0.75rem !important;
+            margin-left: 3.5rem !important;
+            margin-right: 0.5rem !important;
+            padding-left: 0.5rem !important;
+            padding-right: 0.5rem !important;
+            padding-top: 0.4rem !important;
+            padding-bottom: 0.4rem !important;
+            flex-wrap: nowrap !important;
+            gap: 0.5rem !important;
+          }
+
+          .topbar-title {
+            font-size: 0.9rem !important;
+            line-height: 1.2rem !important;
+            white-space: nowrap !important;
+          }
+
+          .topbar-right {
+            gap: 0.4rem !important;
+            flex-wrap: nowrap !important;
+            justify-content: flex-end !important;
+            overflow-x: auto !important;
+          }
+
+          /* Compact labels and values on mobile */
+          .topbar-balance span:first-child,
+          .topbar-tips span:first-child,
+          .topbar-bonus span:first-child {
+            font-size: 0.7rem !important;
+            font-weight: 500 !important;
+          }
+
+          .topbar-balance span:last-child,
+          .topbar-tips span:last-child,
+          .topbar-bonus span:last-child {
+            font-size: 0.8rem !important;
+            font-weight: 600 !important;
+          }
+
+          .topbar-balance,
+          .topbar-tips,
+          .topbar-bonus {
+            gap: 0.15rem !important;
+            flex-direction: column !important;
+            align-items: flex-start !important;
+          }
+
+          /* Hide profile name and amount on mobile, but keep avatar */
+          .topbar-profile-info {
+            display: none !important;
+          }
+
+          /* Ensure profile avatar and dropdown still work */
+          .profile-dropdown-container {
+            position: relative !important;
+          }
+
+          .profile-dropdown-container > div:first-child {
+            cursor: pointer !important;
+          }
+
+          .profile-dropdown-container img {
+            width: 2rem !important;
+            height: 2rem !important;
+          }
+
+          /* Make dropdown menu centered on mobile with margin */
+          .profile-dropdown-container > div:nth-child(2) {
+            position: absolute !important;
+            top: calc(100% + 0.5rem) !important;
+            right: 1rem !important;
+            left: auto !important;
+            transform: none !important;
+            z-index: 1002 !important;
+          }
+
+          /* Make notifications dropdown centered at top on mobile */
+          .notifications-container > div:nth-child(2) {
+            position: fixed !important;
+            top: 5rem !important;
+            right: auto !important;
+            left: 1rem !important;
+            transform: none !important;
+            width: calc(100vw - 2rem) !important;
+            max-width: 340px !important;
+            z-index: 1002 !important;
+          }
+
+          /* Adjust notification content for mobile */
+          .notifications-container > div:nth-child(2) > div:nth-child(2) {
+            max-height: 280px !important;
+          }
+
+          /* Reduce padding and font sizes in notification items on mobile */
+          .notifications-container > div:nth-child(2) > div:nth-child(2) > div {
+            padding: 0.6rem 0.75rem !important;
+          }
+
+          .notifications-container > div:nth-child(2) > div:nth-child(1) {
+            padding: 0.75rem 0.75rem !important;
+          }
+
+          .notifications-container > div:nth-child(2) > div:nth-child(1) h3 {
+            font-size: 0.9rem !important;
+          }
+
+          .notifications-container > div:nth-child(2) > div:nth-child(3) {
+            padding: 0.6rem !important;
+          }
+
+          /* Ensure topbar doesn't clip dropdown */
+          .topbar-container {
+            overflow: visible !important;
+          }
+
+          .topbar-right {
+            overflow: visible !important;
+          }
+        }
+
+        /* Extra small mobile (phones in portrait) */
+        @media (max-width: 480px) {
+          .topbar-container {
+            margin-left: 3.25rem !important;
+            margin-right: 0.25rem !important;
+            padding-left: 0.35rem !important;
+            padding-right: 0.35rem !important;
+            flex-direction: row !important;
+            gap: 0.4rem !important;
+          }
+
+          .topbar-title {
+            font-size: 0.75rem !important;
+            line-height: 1rem !important;
+            white-space: nowrap !important;
+          }
+
+          .topbar-right {
+            gap: 0.35rem !important;
+            flex-shrink: 0 !important;
+          }
+
+          /* Hide financial stats on small mobile */
+          .topbar-balance,
+          .topbar-tips,
+          .topbar-bonus {
+            display: none !important;
+          }
+
+          .profile-dropdown-container img,
+          .profile-dropdown-container > div:first-child > div:first-child {
+            width: 1.75rem !important;
+            height: 1.75rem !important;
+          }
         }
       `}</style>
+      <div className="topbar-container" style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingLeft: '1.2rem',
+      paddingRight: '1.2rem',
+      paddingTop: '0.4rem',
+      paddingBottom: '0.4rem',
+      backgroundColor: colors.bgSecondary,
+      borderRadius: '9999px',
+      marginLeft: '1.5rem',
+      marginRight: '1.5rem',
+      marginTop: '0.75rem',
+      marginBottom: '0.75rem',
+      border: `2px solid ${colors.borderPrimary}`,
+      boxShadow: colors.shadowSm
+    }}>
+      {/* Left side - Dashboard title */}
+      <h1 className="topbar-title" style={{
+        fontSize: '1.35rem',
+        lineHeight: '1.75rem',
+        color: colors.textSecondary
+      }}>{getRoleDisplayName(userRole)} Dashboard</h1>
+
+      {/* Right side - Notification, Bonus, and Profile */}
+      <div className="topbar-right" style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '1.5rem'
+      }}>
+        {/* Theme Toggle */}
+        <div
+          onClick={() => setTheme(actualTheme === 'dark' ? 'light' : 'dark')}
+          style={{
+            cursor: 'pointer',
+            color: colors.textSecondary,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'color 0.2s'
+          }}
+          title={actualTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          {actualTheme === 'dark' ? <SunIcon /> : <MoonIcon />}
+        </div>
+
+        {/* Notification Bell */}
+        <div
+          ref={notificationsRef}
+          className="notifications-container"
+          style={{
+            position: 'relative'
+          }}
+        >
+          <div
+            onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+            style={{
+              position: 'relative',
+              cursor: 'pointer'
+            }}
+          >
+            <i style={{
+              fontSize: '1.35rem',
+              lineHeight: '1.75rem',
+              color: colors.textSecondary
+            }} className="bi bi-bell"></i>
+            {unreadCount > 0 && (
+              <span style={{
+                position: 'absolute',
+                top: '-0.55rem',
+                right: '-0.45rem',
+                backgroundColor: '#EF4444',
+                color: 'white',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                borderRadius: '9999px',
+                minWidth: '1.2rem',
+                height: '1.2rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '0 0.25rem'
+              }}>
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </div>
+
+          {/* Notifications Dropdown */}
+          {isNotificationsOpen && (
+            <div style={{
+              position: 'absolute',
+              top: 'calc(100% + 0.75rem)',
+              right: '-100px',
+              backgroundColor: colors.bgSecondary,
+              borderRadius: '0.75rem',
+              boxShadow: colors.shadowLg,
+              border: `2px solid ${colors.borderPrimary}`,
+              width: '360px',
+              maxHeight: '380px',
+              zIndex: 50,
+              overflow: 'hidden'
+            }}>
+              {/* Header */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '1rem',
+                borderBottom: `2px solid ${colors.borderPrimary}`
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Notifications</h3>
+                  {unreadCount > 0 && (
+                    <span style={{
+                      backgroundColor: '#FEE2E2',
+                      color: '#DC2626',
+                      fontSize: '0.75rem',
+                      fontWeight: '600',
+                      padding: '0.125rem 0.5rem',
+                      borderRadius: '9999px'
+                    }}>
+                      {unreadCount} new
+                    </span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={markAllAsRead}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#2563EB',
+                        fontSize: '0.8rem',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem'
+                      }}
+                    >
+                      <CheckIcon />
+                      Mark all read
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setIsNotificationsOpen(false)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}
+                  >
+                    <CloseIcon />
+                  </button>
+                </div>
+              </div>
+
+              {/* Notifications List — sized for ~3 rows visible; rest scrolls. */}
+              <div style={{
+                maxHeight: '270px',
+                overflowY: 'auto'
+              }}>
+                {notifications.length === 0 ? (
+                  <div style={{
+                    padding: '2rem',
+                    textAlign: 'center',
+                    color: '#6B7280'
+                  }}>
+                    No notifications
+                  </div>
+                ) : (
+                  notifications.map((notification) => {
+                    const iconStyle = getNotificationIcon(notification.type);
+                    const isExpanded = expandedNotifId === notification.id;
+                    return (
+                      <div
+                        key={notification.id}
+                        onClick={() => handleToggleExpand(notification.id)}
+                        style={{
+                          display: 'flex',
+                          gap: '0.75rem',
+                          padding: '0.875rem 1rem',
+                          borderBottom: `1px solid ${colors.bgTertiary}`,
+                          backgroundColor: notification.read ? colors.bgSecondary : (actualTheme === 'dark' ? '#1E3A5F' : '#F0F9FF'),
+                          cursor: 'pointer',
+                          transition: 'background-color 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = notification.read ? colors.bgTertiary : (actualTheme === 'dark' ? '#234B6E' : '#E0F2FE');
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = notification.read ? colors.bgSecondary : (actualTheme === 'dark' ? '#1E3A5F' : '#F0F9FF');
+                        }}
+                      >
+                        {/* Icon */}
+                        <div style={{
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '50%',
+                          backgroundColor: iconStyle.bg,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0
+                        }}>
+                          <span style={{ color: iconStyle.color, fontSize: '0.9rem', fontWeight: '600' }}>
+                            {iconStyle.icon}
+                          </span>
+                        </div>
+
+                        {/* Content */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'flex-start',
+                            gap: '0.5rem'
+                          }}>
+                            <span style={{
+                              fontSize: '0.875rem',
+                              fontWeight: notification.read ? '500' : '600',
+                              color: colors.textPrimary
+                            }}>
+                              {notification.title}
+                            </span>
+                            {!notification.read && (
+                              <div style={{
+                                width: '8px',
+                                height: '8px',
+                                borderRadius: '50%',
+                                backgroundColor: '#3B82F6',
+                                flexShrink: 0,
+                                marginTop: '0.25rem'
+                              }} />
+                            )}
+                          </div>
+                          <p style={{
+                            fontSize: '0.8rem',
+                            color: colors.textSecondary,
+                            margin: '0.25rem 0 0 0',
+                            overflow: isExpanded ? 'visible' : 'hidden',
+                            textOverflow: isExpanded ? 'clip' : 'ellipsis',
+                            whiteSpace: isExpanded ? 'normal' : 'nowrap',
+                            wordBreak: isExpanded ? 'break-word' : 'normal',
+                            lineHeight: isExpanded ? 1.5 : undefined,
+                          }}>
+                            {notification.message}
+                          </p>
+                          <span style={{
+                            fontSize: '0.7rem',
+                            color: colors.textTertiary,
+                            marginTop: '0.25rem',
+                            display: 'block'
+                          }}>
+                            {notification.time}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Footer */}
+              <div style={{
+                padding: '0.75rem',
+                borderTop: `2px solid ${colors.borderPrimary}`,
+                textAlign: 'center'
+              }}>
+                <Link
+                  href={userRole === 'photographer'
+                    ? '/user/photographer/notifications'
+                    : userRole === 'event-coordinator'
+                      ? '/user/event-coordinator/notifications'
+                      : '/user/client/notifications'}
+                  style={{
+                    color: '#2563EB',
+                    fontSize: '0.85rem',
+                    fontWeight: '500',
+                    textDecoration: 'none'
+                  }}
+                >
+                  View all notifications
+                </Link>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Currency Selector */}
+        <div
+          ref={currencyRef}
+          style={{ position: 'relative' }}
+        >
+          <button
+            onClick={() => setIsCurrencyOpen(!isCurrencyOpen)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              padding: '0.3rem 0.6rem',
+              borderRadius: '9999px',
+              border: `2px solid ${colors.borderPrimary}`,
+              background: colors.bgTertiary,
+              color: colors.textPrimary,
+              fontSize: '0.8rem',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <img src={`https://flagcdn.com/w40/${currencies.find(c => c.code === currency)?.flag}.png`} alt="" style={{ width: '18px', height: '14px', objectFit: 'cover', borderRadius: '2px' }} />
+            {currency}
+            <i style={{
+              fontSize: '0.6rem',
+              color: colors.textSecondary,
+              transform: isCurrencyOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition: 'transform 0.2s ease'
+            }} className="bi bi-chevron-down"></i>
+          </button>
+
+          {isCurrencyOpen && (
+            <div style={{
+              position: 'absolute',
+              top: 'calc(100% + 0.5rem)',
+              right: 0,
+              backgroundColor: colors.bgSecondary,
+              borderRadius: '0.75rem',
+              boxShadow: colors.shadowLg,
+              border: `2px solid ${colors.borderPrimary}`,
+              padding: '0.5rem',
+              minWidth: '180px',
+              zIndex: 50
+            }}>
+              {currencies.map((c) => (
+                <button
+                  key={c.code}
+                  onClick={() => {
+                    setCurrency(c.code);
+                    setIsCurrencyOpen(false);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    width: '100%',
+                    padding: '0.5rem 0.75rem',
+                    borderRadius: '0.5rem',
+                    border: 'none',
+                    background: currency === c.code ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : 'transparent',
+                    color: colors.textPrimary,
+                    fontSize: '0.85rem',
+                    fontWeight: currency === c.code ? '600' : '400',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s',
+                    gap: '0.5rem'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (currency !== c.code) e.currentTarget.style.backgroundColor = colors.bgTertiary;
+                  }}
+                  onMouseLeave={(e) => {
+                    if (currency !== c.code) e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <img src={`https://flagcdn.com/w40/${c.flag}.png`} alt={c.name} style={{ width: '20px', height: '15px', objectFit: 'cover', borderRadius: '2px' }} />
+                    <span style={{ fontWeight: '600' }}>{c.code}</span>
+                    <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{c.name}</span>
+                  </div>
+                  {currency === c.code && (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M20 6L9 17L4 12" stroke={actualTheme === 'dark' ? '#60A5FA' : '#083A85'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Wallet pill — shown for client / event-coordinator (photographer has its own Balance display below) */}
+        {(userRole === 'client' || userRole === 'event-coordinator') && walletBalance !== null && (
+          <div className="topbar-wallet" style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+          }}>
+            <i className="bi bi-wallet2" style={{ color: colors.textSecondary, fontSize: '1rem' }}></i>
+            <span style={{
+              fontSize: '1.12rem',
+              lineHeight: '1.5rem',
+              fontWeight: 600,
+              color: colors.textPrimary,
+            }}>Wallet:</span>
+            <span style={{
+              fontSize: '1.15rem',
+              lineHeight: '1.5rem',
+              fontWeight: 700,
+              color: walletBalance > 0 ? colors.brandPrimary : colors.textSecondary,
+            }}>${walletBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            {walletStatus === 'SUSPENDED' && (
+              <span style={{
+                padding: '2px 8px',
+                borderRadius: 9999,
+                fontSize: '0.65rem',
+                fontWeight: 700,
+                backgroundColor: '#FEE2E2',
+                color: '#991B1B',
+              }}>SUSPENDED</span>
+            )}
+          </div>
+        )}
+
+        {/* Balance - Shows for photographer only */}
+        {userRole === 'photographer' && (
+          <div className="topbar-balance" style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}>
+            <span style={{
+              fontSize: '1.12rem',
+              lineHeight: '1.5rem',
+              fontWeight: '600',
+              color: colors.textPrimary
+            }}>Balance:</span>
+            <span style={{
+              fontSize: '1.15rem',
+              lineHeight: '1.5rem',
+              fontWeight: '700',
+              color: (selfBalanceAmount) > 0 ? colors.brandPrimary : colors.textSecondary
+            }}>{formatPrice(selfBalanceAmount)}</span>
+          </div>
+        )}
+
+        {/* Tips - Shows for photographer only (from clients/viewers) */}
+        {userRole === 'photographer' && (
+          <div className="topbar-tips" style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}>
+            <span style={{
+              fontSize: '1.12rem',
+              lineHeight: '1.5rem',
+              fontWeight: '600',
+              color: colors.textPrimary
+            }}>Tips:</span>
+            <span style={{
+              fontSize: '1.15rem',
+              lineHeight: '1.5rem',
+              fontWeight: '600',
+              color: (selfTipsAmount) > 0 ? '#F59E0B' : colors.textSecondary
+            }}>{formatPrice(selfTipsAmount)}</span>
+          </div>
+        )}
+
+        {/* Bonus/Gift/Live Stream Fees - Shows Gift for clients, Live Stream Fees for event-coordinator, Bonus for photographers (platform rewards) */}
+        <div className="topbar-bonus" style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem'
+        }}>
+          <span style={{
+            fontSize: '1.12rem',
+            lineHeight: '1.5rem',
+            fontWeight: '600',
+            color: colors.textPrimary
+          }}>{userRole === 'client' ? 'Gifts:' : userRole === 'event-coordinator' ? 'Stream Revenue:' : 'Bonus:'}</span>
+          <span style={{
+            fontSize: '1.15rem',
+            lineHeight: '1.5rem',
+            fontWeight: '600',
+            color: userRole === 'client'
+              ? (giftAmount > 0 ? colors.statusSuccess : colors.brandPrimary)
+              : userRole === 'event-coordinator'
+                ? ((selfLiveStreamFee) > 0 ? colors.statusSuccess : colors.brandPrimary)
+                : ((selfBonusAmount) > 0 ? colors.statusSuccess : colors.brandPrimary)
+          }}>{formatPrice(userRole === 'client'
+            ? giftAmount
+            : userRole === 'event-coordinator'
+              ? (selfLiveStreamFee)
+              : (selfBonusAmount))}</span>
+        </div>
+
+        {/* Profile with Dropdown */}
+        <div
+          ref={dropdownRef}
+          className="profile-dropdown-container"
+          style={{
+            position: 'relative'
+          }}
+        >
+          <div
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              cursor: 'pointer'
+            }}
+          >
+            {user?.profilePicture ? (
+              <img
+                src={user.profilePicture}
+                alt="Profile"
+                style={{
+                  borderRadius: '9999px',
+                  objectFit: 'cover',
+                  width: '2.5rem',
+                  height: '2.5rem'
+                }}
+              />
+            ) : (
+              <div style={{
+                width: '2.5rem',
+                height: '2.5rem',
+                borderRadius: '9999px',
+                backgroundColor: '#083A85',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontWeight: '600',
+                fontSize: '1rem',
+              }}>
+                {user?.firstName ? user.firstName.charAt(0).toUpperCase() : '?'}
+              </div>
+            )}
+            <div className="topbar-profile-info" style={{
+              display: 'flex',
+              flexDirection: 'column'
+            }}>
+              <span style={{
+                fontSize: '1.12rem',
+                lineHeight: '1.5rem',
+                fontWeight: '700',
+                color: colors.brandPrimary
+              }}>{getUserDisplayName()}</span>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                <span style={{
+                  fontSize: '1rem',
+                  lineHeight: '1.5rem',
+                  fontWeight: '600',
+                  color: colors.textPrimary
+                }}>{formatPrice(userRole === 'client'
+                  ? giftAmount
+                  : userRole === 'event-coordinator'
+                    ? (selfLiveStreamFee)
+                    : (selfBalanceAmount))}</span>
+                <i style={{
+                  fontSize: '0.75rem',
+                  lineHeight: '1rem',
+                  color: colors.textSecondary,
+                  transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.2s ease'
+                }} className="bi bi-chevron-down"></i>
+              </div>
+            </div>
+          </div>
+
+          {/* Dropdown Menu */}
+          {isDropdownOpen && (
+            <div style={{
+              position: 'absolute',
+              top: 'calc(100% + 0.75rem)',
+              right: 0,
+              backgroundColor: colors.bgSecondary,
+              borderRadius: '0.75rem',
+              boxShadow: colors.shadowLg,
+              border: `2px solid ${colors.borderPrimary}`,
+              padding: '1.25rem',
+              minWidth: '220px',
+              zIndex: 50
+            }}>
+              {/* User Info Header */}
+              <div style={{
+                marginBottom: '1rem',
+                paddingBottom: '1rem',
+                borderBottom: `2px solid ${colors.borderPrimary}`
+              }}>
+                <div style={{
+                  fontSize: '1.1rem',
+                  fontWeight: '700',
+                  color: colors.brandPrimary,
+                  marginBottom: '0.25rem'
+                }}>
+                  {getUserDisplayName()}
+                </div>
+                <div style={{
+                  fontSize: '0.9rem',
+                  color: colors.textSecondary
+                }}>
+                  {user?.email && <span>{user.email}</span>}
+                </div>
+              </div>
+
+              {/* Menu Items */}
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.25rem'
+              }}>
+                <a
+                  href={`/user/${userRole}/profile`}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    padding: '0.75rem',
+                    borderRadius: '0.5rem',
+                    textDecoration: 'none',
+                    color: colors.textSecondary,
+                    fontSize: '0.95rem',
+                    fontWeight: '500',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.bgTertiary;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  <ProfileIcon />
+                  Profile settings
+                </a>
+
+                <a
+                  href={`/user/${userRole}/wallet`}
+                  onClick={() => setIsDropdownOpen(false)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    padding: '0.75rem',
+                    borderRadius: '0.5rem',
+                    textDecoration: 'none',
+                    color: colors.textSecondary,
+                    fontSize: '0.95rem',
+                    fontWeight: '500',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.bgTertiary;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+                  Wallet
+                </a>
+
+                <button
+                  onClick={() => {
+                    setIsDropdownOpen(false);
+                    setShowLogoutModal(true);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    padding: '0.75rem',
+                    borderRadius: '0.5rem',
+                    border: 'none',
+                    background: 'none',
+                    color: colors.textSecondary,
+                    fontSize: '0.95rem',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    width: '100%',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.bgTertiary;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  <LogoutIcon />
+                  Logout
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+
+    {/* Payment Warning Banner */}
+    {pendingPaymentWarning && (userRole === 'client' || userRole === 'event-coordinator') && (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FFFBEB',
+        borderLeft: '4px solid #F59E0B',
+        marginLeft: '1.5rem',
+        marginRight: '1.5rem',
+        marginBottom: '0.5rem',
+        padding: '0.6rem 1rem',
+        borderRadius: '0.5rem',
+        fontSize: '0.85rem',
+        color: actualTheme === 'dark' ? '#FDE68A' : '#92400E',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
+          <span style={{ fontSize: '1.1rem' }}>&#9888;</span>
+          <span style={{ fontWeight: 600 }}>
+            Payment Required: {formatPrice(pendingPaymentWarning.totalAmount)} for {pendingPaymentWarning.firstEvent}
+            {pendingPaymentWarning.count > 1 ? ` (+${pendingPaymentWarning.count - 1} more)` : ''}
+          </span>
+        </div>
+        <button
+          onClick={async () => {
+            const paymentId = pendingPaymentWarning?.firstPaymentId;
+            if (!paymentId) {
+              const base = userRole === 'event-coordinator' ? '/user/event-coordinator' : '/user/client';
+              router.push(`${base}/payments`);
+              return;
+            }
+            try {
+              const apiUrl = getApiUrl();
+              const pendingBase = userRole === 'event-coordinator' ? 'coordinator' : 'customer';
+              const res = await dashboardAuthFetch(`${apiUrl}/api/remote/${pendingBase}/payments/${paymentId}`, { method: 'GET' });
+              if (res.ok) {
+                const data = await res.json();
+                if (data.action === 1 && data.data) {
+                  const p = data.data;
+                  setTopbarPayment({
+                    id: typeof p.id === 'string' ? parseInt(p.id, 10) || 0 : p.id,
+                    declarationId: String(p.id),
+                    eventId: p.eventId,
+                    date: p.createdAt,
+                    eventName: p.eventTitle || pendingPaymentWarning.firstEvent,
+                    eventType: p.paymentType || '',
+                    photographerName: p.photographerName || '',
+                    photographerImage: p.photographerImage || '',
+                    method: '',
+                    amount: `${p.currencyAbbreviation || ''} ${p.amount || 0}`,
+                    amountNum: p.amount || 0,
+                    paidAmount: p.paidAmount || 0,
+                    status: (p.status?.toLowerCase() || 'pending') as any,
+                    invoiceNumber: `INV-${String(p.id).substring(0, 8).toUpperCase()}`,
+                  });
+                  setShowPayNowModal(true);
+                  return;
+                }
+              }
+            } catch { /* fallback to navigation */ }
+            const base = userRole === 'event-coordinator' ? '/user/event-coordinator' : '/user/client';
+            router.push(`${base}/payments/${paymentId}`);
+          }}
+          style={{
+            backgroundColor: '#F59E0B',
+            color: '#78350F',
+            border: 'none',
+            padding: '0.35rem 0.85rem',
+            borderRadius: '0.375rem',
+            fontSize: '0.8rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Pay Now
+        </button>
+      </div>
+    )}
+
+    {/* KYC Warning Banner — shown when no pending payment warning */}
+    {user && user.kycStatus !== 'APPROVED' && userRole !== 'admin' && user.customerType !== 'Viewer' && !pendingPaymentWarning && (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: user.kycStatus === 'REJECTED'
+          ? (actualTheme === 'dark' ? '#7F1D1D' : '#FEF2F2')
+          : (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF'),
+        padding: '0.4rem 1rem',
+        fontSize: '0.82rem',
+        color: user.kycStatus === 'REJECTED'
+          ? (actualTheme === 'dark' ? '#FCA5A5' : '#991B1B')
+          : (actualTheme === 'dark' ? '#93C5FD' : '#1E40AF'),
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
+          <span style={{ fontSize: '1.1rem' }}>{user.kycStatus === 'REJECTED' ? '\u2716' : user.kycStatus === 'PENDING' ? '\u23F3' : '\u26A0'}</span>
+          <span style={{ fontWeight: 600 }}>
+            {user.kycStatus === 'PENDING' ? 'KYC verification pending review' : user.kycStatus === 'REJECTED' ? 'KYC rejected — resubmit required' : 'KYC verification required'}
+          </span>
+        </div>
+        {user.kycStatus !== 'PENDING' && (
+          <button
+            onClick={() => router.push(`/user/${userRole}/profile`)}
+            style={{
+              backgroundColor: user.kycStatus === 'REJECTED' ? '#EF4444' : '#3B82F6',
+              color: '#FFFFFF',
+              border: 'none',
+              padding: '0.35rem 0.85rem',
+              borderRadius: '0.375rem',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {user.kycStatus === 'REJECTED' ? 'Resubmit' : 'Complete KYC'}
+          </button>
+        )}
+      </div>
+    )}
+
+    {/* Logout Confirmation Modal */}
+    <PayNowModal
+      isOpen={showPayNowModal}
+      onClose={() => { setShowPayNowModal(false); setTopbarPayment(null); }}
+      payment={topbarPayment}
+      onPaymentSuccess={() => { setShowPayNowModal(false); setTopbarPayment(null); fetchFinancials(); }}
+    />
+
+    {showLogoutModal && (
+      <div
+        onClick={() => setShowLogoutModal(false)}
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+        }}
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            backgroundColor: colors.bgSecondary,
+            borderRadius: '0.75rem',
+            padding: '1.75rem',
+            maxWidth: '380px',
+            width: '90%',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            textAlign: 'center',
+          }}
+        >
+          {/* Icon */}
+          <div style={{
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            backgroundColor: actualTheme === 'dark' ? '#3B1A1A' : '#FEF2F2',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 1rem',
+          }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <polyline points="16,17 21,12 16,7" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <line x1="21" y1="12" x2="9" y2="12" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+
+          {/* Title */}
+          <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>
+            Are you sure you want to logout?
+          </h3>
+
+          {/* Description */}
+          <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0 0 1.5rem', lineHeight: '1.5' }}>
+            You will be signed out of your account and redirected to the login page.
+          </p>
+
+          {/* Buttons */}
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button
+              onClick={() => setShowLogoutModal(false)}
+              style={{
+                flex: 1,
+                padding: '0.625rem',
+                border: `2px solid ${colors.borderPrimary}`,
+                borderRadius: '0.5rem',
+                backgroundColor: 'transparent',
+                color: colors.textPrimary,
+                fontSize: '0.9rem',
+                fontWeight: '500',
+                cursor: 'pointer',
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                setShowLogoutModal(false);
+                logout();
+              }}
+              style={{
+                flex: 1,
+                padding: '0.625rem',
+                border: '2px solid #B91C1C',
+                borderRadius: '0.5rem',
+                backgroundColor: '#DC2626',
+                color: 'white',
+                fontSize: '0.9rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+              }}
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     </>
   );
 }

@@ -4,11 +4,12 @@
  * WalletPanel - role-aware wallet summary.
  *
  * Delegates to MoneyHero + MoneyStatCards for the role-specific view.
- * Admin mode retains the detailed breakdown (suspension reason, drift,
- * reconciliation timestamps).
+ * Admin mode retains the full detailed breakdown (suspension reason,
+ * drift count, reconciliation timestamps).
  */
 
 import React from 'react';
+import { useTheme } from '../context/ThemeContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
 import type { WalletDTO } from '@/lib/walletApi';
 import { selectWalletStats, toRole, type DashboardRole } from '@/lib/moneyView';
@@ -19,7 +20,7 @@ export interface WalletPanelProps {
   wallet: WalletDTO;
   /** Dashboard role — determines which sub-balances to show. */
   role?: DashboardRole;
-  /** Optional heading override (admin mode shows it as eyebrow above subtitle). */
+  /** Optional heading override. */
   title?: string;
   /** Optional subtitle (e.g. customer email for admin). */
   subtitle?: string;
@@ -29,29 +30,24 @@ export interface WalletPanelProps {
 
 function StatusPill({ status }: { status: WalletDTO['status'] }) {
   const map: Record<WalletDTO['status'], { bg: string; fg: string }> = {
-    ACTIVE:    { bg: 'rgba(16,185,129,0.12)', fg: '#065F46' },
-    SUSPENDED: { bg: 'rgba(245,158,11,0.14)', fg: '#92400E' },
-    CLOSED:    { bg: 'var(--ck-surface-muted)', fg: 'var(--ck-text-soft)' },
+    ACTIVE: { bg: '#DCFCE7', fg: '#166534' },
+    SUSPENDED: { bg: '#FEE2E2', fg: '#991B1B' },
+    CLOSED: { bg: '#F3F4F6', fg: '#374151' },
   };
-  const c = map[status] ?? map.CLOSED;
+  const color = map[status] ?? map.CLOSED;
   return (
-    <span style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: 6,
-      padding: '4px 12px',
-      borderRadius: 9999,
-      fontSize: '0.72rem',
-      fontWeight: 700,
-      background: c.bg,
-      color: c.fg,
-      letterSpacing: '0.03em',
-      textTransform: 'uppercase',
-    }}>
-      <span style={{
-        width: 6, height: 6, borderRadius: 9999,
-        background: status === 'ACTIVE' ? '#10B981' : status === 'SUSPENDED' ? '#F59E0B' : '#797D86',
-      }} />
+    <span
+      style={{
+        display: 'inline-block',
+        padding: '4px 12px',
+        borderRadius: 9999,
+        fontSize: '0.75rem',
+        fontWeight: 600,
+        backgroundColor: color.bg,
+        color: color.fg,
+        letterSpacing: '0.025em',
+      }}
+    >
       {status}
     </span>
   );
@@ -64,88 +60,115 @@ const WalletPanel: React.FC<WalletPanelProps> = ({
   subtitle,
   compact = false,
 }) => {
+  const { colors } = useTheme();
   const { formatPrice } = useCurrency();
 
+  // Resolve role — fall back to customerType on the wallet, then 'client'
   const resolvedRole = role ?? toRole(wallet.customerType);
   const stats = selectWalletStats(wallet, resolvedRole);
   const isAdmin = resolvedRole === 'admin';
 
   return (
-    <div className="ck-card" style={{ padding: 0, overflow: 'hidden' }}>
+    <div
+      style={{
+        backgroundColor: colors.bgCard,
+        borderRadius: '0.75rem',
+        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+        border: `1px solid ${colors.borderPrimary}`,
+        overflow: 'hidden',
+      }}
+    >
       {/* Admin header band — status pill, drift indicator */}
       {isAdmin && (
-        <div style={{
-          padding: '18px 24px 0',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          flexWrap: 'wrap',
-          gap: 12,
-        }}>
-          <div style={{ minWidth: 0 }}>
+        <div
+          style={{
+            padding: '1rem 1.5rem 0',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            flexWrap: 'wrap',
+            gap: '0.5rem',
+          }}
+        >
+          <div>
             {title && (
-              <div style={{
-                fontSize: '0.72rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-                color: '#F20C8F',
-                fontWeight: 700,
-                marginBottom: 4,
-              }}>{title}</div>
+              <div
+                style={{
+                  fontSize: '0.75rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.075em',
+                  color: colors.textSecondary,
+                  marginBottom: '0.25rem',
+                }}
+              >
+                {title}
+              </div>
             )}
             {subtitle && (
-              <div style={{ fontSize: '0.92rem', color: 'var(--ck-text-soft)' }}>{subtitle}</div>
+              <div style={{ fontSize: '0.875rem', color: colors.textSecondary }}>
+                {subtitle}
+              </div>
             )}
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
             <StatusPill status={wallet.status} />
             {wallet.consecutiveDriftCount > 0 && (
-              <span style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '4px 10px',
-                borderRadius: 9999,
-                fontSize: '0.7rem',
-                fontWeight: 700,
-                background: '#FEF3C7',
-                color: '#92400E',
-              }}>
-                <i className="bi bi-exclamation-triangle-fill" style={{ fontSize: 10 }} />
-                Drift ×{wallet.consecutiveDriftCount}
+              <span
+                style={{
+                  display: 'inline-block',
+                  padding: '2px 10px',
+                  borderRadius: 9999,
+                  fontSize: '0.7rem',
+                  fontWeight: 600,
+                  backgroundColor: '#FEF3C7',
+                  color: '#92400E',
+                }}
+              >
+                Drift x{wallet.consecutiveDriftCount}
               </span>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Non-admin title */}
+      {!isAdmin && title && (
+        <div
+          style={{
+            padding: '1rem 1.5rem 0',
+            fontSize: '0.75rem',
+            textTransform: 'uppercase',
+            letterSpacing: '0.075em',
+            color: colors.textSecondary,
+            textAlign: 'center',
+          }}
+        >
+          {title}
         </div>
       )}
 
       {/* Suspension banner */}
       {wallet.suspensionReason && (
-        <div style={{
-          margin: '14px 24px 0',
-          padding: '12px 16px',
-          borderRadius: 12,
-          background: '#FFFBEB',
-          border: '1px solid #FDE68A',
-          color: '#92400E',
-          fontSize: '0.85rem',
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: 10,
-        }}>
-          <i className="bi bi-exclamation-triangle-fill" style={{ marginTop: 2 }} />
-          <div>
-            <strong>Suspended:</strong> {wallet.suspensionReason.replaceAll('_', ' ')}
-            {wallet.suspendedAt && (
-              <span style={{ opacity: 0.8, marginLeft: 6 }}>
-                ({new Date(wallet.suspendedAt).toLocaleString()})
-              </span>
-            )}
-          </div>
+        <div
+          style={{
+            padding: '0.75rem 1.5rem',
+            margin: '0.75rem 1.5rem 0',
+            borderRadius: '0.5rem',
+            backgroundColor: '#FEF3C7',
+            color: '#92400E',
+            fontSize: '0.8125rem',
+          }}
+        >
+          <strong>Suspended:</strong> {wallet.suspensionReason.replaceAll('_', ' ')}
+          {wallet.suspendedAt && (
+            <span style={{ opacity: 0.8, marginLeft: '0.5rem' }}>
+              ({new Date(wallet.suspendedAt).toLocaleString()})
+            </span>
+          )}
         </div>
       )}
 
-      {/* Hero balance */}
+      {/* Hero number */}
       <MoneyHero stats={stats} />
 
       {/* Stat cards */}
@@ -153,22 +176,31 @@ const WalletPanel: React.FC<WalletPanelProps> = ({
 
       {/* Admin meta footer */}
       {isAdmin && !compact && (
-        <div style={{
-          padding: '14px 24px 18px',
-          borderTop: '1px solid var(--ck-stroke)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          fontSize: '0.78rem',
-          color: 'var(--ck-text-soft)',
-          flexWrap: 'wrap',
-          gap: 10,
-          background: 'var(--ck-surface-soft)',
-        }}>
-          <span><i className="bi bi-calendar-plus" /> Created: {new Date(wallet.createdAt).toLocaleDateString()}</span>
-          <span><i className="bi bi-person-circle" /> {wallet.customerType} · {formatPrice(wallet.clientSpent)} total spend</span>
-          {wallet.lastReconciledAt
-            ? <span><i className="bi bi-arrow-repeat" /> Last reconciled: {new Date(wallet.lastReconciledAt).toLocaleString()}</span>
-            : <span><i className="bi bi-clock" /> Never reconciled</span>}
+        <div
+          style={{
+            padding: '0.75rem 1.5rem 1rem',
+            borderTop: `1px solid ${colors.borderPrimary}`,
+            display: 'flex',
+            justifyContent: 'space-between',
+            fontSize: '0.75rem',
+            color: colors.textSecondary,
+            flexWrap: 'wrap',
+            gap: '0.5rem',
+          }}
+        >
+          <span>
+            Created: {new Date(wallet.createdAt).toLocaleDateString()}
+          </span>
+          <span>
+            {wallet.customerType} &middot; {formatPrice(wallet.clientSpent)} total spend
+          </span>
+          {wallet.lastReconciledAt ? (
+            <span>
+              Last reconciled: {new Date(wallet.lastReconciledAt).toLocaleString()}
+            </span>
+          ) : (
+            <span>Never reconciled</span>
+          )}
         </div>
       )}
     </div>

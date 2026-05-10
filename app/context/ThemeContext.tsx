@@ -14,126 +14,119 @@ interface ThemeContextType {
   currentRole: UserRole;
 }
 
+// Function to detect role from pathname
 const detectRoleFromPath = (pathname: string | null): UserRole => {
-  if (pathname && pathname.includes('/user/photographer')) return 'photographer';
-  if (pathname && pathname.includes('/user/client')) return 'client';
+  if (pathname && pathname.includes('/user/photographer')) {
+    return 'photographer';
+  }
+  if (pathname && pathname.includes('/user/client')) {
+    return 'client';
+  }
   return 'default';
 };
 
+// Get storage key based on role
 const getThemeStorageKey = (role: UserRole): string => {
-  if (role === 'default') return 'connekt-theme';
+  if (role === 'default') {
+    return 'connekt-theme';
+  }
   return `connekt-theme-${role}`;
 };
 
-/**
- * Light tokens — Connekyt landing language with Airbnb-inspired surfaces.
- * Page background is clearly off-white so white cards stand out; brand
- * stays Connekyt Blue (#083A85), accent stays Rausch (#F20C8F).
- */
 const lightColors = {
-  // Backgrounds — page (#F2F3F5) clearly distinct from cards (#FFFFFF)
-  bgPrimary: '#F2F3F5',
+  // Backgrounds
+  bgPrimary: '#F9FAFB',
   bgSecondary: '#FFFFFF',
-  bgTertiary: '#E9EAEE',
-  bgSidebar: '#FFFFFF',
-  bgCard: '#FFFFFF',
-  bgHover: '#E9EAEE',
+  bgTertiary: '#F3F4F6',
+  bgSidebar: '#f5f5f5',
+  bgCard: '#F7F8FA',
+  bgHover: '#E5E7EB',
   bgActive: '#083A85',
   bgInput: '#FFFFFF',
   bgModal: '#FFFFFF',
-  bgOverlay: 'rgba(17, 24, 39, 0.45)',
+  bgOverlay: 'rgba(0, 0, 0, 0.5)',
 
   // Text
-  textPrimary: '#14161A',
-  textSecondary: '#4A4D55',
-  textTertiary: '#797D86',
+  textPrimary: '#111827',
+  textSecondary: '#6B7280',
+  textTertiary: '#9CA3AF',
   textInverse: '#FFFFFF',
   textLink: '#083A85',
 
   // Borders
-  borderPrimary: '#DCDDE2',
-  borderSecondary: '#C3C5CD',
+  borderPrimary: '#E5E7EB',
+  borderSecondary: '#D1D5DB',
   borderFocus: '#083A85',
 
   // Brand
   brandPrimary: '#083A85',
   brandSecondary: '#0a4da8',
   brandAccent: '#F20C8F',
-  brandAccentSoft: '#FF3DA0',
 
   // Status
   statusSuccess: '#10B981',
-  statusSuccessBg: '#ECFDF5',
+  statusSuccessBg: '#D1FAE5',
   statusWarning: '#F59E0B',
-  statusWarningBg: '#FFFBEB',
+  statusWarningBg: '#FEF3C7',
   statusError: '#DC2626',
-  statusErrorBg: '#FEF2F2',
+  statusErrorBg: '#FEE2E2',
   statusInfo: '#3B82F6',
-  statusInfoBg: '#EFF6FF',
+  statusInfoBg: '#DBEAFE',
 
-  // Shadows (Airbnb-inspired soft drop)
+  // Shadows
   shadowSm: '0 1px 2px rgba(0, 0, 0, 0.05)',
-  shadowMd: '0 6px 16px rgba(0, 0, 0, 0.08)',
-  shadowLg: '0 12px 32px rgba(0, 0, 0, 0.12)',
-  shadowXl: '0 20px 60px rgba(0, 0, 0, 0.18)',
+  shadowMd: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+  shadowLg: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+  shadowXl: '0 20px 25px -5px rgba(0, 0, 0, 0.15)',
   shadowCard: '0 1px 3px rgba(0, 0, 0, 0.06)',
-
-  // Radii
-  radiusSm: '8px',
-  radius: '12px',
-  radiusLg: '16px',
-  radiusXl: '20px',
 };
 
-/**
- * Dark tokens — same Connekyt language, with cards visibly lighter than page.
- */
 const darkColors = {
-  bgPrimary: '#0B1120',         // page (deeper) so cards stand out
-  bgSecondary: '#1E2944',       // cards (clearly lighter)
-  bgTertiary: '#2B3754',
-  bgSidebar: '#1E2944',
-  bgCard: '#1E2944',
-  bgHover: '#2B3754',
+  // Backgrounds
+  bgPrimary: '#111827',
+  bgSecondary: '#1F2937',
+  bgTertiary: '#374151',
+  bgSidebar: '#1F2937',
+  bgCard: '#1F2937',
+  bgHover: '#374151',
   bgActive: '#3B82F6',
-  bgInput: '#2B3754',
-  bgModal: '#1E2944',
-  bgOverlay: 'rgba(0, 0, 0, 0.65)',
+  bgInput: '#374151',
+  bgModal: '#1F2937',
+  bgOverlay: 'rgba(0, 0, 0, 0.7)',
 
-  textPrimary: '#F2F4F8',
-  textSecondary: '#B6BFD2',
-  textTertiary: '#8993AA',
-  textInverse: '#0B1120',
-  textLink: '#93C5FD',
+  // Text
+  textPrimary: '#F9FAFB',
+  textSecondary: '#D1D5DB',
+  textTertiary: '#9CA3AF',
+  textInverse: '#111827',
+  textLink: '#60A5FA',
 
-  borderPrimary: '#3D4D70',     // visible against the surface
-  borderSecondary: '#4F6090',
-  borderFocus: '#60A5FA',
+  // Borders
+  borderPrimary: '#374151',
+  borderSecondary: '#4B5563',
+  borderFocus: '#3B82F6',
 
+  // Brand
   brandPrimary: '#3B82F6',
   brandSecondary: '#60A5FA',
   brandAccent: '#F472B6',
-  brandAccentSoft: '#FF6BBF',
 
+  // Status
   statusSuccess: '#34D399',
-  statusSuccessBg: 'rgba(16, 185, 129, 0.15)',
+  statusSuccessBg: '#064E3B',
   statusWarning: '#FBBF24',
-  statusWarningBg: 'rgba(245, 158, 11, 0.15)',
+  statusWarningBg: '#78350F',
   statusError: '#F87171',
-  statusErrorBg: 'rgba(220, 38, 38, 0.15)',
+  statusErrorBg: '#7F1D1D',
   statusInfo: '#60A5FA',
-  statusInfoBg: 'rgba(59, 130, 246, 0.15)',
+  statusInfoBg: '#1E3A5F',
 
-  shadowSm: '0 1px 2px rgba(0, 0, 0, 0.35)',
-  shadowMd: '0 6px 16px rgba(0, 0, 0, 0.45)',
-  shadowLg: '0 12px 32px rgba(0, 0, 0, 0.55)',
-  shadowXl: '0 20px 60px rgba(0, 0, 0, 0.65)',
-  shadowCard: '0 1px 3px rgba(0, 0, 0, 0.30)',
-
-  radiusSm: '8px',
-  radius: '12px',
-  radiusLg: '16px',
-  radiusXl: '20px',
+  // Shadows
+  shadowSm: '0 1px 2px rgba(0, 0, 0, 0.3)',
+  shadowMd: '0 4px 6px -1px rgba(0, 0, 0, 0.4)',
+  shadowLg: '0 10px 15px -3px rgba(0, 0, 0, 0.5)',
+  shadowXl: '0 20px 25px -5px rgba(0, 0, 0, 0.6)',
+  shadowCard: '0 1px 3px rgba(0, 0, 0, 0.15)',
 };
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -145,19 +138,26 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [currentRole, setCurrentRole] = useState<UserRole>('default');
   const [isInitialized, setIsInitialized] = useState(false);
 
+  // Detect role from pathname
   useEffect(() => {
     const role = detectRoleFromPath(pathname);
     setCurrentRole(role);
   }, [pathname]);
 
+  // Initialize theme from localStorage based on current role
   useEffect(() => {
     const storageKey = getThemeStorageKey(currentRole);
     const savedTheme = localStorage.getItem(storageKey) as ThemeMode | null;
-    if (savedTheme) setThemeState(savedTheme);
-    else setThemeState('light');
+    if (savedTheme) {
+      setThemeState(savedTheme);
+    } else {
+      // Default to light if no saved theme for this role
+      setThemeState('light');
+    }
     setIsInitialized(true);
   }, [currentRole]);
 
+  // Handle system theme changes and compute actual theme
   useEffect(() => {
     if (!isInitialized) return;
 
@@ -169,21 +169,31 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         setActualTheme(theme);
       }
     };
+
     computeActualTheme();
 
+    // Listen for system theme changes
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = () => { if (theme === 'system') computeActualTheme(); };
+    const handleChange = () => {
+      if (theme === 'system') {
+        computeActualTheme();
+      }
+    };
+
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, [theme, isInitialized]);
 
+  // Apply theme to document
   useEffect(() => {
     if (!isInitialized) return;
 
     document.documentElement.setAttribute('data-theme', actualTheme);
 
+    // Apply CSS variables for theming
     const colors = actualTheme === 'dark' ? darkColors : lightColors;
     const root = document.documentElement;
+
     Object.entries(colors).forEach(([key, value]) => {
       root.style.setProperty(`--${key}`, value);
     });
@@ -206,7 +216,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
 export function useTheme() {
   const context = useContext(ThemeContext);
-  if (context === undefined) throw new Error('useTheme must be used within a ThemeProvider');
+  if (context === undefined) {
+    throw new Error('useTheme must be used within a ThemeProvider');
+  }
   return context;
 }
 
