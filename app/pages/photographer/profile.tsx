@@ -1720,14 +1720,22 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         year: parseInt(project.year) || new Date().getFullYear(),
       })], { type: 'application/json' }));
 
-      // If we have an image file, use it; otherwise try to convert base64 to blob
+      // If we have an image file, use it; otherwise try to convert base64 to blob.
+      // CSP connect-src doesn't allow data: URLs, so decode in-process instead
+      // of round-tripping through fetch().
       if (imageFile) {
         formData.append('projectImage', imageFile);
       } else if (project.image && project.image.startsWith('data:')) {
-        // Convert base64 to blob
-        const response = await fetch(project.image);
-        const blob = await response.blob();
-        formData.append('projectImage', blob, 'project-image.jpg');
+        const [meta, b64] = project.image.split(',', 2);
+        if (b64) {
+          const mime = /data:([^;]+)/.exec(meta)?.[1] || 'image/jpeg';
+          const ext = mime === 'image/png' ? 'png' : mime === 'image/webp' ? 'webp' : 'jpg';
+          const bin = atob(b64);
+          const bytes = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+          const blob = new Blob([bytes], { type: mime });
+          formData.append('projectImage', blob, `project-image.${ext}`);
+        }
       }
 
       const apiResponse = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/add-project-portfolio`, {
