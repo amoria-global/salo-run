@@ -1014,10 +1014,14 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
   // Calculate profile completion percentage
   const profileCompletion = useMemo(() => {
+    // Completion checks only weight fields still present on the profile.
+    // About/Bio, Equipment, Skills, Education, Certifications and standalone
+    // Training were dropped from the photographer profile; counting them
+    // here would lock everyone below 100% with nothing to fill.
     const fields = {
-      // Basic Info (20%)
+      // Basic Info (25%)
       basicInfo: {
-        weight: 20,
+        weight: 25,
         filled: [
           basicInfo.fullName,
           basicInfo.phoneNumber,
@@ -1026,25 +1030,23 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         ].filter(Boolean).length,
         total: 4
       },
-      // Overview (25%)
+      // Overview — specialties only (25%)
       overview: {
         weight: 25,
         filled: [
-          overviewData.about.length > 50,
           overviewData.specialties.length >= 2,
-          overviewData.equipments.length >= 1,
         ].filter(Boolean).length,
-        total: 3
+        total: 1
       },
-      // Portfolio (35%)
+      // Portfolio — at least one featured project (30%)
       portfolio: {
-        weight: 35,
+        weight: 30,
         filled: [
           portfolioData.projects.length >= 1,
         ].filter(Boolean).length,
         total: 1
       },
-      // Experience (20%)
+      // Experience — at least one entry, with a written description (20%)
       experience: {
         weight: 20,
         filled: [
@@ -2457,7 +2459,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                     A complete profile helps clients find you and trust your expertise.
                   </p>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {!overviewData.about && (
+                    {!profileImage && (
                       <button onClick={() => setActiveTab('overview')} style={{
                         display: 'inline-flex', alignItems: 'center', gap: 6,
                         padding: '6px 12px', borderRadius: 9999,
@@ -2465,7 +2467,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                         border: '1px solid rgba(8,58,133,0.18)',
                         fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer',
                       }}>
-                        <i className="bi bi-plus-lg" style={{ fontSize: 11 }} /> Add bio
+                        <i className="bi bi-plus-lg" style={{ fontSize: 11 }} /> Add profile photo
                       </button>
                     )}
                     {overviewData.specialties.length < 2 && (
@@ -2479,7 +2481,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                         <i className="bi bi-plus-lg" style={{ fontSize: 11 }} /> Add specialties
                       </button>
                     )}
-                    {portfolioData.skills.length < 2 && (
+                    {portfolioData.projects.length < 1 && (
                       <button onClick={() => setActiveTab('portfolio')} style={{
                         display: 'inline-flex', alignItems: 'center', gap: 6,
                         padding: '6px 12px', borderRadius: 9999,
@@ -2487,7 +2489,18 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                         border: '1px solid rgba(242,12,143,0.20)',
                         fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer',
                       }}>
-                        <i className="bi bi-plus-lg" style={{ fontSize: 11 }} /> Add skills
+                        <i className="bi bi-plus-lg" style={{ fontSize: 11 }} /> Add a project
+                      </button>
+                    )}
+                    {experienceData.experiences.length < 1 && (
+                      <button onClick={() => setActiveTab('experience')} style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        padding: '6px 12px', borderRadius: 9999,
+                        background: 'rgba(242,12,143,0.08)', color: '#F20C8F',
+                        border: '1px solid rgba(242,12,143,0.20)',
+                        fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer',
+                      }}>
+                        <i className="bi bi-plus-lg" style={{ fontSize: 11 }} /> Add experience
                       </button>
                     )}
                   </div>
