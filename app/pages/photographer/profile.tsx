@@ -54,9 +54,6 @@ interface ProfileFormData {
   portfolioData: {
     beliefs: string;
     skills: { id: string; name: string; level: number }[];
-    education: { id: string; degree: string; institution: string; fromYear: string; toYear: string; description: string }[];
-    qualifications: { id: string; title: string; issuer: string; year: string; description: string }[];
-    training: { id: string; name: string; year: string }[];
     projects: { id: string; image: string; title: string; description: string; year: string }[];
   };
   experienceData: {
@@ -106,31 +103,6 @@ interface Skill {
   id: string;
   name: string;
   level: number;
-}
-
-interface Education {
-  id: string;
-  degree: string;
-  institution: string;
-  fromYear: string;
-  toYear: string;
-  description: string;
-}
-
-interface Qualification {
-  id: string;
-  title: string;
-  issuer: string;
-  year: string;
-  description: string;
-}
-
-interface Training {
-  id: string;
-  name: string;
-  issuer: string;
-  year: string;
-  description: string;
 }
 
 interface Project {
@@ -207,8 +179,6 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   const { colors, actualTheme } = useTheme();
   const { token, user, refreshUserProfile } = useDashboardAuth();
   const [activeTab, setActiveTab] = useState<'overview' | 'portfolio' | 'experience' | 'packages'>('overview');
-  const [savingEducation, setSavingEducation] = useState<string | null>(null);
-  const [savingTraining, setSavingTraining] = useState<string | null>(null);
   const [savingSkill, setSavingSkill] = useState<string | null>(null);
   const [savingEquipment, setSavingEquipment] = useState<string | null>(null);
   const [savingAvailability, setSavingAvailability] = useState<string | null>(null);
@@ -352,9 +322,6 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   const [portfolioData, setPortfolioData] = useState({
     beliefs: '',
     skills: [] as Skill[],
-    education: [] as Education[],
-    qualifications: [] as Qualification[],
-    training: [] as Training[],
     projects: [] as Project[],
   });
 
@@ -635,7 +602,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
   // Helper: check if a field has pending changes (matches fieldName or fieldCategory)
   const getFieldPendingChanges = useCallback((fieldName: string) => {
-    const categoryMap: Record<string, string> = { projects: 'PROJECT', specialties: 'SPECIALTY', equipments: 'EQUIPMENT', professionalSkills: 'SKILL', educationLevels: 'EDUCATION', trainings: 'TRAINING', certifications: 'CERTIFICATION', workExperiences: 'WORK_EXPERIENCE' };
+    const categoryMap: Record<string, string> = { projects: 'PROJECT', specialties: 'SPECIALTY', workExperiences: 'WORK_EXPERIENCE' };
     const category = categoryMap[fieldName];
     return pendingChanges.filter(c => c.fieldName === fieldName || (category && c.fieldCategory === category));
   }, [pendingChanges]);
@@ -935,28 +902,6 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           name: s.name,
           level: s.skillPercentage ?? s.proficiencyLevel ?? 0,
         })) || [],
-        education: user.educationLevels?.map(e => ({
-          id: e.id || String(Date.now()),
-          degree: e.degree,
-          institution: e.institution,
-          fromYear: e.startDate?.split('-')[0] || '',
-          toYear: e.endDate?.split('-')[0] || 'Present',
-          description: e.description || '',
-        })) || [],
-        qualifications: user.certifications?.map(c => ({
-          id: c.id || String(Date.now()),
-          title: c.title,
-          issuer: c.institution,
-          year: c.yearObtained,
-          description: c.description || '',
-        })) || [],
-        training: user.trainings?.map(t => ({
-          id: t.id || String(Date.now()),
-          name: t.title,
-          issuer: t.institution,
-          year: t.yearObtained,
-          description: t.description || '',
-        })) || [],
         projects: user.projects?.map(p => ({
           id: p.id || String(Date.now()),
           image: p.projectImage || '',
@@ -1095,13 +1040,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       portfolio: {
         weight: 35,
         filled: [
-          portfolioData.beliefs.length > 30,
-          portfolioData.skills.length >= 2,
-          portfolioData.education.length >= 1,
-          portfolioData.qualifications.length >= 1,
-          portfolioData.training.length >= 1,
+          portfolioData.projects.length >= 1,
         ].filter(Boolean).length,
-        total: 5
+        total: 1
       },
       // Experience (20%)
       experience: {
@@ -1284,135 +1225,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     }));
   };
 
-  // Education handlers
-  const addEducation = () => {
-    const newId = Date.now().toString();
-    setNewlyAddedId(newId);
-    setPortfolioData(prev => ({
-      ...prev,
-      education: [{ id: newId, degree: '', institution: '', fromYear: '', toYear: '', description: '' }, ...prev.education]
-    }));
-    setTimeout(() => setNewlyAddedId(null), 1500);
-  };
-
-  const updateEducation = (id: string, field: keyof Education, value: string) => {
-    setPortfolioData(prev => ({
-      ...prev,
-      education: prev.education.map(e => e.id === id ? { ...e, [field]: value } : e)
-    }));
-  };
-
-  const removeEducation = async (id: string) => {
-    const success = await deleteEducationFromAPI(id);
-    if (success) {
-      setPortfolioData(prev => ({
-        ...prev,
-        education: prev.education.filter(e => e.id !== id)
-      }));
-    }
-    showToast(success ? 'success' : 'error',
-      success ? 'Education deleted successfully' : 'Failed to delete education');
-  };
-
-  // Save education to API
-  const saveEducationToAPI = async (edu: Education) => {
-    if (!user) {
-      console.error('Not authenticated');
-      return false;
-    }
-
-    if (!edu.degree || !edu.institution) {
-      console.error('Degree and institution are required');
-      return false;
-    }
-
-    setSavingEducation(edu.id);
-
-    try {
-      const apiUrl = getApiUrl();
-      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/add-education-level`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          degree: capitalizeWords(edu.degree),
-          institution: capitalizeWords(edu.institution),
-          startDate: edu.fromYear ? `${edu.fromYear}-01-01` : '',
-          endDate: edu.toYear === 'Present' ? '' : (edu.toYear ? `${edu.toYear}-01-01` : ''),
-          description: autoCapitalize(edu.description || ''),
-        }),
-      });
-
-      if (!response.ok) {
-        console.error('Failed to save education:', response.status);
-        return false;
-      }
-
-      const isPending = await checkPendingResponse(response);
-      if (isPending) {
-        showToast('success', 'Education change submitted for admin approval');
-        await fetchPendingChanges();
-      } else {
-        console.log('Education saved successfully');
-      }
-      await refreshUserProfile();
-      return true;
-    } catch (error) {
-      console.error('Error saving education:', error);
-      return false;
-    } finally {
-      setSavingEducation(null);
-    }
-  };
-
-  // Add training/certification to API
-  const addTrainingToAPI = async (training: Training, type: 'TRAINING' | 'CERTIFICATION' = 'TRAINING') => {
-    if (!user) {
-      console.error('Not authenticated');
-      return false;
-    }
-
-    if (!training.name) {
-      console.error('Training name is required');
-      return false;
-    }
-
-    setSavingTraining(training.id);
-
-    try {
-      const apiUrl = getApiUrl();
-      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/add-trainting-certification`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: capitalizeWords(training.name),
-          institution: capitalizeWords(training.issuer || ''),
-          yearObtained: training.year || '',
-          description: autoCapitalize(training.description || ''),
-          type: type,
-        }),
-      });
-
-      if (!response.ok) {
-        console.error('Failed to add training:', response.status);
-        return false;
-      }
-
-      const isPending = await checkPendingResponse(response);
-      if (isPending) {
-        showToast('success', 'Training/certification change submitted for admin approval');
-        await fetchPendingChanges();
-      } else {
-        console.log('Training added successfully');
-      }
-      await refreshUserProfile();
-      return true;
-    } catch (error) {
-      console.error('Error adding training:', error);
-      return false;
-    } finally {
-      setSavingTraining(null);
-    }
-  };
+  // Education / training / certification handlers removed per product request.
 
   // Add skill to API
   const addSkillToAPI = async (skill: Skill) => {
@@ -1804,25 +1617,6 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     }
   };
 
-  // Delete education from API
-  const deleteEducationFromAPI = async (educationId: string) => {
-    if (!user) return false;
-    try {
-      const apiUrl = getApiUrl();
-      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/delete-education-level/${educationId}`, {
-        method: 'POST',
-        headers: {},
-      });
-      if (response.ok) {
-        await refreshUserProfile();
-      }
-      return response.ok;
-    } catch (error) {
-      console.error('Error deleting education:', error);
-      return false;
-    }
-  };
-
   // Delete availability from API
   const deleteAvailabilityFromAPI = async (availabilityId: string) => {
     if (!user) return false;
@@ -1857,25 +1651,6 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       return response.ok;
     } catch (error) {
       console.error('Error deleting project:', error);
-      return false;
-    }
-  };
-
-  // Delete training/certification from API
-  const deleteTrainingFromAPI = async (trainingId: string) => {
-    if (!user) return false;
-    try {
-      const apiUrl = getApiUrl();
-      const response = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/delete-trainting-certification/${trainingId}`, {
-        method: 'POST',
-        headers: {},
-      });
-      if (response.ok) {
-        await refreshUserProfile();
-      }
-      return response.ok;
-    } catch (error) {
-      console.error('Error deleting training:', error);
       return false;
     }
   };
@@ -1943,67 +1718,6 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
       console.error('Error deleting experience:', error);
       return false;
     }
-  };
-
-  // Qualification handlers
-  const addQualification = () => {
-    const newId = Date.now().toString();
-    setNewlyAddedId(newId);
-    setPortfolioData(prev => ({
-      ...prev,
-      qualifications: [{ id: newId, title: '', issuer: '', year: '', description: '' }, ...prev.qualifications]
-    }));
-    setTimeout(() => setNewlyAddedId(null), 1500);
-  };
-
-  const updateQualification = (id: string, field: keyof Qualification, value: string) => {
-    setPortfolioData(prev => ({
-      ...prev,
-      qualifications: prev.qualifications.map(q => q.id === id ? { ...q, [field]: value } : q)
-    }));
-  };
-
-  const removeQualification = async (id: string) => {
-    const success = await deleteTrainingFromAPI(id); // Certifications use same endpoint as training
-    if (success) {
-      setPortfolioData(prev => ({
-        ...prev,
-        qualifications: prev.qualifications.filter(q => q.id !== id)
-      }));
-    }
-    showToast(success ? 'success' : 'error',
-      success ? 'Certification deleted successfully' : 'Failed to delete certification');
-  };
-
-  // Training handlers
-  const addTraining = () => {
-    const newId = Date.now().toString();
-    setNewlyAddedId(newId);
-    setPortfolioData(prev => ({
-      ...prev,
-      training: [{ id: newId, name: '', issuer: '', year: '', description: '' }, ...prev.training]
-    }));
-    setTimeout(() => setNewlyAddedId(null), 1500);
-  };
-
-  // Update training field
-  const updateTraining = (id: string, field: keyof Training, value: string) => {
-    setPortfolioData(prev => ({
-      ...prev,
-      training: prev.training.map(t => t.id === id ? { ...t, [field]: value } : t)
-    }));
-  };
-
-  const removeTraining = async (id: string) => {
-    const success = await deleteTrainingFromAPI(id);
-    if (success) {
-      setPortfolioData(prev => ({
-        ...prev,
-        training: prev.training.filter(t => t.id !== id)
-      }));
-    }
-    showToast(success ? 'success' : 'error',
-      success ? 'Training deleted successfully' : 'Failed to delete training');
   };
 
   // Experience handlers
@@ -3557,155 +3271,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                   <div>
                     {/* Beliefs / Philosophy section removed per product request */}
                     {/* Skills section removed per product request */}
-                    {/* Education & Certifications (merged into one section) */}
-                    <div style={sectionTitleStyle}>
-                      <span>Education &amp; Certifications{renderPendingBadge('educationLevels')}{renderPendingBadge('certifications')}</span>
-                      <button
-                        onClick={addEducation}
-                        disabled={!isEditEnabled}
-                        style={{
-                          backgroundColor: isEditEnabled ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgTertiary,
-                          color: isEditEnabled ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.textSecondary,
-                          border: `1px solid ${isEditEnabled ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85') : colors.borderPrimary}`,
-                          borderRadius: '0.375rem',
-                          padding: '0.375rem 0.75rem',
-                          fontSize: '0.8rem',
-                          fontWeight: '500',
-                          cursor: isEditEnabled ? 'pointer' : 'not-allowed',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.25rem',
-                          opacity: isEditEnabled ? 1 : 0.6
-                        }}
-                      >
-                        <PlusIcon /> Add Education
-                      </button>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
-                      {portfolioData.education.map((edu) => (
-                        <div key={edu.id} style={{
-                          backgroundColor: colors.bgTertiary,
-                          padding: '1.25rem',
-                          borderRadius: '0.5rem',
-                          position: 'relative',
-                          ...(newlyAddedId === edu.id ? newItemAnimation : {})
-                        }}>
-                          <div className="mobile-form-grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
-                            <div>
-                              <label style={labelStyle}>Degree/Certificate</label>
-                              <input
-                                type="text"
-                                value={edu.degree}
-                                onChange={(e) => updateEducation(edu.id, 'degree', e.target.value)}
-                                placeholder="e.g., Bachelor of Fine Arts"
-                                style={inputStyle}
-                              />
-                            </div>
-                            <div>
-                              <label style={labelStyle}>Institution</label>
-                              <input
-                                type="text"
-                                value={edu.institution}
-                                onChange={(e) => updateEducation(edu.id, 'institution', e.target.value)}
-                                placeholder="e.g., School of Visual Arts"
-                                style={inputStyle}
-                              />
-                            </div>
-                            <div>
-                              <label style={labelStyle}>Duration</label>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <select
-                                  value={edu.fromYear}
-                                  onChange={(e) => updateEducation(edu.id, 'fromYear', e.target.value)}
-                                  style={{ ...inputStyle, flex: 1 }}
-                                >
-                                  <option value="">From Year</option>
-                                  {yearOptions.map((year) => (
-                                    <option key={year} value={year}>{year}</option>
-                                  ))}
-                                </select>
-                                <span style={{ color: colors.textSecondary }}>to</span>
-                                <select
-                                  value={edu.toYear}
-                                  onChange={(e) => updateEducation(edu.id, 'toYear', e.target.value)}
-                                  style={{ ...inputStyle, flex: 1 }}
-                                >
-                                  <option value="">To Year</option>
-                                  {yearOptionsWithPresent.map((year) => (
-                                    <option key={year} value={year}>{year}</option>
-                                  ))}
-                                </select>
-                              </div>
-                            </div>
-                            <div>
-                              <label style={labelStyle}>Description</label>
-                              <input
-                                type="text"
-                                value={edu.description}
-                                onChange={(e) => updateEducation(edu.id, 'description', e.target.value)}
-                                placeholder="Brief description"
-                                style={inputStyle}
-                              />
-                            </div>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
-                            <button
-                              onClick={() => removeEducation(edu.id)}
-                              style={{
-                                backgroundColor: 'transparent',
-                                color: '#EF4444',
-                                border: '1px solid #EF4444',
-                                borderRadius: '0.375rem',
-                                padding: '0.375rem 0.75rem',
-                                fontSize: '0.8rem',
-                                fontWeight: '500',
-                                cursor: 'pointer',
-                              }}
-                            >
-                              Remove
-                            </button>
-                            <button
-                              onClick={async () => {
-                                const success = await saveEducationToAPI(edu);
-                                showToast(success ? 'success' : 'error',
-                                  success ? 'Education saved successfully' : 'Failed to save education');
-                              }}
-                              disabled={savingEducation === edu.id || !edu.degree || !edu.institution}
-                              style={{
-                                backgroundColor: savingEducation === edu.id ? '#9CA3AF' : '#083A85',
-                                color: '#FFFFFF',
-                                border: 'none',
-                                borderRadius: '0.375rem',
-                                padding: '0.375rem 0.75rem',
-                                fontSize: '0.8rem',
-                                fontWeight: '500',
-                                cursor: savingEducation === edu.id || !edu.degree || !edu.institution ? 'not-allowed' : 'pointer',
-                                opacity: !edu.degree || !edu.institution ? 0.5 : 1,
-                              }}
-                            >
-                              {savingEducation === edu.id ? 'Saving...' : 'Save'}
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Certifications form merged into Education above */}
-                      {/* Pending education items */}
-                      {getPendingAddItems('educationLevels').map((item) => (
-                        <div key={item._pendingId} style={{
-                          padding: '1rem', backgroundColor: colors.bgTertiary,
-                          borderRadius: '0.5rem', border: `2px solid ${actualTheme === 'dark' ? '#92400E' : '#FDE68A'}`, opacity: 0.85,
-                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        }}>
-                          <div>
-                            <div style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{item.degree || 'Degree'}</div>
-                            <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{item.institution || ''}{item.fromYear ? ` (${item.fromYear}${item.toYear ? ` - ${item.toYear}` : ''})` : ''}</div>
-                          </div>
-                          <span style={pendingTagStyle}>Pending</span>
-                        </div>
-                      ))}
-
+                    {/* Education & Certifications section removed per product request */}
                     {/* Training & Workshops section removed per product request */}
                     {/* Featured Projects */}
                     <div style={sectionTitleStyle}>
