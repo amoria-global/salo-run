@@ -2390,8 +2390,9 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
             </div>
           )}
 
-          {/* Profile Completion Card */}
-          {profileCompletion < 100 && (
+          {/* Profile Completion Card — always shown so photographers can
+              see their score at a glance (chips below self-hide at 100%). */}
+          {(
             <div className="mobile-card completion-card-enhanced" style={{
               backgroundColor: colors.bgCard,
               border: `1px solid ${colors.borderPrimary}`,
@@ -2450,13 +2451,15 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                     color: colors.textPrimary, margin: 0,
                     letterSpacing: '-0.01em',
                   }}>
-                    Complete your profile
+                    {profileCompletion >= 100 ? 'Your profile is complete' : 'Complete your profile'}
                   </h2>
                   <p style={{
                     fontSize: '0.88rem', color: colors.textSecondary,
                     margin: '4px 0 12px', lineHeight: 1.5,
                   }}>
-                    A complete profile helps clients find you and trust your expertise.
+                    {profileCompletion >= 100
+                      ? 'Nice work — every section clients look at is filled in.'
+                      : 'A complete profile helps clients find you and trust your expertise.'}
                   </p>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     {!profileImage && (
