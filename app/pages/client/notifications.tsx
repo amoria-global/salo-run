@@ -141,29 +141,57 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
   const [selectedNotif, setSelectedNotif] = useState<Notification | null>(null);
 
   const fetchNotifications = async () => {
-    if (!token || !user?.id) return;
+    // Cookie-only sessions have no JS-readable token, so gate purely on
+    // the user object — dashboardAuthFetch sends the HttpOnly cookie
+    // alongside any Bearer it can find.
+    if (!user?.id) return;
     try {
       const apiUrl = getApiUrl();
       const endpoint = userRole === 'event-coordinator'
         ? `${apiUrl}/api/remote/coordinator/notifications?page=0&size=50`
         : `${apiUrl}/api/remote/customer/notifications?page=0&size=50`;
       const response = await dashboardAuthFetch(endpoint, { headers: { 'Content-Type': 'application/json' } });
-      if (!response.ok) throw new Error('Failed to fetch notifications');
+      if (!response.ok) {
+        console.error(`[notifications] ${endpoint} -> HTTP ${response.status}`);
+        throw new Error('Failed to fetch notifications');
+      }
       const result = await response.json();
-      const data = result?.data?.content || result?.data || [];
+
+      // Backend wraps responses as { action: 1, data: ... }. The data can be:
+      //   - a paginated object { content: [...], totalElements, ... }  (Spring page)
+      //   - a raw array [...]
+      // Mirror the topbar + photographer parser, which handles both shapes.
+      const rawData = result?.data;
+      const items = Array.isArray(rawData)
+        ? rawData
+        : (rawData && Array.isArray(rawData.content) ? rawData.content : []);
+
+      if (result?.action !== 1 || items.length === 0) {
+        // Only loud-log when we expected items but got none — useful when
+        // the unread-count endpoint reports >0 but the list endpoint comes
+        // back empty (backend pagination/role-routing mismatch).
+        console.warn('[notifications] unexpected response shape', {
+          endpoint,
+          action: result?.action,
+          dataType: Array.isArray(rawData) ? 'array' : typeof rawData,
+          itemsLen: items.length,
+          raw: result,
+        });
+      }
+
       // Newest-created first. Mapped shape drops raw timestamp, so sort here.
-      data.sort((a: any, b: any) => {
+      items.sort((a: any, b: any) => {
         const ta = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
         const tb = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
         return tb - ta;
       });
-      const mapped: Notification[] = data.map((n: { id: string; title: string; message: string; type: string; isRead: boolean; link?: string; createdAt: string; referenceId?: string }) => ({
+      const mapped: Notification[] = items.map((n: { id: string; title: string; message: string; type: string; isRead?: boolean; read?: boolean; link?: string; createdAt: string; referenceId?: string }) => ({
         id: n.id,
         type: mapBackendType(n.type, userRole),
         title: n.title,
         message: n.message,
         timestamp: formatRelativeTime(n.createdAt),
-        read: n.isRead,
+        read: n.isRead ?? n.read ?? false,
         actionUrl: n.link || undefined,
         referenceId: n.referenceId || undefined,
       }));
@@ -176,10 +204,10 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
   };
 
   useEffect(() => {
-    if (token && user?.id) {
+    if (user?.id) {
       fetchNotifications();
     }
-  }, [token, user?.id]);
+  }, [user?.id]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -584,37 +612,34 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
 
           <div className="notifications-main">
             {/* Header */}
-            <div className="notifications-header">
-            <div>
+            <div className="notifications-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap', margin: '8px 0 22px' }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{
+                fontSize: '0.78rem', fontWeight: 700, color: '#F20C8F',
+                letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6,
+              }}>Inbox</div>
               <h1 style={{
-                fontSize: '1.8rem',
-                fontWeight: '700',
-                color: colors.textPrimary,
-                margin: 0,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem'
+                margin: 0, fontSize: '1.85rem', fontWeight: 800,
+                letterSpacing: '-0.02em', color: colors.textPrimary,
+                display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
               }}>
                 Notifications
                 {unreadCount > 0 && (
                   <span style={{
-                    backgroundColor: '#EF4444',
-                    color: 'white',
-                    fontSize: '0.875rem',
-                    fontWeight: '600',
-                    padding: '0.25rem 0.75rem',
-                    borderRadius: '9999px'
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    padding: '4px 12px', borderRadius: 9999,
+                    background: 'rgba(242,12,143,0.10)', color: '#F20C8F',
+                    fontSize: '0.78rem', fontWeight: 700,
                   }}>
-                    {unreadCount} new
+                    <span style={{ width: 6, height: 6, borderRadius: 9999, background: '#F20C8F', boxShadow: '0 0 0 3px rgba(242,12,143,0.25)' }} />
+                    {unreadCount} unread
                   </span>
                 )}
               </h1>
               <p style={{
-                fontSize: '0.95rem',
-                color: colors.textSecondary,
-                marginTop: '0.25rem'
+                margin: '4px 0 0', fontSize: '0.92rem', color: colors.textSecondary,
               }}>
-                Stay updated with new albums, {userRole === 'event-coordinator' ? 'stream fees' : 'gifts'}, bookings, and account activity
+                Stay updated with new albums, {userRole === 'event-coordinator' ? 'stream fees' : 'gifts'}, bookings, and account activity.
               </p>
             </div>
 
@@ -646,48 +671,42 @@ const ClientNotifications = ({ userRole = 'client' }: NotificationsPageProps) =>
 
           {/* Stats Cards */}
           <div className="stats-grid">
-            <div className="stat-card" style={{ borderLeft: '4px solid #083A85' }}>
-              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Notifications</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{notifications.length}</div>
-            </div>
-            <div className="stat-card" style={{ borderLeft: '4px solid #EF4444' }}>
-              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Unread</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#EF4444' }}>{unreadCount}</div>
-            </div>
-            <div className="stat-card" style={{ borderLeft: '4px solid #9333EA' }}>
-              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>New Albums</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#9333EA' }}>
-                {notifications.filter(n => n.type === 'album').length}
+            {([
+              { label: 'Total notifications', value: notifications.length, icon: 'bi-bell-fill', tint: 'rgba(8,58,133,0.10)', color: '#083A85' },
+              { label: 'Unread', value: unreadCount, icon: 'bi-circle-fill', tint: 'rgba(242,12,143,0.10)', color: '#F20C8F' },
+              { label: 'New albums', value: notifications.filter(n => n.type === 'album').length, icon: 'bi-images', tint: 'rgba(139,92,246,0.10)', color: '#8B5CF6' },
+              {
+                label: userRole === 'event-coordinator' ? 'Stream fees' : 'Gifts received',
+                value: notifications.filter(n => n.type === (userRole === 'event-coordinator' ? 'streamfee' : 'gift')).length,
+                icon: userRole === 'event-coordinator' ? 'bi-broadcast' : 'bi-gift-fill',
+                tint: 'rgba(16,185,129,0.10)', color: '#10B981',
+              },
+            ] as const).map((s) => (
+              <div key={s.label} className="ck-card ck-card-hover" style={{ padding: 18, borderTop: `3px solid ${s.color}` }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{
+                    width: 40, height: 40, borderRadius: 10, background: s.tint,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  }}>
+                    <i className={`bi ${s.icon}`} style={{ color: s.color, fontSize: 16 }} />
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--ck-text-soft)' }}>{s.label}</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.02em', color: s.color, lineHeight: 1.1, marginTop: 2 }}>{s.value}</div>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="stat-card" style={{ borderLeft: '4px solid #16A34A' }}>
-              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>
-                {userRole === 'event-coordinator' ? 'Stream Fees' : 'Gifts Received'}
-              </div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>
-                {notifications.filter(n => n.type === (userRole === 'event-coordinator' ? 'streamfee' : 'gift')).length}
-              </div>
-            </div>
+            ))}
           </div>
 
           {/* Filters */}
           <div className="filters-section">
-            <div className="filter-buttons">
+            <div className="filter-buttons ck-tabs">
               {filterOptions.map(option => (
                 <button
                   key={option.value}
                   onClick={() => setActiveFilter(option.value)}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    border: activeFilter === option.value ? 'none' : `2px solid ${colors.borderPrimary}`,
-                    backgroundColor: activeFilter === option.value ? '#083A85' : colors.bgCard,
-                    color: activeFilter === option.value ? 'white' : colors.textSecondary,
-                    borderRadius: '0.5rem',
-                    fontSize: '0.875rem',
-                    fontWeight: '500',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
+                  className={`ck-tab ${activeFilter === option.value ? 'active' : ''}`}
                 >
                   {option.label}
                 </button>
