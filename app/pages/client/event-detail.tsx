@@ -299,7 +299,9 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
 
   // Fetch event details
   const fetchEvent = useCallback(async () => {
-    if (!token || !eventId) return;
+    // Cookie-only sessions have no JS-readable token. dashboardAuthFetch
+    // sends the HttpOnly cookie regardless, so gate only on eventId.
+    if (!eventId) return;
     setLoading(true);
     setError(null);
 
@@ -399,7 +401,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
     } finally {
       setLoading(false);
     }
-  }, [token, eventId, userRole]);
+  }, [eventId, userRole]);
 
   useEffect(() => {
     fetchEvent();

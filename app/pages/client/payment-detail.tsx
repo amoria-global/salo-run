@@ -207,7 +207,9 @@ const PaymentDetailPage: React.FC<PaymentDetailPageProps> = ({ userRole }) => {
   const [showPayNowModal, setShowPayNowModal] = useState(false);
 
   const fetchPayment = useCallback(async () => {
-    if (!token || !id) return;
+    // Cookie-only sessions have no JS-readable token. dashboardAuthFetch
+    // sends the HttpOnly cookie regardless, so gate only on id.
+    if (!id) return;
     setLoading(true);
     setError(null);
     try {
@@ -254,7 +256,7 @@ const PaymentDetailPage: React.FC<PaymentDetailPageProps> = ({ userRole }) => {
     } finally {
       setLoading(false);
     }
-  }, [token, id]);
+  }, [id]);
 
   useEffect(() => {
     fetchPayment();

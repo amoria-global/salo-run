@@ -379,7 +379,9 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
 
   // Fetch booked photographers from API
   useEffect(() => {
-    if (!token || !user?.id) return;
+    // Cookie-only sessions have no JS-readable token. dashboardAuthFetch
+    // sends the HttpOnly cookie regardless, so gate only on user id.
+    if (!user?.id) return;
 
     const fetchPhotographers = async () => {
       try {
@@ -461,7 +463,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
     };
 
     fetchPhotographers();
-  }, [token, user?.id]);
+  }, [user?.id]);
 
   // Fetch completed events when review modal opens
   useEffect(() => {
@@ -1149,35 +1151,24 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
         <div className="mobile-main-content" style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
 
           {/* Header */}
-          <header className="mobile-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-            <div>
-              <h1 className="mobile-title" style={{ fontSize: '1.8rem', lineHeight: '2rem', color: colors.textPrimary, fontWeight: '600' }}>Booked Photographers</h1>
-              <p className="mobile-subtitle" style={{ fontSize: '0.95rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
-                Photographers you&apos;ve worked with - rebook your favorites
+          <header className="mobile-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap', margin: '8px 0 22px' }}>
+            <div className="mobile-header-title" style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>RELATIONSHIPS</div>
+              <h1 className="mobile-title" style={{ margin: 0, fontSize: '1.85rem', fontWeight: 800, letterSpacing: '-0.02em', color: colors.textPrimary }}>Booked photographers</h1>
+              <p className="mobile-subtitle" style={{ margin: '4px 0 0', fontSize: '0.92rem', color: colors.textSecondary }}>
+                Photographers you&apos;ve worked with — rebook your favorites in one tap.
               </p>
             </div>
-            <div className="mobile-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div className="mobile-header-actions" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               {/* Invite Photographer */}
               {(userRole === 'event-coordinator' || userRole === 'client') && (
                 <button
                   onClick={() => { setShowInviteModal(true); setInviteEmail(''); setInviteError(null); setInviteCopied(false); }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    padding: '0.5rem 1rem',
-                    backgroundColor: '#F20C8F',
-                    color: 'white',
-                    border: '2px solid #c00a72',
-                    borderRadius: '0.5rem',
-                    fontSize: '0.9rem',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap'
-                  }}
+                  className="ck-btn ck-btn-primary"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap' }}
                 >
-                  <MessageIcon />
-                  Invite New
+                  <i className="bi bi-envelope-plus-fill" style={{ fontSize: 13 }} />
+                  Invite new
                 </button>
               )}
               {/* Sort Dropdown */}
@@ -1192,181 +1183,146 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                   style={{
                     appearance: 'none',
                     backgroundColor: colors.bgCard,
-                    border: `2px solid ${colors.borderPrimary}`,
-                    borderRadius: '0.5rem',
-                    padding: '0.5rem 2rem 0.5rem 0.75rem',
-                    fontSize: '0.9rem',
+                    border: `1.5px solid ${colors.borderPrimary}`,
+                    borderRadius: 11,
+                    padding: '0.55rem 2.1rem 0.55rem 0.9rem',
+                    fontSize: '0.88rem',
+                    fontWeight: 600,
                     color: colors.textPrimary,
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    outline: 'none',
                   }}
                 >
-                  <option value="recent-desc">Most Recent</option>
-                  <option value="recent-asc">Oldest First</option>
-                  <option value="rating-desc">Highest Rated</option>
-                  <option value="bookings-desc">Most Booked</option>
-                  <option value="spent-desc">Most Spent</option>
+                  <option value="recent-desc">Most recent</option>
+                  <option value="recent-asc">Oldest first</option>
+                  <option value="rating-desc">Highest rated</option>
+                  <option value="bookings-desc">Most booked</option>
+                  <option value="spent-desc">Most spent</option>
                 </select>
-                <div style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+                <div style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: colors.textSecondary }}>
                   <SortIcon />
                 </div>
               </div>
               {/* View Mode Toggle */}
-              <div style={{ display: 'flex', gap: '0.25rem', backgroundColor: colors.bgTertiary, borderRadius: '0.375rem', padding: '0.25rem' }}>
+              <div className="ck-tabs">
                 <button
+                  type="button"
                   onClick={() => setViewMode('grid')}
-                  style={{
-                    padding: '0.375rem',
-                    border: 'none',
-                    borderRadius: '0.25rem',
-                    cursor: 'pointer',
-                    backgroundColor: viewMode === 'grid' ? colors.bgCard : 'transparent',
-                    boxShadow: viewMode === 'grid' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'all 0.2s'
-                  }}
+                  className={`ck-tab ${viewMode === 'grid' ? 'is-active' : ''}`}
+                  title="Grid view"
+                  style={{ padding: '7px 12px' }}
                 >
-                  <GridIcon active={viewMode === 'grid'} />
+                  <i className="bi bi-grid-fill" style={{ fontSize: 13 }} />
                 </button>
                 <button
+                  type="button"
                   onClick={() => setViewMode('list')}
-                  style={{
-                    padding: '0.375rem',
-                    border: 'none',
-                    borderRadius: '0.25rem',
-                    cursor: 'pointer',
-                    backgroundColor: viewMode === 'list' ? colors.bgCard : 'transparent',
-                    boxShadow: viewMode === 'list' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'all 0.2s'
-                  }}
+                  className={`ck-tab ${viewMode === 'list' ? 'is-active' : ''}`}
+                  title="List view"
+                  style={{ padding: '7px 12px' }}
                 >
-                  <ListIcon active={viewMode === 'list'} />
+                  <i className="bi bi-list-ul" style={{ fontSize: 14 }} />
                 </button>
               </div>
             </div>
           </header>
 
           {/* Stats Cards */}
-          <div className="mobile-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', borderTop: `2px solid ${colors.borderPrimary}`, borderRight: `2px solid ${colors.borderPrimary}`, borderBottom: `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #083A85' }}>
-              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Photographers</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{photographers.length}</div>
-            </div>
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', borderTop: `2px solid ${colors.borderPrimary}`, borderRight: `2px solid ${colors.borderPrimary}`, borderBottom: `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #3B82F6' }}>
-              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Bookings</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
-                {photographers.reduce((sum, p) => sum + p.totalBookingsWithClient, 0)}
-              </div>
-            </div>
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', borderTop: `2px solid ${colors.borderPrimary}`, borderRight: `2px solid ${colors.borderPrimary}`, borderBottom: `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #10B981' }}>
-              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Spent</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
-                {formatPrice(photographers.reduce((sum, p) => sum + p.totalSpent, 0))}
-              </div>
-            </div>
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', borderTop: `2px solid ${colors.borderPrimary}`, borderRight: `2px solid ${colors.borderPrimary}`, borderBottom: `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #F20C8F' }}>
-              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Favorites</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#F20C8F' }}>
-                {photographers.filter(p => p.isFavorite).length}
-              </div>
-            </div>
-            <div style={{ backgroundColor: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#450A0A' : '#FEF2F2') : colors.bgCard, borderRadius: '0.75rem', padding: '1rem', borderTop: totalPendingAmount > 0 ? `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}` : `2px solid ${colors.borderPrimary}`, borderRight: totalPendingAmount > 0 ? `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}` : `2px solid ${colors.borderPrimary}`, borderBottom: totalPendingAmount > 0 ? `1px solid ${actualTheme === 'dark' ? '#991B1B' : '#FECACA'}` : `2px solid ${colors.borderPrimary}`, borderLeft: '4px solid #DC2626' }}>
-              <div style={{ fontSize: '0.85rem', color: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#FCA5A5' : '#B91C1C') : colors.textSecondary, marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                {totalPendingAmount > 0 && <AlertCircleIcon />}
-                Pending Payments
-              </div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: totalPendingAmount > 0 ? (actualTheme === 'dark' ? '#FCA5A5' : '#DC2626') : colors.textSecondary }}>
-                {formatPrice(totalPendingAmount)}
-              </div>
-            </div>
+          <div className="mobile-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '0.85rem', marginBottom: '1.5rem' }}>
+            {(() => {
+              const totalBookings = photographers.reduce((sum, p) => sum + p.totalBookingsWithClient, 0);
+              const totalSpent = photographers.reduce((sum, p) => sum + p.totalSpent, 0);
+              const favCount = photographers.filter(p => p.isFavorite).length;
+              const cards: Array<{ label: string; value: string; accent: string; tint: string; icon: string; alert?: boolean; }> = [
+                { label: 'Total Photographers', value: String(photographers.length), accent: '#083A85', tint: 'rgba(8,58,133,0.10)',  icon: 'bi-camera2' },
+                { label: 'Total Bookings',      value: String(totalBookings),         accent: '#3B82F6', tint: 'rgba(59,130,246,0.12)', icon: 'bi-calendar-check-fill' },
+                { label: 'Total Spent',         value: formatPrice(totalSpent),       accent: '#10B981', tint: 'rgba(16,185,129,0.12)', icon: 'bi-cash-stack' },
+                { label: 'Favorites',           value: String(favCount),              accent: '#F20C8F', tint: 'rgba(242,12,143,0.12)', icon: 'bi-heart-fill' },
+                { label: 'Pending Payments',    value: formatPrice(totalPendingAmount),accent: '#DC2626', tint: 'rgba(220,38,38,0.12)',  icon: 'bi-exclamation-triangle-fill', alert: totalPendingAmount > 0 },
+              ];
+              return cards.map(stat => (
+                <div
+                  key={stat.label}
+                  className="ck-card mobile-stats-card"
+                  style={{ position: 'relative', overflow: 'hidden', padding: '14px 14px 14px' }}
+                >
+                  <span aria-hidden style={{
+                    position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+                    background: `linear-gradient(90deg, ${stat.accent} 0%, #F20C8F 130%)`,
+                  }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{
+                      width: 34, height: 34, borderRadius: 9,
+                      background: stat.tint,
+                      border: `1px solid ${stat.accent}33`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0,
+                    }}>
+                      <i className={`bi ${stat.icon}`} style={{ fontSize: 14, color: stat.accent }} />
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: '0.72rem', color: colors.textSecondary, marginBottom: 1, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{stat.label}</div>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 800, color: stat.alert ? stat.accent : colors.textPrimary, letterSpacing: '-0.02em', lineHeight: 1.05, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{stat.value}</div>
+                    </div>
+                  </div>
+                </div>
+              ));
+            })()}
           </div>
 
           {/* Tabs */}
-          <div className="mobile-tabs" style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
+          <div className="ck-tabs mobile-tabs" style={{ marginBottom: '1.25rem' }}>
             {[
               { key: 'all', label: 'All Photographers', count: photographers.length },
               { key: 'favorites', label: 'Favorites', count: photographers.filter(p => p.isFavorite).length },
               { key: 'pending_payments', label: 'Pending Payments', count: photographersWithPendingPayments.length, alert: true }
-            ].map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key as typeof activeTab)}
-                style={{
-                  padding: '0.5rem 1rem',
-                  border: 'none',
-                  borderRadius: '0.5rem',
-                  fontSize: '0.9rem',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  backgroundColor: activeTab === tab.key
-                    ? ((tab as { alert?: boolean }).alert ? '#F20C8F' : '#083A85')
-                    : colors.bgCard,
-                  color: activeTab === tab.key ? 'white' : colors.textSecondary,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem'
-                }}
-              >
-                {tab.label}
-                <span style={{
-                  backgroundColor: activeTab === tab.key
-                    ? 'rgba(255,255,255,0.2)'
-                    : ((tab as { alert?: boolean }).alert && tab.count > 0 ? (actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2') : colors.bgTertiary),
-                  color: (tab as { alert?: boolean }).alert && tab.count > 0 && activeTab !== tab.key ? (actualTheme === 'dark' ? '#FCA5A5' : '#DC2626') : undefined,
-                  padding: '0.125rem 0.5rem',
-                  borderRadius: '9999px',
-                  fontSize: '0.8rem'
-                }}>
-                  {tab.count}
-                </span>
-              </button>
-            ))}
+            ].map((tab) => {
+              const isAlert = (tab as { alert?: boolean }).alert === true;
+              const isActive = activeTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key as typeof activeTab)}
+                  className={`ck-tab ${isActive ? 'is-active' : ''}`}
+                  style={isActive && isAlert ? { background: '#F20C8F', color: '#fff', borderColor: '#F20C8F' } : undefined}
+                >
+                  <span>{tab.label}</span>
+                  <span style={{
+                    marginLeft: 6,
+                    backgroundColor: isActive
+                      ? 'rgba(255,255,255,0.22)'
+                      : (isAlert && tab.count > 0 ? '#FEE2E2' : 'rgba(8,58,133,0.10)'),
+                    color: isActive
+                      ? '#fff'
+                      : (isAlert && tab.count > 0 ? '#DC2626' : '#083A85'),
+                    padding: '0.06rem 0.42rem',
+                    borderRadius: '9999px',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                  }}>
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Search and Filters */}
-          <div className="mobile-search-filters" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
-            {/* Search */}
-            <div style={{ flex: 1, position: 'relative' }}>
-              <div style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }}>
-                <SearchIcon />
-              </div>
+          <div className="mobile-search-filters" style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', alignItems: 'center' }}>
+            <div className="ck-search" style={{ flex: 1 }}>
+              <i className="bi bi-search" />
               <input
-                type="text"
-                placeholder="Search your booked photographers..."
+                type="search"
+                placeholder="Search your booked photographers…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 1rem 0.75rem 2.75rem',
-                  border: `2px solid ${colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.95rem',
-                  fontWeight: '500',
-                  color: colors.textPrimary,
-                  backgroundColor: colors.bgCard,
-                  outline: 'none'
-                }}
               />
             </div>
-            {/* Filter Button */}
             <button
               onClick={() => setShowFilters(!showFilters)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                backgroundColor: showFilters ? '#083A85' : colors.bgCard,
-                color: showFilters ? 'white' : '#6B7280',
-                border: `2px solid ${colors.borderPrimary}`,
-                borderRadius: '0.5rem',
-                padding: '0.75rem 1rem',
-                fontSize: '0.9rem',
-                cursor: 'pointer'
-              }}
+              className={showFilters ? 'ck-btn ck-btn-primary' : 'ck-btn ck-btn-soft'}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
+              aria-pressed={showFilters}
             >
               <FilterIcon />
               Filters
@@ -1427,12 +1383,30 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
 
           {/* Photographers Grid/List */}
           {filteredPhotographers.length === 0 ? (
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '3rem', textAlign: 'center', border: `2px solid ${colors.borderPrimary}` }}>
-              <CameraIcon />
-              <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, marginTop: '1rem' }}>No photographers found</h3>
-              <p style={{ fontSize: '0.9rem', color: colors.textSecondary, marginTop: '0.5rem' }}>
-                {activeTab === 'favorites' ? 'You haven\'t added any photographers to favorites yet.' : 'Try adjusting your search or filters.'}
-              </p>
+            <div className="ck-empty ck-card" style={{
+              padding: '3.5rem 1.5rem',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 12,
+            }}>
+              <div style={{
+                width: 64, height: 64, borderRadius: 18,
+                background: 'linear-gradient(135deg, rgba(8,58,133,0.10) 0%, rgba(242,12,143,0.10) 100%)',
+                border: '1px solid var(--ck-stroke)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <i className="bi bi-camera2" style={{ fontSize: 26, color: '#083A85' }} />
+              </div>
+              <div>
+                <div style={{ fontSize: '1.05rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.01em' }}>No photographers found</div>
+                <p style={{ margin: '4px auto 0', fontSize: '0.9rem', color: colors.textSecondary, maxWidth: 420, lineHeight: 1.5 }}>
+                  {activeTab === 'favorites'
+                    ? "You haven't added any photographers to favorites yet. Star a photographer from their profile to see them here."
+                    : 'Try adjusting your search or filters — your booked photographers will appear here.'}
+                </p>
+              </div>
             </div>
           ) : viewMode === 'grid' ? (
             <div className="mobile-photographers-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem' }}>
@@ -3616,151 +3590,276 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            backgroundColor: 'rgba(0, 0, 0, 0.45)',
+            backdropFilter: 'blur(2px)',
+            WebkitBackdropFilter: 'blur(2px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 1100,
-            padding: '1rem'
+            padding: '1rem',
           }}
           onClick={() => setShowInviteModal(false)}
         >
+          <style>{`
+            .invite-modal input:focus {
+              border-color: #083A85 !important;
+              box-shadow: 0 0 0 3px rgba(8,58,133,0.14) !important;
+            }
+            .invite-modal input.has-error:focus {
+              border-color: #DC2626 !important;
+              box-shadow: 0 0 0 3px rgba(220,38,38,0.18) !important;
+            }
+          `}</style>
           <div
+            className="invite-modal"
             style={{
+              position: 'relative',
               backgroundColor: colors.bgCard,
-              borderRadius: '0.75rem',
-              padding: '1.5rem',
-              maxWidth: '480px',
+              borderRadius: 18,
+              maxWidth: 520,
               width: '100%',
               maxHeight: '90vh',
-              overflowY: 'auto'
+              overflowY: 'auto',
+              boxShadow: '0 25px 60px -12px rgba(8, 58, 133, 0.30)',
+              border: `1px solid ${colors.borderPrimary}`,
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <div>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Invite Photographer</h2>
-                <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: '0.25rem 0 0 0' }}>Send an invite via email or share the link</p>
-              </div>
-              <button
-                onClick={() => setShowInviteModal(false)}
-                style={{
-                  background: colors.bgTertiary,
-                  border: `2px solid ${colors.borderPrimary}`,
-                  cursor: 'pointer',
-                  padding: '0.5rem',
-                  borderRadius: '0.375rem',
-                  color: colors.textPrimary,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <CloseIcon />
-              </button>
-            </div>
+            {/* Brand top stripe */}
+            <span aria-hidden style={{
+              position: 'sticky', top: 0, left: 0, right: 0, height: 3, display: 'block',
+              background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
+              zIndex: 2,
+            }} />
 
-            {/* Email Invite */}
-            <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                Email Address
-              </label>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <input
-                  type="email"
-                  placeholder="photographer@example.com"
-                  value={inviteEmail}
-                  onChange={(e) => { setInviteEmail(e.target.value); setInviteError(null); }}
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleInvitePhotographer(); }}
-                  style={{
-                    flex: 1,
-                    padding: '0.625rem 0.875rem',
-                    border: `2px solid ${inviteError ? '#EF4444' : colors.borderPrimary}`,
-                    borderRadius: '0.5rem',
-                    fontSize: '0.9rem',
-                    color: colors.textPrimary,
-                    backgroundColor: colors.bgCard,
-                    outline: 'none'
-                  }}
-                />
-                <button
-                  onClick={handleInvitePhotographer}
-                  disabled={isSendingInvite || !inviteEmail.trim()}
-                  style={{
-                    padding: '0.625rem 1rem',
-                    border: '2px solid #c00a72',
-                    borderRadius: '0.5rem',
-                    background: (!inviteEmail.trim() || isSendingInvite) ? '#9CA3AF' : '#F20C8F',
-                    color: 'white',
-                    fontSize: '0.85rem',
-                    fontWeight: '600',
-                    cursor: (!inviteEmail.trim() || isSendingInvite) ? 'not-allowed' : 'pointer',
-                    whiteSpace: 'nowrap',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.375rem'
-                  }}
-                >
-                  <MessageIcon />
-                  {isSendingInvite ? 'Sending...' : 'Send'}
-                </button>
-              </div>
-              {inviteError && (
-                <div style={{ color: '#EF4444', fontSize: '0.8rem', marginTop: '0.375rem' }}>
-                  {inviteError}
+            <div style={{ padding: '1.4rem 1.5rem 1.5rem' }}>
+              {/* Header */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                gap: 12,
+                marginBottom: '1.25rem',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, minWidth: 0 }}>
+                  <div style={{
+                    width: 40, height: 40, borderRadius: 11,
+                    background: 'rgba(242,12,143,0.10)',
+                    border: '1px solid rgba(242,12,143,0.25)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                  }}>
+                    <i className="bi bi-envelope-plus-fill" style={{ fontSize: 16, color: '#F20C8F' }} />
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2 }}>
+                      Grow your network
+                    </div>
+                    <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>
+                      Invite a photographer
+                    </h2>
+                    <p style={{ fontSize: '0.82rem', color: colors.textSecondary, margin: '3px 0 0 0', lineHeight: 1.45 }}>
+                      Send an invite by email, or share a one-tap signup link.
+                    </p>
+                  </div>
                 </div>
-              )}
-            </div>
-
-            {/* Divider */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
-              <div style={{ flex: 1, height: '1px', backgroundColor: colors.borderPrimary }} />
-              <span style={{ fontSize: '0.8rem', color: colors.textSecondary, fontWeight: '500' }}>or share invite link</span>
-              <div style={{ flex: 1, height: '1px', backgroundColor: colors.borderPrimary }} />
-            </div>
-
-            {/* Invite Link */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                Invite Link
-              </label>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <input
-                  type="text"
-                  value={inviteLink}
-                  readOnly
-                  style={{
-                    flex: 1,
-                    padding: '0.625rem 0.875rem',
-                    border: `2px solid ${colors.borderPrimary}`,
-                    borderRadius: '0.5rem',
-                    fontSize: '0.85rem',
-                    backgroundColor: colors.bgTertiary,
-                    color: colors.textPrimary
-                  }}
-                />
                 <button
-                  onClick={handleCopyInviteLink}
+                  onClick={() => setShowInviteModal(false)}
+                  aria-label="Close"
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.375rem',
-                    padding: '0.625rem 1rem',
-                    border: inviteCopied ? '2px solid #059669' : '2px solid #062a63',
-                    borderRadius: '0.5rem',
-                    background: inviteCopied ? '#10B981' : '#083A85',
-                    color: 'white',
-                    fontSize: '0.85rem',
-                    fontWeight: '600',
+                    background: 'transparent',
+                    border: `1px solid ${colors.borderPrimary}`,
                     cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    whiteSpace: 'nowrap'
+                    width: 32, height: 32, padding: 0,
+                    borderRadius: 9,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: colors.textSecondary,
+                    flexShrink: 0,
+                    transition: 'all 0.15s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(220,38,38,0.08)';
+                    e.currentTarget.style.borderColor = '#DC2626';
+                    e.currentTarget.style.color = '#DC2626';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.borderColor = colors.borderPrimary;
+                    e.currentTarget.style.color = colors.textSecondary;
                   }}
                 >
-                  <CopyIcon />
-                  {inviteCopied ? 'Copied!' : 'Copy'}
+                  <CloseIcon />
                 </button>
+              </div>
+
+              {/* Email Invite */}
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+                  Email address
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input
+                    type="email"
+                    placeholder="photographer@example.com"
+                    value={inviteEmail}
+                    onChange={(e) => { setInviteEmail(e.target.value); setInviteError(null); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleInvitePhotographer(); }}
+                    className={inviteError ? 'has-error' : ''}
+                    style={{
+                      flex: 1,
+                      padding: '0.7rem 0.95rem',
+                      border: `1.5px solid ${inviteError ? '#DC2626' : colors.borderPrimary}`,
+                      borderRadius: 11,
+                      fontSize: '0.9rem',
+                      color: colors.textPrimary,
+                      backgroundColor: colors.bgCard,
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                      transition: 'border-color 0.18s, box-shadow 0.18s',
+                    }}
+                  />
+                  <button
+                    onClick={handleInvitePhotographer}
+                    disabled={isSendingInvite || !inviteEmail.trim()}
+                    style={{
+                      padding: '0.65rem 1.1rem',
+                      border: 'none',
+                      borderRadius: 11,
+                      background: (!inviteEmail.trim() || isSendingInvite)
+                        ? colors.bgTertiary
+                        : 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                      color: (!inviteEmail.trim() || isSendingInvite) ? colors.textSecondary : '#fff',
+                      fontSize: '0.88rem',
+                      fontWeight: 700,
+                      cursor: (!inviteEmail.trim() || isSendingInvite) ? 'not-allowed' : 'pointer',
+                      whiteSpace: 'nowrap',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      opacity: (!inviteEmail.trim() || isSendingInvite) ? 0.7 : 1,
+                      boxShadow: (!inviteEmail.trim() || isSendingInvite) ? 'none' : '0 6px 16px rgba(242,12,143,0.26)',
+                      letterSpacing: '-0.005em',
+                      transition: 'transform 0.15s, box-shadow 0.15s, opacity 0.15s',
+                    }}
+                    onMouseEnter={(e) => { if (inviteEmail.trim() && !isSendingInvite) e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+                  >
+                    {isSendingInvite ? (
+                      <>
+                        <span className="ck-spinner" style={{ width: 12, height: 12, borderWidth: 2 }} />
+                        Sending…
+                      </>
+                    ) : (
+                      <>
+                        <i className="bi bi-send-fill" style={{ fontSize: 12 }} />
+                        Send invite
+                      </>
+                    )}
+                  </button>
+                </div>
+                {inviteError && (
+                  <div style={{
+                    marginTop: '0.5rem',
+                    padding: '0.5rem 0.75rem',
+                    background: actualTheme === 'dark' ? 'rgba(220,38,38,0.10)' : '#FEF2F2',
+                    border: `1px solid ${actualTheme === 'dark' ? 'rgba(220,38,38,0.32)' : '#FECACA'}`,
+                    color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626',
+                    borderRadius: 9,
+                    fontSize: '0.8rem',
+                    display: 'flex', alignItems: 'flex-start', gap: 6,
+                  }}>
+                    <i className="bi bi-exclamation-circle-fill" style={{ fontSize: 12, marginTop: 1, flexShrink: 0 }} />
+                    <span>{inviteError}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Divider */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                <div style={{ flex: 1, height: 1, backgroundColor: colors.borderPrimary }} />
+                <span style={{
+                  fontSize: '0.66rem', fontWeight: 700,
+                  color: colors.textSecondary,
+                  letterSpacing: '0.08em', textTransform: 'uppercase',
+                }}>or share invite link</span>
+                <div style={{ flex: 1, height: 1, backgroundColor: colors.borderPrimary }} />
+              </div>
+
+              {/* Invite Link */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+                  Invite link
+                </label>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'stretch',
+                  border: `1.5px solid ${colors.borderPrimary}`,
+                  borderRadius: 11,
+                  background: colors.bgTertiary,
+                  overflow: 'hidden',
+                }}>
+                  <div style={{
+                    display: 'flex', alignItems: 'center',
+                    padding: '0 0.7rem',
+                    color: colors.textSecondary,
+                    borderRight: `1px solid ${colors.borderPrimary}`,
+                  }}>
+                    <i className="bi bi-link-45deg" style={{ fontSize: 16 }} />
+                  </div>
+                  <input
+                    type="text"
+                    value={inviteLink}
+                    readOnly
+                    onClick={(e) => (e.currentTarget as HTMLInputElement).select()}
+                    style={{
+                      flex: 1,
+                      padding: '0.7rem 0.85rem',
+                      border: 'none',
+                      fontSize: '0.84rem',
+                      backgroundColor: 'transparent',
+                      color: colors.textPrimary,
+                      outline: 'none',
+                      minWidth: 0,
+                      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+                    }}
+                  />
+                  <button
+                    onClick={handleCopyInviteLink}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '0 1rem',
+                      border: 'none',
+                      borderLeft: `1px solid ${colors.borderPrimary}`,
+                      background: inviteCopied
+                        ? 'linear-gradient(135deg, #10B981 0%, #16A34A 100%)'
+                        : 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                      color: '#fff',
+                      fontSize: '0.85rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'filter 0.15s',
+                      whiteSpace: 'nowrap',
+                      letterSpacing: '-0.005em',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.05)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.filter = 'brightness(1)'; }}
+                  >
+                    <i className={`bi ${inviteCopied ? 'bi-check2' : 'bi-clipboard'}`} style={{ fontSize: 13 }} />
+                    {inviteCopied ? 'Copied' : 'Copy'}
+                  </button>
+                </div>
+                <p style={{
+                  fontSize: '0.74rem',
+                  color: colors.textSecondary,
+                  margin: '8px 0 0',
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                }}>
+                  <i className="bi bi-info-circle" style={{ fontSize: 11 }} />
+                  Anyone with this link can sign up as a photographer.
+                </p>
               </div>
             </div>
           </div>
