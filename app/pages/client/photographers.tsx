@@ -1156,7 +1156,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
               <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>RELATIONSHIPS</div>
               <h1 className="mobile-title" style={{ margin: 0, fontSize: '1.85rem', fontWeight: 800, letterSpacing: '-0.02em', color: colors.textPrimary }}>Booked photographers</h1>
               <p className="mobile-subtitle" style={{ margin: '4px 0 0', fontSize: '0.92rem', color: colors.textSecondary }}>
-                Photographers you&apos;ve worked with. Rebook your favorites in one tap.
+                Photographers you&apos;ve worked with — rebook your favorites in one tap.
               </p>
             </div>
             <div className="mobile-header-actions" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
@@ -1404,7 +1404,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                 <p style={{ margin: '4px auto 0', fontSize: '0.9rem', color: colors.textSecondary, maxWidth: 420, lineHeight: 1.5 }}>
                   {activeTab === 'favorites'
                     ? "You haven't added any photographers to favorites yet. Star a photographer from their profile to see them here."
-                    : 'Try adjusting your search or filters. Your booked photographers will appear here.'}
+                    : 'Try adjusting your search or filters — your booked photographers will appear here.'}
                 </p>
               </div>
             </div>
@@ -1415,114 +1415,103 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                   key={photographer.id}
                   style={{
                     backgroundColor: colors.bgCard,
-                    borderRadius: 16,
+                    borderRadius: '1rem',
                     overflow: 'hidden',
-                    boxShadow: '0 4px 16px -6px rgba(0, 0, 0, 0.10)',
-                    border: `1px solid ${colors.borderPrimary}`,
-                    transition: 'transform 0.18s, box-shadow 0.18s, border-color 0.18s',
+                    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                    border: '1px solid rgba(0, 0, 0, 0.1)',
+                    transition: 'all 0.3s ease',
                     cursor: 'pointer',
-                    position: 'relative',
+                    position: 'relative'
                   }}
                   onClick={() => setSelectedPhotographer(photographer)}
                   onContextMenu={(e) => handleContextMenu(e, photographer)}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = 'translateY(-4px)';
-                    e.currentTarget.style.boxShadow = '0 20px 38px -16px rgba(8,58,133,0.22)';
-                    e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)';
+                    e.currentTarget.style.boxShadow = '0 35px 60px -15px rgba(0, 0, 0, 0.2), 0 15px 30px -10px rgba(0, 0, 0, 0.15)';
+                    e.currentTarget.style.borderColor = '#083A85';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 4px 16px -6px rgba(0, 0, 0, 0.10)';
-                    e.currentTarget.style.borderColor = colors.borderPrimary;
+                    e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)';
+                    e.currentTarget.style.borderColor = 'rgba(0, 0, 0, 0.1)';
                   }}
                 >
                   {/* Cover Image with overlay */}
-                  <div style={{ position: 'relative', height: 160, backgroundColor: photographer.coverImage ? 'transparent' : '#0D1B2A' }}>
-                    <img src={photographer.coverImage || '/coverr.jpg'} alt={photographer.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: photographer.coverImage ? 'cover' : 'contain', objectPosition: 'center' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; (e.currentTarget as HTMLImageElement).style.objectFit = 'contain'; const p = e.currentTarget.parentElement; if (p) p.style.backgroundColor = '#0D1B2A'; }} />
-                    {/* Top→bottom gradient for badge legibility */}
-                    <div aria-hidden style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.30) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0) 60%, rgba(0,0,0,0.25) 100%)', pointerEvents: 'none' }} />
+                  <div style={{ position: 'relative', height: '160px', backgroundColor: photographer.coverImage ? 'transparent' : '#0D1B2A' }}>
+                    <img src={photographer.coverImage || '/coverr.jpg'} alt={photographer.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: photographer.coverImage ? 'cover' : 'contain', objectPosition: 'center', borderRadius: '1rem 1rem 0 0' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; (e.currentTarget as HTMLImageElement).style.objectFit = 'contain'; const p = e.currentTarget.parentElement; if (p) p.style.backgroundColor = '#0D1B2A'; }} />
+                    {photographer.coverImage && (
+                      <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(13, 27, 42, 0.3)', borderRadius: '1rem 1rem 0 0' }} />
+                    )}
                     {/* Bookings Badge */}
                     <div style={{
                       position: 'absolute',
-                      top: 10, left: 10,
-                      background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                      top: '0.5rem',
+                      left: '0.5rem',
+                      backgroundColor: '#083A85',
                       color: 'white',
-                      padding: '4px 10px',
-                      borderRadius: 9999,
-                      fontSize: '0.66rem',
-                      fontWeight: 700,
-                      letterSpacing: '0.05em',
-                      textTransform: 'uppercase',
-                      display: 'inline-flex', alignItems: 'center', gap: 5,
-                      border: '1px solid rgba(255,255,255,0.20)',
-                      boxShadow: '0 4px 10px rgba(8,58,133,0.30)',
-                      zIndex: 5,
+                      padding: '0.25rem 0.5rem',
+                      borderRadius: '0.25rem',
+                      fontSize: '0.7rem',
+                      fontWeight: '600',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.25rem',
+                      zIndex: 5
                     }}>
-                      <i className="bi bi-calendar-event-fill" style={{ fontSize: 10 }} />
-                      {photographer.totalBookingsWithClient} booking{photographer.totalBookingsWithClient !== 1 ? 's' : ''}
+                      <CalendarIcon /> {photographer.totalBookingsWithClient} booking{photographer.totalBookingsWithClient > 1 ? 's' : ''}
                     </div>
                     {/* Action Buttons */}
-                    <div style={{ position: 'absolute', top: 10, right: 10, display: 'flex', gap: 6, zIndex: 5 }}>
+                    <div style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', display: 'flex', gap: '0.375rem', zIndex: 5 }}>
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleFavorite(photographer.id); }}
                         style={{
-                          background: photographer.isFavorite
-                            ? 'linear-gradient(135deg, #F20C8F 0%, #DB0A7F 100%)'
-                            : 'rgba(255,255,255,0.95)',
-                          border: photographer.isFavorite ? '1px solid rgba(255,255,255,0.55)' : '1px solid rgba(255,255,255,0.55)',
-                          borderRadius: 9,
-                          width: 32, height: 32,
+                          backgroundColor: 'rgba(255,255,255,0.9)',
+                          border: 'none',
+                          borderRadius: '0.25rem',
+                          width: '28px',
+                          height: '28px',
                           cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          backdropFilter: 'blur(6px)',
-                          boxShadow: photographer.isFavorite
-                            ? '0 4px 10px rgba(242,12,143,0.40), inset 0 0 0 1px rgba(255,255,255,0.25)'
-                            : '0 2px 6px rgba(0,0,0,0.20)',
-                          transition: 'all 0.15s',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
                         }}
-                        title={photographer.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                        title="Add to favorites"
                       >
-                        {photographer.isFavorite ? (
-                          <i className="bi bi-heart-fill" style={{ color: '#ffffff', fontSize: 14, filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.25))' }} />
-                        ) : (
-                          <i className="bi bi-heart" style={{ color: '#F20C8F', fontSize: 14, fontWeight: 700 }} />
-                        )}
+                        <HeartIcon filled={photographer.isFavorite} />
                       </button>
                     </div>
                     {/* Profile Image - positioned to overlap */}
                     <div style={{
                       position: 'absolute',
-                      top: 122,
-                      left: 20,
-                      width: 70, height: 70,
+                      top: '122px',
+                      left: '20px',
+                      width: '70px',
+                      height: '70px',
                       zIndex: 10,
                     }}>
-                      <div style={{
-                        width: 70, height: 70, borderRadius: '50%',
-                        border: `3px solid ${colors.bgCard}`,
-                        background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        overflow: 'hidden', position: 'relative',
-                        boxShadow: '0 6px 16px rgba(0,0,0,0.18)',
-                      }}>
-                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
-                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          <circle cx="12" cy="7" r="4" stroke="white" strokeWidth="2"/>
+                      <div style={{ width: '70px', height: '70px', borderRadius: '50%', border: '2px solid white', backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
+                        <svg width="38" height="38" viewBox="0 0 24 24" fill="none">
+                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
                         </svg>
                         {photographer.profileImage && (
-                          <img src={photographer.profileImage} alt={photographer.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                          <img src={photographer.profileImage} alt={photographer.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                         )}
                       </div>
                       {photographer.verified && (
                         <div style={{
                           position: 'absolute',
-                          bottom: 0, right: 0,
-                          background: colors.bgCard,
+                          bottom: '0px',
+                          right: '0px',
+                          background: 'white',
                           borderRadius: '50%',
-                          width: 24, height: 24,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          boxShadow: '0 4px 8px rgba(59,130,246,0.30)',
-                        }} title="Verified photographer">
+                          width: '24px',
+                          height: '24px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15)'
+                        }}>
                           <i className="bi bi-patch-check-fill" style={{ color: '#3b82f6', fontSize: '1rem' }} />
                         </div>
                       )}
@@ -1530,137 +1519,78 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                   </div>
 
                   {/* Profile Info - with padding to account for overlapping profile image */}
-                  <div style={{ padding: '1rem 1.1rem 1.1rem', paddingTop: 50 }}>
-                    <div>
-                      <h3 style={{ fontSize: '1.02rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {photographer.firstName} {photographer.lastName}
-                      </h3>
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 4, fontSize: '0.78rem', color: colors.textSecondary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
-                        <i className="bi bi-geo-alt-fill" style={{ fontSize: 11, color: '#F20C8F' }} />
-                        {(photographer.location.city || photographer.location.country)
-                          ? <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {photographer.location.city}{photographer.location.city && photographer.location.country ? ', ' : ''}{photographer.location.country}
-                              {!photographer.location.city && !photographer.location.country ? 'Location not set' : ''}
-                            </span>
-                          : <span style={{ fontStyle: 'italic', opacity: 0.7 }}>Location not set</span>}
+                  <div style={{ padding: '1rem', paddingTop: '55px' }}>
+                    <div style={{ marginLeft: '0px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                        <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
+                          {photographer.firstName} {photographer.lastName}
+                        </h3>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
+                        <LocationIcon />
+                        <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>
+                          {photographer.location.city}, {photographer.location.country}
+                        </span>
                       </div>
                     </div>
 
                     {/* Last Booking Info */}
                     {(photographer.lastEventName || photographer.lastBookingDate) && (
-                    <div style={{
-                      marginTop: '0.85rem',
-                      padding: '0.7rem 0.85rem',
-                      background: actualTheme === 'dark'
-                        ? 'linear-gradient(135deg, rgba(8,58,133,0.18) 0%, rgba(242,12,143,0.10) 100%)'
-                        : 'linear-gradient(135deg, rgba(8,58,133,0.06) 0%, rgba(242,12,143,0.05) 100%)',
-                      border: `1px solid ${actualTheme === 'dark' ? 'rgba(8,58,133,0.32)' : 'rgba(8,58,133,0.14)'}`,
-                      borderRadius: 12,
-                      position: 'relative',
-                      overflow: 'hidden',
-                    }}>
-                      <span aria-hidden style={{
-                        position: 'absolute', top: 0, left: 0, bottom: 0, width: 3,
-                        background: 'linear-gradient(180deg, #083A85 0%, #F20C8F 100%)',
-                      }} />
-                      <div style={{
-                        fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F',
-                        textTransform: 'uppercase', letterSpacing: '0.08em',
-                        marginBottom: 3, paddingLeft: 6,
-                      }}>Last Booking</div>
-                      <div style={{
-                        fontSize: '0.85rem', fontWeight: 700, color: colors.textPrimary,
-                        letterSpacing: '-0.005em', paddingLeft: 6,
-                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                      }}>{photographer.lastEventName || 'Booking'}</div>
-                      <div style={{
-                        fontSize: '0.74rem', color: colors.textSecondary,
-                        marginTop: 2, paddingLeft: 6,
-                        display: 'flex', alignItems: 'center', gap: 5,
-                      }}>
-                        {photographer.lastEventType && <span style={{ textTransform: 'capitalize' }}>{photographer.lastEventType}</span>}
-                        {photographer.lastEventType && photographer.lastBookingDate && <span style={{ opacity: 0.5 }}>•</span>}
-                        {photographer.lastBookingDate && (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                            <i className="bi bi-calendar3" style={{ fontSize: 10 }} />
-                            {formatDate(photographer.lastBookingDate)}
-                          </span>
-                        )}
+                    <div style={{ marginTop: '0.75rem', padding: '0.75rem', backgroundColor: colors.bgTertiary, borderRadius: '0.5rem' }}>
+                      <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Last Booking</div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>{photographer.lastEventName}</div>
+                      <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginTop: '0.125rem' }}>
+                        {photographer.lastEventType}{photographer.lastBookingDate ? ` • ${formatDate(photographer.lastBookingDate)}` : ''}
                       </div>
                     </div>
                     )}
 
                     {/* Rating */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: '0.75rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem' }}>
                       {renderStars(photographer.rating)}
-                      <span style={{ fontSize: '0.88rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.005em' }}>{photographer.rating}</span>
-                      <span style={{ fontSize: '0.76rem', color: colors.textSecondary }}>({photographer.reviewCount} {photographer.reviewCount === 1 ? 'review' : 'reviews'})</span>
+                      <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{photographer.rating}</span>
+                      <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>({photographer.reviewCount} reviews)</span>
                     </div>
 
                     {/* Payment Status for Pending Bookings */}
                     {photographer.bookings.some(b => b.paymentStatus !== 'paid') && (
-                      <div style={{
-                        marginTop: '0.8rem',
-                        padding: '0.65rem 0.75rem',
-                        background: actualTheme === 'dark'
-                          ? 'linear-gradient(135deg, rgba(245,158,11,0.18) 0%, rgba(220,38,38,0.12) 100%)'
-                          : 'linear-gradient(135deg, rgba(245,158,11,0.10) 0%, rgba(254,243,199,0.55) 100%)',
-                        border: `1px solid ${actualTheme === 'dark' ? 'rgba(245,158,11,0.40)' : 'rgba(245,158,11,0.35)'}`,
-                        borderRadius: 11,
-                        position: 'relative',
-                        overflow: 'hidden',
-                      }}>
-                        <span aria-hidden style={{
-                          position: 'absolute', top: 0, left: 0, bottom: 0, width: 3,
-                          background: 'linear-gradient(180deg, #F59E0B 0%, #DC2626 100%)',
-                        }} />
+                      <div style={{ marginTop: '0.75rem', padding: '0.5rem', backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FEF3C7', borderRadius: '0.375rem' }}>
                         {photographer.bookings.filter(b => b.paymentStatus !== 'paid').slice(0, 1).map((booking) => {
+                          const paymentColor = getPaymentStatusColor(booking.paymentStatus);
                           const amountDue = booking.totalAmount - booking.paidAmount;
-                          const isFailed = booking.paymentStatus === 'failed';
                           return (
-                            <div key={booking.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, paddingLeft: 6 }}>
-                              <div style={{ minWidth: 0, flex: 1 }}>
-                                <div style={{
-                                  fontSize: '0.6rem', fontWeight: 700, color: isFailed ? '#DC2626' : '#B45309',
-                                  textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2,
-                                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                            <div key={booking.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div>
+                                <div style={{ fontSize: '0.75rem', color: actualTheme === 'dark' ? '#FCD34D' : '#92400E', fontWeight: '500' }}>{booking.eventName}</div>
+                                <span style={{
+                                  backgroundColor: paymentColor.bg,
+                                  color: paymentColor.text,
+                                  padding: '0.125rem 0.375rem',
+                                  borderRadius: '0.25rem',
+                                  fontSize: '0.65rem',
+                                  fontWeight: '600',
+                                  textTransform: 'capitalize'
                                 }}>
-                                  <i className={`bi ${isFailed ? 'bi-x-octagon-fill' : 'bi-exclamation-triangle-fill'}`} style={{ fontSize: 9 }} />
                                   {booking.paymentStatus.replace('_', ' ')}
-                                </div>
-                                <div style={{
-                                  fontSize: '0.78rem', fontWeight: 700, color: colors.textPrimary,
-                                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                  letterSpacing: '-0.005em',
-                                }}>{booking.eventName}</div>
+                                </span>
                               </div>
                               <button
                                 onClick={(e) => { e.stopPropagation(); setPaymentBooking({ photographer, booking }); setShowPaymentModal(true); }}
                                 style={{
-                                  background: isFailed
-                                    ? 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)'
-                                    : 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                                  backgroundColor: booking.paymentStatus === 'failed' ? '#F20C8F' : '#083A85',
                                   color: 'white',
-                                  border: 'none',
-                                  borderRadius: 8,
-                                  padding: '0.4rem 0.65rem',
+                                  border: booking.paymentStatus === 'failed' ? '2px solid #C0096D' : '2px solid #062a63',
+                                  borderRadius: '0.25rem',
+                                  padding: '0.25rem 0.5rem',
                                   fontSize: '0.7rem',
-                                  fontWeight: 700,
-                                  letterSpacing: '-0.005em',
+                                  fontWeight: '600',
                                   cursor: 'pointer',
-                                  display: 'inline-flex',
+                                  display: 'flex',
                                   alignItems: 'center',
-                                  gap: 4,
-                                  flexShrink: 0,
-                                  boxShadow: isFailed
-                                    ? '0 4px 10px rgba(220,38,38,0.30)'
-                                    : '0 4px 10px rgba(8,58,133,0.28)',
-                                  transition: 'transform 0.15s, box-shadow 0.15s',
+                                  gap: '0.25rem'
                                 }}
-                                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
                               >
-                                {isFailed ? <><RefreshIcon /> Retry</> : <><CreditCardIcon /> {formatPrice(amountDue)}</>}
+                                {booking.paymentStatus === 'failed' ? <><RefreshIcon /> Retry</> : <><CreditCardIcon /> Pay {formatPrice(amountDue)}</>}
                               </button>
                             </div>
                           );
@@ -1669,29 +1599,12 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                     )}
 
                     {/* Price and Actions */}
-                    <div style={{
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      marginTop: '1rem', paddingTop: '0.9rem',
-                      borderTop: `1px solid ${colors.borderPrimary}`,
-                      gap: 8,
-                    }}>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{
-                          fontSize: '0.6rem', fontWeight: 700, color: '#F20C8F',
-                          textTransform: 'uppercase', letterSpacing: '0.08em',
-                          marginBottom: 1,
-                        }}>Total Spent</div>
-                        <div style={{
-                          fontSize: '1.05rem', fontWeight: 800,
-                          color: colors.textPrimary,
-                          letterSpacing: '-0.01em',
-                          background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
-                          WebkitBackgroundClip: 'text',
-                          WebkitTextFillColor: 'transparent',
-                          backgroundClip: 'text',
-                        }}>{formatPrice(photographer.totalSpent)}</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', paddingTop: '1rem', borderTop: `2px solid ${colors.borderPrimary}` }}>
+                      <div>
+                        <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Total Spent</span>
+                        <div style={{ fontSize: '1.1rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{formatPrice(photographer.totalSpent)}</div>
                       </div>
-                      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
                         {hasCompletedEvent(photographer) && (
                           <button
                             onClick={(e) => {
@@ -1704,27 +1617,17 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                               setShowReviewModal(true);
                             }}
                             style={{
-                              backgroundColor: photographer.myReview ? 'transparent' : colors.bgTertiary,
-                              color: colors.textPrimary,
-                              border: `1px solid ${photographer.myReview ? 'rgba(8,58,133,0.30)' : colors.borderPrimary}`,
-                              borderRadius: 9,
-                              padding: '0.45rem 0.7rem',
-                              fontSize: '0.78rem',
-                              fontWeight: 700,
-                              letterSpacing: '-0.005em',
+                              backgroundColor: photographer.myReview ? colors.bgTertiary : '#083A85',
+                              color: photographer.myReview ? colors.textPrimary : 'white',
+                              border: photographer.myReview ? `2px solid ${colors.borderPrimary}` : '2px solid #062a63',
+                              borderRadius: '0.375rem',
+                              padding: '0.5rem 0.75rem',
+                              fontSize: '0.85rem',
+                              fontWeight: '600',
                               cursor: 'pointer',
-                              display: 'inline-flex',
+                              display: 'flex',
                               alignItems: 'center',
-                              gap: 5,
-                              transition: 'all 0.15s',
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = 'rgba(8,58,133,0.08)';
-                              e.currentTarget.style.borderColor = 'rgba(8,58,133,0.35)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = photographer.myReview ? 'transparent' : colors.bgTertiary;
-                              e.currentTarget.style.borderColor = photographer.myReview ? 'rgba(8,58,133,0.30)' : colors.borderPrimary;
+                              gap: '0.375rem'
                             }}
                             title={photographer.myReview ? 'Edit your review' : 'Leave a review'}
                           >
@@ -1735,28 +1638,17 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                         <button
                           onClick={(e) => { e.stopPropagation(); setRebookPhotographer(photographer); setSelectedRebookEventId(''); setRebookEventType(''); setRebookDate(''); setRebookTime(''); setRebookLocation(''); setRebookNotes(''); setShowRebookModal(true); }}
                           style={{
-                            background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                            backgroundColor: '#F20C8F',
                             color: 'white',
-                            border: 'none',
-                            borderRadius: 9,
-                            padding: '0.45rem 0.85rem',
-                            fontSize: '0.78rem',
-                            fontWeight: 700,
-                            letterSpacing: '-0.005em',
+                            border: '2px solid #C0096D',
+                            borderRadius: '0.375rem',
+                            padding: '0.5rem 1rem',
+                            fontSize: '0.85rem',
+                            fontWeight: '600',
                             cursor: 'pointer',
-                            display: 'inline-flex',
+                            display: 'flex',
                             alignItems: 'center',
-                            gap: 5,
-                            boxShadow: '0 6px 14px rgba(8,58,133,0.28)',
-                            transition: 'transform 0.15s, box-shadow 0.15s',
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = 'translateY(-1px)';
-                            e.currentTarget.style.boxShadow = '0 9px 20px rgba(242,12,143,0.32)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = 'translateY(0)';
-                            e.currentTarget.style.boxShadow = '0 6px 14px rgba(8,58,133,0.28)';
+                            gap: '0.375rem'
                           }}
                         >
                           <RefreshIcon />
@@ -1769,274 +1661,158 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
               ))}
             </div>
           ) : (
-            <div style={{
-              backgroundColor: colors.bgCard,
-              borderRadius: 16,
-              boxShadow: '0 4px 16px -6px rgba(8, 58, 133, 0.10)',
-              border: `1px solid ${colors.borderPrimary}`,
-              overflow: 'hidden',
-            }}>
-              {filteredPhotographers.map((photographer, index) => {
-                const hasLocation = photographer.location.city || photographer.location.country;
-                const locationLabel = hasLocation
-                  ? `${photographer.location.city}${photographer.location.city && photographer.location.country ? ', ' : ''}${photographer.location.country}`
-                  : '';
-                const hasLastEvent = photographer.lastEventName || photographer.lastEventType;
-                const hasLastBooking = photographer.lastBookingDate || hasLastEvent;
-                return (
+            <div style={{ backgroundColor: colors.bgCard, borderRadius: '1rem', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)', border: '1px solid rgba(0, 0, 0, 0.1)', overflow: 'hidden' }}>
+              {filteredPhotographers.map((photographer, index) => (
                 <div
                   key={photographer.id}
                   style={{
                     display: 'flex',
-                    gap: '1.1rem',
-                    padding: '1.1rem 1.25rem',
-                    borderBottom: index < filteredPhotographers.length - 1 ? `1px solid ${colors.borderPrimary}` : 'none',
+                    gap: '1.25rem',
+                    padding: '1.25rem',
+                    borderBottom: index < filteredPhotographers.length - 1 ? `2px solid ${colors.borderPrimary}` : 'none',
                     cursor: 'pointer',
-                    transition: 'background-color 0.18s, box-shadow 0.18s',
-                    position: 'relative',
+                    transition: 'background-color 0.2s ease'
                   }}
                   onClick={() => setSelectedPhotographer(photographer)}
                   onContextMenu={(e) => handleContextMenu(e, photographer)}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = actualTheme === 'dark' ? 'rgba(8,58,133,0.10)' : 'rgba(8,58,133,0.04)';
+                    e.currentTarget.style.backgroundColor = actualTheme === 'dark' ? '#374151' : '#F9FAFB';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = 'transparent';
                   }}
                 >
-                  {/* Avatar with brand gradient ring */}
-                  <div style={{ position: 'relative', width: 64, height: 64, flexShrink: 0 }}>
-                    <div style={{
-                      width: 64, height: 64, borderRadius: '50%',
-                      padding: 2,
-                      background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
-                      boxShadow: '0 4px 10px rgba(8,58,133,0.18)',
-                    }}>
-                      <div style={{
-                        width: '100%', height: '100%', borderRadius: '50%',
-                        backgroundColor: colors.bgCard,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        overflow: 'hidden', position: 'relative',
-                      }}>
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
-                        </svg>
-                        {photographer.profileImage && (
-                          <img src={photographer.profileImage} alt={photographer.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                        )}
-                      </div>
+                  <div style={{ position: 'relative', width: '70px', height: '70px', flexShrink: 0 }}>
+                    <div style={{ width: '70px', height: '70px', borderRadius: '50%', border: '2px solid white', backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
+                      <svg width="38" height="38" viewBox="0 0 24 24" fill="none">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
+                      </svg>
+                      {photographer.profileImage && (
+                        <img src={photographer.profileImage} alt={photographer.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                      )}
                     </div>
                     {photographer.verified && (
                       <div style={{
                         position: 'absolute',
-                        bottom: -2, right: -2,
-                        background: colors.bgCard,
+                        bottom: '0px',
+                        right: '0px',
+                        background: 'white',
                         borderRadius: '50%',
-                        width: 22, height: 22,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        boxShadow: '0 3px 6px rgba(59,130,246,0.30)',
-                      }} title="Verified photographer">
-                        <i className="bi bi-patch-check-fill" style={{ color: '#3b82f6', fontSize: '0.95rem' }} />
+                        width: '24px',
+                        height: '24px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15)'
+                      }}>
+                        <i className="bi bi-patch-check-fill" style={{ color: '#3b82f6', fontSize: '1rem' }} />
                       </div>
                     )}
                   </div>
-
-                  {/* Identity + meta */}
-                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 5 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      <h3 style={{ fontSize: '1.02rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>
-                        {photographer.firstName} {photographer.lastName}
-                      </h3>
-                      <span style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 4,
-                        fontSize: '0.66rem', fontWeight: 700,
-                        padding: '0.18rem 0.55rem',
-                        borderRadius: 9999,
-                        background: 'linear-gradient(135deg, rgba(8,58,133,0.10) 0%, rgba(242,12,143,0.08) 100%)',
-                        border: '1px solid rgba(8,58,133,0.18)',
-                        color: actualTheme === 'dark' ? '#BFDBFE' : '#083A85',
-                        letterSpacing: '-0.005em',
-                      }}>
-                        <i className="bi bi-calendar-event-fill" style={{ fontSize: 9, color: '#F20C8F' }} />
-                        {photographer.totalBookingsWithClient} booking{photographer.totalBookingsWithClient !== 1 ? 's' : ''}
-                      </span>
-                    </div>
-
-                    {/* Location + last booking date (single meta row, hides empty parts) */}
-                    {(hasLocation || photographer.lastBookingDate) && (
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', color: colors.textSecondary, flexWrap: 'wrap' }}>
-                        {hasLocation && (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                            <i className="bi bi-geo-alt-fill" style={{ fontSize: 11, color: '#F20C8F' }} />
-                            {locationLabel}
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
+                            {photographer.firstName} {photographer.lastName}
+                          </h3>
+                          <span style={{
+                            fontSize: '0.7rem',
+                            fontWeight: '600',
+                            padding: '0.125rem 0.5rem',
+                            borderRadius: '0.25rem',
+                            backgroundColor: actualTheme === 'dark' ? '#1E3A8A' : '#EFF6FF',
+                            color: actualTheme === 'dark' ? '#93C5FD' : '#1D4ED8'
+                          }}>
+                            {photographer.totalBookingsWithClient} booking{photographer.totalBookingsWithClient > 1 ? 's' : ''}
                           </span>
-                        )}
-                        {hasLocation && photographer.lastBookingDate && <span style={{ opacity: 0.5 }}>•</span>}
-                        {photographer.lastBookingDate && (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                            <i className="bi bi-clock-history" style={{ fontSize: 11, color: colors.textSecondary }} />
-                            Last on {formatDate(photographer.lastBookingDate)}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
+                          <LocationIcon />
+                          <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
+                            {photographer.location.city}, {photographer.location.country}
                           </span>
-                        )}
+                          <span style={{ color: '#D1D5DB', margin: '0 0.5rem' }}>•</span>
+                          <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Last: {formatDate(photographer.lastBookingDate)}</span>
+                        </div>
+                        <div style={{ fontSize: '0.85rem', color: colors.textPrimary, marginTop: '0.25rem' }}>
+                          {photographer.lastEventType}: {photographer.lastEventName}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+                          {renderStars(photographer.rating)}
+                          <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{photographer.rating}</span>
+                          <span style={{ fontSize: '0.8rem', color: colors.textSecondary }}>({photographer.reviewCount} reviews)</span>
+                        </div>
                       </div>
-                    )}
-
-                    {/* Last event chip (only when there's actually data) */}
-                    {hasLastEvent && (
-                      <div style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 5,
-                        fontSize: '0.78rem',
-                        color: colors.textPrimary,
-                        padding: '0.22rem 0.55rem',
-                        background: actualTheme === 'dark' ? 'rgba(8,58,133,0.18)' : 'rgba(8,58,133,0.05)',
-                        border: `1px solid ${actualTheme === 'dark' ? 'rgba(8,58,133,0.30)' : 'rgba(8,58,133,0.12)'}`,
-                        borderRadius: 7,
-                        alignSelf: 'flex-start',
-                        maxWidth: '100%',
-                        overflow: 'hidden',
-                      }}>
-                        <i className="bi bi-camera-fill" style={{ fontSize: 10, color: '#F20C8F', flexShrink: 0 }} />
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {photographer.lastEventType && <span style={{ textTransform: 'capitalize', color: colors.textSecondary }}>{photographer.lastEventType}</span>}
-                          {photographer.lastEventType && photographer.lastEventName && <span style={{ color: colors.textSecondary }}>: </span>}
-                          {photographer.lastEventName && <strong style={{ fontWeight: 700, color: colors.textPrimary }}>{photographer.lastEventName}</strong>}
-                        </span>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleFavorite(photographer.id); }}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}
+                        >
+                          <HeartIcon filled={photographer.isFavorite} />
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleContextMenu(e, photographer); }}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem', color: colors.textSecondary }}
+                        >
+                          <MoreIcon />
+                        </button>
                       </div>
-                    )}
-
-                    {/* Rating */}
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
-                        {renderStars(photographer.rating)}
-                      </div>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.005em' }}>{photographer.rating}</span>
-                      <span style={{ fontSize: '0.76rem', color: colors.textSecondary }}>({photographer.reviewCount} {photographer.reviewCount === 1 ? 'review' : 'reviews'})</span>
                     </div>
                   </div>
-
-                  {/* Right column: heart + more, total spent, payment, action buttons */}
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8, flexShrink: 0 }}>
-                    {/* Heart + more top-right */}
-                    <div style={{ display: 'flex', gap: 5 }}>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); toggleFavorite(photographer.id); }}
-                        title={photographer.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-                        style={{
-                          width: 30, height: 30, borderRadius: 9,
-                          background: photographer.isFavorite
-                            ? 'linear-gradient(135deg, #F20C8F 0%, #DB0A7F 100%)'
-                            : colors.bgTertiary,
-                          border: photographer.isFavorite ? 'none' : `1px solid ${colors.borderPrimary}`,
-                          cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          color: photographer.isFavorite ? '#fff' : '#F20C8F',
-                          boxShadow: photographer.isFavorite ? '0 4px 10px rgba(242,12,143,0.32)' : 'none',
-                          transition: 'all 0.15s',
-                        }}
-                      >
-                        <i className={`bi ${photographer.isFavorite ? 'bi-heart-fill' : 'bi-heart'}`} style={{ fontSize: 12 }} />
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleContextMenu(e, photographer); }}
-                        title="More actions"
-                        style={{
-                          width: 30, height: 30, borderRadius: 9,
-                          background: colors.bgTertiary,
-                          border: `1px solid ${colors.borderPrimary}`,
-                          cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          color: colors.textSecondary,
-                          transition: 'all 0.15s',
-                        }}
-                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)'; e.currentTarget.style.color = colors.textPrimary; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.color = colors.textSecondary; }}
-                      >
-                        <i className="bi bi-three-dots-vertical" style={{ fontSize: 12 }} />
-                      </button>
-                    </div>
-
-                    {/* Total Spent */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'space-between', gap: '0.5rem' }}>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{
-                        fontSize: '0.6rem', fontWeight: 700, color: '#F20C8F',
-                        textTransform: 'uppercase', letterSpacing: '0.08em',
-                        marginBottom: 1,
-                      }}>Total Spent</div>
-                      <div style={{
-                        fontSize: '1.15rem', fontWeight: 800,
-                        letterSpacing: '-0.01em',
-                        background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        backgroundClip: 'text',
-                      }}>{formatPrice(photographer.totalSpent)}</div>
+                      <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Total Spent</span>
+                      <div style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{formatPrice(photographer.totalSpent)}</div>
                     </div>
-
                     {/* Payment Status in List View */}
                     {photographer.bookings.some(b => b.paymentStatus !== 'paid') && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         {photographer.bookings.filter(b => b.paymentStatus !== 'paid').slice(0, 1).map((booking) => {
+                          const paymentColor = getPaymentStatusColor(booking.paymentStatus);
                           const amountDue = booking.totalAmount - booking.paidAmount;
-                          const isFailed = booking.paymentStatus === 'failed';
                           return (
                             <button
                               key={booking.id}
                               onClick={(e) => { e.stopPropagation(); setPaymentBooking({ photographer, booking }); setShowPaymentModal(true); }}
                               style={{
-                                background: isFailed
-                                  ? 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)'
-                                  : 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                                backgroundColor: booking.paymentStatus === 'failed' ? '#F20C8F' : '#083A85',
                                 color: 'white',
-                                border: 'none',
-                                borderRadius: 9,
-                                padding: '0.42rem 0.75rem',
-                                fontSize: '0.76rem',
-                                fontWeight: 700,
-                                letterSpacing: '-0.005em',
+                                border: booking.paymentStatus === 'failed' ? '2px solid #C0096D' : '2px solid #062a63',
+                                borderRadius: '0.375rem',
+                                padding: '0.375rem 0.75rem',
+                                fontSize: '0.8rem',
+                                fontWeight: '600',
                                 cursor: 'pointer',
-                                display: 'inline-flex',
+                                display: 'flex',
                                 alignItems: 'center',
-                                gap: 5,
-                                boxShadow: isFailed
-                                  ? '0 4px 10px rgba(220,38,38,0.30)'
-                                  : '0 4px 10px rgba(245,158,11,0.30)',
-                                transition: 'transform 0.15s',
+                                gap: '0.25rem'
                               }}
-                              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
                             >
-                              {isFailed
-                                ? <><i className="bi bi-arrow-clockwise" style={{ fontSize: 11 }} /> Retry Payment</>
-                                : <><i className="bi bi-credit-card-fill" style={{ fontSize: 11 }} /> Pay {formatPrice(amountDue)}</>}
+                              {booking.paymentStatus === 'failed' ? <><RefreshIcon /> Retry Payment</> : <><CreditCardIcon /> Pay {formatPrice(amountDue)}</>}
                             </button>
                           );
                         })}
                       </div>
                     )}
-
-                    {/* Action buttons */}
-                    <div style={{ display: 'flex', gap: 6 }}>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
                       <button
                         onClick={(e) => e.stopPropagation()}
-                        title="Message photographer"
                         style={{
-                          display: 'inline-flex', alignItems: 'center', gap: 5,
-                          background: colors.bgTertiary,
-                          color: colors.textPrimary,
-                          border: `1px solid ${colors.borderPrimary}`,
-                          borderRadius: 9,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.375rem',
+                          backgroundColor: colors.bgCard,
+                          color: colors.textSecondary,
+                          border: `2px solid ${colors.borderPrimary}`,
+                          borderRadius: '0.375rem',
                           padding: '0.5rem 0.75rem',
-                          fontSize: '0.78rem',
-                          fontWeight: 700,
-                          letterSpacing: '-0.005em',
-                          cursor: 'pointer',
-                          transition: 'border-color 0.15s, background-color 0.15s',
+                          fontSize: '0.85rem',
+                          cursor: 'pointer'
                         }}
-                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)'; e.currentTarget.style.backgroundColor = 'rgba(8,58,133,0.05)'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.backgroundColor = colors.bgTertiary; }}
                       >
-                        <i className="bi bi-chat-dots-fill" style={{ fontSize: 12, color: '#083A85' }} />
+                        <MessageIcon />
                         Message
                       </button>
                       {hasCompletedEvent(photographer) && (
@@ -2050,56 +1826,48 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                             setCustomTipAmount('');
                             setShowReviewModal(true);
                           }}
-                          title={photographer.myReview ? 'Edit your review' : 'Leave a review'}
                           style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 5,
-                            background: colors.bgTertiary,
-                            color: colors.textPrimary,
-                            border: `1px solid ${photographer.myReview ? 'rgba(251,191,36,0.40)' : colors.borderPrimary}`,
-                            borderRadius: 9,
+                            backgroundColor: photographer.myReview ? colors.bgTertiary : '#083A85',
+                            color: photographer.myReview ? colors.textPrimary : 'white',
+                            border: photographer.myReview ? `2px solid ${colors.borderPrimary}` : '2px solid #062a63',
+                            borderRadius: '0.375rem',
                             padding: '0.5rem 0.75rem',
-                            fontSize: '0.78rem',
-                            fontWeight: 700,
-                            letterSpacing: '-0.005em',
+                            fontSize: '0.85rem',
+                            fontWeight: '600',
                             cursor: 'pointer',
-                            transition: 'border-color 0.15s, background-color 0.15s',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.375rem'
                           }}
-                          onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(251,191,36,0.55)'; e.currentTarget.style.backgroundColor = 'rgba(251,191,36,0.08)'; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.borderColor = photographer.myReview ? 'rgba(251,191,36,0.40)' : colors.borderPrimary; e.currentTarget.style.backgroundColor = colors.bgTertiary; }}
+                          title={photographer.myReview ? 'Edit your review' : 'Leave a review'}
                         >
-                          <i className="bi bi-star-fill" style={{ fontSize: 11, color: '#FBBF24' }} />
+                          <ReviewIcon />
                           {photographer.myReview ? 'Edit Review' : 'Review'}
                         </button>
                       )}
                       <button
                         onClick={(e) => { e.stopPropagation(); setRebookPhotographer(photographer); setSelectedRebookEventId(''); setRebookEventType(''); setRebookDate(''); setRebookTime(''); setRebookLocation(''); setRebookNotes(''); setShowRebookModal(true); }}
                         style={{
-                          background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                          backgroundColor: '#F20C8F',
                           color: 'white',
-                          border: 'none',
-                          borderRadius: 9,
-                          padding: '0.5rem 0.95rem',
-                          fontSize: '0.78rem',
-                          fontWeight: 700,
-                          letterSpacing: '-0.005em',
+                          border: '2px solid #C0096D',
+                          borderRadius: '0.375rem',
+                          padding: '0.5rem 1rem',
+                          fontSize: '0.85rem',
+                          fontWeight: '600',
                           cursor: 'pointer',
-                          display: 'inline-flex',
+                          display: 'flex',
                           alignItems: 'center',
-                          gap: 5,
-                          boxShadow: '0 4px 10px rgba(8,58,133,0.28)',
-                          transition: 'transform 0.15s, box-shadow 0.15s',
+                          gap: '0.375rem'
                         }}
-                        onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 8px 18px rgba(242,12,143,0.32)'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 10px rgba(8,58,133,0.28)'; }}
                       >
-                        <i className="bi bi-arrow-clockwise" style={{ fontSize: 12 }} />
+                        <RefreshIcon />
                         Rebook
                       </button>
                     </div>
                   </div>
                 </div>
-                );
-              })}
+              ))}
             </div>
           )}
         </div>
@@ -2166,297 +1934,172 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
         {selectedPhotographer && (
           <div>
             {/* Cover with overlay */}
-            <div style={{ position: 'relative', height: 180, margin: '-1.5rem -1.5rem 0 -1.5rem', overflow: 'visible', backgroundColor: selectedPhotographer.coverImage ? 'transparent' : '#0D1B2A' }}>
+            <div style={{ position: 'relative', height: '160px', margin: '-1.5rem -1.5rem 0 -1.5rem', overflow: 'visible', backgroundColor: selectedPhotographer.coverImage ? 'transparent' : '#0D1B2A' }}>
               <img src={selectedPhotographer.coverImage || '/coverr.jpg'} alt={selectedPhotographer.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: selectedPhotographer.coverImage ? 'cover' : 'contain', objectPosition: 'center' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/coverr.jpg'; (e.currentTarget as HTMLImageElement).style.objectFit = 'contain'; const p = e.currentTarget.parentElement; if (p) p.style.backgroundColor = '#0D1B2A'; }} />
-              {/* Top→bottom gradient for legibility */}
-              <div aria-hidden style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.30) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0) 60%, rgba(0,0,0,0.28) 100%)', pointerEvents: 'none' }} />
+              {selectedPhotographer.coverImage && (
+                <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(13, 27, 42, 0.3)' }} />
+              )}
               <button
                 onClick={() => setSelectedPhotographer(null)}
-                aria-label="Close"
                 style={{
                   position: 'absolute',
-                  top: 14, right: 14,
-                  background: 'rgba(255,255,255,0.95)',
-                  border: '1px solid rgba(255,255,255,0.55)',
-                  borderRadius: 10,
-                  width: 34, height: 34,
+                  top: '1rem',
+                  right: '1rem',
+                  backgroundColor: colors.bgTertiary,
+                  border: `2px solid ${colors.borderPrimary}`,
+                  borderRadius: '0.375rem',
+                  padding: '0.5rem',
                   cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  backdropFilter: 'blur(6px)',
-                  boxShadow: '0 4px 10px rgba(0,0,0,0.20)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: colors.textPrimary,
                   zIndex: 5,
-                  transition: 'transform 0.15s, box-shadow 0.15s',
+                  transition: 'all 0.2s'
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 14px rgba(0,0,0,0.25)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 10px rgba(0,0,0,0.20)'; }}
               >
-                <i className="bi bi-x-lg" style={{ fontSize: 14, color: '#083A85', fontWeight: 700 }} />
+                <CloseIcon />
               </button>
               {/* Profile Image - positioned to overlap */}
               <div style={{
                 position: 'absolute',
-                top: 135,
-                left: 22,
-                width: 80, height: 80,
+                top: '105px',
+                left: '20px',
+                width: '70px',
+                height: '70px',
                 zIndex: 10
               }}>
-                <div style={{
-                  width: 80, height: 80, borderRadius: '50%',
-                  border: `3px solid ${colors.bgCard}`,
-                  background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  overflow: 'hidden', position: 'relative',
-                  boxShadow: '0 8px 20px rgba(0,0,0,0.22)',
-                }}>
-                  <svg width="42" height="42" viewBox="0 0 24 24" fill="none">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <circle cx="12" cy="7" r="4" stroke="white" strokeWidth="2"/>
+                <div style={{ width: '70px', height: '70px', borderRadius: '50%', border: '2px solid white', backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
+                  <svg width="38" height="38" viewBox="0 0 24 24" fill="none">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
                   </svg>
                   {selectedPhotographer.profileImage && (
-                    <img src={selectedPhotographer.profileImage} alt={selectedPhotographer.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                    <img src={selectedPhotographer.profileImage} alt={selectedPhotographer.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                   )}
                 </div>
                 {selectedPhotographer.verified && (
                   <div style={{
                     position: 'absolute',
-                    bottom: 2, right: 2,
-                    background: colors.bgCard,
+                    bottom: '0px',
+                    right: '0px',
+                    background: 'white',
                     borderRadius: '50%',
-                    width: 26, height: 26,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    boxShadow: '0 4px 8px rgba(59,130,246,0.32)',
-                  }} title="Verified photographer">
-                    <i className="bi bi-patch-check-fill" style={{ color: '#3b82f6', fontSize: '1.05rem' }} />
+                    width: '24px',
+                    height: '24px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15)'
+                  }}>
+                    <i className="bi bi-patch-check-fill" style={{ color: '#3b82f6', fontSize: '1rem' }} />
                   </div>
                 )}
               </div>
             </div>
 
             {/* Profile Info - with padding to account for overlapping profile image */}
-            <div style={{ paddingTop: 38, paddingLeft: '0.25rem', marginBottom: '1rem' }}>
-              <h2 style={{
-                fontSize: '1.35rem', fontWeight: 800, color: colors.textPrimary,
-                margin: 0, letterSpacing: '-0.01em',
-              }}>
-                {selectedPhotographer.firstName} {selectedPhotographer.lastName}
-              </h2>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 4, fontSize: '0.86rem', color: colors.textSecondary }}>
-                <i className="bi bi-geo-alt-fill" style={{ fontSize: 12, color: '#F20C8F' }} />
-                {(selectedPhotographer.location.city || selectedPhotographer.location.country)
-                  ? <span>{selectedPhotographer.location.city}{selectedPhotographer.location.city && selectedPhotographer.location.country ? ', ' : ''}{selectedPhotographer.location.country}</span>
-                  : <span style={{ fontStyle: 'italic', opacity: 0.7 }}>Location not set</span>}
+            <div style={{ paddingTop: '55px', paddingLeft: '1rem', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: colors.textPrimary, margin: 0 }}>
+                  {selectedPhotographer.firstName} {selectedPhotographer.lastName}
+                </h2>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
+                <LocationIcon />
+                <span style={{ fontSize: '0.9rem', color: colors.textSecondary }}>
+                  {selectedPhotographer.location.city}, {selectedPhotographer.location.country}
+                </span>
               </div>
             </div>
 
             {/* Your History Stats */}
-            <div style={{
-              background: actualTheme === 'dark'
-                ? 'linear-gradient(135deg, rgba(8,58,133,0.22) 0%, rgba(242,12,143,0.16) 100%)'
-                : 'linear-gradient(135deg, rgba(8,58,133,0.05) 0%, rgba(242,12,143,0.05) 100%)',
-              border: `1px solid ${actualTheme === 'dark' ? 'rgba(8,58,133,0.32)' : 'rgba(8,58,133,0.14)'}`,
-              borderRadius: 14,
-              padding: '1.1rem 1.15rem',
-              marginBottom: '1.25rem',
-              position: 'relative',
-              overflow: 'hidden',
-            }}>
-              <span aria-hidden style={{
-                position: 'absolute', top: 0, left: 0, right: 0, height: 3,
-                background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
-              }} />
-              <div style={{
-                fontSize: '0.66rem', fontWeight: 700, color: '#F20C8F',
-                letterSpacing: '0.08em', textTransform: 'uppercase',
-                marginBottom: '0.9rem',
-                display: 'inline-flex', alignItems: 'center', gap: 5,
-              }}>
-                <i className="bi bi-clock-history" style={{ fontSize: 11 }} />
-                Your History with {selectedPhotographer.firstName}
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+            <div style={{ backgroundColor: actualTheme === 'dark' ? '#831843' : '#FDF2F8', borderRadius: '0.75rem', padding: '1rem', marginBottom: '1.25rem' }}>
+              <h3 style={{ fontSize: '0.9rem', fontWeight: '600', color: '#F20C8F', marginBottom: '0.75rem' }}>Your History with {selectedPhotographer.firstName}</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
                 <div>
-                  <div style={{ fontSize: '1.35rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.01em' }}>{selectedPhotographer.totalBookingsWithClient}</div>
-                  <div style={{ fontSize: '0.74rem', color: colors.textSecondary, marginTop: 1 }}>Bookings</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: '700', color: colors.textPrimary }}>{selectedPhotographer.totalBookingsWithClient}</div>
+                  <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Bookings</div>
                 </div>
                 <div>
-                  <div style={{
-                    fontSize: '1.35rem', fontWeight: 800, letterSpacing: '-0.01em',
-                    background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    backgroundClip: 'text',
-                  }}>{formatPrice(selectedPhotographer.totalSpent)}</div>
-                  <div style={{ fontSize: '0.74rem', color: colors.textSecondary, marginTop: 1 }}>Total Spent</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: '700', color: colors.textPrimary }}>{formatPrice(selectedPhotographer.totalSpent)}</div>
+                  <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Total Spent</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '1.05rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.01em' }}>
-                    {selectedPhotographer.lastBookingDate ? formatDate(selectedPhotographer.lastBookingDate) : '—'}
-                  </div>
-                  <div style={{ fontSize: '0.74rem', color: colors.textSecondary, marginTop: 1 }}>Last Booking</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: '700', color: colors.textPrimary }}>{formatDate(selectedPhotographer.lastBookingDate)}</div>
+                  <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Last Booking</div>
                 </div>
               </div>
-              {(selectedPhotographer.lastEventName || selectedPhotographer.lastEventType) && (
-                <div style={{
-                  marginTop: '0.85rem',
-                  padding: '0.7rem 0.85rem',
-                  backgroundColor: colors.bgCard,
-                  border: `1px solid ${colors.borderPrimary}`,
-                  borderRadius: 11,
-                }}>
-                  <div style={{
-                    fontSize: '0.6rem', fontWeight: 700, color: '#F20C8F',
-                    textTransform: 'uppercase', letterSpacing: '0.08em',
-                    marginBottom: 2,
-                  }}>Last Event</div>
-                  {selectedPhotographer.lastEventName && (
-                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.005em' }}>{selectedPhotographer.lastEventName}</div>
-                  )}
-                  {selectedPhotographer.lastEventType && (
-                    <div style={{ fontSize: '0.78rem', color: colors.textSecondary, marginTop: 2, textTransform: 'capitalize' }}>{selectedPhotographer.lastEventType}</div>
-                  )}
-                </div>
-              )}
+              <div style={{ marginTop: '0.75rem', padding: '0.75rem', backgroundColor: colors.bgCard, borderRadius: '0.5rem' }}>
+                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Last Event</div>
+                <div style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>{selectedPhotographer.lastEventName}</div>
+                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{selectedPhotographer.lastEventType}</div>
+              </div>
             </div>
 
             {/* Your Review */}
             {selectedPhotographer.myReview && (
-              <div style={{
-                background: actualTheme === 'dark' ? 'rgba(251,191,36,0.10)' : 'rgba(251,191,36,0.06)',
-                border: `1px solid ${actualTheme === 'dark' ? 'rgba(251,191,36,0.30)' : 'rgba(251,191,36,0.25)'}`,
-                borderRadius: 12,
-                padding: '0.95rem 1rem',
-                marginBottom: '1.25rem',
-                position: 'relative',
-                overflow: 'hidden',
-              }}>
-                <span aria-hidden style={{
-                  position: 'absolute', top: 0, left: 0, bottom: 0, width: 3,
-                  background: 'linear-gradient(180deg, #FBBF24 0%, #F59E0B 100%)',
-                }} />
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', paddingLeft: 6 }}>
-                  <div style={{
-                    fontSize: '0.62rem', fontWeight: 700, color: '#D97706',
-                    textTransform: 'uppercase', letterSpacing: '0.08em',
-                    display: 'inline-flex', alignItems: 'center', gap: 5,
-                  }}>
-                    <i className="bi bi-quote" style={{ fontSize: 12 }} />
-                    Your Review
-                  </div>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                    {renderStars(selectedPhotographer.myRating || 0)}
-                  </div>
+              <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.75rem', padding: '1rem', marginBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <h3 style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>Your Review</h3>
+                  {renderStars(selectedPhotographer.myRating || 0)}
                 </div>
-                <p style={{ fontSize: '0.9rem', color: colors.textPrimary, fontStyle: 'italic', margin: 0, paddingLeft: 6, lineHeight: 1.55 }}>
-                  &quot;{selectedPhotographer.myReview}&quot;
-                </p>
+                <p style={{ fontSize: '0.9rem', color: colors.textSecondary, fontStyle: 'italic' }}>&quot;{selectedPhotographer.myReview}&quot;</p>
               </div>
             )}
 
             {/* General Stats */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.65rem', marginBottom: '1.4rem' }}>
-              {[
-                { value: selectedPhotographer.rating, label: 'Rating', icon: 'bi-star-fill' },
-                { value: selectedPhotographer.completedBookings, label: 'Total Bookings', icon: 'bi-calendar-check-fill' },
-                { value: `${selectedPhotographer.experience} yrs`, label: 'Experience', icon: 'bi-award-fill' },
-                { value: selectedPhotographer.responseTime, label: 'Response', icon: 'bi-lightning-charge-fill' },
-              ].map((stat, idx) => (
-                <div key={idx} style={{
-                  background: colors.bgCard,
-                  border: `1px solid ${colors.borderPrimary}`,
-                  borderRadius: 11,
-                  padding: '0.8rem 0.6rem',
-                  textAlign: 'center',
-                  transition: 'transform 0.15s, border-color 0.15s, box-shadow 0.15s',
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)'; e.currentTarget.style.boxShadow = '0 6px 14px rgba(8,58,133,0.10)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }}
-                >
-                  <div style={{
-                    width: 26, height: 26, borderRadius: 8,
-                    margin: '0 auto 6px',
-                    background: 'linear-gradient(135deg, rgba(8,58,133,0.12) 0%, rgba(242,12,143,0.10) 100%)',
-                    border: '1px solid rgba(8,58,133,0.18)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    <i className={`bi ${stat.icon}`} style={{ fontSize: 11, color: '#083A85' }} />
-                  </div>
-                  <div style={{ fontSize: '1.05rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.01em' }}>{stat.value}</div>
-                  <div style={{ fontSize: '0.72rem', color: colors.textSecondary, marginTop: 1 }}>{stat.label}</div>
-                </div>
-              ))}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.25rem' }}>
+              <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '0.75rem', textAlign: 'center' }}>
+                <div style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{selectedPhotographer.rating}</div>
+                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Rating</div>
+              </div>
+              <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '0.75rem', textAlign: 'center' }}>
+                <div style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{selectedPhotographer.completedBookings}</div>
+                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Total Bookings</div>
+              </div>
+              <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '0.75rem', textAlign: 'center' }}>
+                <div style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{selectedPhotographer.experience} yrs</div>
+                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Experience</div>
+              </div>
+              <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '0.75rem', textAlign: 'center' }}>
+                <div style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{selectedPhotographer.responseTime}</div>
+                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Response</div>
+              </div>
             </div>
 
             {/* Portfolio Preview */}
-            {selectedPhotographer.portfolioImages && selectedPhotographer.portfolioImages.length > 0 && (
-            <div style={{ marginBottom: '1.4rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.7rem' }}>
-                <div style={{
-                  width: 28, height: 28, borderRadius: 8,
-                  background: 'linear-gradient(135deg, rgba(8,58,133,0.12) 0%, rgba(242,12,143,0.10) 100%)',
-                  border: '1px solid rgba(8,58,133,0.18)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <i className="bi bi-images" style={{ fontSize: 12, color: '#083A85' }} />
-                </div>
-                <h3 style={{ fontSize: '1rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.005em' }}>Portfolio</h3>
-              </div>
+            <div style={{ marginBottom: '1.25rem' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>Portfolio</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
                 {selectedPhotographer.portfolioImages.map((img, idx) => (
-                  <div key={idx} style={{ position: 'relative', height: 110, borderRadius: 10, overflow: 'hidden', border: `1px solid ${colors.borderPrimary}` }}>
+                  <div key={idx} style={{ position: 'relative', height: '100px', borderRadius: '0.5rem', overflow: 'hidden' }}>
                     <Image src={img} alt={`Portfolio ${idx + 1}`} fill style={{ objectFit: 'cover' }} />
                   </div>
                 ))}
               </div>
             </div>
-            )}
 
             {/* Bio */}
-            {selectedPhotographer.bio && (
-            <div style={{ marginBottom: '1.4rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.55rem' }}>
-                <div style={{
-                  width: 28, height: 28, borderRadius: 8,
-                  background: 'linear-gradient(135deg, rgba(8,58,133,0.12) 0%, rgba(242,12,143,0.10) 100%)',
-                  border: '1px solid rgba(8,58,133,0.18)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <i className="bi bi-person-lines-fill" style={{ fontSize: 12, color: '#083A85' }} />
-                </div>
-                <h3 style={{ fontSize: '1rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.005em' }}>About</h3>
-              </div>
-              <p style={{ fontSize: '0.9rem', color: colors.textSecondary, lineHeight: 1.6, margin: 0 }}>{selectedPhotographer.bio}</p>
+            <div style={{ marginBottom: '1.25rem' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.5rem' }}>About</h3>
+              <p style={{ fontSize: '0.9rem', color: colors.textSecondary, lineHeight: '1.6' }}>{selectedPhotographer.bio}</p>
             </div>
-            )}
 
             {/* Specializations */}
-            {selectedPhotographer.specializations && selectedPhotographer.specializations.length > 0 && (
-            <div style={{ marginBottom: '1.4rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.55rem' }}>
-                <div style={{
-                  width: 28, height: 28, borderRadius: 8,
-                  background: 'linear-gradient(135deg, rgba(8,58,133,0.12) 0%, rgba(242,12,143,0.10) 100%)',
-                  border: '1px solid rgba(8,58,133,0.18)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <i className="bi bi-camera-fill" style={{ fontSize: 12, color: '#083A85' }} />
-                </div>
-                <h3 style={{ fontSize: '1rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.005em' }}>Specializations</h3>
-              </div>
-              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+            <div style={{ marginBottom: '1.25rem' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.5rem' }}>Specializations</h3>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 {selectedPhotographer.specializations.map((spec) => (
                   <span
                     key={spec}
                     style={{
-                      background: actualTheme === 'dark'
-                        ? 'linear-gradient(135deg, rgba(8,58,133,0.25) 0%, rgba(242,12,143,0.18) 100%)'
-                        : 'linear-gradient(135deg, rgba(8,58,133,0.08) 0%, rgba(242,12,143,0.06) 100%)',
-                      color: actualTheme === 'dark' ? '#BFDBFE' : '#083A85',
-                      border: `1px solid ${actualTheme === 'dark' ? 'rgba(8,58,133,0.40)' : 'rgba(8,58,133,0.22)'}`,
-                      padding: '0.4rem 0.8rem',
-                      borderRadius: 9999,
-                      fontSize: '0.78rem',
-                      fontWeight: 700,
-                      letterSpacing: '-0.005em',
+                      backgroundColor: actualTheme === 'dark' ? '#1E3A8A' : '#EFF6FF',
+                      color: actualTheme === 'dark' ? '#93C5FD' : '#1D4ED8',
+                      padding: '0.375rem 0.75rem',
+                      borderRadius: '9999px',
+                      fontSize: '0.8rem',
+                      fontWeight: '500'
                     }}
                   >
                     {spec}
@@ -2464,151 +2107,82 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                 ))}
               </div>
             </div>
-            )}
 
             {/* Booking History */}
             {selectedPhotographer.bookings && selectedPhotographer.bookings.length > 0 && (
-              <div style={{ marginBottom: '1.4rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.7rem' }}>
-                  <div style={{
-                    width: 28, height: 28, borderRadius: 8,
-                    background: 'linear-gradient(135deg, rgba(8,58,133,0.12) 0%, rgba(242,12,143,0.10) 100%)',
-                    border: '1px solid rgba(8,58,133,0.18)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    <i className="bi bi-bookmark-heart-fill" style={{ fontSize: 12, color: '#083A85' }} />
-                  </div>
-                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.005em' }}>Booking History</h3>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+              <div style={{ marginBottom: '1.25rem' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>Booking History</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   {selectedPhotographer.bookings.map((booking) => {
+                    const paymentColor = getPaymentStatusColor(booking.paymentStatus);
                     const amountDue = booking.totalAmount - booking.paidAmount;
-                    const statusGradient = booking.status === 'completed'
-                      ? { stripe: 'linear-gradient(180deg, #10B981 0%, #059669 100%)', pillBg: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', text: '#fff' }
+                    const statusColor = booking.status === 'completed'
+                      ? { bg: actualTheme === 'dark' ? '#14532D' : '#DCFCE7', text: actualTheme === 'dark' ? '#86EFAC' : '#15803D' }
                       : booking.status === 'cancelled'
-                        ? { stripe: 'linear-gradient(180deg, #EF4444 0%, #DC2626 100%)', pillBg: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)', text: '#fff' }
-                        : { stripe: 'linear-gradient(180deg, #083A85 0%, #F20C8F 100%)', pillBg: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)', text: '#fff' };
-                    const paymentGradient = booking.paymentStatus === 'paid'
-                      ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)'
-                      : booking.paymentStatus === 'failed'
-                        ? 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)'
-                        : 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)';
+                        ? { bg: actualTheme === 'dark' ? '#450A0A' : '#FEE2E2', text: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626' }
+                        : { bg: actualTheme === 'dark' ? '#1E3A8A' : '#DBEAFE', text: actualTheme === 'dark' ? '#93C5FD' : '#1D4ED8' };
                     return (
                       <div key={booking.id} style={{
-                        padding: '0.85rem 0.95rem',
-                        borderRadius: 12,
+                        padding: '0.75rem',
+                        borderRadius: '0.5rem',
                         border: `1px solid ${colors.borderPrimary}`,
-                        backgroundColor: colors.bgCard,
-                        position: 'relative',
-                        overflow: 'hidden',
-                        transition: 'border-color 0.15s, box-shadow 0.15s',
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(8,58,133,0.25)'; e.currentTarget.style.boxShadow = '0 6px 14px rgba(8,58,133,0.08)'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }}
-                      >
-                        <span aria-hidden style={{
-                          position: 'absolute', top: 0, left: 0, bottom: 0, width: 3,
-                          background: statusGradient.stripe,
-                        }} />
-                        <div style={{ paddingLeft: 6 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem', gap: 8 }}>
-                            <div style={{ minWidth: 0, flex: 1 }}>
-                              <div style={{ fontSize: '0.93rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.005em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{booking.eventName}</div>
-                              <div style={{ fontSize: '0.76rem', color: colors.textSecondary, marginTop: 2, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                                <span style={{ textTransform: 'capitalize' }}>{booking.eventType}</span>
-                                <span style={{ opacity: 0.5 }}>•</span>
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                  <i className="bi bi-calendar3" style={{ fontSize: 10 }} />
-                                  {formatDate(booking.eventDate)}
-                                </span>
-                              </div>
-                            </div>
-                            <span style={{
-                              fontSize: '0.62rem', fontWeight: 700,
-                              padding: '0.22rem 0.55rem', borderRadius: 9999,
-                              background: statusGradient.pillBg,
-                              color: statusGradient.text,
-                              textTransform: 'uppercase', letterSpacing: '0.06em',
-                              flexShrink: 0,
-                              boxShadow: '0 3px 8px rgba(0,0,0,0.10)',
-                            }}>
-                              {booking.status}
-                            </span>
+                        backgroundColor: colors.bgTertiary,
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                          <div>
+                            <div style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{booking.eventName}</div>
+                            <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{booking.eventType} &middot; {formatDate(booking.eventDate)}</div>
                           </div>
-                          <div style={{ fontSize: '0.78rem', color: colors.textSecondary, marginBottom: '0.5rem', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                            <i className="bi bi-box-seam" style={{ fontSize: 10, color: '#F20C8F' }} />
-                            <span style={{ fontWeight: 600, color: colors.textPrimary }}>{booking.packageName}</span>
+                          <span style={{
+                            fontSize: '0.7rem', fontWeight: '600', padding: '0.2rem 0.5rem', borderRadius: '9999px',
+                            backgroundColor: statusColor.bg, color: statusColor.text,
+                          }}>
+                            {booking.status}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.5rem' }}>
+                          <span style={{ fontWeight: '500' }}>Package:</span> {booking.packageName}
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                          <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>
+                            Total: <span style={{ fontWeight: '600', color: colors.textPrimary }}>{formatPrice(booking.totalAmount)}</span>
+                            {booking.paidAmount > 0 && <> &middot; Paid: <span style={{ fontWeight: '600', color: '#15803D' }}>{formatPrice(booking.paidAmount)}</span></>}
                           </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.55rem', gap: 8 }}>
-                            <div style={{ fontSize: '0.78rem', color: colors.textSecondary }}>
-                              Total: <span style={{ fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.005em' }}>{formatPrice(booking.totalAmount)}</span>
-                              {booking.paidAmount > 0 && <> <span style={{ opacity: 0.5 }}>•</span> Paid: <span style={{ fontWeight: 800, color: '#10B981', letterSpacing: '-0.005em' }}>{formatPrice(booking.paidAmount)}</span></>}
-                            </div>
-                            <span style={{
-                              fontSize: '0.62rem', fontWeight: 700,
-                              padding: '0.22rem 0.55rem', borderRadius: 9999,
-                              background: paymentGradient,
-                              color: '#fff',
-                              textTransform: 'uppercase', letterSpacing: '0.06em',
-                              flexShrink: 0,
-                              boxShadow: '0 3px 8px rgba(0,0,0,0.10)',
-                            }}>
-                              {booking.paymentStatus.replace('_', ' ')}
-                            </span>
-                          </div>
-                          <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
-                            {(booking.paymentStatus === 'pending' || booking.paymentStatus === 'partially_paid' || booking.paymentStatus === 'failed') && amountDue > 0 && (
-                              <button
-                                onClick={() => setPaymentBooking({ photographer: selectedPhotographer, booking })}
-                                style={{
-                                  padding: '0.45rem 0.75rem',
-                                  fontSize: '0.78rem',
-                                  fontWeight: 700,
-                                  letterSpacing: '-0.005em',
-                                  borderRadius: 9,
-                                  cursor: 'pointer',
-                                  background: booking.paymentStatus === 'failed'
-                                    ? 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)'
-                                    : 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
-                                  color: 'white',
-                                  border: 'none',
-                                  display: 'inline-flex', alignItems: 'center', gap: 5,
-                                  boxShadow: booking.paymentStatus === 'failed'
-                                    ? '0 4px 10px rgba(220,38,38,0.28)'
-                                    : '0 4px 10px rgba(8,58,133,0.28)',
-                                  transition: 'transform 0.15s',
-                                }}
-                                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
-                              >
-                                <i className={`bi ${booking.paymentStatus === 'failed' ? 'bi-arrow-clockwise' : 'bi-credit-card-fill'}`} style={{ fontSize: 11 }} />
-                                {booking.paymentStatus === 'failed' ? 'Retry' : `Pay ${formatPrice(amountDue)}`}
-                              </button>
-                            )}
-                            {booking.declarationId && (
-                              <button
-                                onClick={() => router.push(`/user/${userRole}/payments/${booking.declarationId}`)}
-                                style={{
-                                  padding: '0.45rem 0.75rem',
-                                  fontSize: '0.78rem',
-                                  fontWeight: 700,
-                                  letterSpacing: '-0.005em',
-                                  borderRadius: 9,
-                                  cursor: 'pointer',
-                                  backgroundColor: colors.bgTertiary,
-                                  color: colors.textPrimary,
-                                  border: `1px solid ${colors.borderPrimary}`,
-                                  display: 'inline-flex', alignItems: 'center', gap: 5,
-                                  transition: 'border-color 0.15s',
-                                }}
-                                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)'; }}
-                                onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; }}
-                              >
-                                <i className="bi bi-eye-fill" style={{ fontSize: 11 }} />
-                                View Details
-                              </button>
-                            )}
-                          </div>
+                          <span style={{
+                            fontSize: '0.7rem', fontWeight: '600', padding: '0.2rem 0.5rem', borderRadius: '9999px',
+                            backgroundColor: paymentColor.bg, color: paymentColor.text,
+                          }}>
+                            {booking.paymentStatus.replace('_', ' ')}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          {(booking.paymentStatus === 'pending' || booking.paymentStatus === 'partially_paid' || booking.paymentStatus === 'failed') && amountDue > 0 && (
+                            <button
+                              onClick={() => setPaymentBooking({ photographer: selectedPhotographer, booking })}
+                              style={{
+                                padding: '0.4rem 0.75rem', fontSize: '0.8rem', fontWeight: '600', borderRadius: '0.375rem', cursor: 'pointer',
+                                backgroundColor: booking.paymentStatus === 'failed' ? '#F20C8F' : '#083A85',
+                                color: 'white',
+                                border: booking.paymentStatus === 'failed' ? '1px solid #c00a72' : '1px solid #062a63',
+                                display: 'flex', alignItems: 'center', gap: '0.25rem',
+                              }}
+                            >
+                              <CreditCardIcon />
+                              {booking.paymentStatus === 'failed' ? 'Retry' : `Pay ${formatPrice(amountDue)}`}
+                            </button>
+                          )}
+                          {booking.declarationId && (
+                            <button
+                              onClick={() => router.push(`/user/${userRole}/payments/${booking.declarationId}`)}
+                              style={{
+                                padding: '0.4rem 0.75rem', fontSize: '0.8rem', fontWeight: '600', borderRadius: '0.375rem', cursor: 'pointer',
+                                backgroundColor: colors.bgCard, color: colors.textPrimary,
+                                border: `1px solid ${colors.borderPrimary}`,
+                              }}
+                            >
+                              View Details
+                            </button>
+                          )}
                         </div>
                       </div>
                     );
@@ -2618,80 +2192,67 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
             )}
 
             {/* Actions */}
-            <div style={{
-              display: 'flex', gap: '0.6rem', marginBottom: '4rem',
-              padding: '1rem 0 0',
-              borderTop: `1px solid ${colors.borderPrimary}`,
-            }}>
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '4rem' }}>
               <button
                 onClick={() => toggleFavorite(selectedPhotographer.id)}
-                aria-label={selectedPhotographer.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-                title={selectedPhotographer.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
                 style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  width: 44,
-                  background: selectedPhotographer.isFavorite
-                    ? 'linear-gradient(135deg, #F20C8F 0%, #DB0A7F 100%)'
-                    : colors.bgTertiary,
-                  color: selectedPhotographer.isFavorite ? '#fff' : colors.textPrimary,
-                  border: selectedPhotographer.isFavorite ? 'none' : `1px solid ${colors.borderPrimary}`,
-                  borderRadius: 11,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  backgroundColor: colors.bgTertiary,
+                  color: colors.textPrimary,
+                  border: `2px solid ${colors.borderPrimary}`,
+                  borderRadius: '0.5rem',
                   padding: '0.75rem',
-                  cursor: 'pointer',
-                  boxShadow: selectedPhotographer.isFavorite ? '0 6px 14px rgba(242,12,143,0.32)' : 'none',
-                  transition: 'transform 0.15s, border-color 0.15s, box-shadow 0.15s',
+                  cursor: 'pointer'
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; if (!selectedPhotographer.isFavorite) e.currentTarget.style.borderColor = 'rgba(242,12,143,0.30)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; if (!selectedPhotographer.isFavorite) e.currentTarget.style.borderColor = colors.borderPrimary; }}
               >
-                <i className={`bi ${selectedPhotographer.isFavorite ? 'bi-heart-fill' : 'bi-heart'}`} style={{ fontSize: 16 }} />
+                <HeartIcon filled={selectedPhotographer.isFavorite} />
               </button>
               {hasCompletedEvent(selectedPhotographer) && (
                 <button
                   onClick={() => { setReviewPhotographer(selectedPhotographer); setReviewRating(selectedPhotographer.myRating || 5); setReviewText(selectedPhotographer.myReview || ''); setShowReviewModal(true); }}
                   style={{
                     flex: 1,
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
                     backgroundColor: colors.bgTertiary,
                     color: colors.textPrimary,
-                    border: `1px solid ${colors.borderPrimary}`,
-                    borderRadius: 11,
+                    border: `2px solid ${colors.borderPrimary}`,
+                    borderRadius: '0.5rem',
                     padding: '0.75rem 1rem',
                     fontSize: '0.9rem',
-                    fontWeight: 700,
-                    letterSpacing: '-0.005em',
-                    cursor: 'pointer',
-                    transition: 'border-color 0.15s, background-color 0.15s',
+                    fontWeight: '600',
+                    cursor: 'pointer'
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(8,58,133,0.35)'; e.currentTarget.style.backgroundColor = 'rgba(8,58,133,0.05)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.backgroundColor = colors.bgTertiary; }}
                 >
-                  <i className="bi bi-star-fill" style={{ fontSize: 12, color: '#FBBF24' }} />
+                  <StarIcon filled={true} />
                   {selectedPhotographer.myReview ? 'Edit Review' : 'Leave Review'}
                 </button>
               )}
               <button
                 onClick={() => { setRebookPhotographer(selectedPhotographer); setSelectedRebookEventId(''); setRebookEventType(''); setRebookDate(''); setRebookTime(''); setRebookLocation(''); setRebookNotes(''); setShowRebookModal(true); setSelectedPhotographer(null); }}
                 style={{
-                  flex: 1.4,
-                  background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                  flex: 1,
+                  backgroundColor: '#F20C8F',
                   color: 'white',
-                  border: 'none',
-                  borderRadius: 11,
+                  border: '2px solid #c00a72',
+                  borderRadius: '0.5rem',
                   padding: '0.75rem 1rem',
-                  fontSize: '0.92rem',
-                  fontWeight: 700,
-                  letterSpacing: '-0.005em',
+                  fontSize: '0.9rem',
+                  fontWeight: '600',
                   cursor: 'pointer',
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-                  boxShadow: '0 8px 18px rgba(8,58,133,0.30)',
-                  transition: 'transform 0.15s, box-shadow 0.15s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem'
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 12px 24px rgba(242,12,143,0.35)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 18px rgba(8,58,133,0.30)'; }}
               >
-                <i className="bi bi-arrow-clockwise" style={{ fontSize: 13 }} />
-                Rebook · {formatPrice(selectedPhotographer.startingPrice)}
+                <RefreshIcon />
+                Rebook - {formatPrice(selectedPhotographer.startingPrice)}
               </button>
             </div>
           </div>
@@ -2707,132 +2268,62 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
       >
         {rebookPhotographer && (
           <div>
-            {/* Photographer header card */}
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: '0.85rem',
-              marginBottom: '1.1rem',
-              padding: '0.85rem 1rem',
-              background: actualTheme === 'dark'
-                ? 'linear-gradient(135deg, rgba(8,58,133,0.22) 0%, rgba(242,12,143,0.16) 100%)'
-                : 'linear-gradient(135deg, rgba(8,58,133,0.06) 0%, rgba(242,12,143,0.06) 100%)',
-              border: `1px solid ${actualTheme === 'dark' ? 'rgba(8,58,133,0.35)' : 'rgba(8,58,133,0.14)'}`,
-              borderRadius: 14,
-              position: 'relative',
-              overflow: 'hidden',
-            }}>
-              <span aria-hidden style={{
-                position: 'absolute', top: 0, left: 0, right: 0, height: 3,
-                background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
-              }} />
-              <div style={{ position: 'relative', width: 52, height: 52, flexShrink: 0 }}>
-                <div style={{
-                  width: 52, height: 52, borderRadius: '50%',
-                  border: `2px solid ${colors.bgCard}`,
-                  background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  overflow: 'hidden', position: 'relative',
-                  boxShadow: '0 4px 12px rgba(8,58,133,0.20)',
-                }}>
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <circle cx="12" cy="7" r="4" stroke="white" strokeWidth="2"/>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem', padding: '0.75rem', backgroundColor: actualTheme === 'dark' ? '#831843' : '#FDF2F8', borderRadius: '0.5rem' }}>
+              <div style={{ position: 'relative', width: '48px', height: '48px', flexShrink: 0 }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '50%', border: '2px solid white', backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
                   </svg>
                   {rebookPhotographer.profileImage && (
-                    <img src={rebookPhotographer.profileImage} alt={rebookPhotographer.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                    <img src={rebookPhotographer.profileImage} alt={rebookPhotographer.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                   )}
                 </div>
                 {rebookPhotographer.verified && (
                   <div style={{
                     position: 'absolute',
-                    bottom: -2, right: -2,
-                    background: colors.bgCard,
+                    bottom: '0px',
+                    right: '0px',
+                    background: 'white',
                     borderRadius: '50%',
-                    width: 20, height: 20,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    boxShadow: '0 3px 6px rgba(59,130,246,0.30)',
+                    width: '18px',
+                    height: '18px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15)'
                   }}>
-                    <i className="bi bi-patch-check-fill" style={{ color: '#3b82f6', fontSize: '0.85rem' }} />
+                    <i className="bi bi-patch-check-fill" style={{ color: '#3b82f6', fontSize: '0.75rem' }} />
                   </div>
                 )}
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{
-                  fontSize: '0.6rem', fontWeight: 700, color: '#F20C8F',
-                  textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2,
-                }}>Rebooking</div>
-                <div style={{ fontSize: '1rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.01em' }}>{rebookPhotographer.firstName} {rebookPhotographer.lastName}</div>
-                <div style={{ fontSize: '0.78rem', color: colors.textSecondary, marginTop: 2, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  <i className="bi bi-bookmark-heart-fill" style={{ fontSize: 10, color: '#F20C8F' }} />
-                  Booked {rebookPhotographer.totalBookingsWithClient} time{rebookPhotographer.totalBookingsWithClient > 1 ? 's' : ''} before
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: '600', color: colors.textPrimary }}>{rebookPhotographer.firstName} {rebookPhotographer.lastName}</div>
+                <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
+                  You&apos;ve booked {rebookPhotographer.totalBookingsWithClient} time{rebookPhotographer.totalBookingsWithClient > 1 ? 's' : ''} before
                 </div>
               </div>
             </div>
 
-            {/* Last booking */}
-            {(rebookPhotographer.lastEventName || rebookPhotographer.lastBookingDate) && (
-            <div style={{
-              background: actualTheme === 'dark'
-                ? 'linear-gradient(135deg, rgba(8,58,133,0.16) 0%, rgba(242,12,143,0.08) 100%)'
-                : 'linear-gradient(135deg, rgba(8,58,133,0.05) 0%, rgba(242,12,143,0.04) 100%)',
-              border: `1px solid ${actualTheme === 'dark' ? 'rgba(8,58,133,0.30)' : 'rgba(8,58,133,0.14)'}`,
-              borderRadius: 12,
-              padding: '0.75rem 0.9rem',
-              marginBottom: '1.1rem',
-              position: 'relative',
-              overflow: 'hidden',
-            }}>
-              <span aria-hidden style={{
-                position: 'absolute', top: 0, left: 0, bottom: 0, width: 3,
-                background: 'linear-gradient(180deg, #083A85 0%, #F20C8F 100%)',
-              }} />
-              <div style={{
-                fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F',
-                textTransform: 'uppercase', letterSpacing: '0.08em',
-                marginBottom: 3, paddingLeft: 6,
-              }}>Last booking</div>
-              <div style={{ fontSize: '0.92rem', fontWeight: 700, color: colors.textPrimary, paddingLeft: 6, letterSpacing: '-0.005em' }}>{rebookPhotographer.lastEventName}</div>
-              <div style={{ fontSize: '0.78rem', color: colors.textSecondary, paddingLeft: 6, marginTop: 2, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                {rebookPhotographer.lastEventType && <span style={{ textTransform: 'capitalize' }}>{rebookPhotographer.lastEventType}</span>}
-                {rebookPhotographer.lastEventType && rebookPhotographer.lastBookingDate && <span style={{ opacity: 0.5 }}>•</span>}
-                {rebookPhotographer.lastBookingDate && (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                    <i className="bi bi-calendar3" style={{ fontSize: 10 }} />
-                    {formatDate(rebookPhotographer.lastBookingDate)}
-                  </span>
-                )}
-              </div>
+            <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.5rem', padding: '0.75rem', marginBottom: '1rem' }}>
+              <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Last booking</div>
+              <div style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>{rebookPhotographer.lastEventName}</div>
+              <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{rebookPhotographer.lastEventType} • {formatDate(rebookPhotographer.lastBookingDate)}</div>
             </div>
-            )}
 
             {/* Package Selection */}
-            <div style={{ marginBottom: '1.1rem' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F',
-                textTransform: 'uppercase', letterSpacing: '0.08em',
-                marginBottom: '0.45rem',
-              }}>
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.5rem' }}>
                 Select a Package <span style={{ color: '#EF4444' }}>*</span>
               </label>
               {rebookPackagesLoading ? (
-                <div style={{ textAlign: 'center', padding: '1rem', color: colors.textSecondary, fontSize: '0.85rem', backgroundColor: colors.bgTertiary, borderRadius: 10, border: `1px solid ${colors.borderPrimary}` }}>Loading packages...</div>
+                <div style={{ textAlign: 'center', padding: '1rem', color: colors.textSecondary, fontSize: '0.85rem' }}>Loading packages...</div>
               ) : rebookPackagesError ? (
-                <div style={{
-                  color: actualTheme === 'dark' ? '#FCA5A5' : '#B91C1C',
-                  fontSize: '0.82rem',
-                  padding: '0.6rem 0.85rem',
-                  background: actualTheme === 'dark' ? 'rgba(220,38,38,0.18)' : 'rgba(254,242,242,0.85)',
-                  border: `1px solid ${actualTheme === 'dark' ? 'rgba(220,38,38,0.40)' : 'rgba(220,38,38,0.25)'}`,
-                  borderRadius: 10,
-                  display: 'inline-flex', alignItems: 'center', gap: 6,
-                }}>
-                  <i className="bi bi-exclamation-triangle-fill" style={{ fontSize: 12 }} />
-                  {rebookPackagesError}
-                </div>
+                <div style={{ color: '#EF4444', fontSize: '0.85rem', padding: '0.5rem 0.75rem', backgroundColor: '#FEF2F2', borderRadius: '0.375rem' }}>{rebookPackagesError}</div>
               ) : rebookPackages.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '1rem', color: colors.textSecondary, fontSize: '0.85rem', backgroundColor: colors.bgTertiary, borderRadius: 10, border: `1px solid ${colors.borderPrimary}` }}>No packages available</div>
+                <div style={{ textAlign: 'center', padding: '1rem', color: colors.textSecondary, fontSize: '0.85rem' }}>No packages available</div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.65rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem' }}>
                   {rebookPackages.map((pkg: any) => {
                     const isSelected = rebookPackageId === pkg.id;
                     return (
@@ -2840,56 +2331,28 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                         key={pkg.id}
                         onClick={() => setRebookPackageId(pkg.id)}
                         style={{
-                          border: `1px solid ${isSelected ? 'rgba(242,12,143,0.55)' : colors.borderPrimary}`,
-                          borderRadius: 11,
-                          padding: '0.75rem 0.85rem',
+                          border: `2px solid ${isSelected ? '#F20C8F' : colors.borderPrimary}`,
+                          borderRadius: '0.5rem',
+                          padding: '0.75rem',
                           cursor: 'pointer',
-                          background: isSelected
-                            ? (actualTheme === 'dark'
-                              ? 'linear-gradient(135deg, rgba(8,58,133,0.20) 0%, rgba(242,12,143,0.20) 100%)'
-                              : 'linear-gradient(135deg, rgba(8,58,133,0.05) 0%, rgba(242,12,143,0.06) 100%)')
-                            : colors.bgCard,
+                          backgroundColor: isSelected ? (actualTheme === 'dark' ? '#831843' : '#FDF2F8') : colors.bgCard,
                           transition: 'all 0.15s ease',
-                          boxShadow: isSelected ? '0 6px 14px rgba(242,12,143,0.16)' : 'none',
-                          position: 'relative',
                         }}
                       >
-                        {isSelected && (
-                          <span style={{
-                            position: 'absolute', top: 8, right: 8,
-                            width: 18, height: 18, borderRadius: '50%',
-                            background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
-                            color: 'white',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            boxShadow: '0 3px 8px rgba(242,12,143,0.32)',
-                          }}>
-                            <i className="bi bi-check2" style={{ fontSize: 11 }} />
-                          </span>
-                        )}
-                        <div style={{ fontWeight: 800, fontSize: '0.9rem', color: colors.textPrimary, marginBottom: 3, letterSpacing: '-0.005em', paddingRight: isSelected ? 22 : 0 }}>
+                        <div style={{ fontWeight: '600', fontSize: '0.9rem', color: colors.textPrimary, marginBottom: '0.25rem' }}>
                           {pkg.packageName || pkg.name}
                         </div>
-                        <div style={{
-                          fontWeight: 800, fontSize: '1.05rem', marginBottom: 3,
-                          background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
-                          WebkitBackgroundClip: 'text',
-                          WebkitTextFillColor: 'transparent',
-                          backgroundClip: 'text',
-                          letterSpacing: '-0.01em',
-                        }}>
+                        <div style={{ fontWeight: '700', fontSize: '1rem', color: '#F20C8F', marginBottom: '0.25rem' }}>
                           {pkg.currency?.symbol || pkg.currencySymbol || ''}{pkg.price}
-                          <span style={{ fontWeight: 500, fontSize: '0.75rem', color: colors.textSecondary, marginLeft: 4, WebkitTextFillColor: colors.textSecondary }}>
+                          <span style={{ fontWeight: '400', fontSize: '0.8rem', color: colors.textSecondary, marginLeft: '0.25rem' }}>
                             {pkg.currency?.abbreviation || pkg.currencyAbbreviation || ''}
                           </span>
                         </div>
                         {(pkg.durationHours || pkg.duration) && (
-                          <div style={{ fontSize: '0.76rem', color: colors.textSecondary, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                            <i className="bi bi-clock" style={{ fontSize: 10 }} />
-                            {pkg.durationHours || pkg.duration} hours
-                          </div>
+                          <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{pkg.durationHours || pkg.duration} hours</div>
                         )}
                         {pkg.description && (
-                          <div style={{ fontSize: '0.78rem', color: colors.textSecondary, marginTop: 5, lineHeight: 1.45, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any }}>
+                          <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginTop: '0.25rem', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any }}>
                             {pkg.description}
                           </div>
                         )}
@@ -2901,13 +2364,8 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
             </div>
 
             {/* Assign to existing event */}
-            <div style={{ marginBottom: '1.1rem' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F',
-                textTransform: 'uppercase', letterSpacing: '0.08em',
-                marginBottom: '0.45rem',
-              }}>
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.5rem' }}>
                 Assign to Existing Event
               </label>
               <select
@@ -2916,50 +2374,33 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                 disabled={rebookEventsLoading}
                 style={{
                   width: '100%',
-                  padding: '0.7rem 0.85rem',
-                  border: `1px solid ${selectedRebookEventId ? 'rgba(242,12,143,0.45)' : colors.borderPrimary}`,
-                  borderRadius: 11,
+                  padding: '0.75rem',
+                  border: `2px solid ${selectedRebookEventId ? '#F20C8F' : colors.borderPrimary}`,
+                  borderRadius: '0.5rem',
                   fontSize: '0.9rem',
                   backgroundColor: colors.bgCard,
                   color: colors.textPrimary,
-                  cursor: rebookEventsLoading ? 'wait' : 'pointer',
-                  outline: 'none',
-                  boxShadow: selectedRebookEventId ? '0 0 0 3px rgba(242,12,143,0.10)' : 'none',
-                  transition: 'border-color 0.15s, box-shadow 0.15s',
+                  cursor: rebookEventsLoading ? 'wait' : 'pointer'
                 }}
               >
                 <option value="">{rebookEventsLoading ? 'Loading events...' : '-- Select an event or fill manually --'}</option>
                 {rebookEvents.map(evt => (
                   <option key={evt.id} value={evt.id}>
-                    {evt.title}{evt.eventDate ? ` · ${evt.eventDate}` : ''}
+                    {evt.title}{evt.eventDate ? ` — ${evt.eventDate}` : ''}
                   </option>
                 ))}
               </select>
               {selectedRebookEventId && (
-                <div style={{
-                  fontSize: '0.78rem', color: '#F20C8F',
-                  marginTop: '0.4rem',
-                  display: 'inline-flex', alignItems: 'center', gap: 5,
-                  fontWeight: 600,
-                }}>
-                  <i className="bi bi-magic" style={{ fontSize: 11 }} />
+                <div style={{ fontSize: '0.8rem', color: '#F20C8F', marginTop: '0.375rem' }}>
                   Fields auto-filled from selected event. You can still edit them below.
                 </div>
               )}
             </div>
 
-            <div style={{
-              height: 1, margin: '0.5rem 0 1.1rem',
-              background: `linear-gradient(90deg, transparent 0%, ${colors.borderPrimary} 50%, transparent 100%)`,
-            }} />
+            <div style={{ height: '1px', backgroundColor: colors.borderPrimary, margin: '0.75rem 0 1rem' }} />
 
-            <div style={{ marginBottom: '0.95rem' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F',
-                textTransform: 'uppercase', letterSpacing: '0.08em',
-                marginBottom: '0.4rem',
-              }}>
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
                 Event Type
               </label>
               <input
@@ -2969,31 +2410,22 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                 placeholder="Enter or select event type"
                 style={{
                   width: '100%',
-                  padding: '0.7rem 0.85rem',
-                  border: `1px solid ${colors.borderPrimary}`,
-                  borderRadius: 11,
+                  padding: '0.75rem',
+                  border: `2px solid ${colors.borderPrimary}`,
+                  borderRadius: '0.5rem',
                   fontSize: '0.9rem',
                   backgroundColor: colors.bgCard,
                   color: colors.textPrimary,
-                  outline: 'none',
-                  transition: 'border-color 0.15s, box-shadow 0.15s',
                 }}
-                onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(242,12,143,0.50)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(242,12,143,0.10)'; }}
-                onBlur={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }}
               />
               <datalist id="rebook-event-types">
                 {rebookPhotographer.specializations.map(s => <option key={s} value={s} />)}
               </datalist>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem', marginBottom: '0.95rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
               <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F',
-                  textTransform: 'uppercase', letterSpacing: '0.08em',
-                  marginBottom: '0.4rem',
-                }}>
+                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
                   Date
                 </label>
                 <input
@@ -3002,27 +2434,17 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                   onChange={(e) => setRebookDate(e.target.value)}
                   style={{
                     width: '100%',
-                    padding: '0.7rem 0.85rem',
-                    border: `1px solid ${colors.borderPrimary}`,
-                    borderRadius: 11,
+                    padding: '0.75rem',
+                    border: `2px solid ${colors.borderPrimary}`,
+                    borderRadius: '0.5rem',
                     fontSize: '0.9rem',
-                    backgroundColor: colors.bgCard,
                     color: colors.textPrimary,
-                    cursor: 'pointer',
-                    outline: 'none',
-                    transition: 'border-color 0.15s, box-shadow 0.15s',
+                    cursor: 'pointer'
                   }}
-                  onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(242,12,143,0.50)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(242,12,143,0.10)'; }}
-                  onBlur={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }}
                 />
               </div>
               <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F',
-                  textTransform: 'uppercase', letterSpacing: '0.08em',
-                  marginBottom: '0.4rem',
-                }}>
+                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
                   Time
                 </label>
                 <input
@@ -3031,62 +2453,39 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                   onChange={(e) => setRebookTime(e.target.value)}
                   style={{
                     width: '100%',
-                    padding: '0.7rem 0.85rem',
-                    border: `1px solid ${colors.borderPrimary}`,
-                    borderRadius: 11,
+                    padding: '0.75rem',
+                    border: `2px solid ${colors.borderPrimary}`,
+                    borderRadius: '0.5rem',
                     fontSize: '0.9rem',
-                    backgroundColor: colors.bgCard,
                     color: colors.textPrimary,
-                    cursor: 'pointer',
-                    outline: 'none',
-                    transition: 'border-color 0.15s, box-shadow 0.15s',
+                    cursor: 'pointer'
                   }}
-                  onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(242,12,143,0.50)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(242,12,143,0.10)'; }}
-                  onBlur={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }}
                 />
               </div>
             </div>
 
-            <div style={{ marginBottom: '0.95rem' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F',
-                textTransform: 'uppercase', letterSpacing: '0.08em',
-                marginBottom: '0.4rem',
-              }}>
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
                 Location
               </label>
-              <div style={{ position: 'relative' }}>
-                <i className="bi bi-geo-alt-fill" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: '#F20C8F', pointerEvents: 'none' }} />
-                <input
-                  type="text"
-                  placeholder="Enter event location"
-                  value={rebookLocation}
-                  onChange={(e) => setRebookLocation(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '0.7rem 0.85rem 0.7rem 2.1rem',
-                    border: `1px solid ${colors.borderPrimary}`,
-                    borderRadius: 11,
-                    fontSize: '0.9rem',
-                    backgroundColor: colors.bgCard,
-                    color: colors.textPrimary,
-                    outline: 'none',
-                    transition: 'border-color 0.15s, box-shadow 0.15s',
-                  }}
-                  onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(242,12,143,0.50)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(242,12,143,0.10)'; }}
-                  onBlur={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }}
-                />
-              </div>
+              <input
+                type="text"
+                placeholder="Enter event location"
+                value={rebookLocation}
+                onChange={(e) => setRebookLocation(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: `2px solid ${colors.borderPrimary}`,
+                  borderRadius: '0.5rem',
+                  fontSize: '0.9rem',
+                  color: colors.textPrimary
+                }}
+              />
             </div>
 
             <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F',
-                textTransform: 'uppercase', letterSpacing: '0.08em',
-                marginBottom: '0.4rem',
-              }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
                 Additional Notes
               </label>
               <textarea
@@ -3095,59 +2494,39 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                 onChange={(e) => setRebookNotes(e.target.value)}
                 style={{
                   width: '100%',
-                  padding: '0.75rem 0.85rem',
-                  border: `1px solid ${colors.borderPrimary}`,
-                  borderRadius: 11,
+                  padding: '0.75rem',
+                  border: `2px solid ${colors.borderPrimary}`,
+                  borderRadius: '0.5rem',
                   fontSize: '0.9rem',
-                  minHeight: 84,
+                  minHeight: '80px',
                   resize: 'vertical',
-                  backgroundColor: colors.bgCard,
-                  color: colors.textPrimary,
-                  outline: 'none',
-                  fontFamily: 'inherit',
-                  transition: 'border-color 0.15s, box-shadow 0.15s',
+                  color: colors.textPrimary
                 }}
-                onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(242,12,143,0.50)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(242,12,143,0.10)'; }}
-                onBlur={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }}
               />
             </div>
 
             {rebookError && (
-              <div style={{
-                color: actualTheme === 'dark' ? '#FCA5A5' : '#B91C1C',
-                fontSize: '0.85rem',
-                marginBottom: '0.85rem',
-                padding: '0.65rem 0.85rem',
-                background: actualTheme === 'dark' ? 'rgba(220,38,38,0.18)' : 'rgba(254,242,242,0.85)',
-                border: `1px solid ${actualTheme === 'dark' ? 'rgba(220,38,38,0.40)' : 'rgba(220,38,38,0.25)'}`,
-                borderRadius: 10,
-                display: 'flex', alignItems: 'center', gap: 6,
-              }}>
-                <i className="bi bi-exclamation-triangle-fill" style={{ fontSize: 13 }} />
+              <div style={{ color: '#EF4444', fontSize: '0.85rem', marginBottom: '0.75rem', padding: '0.5rem 0.75rem', backgroundColor: '#FEF2F2', borderRadius: '0.375rem' }}>
                 {rebookError}
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: '0.65rem', marginBottom: '4rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '4rem' }}>
               <button
                 onClick={() => { setShowRebookModal(false); setRebookError(null); }}
                 disabled={isSubmittingRebook}
                 style={{
                   flex: 1,
                   padding: '0.75rem 1rem',
-                  border: `1px solid ${colors.borderPrimary}`,
-                  borderRadius: 11,
+                  border: `2px solid ${colors.borderPrimary}`,
+                  borderRadius: '0.5rem',
                   background: colors.bgTertiary,
                   color: colors.textPrimary,
                   fontSize: '0.9rem',
-                  fontWeight: 700,
-                  letterSpacing: '-0.005em',
+                  fontWeight: '600',
                   cursor: isSubmittingRebook ? 'not-allowed' : 'pointer',
-                  opacity: isSubmittingRebook ? 0.6 : 1,
-                  transition: 'transform 0.15s, border-color 0.15s',
+                  opacity: isSubmittingRebook ? 0.6 : 1
                 }}
-                onMouseEnter={(e) => { if (!isSubmittingRebook) { e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)'; } }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; }}
               >
                 Cancel
               </button>
@@ -3157,30 +2536,22 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                 style={{
                   flex: 1,
                   padding: '0.75rem 1rem',
-                  border: 'none',
-                  borderRadius: 11,
-                  background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                  border: '2px solid #c00a72',
+                  borderRadius: '0.5rem',
+                  background: '#F20C8F',
                   color: 'white',
                   fontSize: '0.9rem',
-                  fontWeight: 700,
-                  letterSpacing: '-0.005em',
+                  fontWeight: '600',
                   cursor: isSubmittingRebook ? 'not-allowed' : 'pointer',
                   opacity: isSubmittingRebook ? 0.7 : 1,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 7,
-                  boxShadow: '0 8px 18px rgba(8,58,133,0.30)',
-                  transition: 'transform 0.15s, box-shadow 0.15s',
+                  gap: '0.5rem'
                 }}
-                onMouseEnter={(e) => { if (!isSubmittingRebook) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 12px 24px rgba(242,12,143,0.35)'; } }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 18px rgba(8,58,133,0.30)'; }}
               >
-                {isSubmittingRebook ? (
-                  <><i className="bi bi-arrow-clockwise" style={{ fontSize: 13, animation: 'spin 0.9s linear infinite' }} /> Sending...</>
-                ) : (
-                  <><i className="bi bi-send-fill" style={{ fontSize: 13 }} /> Send Booking Request</>
-                )}
+                <CheckIcon />
+                {isSubmittingRebook ? 'Sending...' : 'Send Booking Request'}
               </button>
             </div>
           </div>
@@ -3200,92 +2571,52 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
       >
         {reviewPhotographer && (
           <div>
-            {/* Photographer header */}
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: '0.85rem',
-              marginBottom: '1.1rem',
-              padding: '0.85rem 1rem',
-              background: actualTheme === 'dark'
-                ? 'linear-gradient(135deg, rgba(8,58,133,0.22) 0%, rgba(242,12,143,0.16) 100%)'
-                : 'linear-gradient(135deg, rgba(8,58,133,0.06) 0%, rgba(242,12,143,0.06) 100%)',
-              border: `1px solid ${actualTheme === 'dark' ? 'rgba(8,58,133,0.35)' : 'rgba(8,58,133,0.14)'}`,
-              borderRadius: 14,
-              position: 'relative',
-              overflow: 'hidden',
-            }}>
-              <span aria-hidden style={{
-                position: 'absolute', top: 0, left: 0, right: 0, height: 3,
-                background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
-              }} />
-              <div style={{ position: 'relative', width: 52, height: 52, flexShrink: 0 }}>
-                <div style={{
-                  width: 52, height: 52, borderRadius: '50%',
-                  border: `2px solid ${colors.bgCard}`,
-                  background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  overflow: 'hidden', position: 'relative',
-                  boxShadow: '0 4px 12px rgba(8,58,133,0.20)',
-                }}>
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <circle cx="12" cy="7" r="4" stroke="white" strokeWidth="2"/>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+              <div style={{ position: 'relative', width: '48px', height: '48px', flexShrink: 0 }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '50%', border: '2px solid white', backgroundColor: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <circle cx="12" cy="7" r="4" stroke="#9CA3AF" strokeWidth="2"/>
                   </svg>
                   {reviewPhotographer.profileImage && (
-                    <img src={reviewPhotographer.profileImage} alt={reviewPhotographer.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                    <img src={reviewPhotographer.profileImage} alt={reviewPhotographer.firstName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                   )}
                 </div>
                 {reviewPhotographer.verified && (
                   <div style={{
                     position: 'absolute',
-                    bottom: -2, right: -2,
-                    background: colors.bgCard,
+                    bottom: '0px',
+                    right: '0px',
+                    background: 'white',
                     borderRadius: '50%',
-                    width: 20, height: 20,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    boxShadow: '0 3px 6px rgba(59,130,246,0.30)',
+                    width: '18px',
+                    height: '18px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15)'
                   }}>
-                    <i className="bi bi-patch-check-fill" style={{ color: '#3b82f6', fontSize: '0.85rem' }} />
+                    <i className="bi bi-patch-check-fill" style={{ color: '#3b82f6', fontSize: '0.75rem' }} />
                   </div>
                 )}
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{
-                  fontSize: '0.6rem', fontWeight: 700, color: '#F20C8F',
-                  textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2,
-                }}>{reviewPhotographer.myReview ? 'Editing review for' : 'Reviewing'}</div>
-                <div style={{ fontSize: '1rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.01em' }}>{reviewPhotographer.firstName} {reviewPhotographer.lastName}</div>
-                {reviewPhotographer.lastEventName && (
-                  <div style={{ fontSize: '0.78rem', color: colors.textSecondary, marginTop: 2, display: 'inline-flex', alignItems: 'center', gap: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
-                    <i className="bi bi-camera-fill" style={{ fontSize: 10, color: '#F20C8F' }} />
-                    {reviewPhotographer.lastEventName}
-                  </div>
-                )}
+              <div>
+                <div style={{ fontWeight: '600', color: colors.textPrimary }}>{reviewPhotographer.firstName} {reviewPhotographer.lastName}</div>
+                <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>{reviewPhotographer.lastEventName}</div>
               </div>
             </div>
 
             {/* Event Selector */}
-            <div style={{ marginBottom: '1.1rem' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F',
-                textTransform: 'uppercase', letterSpacing: '0.08em',
-                marginBottom: '0.45rem',
-              }}>
-                Select Event <span style={{ color: '#EF4444' }}>*</span>
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
+                Select Event *
               </label>
               {reviewEventsLoading ? (
-                <div style={{
-                  padding: '0.7rem 0.85rem',
-                  fontSize: '0.85rem',
-                  color: colors.textSecondary,
-                  display: 'flex', alignItems: 'center', gap: 8,
-                  background: colors.bgTertiary,
-                  border: `1px solid ${colors.borderPrimary}`,
-                  borderRadius: 11,
-                }}>
+                <div style={{ padding: '0.75rem', fontSize: '0.85rem', color: colors.textSecondary, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <div style={{
-                    width: 14, height: 14,
-                    border: '2px solid rgba(8,58,133,0.20)',
+                    width: '16px',
+                    height: '16px',
+                    border: '2px solid #e5e7eb',
                     borderTopColor: '#083A85',
                     borderRadius: '50%',
                     animation: 'spin 0.8s linear infinite',
@@ -3293,16 +2624,7 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                   Loading completed events...
                 </div>
               ) : reviewEvents.length === 0 ? (
-                <div style={{
-                  padding: '0.7rem 0.85rem',
-                  fontSize: '0.85rem',
-                  color: colors.textSecondary,
-                  background: colors.bgTertiary,
-                  borderRadius: 11,
-                  border: `1px solid ${colors.borderPrimary}`,
-                  display: 'inline-flex', alignItems: 'center', gap: 6,
-                }}>
-                  <i className="bi bi-info-circle" style={{ fontSize: 12 }} />
+                <div style={{ padding: '0.75rem', fontSize: '0.85rem', color: '#9CA3AF', background: colors.bgTertiary, borderRadius: '0.5rem', border: `2px solid ${colors.borderPrimary}` }}>
                   No completed events with this photographer
                 </div>
               ) : (
@@ -3311,16 +2633,13 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                   onChange={(e) => setSelectedReviewEventId(e.target.value)}
                   style={{
                     width: '100%',
-                    padding: '0.7rem 0.85rem',
-                    border: `1px solid ${selectedReviewEventId ? 'rgba(242,12,143,0.45)' : colors.borderPrimary}`,
-                    borderRadius: 11,
+                    padding: '0.75rem',
+                    border: `2px solid ${colors.borderPrimary}`,
+                    borderRadius: '0.5rem',
                     fontSize: '0.9rem',
                     color: colors.textPrimary,
-                    background: colors.bgCard,
+                    background: colors.bgPrimary,
                     cursor: 'pointer',
-                    outline: 'none',
-                    boxShadow: selectedReviewEventId ? '0 0 0 3px rgba(242,12,143,0.10)' : 'none',
-                    transition: 'border-color 0.15s, box-shadow 0.15s',
                   }}
                 >
                   <option value="">-- Select an event --</option>
@@ -3336,37 +2655,23 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
             {/* Review Error */}
             {reviewError && (
               <div style={{
-                padding: '0.65rem 0.85rem',
-                marginBottom: '0.95rem',
-                background: actualTheme === 'dark' ? 'rgba(220,38,38,0.18)' : 'rgba(254,242,242,0.85)',
-                border: `1px solid ${actualTheme === 'dark' ? 'rgba(220,38,38,0.40)' : 'rgba(220,38,38,0.25)'}`,
-                borderRadius: 10,
-                color: actualTheme === 'dark' ? '#FCA5A5' : '#B91C1C',
+                padding: '0.75rem',
+                marginBottom: '1rem',
+                background: '#FEF2F2',
+                border: '1px solid #FECACA',
+                borderRadius: '0.5rem',
+                color: '#DC2626',
                 fontSize: '0.85rem',
-                display: 'flex', alignItems: 'center', gap: 6,
               }}>
-                <i className="bi bi-exclamation-triangle-fill" style={{ fontSize: 13 }} />
                 {reviewError}
               </div>
             )}
 
-            {/* Rating */}
-            <div style={{ marginBottom: '1.1rem' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F',
-                textTransform: 'uppercase', letterSpacing: '0.08em',
-                marginBottom: '0.5rem',
-              }}>
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
                 Your Rating
               </label>
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: '0.35rem',
-                padding: '0.6rem 0.75rem',
-                background: actualTheme === 'dark' ? 'rgba(251,191,36,0.10)' : 'rgba(251,191,36,0.06)',
-                border: `1px solid ${actualTheme === 'dark' ? 'rgba(251,191,36,0.30)' : 'rgba(251,191,36,0.25)'}`,
-                borderRadius: 11,
-              }}>
+              <div style={{ display: 'flex', gap: '0.25rem' }}>
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
                     key={star}
@@ -3375,32 +2680,19 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                       background: 'none',
                       border: 'none',
                       cursor: 'pointer',
-                      padding: 4,
-                      borderRadius: 6,
-                      transition: 'transform 0.12s',
+                      padding: '0.25rem'
                     }}
-                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.15)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-                    title={`${star} star${star > 1 ? 's' : ''}`}
                   >
-                    <svg width="26" height="26" viewBox="0 0 24 24" fill={star <= reviewRating ? '#FBBF24' : 'none'} xmlns="http://www.w3.org/2000/svg" style={{ filter: star <= reviewRating ? 'drop-shadow(0 2px 4px rgba(251,191,36,0.45))' : 'none' }}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill={star <= reviewRating ? '#FBBF24' : 'none'} xmlns="http://www.w3.org/2000/svg">
                       <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="#FBBF24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </button>
                 ))}
-                <span style={{ marginLeft: 'auto', fontSize: '0.85rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.005em' }}>
-                  {reviewRating}/5
-                </span>
               </div>
             </div>
 
             <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F',
-                textTransform: 'uppercase', letterSpacing: '0.08em',
-                marginBottom: '0.45rem',
-              }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
                 Your Review
               </label>
               <textarea
@@ -3409,25 +2701,18 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                 placeholder="Share your experience working with this photographer..."
                 style={{
                   width: '100%',
-                  padding: '0.75rem 0.85rem',
-                  border: `1px solid ${colors.borderPrimary}`,
-                  borderRadius: 11,
+                  padding: '0.75rem',
+                  border: `2px solid ${colors.borderPrimary}`,
+                  borderRadius: '0.5rem',
                   fontSize: '0.9rem',
-                  minHeight: 120,
+                  minHeight: '120px',
                   resize: 'vertical',
-                  backgroundColor: colors.bgCard,
-                  color: colors.textPrimary,
-                  outline: 'none',
-                  fontFamily: 'inherit',
-                  lineHeight: 1.5,
-                  transition: 'border-color 0.15s, box-shadow 0.15s',
+                  color: colors.textPrimary
                 }}
-                onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(242,12,143,0.50)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(242,12,143,0.10)'; }}
-                onBlur={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }}
               />
             </div>
 
-            <div style={{ display: 'flex', gap: '0.65rem', marginBottom: '4rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '4rem' }}>
               <button
                 onClick={() => {
                   setShowReviewModal(false);
@@ -3438,18 +2723,14 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                 style={{
                   flex: 1,
                   padding: '0.75rem 1rem',
-                  border: `1px solid ${colors.borderPrimary}`,
-                  borderRadius: 11,
+                  border: `2px solid ${colors.borderPrimary}`,
+                  borderRadius: '0.5rem',
                   background: colors.bgTertiary,
                   color: colors.textPrimary,
                   fontSize: '0.9rem',
-                  fontWeight: 700,
-                  letterSpacing: '-0.005em',
-                  cursor: 'pointer',
-                  transition: 'border-color 0.15s',
+                  fontWeight: '600',
+                  cursor: 'pointer'
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; }}
               >
                 Cancel
               </button>
@@ -3459,29 +2740,17 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                 style={{
                   flex: 1,
                   padding: '0.75rem 1rem',
-                  border: 'none',
-                  borderRadius: 11,
-                  background: isSubmittingReview || !selectedReviewEventId
-                    ? (actualTheme === 'dark' ? '#4B5563' : '#9CA3AF')
-                    : 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                  border: '2px solid #062a63',
+                  borderRadius: '0.5rem',
+                  background: isSubmittingReview || !selectedReviewEventId ? '#6B7280' : '#083A85',
                   color: 'white',
                   fontSize: '0.9rem',
-                  fontWeight: 700,
-                  letterSpacing: '-0.005em',
+                  fontWeight: '600',
                   cursor: isSubmittingReview || !selectedReviewEventId ? 'not-allowed' : 'pointer',
                   opacity: isSubmittingReview ? 0.7 : 1,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-                  boxShadow: isSubmittingReview || !selectedReviewEventId ? 'none' : '0 8px 18px rgba(8,58,133,0.30)',
-                  transition: 'transform 0.15s, box-shadow 0.15s',
                 }}
-                onMouseEnter={(e) => { if (!isSubmittingReview && selectedReviewEventId) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 12px 24px rgba(242,12,143,0.35)'; } }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = isSubmittingReview || !selectedReviewEventId ? 'none' : '0 8px 18px rgba(8,58,133,0.30)'; }}
               >
-                {isSubmittingReview ? (
-                  <><i className="bi bi-arrow-clockwise" style={{ fontSize: 13, animation: 'spin 0.9s linear infinite' }} /> Submitting...</>
-                ) : (
-                  <><i className="bi bi-star-fill" style={{ fontSize: 12 }} /> {reviewPhotographer.myReview ? 'Update Review' : 'Submit Review'}</>
-                )}
+                {isSubmittingReview ? 'Submitting...' : reviewPhotographer.myReview ? 'Update Review' : 'Submit Review'}
               </button>
             </div>
           </div>
@@ -3638,34 +2907,17 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
         if (xentriPayStep === 'processing') {
           return (
             <Modal isOpen={showPaymentModal} onClose={handlePayClose} title="Processing Payment" maxWidth="450px">
-              <div style={{ textAlign: 'center', padding: '2rem 1rem 1rem' }}>
-                <div style={{
-                  width: 72, height: 72, margin: '0 auto 1.25rem',
-                  borderRadius: 20,
-                  background: 'linear-gradient(135deg, rgba(8,58,133,0.10) 0%, rgba(242,12,143,0.10) 100%)',
-                  border: '1px solid rgba(8,58,133,0.18)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  position: 'relative',
-                }}>
-                  <div style={{ width: 40, height: 40, border: '3px solid rgba(8,58,133,0.18)', borderTopColor: '#083A85', borderRadius: '50%', animation: 'spin 0.9s linear infinite' }} />
-                </div>
-                <div style={{
-                  fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F',
-                  textTransform: 'uppercase', letterSpacing: '0.08em',
-                  marginBottom: 6,
-                }}>Processing</div>
-                <h4 style={{ fontSize: '1.15rem', fontWeight: 800, color: colors.textPrimary, margin: '0 0 0.5rem', letterSpacing: '-0.01em' }}>
+              <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+                <div style={{ width: '64px', height: '64px', margin: '0 auto 1.5rem', border: '4px solid rgba(8, 58, 133, 0.2)', borderTopColor: '#083A85', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                <h4 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>
                   {selectedPaymentMethod === 'card' ? 'Complete payment in your browser' : 'Check your phone'}
                 </h4>
-                <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 auto 0.85rem', lineHeight: 1.55, maxWidth: 340 }}>
+                <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1rem', lineHeight: '1.5' }}>
                   {selectedPaymentMethod === 'card'
                     ? 'A payment page has been opened. Complete the payment there and we\'ll confirm it here.'
                     : 'A USSD prompt has been sent to your phone. Please approve the payment on your device.'}
                 </p>
-                <p style={{ fontSize: '0.78rem', color: colors.textSecondary, opacity: 0.75, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                  <i className="bi bi-hourglass-split" style={{ fontSize: 11 }} />
-                  Waiting for the gateway to confirm — this can take up to a minute.
-                </p>
+                <p style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Waiting for the gateway to confirm — this can take up to a minute.</p>
                 <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
               </div>
             </Modal>
@@ -3676,45 +2928,13 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
         if (xentriPayStep === 'success') {
           return (
             <Modal isOpen={showPaymentModal} onClose={handlePayClose} title="Payment Successful" maxWidth="450px">
-              <div style={{ textAlign: 'center', padding: '2rem 1rem 1rem' }}>
-                <div style={{
-                  width: 72, height: 72, margin: '0 auto 1.25rem', borderRadius: 20,
-                  background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '0 12px 28px rgba(16,185,129,0.40)',
-                }}>
-                  <svg width="34" height="34" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17L4 12" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+                <div style={{ width: '64px', height: '64px', margin: '0 auto 1.5rem', borderRadius: '50%', backgroundColor: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17L4 12" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
                 </div>
-                <div style={{
-                  fontSize: '0.62rem', fontWeight: 700, color: '#10B981',
-                  textTransform: 'uppercase', letterSpacing: '0.08em',
-                  marginBottom: 6,
-                }}>Success</div>
-                <h4 style={{ fontSize: '1.2rem', fontWeight: 800, color: colors.textPrimary, margin: '0 0 0.5rem', letterSpacing: '-0.01em' }}>Payment Completed!</h4>
-                <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 auto 1.4rem', lineHeight: 1.55, maxWidth: 340 }}>
-                  Your payment of <strong style={{ color: colors.textPrimary }}>{formatPrice(payTotalAmount)}</strong> has been received successfully.
-                </p>
-                <button
-                  onClick={() => { handlePayClose(); setSuccessMessage('Payment processed successfully'); setTimeout(() => setSuccessMessage(''), 3000); }}
-                  style={{
-                    padding: '0.7rem 2rem',
-                    border: 'none',
-                    borderRadius: 11,
-                    background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                    color: 'white',
-                    fontSize: '0.9rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'inline-flex', alignItems: 'center', gap: 7,
-                    boxShadow: '0 8px 18px rgba(16,185,129,0.32)',
-                    transition: 'transform 0.15s, box-shadow 0.15s',
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
-                >
-                  <i className="bi bi-check2" style={{ fontSize: 13 }} />
-                  Done
-                </button>
+                <h4 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>Payment Completed!</h4>
+                <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1.5rem' }}>Your payment of {formatPrice(payTotalAmount)} has been received successfully.</p>
+                <button onClick={() => { handlePayClose(); setSuccessMessage('Payment processed successfully'); setTimeout(() => setSuccessMessage(''), 3000); }} style={{ padding: '0.75rem 2rem', border: '2px solid #062a63', borderRadius: '0.5rem', background: '#083A85', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Done</button>
               </div>
             </Modal>
           );
@@ -3724,62 +2944,15 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
         if (xentriPayStep === 'failed') {
           return (
             <Modal isOpen={showPaymentModal} onClose={handlePayClose} title="Payment Failed" maxWidth="450px">
-              <div style={{ textAlign: 'center', padding: '2rem 1rem 1rem' }}>
-                <div style={{
-                  width: 72, height: 72, margin: '0 auto 1.25rem', borderRadius: 20,
-                  background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '0 12px 28px rgba(220,38,38,0.40)',
-                }}>
-                  <svg width="34" height="34" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+                <div style={{ width: '64px', height: '64px', margin: '0 auto 1.5rem', borderRadius: '50%', backgroundColor: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
                 </div>
-                <div style={{
-                  fontSize: '0.62rem', fontWeight: 700, color: '#DC2626',
-                  textTransform: 'uppercase', letterSpacing: '0.08em',
-                  marginBottom: 6,
-                }}>Payment failed</div>
-                <h4 style={{ fontSize: '1.2rem', fontWeight: 800, color: colors.textPrimary, margin: '0 0 0.5rem', letterSpacing: '-0.01em' }}>We couldn&apos;t process this payment</h4>
-                <p style={{ fontSize: '0.9rem', color: actualTheme === 'dark' ? '#FCA5A5' : '#B91C1C', margin: '0 auto 1.4rem', lineHeight: 1.55, maxWidth: 340 }}>{xentriPayError || 'Something went wrong. Please try again.'}</p>
-                <div style={{ display: 'flex', gap: '0.65rem', justifyContent: 'center' }}>
-                  <button
-                    onClick={handlePayClose}
-                    style={{
-                      padding: '0.7rem 1.4rem',
-                      border: `1px solid ${colors.borderPrimary}`,
-                      borderRadius: 11,
-                      background: colors.bgTertiary,
-                      color: colors.textPrimary,
-                      fontSize: '0.9rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      transition: 'border-color 0.15s',
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; }}
-                  >
-                    Close
-                  </button>
-                  <button
-                    onClick={() => { setXentriPayStep('select'); setXentriPayError(''); setPayShowReceipt(false); setIsProcessingPayment(false); }}
-                    style={{
-                      padding: '0.7rem 1.4rem',
-                      border: 'none',
-                      borderRadius: 11,
-                      background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
-                      color: 'white',
-                      fontSize: '0.9rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      display: 'inline-flex', alignItems: 'center', gap: 6,
-                      boxShadow: '0 8px 18px rgba(220,38,38,0.30)',
-                      transition: 'transform 0.15s',
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
-                  >
-                    <i className="bi bi-arrow-clockwise" style={{ fontSize: 12 }} />
-                    Try Again
-                  </button>
+                <h4 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>Payment Failed</h4>
+                <p style={{ fontSize: '0.9rem', color: '#EF4444', margin: '0 0 1.5rem' }}>{xentriPayError || 'Something went wrong. Please try again.'}</p>
+                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+                  <button onClick={handlePayClose} style={{ padding: '0.75rem 1.5rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Close</button>
+                  <button onClick={() => { setXentriPayStep('select'); setXentriPayError(''); setPayShowReceipt(false); setIsProcessingPayment(false); }} style={{ padding: '0.75rem 1.5rem', border: '2px solid #c00a72', borderRadius: '0.5rem', background: '#F20C8F', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Try Again</button>
                 </div>
               </div>
             </Modal>
@@ -3788,46 +2961,30 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
 
         if (payShowReceipt) {
           const mi = payMethodMap[selectedPaymentMethod] || payMethodMap.card;
-          const summaryRow = (label: string, value: React.ReactNode) => (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', gap: 8 }}>
-              <span style={{ fontSize: '0.78rem', color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>{label}</span>
-              <span style={{ fontSize: '0.88rem', fontWeight: 700, color: colors.textPrimary, textAlign: 'right', maxWidth: '62%', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.005em' }}>{value}</span>
-            </div>
-          );
           return (
             <Modal isOpen={showPaymentModal} onClose={handlePayClose} title="Payment Summary" maxWidth="450px">
               <div>
-                <div style={{
-                  background: actualTheme === 'dark'
-                    ? 'linear-gradient(135deg, rgba(8,58,133,0.18) 0%, rgba(242,12,143,0.12) 100%)'
-                    : 'linear-gradient(135deg, rgba(8,58,133,0.05) 0%, rgba(242,12,143,0.04) 100%)',
-                  borderRadius: 14,
-                  padding: '1.1rem 1.15rem',
-                  marginBottom: '1.1rem',
-                  border: `1px solid ${actualTheme === 'dark' ? 'rgba(8,58,133,0.32)' : 'rgba(8,58,133,0.14)'}`,
-                  position: 'relative',
-                  overflow: 'hidden',
-                }}>
-                  <span aria-hidden style={{
-                    position: 'absolute', top: 0, left: 0, right: 0, height: 3,
-                    background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
-                  }} />
-                  <div style={{
-                    fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F',
-                    textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.85rem',
-                    display: 'inline-flex', alignItems: 'center', gap: 5,
-                  }}>
-                    <i className="bi bi-receipt" style={{ fontSize: 11 }} />
-                    Order summary
+                <div style={{ backgroundColor: colors.bgTertiary, borderRadius: '0.75rem', padding: '1.25rem', marginBottom: '1.25rem', border: `2px solid ${colors.borderPrimary}` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Photographer</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{paymentBooking.photographer.firstName} {paymentBooking.photographer.lastName}</span>
                   </div>
-                  {summaryRow('Photographer', `${paymentBooking.photographer.firstName} ${paymentBooking.photographer.lastName}`)}
-                  {summaryRow('Event', paymentBooking.booking.eventName)}
-                  {summaryRow('Date', formatDate(paymentBooking.booking.eventDate))}
-                  {summaryRow('Package', paymentBooking.booking.packageName)}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', gap: 8 }}>
-                    <span style={{ fontSize: '0.78rem', color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>Payment Method</span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div style={{ width: 24, height: 24, borderRadius: 6, overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, background: colors.bgCard, border: `1px solid ${colors.borderPrimary}`, padding: 2 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Event</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, textAlign: 'right', maxWidth: '60%' }}>{paymentBooking.booking.eventName}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Date</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>{formatDate(paymentBooking.booking.eventDate)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Package</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary }}>{paymentBooking.booking.packageName}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>Payment Method</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div style={{ width: '24px', height: '24px', borderRadius: '0.25rem', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1px' }}>
                         {selectedPaymentMethod === 'card' ? (
                           <>
                             <Image src="/visa.png" alt="Visa" width={14} height={20} unoptimized style={{ objectFit: 'contain' }} />
@@ -3837,101 +2994,36 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
                           <Image src={mi.image} alt={mi.label} width={24} height={24} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
                         )}
                       </div>
-                      <span style={{ fontSize: '0.88rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.005em' }}>{mi.label}</span>
+                      <span style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary }}>{mi.label}</span>
                     </div>
                   </div>
-                  <div style={{ height: 1, background: actualTheme === 'dark' ? 'rgba(255,255,255,0.10)' : 'rgba(8,58,133,0.10)', margin: '0.75rem 0' }} />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: colors.textPrimary }}>Amount Due</span>
-                    <span style={{ fontSize: '0.92rem', fontWeight: 700, color: colors.textPrimary }}>{formatPrice(payAmountDue)}</span>
+                  <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, margin: '0.75rem 0' }} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>Amount Due</span>
+                    <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{formatPrice(payAmountDue)}</span>
                   </div>
                   {payDonationValue > 0 && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                        <i className="bi bi-heart-fill" style={{ color: '#F20C8F', fontSize: 11 }} />
-                        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#F20C8F' }}>Donation</span>
-                      </div>
-                      <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#F20C8F' }}>{formatPrice(payDonationValue)}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><DonateHeartIcon /><span style={{ fontSize: '0.9rem', fontWeight: '500', color: '#F20C8F' }}>Donation</span></div>
+                      <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#F20C8F' }}>{formatPrice(payDonationValue)}</span>
                     </div>
                   )}
-                  <div style={{ height: 1, background: actualTheme === 'dark' ? 'rgba(255,255,255,0.10)' : 'rgba(8,58,133,0.10)', margin: '0.75rem 0' }} />
+                  <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, margin: '0.75rem 0' }} />
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '1rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.01em' }}>Total</span>
-                    <span style={{
-                      fontSize: '1.4rem', fontWeight: 800, letterSpacing: '-0.01em',
-                      background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                      backgroundClip: 'text',
-                    }}>{formatPrice(payTotalAmount)}</span>
+                    <span style={{ fontSize: '1.05rem', fontWeight: '700', color: colors.textPrimary }}>Total</span>
+                    <span style={{ fontSize: '1.3rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{formatPrice(payTotalAmount)}</span>
                   </div>
                 </div>
                 {xentriPayError && (
-                  <div style={{
-                    fontSize: '0.85rem',
-                    color: actualTheme === 'dark' ? '#FCA5A5' : '#B91C1C',
-                    margin: '0 0 0.85rem',
-                    padding: '0.6rem 0.85rem',
-                    background: actualTheme === 'dark' ? 'rgba(220,38,38,0.18)' : 'rgba(254,242,242,0.85)',
-                    border: `1px solid ${actualTheme === 'dark' ? 'rgba(220,38,38,0.40)' : 'rgba(220,38,38,0.25)'}`,
-                    borderRadius: 10,
-                    display: 'flex', alignItems: 'center', gap: 6,
-                  }}>
-                    <i className="bi bi-exclamation-triangle-fill" style={{ fontSize: 13 }} />
-                    {xentriPayError}
-                  </div>
+                  <p style={{ fontSize: '0.85rem', color: '#EF4444', margin: '0 0 0.75rem', textAlign: 'center' }}>{xentriPayError}</p>
                 )}
-                <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center' }}>
-                  <button
-                    onClick={() => { setPayShowReceipt(false); setXentriPayError(''); }}
-                    disabled={isProcessingPayment}
-                    style={{
-                      flex: 1,
-                      padding: '0.75rem 1rem',
-                      border: `1px solid ${colors.borderPrimary}`,
-                      borderRadius: 11,
-                      background: colors.bgTertiary,
-                      color: colors.textPrimary,
-                      fontSize: '0.9rem',
-                      fontWeight: 700,
-                      cursor: isProcessingPayment ? 'not-allowed' : 'pointer',
-                      opacity: isProcessingPayment ? 0.6 : 1,
-                      transition: 'border-color 0.15s',
-                    }}
-                    onMouseEnter={(e) => { if (!isProcessingPayment) { e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)'; } }}
-                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; }}
-                  >
-                    Back
-                  </button>
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                  <button onClick={() => { setPayShowReceipt(false); setXentriPayError(''); }} disabled={isProcessingPayment} style={{ flex: 1, padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: isProcessingPayment ? 'not-allowed' : 'pointer', opacity: isProcessingPayment ? 0.6 : 1 }}>Cancel</button>
                   <button
                     onClick={handlePayNowXentriPay}
                     disabled={isProcessingPayment}
-                    style={{
-                      flex: 1.4,
-                      padding: '0.75rem 1rem',
-                      border: 'none',
-                      borderRadius: 11,
-                      background: isProcessingPayment
-                        ? (actualTheme === 'dark' ? '#4B5563' : '#9CA3AF')
-                        : 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
-                      color: 'white',
-                      fontSize: '0.92rem',
-                      fontWeight: 700,
-                      letterSpacing: '-0.005em',
-                      cursor: isProcessingPayment ? 'not-allowed' : 'pointer',
-                      transition: 'transform 0.15s, box-shadow 0.15s',
-                      opacity: isProcessingPayment ? 0.7 : 1,
-                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-                      boxShadow: isProcessingPayment ? 'none' : '0 8px 18px rgba(8,58,133,0.30)',
-                    }}
-                    onMouseEnter={(e) => { if (!isProcessingPayment) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 12px 24px rgba(242,12,143,0.35)'; } }}
-                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = isProcessingPayment ? 'none' : '0 8px 18px rgba(8,58,133,0.30)'; }}
-                  >
-                    {isProcessingPayment ? (
-                      <><i className="bi bi-arrow-clockwise" style={{ fontSize: 13, animation: 'spin 0.9s linear infinite' }} /> Processing...</>
-                    ) : (
-                      <><i className="bi bi-shield-lock-fill" style={{ fontSize: 13 }} /> {paymentBooking.booking.paymentStatus === 'failed' ? 'Retry' : 'Pay'} {formatPrice(payTotalAmount)}</>
-                    )}
+                    style={{ flex: 1, padding: '0.75rem 1rem', border: paymentBooking.booking.paymentStatus === 'failed' ? '2px solid #c00a72' : '2px solid #062a63', borderRadius: '0.5rem', background: isProcessingPayment ? '#9CA3AF' : (paymentBooking.booking.paymentStatus === 'failed' ? '#F20C8F' : '#083A85'), color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: isProcessingPayment ? 'not-allowed' : 'pointer', transition: 'all 0.2s', opacity: isProcessingPayment ? 0.7 : 1 }}>
+                    {isProcessingPayment ? 'Processing...' : `${paymentBooking.booking.paymentStatus === 'failed' ? 'Retry' : 'Pay'} ${formatPrice(payTotalAmount)}`}
                   </button>
                 </div>
               </div>
@@ -3943,295 +3035,137 @@ const BookedPhotographersPage = ({ userRole = 'client' }: PhotographersPageProps
           <Modal isOpen={showPaymentModal} onClose={handlePayClose} title={paymentBooking.booking.paymentStatus === 'failed' ? 'Retry Payment' : 'Complete Payment'} maxWidth="450px">
             <div>
               {paymentBooking.booking.paymentStatus === 'failed' && (
-                <div style={{
-                  background: actualTheme === 'dark' ? 'rgba(220,38,38,0.18)' : 'rgba(254,226,226,0.85)',
-                  border: `1px solid ${actualTheme === 'dark' ? 'rgba(220,38,38,0.40)' : 'rgba(220,38,38,0.25)'}`,
-                  borderRadius: 11,
-                  padding: '0.7rem 0.85rem',
-                  marginBottom: '1rem',
-                  display: 'flex', alignItems: 'flex-start', gap: 8,
-                  position: 'relative',
-                  overflow: 'hidden',
-                }}>
-                  <span aria-hidden style={{
-                    position: 'absolute', top: 0, left: 0, bottom: 0, width: 3,
-                    background: 'linear-gradient(180deg, #EF4444 0%, #DC2626 100%)',
-                  }} />
-                  <i className="bi bi-exclamation-triangle-fill" style={{ fontSize: 14, color: '#DC2626', flexShrink: 0, marginTop: 1, marginLeft: 4 }} />
-                  <span style={{ fontSize: '0.85rem', color: actualTheme === 'dark' ? '#FCA5A5' : '#991B1B', lineHeight: 1.5 }}>Previous payment attempt failed. Please try again with a different payment method.</span>
+                <div style={{ backgroundColor: actualTheme === 'dark' ? '#450A0A' : '#FEE2E2', borderRadius: '0.5rem', padding: '0.75rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <AlertCircleIcon />
+                  <span style={{ fontSize: '0.85rem', color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626' }}>Previous payment attempt failed. Please try again with a different payment method.</span>
                 </div>
               )}
 
               {/* Payment Method Selection */}
-              <div style={{ marginBottom: '1.1rem' }}>
-                <label style={{
-                  display: 'block',
-                  fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F',
-                  textTransform: 'uppercase', letterSpacing: '0.08em',
-                  marginBottom: '0.55rem',
-                }}>Select Payment Method</label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>Select Payment Method</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   {[
                     { id: 'card', label: 'Credit/Debit Card', description: 'Pay with Visa, Mastercard, etc.', image: '/cards.png' },
                     { id: 'mtn', label: 'MTN Mobile Money', description: 'Pay via MTN MoMo', image: '/mtn.png' },
                     { id: 'airtel', label: 'Airtel Mobile Money', description: 'Pay via Airtel Money', image: '/airtel.png' },
-                  ].map((method) => {
-                    const isSelected = selectedPaymentMethod === method.id;
-                    return (
-                      <div key={method.id} onClick={() => setSelectedPaymentMethod(method.id)} style={{
-                        display: 'flex', alignItems: 'center', gap: '0.85rem',
-                        padding: '0.85rem 0.95rem',
-                        border: `1px solid ${isSelected ? 'rgba(8,58,133,0.45)' : colors.borderPrimary}`,
-                        borderRadius: 12, cursor: 'pointer',
-                        background: isSelected
-                          ? (actualTheme === 'dark'
-                            ? 'linear-gradient(135deg, rgba(8,58,133,0.22) 0%, rgba(242,12,143,0.14) 100%)'
-                            : 'linear-gradient(135deg, rgba(8,58,133,0.05) 0%, rgba(242,12,143,0.04) 100%)')
-                          : colors.bgCard,
-                        transition: 'all 0.18s',
-                        boxShadow: isSelected ? '0 6px 14px rgba(8,58,133,0.14)' : 'none',
-                      }}>
-                        <div style={{
-                          width: 44, height: 44, borderRadius: 10, overflow: 'hidden', flexShrink: 0,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2,
-                          background: colors.bgCard,
-                          border: `1px solid ${colors.borderPrimary}`,
-                          padding: 4,
-                        }}>
-                          {method.id === 'card' ? (
-                            <>
-                              <Image src="/visa.png" alt="Visa" width={22} height={34} unoptimized style={{ objectFit: 'contain' }} />
-                              <Image src="/master.png" alt="Mastercard" width={22} height={34} unoptimized style={{ objectFit: 'contain' }} />
-                            </>
-                          ) : (
-                            <Image src={method.image} alt={method.label} width={44} height={44} unoptimized style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
-                          )}
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: '0.92rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.005em' }}>{method.label}</div>
-                          <div style={{ fontSize: '0.76rem', color: colors.textSecondary, marginTop: 1 }}>{method.description}</div>
-                        </div>
-                        <div style={{
-                          width: 20, height: 20, borderRadius: '50%',
-                          background: isSelected ? 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)' : 'transparent',
-                          border: isSelected ? 'none' : `1.5px solid ${colors.borderPrimary}`,
-                          flexShrink: 0,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          boxShadow: isSelected ? '0 3px 8px rgba(242,12,143,0.30)' : 'none',
-                          transition: 'all 0.18s',
-                        }}>
-                          {isSelected && <i className="bi bi-check2" style={{ color: 'white', fontSize: 11, fontWeight: 700 }} />}
-                        </div>
+                  ].map((method) => (
+                    <div key={method.id} onClick={() => setSelectedPaymentMethod(method.id)} style={{
+                      display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem',
+                      border: selectedPaymentMethod === method.id ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
+                      borderRadius: '0.75rem', cursor: 'pointer',
+                      backgroundColor: selectedPaymentMethod === method.id ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard, transition: 'all 0.2s'
+                    }}>
+                      <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
+                        {method.id === 'card' ? (
+                          <>
+                            <Image src="/visa.png" alt="Visa" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
+                            <Image src="/master.png" alt="Mastercard" width={24} height={38} unoptimized style={{ objectFit: 'contain' }} />
+                          </>
+                        ) : (
+                          <Image src={method.image} alt={method.label} width={48} height={48} unoptimized style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                        )}
                       </div>
-                    );
-                  })}
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>{method.label}</div>
+                        <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{method.description}</div>
+                      </div>
+                      <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: selectedPaymentMethod === method.id ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`, backgroundColor: colors.bgCard, flexShrink: 0 }} />
+                    </div>
+                  ))}
                 </div>
 
                 {/* Phone Number Input (for mobile money) */}
                 {(selectedPaymentMethod === 'mtn' || selectedPaymentMethod === 'airtel') && (
-                  <div style={{ marginTop: '0.85rem' }}>
-                    <label style={{
-                      display: 'block',
-                      fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F',
-                      textTransform: 'uppercase', letterSpacing: '0.08em',
-                      marginBottom: '0.4rem',
-                    }}>Phone Number</label>
-                    <div style={{ position: 'relative' }}>
-                      <i className="bi bi-phone-fill" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: '#F20C8F', pointerEvents: 'none' }} />
-                      <input type="tel" placeholder="e.g. 078XXXXXXX" value={paymentPhone} onChange={(e) => { setPaymentPhone(e.target.value); setXentriPayError(''); }}
-                        style={{ width: '100%', padding: '0.7rem 0.85rem 0.7rem 2.1rem', border: `1px solid ${colors.borderPrimary}`, borderRadius: 11, fontSize: '0.9rem', color: colors.textPrimary, backgroundColor: colors.bgCard, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s, box-shadow 0.2s' }}
-                        onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(242,12,143,0.50)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(242,12,143,0.10)'; }}
-                        onBlur={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }}
-                      />
-                    </div>
-                    <p style={{ fontSize: '0.76rem', color: colors.textSecondary, margin: '0.35rem 0 0 0', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                      <i className="bi bi-info-circle" style={{ fontSize: 10 }} />
+                  <div style={{ marginTop: '0.75rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.375rem' }}>Phone Number</label>
+                    <input type="tel" placeholder="e.g. 078XXXXXXX" value={paymentPhone} onChange={(e) => { setPaymentPhone(e.target.value); setXentriPayError(''); }}
+                      style={{ width: '100%', padding: '0.7rem 0.75rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', fontSize: '0.9rem', color: colors.textPrimary, backgroundColor: colors.bgCard, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = '#083A85'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(8, 58, 133, 0.1)'; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }}
+                    />
+                    <p style={{ fontSize: '0.78rem', color: colors.textSecondary, margin: '0.25rem 0 0 0' }}>
                       Enter the {selectedPaymentMethod === 'mtn' ? 'MTN' : 'Airtel'} number to receive the payment prompt
                     </p>
                   </div>
                 )}
 
-                <p style={{ fontSize: '0.82rem', color: colors.textSecondary, margin: '0.85rem 0 0 0', textAlign: 'center', display: 'inline-flex', alignItems: 'center', gap: 5, justifyContent: 'center', width: '100%' }}>
-                  <i className="bi bi-gear-fill" style={{ fontSize: 11, color: '#F20C8F' }} />
-                  Manage payment methods in <span onClick={() => router.push(`/user/${userRole === 'event-coordinator' ? 'event-coordinator' : 'client'}/preferences?tab=payments`)} style={{ color: '#F20C8F', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', textDecorationThickness: 1, textUnderlineOffset: 3 }}>Preferences → Payment Accounts</span>
+                <p style={{ fontSize: '0.86rem', color: colors.textSecondary, margin: '0.75rem 0 0 0', textAlign: 'center' }}>
+                  <i className="bi bi-info-circle" style={{ marginRight: '0.375rem' }}></i>
+                  Manage your payment methods in <span onClick={() => router.push(`/user/${userRole === 'event-coordinator' ? 'event-coordinator' : 'client'}/preferences?tab=payments`)} style={{ color: colors.brandPrimary, fontWeight: '500', cursor: 'pointer', textDecoration: 'underline' }}>Preferences → Payment Accounts</span>
                 </p>
               </div>
 
               {/* Donation Section */}
               <div style={{
-                marginBottom: '1.1rem', padding: '0.95rem 1rem', borderRadius: 14,
-                border: `1px solid ${payDonationSkipped ? colors.borderPrimary : (payDonationValue > 0 ? 'rgba(242,12,143,0.55)' : 'rgba(242, 12, 143, 0.30)')}`,
-                background: actualTheme === 'dark'
-                  ? 'linear-gradient(135deg, rgba(242, 12, 143, 0.10) 0%, rgba(255, 107, 157, 0.05) 100%)'
-                  : 'linear-gradient(135deg, rgba(242, 12, 143, 0.05) 0%, rgba(255, 107, 157, 0.02) 100%)',
-                position: 'relative',
-                overflow: 'hidden',
-                transition: 'all 0.2s',
+                marginBottom: '1.25rem', padding: '1rem', borderRadius: '0.75rem',
+                border: `2px solid ${payDonationSkipped ? colors.borderPrimary : (payDonationValue > 0 ? '#F20C8F' : 'rgba(242, 12, 143, 0.3)')}`,
+                background: actualTheme === 'dark' ? 'linear-gradient(135deg, rgba(242, 12, 143, 0.08) 0%, rgba(255, 107, 157, 0.03) 100%)' : 'linear-gradient(135deg, rgba(242, 12, 143, 0.05) 0%, rgba(255, 107, 157, 0.02) 100%)',
+                transition: 'all 0.2s'
               }}>
-                <span aria-hidden style={{
-                  position: 'absolute', top: 0, left: 0, right: 0, height: 3,
-                  background: 'linear-gradient(90deg, #F20C8F 0%, #FF6B9D 100%)',
-                }} />
-                <div style={{ marginBottom: '0.7rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{
-                      width: 30, height: 30, borderRadius: 9,
-                      background: 'linear-gradient(135deg, #F20C8F 0%, #DB0A7F 100%)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      boxShadow: '0 4px 10px rgba(242,12,143,0.30)',
-                    }}>
-                      <i className="bi bi-heart-fill" style={{ color: 'white', fontSize: 13 }} />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{
-                        fontSize: '0.6rem', fontWeight: 700, color: '#F20C8F',
-                        textTransform: 'uppercase', letterSpacing: '0.08em',
-                      }}>Optional</div>
-                      <div style={{ fontSize: '0.95rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.005em' }}>Support a Cause</div>
-                    </div>
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <DonateHeartIcon />
+                    <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>Support a Cause</span>
+                    <span style={{ fontSize: '0.81rem', color: colors.textSecondary, marginLeft: 'auto' }}>Optional</span>
                   </div>
-                  <p style={{ fontSize: '0.82rem', color: colors.textSecondary, margin: '0.4rem 0 0 0', lineHeight: 1.45 }}>
-                    Add a small donation to help fund community projects and initiatives.
+                  <p style={{ fontSize: '0.84rem', color: colors.textSecondary, margin: '0.35rem 0 0 0', lineHeight: '1.4' }}>
+                    Add a small donation to help fund community projects and initiatives
                   </p>
                 </div>
                 {!payDonationSkipped && (
                   <>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem', marginBottom: '0.6rem' }}>
-                      {['5', '10', '25', '50'].map((amount) => {
-                        const isSel = payDonationAmount === amount;
-                        return (
-                          <button key={amount} onClick={() => handlePaySelectDonation(amount)} style={{
-                            padding: '0.5rem 0.75rem',
-                            border: `1px solid ${isSel ? 'rgba(242,12,143,0.55)' : colors.borderPrimary}`,
-                            borderRadius: 10,
-                            background: isSel
-                              ? 'linear-gradient(135deg, #F20C8F 0%, #DB0A7F 100%)'
-                              : colors.bgCard,
-                            color: isSel ? 'white' : colors.textPrimary,
-                            fontSize: '0.82rem', fontWeight: 700,
-                            cursor: 'pointer', transition: 'all 0.18s',
-                            flex: '1', minWidth: 0,
-                            letterSpacing: '-0.005em',
-                            boxShadow: isSel ? '0 4px 10px rgba(242,12,143,0.30)' : 'none',
-                          }}>{formatPrice(parseFloat(amount))}</button>
-                        );
-                      })}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                      {['5', '10', '25', '50'].map((amount) => (
+                        <button key={amount} onClick={() => handlePaySelectDonation(amount)} style={{
+                          padding: '0.4rem 0.75rem', border: payDonationAmount === amount ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`,
+                          borderRadius: '0.5rem', background: payDonationAmount === amount ? (actualTheme === 'dark' ? 'rgba(242, 12, 143, 0.15)' : 'rgba(242, 12, 143, 0.08)') : colors.bgCard,
+                          color: payDonationAmount === amount ? '#F20C8F' : colors.textSecondary, fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', flex: '1', minWidth: '0'
+                        }}>{formatPrice(parseFloat(amount))}</button>
+                      ))}
                       <button onClick={() => handlePaySelectDonation('custom')} style={{
-                        padding: '0.5rem 0.75rem',
-                        border: `1px solid ${payDonationAmount === 'custom' ? 'rgba(242,12,143,0.55)' : colors.borderPrimary}`,
-                        borderRadius: 10,
-                        background: payDonationAmount === 'custom'
-                          ? 'linear-gradient(135deg, #F20C8F 0%, #DB0A7F 100%)'
-                          : colors.bgCard,
-                        color: payDonationAmount === 'custom' ? 'white' : colors.textPrimary,
-                        fontSize: '0.82rem', fontWeight: 700,
-                        cursor: 'pointer', transition: 'all 0.18s',
-                        flex: '1', minWidth: 0,
-                        letterSpacing: '-0.005em',
-                        boxShadow: payDonationAmount === 'custom' ? '0 4px 10px rgba(242,12,143,0.30)' : 'none',
+                        padding: '0.4rem 0.75rem', border: payDonationAmount === 'custom' ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`,
+                        borderRadius: '0.5rem', background: payDonationAmount === 'custom' ? (actualTheme === 'dark' ? 'rgba(242, 12, 143, 0.15)' : 'rgba(242, 12, 143, 0.08)') : colors.bgCard,
+                        color: payDonationAmount === 'custom' ? '#F20C8F' : colors.textSecondary, fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', flex: '1', minWidth: '0'
                       }}>Custom</button>
                     </div>
                     {payShowCustomInput && (
-                      <div style={{ position: 'relative', marginBottom: '0.7rem' }}>
-                        <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: '0.95rem', fontWeight: 700, color: '#F20C8F' }}>$</span>
+                      <div style={{ position: 'relative', marginBottom: '0.75rem' }}>
+                        <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontSize: '0.9rem', fontWeight: '600', color: colors.textSecondary }}>$</span>
                         <input type="number" placeholder="Enter amount" value={payCustomDonation} onChange={(e) => setPayCustomDonation(e.target.value)} style={{
-                          width: '100%', padding: '0.6rem 0.85rem 0.6rem 1.85rem',
-                          border: `1px solid ${payCustomDonation ? 'rgba(242,12,143,0.50)' : colors.borderPrimary}`,
-                          borderRadius: 11,
-                          fontSize: '0.88rem', color: colors.textPrimary, backgroundColor: colors.bgCard,
-                          outline: 'none', boxSizing: 'border-box',
-                          transition: 'border-color 0.2s, box-shadow 0.2s',
-                        }} onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(242,12,143,0.50)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(242, 12, 143, 0.10)'; }}
-                        onBlur={(e) => { e.currentTarget.style.borderColor = payCustomDonation ? 'rgba(242,12,143,0.50)' : colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }} />
+                          width: '100%', padding: '0.6rem 0.75rem 0.6rem 1.75rem', border: `2px solid ${payCustomDonation ? '#F20C8F' : colors.borderPrimary}`,
+                          borderRadius: '0.5rem', fontSize: '0.85rem', color: colors.textPrimary, backgroundColor: colors.bgCard, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s'
+                        }} onFocus={(e) => { e.currentTarget.style.borderColor = '#F20C8F'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(242, 12, 143, 0.1)'; }}
+                        onBlur={(e) => { e.currentTarget.style.borderColor = payCustomDonation ? '#F20C8F' : colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }} />
                       </div>
                     )}
                   </>
                 )}
                 <button onClick={handlePaySkipDonation} style={{
-                  width: '100%', padding: '0.55rem 1rem', borderRadius: 9999,
-                  border: `1px solid ${payDonationSkipped ? 'rgba(242,12,143,0.50)' : colors.borderPrimary}`,
-                  background: payDonationSkipped
-                    ? 'linear-gradient(135deg, #F20C8F 0%, #DB0A7F 100%)'
-                    : colors.bgCard,
-                  color: payDonationSkipped ? 'white' : colors.textPrimary,
-                  fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer',
-                  transition: 'all 0.18s', textAlign: 'center',
-                  letterSpacing: '-0.005em',
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                  boxShadow: payDonationSkipped ? '0 4px 10px rgba(242,12,143,0.25)' : 'none',
-                }}>
-                  {payDonationSkipped ? <><i className="bi bi-check2-circle" style={{ fontSize: 12 }} /> Donation skipped</> : 'No thanks, skip donation'}
-                </button>
-                <div style={{ marginTop: '0.55rem', textAlign: 'center' }}>
-                  <a href={`${process.env.NEXT_PUBLIC_LANDING_URL as string}/user/donations`} onClick={(e) => { e.preventDefault(); router.push('/user/donations'); }} style={{ fontSize: '0.78rem', color: '#F20C8F', textDecoration: 'none', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                    Learn more about our donation program <i className="bi bi-arrow-right" style={{ fontSize: 11 }} />
-                  </a>
+                  width: '100%', padding: '0.5rem 1rem', borderRadius: '9999px',
+                  border: payDonationSkipped ? '2px solid #F20C8F' : '2px solid #6B7280',
+                  background: payDonationSkipped ? '#F20C8F' : colors.bgTertiary,
+                  color: payDonationSkipped ? 'white' : '#374151',
+                  fontSize: '0.875rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center'
+                }}>{payDonationSkipped ? '✓ Donation skipped' : 'No thanks, skip donation'}</button>
+                <div style={{ marginTop: '0.5rem' }}>
+                  <a href={`${process.env.NEXT_PUBLIC_LANDING_URL as string}/user/donations`} onClick={(e) => { e.preventDefault(); router.push('/user/donations'); }} style={{ fontSize: '0.81rem', color: '#F20C8F', textDecoration: 'none', fontWeight: '500' }}>Learn more about our donation program →</a>
                 </div>
               </div>
 
               {(!payDonationAddressed || !payPhoneValid) && (
-                <div style={{
-                  fontSize: '0.84rem',
-                  color: actualTheme === 'dark' ? '#FCA5A5' : '#B91C1C',
-                  margin: '0 0 0.85rem 0',
-                  padding: '0.55rem 0.85rem',
-                  background: actualTheme === 'dark' ? 'rgba(220,38,38,0.16)' : 'rgba(254,242,242,0.85)',
-                  border: `1px solid ${actualTheme === 'dark' ? 'rgba(220,38,38,0.40)' : 'rgba(220,38,38,0.25)'}`,
-                  borderRadius: 10,
-                  display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center',
-                }}>
-                  <i className="bi bi-exclamation-triangle-fill" style={{ fontSize: 12 }} />
+                <p style={{ fontSize: '0.86rem', color: '#EF4444', margin: '0 0 0.75rem 0', textAlign: 'center' }}>
                   {!payPhoneValid ? 'Please enter your phone number' : 'Please select a donation amount or skip to continue'}
-                </div>
+                </p>
               )}
 
-              <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center' }}>
-                <button
-                  onClick={handlePayClose}
-                  style={{
-                    flex: 1,
-                    padding: '0.75rem 1rem',
-                    border: `1px solid ${colors.borderPrimary}`,
-                    borderRadius: 11,
-                    background: colors.bgTertiary,
-                    color: colors.textPrimary,
-                    fontSize: '0.9rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    transition: 'border-color 0.15s',
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; }}
-                >
-                  Cancel
-                </button>
-                <button
-                  disabled={!payIsEnabled}
-                  onClick={() => setPayShowReceipt(true)}
-                  style={{
-                    flex: 1.4,
-                    padding: '0.75rem 1rem',
-                    border: 'none',
-                    borderRadius: 11,
-                    background: !payIsEnabled
-                      ? (actualTheme === 'dark' ? '#4B5563' : '#9CA3AF')
-                      : 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
-                    color: 'white',
-                    fontSize: '0.92rem',
-                    fontWeight: 700,
-                    letterSpacing: '-0.005em',
-                    cursor: !payIsEnabled ? 'not-allowed' : 'pointer',
-                    opacity: !payIsEnabled ? 0.7 : 1,
-                    transition: 'transform 0.15s, box-shadow 0.15s',
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-                    boxShadow: !payIsEnabled ? 'none' : '0 8px 18px rgba(8,58,133,0.30)',
-                  }}
-                  onMouseEnter={(e) => { if (payIsEnabled) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 12px 24px rgba(242,12,143,0.35)'; } }}
-                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = !payIsEnabled ? 'none' : '0 8px 18px rgba(8,58,133,0.30)'; }}
-                >
-                  <i className="bi bi-shield-lock-fill" style={{ fontSize: 12 }} />
-                  Proceed to Payment
-                </button>
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                <button onClick={handlePayClose} style={{ flex: 1, padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Cancel</button>
+                <button disabled={!payIsEnabled} onClick={() => setPayShowReceipt(true)} style={{
+                  flex: 1, padding: '0.75rem 1rem', border: !payIsEnabled ? '2px solid #9CA3AF' : '2px solid #062a63',
+                  borderRadius: '0.5rem', background: !payIsEnabled ? '#9CA3AF' : '#083A85', color: 'white', fontSize: '0.9rem', fontWeight: '600',
+                  cursor: !payIsEnabled ? 'not-allowed' : 'pointer', opacity: !payIsEnabled ? 0.7 : 1, transition: 'all 0.2s'
+                }}>Proceed to Payment</button>
               </div>
             </div>
           </Modal>
