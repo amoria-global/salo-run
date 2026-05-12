@@ -219,7 +219,9 @@ const PhotobookDetailPage: React.FC<PhotobookDetailPageProps> = ({ userRole }) =
   const rolePrefix = userRole === 'event-coordinator' ? 'coordinator' : 'events';
 
   const fetchPhotobook = useCallback(async () => {
-    if (!token || !id) return;
+    // Cookie-only sessions have no JS-readable token. dashboardAuthFetch
+    // sends the HttpOnly cookie regardless, so gate only on id.
+    if (!id) return;
     setLoading(true);
     setError(null);
     try {
@@ -274,7 +276,7 @@ const PhotobookDetailPage: React.FC<PhotobookDetailPageProps> = ({ userRole }) =
     } finally {
       setLoading(false);
     }
-  }, [token, id, userRole]);
+  }, [id, userRole]);
 
   useEffect(() => {
     fetchPhotobook();

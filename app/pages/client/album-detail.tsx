@@ -197,7 +197,9 @@ const AlbumDetailPage: React.FC<AlbumDetailPageProps> = ({ userRole }) => {
   const [actionLoading, setActionLoading] = useState(false);
 
   const fetchAlbum = useCallback(async () => {
-    if (!token || !id) return;
+    // Cookie-only sessions have no JS-readable token. dashboardAuthFetch
+    // sends the HttpOnly cookie regardless, so gate only on id.
+    if (!id) return;
     setLoading(true);
     setError(null);
     try {
@@ -254,7 +256,7 @@ const AlbumDetailPage: React.FC<AlbumDetailPageProps> = ({ userRole }) => {
     } finally {
       setLoading(false);
     }
-  }, [token, id, userRole]);
+  }, [id, userRole]);
 
   useEffect(() => {
     fetchAlbum();
