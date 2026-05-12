@@ -764,7 +764,7 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
               ? 'A payment page has been opened. Complete the payment there and we\'ll confirm it here.'
               : 'A USSD prompt has been sent to your phone. Please approve the payment on your device.'}
           </p>
-          <p style={{ fontSize: '0.8rem', color: colors.textSecondary }}>This may take a few moments...</p>
+          <p style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Waiting for the gateway to confirm your payment — this can take up to a minute.</p>
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       </Modal>
@@ -816,13 +816,13 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
     ];
 
     return (
-      <Modal isOpen={isOpen} onClose={handleClose} title="Choose Payment Option" maxWidth="450px">
+      <Modal isOpen={isOpen} onClose={handleClose} title="Choose payment option" maxWidth="500px">
         <div>
-          <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1rem', lineHeight: '1.5' }}>
-            How would you like to pay for <strong>{payment.eventName}</strong>?
+          <p style={{ fontSize: '0.88rem', color: colors.textSecondary, margin: '0 0 1.1rem', lineHeight: 1.5 }}>
+            How would you like to pay for <strong style={{ color: colors.textPrimary }}>{payment.eventName}</strong>?
           </p>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.25rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginBottom: '1.25rem' }}>
             {options.map((opt) => {
               const isSelected = selectedEscrowOption === opt.pct;
               const isDisabled = opt.pct === 100 && !isEventCompleted;
@@ -832,54 +832,81 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
                   key={opt.pct}
                   onClick={() => !isDisabled && handleSelectEscrowOption(opt.pct)}
                   style={{
-                    display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '1rem',
-                    border: isSelected ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                    borderRadius: '0.75rem',
+                    display: 'flex', alignItems: 'flex-start', gap: 12, padding: '0.95rem 1rem',
+                    border: `${isSelected ? '1.5px' : '1px'} solid ${isSelected ? '#083A85' : colors.borderPrimary}`,
+                    borderRadius: 12,
                     cursor: isDisabled ? 'not-allowed' : 'pointer',
-                    opacity: isDisabled ? 0.5 : 1,
-                    backgroundColor: isSelected
-                      ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF')
+                    opacity: isDisabled ? 0.55 : 1,
+                    background: isSelected
+                      ? (actualTheme === 'dark'
+                          ? 'linear-gradient(135deg, rgba(8,58,133,0.22) 0%, rgba(242,12,143,0.10) 100%)'
+                          : 'linear-gradient(135deg, rgba(8,58,133,0.06) 0%, rgba(242,12,143,0.03) 100%)')
                       : colors.bgCard,
-                    transition: 'all 0.2s',
+                    boxShadow: isSelected ? '0 6px 14px rgba(8,58,133,0.12)' : '0 1px 2px rgba(0,0,0,0.03)',
+                    transition: 'border-color 0.18s, background 0.18s, box-shadow 0.18s, transform 0.18s',
                   }}
+                  onMouseEnter={(e) => { if (!isSelected && !isDisabled) e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
                 >
                   <div style={{
-                    width: '20px', height: '20px', borderRadius: '50%', flexShrink: 0, marginTop: '2px',
-                    border: isSelected ? '6px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                    backgroundColor: colors.bgCard,
-                  }} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                      <span style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>{opt.label}</span>
-                      <span style={{ fontSize: '0.95rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>
+                    width: 22, height: 22, borderRadius: 9999, flexShrink: 0, marginTop: 1,
+                    border: `1.5px solid ${isSelected ? '#083A85' : colors.borderPrimary}`,
+                    background: isSelected ? '#083A85' : 'transparent',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    transition: 'all 0.18s',
+                    boxShadow: isSelected ? '0 4px 10px rgba(8,58,133,0.30)' : 'none',
+                  }}>
+                    {isSelected && <i className="bi bi-check" style={{ color: '#fff', fontSize: 14, lineHeight: 1 }} />}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, marginBottom: '0.25rem' }}>
+                      <span style={{ fontSize: '0.95rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.005em' }}>{opt.label}</span>
+                      <span style={{ fontSize: '1rem', fontWeight: 800, color: '#083A85', letterSpacing: '-0.01em' }}>
                         {formatPrice(opt.amount)}
                       </span>
                     </div>
-                    <p style={{ fontSize: '0.82rem', color: colors.textSecondary, margin: 0, lineHeight: '1.4' }}>
+                    <p style={{ fontSize: '0.82rem', color: colors.textSecondary, margin: 0, lineHeight: 1.45 }}>
                       {opt.desc}
                     </p>
                     {opt.pct < 100 && (
                       <div style={{
-                        display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
-                        marginTop: '0.5rem', padding: '0.2rem 0.5rem',
-                        backgroundColor: actualTheme === 'dark' ? 'rgba(251, 191, 36, 0.15)' : 'rgba(251, 191, 36, 0.1)',
-                        borderRadius: '0.375rem', fontSize: '0.75rem', color: '#D97706', fontWeight: '500',
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        marginTop: 8, padding: '3px 9px',
+                        background: actualTheme === 'dark' ? 'rgba(245,158,11,0.16)' : '#FFFBEB',
+                        border: `1px solid ${actualTheme === 'dark' ? 'rgba(245,158,11,0.35)' : '#FDE68A'}`,
+                        borderRadius: 9999,
+                        fontSize: '0.66rem', color: '#D97706', fontWeight: 700,
+                        letterSpacing: '0.04em', textTransform: 'uppercase',
                       }}>
+                        <i className="bi bi-shield-check" style={{ fontSize: 10 }} />
                         Escrow protected
                       </div>
                     )}
                     {opt.pct === 100 && !isEventCompleted && (
-                      <p style={{ fontSize: '0.78rem', color: '#EF4444', margin: '0.375rem 0 0', fontWeight: '500' }}>
-                        Available after event is completed
-                      </p>
+                      <div style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        marginTop: 8, padding: '3px 9px',
+                        background: actualTheme === 'dark' ? 'rgba(220,38,38,0.14)' : '#FEF2F2',
+                        border: `1px solid ${actualTheme === 'dark' ? 'rgba(220,38,38,0.32)' : '#FECACA'}`,
+                        borderRadius: 9999,
+                        fontSize: '0.66rem', color: '#DC2626', fontWeight: 700,
+                        letterSpacing: '0.04em', textTransform: 'uppercase',
+                      }}>
+                        <i className="bi bi-lock-fill" style={{ fontSize: 10 }} />
+                        Available after event completes
+                      </div>
                     )}
                     {opt.pct === 100 && isEventCompleted && (
                       <div style={{
-                        display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
-                        marginTop: '0.5rem', padding: '0.2rem 0.5rem',
-                        backgroundColor: actualTheme === 'dark' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.1)',
-                        borderRadius: '0.375rem', fontSize: '0.75rem', color: '#059669', fontWeight: '500',
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        marginTop: 8, padding: '3px 9px',
+                        background: actualTheme === 'dark' ? 'rgba(16,185,129,0.16)' : '#ECFDF5',
+                        border: `1px solid ${actualTheme === 'dark' ? 'rgba(16,185,129,0.35)' : '#BBF7D0'}`,
+                        borderRadius: 9999,
+                        fontSize: '0.66rem', color: '#059669', fontWeight: 700,
+                        letterSpacing: '0.04em', textTransform: 'uppercase',
                       }}>
+                        <i className="bi bi-clipboard-check-fill" style={{ fontSize: 10 }} />
                         Requires satisfaction survey
                       </div>
                     )}
@@ -890,22 +917,46 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
           </div>
 
           {selectedEscrowOption === 100 && isEventCompleted && !surveyCompleted && !checkingSurvey && (
-            <p style={{ fontSize: '0.85rem', color: '#D97706', margin: '0 0 0.75rem', textAlign: 'center', lineHeight: '1.4' }}>
-              You need to complete a satisfaction survey before making the full payment. The survey will appear in the next step.
-            </p>
+            <div style={{
+              padding: '0.65rem 0.85rem',
+              marginBottom: '0.85rem',
+              borderRadius: 10,
+              background: actualTheme === 'dark' ? 'rgba(245,158,11,0.12)' : '#FFFBEB',
+              border: `1px solid ${actualTheme === 'dark' ? 'rgba(245,158,11,0.32)' : '#FDE68A'}`,
+              display: 'flex', alignItems: 'flex-start', gap: 8,
+              fontSize: '0.82rem',
+              color: actualTheme === 'dark' ? '#FCD34D' : '#92400E',
+              lineHeight: 1.45,
+            }}>
+              <i className="bi bi-info-circle-fill" style={{ fontSize: 13, marginTop: 2, flexShrink: 0 }} />
+              <span>You&apos;ll be asked to complete a quick satisfaction survey before making the full payment.</span>
+            </div>
           )}
 
           {checkingSurvey && (
-            <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0 0 0.75rem', textAlign: 'center' }}>
-              Checking survey status...
-            </p>
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              fontSize: '0.82rem', color: colors.textSecondary, margin: '0 0 0.85rem',
+            }}>
+              <span className="ck-spinner" style={{ width: 12, height: 12, borderWidth: 2 }} />
+              Checking survey status…
+            </div>
           )}
 
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-            <button onClick={handleClose} style={{
-              flex: 1, padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.5rem',
-              background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer',
-            }}>Cancel</button>
+          <div style={{
+            display: 'flex',
+            gap: '0.6rem',
+            alignItems: 'center',
+            paddingTop: '0.85rem',
+            borderTop: `1px solid ${colors.borderPrimary}`,
+          }}>
+            <button
+              onClick={handleClose}
+              className="ck-btn ck-btn-soft"
+              style={{ flex: 1, padding: '0.65rem 1rem', fontSize: '0.9rem' }}
+            >
+              Cancel
+            </button>
             <button
               disabled={selectedEscrowOption === null || checkingSurvey || (selectedEscrowOption === 100 && !isEventCompleted)}
               onClick={() => {
@@ -916,18 +967,37 @@ const PayNowModal: React.FC<PayNowModalProps> = ({ isOpen, onClose, payment }) =
                 }
               }}
               style={{
-                flex: 1, padding: '0.75rem 1rem',
-                border: '2px solid #062a63', borderRadius: '0.5rem',
-                background: (selectedEscrowOption === null || checkingSurvey || (selectedEscrowOption === 100 && !isEventCompleted)) ? '#9CA3AF' : '#083A85',
-                color: 'white', fontSize: '0.9rem', fontWeight: '600',
+                flex: 2,
+                padding: '0.65rem 1.1rem',
+                borderRadius: 11,
+                border: 'none',
+                background: (selectedEscrowOption === null || checkingSurvey || (selectedEscrowOption === 100 && !isEventCompleted))
+                  ? colors.bgTertiary
+                  : 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                color: (selectedEscrowOption === null || checkingSurvey || (selectedEscrowOption === 100 && !isEventCompleted)) ? colors.textSecondary : '#fff',
+                fontSize: '0.9rem',
+                fontWeight: 700,
                 cursor: (selectedEscrowOption === null || checkingSurvey || (selectedEscrowOption === 100 && !isEventCompleted)) ? 'not-allowed' : 'pointer',
                 opacity: (selectedEscrowOption === null || checkingSurvey || (selectedEscrowOption === 100 && !isEventCompleted)) ? 0.7 : 1,
-                transition: 'all 0.2s',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                boxShadow: (selectedEscrowOption === null || checkingSurvey || (selectedEscrowOption === 100 && !isEventCompleted)) ? 'none' : '0 6px 18px rgba(242,12,143,0.28)',
+                letterSpacing: '-0.005em',
+                transition: 'transform 0.15s, box-shadow 0.15s, opacity 0.15s',
               }}
+              onMouseEnter={(e) => { if (selectedEscrowOption !== null && !checkingSurvey && !(selectedEscrowOption === 100 && !isEventCompleted)) e.currentTarget.style.transform = 'translateY(-1px)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
             >
-              {selectedEscrowOption === 100 && isEventCompleted && !surveyCompleted
-                ? 'Complete Survey First'
-                : 'Continue'}
+              {selectedEscrowOption === 100 && isEventCompleted && !surveyCompleted ? (
+                <>
+                  <i className="bi bi-clipboard-check" style={{ fontSize: 13 }} />
+                  Complete survey first
+                </>
+              ) : (
+                <>
+                  Continue
+                  <i className="bi bi-arrow-right" style={{ fontSize: 13 }} />
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -2236,36 +2306,46 @@ Amount: ${formatPrice(payment.amountNum)}
         <div className="mobile-main-content" style={{ flex: 1, overflowY: 'auto', backgroundColor: colors.bgPrimary, paddingLeft: '1.25rem', paddingRight: '1.25rem', paddingTop: '1rem', paddingBottom: '1rem' }}>
 
           {/* Header */}
-          <header className="mobile-header" style={{ marginBottom: '1.5rem' }}>
-            <h1 className="mobile-title" style={{ fontSize: '1.8rem', lineHeight: '2rem', color: colors.textPrimary, fontWeight: '600' }}>Payments</h1>
-            <p className="mobile-subtitle" style={{ fontSize: '0.95rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
-              Manage your payments and view transaction history
+          <header className="mobile-header" style={{ margin: '8px 0 22px' }}>
+            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>MONEY</div>
+            <h1 className="mobile-title" style={{ margin: 0, fontSize: '1.85rem', fontWeight: 800, letterSpacing: '-0.02em', color: colors.textPrimary }}>Payments</h1>
+            <p className="mobile-subtitle" style={{ margin: '4px 0 0', fontSize: '0.92rem', color: colors.textSecondary }}>
+              Manage your payments and view your complete transaction history.
             </p>
           </header>
 
           {/* Pending Payment Warning */}
           {totalPending > 0 && (
             <div style={{
+              position: 'relative',
+              overflow: 'hidden',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem',
-              padding: '0.875rem 1.25rem', marginBottom: '1rem', borderRadius: '0.75rem',
-              backgroundColor: actualTheme === 'dark' ? '#78350F' : '#FFFBEB',
-              border: `1px solid ${actualTheme === 'dark' ? '#92400E' : '#F59E0B'}`,
+              padding: '0.9rem 1.1rem 0.9rem 1.2rem',
+              marginBottom: '1rem',
+              borderRadius: 12,
+              background: actualTheme === 'dark' ? 'rgba(245,158,11,0.10)' : '#FFFBEB',
+              border: `1px solid ${actualTheme === 'dark' ? 'rgba(245,158,11,0.32)' : '#FDE68A'}`,
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1 }}>
+              <span aria-hidden style={{
+                position: 'absolute', top: 0, left: 0, bottom: 0, width: 3,
+                background: 'linear-gradient(180deg, #F59E0B 0%, #F20C8F 130%)',
+              }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
                 <div style={{
-                  width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  backgroundColor: actualTheme === 'dark' ? 'rgba(251,191,36,0.2)' : 'rgba(245,158,11,0.15)',
+                  width: 36, height: 36, borderRadius: 10,
+                  background: actualTheme === 'dark' ? 'rgba(255,255,255,0.06)' : '#fff',
+                  border: `1px solid ${actualTheme === 'dark' ? 'rgba(245,158,11,0.40)' : '#FDE68A'}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
                   flexShrink: 0,
+                  boxShadow: '0 4px 10px rgba(245,158,11,0.15)',
                 }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke={actualTheme === 'dark' ? '#FDE68A' : '#D97706'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
+                  <i className="bi bi-exclamation-triangle-fill" style={{ fontSize: 15, color: '#D97706' }} />
                 </div>
                 <div>
-                  <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: '600', color: actualTheme === 'dark' ? '#FDE68A' : '#92400E' }}>
+                  <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: actualTheme === 'dark' ? '#FDE68A' : '#92400E', letterSpacing: '-0.005em' }}>
                     You have {formatPrice(totalPending)} in pending payments
                   </p>
-                  <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: actualTheme === 'dark' ? '#FCD34D' : '#B45309', opacity: 0.85 }}>
+                  <p style={{ margin: '3px 0 0', fontSize: '0.82rem', color: actualTheme === 'dark' ? '#FCD34D' : '#B45309', opacity: 0.92, lineHeight: 1.45 }}>
                     Please complete your outstanding payments to avoid booking cancellations.
                   </p>
                 </div>
@@ -2277,13 +2357,17 @@ Amount: ${formatPrice(payment.amountNum)}
           <div className="mobile-top-row" style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '1rem', marginBottom: '1rem' }}>
 
             {/* Spending Chart */}
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)' }}>
-              <div className="mobile-chart-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+            <div className="ck-card" style={{ position: 'relative', overflow: 'hidden', padding: '1.25rem' }}>
+              <span aria-hidden style={{
+                position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+                background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
+              }} />
+              <div className="mobile-chart-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem', gap: 12, flexWrap: 'wrap' }}>
                 <div>
-                  <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Spending</div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '1rem' }}>
-                    <span style={{ fontSize: '1.75rem', fontWeight: '700', color: colors.textPrimary }}>{formatPrice(totalPaid + totalPending + totalFailed)}</span>
-                    <span style={{ fontSize: '0.85rem', color: colors.textSecondary, fontWeight: '500' }}>This period</span>
+                  <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>Total spending</div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.85rem', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '1.75rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.02em', lineHeight: 1.05 }}>{formatPrice(totalPaid + totalPending + totalFailed)}</span>
+                    <span style={{ fontSize: '0.82rem', color: colors.textSecondary, fontWeight: 500 }}>This period</span>
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -2372,13 +2456,19 @@ Amount: ${formatPrice(payment.amountNum)}
             </div>
 
             {/* Payment Summary */}
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+            <div className="ck-card" style={{ position: 'relative', overflow: 'hidden', padding: '1.25rem' }}>
+              <span aria-hidden style={{
+                position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+                background: 'linear-gradient(90deg, #10B981 0%, #083A85 100%)',
+              }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', gap: 8 }}>
                 <div>
-                  <div style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>Payment Summary</div>
-                  <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Current Period</div>
+                  <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2 }}>Payment summary</div>
+                  <div style={{ fontSize: '0.94rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.01em' }}>Current period</div>
                 </div>
-                <button onClick={() => setShowReportModal(true)} style={{ fontSize: '0.85rem', color: '#2563EB', textDecoration: 'none', fontWeight: '500', background: 'none', border: 'none', cursor: 'pointer' }}>View report</button>
+                <button onClick={() => setShowReportModal(true)} style={{ fontSize: '0.78rem', color: '#083A85', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  View report <i className="bi bi-arrow-right" style={{ fontSize: 11 }} />
+                </button>
               </div>
               <div className="mobile-summary-stats" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                 <div style={{ textAlign: 'center' }}>
@@ -2408,69 +2498,104 @@ Amount: ${formatPrice(payment.amountNum)}
           </div>
 
           {/* Gifts Section */}
-          <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)', overflow: 'hidden', marginBottom: '1rem' }}>
-            <div className="mobile-gifts-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderBottom: `2px solid ${colors.borderPrimary}` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div className="ck-card" style={{ position: 'relative', overflow: 'hidden', marginBottom: '1rem' }}>
+            <span aria-hidden style={{
+              position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+              background: 'linear-gradient(90deg, #16A34A 0%, #F20C8F 130%)',
+              zIndex: 1,
+            }} />
+            <div className="mobile-gifts-header" style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: 16,
+              flexWrap: 'wrap',
+              padding: '1rem 1.25rem',
+              borderBottom: `1px solid ${colors.borderPrimary}`,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, minWidth: 0 }}>
                 <div style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '0.5rem',
-                  backgroundColor: actualTheme === 'dark' ? '#14532D' : '#DCFCE7',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: actualTheme === 'dark' ? '#4ADE80' : '#16A34A'
+                  width: 40, height: 40, borderRadius: 11,
+                  background: 'rgba(22,163,74,0.12)',
+                  border: '1px solid rgba(22,163,74,0.30)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                  color: '#16A34A',
                 }}>
                   <GiftIcon />
                 </div>
-                <div>
-                  <h2 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Gifts Received</h2>
-                  <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: 0 }}>From live-stream viewers on ConnektLive</p>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2 }}>Live earnings</div>
+                  <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>Gifts received</h2>
+                  <p style={{ fontSize: '0.82rem', color: colors.textSecondary, margin: '2px 0 0', lineHeight: 1.45 }}>From live-stream viewers on ConnektLive.</p>
                 </div>
               </div>
-              <div className="mobile-gifts-actions" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div className="mobile-gifts-actions" style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                 {/* Withdrawal Setup Card */}
                 <div style={{
-                  backgroundColor: actualTheme === 'dark' ? '#14532D' : '#F0FDF4',
-                  border: `1px solid ${actualTheme === 'dark' ? '#166534' : '#BBF7D0'}`,
-                  borderRadius: '0.5rem',
-                  padding: '0.6rem 1rem',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  background: actualTheme === 'dark'
+                    ? 'linear-gradient(135deg, rgba(22,163,74,0.18) 0%, rgba(8,58,133,0.10) 100%)'
+                    : 'linear-gradient(135deg, rgba(22,163,74,0.08) 0%, rgba(8,58,133,0.04) 100%)',
+                  border: `1px solid ${actualTheme === 'dark' ? 'rgba(22,163,74,0.35)' : '#BBF7D0'}`,
+                  borderRadius: 11,
+                  padding: '0.7rem 1rem 0.7rem 1.1rem',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '1rem',
-                  maxWidth: '420px'
+                  maxWidth: 440,
                 }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.15rem' }}>
-                      {hasWithdrawalMethod ? 'Gift Earnings' : 'Withdraw Your Gift Earnings'}
+                  <span aria-hidden style={{
+                    position: 'absolute', top: 0, left: 0, bottom: 0, width: 3,
+                    background: 'linear-gradient(180deg, #16A34A 0%, #F20C8F 130%)',
+                  }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '0.92rem', fontWeight: 700, color: colors.textPrimary, marginBottom: '0.15rem', letterSpacing: '-0.005em' }}>
+                      {hasWithdrawalMethod ? 'Gift earnings' : 'Withdraw your gift earnings'}
                     </div>
-                    <div style={{ fontSize: '0.82rem', color: colors.textSecondary, lineHeight: '1.35' }}>
+                    <div style={{ fontSize: '0.8rem', color: colors.textSecondary, lineHeight: 1.4 }}>
                       {hasWithdrawalMethod ? 'Withdraw your gift earnings to your saved payment account.' : 'Set up your preferred account to receive payments from viewer gifts.'}
                     </div>
                   </div>
                   {hasWithdrawalMethod ? (
                     <button
                       onClick={() => setShowWithdrawModal(true)}
+                      className="ck-btn ck-btn-primary"
                       style={{
-                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem',
-                        backgroundColor: '#083A85', color: 'white', border: '2px solid #062a63',
-                        borderRadius: '0.375rem', padding: '0.45rem 0.85rem', fontSize: '0.85rem',
-                        fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0
+                        padding: '0.5rem 0.95rem',
+                        fontSize: '0.82rem',
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        whiteSpace: 'nowrap', flexShrink: 0,
                       }}
                     >
+                      <i className="bi bi-arrow-up-right" style={{ fontSize: 12 }} />
                       Withdraw
                     </button>
                   ) : (
                     <button
                       onClick={() => setShowGiftsPaymentMethodModal(true)}
                       style={{
-                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem',
-                        backgroundColor: '#16A34A', color: 'white', border: '2px solid #15803D',
-                        borderRadius: '0.375rem', padding: '0.45rem 0.85rem', fontSize: '0.85rem',
-                        fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0
+                        padding: '0.5rem 0.95rem',
+                        borderRadius: 10,
+                        border: 'none',
+                        background: 'linear-gradient(135deg, #16A34A 0%, #10B981 100%)',
+                        color: '#fff',
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0,
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        boxShadow: '0 6px 16px rgba(22,163,74,0.26)',
+                        letterSpacing: '-0.005em',
+                        transition: 'transform 0.15s, box-shadow 0.15s',
                       }}
+                      onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
                     >
-                      Set Up Withdrawal Method
+                      <i className="bi bi-shield-plus" style={{ fontSize: 12 }} />
+                      Set up withdrawal
                     </button>
                   )}
                 </div>
@@ -2479,10 +2604,10 @@ Amount: ${formatPrice(payment.amountNum)}
                   flexDirection: 'column',
                   justifyContent: 'center',
                   alignItems: 'flex-end',
-                  textAlign: 'right'
+                  textAlign: 'right',
                 }}>
-                  <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Total Gifts</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>{formatPrice(totalGifts)}</div>
+                  <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Total gifts</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#16A34A', letterSpacing: '-0.02em', lineHeight: 1.05 }}>{formatPrice(totalGifts)}</div>
                 </div>
               </div>
             </div>
@@ -2957,36 +3082,53 @@ Amount: ${formatPrice(payment.amountNum)}
         title="Withdraw Your Gifts"
         maxWidth="500px"
       >
-        <div>
+        <div className="gift-withdrawal-modal">
+          <style>{`
+            .gift-withdrawal-modal input:focus,
+            .gift-withdrawal-modal select:focus {
+              border-color: #16A34A !important;
+              box-shadow: 0 0 0 3px rgba(22,163,74,0.16) !important;
+            }
+          `}</style>
+
           {/* Explainer Box */}
           <div style={{
-            backgroundColor: actualTheme === 'dark' ? '#14532D' : '#F0FDF4',
-            border: `1px solid ${actualTheme === 'dark' ? '#166534' : '#BBF7D0'}`,
-            borderRadius: '0.5rem',
-            padding: '0.75rem 1rem',
-            marginBottom: '1rem',
+            position: 'relative',
+            overflow: 'hidden',
+            background: actualTheme === 'dark'
+              ? 'linear-gradient(135deg, rgba(22,163,74,0.18) 0%, rgba(16,185,129,0.10) 100%)'
+              : 'linear-gradient(135deg, rgba(22,163,74,0.08) 0%, rgba(16,185,129,0.04) 100%)',
+            border: `1px solid ${actualTheme === 'dark' ? 'rgba(22,163,74,0.35)' : '#BBF7D0'}`,
+            borderRadius: 12,
+            padding: '0.85rem 1rem 0.85rem 1.1rem',
+            marginBottom: '1.25rem',
             display: 'flex',
             alignItems: 'flex-start',
-            gap: '0.75rem'
+            gap: 12,
           }}>
+            <span aria-hidden style={{
+              position: 'absolute', top: 0, left: 0, bottom: 0, width: 3,
+              background: 'linear-gradient(180deg, #16A34A 0%, #F20C8F 130%)',
+            }} />
             <div style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '50%',
-              backgroundColor: actualTheme === 'dark' ? '#166534' : '#DCFCE7',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0
+              width: 34, height: 34, borderRadius: 10,
+              background: actualTheme === 'dark' ? 'rgba(255,255,255,0.06)' : '#fff',
+              border: `1px solid ${actualTheme === 'dark' ? 'rgba(22,163,74,0.40)' : '#BBF7D0'}`,
+              boxShadow: '0 4px 10px rgba(22,163,74,0.10)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              color: '#16A34A',
             }}>
               <GiftIcon />
             </div>
-            <div>
-              <div style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.25rem' }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#16A34A', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2 }}>
+                One-time setup
+              </div>
+              <div style={{ fontSize: '0.9rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.005em' }}>
                 Where should we send your gift earnings?
               </div>
-              <div style={{ fontSize: '0.8rem', color: colors.textSecondary, lineHeight: '1.4' }}>
-                When viewers send you gifts during your live streams, this is the account where you&apos;ll receive those payments.
+              <div style={{ fontSize: '0.8rem', color: colors.textSecondary, lineHeight: 1.5, marginTop: 3 }}>
+                When viewers send gifts during your live streams, this is the account where you&apos;ll receive those payments.
               </div>
             </div>
           </div>
@@ -2994,149 +3136,123 @@ Amount: ${formatPrice(payment.amountNum)}
           {/* Validation Error */}
           {validationError && (
             <div style={{
-              backgroundColor: actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2',
-              border: `1px solid ${actualTheme === 'dark' ? '#F87171' : '#FECACA'}`,
-              borderRadius: '0.5rem',
-              padding: '0.75rem 1rem',
+              background: actualTheme === 'dark' ? 'rgba(220,38,38,0.10)' : '#FEF2F2',
+              border: `1px solid ${actualTheme === 'dark' ? 'rgba(220,38,38,0.32)' : '#FECACA'}`,
+              borderRadius: 10,
+              padding: '0.65rem 0.95rem',
               marginBottom: '1rem',
               display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
+              alignItems: 'flex-start',
+              gap: 8,
+              color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626',
+              fontSize: '0.85rem',
             }}>
-              <span style={{ fontSize: '1rem' }}>⚠️</span>
-              <span style={{ fontSize: '0.85rem', color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626' }}>
-                {validationError}
-              </span>
+              <i className="bi bi-exclamation-circle-fill" style={{ fontSize: 14, marginTop: 1, flexShrink: 0 }} />
+              <span>{validationError}</span>
             </div>
           )}
 
           {/* Payment Method Options */}
-          <div style={{ fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.75rem' }}>
-            Select your withdrawal account:
+          <div style={{ fontSize: '0.7rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.6rem' }}>
+            Select your withdrawal account
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.25rem' }}>
-            {/* MTN Mobile Money */}
-            <div
-              onClick={() => {
-                setSelectedGiftPaymentMethod('mtn');
-                setValidationError(null);
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem',
-                padding: '1rem',
-                border: selectedGiftPaymentMethod === 'mtn' ? '2px solid #16A34A' : (`2px solid ${colors.borderPrimary}`),
-                borderRadius: '0.75rem',
-                cursor: 'pointer',
-                backgroundColor: selectedGiftPaymentMethod === 'mtn' ? (actualTheme === 'dark' ? '#14532D' : '#F0FDF4') : colors.bgCard,
-                transition: 'all 0.2s'
-              }}
-            >
-              <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0 }}>
-                <Image src="/mtn.png" alt="MTN Mobile Money" width={48} height={48} unoptimized style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>MTN Mobile Money</div>
-                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Receive gifts via MTN MoMo</div>
-              </div>
-              <div style={{
-                width: '20px',
-                height: '20px',
-                borderRadius: '50%',
-                border: selectedGiftPaymentMethod === 'mtn' ? '6px solid #16A34A' : `2px solid ${colors.borderPrimary}`,
-                backgroundColor: colors.bgCard
-              }} />
-            </div>
-
-            {/* Airtel Mobile Money */}
-            <div
-              onClick={() => {
-                setSelectedGiftPaymentMethod('airtel');
-                setValidationError(null);
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem',
-                padding: '1rem',
-                border: selectedGiftPaymentMethod === 'airtel' ? '2px solid #16A34A' : (`2px solid ${colors.borderPrimary}`),
-                borderRadius: '0.75rem',
-                cursor: 'pointer',
-                backgroundColor: selectedGiftPaymentMethod === 'airtel' ? (actualTheme === 'dark' ? '#14532D' : '#F0FDF4') : colors.bgCard,
-                transition: 'all 0.2s'
-              }}
-            >
-              <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0 }}>
-                <Image src="/airtel.png" alt="Airtel Mobile Money" width={48} height={48} style={{ objectFit: 'cover', width: '100%', height: '100%' }} unoptimized />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Airtel Mobile Money</div>
-                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Receive gifts via Airtel Money</div>
-              </div>
-              <div style={{
-                width: '20px',
-                height: '20px',
-                borderRadius: '50%',
-                border: selectedGiftPaymentMethod === 'airtel' ? '6px solid #16A34A' : `2px solid ${colors.borderPrimary}`,
-                backgroundColor: colors.bgCard
-              }} />
-            </div>
-
-            {/* Bank Transfer */}
-            <div
-              onClick={() => setSelectedGiftPaymentMethod('bank')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem',
-                padding: '1rem',
-                border: selectedGiftPaymentMethod === 'bank' ? '2px solid #16A34A' : `2px solid ${colors.borderPrimary}`,
-                borderRadius: '0.75rem',
-                cursor: 'pointer',
-                backgroundColor: selectedGiftPaymentMethod === 'bank' ? (actualTheme === 'dark' ? '#14532D' : '#F0FDF4') : colors.bgCard,
-                transition: 'all 0.2s'
-              }}
-            >
-              <div style={{ width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M3 21H21M3 10H21M5 6L12 3L19 6M4 10V21M20 10V21M8 14V17M12 14V17M16 14V17" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary }}>Bank Transfer</div>
-                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Receive gifts to your bank account</div>
-              </div>
-              <div style={{
-                width: '20px',
-                height: '20px',
-                borderRadius: '50%',
-                border: selectedGiftPaymentMethod === 'bank' ? '6px solid #16A34A' : `2px solid ${colors.borderPrimary}`,
-                backgroundColor: colors.bgCard
-              }} />
-            </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.25rem' }}>
+            {([
+              { key: 'mtn',    label: 'MTN Mobile Money',    desc: 'Receive gifts via MTN MoMo',          imgSrc: '/mtn.png' },
+              { key: 'airtel', label: 'Airtel Mobile Money', desc: 'Receive gifts via Airtel Money',      imgSrc: '/airtel.png' },
+              { key: 'bank',   label: 'Bank Transfer',       desc: 'Receive gifts to your bank account',  imgSrc: null },
+            ] as const).map((method) => {
+              const isSelected = selectedGiftPaymentMethod === method.key;
+              return (
+                <div
+                  key={method.key}
+                  onClick={() => {
+                    setSelectedGiftPaymentMethod(method.key);
+                    setValidationError(null);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 14,
+                    padding: '0.85rem 1rem',
+                    border: `${isSelected ? '1.5px' : '1px'} solid ${isSelected ? '#16A34A' : colors.borderPrimary}`,
+                    borderRadius: 12,
+                    cursor: 'pointer',
+                    background: isSelected
+                      ? (actualTheme === 'dark'
+                          ? 'linear-gradient(135deg, rgba(22,163,74,0.18) 0%, rgba(16,185,129,0.10) 100%)'
+                          : 'linear-gradient(135deg, rgba(22,163,74,0.06) 0%, rgba(16,185,129,0.03) 100%)')
+                      : colors.bgCard,
+                    boxShadow: isSelected ? '0 6px 14px rgba(22,163,74,0.14)' : '0 1px 2px rgba(0,0,0,0.03)',
+                    transition: 'border-color 0.18s, background 0.18s, box-shadow 0.18s, transform 0.18s',
+                  }}
+                  onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+                >
+                  <div style={{
+                    width: 44, height: 44, borderRadius: 11,
+                    overflow: 'hidden', flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: method.imgSrc ? 'transparent' : 'rgba(59,130,246,0.10)',
+                    border: method.imgSrc ? 'none' : '1px solid rgba(59,130,246,0.22)',
+                  }}>
+                    {method.imgSrc ? (
+                      <Image src={method.imgSrc} alt={method.label} width={44} height={44} unoptimized style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                    ) : (
+                      <i className="bi bi-bank2" style={{ fontSize: 20, color: '#3B82F6' }} />
+                    )}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '0.95rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.005em' }}>{method.label}</div>
+                    <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginTop: 1 }}>{method.desc}</div>
+                  </div>
+                  <div style={{
+                    width: 22, height: 22, borderRadius: 9999,
+                    border: `1.5px solid ${isSelected ? '#16A34A' : colors.borderPrimary}`,
+                    background: isSelected ? '#16A34A' : 'transparent',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                    transition: 'all 0.18s',
+                    boxShadow: isSelected ? '0 4px 10px rgba(22,163,74,0.30)' : 'none',
+                  }}>
+                    {isSelected && <i className="bi bi-check" style={{ color: '#fff', fontSize: 14, lineHeight: 1 }} />}
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
           {/* Payment Details Form */}
           {selectedGiftPaymentMethod && (
             <div style={{
-              backgroundColor: colors.bgTertiary,
-              borderRadius: '0.75rem',
-              padding: '1rem',
+              position: 'relative',
+              overflow: 'hidden',
+              background: actualTheme === 'dark' ? 'rgba(22,163,74,0.08)' : '#F9FAFB',
+              borderRadius: 12,
+              padding: '1rem 1.1rem 1.1rem',
               marginBottom: '1.25rem',
-              border: `2px solid ${colors.borderPrimary}`
+              border: `1px solid ${colors.borderPrimary}`,
             }}>
-              <h4 style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 1rem 0' }}>
-                {selectedGiftPaymentMethod === 'mtn' && 'MTN Mobile Money Details'}
-                {selectedGiftPaymentMethod === 'airtel' && 'Airtel Mobile Money Details'}
-                {selectedGiftPaymentMethod === 'bank' && 'Bank Account Details'}
+              <span aria-hidden style={{
+                position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+                background: 'linear-gradient(90deg, #16A34A 0%, #10B981 100%)',
+              }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.85rem' }}>
+                <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#16A34A', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                  Account details
+                </div>
+              </div>
+              <h4 style={{ fontSize: '0.94rem', fontWeight: 800, color: colors.textPrimary, margin: '0 0 0.85rem 0', letterSpacing: '-0.01em' }}>
+                {selectedGiftPaymentMethod === 'mtn' && 'MTN Mobile Money details'}
+                {selectedGiftPaymentMethod === 'airtel' && 'Airtel Mobile Money details'}
+                {selectedGiftPaymentMethod === 'bank' && 'Bank account details'}
               </h4>
 
               {/* MTN Fields */}
               {selectedGiftPaymentMethod === 'mtn' && (
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                    MTN Phone Number
+                  <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+                    MTN phone number
                   </label>
                   <input
                     type="tel"
@@ -3145,13 +3261,15 @@ Amount: ${formatPrice(payment.amountNum)}
                     onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, mtnNumber: e.target.value })}
                     style={{
                       width: '100%',
-                      padding: '0.75rem',
-                      border: `2px solid ${colors.borderPrimary}`,
-                      borderRadius: '0.5rem',
+                      padding: '0.7rem 0.95rem',
+                      border: `1.5px solid ${colors.borderPrimary}`,
+                      borderRadius: 11,
                       fontSize: '0.9rem',
                       backgroundColor: colors.bgCard,
                       color: colors.textPrimary,
-                      boxSizing: 'border-box'
+                      boxSizing: 'border-box',
+                      outline: 'none',
+                      transition: 'border-color 0.18s, box-shadow 0.18s',
                     }}
                   />
                 </div>
@@ -3160,8 +3278,8 @@ Amount: ${formatPrice(payment.amountNum)}
               {/* Airtel Fields */}
               {selectedGiftPaymentMethod === 'airtel' && (
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                    Airtel Phone Number
+                  <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+                    Airtel phone number
                   </label>
                   <input
                     type="tel"
@@ -3170,13 +3288,15 @@ Amount: ${formatPrice(payment.amountNum)}
                     onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, airtelNumber: e.target.value })}
                     style={{
                       width: '100%',
-                      padding: '0.75rem',
-                      border: `2px solid ${colors.borderPrimary}`,
-                      borderRadius: '0.5rem',
+                      padding: '0.7rem 0.95rem',
+                      border: `1.5px solid ${colors.borderPrimary}`,
+                      borderRadius: 11,
                       fontSize: '0.9rem',
                       backgroundColor: colors.bgCard,
                       color: colors.textPrimary,
-                      boxSizing: 'border-box'
+                      boxSizing: 'border-box',
+                      outline: 'none',
+                      transition: 'border-color 0.18s, box-shadow 0.18s',
                     }}
                   />
                 </div>
@@ -3184,35 +3304,37 @@ Amount: ${formatPrice(payment.amountNum)}
 
               {/* Bank Transfer Fields */}
               {selectedGiftPaymentMethod === 'bank' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                      Select Bank
+                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+                      Select bank
                     </label>
                     <select
                       value={giftPaymentDetails.selectedBank}
                       onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, selectedBank: e.target.value })}
                       style={{
                         width: '100%',
-                        padding: '0.75rem',
-                        border: `2px solid ${colors.borderPrimary}`,
-                        borderRadius: '0.5rem',
+                        padding: '0.7rem 0.95rem',
+                        border: `1.5px solid ${colors.borderPrimary}`,
+                        borderRadius: 11,
                         fontSize: '0.9rem',
                         backgroundColor: colors.bgCard,
                         color: colors.textPrimary,
                         boxSizing: 'border-box',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        outline: 'none',
+                        transition: 'border-color 0.18s, box-shadow 0.18s',
                       }}
                     >
-                      <option value="">Choose a bank...</option>
+                      <option value="">Choose a bank…</option>
                       {bankProviders.map((bank) => (
                         <option key={bank.id} value={bank.name}>{bank.name}</option>
                       ))}
                     </select>
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                      Account Number
+                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+                      Account number
                     </label>
                     <input
                       type="text"
@@ -3221,19 +3343,21 @@ Amount: ${formatPrice(payment.amountNum)}
                       onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, bankAccountNumber: e.target.value })}
                       style={{
                         width: '100%',
-                        padding: '0.75rem',
-                        border: `2px solid ${colors.borderPrimary}`,
-                        borderRadius: '0.5rem',
+                        padding: '0.7rem 0.95rem',
+                        border: `1.5px solid ${colors.borderPrimary}`,
+                        borderRadius: 11,
                         fontSize: '0.9rem',
                         backgroundColor: colors.bgCard,
                         color: colors.textPrimary,
-                        boxSizing: 'border-box'
+                        boxSizing: 'border-box',
+                        outline: 'none',
+                        transition: 'border-color 0.18s, box-shadow 0.18s',
                       }}
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                      Account Holder Name
+                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+                      Account holder name
                     </label>
                     <input
                       type="text"
@@ -3242,13 +3366,15 @@ Amount: ${formatPrice(payment.amountNum)}
                       onChange={(e) => setGiftPaymentDetails({ ...giftPaymentDetails, bankAccountName: e.target.value })}
                       style={{
                         width: '100%',
-                        padding: '0.75rem',
-                        border: `2px solid ${colors.borderPrimary}`,
-                        borderRadius: '0.5rem',
+                        padding: '0.7rem 0.95rem',
+                        border: `1.5px solid ${colors.borderPrimary}`,
+                        borderRadius: 11,
                         fontSize: '0.9rem',
                         backgroundColor: colors.bgCard,
                         color: colors.textPrimary,
-                        boxSizing: 'border-box'
+                        boxSizing: 'border-box',
+                        outline: 'none',
+                        transition: 'border-color 0.18s, box-shadow 0.18s',
                       }}
                     />
                   </div>
@@ -3258,24 +3384,21 @@ Amount: ${formatPrice(payment.amountNum)}
           )}
 
           {/* Action Buttons */}
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <div style={{
+            display: 'flex',
+            gap: '0.6rem',
+            alignItems: 'center',
+            paddingTop: '1rem',
+            borderTop: `1px solid ${colors.borderPrimary}`,
+          }}>
             <button
               onClick={() => {
                 setShowGiftsPaymentMethodModal(false);
                 setSelectedGiftPaymentMethod(null);
                 setValidationError(null);
               }}
-              style={{
-                flex: 1,
-                padding: '0.75rem 1rem',
-                border: `2px solid ${colors.borderPrimary}`,
-                borderRadius: '0.5rem',
-                background: colors.bgTertiary,
-                color: colors.textPrimary,
-                fontSize: '0.9rem',
-                fontWeight: '600',
-                cursor: 'pointer'
-              }}
+              className="ck-btn ck-btn-soft"
+              style={{ flex: 1, padding: '0.65rem 1rem', fontSize: '0.9rem' }}
             >
               Cancel
             </button>
@@ -3283,19 +3406,37 @@ Amount: ${formatPrice(payment.amountNum)}
               onClick={saveWithdrawalMethod}
               disabled={!selectedGiftPaymentMethod || savingWithdrawal}
               style={{
-                flex: 1,
-                padding: '0.75rem 1rem',
-                border: '2px solid #15803D',
-                borderRadius: '0.5rem',
-                background: selectedGiftPaymentMethod && !savingWithdrawal ? '#16A34A' : colors.bgTertiary,
-                color: selectedGiftPaymentMethod && !savingWithdrawal ? 'white' : colors.textSecondary,
+                flex: 2,
+                padding: '0.65rem 1.1rem',
+                borderRadius: 11,
+                border: 'none',
+                background: (!selectedGiftPaymentMethod || savingWithdrawal)
+                  ? colors.bgTertiary
+                  : 'linear-gradient(135deg, #16A34A 0%, #10B981 100%)',
+                color: (!selectedGiftPaymentMethod || savingWithdrawal) ? colors.textSecondary : '#fff',
                 fontSize: '0.9rem',
-                fontWeight: '600',
-                cursor: selectedGiftPaymentMethod && !savingWithdrawal ? 'pointer' : 'not-allowed',
-                opacity: selectedGiftPaymentMethod && !savingWithdrawal ? 1 : 0.6
+                fontWeight: 700,
+                cursor: (!selectedGiftPaymentMethod || savingWithdrawal) ? 'not-allowed' : 'pointer',
+                opacity: (!selectedGiftPaymentMethod || savingWithdrawal) ? 0.7 : 1,
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                boxShadow: (!selectedGiftPaymentMethod || savingWithdrawal) ? 'none' : '0 6px 18px rgba(22,163,74,0.28)',
+                letterSpacing: '-0.005em',
+                transition: 'transform 0.15s, box-shadow 0.15s, opacity 0.15s',
               }}
+              onMouseEnter={(e) => { if (selectedGiftPaymentMethod && !savingWithdrawal) e.currentTarget.style.transform = 'translateY(-1px)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
             >
-              {savingWithdrawal ? 'Saving...' : 'Save Withdrawal Method'}
+              {savingWithdrawal ? (
+                <>
+                  <span className="ck-spinner" style={{ width: 12, height: 12, borderWidth: 2, borderTopColor: '#fff' }} />
+                  Saving…
+                </>
+              ) : (
+                <>
+                  <i className="bi bi-shield-check" style={{ fontSize: 13 }} />
+                  Save withdrawal method
+                </>
+              )}
             </button>
           </div>
         </div>
