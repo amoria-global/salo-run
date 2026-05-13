@@ -8,6 +8,7 @@ import { DashboardAuthProvider } from "./providers/AuthProvider";
 import { ThemeProvider } from "./context/ThemeContext";
 import { UserProfileProvider } from "./context/UserProfileContext";
 import { CurrencyProvider } from "./context/CurrencyContext";
+import PlatformAlert from "./components/PlatformAlert";
 
 const pragatiNarrow = Pragati_Narrow({
   weight: ["400", "700"],
@@ -39,6 +40,8 @@ export default function RootLayout({
             <CurrencyProvider>
               <UserProfileProvider>
                 {children}
+                {/* Global platform alert — replaces native browser alert() with brand-styled modal. */}
+                <PlatformAlert />
               </UserProfileProvider>
             </CurrencyProvider>
           </ThemeProvider>
