@@ -1147,9 +1147,11 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     }
     if (scrollParent) {
       const offset = target.getBoundingClientRect().top - scrollParent.getBoundingClientRect().top + scrollParent.scrollTop;
-      // Pull up by the sticky banner's own height (~190px including padding)
-      // so the section header lands BELOW the banner instead of behind it.
-      scrollParent.scrollTo({ top: Math.max(0, offset - 200), behavior: 'smooth' });
+      // Small breathing room above the section header. The banner is no
+      // longer sticky, so we don't need to clear its height — just give
+      // the section a bit of margin from the very top so it doesn't slam
+      // into the topbar.
+      scrollParent.scrollTo({ top: Math.max(0, offset - 24), behavior: 'smooth' });
     } else {
       target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -2326,9 +2328,15 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
             return (
               <div style={{
-                position: 'sticky',
-                top: 0,
-                zIndex: 20,
+                // Was position: sticky — that kept the banner pinned to the
+                // top of the scroll container, but the banner is tall enough
+                // (header + 4 checklist rows) to overlay most of the profile
+                // fields underneath, so once the user clicked "Jump there"
+                // the section they landed on was hidden behind the banner.
+                // Render it as a normal block at the top of the page instead:
+                // still loud and unmissable, but scrolls away as soon as the
+                // photographer scrolls down to actually fill anything in.
+                position: 'relative',
                 marginBottom: '1.25rem',
                 padding: '1.25rem 1.5rem',
                 borderRadius: '1rem',
@@ -2336,7 +2344,6 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                 border: '1px solid rgba(217, 119, 6, 0.6)',
                 boxShadow: '0 8px 24px rgba(245, 158, 11, 0.18)',
                 color: '#fff',
-                backdropFilter: 'blur(6px)',
               }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, flexWrap: 'wrap' }}>
                   <div style={{
