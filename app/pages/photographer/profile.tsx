@@ -1131,15 +1131,27 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
     if (section !== 'basic') {
       setActiveTab(section);
     }
-    if (typeof window !== 'undefined') {
-      const target = document.getElementById(
-        section === 'basic' ? 'profile-basic-info-section' : 'profile-tabs-section'
-      );
-      if (target) {
-        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      } else {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
+    if (typeof window === 'undefined') return;
+    // Find the actual scroll container — the dashboard puts every page inside
+    // a flex column whose middle child has overflowY:auto. window.scrollTo is
+    // useless here because the document itself doesn't scroll. Walk up from
+    // the target until we find something that does, then scroll that.
+    const targetId = section === 'basic' ? 'profile-basic-info-section' : 'profile-tabs-section';
+    const target = document.getElementById(targetId);
+    if (!target) return;
+    let scrollParent: HTMLElement | null = target.parentElement;
+    while (scrollParent) {
+      const style = window.getComputedStyle(scrollParent);
+      if (/(auto|scroll)/.test(style.overflowY) && scrollParent.scrollHeight > scrollParent.clientHeight) break;
+      scrollParent = scrollParent.parentElement;
+    }
+    if (scrollParent) {
+      const offset = target.getBoundingClientRect().top - scrollParent.getBoundingClientRect().top + scrollParent.scrollTop;
+      // Pull up by the sticky banner's own height (~190px including padding)
+      // so the section header lands BELOW the banner instead of behind it.
+      scrollParent.scrollTo({ top: Math.max(0, offset - 200), behavior: 'smooth' });
+    } else {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }, []);
 
@@ -2356,51 +2368,22 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                   </div>
                 </div>
 
-                <ul style={{ listStyle: 'none', margin: '1rem 0 0', padding: 0, display: 'grid', gap: 8 }}>
+                <div style={{ margin: '1rem 0 0', display: 'grid', gap: 8 }}>
                   {items.map((it, idx) => {
                     const interactive = !it.ok;
-                    return (
-                      <li
-                        key={idx}
-                        onClick={interactive ? () => jumpToSection(it.section) : undefined}
-                        role={interactive ? 'button' : undefined}
-                        tabIndex={interactive ? 0 : undefined}
-                        onKeyDown={interactive ? (e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            jumpToSection(it.section);
-                          }
-                        } : undefined}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'flex-start',
-                          gap: 10,
-                          padding: '0.65rem 0.85rem',
-                          borderRadius: '0.6rem',
-                          background: it.ok
-                            ? 'rgba(16, 185, 129, 0.22)'
-                            : 'rgba(255, 255, 255, 0.95)',
-                          border: it.ok
-                            ? '1px solid rgba(16, 185, 129, 0.5)'
-                            : '1px solid rgba(255, 255, 255, 0.7)',
-                          cursor: interactive ? 'pointer' : 'default',
-                          transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-                        }}
-                        onMouseEnter={interactive ? (e) => {
-                          (e.currentTarget as HTMLLIElement).style.transform = 'translateY(-1px)';
-                          (e.currentTarget as HTMLLIElement).style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.12)';
-                        } : undefined}
-                        onMouseLeave={interactive ? (e) => {
-                          (e.currentTarget as HTMLLIElement).style.transform = '';
-                          (e.currentTarget as HTMLLIElement).style.boxShadow = '';
-                        } : undefined}
-                      >
+                    // Use a real <button> for the interactive row — <li role="button">
+                    // hydration is flaky under Next 16 + Turbopack, and buttons can't
+                    // be intercepted by the parent's z-index / pointer-events shenanigans
+                    // the way list items can.
+                    const sharedInner = (
+                      <>
                         <i className={it.ok ? 'bi bi-check-circle-fill' : 'bi bi-circle'} style={{
                           color: it.ok ? '#10B981' : '#92400e',
                           fontSize: '1.1rem',
                           marginTop: 2,
+                          flex: '0 0 auto',
                         }} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
                           <div style={{ fontSize: '0.92rem', fontWeight: 600, color: it.ok ? '#fff' : '#1f2937' }}>{it.label}</div>
                           {it.detail && (
                             <div style={{ fontSize: '0.8rem', color: it.ok ? 'rgba(255,255,255,0.85)' : '#7f1d1d', marginTop: 2 }}>{it.detail}</div>
@@ -2420,10 +2403,47 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                             Jump there <i className="bi bi-arrow-right-short" style={{ fontSize: '1rem' }} />
                           </span>
                         )}
-                      </li>
+                      </>
+                    );
+                    const sharedStyle: React.CSSProperties = {
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: 10,
+                      padding: '0.65rem 0.85rem',
+                      borderRadius: '0.6rem',
+                      background: it.ok ? 'rgba(16, 185, 129, 0.22)' : 'rgba(255, 255, 255, 0.95)',
+                      border: it.ok ? '1px solid rgba(16, 185, 129, 0.5)' : '1px solid rgba(255, 255, 255, 0.7)',
+                      transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                      width: '100%',
+                      font: 'inherit',
+                    };
+                    if (interactive) {
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => jumpToSection(it.section)}
+                          style={{ ...sharedStyle, cursor: 'pointer' }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-1px)';
+                            e.currentTarget.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.12)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = '';
+                            e.currentTarget.style.boxShadow = '';
+                          }}
+                        >
+                          {sharedInner}
+                        </button>
+                      );
+                    }
+                    return (
+                      <div key={idx} style={sharedStyle}>
+                        {sharedInner}
+                      </div>
                     );
                   })}
-                </ul>
+                </div>
               </div>
             );
           })()}
