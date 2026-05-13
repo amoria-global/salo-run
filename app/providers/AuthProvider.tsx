@@ -136,6 +136,12 @@ export interface DashboardUser {
   kycStatus?: string;
   preferredWithdrawalVerification?: string;
   twoFactorEnabled?: boolean;
+  /**
+   * Server-computed profile completion percentage (0-100). Authoritative —
+   * the photographer dashboard layout gates navigation on this, so don't
+   * shadow it with a client-side recomputation.
+   */
+  completionPercentage?: number;
 }
 
 /**
@@ -361,6 +367,7 @@ function mapProfileData(data: any): DashboardUser {
     kycStatus: data.kycStatus || undefined,
     preferredWithdrawalVerification: data.preferredWithdrawalVerification || 'EMAIL_OTP',
     twoFactorEnabled: data.twoFactorEnabled === true,
+    completionPercentage: typeof data.completionPercentage === 'number' ? data.completionPercentage : undefined,
   };
 }
 

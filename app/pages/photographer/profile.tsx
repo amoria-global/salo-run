@@ -2176,6 +2176,98 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
           backgroundColor: colors.bgPrimary,
           padding: '1.25rem'
         }}>
+          {/*
+            Missing-fields banner. When the profile is below 100%, the
+            PhotographerLayout has already redirected every other route to
+            this page — this banner is what tells the user why, and shows
+            the four sections they need to finish before they can move on.
+          */}
+          {profileCompletion < 100 && (() => {
+            const basicMissing: string[] = [];
+            if (!basicInfo.fullName) basicMissing.push('Full name');
+            if (!basicInfo.phoneNumber) basicMissing.push('Phone number');
+            if (!basicInfo.address) basicMissing.push('Working city');
+            if (!profileImage) basicMissing.push('Profile photo');
+
+            const specialtiesOk = overviewData.specialties.length >= 2;
+            const portfolioOk = portfolioData.projects.length >= 1;
+            const hasExp = experienceData.experiences.length >= 1;
+            const hasLongDesc = experienceData.experiences.some(e => e.description.length > 50);
+            const experienceOk = hasExp && hasLongDesc;
+
+            const items = [
+              { label: 'Basic info (name, phone, working city, profile photo)', ok: basicMissing.length === 0, detail: basicMissing.length ? 'Missing: ' + basicMissing.join(', ') : null },
+              { label: 'At least 2 specialties selected', ok: specialtiesOk, detail: specialtiesOk ? null : `Currently ${overviewData.specialties.length}` },
+              { label: 'At least 1 portfolio project', ok: portfolioOk, detail: portfolioOk ? null : `Currently ${portfolioData.projects.length}` },
+              { label: 'At least 1 work experience with a description (50+ chars)', ok: experienceOk, detail: !hasExp ? 'No entries yet' : (!hasLongDesc ? 'Add a description over 50 characters to one of your entries' : null) },
+            ];
+
+            return (
+              <div style={{
+                marginBottom: '1.25rem',
+                padding: '1.25rem 1.5rem',
+                borderRadius: '1rem',
+                background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(245, 158, 11, 0.02))',
+                border: '1px solid rgba(245, 158, 11, 0.35)',
+                boxShadow: '0 4px 16px rgba(245, 158, 11, 0.08)',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, flexWrap: 'wrap' }}>
+                  <div style={{
+                    flex: '0 0 auto',
+                    width: 44,
+                    height: 44,
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+                    color: '#fff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.1rem',
+                    fontWeight: 700,
+                  }}>
+                    <i className="bi bi-pencil-square" />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '1rem', fontWeight: 700, color: colors.textPrimary, marginBottom: 4 }}>
+                      Finish your profile to unlock the dashboard
+                    </div>
+                    <div style={{ fontSize: '0.88rem', color: colors.textSecondary, lineHeight: 1.5 }}>
+                      You're at <strong style={{ color: '#D97706' }}>{profileCompletion}%</strong>.
+                      Clients only see photographers with a 100% profile, and the rest of the dashboard stays
+                      locked until each of the items below is checked off.
+                    </div>
+                  </div>
+                </div>
+
+                <ul style={{ listStyle: 'none', margin: '1rem 0 0', padding: 0, display: 'grid', gap: 8 }}>
+                  {items.map((it, idx) => (
+                    <li key={idx} style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: 10,
+                      padding: '0.6rem 0.75rem',
+                      borderRadius: '0.5rem',
+                      background: it.ok ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255, 255, 255, 0.6)',
+                      border: it.ok ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(0, 0, 0, 0.06)',
+                    }}>
+                      <i className={it.ok ? 'bi bi-check-circle-fill' : 'bi bi-circle'} style={{
+                        color: it.ok ? '#10B981' : '#9CA3AF',
+                        fontSize: '1.05rem',
+                        marginTop: 2,
+                      }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 600, color: colors.textPrimary }}>{it.label}</div>
+                        {it.detail && (
+                          <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginTop: 2 }}>{it.detail}</div>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })()}
+
           {/* Page Header */}
           <div className="mobile-page-header" style={{
             display: 'flex',
