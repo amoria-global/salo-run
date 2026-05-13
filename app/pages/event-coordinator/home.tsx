@@ -10,6 +10,7 @@ import { useCurrency } from '../../context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
 import { getApiUrl, normalizeImageUrl } from '@/lib/api';
 import PayNowModal, { Payment } from '../../components/UnlockModal';
+import KycVerificationModal from '../../components/KycVerificationModal';
 import {
   StatCard,
   ActivityItem,
@@ -176,7 +177,7 @@ interface CoordinatorAnalyticsData {
 const EventCoordinatorDashboard = () => {
   const { colors, actualTheme } = useTheme();
   const { formatPrice } = useCurrency();
-  const { user } = useDashboardAuth();
+  const { user, refreshUserProfile } = useDashboardAuth();
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<'today' | 'week' | 'month' | 'custom'>('week');
   const [customDateFrom, setCustomDateFrom] = useState('');
@@ -186,6 +187,7 @@ const EventCoordinatorDashboard = () => {
   const [greetings, setGreetings] = useState(getGreetings(getTimeOfDay()));
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [showPayNowModal, setShowPayNowModal] = useState(false);
+  const [showKycModal, setShowKycModal] = useState(false);
   const [payNowPayment, setPayNowPayment] = useState<Payment | null>(null);
 
   // API data state
@@ -552,223 +554,59 @@ const EventCoordinatorDashboard = () => {
           paddingTop: '1rem',
           paddingBottom: '1rem'
         }}>
-          {/* KYC Warning Banner */}
-          {user && user.kycStatus !== 'APPROVED' && user.customerType !== 'Viewer' && (
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem',
-              padding: '0.75rem 1rem', marginBottom: '1rem', borderRadius: '0.5rem',
-              backgroundColor: user.kycStatus === 'REJECTED'
-                ? (actualTheme === 'dark' ? '#7F1D1D' : '#FEF2F2')
-                : user.kycStatus === 'PENDING'
-                  ? (actualTheme === 'dark' ? '#78350F' : '#FFFBEB')
-                  : (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF'),
-              color: user.kycStatus === 'REJECTED'
-                ? (actualTheme === 'dark' ? '#FCA5A5' : '#991B1B')
-                : user.kycStatus === 'PENDING'
-                  ? (actualTheme === 'dark' ? '#FDE68A' : '#92400E')
-                  : (actualTheme === 'dark' ? '#93C5FD' : '#1E40AF'),
-              border: `1px solid ${user.kycStatus === 'REJECTED' ? '#F87171' : user.kycStatus === 'PENDING' ? '#F59E0B' : '#3B82F6'}40`,
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, fontSize: '0.85rem' }}>
-                <span style={{ fontSize: '1.1rem' }}>{user.kycStatus === 'REJECTED' ? '\u2716' : user.kycStatus === 'PENDING' ? '\u23F3' : '\u26A0'}</span>
-                <span style={{ fontWeight: 600 }}>
-                  {user.kycStatus === 'PENDING' && 'Your KYC verification is under review'}
-                  {user.kycStatus === 'REJECTED' && 'Your KYC verification was rejected. Please resubmit.'}
-                  {(!user.kycStatus || user.kycStatus === 'NOT_SUBMITTED') && 'Complete KYC verification to unlock withdrawals and all features'}
-                </span>
-              </div>
-              {user.kycStatus !== 'PENDING' && (
-                <button
-                  onClick={() => router.push('/user/event-coordinator/profile')}
-                  style={{
-                    backgroundColor: user.kycStatus === 'REJECTED' ? '#EF4444' : '#3B82F6',
-                    color: '#FFFFFF', border: 'none', padding: '0.35rem 0.85rem', borderRadius: '0.375rem',
-                    fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
-                  }}
-                >
-                  {user.kycStatus === 'REJECTED' ? 'Resubmit KYC' : 'Complete KYC'}
-                </button>
-              )}
-            </div>
-          )}
+          {/* KYC banner is rendered globally by the topbar \u2014 no page-level duplicate here. */}
 
-          <header className="mobile-header" style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginTop: '0.125rem'
+          <section className="ck-fade-in-up dashboard-hero" style={{
+            position: 'relative', borderRadius: 20, padding: '28px 28px 24px',
+            background: 'linear-gradient(135deg, rgba(8,58,133,0.05) 0%, rgba(242,12,143,0.05) 100%)',
+            border: `1px solid ${colors.borderPrimary}`,
+            marginBottom: 22, overflow: 'hidden',
+            display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto',
+            gap: 20, alignItems: 'center',
           }}>
-            <div>
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)' }} />
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>
+                Coordinator dashboard
+              </div>
               <h1 style={{
-                fontSize: '1.8rem',
-                lineHeight: '2rem',
-                color: colors.textPrimary,
-                fontWeight: '600',
-                transition: 'opacity 0.3s ease'
+                margin: 0, fontSize: 'clamp(1.6rem, 3vw, 2.1rem)',
+                fontWeight: 800, letterSpacing: '-0.02em',
+                color: colors.textPrimary, lineHeight: 1.1,
               }}>
-                {currentGreeting}, <span style={{ fontWeight: '600', color: colors.brandPrimary }}>{user?.firstName || 'there'}</span>
+                {currentGreeting}, <span className="ck-gradient-text">{user?.firstName || 'there'}</span>
               </h1>
-              <p style={{
-                fontSize: '0.875rem',
-                color: colors.textSecondary,
-                marginTop: '0.25rem'
-              }}>
-                {staticMessage}
-              </p>
+              <p style={{ margin: '8px 0 0', color: colors.textSecondary, fontSize: '0.95rem' }}>{staticMessage}</p>
             </div>
-            <div className="mobile-header-stats" style={{
-              backgroundColor: colors.bgCard,
-              borderRadius: '0.5rem',
-              paddingLeft: '1.5rem',
-              paddingRight: '1.5rem',
-              paddingTop: '0.75rem',
-              paddingBottom: '0.75rem',
-              boxShadow: colors.shadowSm,
-              border: `2px solid ${colors.borderPrimary}`,
-              display: 'flex',
-              gap: '2rem'
+            <div className="hero-stats-card" style={{
+              display: 'grid', gridTemplateColumns: 'repeat(3, minmax(96px, 1fr))',
+              gap: 8, background: colors.bgCard, border: `1px solid ${colors.borderPrimary}`,
+              borderRadius: 16, padding: 16, minWidth: 320,
+              boxShadow: colors.shadowSm, position: 'relative', zIndex: 1,
             }}>
-              <div className="mobile-header-stat" style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center'
-              }}>
-                <span style={{
-                  fontSize: '1rem',
-                  lineHeight: '1rem',
-                  fontWeight: '600',
-                  marginBottom: '0.25rem',
-                  color: colors.brandPrimary
-                }}>Revenue</span>
-                <span style={{
-                  fontSize: '1.25rem',
-                  lineHeight: '1.75rem',
-                  fontWeight: '700',
-                  color: colors.textPrimary
-                }}>{formatPrice(analytics?.totalRevenue ?? balanceData?.totalDeclared ?? 0)}</span>
-              </div>
-              <div className="mobile-header-stat" style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center'
-              }}>
-                <span style={{
-                  fontSize: '1rem',
-                  lineHeight: '1rem',
-                  fontWeight: '600',
-                  marginBottom: '0.25rem',
-                  color: colors.brandPrimary
-                }}>Events</span>
-                <span style={{
-                  fontSize: '1.25rem',
-                  lineHeight: '1.75rem',
-                  fontWeight: '700',
-                  color: colors.textPrimary
-                }}>{analytics?.totalEvents ?? 0}</span>
-              </div>
-              <div className="mobile-header-stat" style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center'
-              }}>
-                <span style={{
-                  fontSize: '1rem',
-                  lineHeight: '1rem',
-                  fontWeight: '600',
-                  marginBottom: '0.25rem',
-                  color: colors.brandPrimary
-                }}>Viewers</span>
-                <span style={{
-                  fontSize: '1.25rem',
-                  lineHeight: '1.75rem',
-                  fontWeight: '700',
-                  color: colors.textPrimary
-                }}>{(analytics?.activeStreams ?? 0).toLocaleString()}</span>
-              </div>
+              {[
+                { label: 'Revenue', value: formatPrice(analytics?.totalRevenue ?? balanceData?.totalDeclared ?? 0), color: '#083A85' },
+                { label: 'Events', value: String(analytics?.totalEvents ?? 0), color: '#F20C8F' },
+                { label: 'Streams', value: String(analytics?.activeStreams ?? 0), color: '#10B981' },
+              ].map(s => (
+                <div key={s.label} style={{ textAlign: 'center', padding: '4px 6px' }}>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 700, color: colors.textTertiary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.label}</div>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.01em', marginTop: 4, color: s.color, lineHeight: 1.1 }}>{s.value}</div>
+                </div>
+              ))}
             </div>
-          </header>
+          </section>
 
-      <div className="mobile-filter-tabs" style={{
-        display: 'flex',
-        gap: '0.5rem',
-        marginBottom: '1rem'
-      }}>
-        <button
-          onClick={() => setActiveFilter('today')}
-          style={{
-            paddingLeft: '0.875rem',
-            paddingRight: '0.875rem',
-            paddingTop: '0.375rem',
-            paddingBottom: '0.375rem',
-            border: activeFilter === 'today' ? '2px solid #C0096D' : `2px solid ${colors.borderPrimary}`,
-            borderRadius: '0.375rem',
-            fontSize: '0.9rem',
-            lineHeight: '1rem',
-            cursor: 'pointer',
-            transition: 'all 0.3s',
-            backgroundColor: activeFilter === 'today' ? '#F20C8F' : colors.bgCard,
-            color: activeFilter === 'today' ? 'white' : colors.textSecondary
-          }}
-        >
-          Today
-        </button>
-        <button
-          onClick={() => setActiveFilter('week')}
-          style={{
-            paddingLeft: '0.875rem',
-            paddingRight: '0.875rem',
-            paddingTop: '0.375rem',
-            paddingBottom: '0.375rem',
-            border: activeFilter === 'week' ? '2px solid #C0096D' : `2px solid ${colors.borderPrimary}`,
-            borderRadius: '0.375rem',
-            fontSize: '0.9rem',
-            lineHeight: '1rem',
-            cursor: 'pointer',
-            transition: 'all 0.3s',
-            backgroundColor: activeFilter === 'week' ? '#F20C8F' : colors.bgCard,
-            color: activeFilter === 'week' ? 'white' : colors.textSecondary
-          }}
-        >
-          This week
-        </button>
-        <button
-          onClick={() => setActiveFilter('month')}
-          style={{
-            paddingLeft: '0.875rem',
-            paddingRight: '0.875rem',
-            paddingTop: '0.375rem',
-            paddingBottom: '0.375rem',
-            border: activeFilter === 'month' ? '2px solid #C0096D' : `2px solid ${colors.borderPrimary}`,
-            borderRadius: '0.375rem',
-            fontSize: '0.9rem',
-            lineHeight: '1rem',
-            cursor: 'pointer',
-            transition: 'all 0.3s',
-            backgroundColor: activeFilter === 'month' ? '#F20C8F' : colors.bgCard,
-            color: activeFilter === 'month' ? 'white' : colors.textSecondary
-          }}
-        >
-          This Month
-        </button>
-        <button
-          onClick={() => setActiveFilter('custom')}
-          style={{
-            paddingLeft: '0.875rem',
-            paddingRight: '0.875rem',
-            paddingTop: '0.375rem',
-            paddingBottom: '0.375rem',
-            border: activeFilter === 'custom' ? '2px solid #C0096D' : `2px solid ${colors.borderPrimary}`,
-            borderRadius: '0.375rem',
-            fontSize: '0.9rem',
-            lineHeight: '1rem',
-            cursor: 'pointer',
-            transition: 'all 0.3s',
-            backgroundColor: activeFilter === 'custom' ? '#F20C8F' : colors.bgCard,
-            color: activeFilter === 'custom' ? 'white' : colors.textSecondary
-          }}
-        >
-          Custom
-        </button>
+      <div className="mobile-filter-tabs ck-tabs" style={{ marginBottom: '1rem' }}>
+        {(['today', 'week', 'month', 'custom'] as const).map(f => {
+          const labels = { today: 'Today', week: 'This week', month: 'This month', custom: 'Custom' };
+          return (
+            <button key={f} onClick={() => setActiveFilter(f)}
+              className={`ck-tab ${activeFilter === f ? 'active' : ''}`}>
+              {labels[f]}
+            </button>
+          );
+        })}
       </div>
 
       {activeFilter === 'custom' && (
@@ -1323,6 +1161,14 @@ const EventCoordinatorDashboard = () => {
         isOpen={showPayNowModal}
         onClose={() => setShowPayNowModal(false)}
         payment={payNowPayment}
+      />
+
+      <KycVerificationModal
+        isOpen={showKycModal}
+        onClose={() => setShowKycModal(false)}
+        onSuccess={() => { setShowKycModal(false); refreshUserProfile(); }}
+        colors={colors as unknown as Record<string, string>}
+        actualTheme={actualTheme}
       />
     </>
   );

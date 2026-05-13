@@ -8,40 +8,97 @@ interface ModalOverlayProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
+  eyebrow?: string;
+  icon?: string; // bootstrap icon class without leading "bi "
+  iconTone?: 'info' | 'success';
   children: React.ReactNode;
 }
 
-const ModalOverlay: React.FC<ModalOverlayProps> = ({ isOpen, onClose, title, children }) => {
+const ModalOverlay: React.FC<ModalOverlayProps> = ({ isOpen, onClose, title, eyebrow, icon, iconTone = 'info', children }) => {
   const { colors } = useTheme();
   if (!isOpen) return null;
+
+  const iconGradient = iconTone === 'success'
+    ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)'
+    : 'linear-gradient(135deg, #083A85 0%, #0a4da8 100%)';
+  const iconShadow = iconTone === 'success'
+    ? '0 10px 24px rgba(16,185,129,0.30)'
+    : '0 10px 24px rgba(8,58,133,0.30)';
 
   return (
     <div
       style={{
         position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex',
+        backgroundColor: 'rgba(0, 0, 0, 0.45)',
+        backdropFilter: 'blur(2px)',
+        WebkitBackdropFilter: 'blur(2px)',
+        display: 'flex',
         alignItems: 'center', justifyContent: 'center', zIndex: 1000,
         padding: '1rem',
       }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div style={{
-        backgroundColor: colors.bgCard, borderRadius: '1rem',
-        width: '100%', maxWidth: '500px', maxHeight: '90vh',
-        overflow: 'auto', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+        position: 'relative',
+        backgroundColor: colors.bgCard,
+        borderRadius: 18,
+        width: '100%', maxWidth: 540, maxHeight: '90vh',
+        overflow: 'auto',
+        boxShadow: '0 25px 60px -12px rgba(8, 58, 133, 0.30)',
         border: `1px solid ${colors.borderPrimary}`,
       }}>
-        <div style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          padding: '1.25rem 1.5rem', borderBottom: `1px solid ${colors.borderPrimary}`,
-        }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: colors.textPrimary, margin: 0 }}>{title}</h3>
-          <button onClick={onClose} style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            fontSize: '1.5rem', color: colors.textSecondary, lineHeight: 1,
-          }}>&times;</button>
+        <span aria-hidden style={{
+          position: 'sticky', top: 0, left: 0, right: 0, height: 3, display: 'block',
+          background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
+          zIndex: 2,
+        }} />
+        <div style={{ padding: '1.4rem 1.5rem 1.4rem', position: 'relative' }}>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            style={{
+              position: 'absolute', top: 14, right: 14,
+              background: colors.bgTertiary,
+              border: `1px solid ${colors.borderPrimary}`,
+              borderRadius: 9,
+              cursor: 'pointer',
+              width: 30, height: 30,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: colors.textSecondary,
+              transition: 'border-color 0.15s, color 0.15s',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)'; e.currentTarget.style.color = colors.textPrimary; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.color = colors.textSecondary; }}
+          >
+            <i className="bi bi-x-lg" style={{ fontSize: 12 }} />
+          </button>
+          {icon && (
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.85rem' }}>
+              <div style={{
+                width: 60, height: 60, borderRadius: 18,
+                background: iconGradient,
+                boxShadow: iconShadow,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <i className={`bi ${icon}`} style={{ fontSize: 24, color: '#fff' }} />
+              </div>
+            </div>
+          )}
+          <div style={{ textAlign: 'center', marginBottom: '1.1rem' }}>
+            {eyebrow && (
+              <div style={{
+                fontSize: '0.66rem', fontWeight: 700, color: '#F20C8F',
+                letterSpacing: '0.08em', textTransform: 'uppercase',
+                marginBottom: 4,
+              }}>{eyebrow}</div>
+            )}
+            <h3 style={{
+              fontSize: '1.2rem', fontWeight: 800, color: colors.textPrimary,
+              margin: 0, letterSpacing: '-0.01em',
+            }}>{title}</h3>
+          </div>
+          {children}
         </div>
-        <div style={{ padding: '1.5rem' }}>{children}</div>
       </div>
     </div>
   );
@@ -122,7 +179,7 @@ const SatisfactionSurveyModal: React.FC<SatisfactionSurveyModalProps> = ({
     selected: OptionValue,
     onSelect: (value: any) => void
   ) => (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem' }}>
       {options.map((opt) => {
         const isActive = selected === opt.value;
         return (
@@ -130,20 +187,22 @@ const SatisfactionSurveyModal: React.FC<SatisfactionSurveyModalProps> = ({
             key={String(opt.value)}
             onClick={() => onSelect(opt.value)}
             style={{
-              padding: '0.5rem 1rem',
-              border: isActive ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-              borderRadius: '0.5rem',
+              padding: '0.55rem 0.9rem',
+              border: `1px solid ${isActive ? 'rgba(8,58,133,0.45)' : colors.borderPrimary}`,
+              borderRadius: 11,
               background: isActive
-                ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF')
-                : colors.bgTertiary,
-              color: isActive ? (actualTheme === 'dark' ? '#93C5FD' : '#083A85') : colors.textSecondary,
+                ? 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)'
+                : colors.bgCard,
+              color: isActive ? '#fff' : colors.textPrimary,
               fontSize: '0.85rem',
-              fontWeight: isActive ? '600' : '500',
+              fontWeight: isActive ? 700 : 600,
+              letterSpacing: '-0.005em',
               cursor: 'pointer',
-              transition: 'all 0.2s',
+              transition: 'all 0.18s',
               flex: options.length <= 3 ? '1' : undefined,
-              minWidth: '0',
+              minWidth: 0,
               textAlign: 'center',
+              boxShadow: isActive ? '0 6px 14px rgba(8,58,133,0.22)' : 'none',
             }}
           >
             {opt.label}
@@ -153,42 +212,36 @@ const SatisfactionSurveyModal: React.FC<SatisfactionSurveyModalProps> = ({
     </div>
   );
 
+  const QuestionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+    <label style={{
+      display: 'block',
+      fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F',
+      textTransform: 'uppercase', letterSpacing: '0.08em',
+      marginBottom: '0.45rem',
+    }}>{children}</label>
+  );
+
   if (submitted) {
     return (
-      <ModalOverlay isOpen={isOpen} onClose={onClose} title="Survey Submitted">
-        <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
-          <div style={{
-            width: '64px', height: '64px', margin: '0 auto 1rem', borderRadius: '50%',
-            backgroundColor: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-              <path d="M20 6L9 17L4 12" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </div>
-          <h4 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem' }}>
-            Thank you for your feedback!
-          </h4>
-          <p style={{ fontSize: '0.9rem', color: colors.textSecondary }}>
-            You can now proceed with your payment.
-          </p>
-        </div>
+      <ModalOverlay isOpen={isOpen} onClose={onClose} title="Thank you for your feedback!" eyebrow="Survey submitted" icon="bi-check2-circle" iconTone="success">
+        <p style={{ textAlign: 'center', fontSize: '0.92rem', color: colors.textSecondary, margin: '0 auto 0.5rem', maxWidth: 380, lineHeight: 1.5 }}>
+          Your responses have been recorded. You can now proceed with your payment.
+        </p>
       </ModalOverlay>
     );
   }
 
   return (
-    <ModalOverlay isOpen={isOpen} onClose={onClose} title="Service Confirmation">
+    <ModalOverlay isOpen={isOpen} onClose={onClose} title="Service Confirmation" eyebrow="Before you pay" icon="bi-clipboard-check-fill">
       <div>
-        <p style={{ fontSize: '0.88rem', color: colors.textSecondary, margin: '0 0 1.25rem', lineHeight: '1.5' }}>
-          Before completing payment for <strong>{eventName}</strong>, please confirm your experience
-          with <strong>{photographerName}</strong>.
+        <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 auto 1.25rem', textAlign: 'center', lineHeight: 1.55, maxWidth: 440 }}>
+          Before completing payment for <strong style={{ color: colors.textPrimary }}>{eventName}</strong>, please confirm your experience
+          with <strong style={{ color: colors.textPrimary }}>{photographerName}</strong>.
         </p>
 
-        {/* Q1: Attended Event */}
-        <div style={{ marginBottom: '1.25rem' }}>
-          <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-            1. Did the photographer attend the event as agreed?
-          </label>
+        {/* Q1 */}
+        <div style={{ marginBottom: '1.05rem' }}>
+          <QuestionLabel>1. Did the photographer attend the event as agreed?</QuestionLabel>
           {renderOptionButtons(
             [
               { label: 'Yes', value: true },
@@ -199,11 +252,9 @@ const SatisfactionSurveyModal: React.FC<SatisfactionSurveyModalProps> = ({
           )}
         </div>
 
-        {/* Q2: Service Delivery */}
-        <div style={{ marginBottom: '1.25rem' }}>
-          <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-            2. Was the service delivered as expected?
-          </label>
+        {/* Q2 */}
+        <div style={{ marginBottom: '1.05rem' }}>
+          <QuestionLabel>2. Was the service delivered as expected?</QuestionLabel>
           {renderOptionButtons(
             [
               { label: 'Yes', value: 'YES' },
@@ -215,11 +266,9 @@ const SatisfactionSurveyModal: React.FC<SatisfactionSurveyModalProps> = ({
           )}
         </div>
 
-        {/* Q3: Satisfaction Level */}
-        <div style={{ marginBottom: '1.25rem' }}>
-          <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-            3. Are you satisfied with the quality of service?
-          </label>
+        {/* Q3 */}
+        <div style={{ marginBottom: '1.05rem' }}>
+          <QuestionLabel>3. Are you satisfied with the quality of service?</QuestionLabel>
           {renderOptionButtons(
             [
               { label: 'Very satisfied', value: 'VERY_SATISFIED' },
@@ -231,11 +280,9 @@ const SatisfactionSurveyModal: React.FC<SatisfactionSurveyModalProps> = ({
           )}
         </div>
 
-        {/* Q4: Deliverables Received */}
-        <div style={{ marginBottom: '1.25rem' }}>
-          <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-            4. Have you received the agreed deliverables (photos/videos)?
-          </label>
+        {/* Q4 */}
+        <div style={{ marginBottom: '1.05rem' }}>
+          <QuestionLabel>4. Have you received the agreed deliverables (photos/videos)?</QuestionLabel>
           {renderOptionButtons(
             [
               { label: 'Yes', value: true },
@@ -246,32 +293,31 @@ const SatisfactionSurveyModal: React.FC<SatisfactionSurveyModalProps> = ({
           )}
         </div>
 
-        {/* Q5: Issues */}
-        <div style={{ marginBottom: '1.25rem' }}>
-          <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-            5. Were there any issues during the service?
-          </label>
+        {/* Q5 */}
+        <div style={{ marginBottom: '1.05rem' }}>
+          <QuestionLabel>5. Were there any issues during the service?</QuestionLabel>
           <textarea
             placeholder="Describe any issues (optional)"
             value={issuesDescription}
             onChange={(e) => setIssuesDescription(e.target.value)}
             rows={3}
             style={{
-              width: '100%', padding: '0.7rem', border: `2px solid ${colors.borderPrimary}`,
-              borderRadius: '0.5rem', fontSize: '0.85rem', color: colors.textPrimary,
-              backgroundColor: colors.bgTertiary, outline: 'none', boxSizing: 'border-box',
-              resize: 'vertical', fontFamily: 'inherit', transition: 'border-color 0.2s',
+              width: '100%', padding: '0.7rem 0.85rem',
+              border: `1px solid ${colors.borderPrimary}`,
+              borderRadius: 11,
+              fontSize: '0.88rem', color: colors.textPrimary,
+              backgroundColor: colors.bgCard, outline: 'none', boxSizing: 'border-box',
+              resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5,
+              transition: 'border-color 0.15s, box-shadow 0.15s',
             }}
-            onFocus={(e) => { e.currentTarget.style.borderColor = '#083A85'; }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(242,12,143,0.50)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(242,12,143,0.10)'; }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }}
           />
         </div>
 
-        {/* Q6: Would Book Again */}
-        <div style={{ marginBottom: '1.5rem' }}>
-          <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-            6. Would you book this photographer again?
-          </label>
+        {/* Q6 */}
+        <div style={{ marginBottom: '1.3rem' }}>
+          <QuestionLabel>6. Would you book this photographer again?</QuestionLabel>
           {renderOptionButtons(
             [
               { label: 'Yes', value: true },
@@ -283,29 +329,64 @@ const SatisfactionSurveyModal: React.FC<SatisfactionSurveyModalProps> = ({
         </div>
 
         {error && (
-          <p style={{ fontSize: '0.85rem', color: '#EF4444', margin: '0 0 0.75rem', textAlign: 'center' }}>{error}</p>
+          <div style={{
+            fontSize: '0.85rem',
+            color: actualTheme === 'dark' ? '#FCA5A5' : '#B91C1C',
+            margin: '0 0 0.85rem',
+            padding: '0.6rem 0.85rem',
+            background: actualTheme === 'dark' ? 'rgba(220,38,38,0.18)' : 'rgba(254,242,242,0.85)',
+            border: `1px solid ${actualTheme === 'dark' ? 'rgba(220,38,38,0.40)' : 'rgba(220,38,38,0.25)'}`,
+            borderRadius: 10,
+            display: 'flex', alignItems: 'center', gap: 6,
+          }}>
+            <i className="bi bi-exclamation-triangle-fill" style={{ fontSize: 13 }} />
+            {error}
+          </div>
         )}
 
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <button onClick={onClose} style={{
-            flex: 1, padding: '0.75rem 1rem', border: `2px solid ${colors.borderPrimary}`,
-            borderRadius: '0.5rem', background: colors.bgTertiary, color: colors.textPrimary,
-            fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer',
-          }}>Cancel</button>
+        <div style={{ display: 'flex', gap: '0.65rem' }}>
+          <button
+            onClick={onClose}
+            style={{
+              flex: 1, padding: '0.75rem 1rem',
+              border: `1px solid ${colors.borderPrimary}`,
+              borderRadius: 11,
+              background: colors.bgTertiary,
+              color: colors.textPrimary,
+              fontSize: '0.9rem', fontWeight: 700,
+              cursor: 'pointer',
+              transition: 'border-color 0.15s',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; }}
+          >
+            Cancel
+          </button>
           <button
             disabled={!isFormValid || isSubmitting}
             onClick={handleSubmit}
             style={{
-              flex: 1, padding: '0.75rem 1rem',
-              border: '2px solid #062a63', borderRadius: '0.5rem',
-              background: (!isFormValid || isSubmitting) ? '#9CA3AF' : '#083A85',
-              color: 'white', fontSize: '0.9rem', fontWeight: '600',
+              flex: 1.4, padding: '0.75rem 1rem',
+              border: 'none', borderRadius: 11,
+              background: (!isFormValid || isSubmitting)
+                ? (actualTheme === 'dark' ? '#4B5563' : '#9CA3AF')
+                : 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+              color: 'white', fontSize: '0.92rem', fontWeight: 700,
+              letterSpacing: '-0.005em',
               cursor: (!isFormValid || isSubmitting) ? 'not-allowed' : 'pointer',
               opacity: (!isFormValid || isSubmitting) ? 0.7 : 1,
-              transition: 'all 0.2s',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+              boxShadow: (!isFormValid || isSubmitting) ? 'none' : '0 8px 18px rgba(8,58,133,0.30)',
+              transition: 'transform 0.15s, box-shadow 0.15s',
             }}
+            onMouseEnter={(e) => { if (isFormValid && !isSubmitting) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 12px 24px rgba(242,12,143,0.35)'; } }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = (!isFormValid || isSubmitting) ? 'none' : '0 8px 18px rgba(8,58,133,0.30)'; }}
           >
-            {isSubmitting ? 'Submitting...' : 'Submit Confirmation'}
+            {isSubmitting ? (
+              <><i className="bi bi-arrow-clockwise" style={{ fontSize: 13, animation: 'spin 0.9s linear infinite' }} /> Submitting...</>
+            ) : (
+              <><i className="bi bi-check2-circle" style={{ fontSize: 13 }} /> Submit Confirmation</>
+            )}
           </button>
         </div>
       </div>

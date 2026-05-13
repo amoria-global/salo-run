@@ -17,7 +17,17 @@ interface CurrencyInfo {
 interface CurrencyContextType {
   currency: CurrencyCode;
   setCurrency: (currency: CurrencyCode) => void;
-  formatPrice: (amountInUSD: number) => string;
+  /**
+   * Format a numeric amount for display in the user's selected currency.
+   *
+   * @param amount        Numeric amount.
+   * @param fromCurrency  Optional ISO-style code that `amount` is denominated
+   *                      in (e.g. "RWF", "USD"). When omitted or "USD", the
+   *                      amount is treated as USD (back-compat). When the
+   *                      code is unknown or its rate is missing, the amount
+   *                      is used as-is and no conversion is performed.
+   */
+  formatPrice: (amount: number, fromCurrency?: string) => string;
   currencies: CurrencyInfo[];
   currencyId: string | undefined;
 }
@@ -112,7 +122,14 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const formatPrice = useCallback(
-    (amountInUSD: number) => {
+    (amount: number, fromCurrency?: string) => {
+      let amountInUSD = amount;
+      if (fromCurrency && fromCurrency !== "USD") {
+        const fromInfo = currencies.find((c) => c.code === fromCurrency);
+        if (fromInfo && fromInfo.rate) {
+          amountInUSD = amount / fromInfo.rate;
+        }
+      }
       const info = currencies.find((c) => c.code === currency)!;
       const converted = amountInUSD * info.rate;
       const formatted = converted.toLocaleString("en-US", {

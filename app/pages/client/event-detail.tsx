@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
+import EventConfirmModal from '../../components/EventConfirmModal';
+import { platformAlert } from '../../components/PlatformAlert';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useDashboardAuth, dashboardAuthFetch } from '../../providers/AuthProvider';
@@ -582,7 +584,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
       await fetchEvent(); // Re-fetch to get updated status
     } catch (err) {
       console.error('Publish event error:', err);
-      alert(err instanceof Error ? err.message : 'Failed to publish event');
+      platformAlert(err instanceof Error ? err.message : 'Failed to publish event');
     } finally {
       setActionLoading(null);
     }
@@ -605,7 +607,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
       await fetchEvent();
     } catch (err) {
       console.error('Unpublish event error:', err);
-      alert(err instanceof Error ? err.message : 'Failed to unpublish event');
+      platformAlert(err instanceof Error ? err.message : 'Failed to unpublish event');
     } finally {
       setActionLoading(null);
     }
@@ -629,7 +631,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
       await fetchEvent();
     } catch (err) {
       console.error('Pause event error:', err);
-      alert(err instanceof Error ? err.message : 'Failed to pause event');
+      platformAlert(err instanceof Error ? err.message : 'Failed to pause event');
     } finally {
       setActionLoading(null);
     }
@@ -652,7 +654,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
       await fetchEvent();
     } catch (err) {
       console.error('Resume event error:', err);
-      alert(err instanceof Error ? err.message : 'Failed to resume event');
+      platformAlert(err instanceof Error ? err.message : 'Failed to resume event');
     } finally {
       setActionLoading(null);
     }
@@ -690,7 +692,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
       router.push(`/user/${userRole}/events`);
     } catch (err) {
       console.error('Delete event error:', err);
-      alert(err instanceof Error ? err.message : 'Failed to delete event');
+      platformAlert(err instanceof Error ? err.message : 'Failed to delete event');
       setActionLoading(null);
     }
   };
@@ -713,7 +715,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
       await fetchEvent();
     } catch (err) {
       console.error('Confirm completion error:', err);
-      alert(err instanceof Error ? err.message : 'Failed to submit completion feedback');
+      platformAlert(err instanceof Error ? err.message : 'Failed to submit completion feedback');
     } finally {
       setActionLoading(null);
     }
@@ -735,7 +737,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
       await fetchEvent();
     } catch (err) {
       console.error('Accept booking error:', err);
-      alert(err instanceof Error ? err.message : 'Failed to accept booking');
+      platformAlert(err instanceof Error ? err.message : 'Failed to accept booking');
     } finally {
       setActionLoading(null);
     }
@@ -759,7 +761,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
       await fetchEvent();
     } catch (err) {
       console.error('Decline booking error:', err);
-      alert(err instanceof Error ? err.message : 'Failed to decline booking');
+      platformAlert(err instanceof Error ? err.message : 'Failed to decline booking');
     } finally {
       setActionLoading(null);
       setDeclineReason('');
@@ -781,7 +783,7 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
       await fetchEvent();
     } catch (err) {
       console.error('Mark complete error:', err);
-      alert(err instanceof Error ? err.message : 'Failed to mark event as completed');
+      platformAlert(err instanceof Error ? err.message : 'Failed to mark event as completed');
     } finally {
       setActionLoading(null);
     }
@@ -1675,140 +1677,46 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
 
       {/* Delete Confirmation */}
       {showDeleteConfirm && (
-        <div
-          onClick={() => setShowDeleteConfirm(false)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
+        <EventConfirmModal
+          tone="danger"
+          icon="bi-trash3-fill"
+          eyebrow="Delete event"
+          title="Delete Event?"
+          intro="Are you sure you want to delete this event?"
+          detail="This action cannot be undone."
+          colors={{ bgCard: colors.bgCard, borderPrimary: colors.borderPrimary, textPrimary: colors.textPrimary, textSecondary: colors.textSecondary }}
+          actualTheme={actualTheme}
+          onClose={() => setShowDeleteConfirm(false)}
+          closeLabel="Cancel"
+          primary={{
+            label: actionLoading === 'delete' ? 'Deleting...' : 'Delete',
+            icon: actionLoading === 'delete' ? 'bi-arrow-clockwise' : 'bi-trash3-fill',
+            onClick: handleDelete,
+            tone: 'danger',
           }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              backgroundColor: colors.bgCard,
-              borderRadius: '0.75rem',
-              padding: '1.5rem',
-              maxWidth: '400px',
-              width: '90%',
-              border: `1px solid ${colors.borderPrimary}`,
-            }}
-          >
-            <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: colors.textPrimary, margin: '0 0 0.75rem 0' }}>
-              Delete Event?
-            </h3>
-            <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1.5rem 0' }}>
-              Are you sure you want to delete this event? This action cannot be undone.
-            </p>
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                style={{
-                  padding: '0.625rem 1rem',
-                  backgroundColor: colors.bgTertiary,
-                  color: colors.textPrimary,
-                  border: `1px solid ${colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.85rem',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={actionLoading === 'delete'}
-                style={{
-                  padding: '0.625rem 1rem',
-                  backgroundColor: '#DC2626',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '0.5rem',
-                  fontSize: '0.85rem',
-                  fontWeight: '600',
-                  cursor: actionLoading === 'delete' ? 'not-allowed' : 'pointer',
-                  opacity: actionLoading === 'delete' ? 0.7 : 1,
-                }}
-              >
-                {actionLoading === 'delete' ? 'Deleting...' : 'Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
+        />
       )}
 
       {/* Pause Confirmation */}
       {showPauseConfirm && (
-        <div
-          onClick={() => setShowPauseConfirm(false)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
+        <EventConfirmModal
+          tone="warning"
+          icon="bi-pause-circle-fill"
+          eyebrow="Pause event"
+          title="Pause Event?"
+          intro="This will temporarily pause the event."
+          detail="You can resume it later at any time."
+          colors={{ bgCard: colors.bgCard, borderPrimary: colors.borderPrimary, textPrimary: colors.textPrimary, textSecondary: colors.textSecondary }}
+          actualTheme={actualTheme}
+          onClose={() => setShowPauseConfirm(false)}
+          closeLabel="Cancel"
+          primary={{
+            label: actionLoading === 'pause' ? 'Pausing...' : 'Pause',
+            icon: actionLoading === 'pause' ? 'bi-arrow-clockwise' : 'bi-pause-fill',
+            onClick: handlePause,
+            tone: 'warning',
           }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              backgroundColor: colors.bgCard,
-              borderRadius: '0.75rem',
-              padding: '1.5rem',
-              maxWidth: '400px',
-              width: '90%',
-              border: `1px solid ${colors.borderPrimary}`,
-            }}
-          >
-            <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: colors.textPrimary, margin: '0 0 0.75rem 0' }}>
-              Pause Event?
-            </h3>
-            <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1.5rem 0' }}>
-              This will temporarily pause the event. You can resume it later.
-            </p>
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => setShowPauseConfirm(false)}
-                style={{
-                  padding: '0.625rem 1rem',
-                  backgroundColor: colors.bgTertiary,
-                  color: colors.textPrimary,
-                  border: `1px solid ${colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.85rem',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handlePause}
-                disabled={actionLoading === 'pause'}
-                style={{
-                  padding: '0.625rem 1rem',
-                  backgroundColor: '#F59E0B',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '0.5rem',
-                  fontSize: '0.85rem',
-                  fontWeight: '600',
-                  cursor: actionLoading === 'pause' ? 'not-allowed' : 'pointer',
-                  opacity: actionLoading === 'pause' ? 0.7 : 1,
-                }}
-              >
-                {actionLoading === 'pause' ? 'Pausing...' : 'Pause'}
-              </button>
-            </div>
-          </div>
-        </div>
+        />
       )}
 
       {/* Completion Modal */}
@@ -1818,120 +1726,190 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            backgroundColor: 'rgba(0, 0, 0, 0.45)',
+            backdropFilter: 'blur(2px)',
+            WebkitBackdropFilter: 'blur(2px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 9999,
+            padding: '1rem',
           }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
+              position: 'relative',
               backgroundColor: colors.bgCard,
-              borderRadius: '0.75rem',
-              padding: '1.5rem',
-              maxWidth: '480px',
-              width: '90%',
+              borderRadius: 18,
+              maxWidth: 500,
+              width: '95%',
               border: `1px solid ${colors.borderPrimary}`,
+              boxShadow: '0 25px 60px -12px rgba(8, 58, 133, 0.30)',
+              overflow: 'hidden',
             }}
           >
-            <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: colors.textPrimary, margin: '0 0 1rem 0' }}>
-              Confirm Event Completion
-            </h3>
-
-            {/* Status Selection */}
-            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem' }}>
-              <div
-                onClick={() => setCompletionStatus('COMPLETED')}
-                style={{
-                  flex: 1,
-                  padding: '1rem',
-                  border: `2px solid ${completionStatus === 'COMPLETED' ? '#10B981' : colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
-                  backgroundColor: completionStatus === 'COMPLETED' ? (actualTheme === 'dark' ? '#064E3B' : '#ECFDF5') : colors.bgTertiary,
-                  cursor: 'pointer',
-                  textAlign: 'center',
-                }}
-              >
-                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: completionStatus === 'COMPLETED' ? '#10B981' : colors.textPrimary }}>Completed</div>
-                <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginTop: '0.25rem' }}>Everything is perfect</div>
+            <span aria-hidden style={{
+              position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+              background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
+            }} />
+            <div style={{ padding: '1.5rem 1.5rem 1.4rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.85rem' }}>
+                <div style={{
+                  width: 60, height: 60, borderRadius: 18,
+                  background: 'linear-gradient(135deg, #083A85 0%, #0a4da8 100%)',
+                  boxShadow: '0 10px 24px rgba(8,58,133,0.30)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <i className="bi bi-check2-circle" style={{ fontSize: 24, color: '#fff' }} />
+                </div>
               </div>
-              <div
-                onClick={() => setCompletionStatus('REQUIRE_CHANGES')}
-                style={{
-                  flex: 1,
-                  padding: '1rem',
-                  border: `2px solid ${completionStatus === 'REQUIRE_CHANGES' ? '#F59E0B' : colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
-                  backgroundColor: completionStatus === 'REQUIRE_CHANGES' ? (actualTheme === 'dark' ? '#78350F' : '#FFFBEB') : colors.bgTertiary,
-                  cursor: 'pointer',
-                  textAlign: 'center',
-                }}
-              >
-                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: completionStatus === 'REQUIRE_CHANGES' ? '#F59E0B' : colors.textPrimary }}>Require Changes</div>
-                <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginTop: '0.25rem' }}>Needs adjustments</div>
+              <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+                <div style={{
+                  fontSize: '0.66rem', fontWeight: 700, color: '#F20C8F',
+                  letterSpacing: '0.08em', textTransform: 'uppercase',
+                  marginBottom: 4,
+                }}>Wrap up the event</div>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>
+                  Confirm Event Completion
+                </h3>
               </div>
-            </div>
 
-            {/* Comment Input */}
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                Comment {completionStatus === 'COMPLETED' ? '(optional)' : ''}
-              </label>
-              <textarea
-                value={completionComment}
-                onChange={(e) => setCompletionComment(e.target.value)}
-                placeholder={completionStatus === 'REQUIRE_CHANGES' ? 'Describe what needs to be changed...' : 'Any additional feedback...'}
-                style={{
-                  width: '100%',
-                  minHeight: '80px',
-                  padding: '0.75rem',
-                  backgroundColor: colors.bgTertiary,
-                  color: colors.textPrimary,
-                  border: `1px solid ${colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.85rem',
-                  resize: 'vertical',
-                  fontFamily: 'inherit',
-                }}
-              />
-            </div>
+              {/* Status Selection */}
+              <div style={{ display: 'flex', gap: '0.6rem', marginBottom: '1rem' }}>
+                {[
+                  { value: 'COMPLETED', label: 'Completed', subLabel: 'Everything is perfect', color: '#10B981', icon: 'bi-check2-circle' },
+                  { value: 'REQUIRE_CHANGES', label: 'Require Changes', subLabel: 'Needs adjustments', color: '#F59E0B', icon: 'bi-arrow-counterclockwise' },
+                ].map((opt) => {
+                  const isSel = completionStatus === opt.value;
+                  return (
+                    <div
+                      key={opt.value}
+                      onClick={() => setCompletionStatus(opt.value as any)}
+                      style={{
+                        flex: 1,
+                        padding: '0.85rem 0.75rem',
+                        border: `1px solid ${isSel ? opt.color + '88' : colors.borderPrimary}`,
+                        borderRadius: 12,
+                        background: isSel
+                          ? (actualTheme === 'dark'
+                            ? `linear-gradient(135deg, ${opt.color}30 0%, ${opt.color}18 100%)`
+                            : `linear-gradient(135deg, ${opt.color}14 0%, ${opt.color}08 100%)`)
+                          : colors.bgCard,
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                        transition: 'all 0.18s',
+                        boxShadow: isSel ? `0 6px 14px ${opt.color}22` : 'none',
+                      }}
+                    >
+                      <div style={{
+                        width: 28, height: 28, borderRadius: 8,
+                        margin: '0 auto 6px',
+                        background: isSel ? opt.color : (actualTheme === 'dark' ? '#374151' : '#F3F4F6'),
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: isSel ? `0 4px 10px ${opt.color}40` : 'none',
+                      }}>
+                        <i className={`bi ${opt.icon}`} style={{ fontSize: 13, color: isSel ? '#fff' : colors.textSecondary }} />
+                      </div>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 800, color: isSel ? opt.color : colors.textPrimary, letterSpacing: '-0.005em' }}>{opt.label}</div>
+                      <div style={{ fontSize: '0.74rem', color: colors.textSecondary, marginTop: 1 }}>{opt.subLabel}</div>
+                    </div>
+                  );
+                })}
+              </div>
 
-            {/* Actions */}
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => setShowCompletionModal(false)}
-                style={{
-                  padding: '0.6rem 1rem',
-                  backgroundColor: colors.bgTertiary,
-                  color: colors.textPrimary,
-                  border: `1px solid ${colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.85rem',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmCompletion}
-                disabled={actionLoading === 'completion'}
-                style={{
-                  padding: '0.6rem 1rem',
-                  backgroundColor: completionStatus === 'COMPLETED' ? '#10B981' : '#F59E0B',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '0.5rem',
-                  fontSize: '0.85rem',
-                  fontWeight: '600',
-                  cursor: actionLoading === 'completion' ? 'not-allowed' : 'pointer',
-                  opacity: actionLoading === 'completion' ? 0.7 : 1,
-                }}
-              >
-                {actionLoading === 'completion' ? 'Submitting...' : (completionStatus === 'COMPLETED' ? 'Confirm Completion' : 'Request Changes')}
-              </button>
+              {/* Comment Input */}
+              <div style={{ marginBottom: '1.3rem' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F',
+                  textTransform: 'uppercase', letterSpacing: '0.08em',
+                  marginBottom: '0.45rem',
+                }}>
+                  Comment {completionStatus === 'COMPLETED' ? '(optional)' : ''}
+                </label>
+                <textarea
+                  value={completionComment}
+                  onChange={(e) => setCompletionComment(e.target.value)}
+                  placeholder={completionStatus === 'REQUIRE_CHANGES' ? 'Describe what needs to be changed...' : 'Any additional feedback...'}
+                  style={{
+                    width: '100%',
+                    minHeight: 90,
+                    padding: '0.75rem 0.85rem',
+                    backgroundColor: colors.bgCard,
+                    color: colors.textPrimary,
+                    border: `1px solid ${colors.borderPrimary}`,
+                    borderRadius: 11,
+                    fontSize: '0.88rem',
+                    resize: 'vertical',
+                    fontFamily: 'inherit',
+                    lineHeight: 1.5,
+                    outline: 'none',
+                    transition: 'border-color 0.15s, box-shadow 0.15s',
+                  }}
+                  onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(242,12,143,0.50)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(242,12,143,0.10)'; }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }}
+                />
+              </div>
+
+              {/* Actions */}
+              <div style={{ display: 'flex', gap: '0.6rem' }}>
+                <button
+                  onClick={() => setShowCompletionModal(false)}
+                  style={{
+                    flex: 1,
+                    padding: '0.7rem 1rem',
+                    backgroundColor: colors.bgTertiary,
+                    color: colors.textPrimary,
+                    border: `1px solid ${colors.borderPrimary}`,
+                    borderRadius: 11,
+                    fontSize: '0.9rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'border-color 0.15s',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmCompletion}
+                  disabled={actionLoading === 'completion'}
+                  style={{
+                    flex: 1.6,
+                    padding: '0.7rem 1rem',
+                    background: actionLoading === 'completion'
+                      ? (actualTheme === 'dark' ? '#4B5563' : '#9CA3AF')
+                      : (completionStatus === 'COMPLETED'
+                          ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)'
+                          : 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)'),
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 11,
+                    fontSize: '0.92rem',
+                    fontWeight: 700,
+                    letterSpacing: '-0.005em',
+                    cursor: actionLoading === 'completion' ? 'not-allowed' : 'pointer',
+                    opacity: actionLoading === 'completion' ? 0.7 : 1,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                    boxShadow: actionLoading === 'completion'
+                      ? 'none'
+                      : (completionStatus === 'COMPLETED' ? '0 8px 18px rgba(16,185,129,0.32)' : '0 8px 18px rgba(245,158,11,0.32)'),
+                    transition: 'transform 0.15s, box-shadow 0.15s',
+                  }}
+                  onMouseEnter={(e) => { if (actionLoading !== 'completion') e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+                >
+                  {actionLoading === 'completion' ? (
+                    <><i className="bi bi-arrow-clockwise" style={{ fontSize: 13, animation: 'spin 0.9s linear infinite' }} /> Submitting...</>
+                  ) : completionStatus === 'COMPLETED' ? (
+                    <><i className="bi bi-check2" style={{ fontSize: 13 }} /> Confirm Completion</>
+                  ) : (
+                    <><i className="bi bi-arrow-counterclockwise" style={{ fontSize: 13 }} /> Request Changes</>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1944,89 +1922,144 @@ export default function EventDetailPage({ userRole }: EventDetailPageProps) {
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            backgroundColor: 'rgba(0, 0, 0, 0.45)',
+            backdropFilter: 'blur(2px)',
+            WebkitBackdropFilter: 'blur(2px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 9999,
+            padding: '1rem',
           }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
+              position: 'relative',
               backgroundColor: colors.bgCard,
-              borderRadius: '0.75rem',
-              padding: '1.5rem',
-              maxWidth: '480px',
-              width: '90%',
+              borderRadius: 18,
+              maxWidth: 500,
+              width: '95%',
               border: `1px solid ${colors.borderPrimary}`,
+              boxShadow: '0 25px 60px -12px rgba(8, 58, 133, 0.30)',
+              overflow: 'hidden',
             }}
           >
-            <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: colors.textPrimary, margin: '0 0 1rem 0' }}>
-              Decline Booking
-            </h3>
+            <span aria-hidden style={{
+              position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+              background: 'linear-gradient(90deg, #EF4444 0%, #DC2626 100%)',
+            }} />
+            <div style={{ padding: '1.5rem 1.5rem 1.4rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.85rem' }}>
+                <div style={{
+                  width: 60, height: 60, borderRadius: 18,
+                  background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+                  boxShadow: '0 10px 24px rgba(220,38,38,0.30)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <i className="bi bi-x-octagon-fill" style={{ fontSize: 24, color: '#fff' }} />
+                </div>
+              </div>
+              <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+                <div style={{
+                  fontSize: '0.66rem', fontWeight: 700, color: '#DC2626',
+                  letterSpacing: '0.08em', textTransform: 'uppercase',
+                  marginBottom: 4,
+                }}>Decline booking</div>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>
+                  Decline Booking
+                </h3>
+              </div>
 
-            {/* Reason Input */}
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                Reason for declining
-              </label>
-              <textarea
-                value={declineReason}
-                onChange={(e) => setDeclineReason(e.target.value)}
-                placeholder="Please provide a reason..."
-                style={{
-                  width: '100%',
-                  minHeight: '100px',
-                  padding: '0.75rem',
-                  backgroundColor: colors.bgTertiary,
-                  color: colors.textPrimary,
-                  border: `1px solid ${colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.85rem',
-                  resize: 'vertical',
-                  fontFamily: 'inherit',
-                }}
-              />
-            </div>
+              {/* Reason Input */}
+              <div style={{ marginBottom: '1.3rem' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F',
+                  textTransform: 'uppercase', letterSpacing: '0.08em',
+                  marginBottom: '0.45rem',
+                }}>
+                  Reason for declining
+                </label>
+                <textarea
+                  value={declineReason}
+                  onChange={(e) => setDeclineReason(e.target.value)}
+                  placeholder="Please provide a reason..."
+                  style={{
+                    width: '100%',
+                    minHeight: 110,
+                    padding: '0.75rem 0.85rem',
+                    backgroundColor: colors.bgCard,
+                    color: colors.textPrimary,
+                    border: `1px solid ${colors.borderPrimary}`,
+                    borderRadius: 11,
+                    fontSize: '0.88rem',
+                    resize: 'vertical',
+                    fontFamily: 'inherit',
+                    lineHeight: 1.5,
+                    outline: 'none',
+                    transition: 'border-color 0.15s, box-shadow 0.15s',
+                  }}
+                  onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(242,12,143,0.50)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(242,12,143,0.10)'; }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }}
+                />
+              </div>
 
-            {/* Actions */}
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => {
-                  setShowDeclineModal(false);
-                  setDeclineReason('');
-                }}
-                style={{
-                  padding: '0.6rem 1rem',
-                  backgroundColor: colors.bgTertiary,
-                  color: colors.textPrimary,
-                  border: `1px solid ${colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.85rem',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeclineBooking}
-                disabled={actionLoading === 'decline'}
-                style={{
-                  padding: '0.6rem 1rem',
-                  backgroundColor: '#DC2626',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '0.5rem',
-                  fontSize: '0.85rem',
-                  fontWeight: '600',
-                  cursor: actionLoading === 'decline' ? 'not-allowed' : 'pointer',
-                  opacity: actionLoading === 'decline' ? 0.7 : 1,
-                }}
-              >
-                {actionLoading === 'decline' ? 'Declining...' : 'Decline Booking'}
-              </button>
+              {/* Actions */}
+              <div style={{ display: 'flex', gap: '0.6rem' }}>
+                <button
+                  onClick={() => {
+                    setShowDeclineModal(false);
+                    setDeclineReason('');
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '0.7rem 1rem',
+                    backgroundColor: colors.bgTertiary,
+                    color: colors.textPrimary,
+                    border: `1px solid ${colors.borderPrimary}`,
+                    borderRadius: 11,
+                    fontSize: '0.9rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'border-color 0.15s',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeclineBooking}
+                  disabled={actionLoading === 'decline'}
+                  style={{
+                    flex: 1.6,
+                    padding: '0.7rem 1rem',
+                    background: actionLoading === 'decline'
+                      ? (actualTheme === 'dark' ? '#4B5563' : '#9CA3AF')
+                      : 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 11,
+                    fontSize: '0.92rem',
+                    fontWeight: 700,
+                    letterSpacing: '-0.005em',
+                    cursor: actionLoading === 'decline' ? 'not-allowed' : 'pointer',
+                    opacity: actionLoading === 'decline' ? 0.7 : 1,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                    boxShadow: actionLoading === 'decline' ? 'none' : '0 8px 18px rgba(220,38,38,0.30)',
+                    transition: 'transform 0.15s, box-shadow 0.15s',
+                  }}
+                  onMouseEnter={(e) => { if (actionLoading !== 'decline') e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+                >
+                  {actionLoading === 'decline' ? (
+                    <><i className="bi bi-arrow-clockwise" style={{ fontSize: 13, animation: 'spin 0.9s linear infinite' }} /> Declining...</>
+                  ) : (
+                    <><i className="bi bi-x-circle-fill" style={{ fontSize: 13 }} /> Decline Booking</>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>

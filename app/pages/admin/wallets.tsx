@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Sidebar from '../../components/sidebar';
 import Topbar from '../../components/topbar';
+import SortDropdown from '../../components/SortDropdown';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
 import {
@@ -101,44 +102,37 @@ export default function AdminWalletsPage() {
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
           {/* Header */}
-          <div
+          <header
             style={{
-              marginBottom: '1.5rem',
               display: 'flex',
               justifyContent: 'space-between',
-              alignItems: 'flex-start',
-              gap: '1rem',
+              alignItems: 'flex-end',
+              gap: 16,
               flexWrap: 'wrap',
+              margin: '8px 0 22px',
             }}
           >
-            <div>
-              <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: colors.textPrimary, margin: 0 }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>
+                ADMIN \u00b7 MONEY
+              </div>
+              <h1 style={{ margin: 0, fontSize: '1.85rem', fontWeight: 800, letterSpacing: '-0.02em', color: colors.textPrimary }}>
                 Wallets
               </h1>
-              <p style={{ fontSize: '0.875rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
+              <p style={{ margin: '4px 0 0', fontSize: '0.92rem', color: colors.textSecondary }}>
                 Inspect, reconcile, suspend, or manually adjust customer wallets.
               </p>
             </div>
             <button
               type="button"
+              className="ck-btn ck-btn-primary"
               onClick={handleProvision}
               disabled={provisioning}
-              style={{
-                padding: '0.5rem 1rem',
-                borderRadius: '0.5rem',
-                border: 'none',
-                backgroundColor: '#083A85',
-                color: 'white',
-                fontSize: '0.8125rem',
-                fontWeight: 600,
-                cursor: provisioning ? 'not-allowed' : 'pointer',
-                opacity: provisioning ? 0.6 : 1,
-                whiteSpace: 'nowrap',
-              }}
+              style={{ opacity: provisioning ? 0.6 : 1, cursor: provisioning ? 'not-allowed' : 'pointer' }}
             >
               {provisioning ? 'Provisioning\u2026' : 'Provision missing wallets'}
             </button>
-          </div>
+          </header>
 
           {/* Provision feedback */}
           {provisionMsg && (
@@ -248,41 +242,39 @@ export default function AdminWalletsPage() {
             </label>
 
             {/* Sort */}
-            <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.8125rem', color: colors.textSecondary, fontWeight: 500 }}>
-                Sort:
-              </span>
-              <select
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <SortDropdown
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                style={{
-                  padding: '0.375rem',
-                  borderRadius: '0.375rem',
-                  border: `1px solid ${colors.borderPrimary}`,
-                  fontSize: '0.75rem',
-                  backgroundColor: colors.bgPrimary,
-                  color: colors.textPrimary,
-                }}
-              >
-                <option value="createdAt">Created</option>
-                <option value="balance">Balance</option>
-                <option value="driftCount">Drift Count</option>
-                <option value="lastReconciled">Last Reconciled</option>
-              </select>
+                onChange={setSortBy}
+                options={[
+                  { value: 'createdAt', label: 'Created', icon: 'bi-clock-history' },
+                  { value: 'balance', label: 'Balance', icon: 'bi-cash-stack' },
+                  { value: 'driftCount', label: 'Drift Count', icon: 'bi-exclamation-triangle-fill' },
+                  { value: 'lastReconciled', label: 'Last Reconciled', icon: 'bi-check2-circle' },
+                ]}
+                minWidth={170}
+              />
               <button
                 type="button"
                 onClick={() => setSortDir(sortDir === 'asc' ? 'desc' : 'asc')}
                 style={{
-                  padding: '0.375rem 0.5rem',
-                  borderRadius: '0.375rem',
+                  padding: '0.5rem 0.7rem',
+                  borderRadius: 11,
                   border: `1px solid ${colors.borderPrimary}`,
-                  fontSize: '0.75rem',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.04em',
                   cursor: 'pointer',
-                  backgroundColor: colors.bgPrimary,
+                  backgroundColor: colors.bgCard,
                   color: colors.textPrimary,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
                 }}
+                aria-label={`Sort direction: ${sortDir === 'asc' ? 'ascending' : 'descending'}`}
               >
-                {sortDir === 'asc' ? '\u2191 ASC' : '\u2193 DESC'}
+                <i className={`bi ${sortDir === 'asc' ? 'bi-sort-up' : 'bi-sort-down'}`} style={{ fontSize: 13, color: '#F20C8F' }} />
+                {sortDir === 'asc' ? 'ASC' : 'DESC'}
               </button>
             </div>
           </div>

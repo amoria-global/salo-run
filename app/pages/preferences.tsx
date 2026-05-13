@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import Sidebar from '../components/sidebar';
 import Topbar from '../components/topbar';
+import EventConfirmModal from '../components/EventConfirmModal';
 import { useTheme, ThemeMode } from '../context/ThemeContext';
 import { dashboardAuthFetch, useDashboardAuth } from '../providers/AuthProvider';
 import { getApiUrl } from '@/lib/api';
@@ -941,25 +942,20 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
         <div className="mobile-pref-content" style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
 
           {/* Header */}
-          <header style={{ marginBottom: '1.5rem' }}>
-            <h1 className="mobile-pref-title" style={{ fontSize: '1.8rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
-              Preferences
-            </h1>
-            <p className="mobile-pref-subtitle" style={{ fontSize: '0.95rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
-              Customize your dashboard experience and manage payment settings
-            </p>
+          <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap', margin: '8px 0 22px' }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>SETTINGS</div>
+              <h1 className="mobile-pref-title" style={{ margin: 0, fontSize: '1.85rem', fontWeight: 800, letterSpacing: '-0.02em', color: colors.textPrimary }}>
+                Preferences
+              </h1>
+              <p className="mobile-pref-subtitle" style={{ margin: '4px 0 0', fontSize: '0.92rem', color: colors.textSecondary }}>
+                Customize your dashboard experience and manage payment settings.
+              </p>
+            </div>
           </header>
 
           {/* Tabs */}
-          <div className="mobile-pref-tabs" style={{
-            display: 'flex',
-            gap: '0.25rem',
-            backgroundColor: colors.bgTertiary,
-            borderRadius: '0.5rem',
-            padding: '0.25rem',
-            width: 'fit-content',
-            marginBottom: '1.5rem'
-          }}>
+          <div className="ck-tabs mobile-pref-tabs" style={{ marginBottom: '1.5rem' }}>
             {[
               { key: 'appearance' as const, label: 'Appearance', icon: 'bi-palette' },
               { key: 'payments' as const, label: 'Payment Accounts', icon: 'bi-wallet2' },
@@ -969,43 +965,45 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.625rem 1.25rem',
-                  border: 'none',
-                  borderRadius: '0.375rem',
-                  fontSize: '0.9rem',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  backgroundColor: activeTab === tab.key ? colors.bgSecondary : 'transparent',
-                  color: activeTab === tab.key ? colors.textPrimary : colors.textSecondary,
-                  boxShadow: activeTab === tab.key ? colors.shadowSm : 'none',
-                  transition: 'all 0.2s'
-                }}
+                className={`ck-tab ${activeTab === tab.key ? 'is-active' : ''}`}
               >
-                <i className={`bi ${tab.icon}`} style={{ fontSize: '1rem' }}></i>
-                {tab.label}
+                <i className={`bi ${tab.icon}`} style={{ fontSize: '0.95rem', marginRight: 6 }}></i>
+                <span>{tab.label}</span>
               </button>
             ))}
           </div>
 
           {/* Appearance Tab */}
           {activeTab === 'appearance' && (
-            <div className="mobile-pref-card" style={{
-              backgroundColor: colors.bgSecondary,
-              borderRadius: '1rem',
+            <div className="mobile-pref-card ck-card" style={{
+              position: 'relative',
+              overflow: 'hidden',
               padding: '1.5rem',
-              boxShadow: colors.shadowMd,
-              border: `2px solid ${colors.borderPrimary}`
             }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
-                Theme Mode
-              </h2>
-              <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1.5rem 0' }}>
-                Choose how the dashboard looks to you. Select a single theme, or sync with your system settings.
-              </p>
+              <span aria-hidden style={{
+                position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+                background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
+              }} />
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: '1.25rem' }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 11,
+                  background: 'rgba(8,58,133,0.10)',
+                  border: '1px solid rgba(8,58,133,0.25)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  <i className="bi bi-palette-fill" style={{ fontSize: 17, color: '#083A85' }} />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2 }}>APPEARANCE</div>
+                  <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>
+                    Theme mode
+                  </h2>
+                  <p style={{ fontSize: '0.88rem', color: colors.textSecondary, margin: '4px 0 0', lineHeight: 1.5 }}>
+                    Choose how the dashboard looks to you. Pick a single theme or sync with your device.
+                  </p>
+                </div>
+              </div>
 
               <div className="mobile-theme-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', maxWidth: '480px' }}>
                 {themeOptions.map((option) => (
@@ -1129,30 +1127,31 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
               {/* Current theme info */}
               <div style={{
                 marginTop: '1.5rem',
-                padding: '1rem',
-                backgroundColor: colors.bgTertiary,
-                borderRadius: '0.5rem',
+                padding: '0.85rem 1rem',
+                background: actualTheme === 'dark'
+                  ? 'linear-gradient(135deg, rgba(8,58,133,0.18) 0%, rgba(242,12,143,0.10) 100%)'
+                  : 'linear-gradient(135deg, rgba(8,58,133,0.06) 0%, rgba(242,12,143,0.03) 100%)',
+                borderRadius: 11,
+                border: `1px solid ${actualTheme === 'dark' ? 'rgba(99,162,255,0.30)' : 'rgba(8,58,133,0.20)'}`,
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.75rem'
+                gap: '0.85rem',
               }}>
                 <div style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '0.5rem',
-                  backgroundColor: colors.brandPrimary,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white'
+                  width: 36, height: 36, borderRadius: 10,
+                  background: '#fff',
+                  border: '1px solid rgba(8,58,133,0.20)',
+                  boxShadow: '0 4px 10px rgba(8,58,133,0.10)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
                 }}>
-                  {actualTheme === 'dark' ? <MoonIcon /> : <SunIcon />}
+                  <i className={`bi ${actualTheme === 'dark' ? 'bi-moon-stars-fill' : 'bi-sun-fill'}`} style={{ fontSize: 16, color: '#083A85' }} />
                 </div>
-                <div>
-                  <p style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
+                <div style={{ minWidth: 0 }}>
+                  <p style={{ fontSize: '0.88rem', fontWeight: 700, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>
                     Currently using {actualTheme === 'dark' ? 'Dark' : 'Light'} mode
                   </p>
-                  <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: '0.125rem 0 0 0' }}>
+                  <p style={{ fontSize: '0.78rem', color: colors.textSecondary, margin: '2px 0 0 0' }}>
                     {theme === 'system'
                       ? 'Synced with your device\'s system preferences'
                       : `You've selected ${theme} mode manually`}
@@ -1164,72 +1163,80 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
 
           {/* Payments Tab */}
           {activeTab === 'payments' && (
-            <div>
-              {/* Add Payment Button */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+            <div className="ck-card" style={{
+              position: 'relative',
+              overflow: 'hidden',
+            }}>
+              <span aria-hidden style={{
+                position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+                background: 'linear-gradient(90deg, #10B981 0%, #083A85 60%, #F20C8F 100%)',
+              }} />
+              <div style={{ padding: '1.25rem 1.5rem', borderBottom: `1px solid ${colors.borderPrimary}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, minWidth: 0 }}>
+                  <div style={{
+                    width: 40, height: 40, borderRadius: 11,
+                    background: 'rgba(16,185,129,0.12)',
+                    border: '1px solid rgba(16,185,129,0.30)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                  }}>
+                    <i className="bi bi-wallet2" style={{ fontSize: 17, color: '#10B981' }} />
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2 }}>PAYMENTS</div>
+                    <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>
+                      Saved payment accounts
+                    </h2>
+                    <p style={{ fontSize: '0.88rem', color: colors.textSecondary, margin: '4px 0 0', lineHeight: 1.5 }}>
+                      Manage the accounts you use for payments and withdrawals.
+                    </p>
+                  </div>
+                </div>
                 <button
                   onClick={() => setShowAddPaymentModal(true)}
+                  className="ck-btn ck-btn-primary"
                   style={{
-                    display: 'flex',
+                    padding: '0.55rem 1rem',
+                    fontSize: '0.85rem',
+                    display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '0.5rem',
-                    padding: '0.75rem 1.25rem',
-                    backgroundColor: colors.brandPrimary,
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '0.5rem',
-                    fontSize: '0.9rem',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
+                    gap: 8,
+                    flexShrink: 0,
                   }}
                 >
-                  <PlusIcon />
-                  Add Payment Account
+                  <i className="bi bi-plus-lg" style={{ fontSize: 12 }} />
+                  Add account
                 </button>
               </div>
 
-              {/* Payment Methods List */}
-              <div style={{
-                backgroundColor: colors.bgSecondary,
-                borderRadius: '1rem',
-                boxShadow: colors.shadowMd,
-                border: `2px solid ${colors.borderPrimary}`,
-                overflow: 'hidden'
-              }}>
-                <div style={{
-                  padding: '1.25rem',
-                  borderBottom: `2px solid ${colors.borderPrimary}`
-                }}>
-                  <h2 style={{ fontSize: '1.125rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
-                    Saved Payment Accounts
-                  </h2>
-                  <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0.25rem 0 0 0' }}>
-                    Manage your accounts for payments and withdrawals
-                  </p>
-                </div>
-
+              <div>
                 {paymentMethods.length === 0 ? (
-                  <div style={{ padding: '3rem', textAlign: 'center' }}>
+                  <div style={{
+                    padding: '3rem 1.5rem',
+                    textAlign: 'center',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 14,
+                  }}>
                     <div style={{
-                      width: '64px',
-                      height: '64px',
-                      borderRadius: '50%',
-                      backgroundColor: colors.bgTertiary,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      margin: '0 auto 1rem auto',
-                      color: colors.textTertiary
+                      width: 64, height: 64, borderRadius: 18,
+                      background: actualTheme === 'dark'
+                        ? 'linear-gradient(135deg, rgba(8,58,133,0.16) 0%, rgba(242,12,143,0.10) 100%)'
+                        : 'linear-gradient(135deg, rgba(8,58,133,0.08) 0%, rgba(242,12,143,0.05) 100%)',
+                      border: '1px solid rgba(8,58,133,0.18)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
-                      <CreditCardIcon />
+                      <i className="bi bi-credit-card-2-front-fill" style={{ fontSize: 26, color: '#083A85' }} />
                     </div>
-                    <p style={{ fontSize: '1rem', fontWeight: '500', color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
-                      No payment accounts saved
-                    </p>
-                    <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: 0 }}>
-                      Add a mobile money or bank account to get started
-                    </p>
+                    <div>
+                      <p style={{ fontSize: '1rem', fontWeight: 700, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>
+                        No payment accounts saved
+                      </p>
+                      <p style={{ fontSize: '0.88rem', color: colors.textSecondary, margin: '4px auto 0', maxWidth: 360 }}>
+                        Add a mobile money or bank account to enable payments and withdrawals.
+                      </p>
+                    </div>
                   </div>
                 ) : (
                   <div>
@@ -1374,19 +1381,35 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
 
           {/* Notifications Tab */}
           {activeTab === 'notifications' && (
-            <div className="mobile-pref-card mobile-notif-container" style={{
-              backgroundColor: colors.bgSecondary,
-              borderRadius: '1rem',
+            <div className="mobile-pref-card mobile-notif-container ck-card" style={{
+              position: 'relative',
+              overflow: 'hidden',
               padding: '1.5rem',
-              boxShadow: colors.shadowMd,
-              border: `2px solid ${colors.borderPrimary}`
             }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
-                Notification Settings
-              </h2>
-              <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1.5rem 0' }}>
-                Choose which notifications you want to receive and how you want to be notified
-              </p>
+              <span aria-hidden style={{
+                position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+                background: 'linear-gradient(90deg, #F59E0B 0%, #F20C8F 100%)',
+              }} />
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: '1.25rem' }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 11,
+                  background: 'rgba(245,158,11,0.12)',
+                  border: '1px solid rgba(245,158,11,0.30)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  <i className="bi bi-bell-fill" style={{ fontSize: 17, color: '#F59E0B' }} />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2 }}>NOTIFICATIONS</div>
+                  <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>
+                    Notification settings
+                  </h2>
+                  <p style={{ fontSize: '0.88rem', color: colors.textSecondary, margin: '4px 0 0', lineHeight: 1.5 }}>
+                    Choose which notifications you want to receive and where you want them delivered.
+                  </p>
+                </div>
+              </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {/* Email Notifications */}
@@ -1394,13 +1417,15 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  padding: '1rem',
-                  backgroundColor: colors.bgTertiary,
-                  borderRadius: '0.75rem',
-                  border: `1px solid ${colors.borderPrimary}`
+                  gap: 12,
+                  padding: '0.85rem 1rem',
+                  background: colors.bgCard,
+                  borderRadius: 11,
+                  border: `1px solid ${colors.borderPrimary}`,
+                  transition: 'border-color 0.15s, background 0.15s',
                 }}>
                   <div>
-                    <div style={{ fontSize: '0.95rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.25rem' }}>
+                    <div style={{ fontSize: '0.92rem', fontWeight: 700, color: colors.textPrimary, marginBottom: '0.2rem', letterSpacing: '-0.01em' }}>
                       Email Notifications
                     </div>
                     <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
@@ -1440,13 +1465,15 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  padding: '1rem',
-                  backgroundColor: colors.bgTertiary,
-                  borderRadius: '0.75rem',
-                  border: `1px solid ${colors.borderPrimary}`
+                  gap: 12,
+                  padding: '0.85rem 1rem',
+                  background: colors.bgCard,
+                  borderRadius: 11,
+                  border: `1px solid ${colors.borderPrimary}`,
+                  transition: 'border-color 0.15s, background 0.15s',
                 }}>
                   <div>
-                    <div style={{ fontSize: '0.95rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.25rem' }}>
+                    <div style={{ fontSize: '0.92rem', fontWeight: 700, color: colors.textPrimary, marginBottom: '0.2rem', letterSpacing: '-0.01em' }}>
                       Push Notifications
                     </div>
                     <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
@@ -1482,11 +1509,11 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                 </div>
 
                 {/* Divider */}
-                <div style={{ borderTop: `2px solid ${colors.borderPrimary}`, margin: '0.5rem 0' }} />
+                <div style={{ height: 1, background: colors.borderPrimary, margin: '0.75rem 0 0.5rem' }} />
 
-                <p style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.25rem 0' }}>
-                  Notification Categories
-                </p>
+                <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0.25rem 0' }}>
+                  Notification categories
+                </div>
 
                 {/* Role-specific: Photographer - Payment Notifications */}
                 {userType === 'photographer' && (
@@ -1500,7 +1527,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                     border: `1px solid ${colors.borderPrimary}`
                   }}>
                     <div>
-                      <div style={{ fontSize: '0.95rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.25rem' }}>
+                      <div style={{ fontSize: '0.92rem', fontWeight: 700, color: colors.textPrimary, marginBottom: '0.2rem', letterSpacing: '-0.01em' }}>
                         Payment Notifications
                       </div>
                       <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
@@ -1548,7 +1575,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                     border: `1px solid ${colors.borderPrimary}`
                   }}>
                     <div>
-                      <div style={{ fontSize: '0.95rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.25rem' }}>
+                      <div style={{ fontSize: '0.92rem', fontWeight: 700, color: colors.textPrimary, marginBottom: '0.2rem', letterSpacing: '-0.01em' }}>
                         Tips & Bonuses
                       </div>
                       <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
@@ -1596,7 +1623,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                     border: `1px solid ${colors.borderPrimary}`
                   }}>
                     <div>
-                      <div style={{ fontSize: '0.95rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.25rem' }}>
+                      <div style={{ fontSize: '0.92rem', fontWeight: 700, color: colors.textPrimary, marginBottom: '0.2rem', letterSpacing: '-0.01em' }}>
                         Album Notifications
                       </div>
                       <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
@@ -1644,7 +1671,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                     border: `1px solid ${colors.borderPrimary}`
                   }}>
                     <div>
-                      <div style={{ fontSize: '0.95rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.25rem' }}>
+                      <div style={{ fontSize: '0.92rem', fontWeight: 700, color: colors.textPrimary, marginBottom: '0.2rem', letterSpacing: '-0.01em' }}>
                         Booking Notifications
                       </div>
                       <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
@@ -1692,7 +1719,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                     border: `1px solid ${colors.borderPrimary}`
                   }}>
                     <div>
-                      <div style={{ fontSize: '0.95rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.25rem' }}>
+                      <div style={{ fontSize: '0.92rem', fontWeight: 700, color: colors.textPrimary, marginBottom: '0.2rem', letterSpacing: '-0.01em' }}>
                         Gift Notifications
                       </div>
                       <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
@@ -1740,7 +1767,7 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                     border: `1px solid ${colors.borderPrimary}`
                   }}>
                     <div>
-                      <div style={{ fontSize: '0.95rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.25rem' }}>
+                      <div style={{ fontSize: '0.92rem', fontWeight: 700, color: colors.textPrimary, marginBottom: '0.2rem', letterSpacing: '-0.01em' }}>
                         Stream Fee Notifications
                       </div>
                       <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
@@ -1781,13 +1808,15 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  padding: '1rem',
-                  backgroundColor: colors.bgTertiary,
-                  borderRadius: '0.75rem',
-                  border: `1px solid ${colors.borderPrimary}`
+                  gap: 12,
+                  padding: '0.85rem 1rem',
+                  background: colors.bgCard,
+                  borderRadius: 11,
+                  border: `1px solid ${colors.borderPrimary}`,
+                  transition: 'border-color 0.15s, background 0.15s',
                 }}>
                   <div>
-                    <div style={{ fontSize: '0.95rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.25rem' }}>
+                    <div style={{ fontSize: '0.92rem', fontWeight: 700, color: colors.textPrimary, marginBottom: '0.2rem', letterSpacing: '-0.01em' }}>
                       Security Alerts
                     </div>
                     <div style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
@@ -1829,39 +1858,67 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
           {activeTab === 'security' && (
             <>
             {/* Two-Factor Authentication Card */}
-            <div className="mobile-pref-card" style={{
-              backgroundColor: colors.bgSecondary,
-              borderRadius: '1rem',
+            <div className="mobile-pref-card ck-card" style={{
+              position: 'relative',
+              overflow: 'hidden',
               padding: '1.5rem',
-              boxShadow: colors.shadowMd,
-              border: `2px solid ${colors.borderPrimary}`,
               marginBottom: '1.5rem',
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
-                  Two-Factor Authentication
-                </h2>
-                {totpEnabled && (
-                  <span style={{
-                    fontSize: '0.75rem', fontWeight: '600', color: '#166534',
-                    backgroundColor: '#DCFCE7', padding: '0.25rem 0.75rem',
-                    borderRadius: '1rem', border: '1px solid #BBF7D0',
-                  }}>Enabled</span>
-                )}
+              <span aria-hidden style={{
+                position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+                background: 'linear-gradient(90deg, #083A85 0%, #10B981 65%, #F20C8F 130%)',
+              }} />
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: '1rem' }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 11,
+                  background: 'rgba(8,58,133,0.10)',
+                  border: '1px solid rgba(8,58,133,0.25)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  <i className="bi bi-shield-lock-fill" style={{ fontSize: 17, color: '#083A85' }} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase' }}>SECURITY</div>
+                    {totpEnabled && (
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                        fontSize: '0.66rem', fontWeight: 700, color: '#166534',
+                        background: '#DCFCE7', padding: '2px 8px',
+                        borderRadius: 9999, border: '1px solid #BBF7D0',
+                        letterSpacing: '0.04em', textTransform: 'uppercase',
+                      }}>
+                        <i className="bi bi-check-circle-fill" style={{ fontSize: 10 }} /> Enabled
+                      </span>
+                    )}
+                  </div>
+                  <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: colors.textPrimary, margin: '2px 0 0', letterSpacing: '-0.01em' }}>
+                    Two-factor authentication
+                  </h2>
+                  <p style={{ fontSize: '0.88rem', color: colors.textSecondary, margin: '4px 0 0', lineHeight: 1.5 }}>
+                    Add an extra layer of security by requiring a code from your authenticator app when signing in.
+                  </p>
+                </div>
               </div>
-              <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1rem 0' }}>
-                Add an extra layer of security by requiring a code from your authenticator app when signing in.
-              </p>
 
               {/* Mandatory banner */}
               {totpRequired && !totpEnabled && (
                 <div style={{
-                  padding: '0.75rem 1rem', borderRadius: '0.5rem', marginBottom: '1rem',
-                  backgroundColor: '#FEF3C7', border: '1px solid #FDE68A',
-                  display: 'flex', alignItems: 'flex-start', gap: '0.5rem',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  padding: '0.85rem 1rem 0.85rem 1.1rem',
+                  borderRadius: 11, marginBottom: '1rem',
+                  background: actualTheme === 'dark' ? 'rgba(245,158,11,0.10)' : '#FFFBEB',
+                  border: `1px solid ${actualTheme === 'dark' ? 'rgba(245,158,11,0.32)' : '#FDE68A'}`,
+                  display: 'flex', alignItems: 'flex-start', gap: 10,
                 }}>
-                  <i className="bi bi-exclamation-triangle" style={{ color: '#92400E', fontSize: '1rem', marginTop: '0.1rem' }} />
-                  <p style={{ fontSize: '0.85rem', color: '#92400E', margin: 0, lineHeight: '1.5' }}>
+                  <span aria-hidden style={{
+                    position: 'absolute', top: 0, left: 0, bottom: 0, width: 3,
+                    background: 'linear-gradient(180deg, #F59E0B 0%, #F20C8F 130%)',
+                  }} />
+                  <i className="bi bi-exclamation-triangle-fill" style={{ color: '#D97706', fontSize: 16, marginTop: 1, flexShrink: 0 }} />
+                  <p style={{ fontSize: '0.85rem', color: actualTheme === 'dark' ? '#FCD34D' : '#92400E', margin: 0, lineHeight: 1.5 }}>
                     Two-factor authentication is required for accounts with a balance. Please set it up to continue using your dashboard.
                   </p>
                 </div>
@@ -1870,12 +1927,24 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
               {/* Status message */}
               {totpMessage && (
                 <div style={{
-                  padding: '0.75rem 1rem', borderRadius: '0.5rem', marginBottom: '1rem',
+                  padding: '0.75rem 1rem',
+                  borderRadius: 10,
+                  marginBottom: '1rem',
                   fontSize: '0.85rem',
-                  backgroundColor: totpMessageType === 'success' ? '#DCFCE7' : '#FEE2E2',
-                  color: totpMessageType === 'success' ? '#166534' : '#991B1B',
-                  border: `1px solid ${totpMessageType === 'success' ? '#BBF7D0' : '#FECACA'}`,
+                  background: totpMessageType === 'success'
+                    ? (actualTheme === 'dark' ? 'rgba(22,163,74,0.14)' : '#DCFCE7')
+                    : (actualTheme === 'dark' ? 'rgba(220,38,38,0.14)' : '#FEE2E2'),
+                  color: totpMessageType === 'success'
+                    ? (actualTheme === 'dark' ? '#4ADE80' : '#166534')
+                    : (actualTheme === 'dark' ? '#FCA5A5' : '#991B1B'),
+                  border: `1px solid ${totpMessageType === 'success'
+                    ? (actualTheme === 'dark' ? 'rgba(22,163,74,0.35)' : '#BBF7D0')
+                    : (actualTheme === 'dark' ? 'rgba(220,38,38,0.35)' : '#FECACA')}`,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
                 }}>
+                  <i className={`bi ${totpMessageType === 'success' ? 'bi-check-circle-fill' : 'bi-x-circle-fill'}`} style={{ fontSize: 13 }} />
                   {totpMessage}
                 </div>
               )}
@@ -1885,14 +1954,28 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                 <button
                   onClick={handleTotpSetup}
                   disabled={totpLoading}
+                  className="ck-btn ck-btn-primary"
                   style={{
-                    padding: '0.75rem 1.5rem', borderRadius: '0.5rem',
-                    backgroundColor: '#083A85', color: 'white', border: 'none',
-                    fontWeight: '600', fontSize: '0.9rem', cursor: totpLoading ? 'not-allowed' : 'pointer',
-                    opacity: totpLoading ? 0.7 : 1, transition: 'all 0.2s',
+                    padding: '0.6rem 1.2rem',
+                    fontSize: '0.88rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    cursor: totpLoading ? 'not-allowed' : 'pointer',
+                    opacity: totpLoading ? 0.7 : 1,
                   }}
                 >
-                  {totpLoading ? 'Setting up...' : totpRequired ? 'Set Up Now' : 'Enable 2FA'}
+                  {totpLoading ? (
+                    <>
+                      <span className="ck-spinner" style={{ width: 12, height: 12, borderWidth: 2 }} />
+                      Setting up…
+                    </>
+                  ) : (
+                    <>
+                      <i className="bi bi-shield-lock-fill" style={{ fontSize: 13 }} />
+                      {totpRequired ? 'Set up now' : 'Enable 2FA'}
+                    </>
+                  )}
                 </button>
               )}
 
@@ -1903,14 +1986,17 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                   disabled={totpRequired}
                   title={totpRequired ? 'Cannot disable while your account has a balance' : ''}
                   style={{
-                    padding: '0.75rem 1.5rem', borderRadius: '0.5rem',
-                    backgroundColor: 'transparent', color: totpRequired ? colors.textSecondary : '#DC2626',
+                    padding: '0.6rem 1.2rem', borderRadius: 10,
+                    background: 'transparent',
+                    color: totpRequired ? colors.textSecondary : '#DC2626',
                     border: `1px solid ${totpRequired ? colors.borderPrimary : '#DC2626'}`,
-                    fontWeight: '600', fontSize: '0.9rem',
+                    fontWeight: 600, fontSize: '0.85rem',
                     cursor: totpRequired ? 'not-allowed' : 'pointer',
-                    opacity: totpRequired ? 0.5 : 1, transition: 'all 0.2s',
+                    opacity: totpRequired ? 0.5 : 1, transition: 'all 0.18s',
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
                   }}
                 >
+                  <i className="bi bi-shield-slash" style={{ fontSize: 13 }} />
                   Disable 2FA
                 </button>
               )}
@@ -1942,27 +2028,38 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                       />
                     ))}
                   </div>
-                  <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', gap: '0.6rem' }}>
                     <button
                       onClick={handleTotpDisable}
                       disabled={totpLoading || disableCode.some(d => !d)}
                       style={{
-                        padding: '0.625rem 1.25rem', borderRadius: '0.5rem',
-                        backgroundColor: '#DC2626', color: 'white', border: 'none',
-                        fontWeight: '600', fontSize: '0.875rem',
+                        padding: '0.55rem 1.1rem', borderRadius: 10,
+                        background: '#DC2626', color: '#fff', border: 'none',
+                        fontWeight: 600, fontSize: '0.85rem',
                         cursor: (totpLoading || disableCode.some(d => !d)) ? 'not-allowed' : 'pointer',
                         opacity: (totpLoading || disableCode.some(d => !d)) ? 0.6 : 1,
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        boxShadow: '0 4px 12px rgba(220,38,38,0.20)',
                       }}
                     >
-                      {totpLoading ? 'Disabling...' : 'Confirm Disable'}
+                      {totpLoading ? (
+                        <>
+                          <span className="ck-spinner" style={{ width: 12, height: 12, borderWidth: 2, borderTopColor: '#fff' }} />
+                          Disabling…
+                        </>
+                      ) : (
+                        <>
+                          <i className="bi bi-shield-slash-fill" style={{ fontSize: 13 }} />
+                          Confirm disable
+                        </>
+                      )}
                     </button>
                     <button
                       onClick={() => { setShowDisableConfirm(false); setDisableCode(['', '', '', '', '', '']); }}
+                      className="ck-btn ck-btn-soft"
                       style={{
-                        padding: '0.625rem 1.25rem', borderRadius: '0.5rem',
-                        backgroundColor: 'transparent', color: colors.textSecondary,
-                        border: `1px solid ${colors.borderPrimary}`,
-                        fontWeight: '600', fontSize: '0.875rem', cursor: 'pointer',
+                        padding: '0.55rem 1.1rem',
+                        fontSize: '0.85rem',
                       }}
                     >
                       Cancel
@@ -2039,29 +2136,38 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                     ))}
                   </div>
 
-                  <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', gap: '0.6rem' }}>
                     <button
                       onClick={handleTotpEnable}
                       disabled={totpLoading || totpCode.some(d => !d)}
+                      className="ck-btn ck-btn-primary"
                       style={{
-                        padding: '0.75rem 1.5rem', borderRadius: '0.5rem',
-                        backgroundColor: '#083A85', color: 'white', border: 'none',
-                        fontWeight: '600', fontSize: '0.9rem',
+                        padding: '0.6rem 1.2rem',
+                        fontSize: '0.88rem',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 8,
                         cursor: (totpLoading || totpCode.some(d => !d)) ? 'not-allowed' : 'pointer',
                         opacity: (totpLoading || totpCode.some(d => !d)) ? 0.6 : 1,
                       }}
                     >
-                      {totpLoading ? 'Verifying...' : 'Verify & Enable'}
+                      {totpLoading ? (
+                        <>
+                          <span className="ck-spinner" style={{ width: 12, height: 12, borderWidth: 2 }} />
+                          Verifying…
+                        </>
+                      ) : (
+                        <>
+                          <i className="bi bi-check2-circle" style={{ fontSize: 13 }} />
+                          Verify &amp; enable
+                        </>
+                      )}
                     </button>
                     {!totpRequired && (
                       <button
                         onClick={() => { setTotpStep('idle'); setTotpCode(['', '', '', '', '', '']); setTotpMessage(''); }}
-                        style={{
-                          padding: '0.75rem 1.5rem', borderRadius: '0.5rem',
-                          backgroundColor: 'transparent', color: colors.textSecondary,
-                          border: `1px solid ${colors.borderPrimary}`,
-                          fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer',
-                        }}
+                        className="ck-btn ck-btn-soft"
+                        style={{ padding: '0.6rem 1.2rem', fontSize: '0.88rem' }}
                       >
                         Cancel
                       </button>
@@ -2072,30 +2178,54 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
             </div>
 
             {/* Withdrawal Verification Card */}
-            <div className="mobile-pref-card" style={{
-              backgroundColor: colors.bgSecondary,
-              borderRadius: '1rem',
+            <div className="mobile-pref-card ck-card" style={{
+              position: 'relative',
+              overflow: 'hidden',
               padding: '1.5rem',
-              boxShadow: colors.shadowMd,
-              border: `2px solid ${colors.borderPrimary}`
             }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: '0 0 0.5rem 0' }}>
-                Withdrawal Verification
-              </h2>
-              <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: '0 0 1.5rem 0' }}>
-                Choose how to verify your identity before each withdrawal is processed.
-              </p>
+              <span aria-hidden style={{
+                position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+                background: 'linear-gradient(90deg, #F20C8F 0%, #083A85 100%)',
+              }} />
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: '1.25rem' }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 11,
+                  background: 'rgba(242,12,143,0.10)',
+                  border: '1px solid rgba(242,12,143,0.25)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  <i className="bi bi-fingerprint" style={{ fontSize: 17, color: '#F20C8F' }} />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2 }}>VERIFICATION</div>
+                  <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>
+                    Withdrawal verification
+                  </h2>
+                  <p style={{ fontSize: '0.88rem', color: colors.textSecondary, margin: '4px 0 0', lineHeight: 1.5 }}>
+                    Choose how to verify your identity before each withdrawal is processed.
+                  </p>
+                </div>
+              </div>
 
               {verificationMethodMessage && (
                 <div style={{
                   padding: '0.75rem 1rem',
-                  borderRadius: '0.5rem',
+                  borderRadius: 10,
                   marginBottom: '1rem',
                   fontSize: '0.85rem',
-                  backgroundColor: verificationMethodMessage.includes('success') ? '#DCFCE7' : '#FEE2E2',
-                  color: verificationMethodMessage.includes('success') ? '#166534' : '#991B1B',
-                  border: `1px solid ${verificationMethodMessage.includes('success') ? '#BBF7D0' : '#FECACA'}`,
+                  background: verificationMethodMessage.includes('success')
+                    ? (actualTheme === 'dark' ? 'rgba(22,163,74,0.14)' : '#DCFCE7')
+                    : (actualTheme === 'dark' ? 'rgba(220,38,38,0.14)' : '#FEE2E2'),
+                  color: verificationMethodMessage.includes('success')
+                    ? (actualTheme === 'dark' ? '#4ADE80' : '#166534')
+                    : (actualTheme === 'dark' ? '#FCA5A5' : '#991B1B'),
+                  border: `1px solid ${verificationMethodMessage.includes('success')
+                    ? (actualTheme === 'dark' ? 'rgba(22,163,74,0.35)' : '#BBF7D0')
+                    : (actualTheme === 'dark' ? 'rgba(220,38,38,0.35)' : '#FECACA')}`,
+                  display: 'inline-flex', alignItems: 'center', gap: 8,
                 }}>
+                  <i className={`bi ${verificationMethodMessage.includes('success') ? 'bi-check-circle-fill' : 'bi-x-circle-fill'}`} style={{ fontSize: 13 }} />
                   {verificationMethodMessage}
                 </div>
               )}
@@ -2143,62 +2273,66 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                       style={{
                         display: 'flex',
                         alignItems: 'flex-start',
-                        gap: '1rem',
-                        padding: '1rem',
-                        backgroundColor: isSelected
-                          ? (actualTheme === 'dark' ? 'rgba(8, 58, 133, 0.2)' : 'rgba(8, 58, 133, 0.05)')
-                          : colors.bgTertiary,
-                        borderRadius: '0.75rem',
-                        border: `2px solid ${isSelected ? '#083A85' : colors.borderPrimary}`,
+                        gap: '0.85rem',
+                        padding: '0.95rem 1rem',
+                        background: isSelected
+                          ? (actualTheme === 'dark'
+                              ? 'linear-gradient(135deg, rgba(8,58,133,0.30) 0%, rgba(242,12,143,0.14) 100%)'
+                              : 'linear-gradient(135deg, rgba(8,58,133,0.08) 0%, rgba(242,12,143,0.04) 100%)')
+                          : colors.bgCard,
+                        borderRadius: 11,
+                        border: `${isSelected ? '1.5px' : '1px'} solid ${isSelected ? '#083A85' : colors.borderPrimary}`,
                         cursor: isDisabled ? 'not-allowed' : 'pointer',
                         opacity: kycNotApproved ? 0.5 : 1,
                         textAlign: 'left',
-                        transition: 'all 0.2s',
+                        transition: 'all 0.18s',
                         width: '100%',
+                        boxShadow: isSelected ? '0 4px 12px rgba(8,58,133,0.10)' : 'none',
                       }}
                     >
                       <div style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '0.5rem',
-                        backgroundColor: isSelected ? '#083A85' : (actualTheme === 'dark' ? '#374151' : '#F3F4F6'),
+                        width: 38, height: 38, borderRadius: 10,
+                        background: isSelected
+                          ? 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)'
+                          : (actualTheme === 'dark' ? 'rgba(8,58,133,0.18)' : 'rgba(8,58,133,0.08)'),
+                        border: `1px solid ${isSelected ? 'transparent' : 'rgba(8,58,133,0.20)'}`,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         flexShrink: 0,
                       }}>
                         <i className={`bi ${option.icon}`} style={{
-                          fontSize: '1.1rem',
-                          color: isSelected ? 'white' : colors.textSecondary,
+                          fontSize: '1.05rem',
+                          color: isSelected ? '#fff' : '#083A85',
                         }} />
                       </div>
-                      <div style={{ flex: 1 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{
-                          fontSize: '0.95rem',
-                          fontWeight: '600',
+                          fontSize: '0.92rem',
+                          fontWeight: 700,
                           color: colors.textPrimary,
                           marginBottom: '0.25rem',
+                          letterSpacing: '-0.01em',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '0.5rem',
+                          gap: 8,
+                          flexWrap: 'wrap',
                         }}>
                           {option.label}
                           {isSelected && (
                             <span style={{
-                              fontSize: '0.7rem',
-                              fontWeight: '600',
-                              color: '#083A85',
-                              backgroundColor: actualTheme === 'dark' ? 'rgba(8, 58, 133, 0.3)' : 'rgba(8, 58, 133, 0.1)',
-                              padding: '0.15rem 0.5rem',
-                              borderRadius: '1rem',
-                            }}>Active</span>
+                              display: 'inline-flex', alignItems: 'center', gap: 4,
+                              fontSize: '0.66rem', fontWeight: 700, color: '#fff',
+                              background: '#F20C8F',
+                              padding: '2px 8px',
+                              borderRadius: 9999,
+                              letterSpacing: '0.04em', textTransform: 'uppercase',
+                            }}>
+                              <i className="bi bi-check" style={{ fontSize: 10 }} /> Active
+                            </span>
                           )}
                           {isSavingVerificationMethod && isSelected && (
-                            <div style={{
-                              width: '14px', height: '14px',
-                              border: '2px solid #E5E7EB', borderTopColor: '#083A85',
-                              borderRadius: '50%', animation: 'spin 1s linear infinite',
-                            }} />
+                            <span className="ck-spinner" style={{ width: 12, height: 12, borderWidth: 2 }} />
                           )}
                         </div>
                         <div style={{ fontSize: '0.85rem', color: colors.textSecondary, lineHeight: '1.4' }}>
@@ -2273,7 +2407,9 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: colors.bgOverlay,
+            backgroundColor: 'rgba(0, 0, 0, 0.45)',
+            backdropFilter: 'blur(2px)',
+            WebkitBackdropFilter: 'blur(2px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -2285,33 +2421,56 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
           <div
             className="mobile-modal-inner"
             style={{
-              backgroundColor: colors.bgModal,
-              borderRadius: '1rem',
-              padding: '1.5rem',
-              width: '480px',
-              maxWidth: '90%',
+              position: 'relative',
+              backgroundColor: colors.bgCard,
+              borderRadius: 18,
+              padding: 0,
+              width: 480,
+              maxWidth: '95%',
               maxHeight: '90vh',
               overflowY: 'auto',
-              boxShadow: colors.shadowXl
+              boxShadow: '0 25px 60px -12px rgba(8, 58, 133, 0.30)',
+              border: `1px solid ${colors.borderPrimary}`,
             }}
             onClick={(e) => e.stopPropagation()}
           >
+            <span aria-hidden style={{
+              position: 'sticky', top: 0, left: 0, right: 0, height: 3, display: 'block',
+              background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
+              zIndex: 2,
+            }} />
+            <div style={{ padding: '1.5rem 1.5rem 1.4rem' }}>
             {/* Modal Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
-                Add Payment Account
-              </h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.3rem', gap: 12 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                  fontSize: '0.66rem', fontWeight: 700, color: '#F20C8F',
+                  letterSpacing: '0.08em', textTransform: 'uppercase',
+                  marginBottom: 4,
+                }}>New withdrawal method</div>
+                <h2 style={{
+                  fontSize: '1.2rem', fontWeight: 800, color: colors.textPrimary, margin: 0,
+                  letterSpacing: '-0.01em',
+                }}>Add Payment Account</h2>
+              </div>
               <button
                 onClick={() => { setShowAddPaymentModal(false); resetForm(); }}
                 style={{
-                  background: 'none',
-                  border: 'none',
+                  background: colors.bgTertiary,
+                  border: `1px solid ${colors.borderPrimary}`,
+                  borderRadius: 9,
                   cursor: 'pointer',
-                  padding: '0.25rem',
-                  color: colors.textSecondary
+                  padding: 6,
+                  width: 30, height: 30,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: colors.textSecondary,
+                  transition: 'border-color 0.15s, color 0.15s',
                 }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)'; e.currentTarget.style.color = colors.textPrimary; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.color = colors.textSecondary; }}
+                aria-label="Close"
               >
-                <CloseIcon />
+                <i className="bi bi-x-lg" style={{ fontSize: 13 }} />
               </button>
             </div>
 
@@ -2334,30 +2493,42 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.75rem',
-                    padding: '0.75rem',
-                    border: paymentType === option.type ? '2px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                    borderRadius: '0.625rem',
+                    gap: '0.85rem',
+                    padding: '0.85rem 0.95rem',
+                    border: `1px solid ${paymentType === option.type ? 'rgba(8,58,133,0.45)' : colors.borderPrimary}`,
+                    borderRadius: 12,
                     cursor: 'pointer',
-                    backgroundColor: paymentType === option.type ? (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF') : colors.bgCard,
-                    transition: 'all 0.2s'
+                    background: paymentType === option.type
+                      ? (actualTheme === 'dark'
+                        ? 'linear-gradient(135deg, rgba(8,58,133,0.22) 0%, rgba(242,12,143,0.14) 100%)'
+                        : 'linear-gradient(135deg, rgba(8,58,133,0.05) 0%, rgba(242,12,143,0.04) 100%)')
+                      : colors.bgCard,
+                    transition: 'all 0.18s',
+                    boxShadow: paymentType === option.type ? '0 6px 14px rgba(8,58,133,0.14)' : 'none',
                   }}
                 >
                   <div className="mobile-payment-option-icon" style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '0.375rem',
+                    width: 44,
+                    height: 44,
+                    borderRadius: 10,
                     overflow: 'hidden',
                     flexShrink: 0,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '2px'
+                    gap: 2,
+                    background: colors.bgCard,
+                    border: `1px solid ${colors.borderPrimary}`,
+                    padding: option.type === 'bank' ? 0 : 4,
                   }}>
                     {option.type === 'bank' ? (
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M3 21H21M3 10H21M5 6L12 3L19 6M4 10V21M20 10V21M8 14V17M12 14V17M16 14V17" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
+                      <div style={{
+                        width: '100%', height: '100%',
+                        background: 'linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(8,58,133,0.10) 100%)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        <i className="bi bi-bank2" style={{ color: '#083A85', fontSize: 18 }} />
+                      </div>
                     ) : (
                       <Image
                         src={option.image}
@@ -2370,21 +2541,26 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                     )}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="mobile-payment-option-label" style={{ fontSize: '0.875rem', fontWeight: '600', color: colors.textPrimary }}>
+                    <div className="mobile-payment-option-label" style={{ fontSize: '0.92rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.005em' }}>
                       {option.label}
                     </div>
-                    <div className="mobile-payment-option-desc" style={{ fontSize: '0.75rem', color: colors.textSecondary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div className="mobile-payment-option-desc" style={{ fontSize: '0.76rem', color: colors.textSecondary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>
                       {option.description}
                     </div>
                   </div>
                   <div className="mobile-payment-option-radio" style={{
-                    width: '18px',
-                    height: '18px',
+                    width: 20,
+                    height: 20,
                     borderRadius: '50%',
-                    border: paymentType === option.type ? '5px solid #083A85' : `2px solid ${colors.borderPrimary}`,
-                    backgroundColor: colors.bgCard,
-                    flexShrink: 0
-                  }} />
+                    background: paymentType === option.type ? 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)' : 'transparent',
+                    border: paymentType === option.type ? 'none' : `1.5px solid ${colors.borderPrimary}`,
+                    flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: paymentType === option.type ? '0 3px 8px rgba(242,12,143,0.30)' : 'none',
+                    transition: 'all 0.18s',
+                  }}>
+                    {paymentType === option.type && <i className="bi bi-check2" style={{ color: 'white', fontSize: 11, fontWeight: 700 }} />}
+                  </div>
                 </div>
               ))}
             </div>
@@ -2636,12 +2812,20 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
             {validationError && (
               <div style={{
                 marginTop: '1rem',
-                padding: '0.75rem',
-                borderRadius: '0.5rem',
-                backgroundColor: '#fee2e2',
-                color: '#dc2626',
+                padding: '0.65rem 0.85rem',
+                borderRadius: 11,
+                background: actualTheme === 'dark' ? 'rgba(220,38,38,0.18)' : 'rgba(254,242,242,0.85)',
+                border: `1px solid ${actualTheme === 'dark' ? 'rgba(220,38,38,0.40)' : 'rgba(220,38,38,0.25)'}`,
+                color: actualTheme === 'dark' ? '#FCA5A5' : '#B91C1C',
                 fontSize: '0.85rem',
+                display: 'flex', alignItems: 'center', gap: 7,
+                position: 'relative', overflow: 'hidden',
               }}>
+                <span aria-hidden style={{
+                  position: 'absolute', top: 0, left: 0, bottom: 0, width: 3,
+                  background: 'linear-gradient(180deg, #EF4444 0%, #DC2626 100%)',
+                }} />
+                <i className="bi bi-exclamation-triangle-fill" style={{ fontSize: 13, marginLeft: 4 }} />
                 {validationError}
               </div>
             )}
@@ -2707,22 +2891,26 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
 
             {/* Action Buttons */}
             {!showNameMismatch && (
-            <div className="mobile-modal-footer" style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', alignItems: 'center' }}>
+            <div className="mobile-modal-footer" style={{ display: 'flex', gap: '0.65rem', marginTop: '1.5rem', alignItems: 'center' }}>
               <button
                 onClick={() => { setShowAddPaymentModal(false); resetForm(); }}
                 disabled={isValidating || isSavingPreference}
                 style={{
                   flex: 1,
-                  padding: '0.75rem',
-                  border: `2px solid ${colors.borderSecondary}`,
-                  borderRadius: '0.5rem',
-                  backgroundColor: 'transparent',
+                  padding: '0.75rem 1rem',
+                  border: `1px solid ${colors.borderPrimary}`,
+                  borderRadius: 11,
+                  background: colors.bgTertiary,
                   color: colors.textPrimary,
                   fontSize: '0.9rem',
-                  fontWeight: '600',
+                  fontWeight: 700,
+                  letterSpacing: '-0.005em',
                   cursor: isValidating || isSavingPreference ? 'not-allowed' : 'pointer',
                   opacity: isValidating || isSavingPreference ? 0.5 : 1,
+                  transition: 'border-color 0.15s',
                 }}
+                onMouseEnter={(e) => { if (!isValidating && !isSavingPreference) e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; }}
               >
                 Cancel
               </button>
@@ -2730,22 +2918,37 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                 onClick={handleAddPayment}
                 disabled={isValidating || isSavingPreference}
                 style={{
-                  flex: 1,
-                  padding: '0.75rem',
+                  flex: 1.4,
+                  padding: '0.75rem 1rem',
                   border: 'none',
-                  borderRadius: '0.5rem',
-                  backgroundColor: colors.brandPrimary,
+                  borderRadius: 11,
+                  background: isValidating || isSavingPreference
+                    ? (actualTheme === 'dark' ? '#4B5563' : '#9CA3AF')
+                    : 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
                   color: 'white',
-                  fontSize: '0.9rem',
-                  fontWeight: '600',
+                  fontSize: '0.92rem',
+                  fontWeight: 700,
+                  letterSpacing: '-0.005em',
                   cursor: isValidating || isSavingPreference ? 'not-allowed' : 'pointer',
                   opacity: isValidating || isSavingPreference ? 0.7 : 1,
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                  boxShadow: isValidating || isSavingPreference ? 'none' : '0 8px 18px rgba(8,58,133,0.30)',
+                  transition: 'transform 0.15s, box-shadow 0.15s',
                 }}
+                onMouseEnter={(e) => { if (!isValidating && !isSavingPreference) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 12px 24px rgba(242,12,143,0.35)'; } }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = isValidating || isSavingPreference ? 'none' : '0 8px 18px rgba(8,58,133,0.30)'; }}
               >
-                {isValidating ? 'Validating...' : isSavingPreference ? 'Saving...' : 'Add Payment Account'}
+                {isValidating ? (
+                  <><i className="bi bi-arrow-clockwise" style={{ fontSize: 13, animation: 'spin 0.9s linear infinite' }} /> Validating...</>
+                ) : isSavingPreference ? (
+                  <><i className="bi bi-arrow-clockwise" style={{ fontSize: 13, animation: 'spin 0.9s linear infinite' }} /> Saving...</>
+                ) : (
+                  <><i className="bi bi-plus-circle-fill" style={{ fontSize: 13 }} /> Add Payment Account</>
+                )}
               </button>
             </div>
             )}
+            </div>
           </div>
         </div>
       )}
@@ -2753,127 +2956,24 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && selectedPayment && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: colors.bgOverlay,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1100,
-            padding: '1rem'
+        <EventConfirmModal
+          tone="danger"
+          icon="bi-trash3-fill"
+          eyebrow="Confirm deletion"
+          title="Delete Payment Account"
+          intro={<>Are you sure you want to delete <strong style={{ color: colors.textPrimary }}>&quot;{selectedPayment.name}&quot;</strong>? You won&apos;t be able to use it for payments or withdrawals.</>}
+          detail="This action cannot be undone."
+          colors={{ bgCard: colors.bgCard, borderPrimary: colors.borderPrimary, textPrimary: colors.textPrimary, textSecondary: colors.textSecondary }}
+          actualTheme={actualTheme}
+          onClose={() => { setShowDeleteModal(false); setSelectedPayment(null); }}
+          closeLabel="Cancel"
+          primary={{
+            label: 'Delete',
+            icon: 'bi-trash3-fill',
+            onClick: handleDeletePayment,
+            tone: 'danger',
           }}
-          onClick={() => { setShowDeleteModal(false); setSelectedPayment(null); }}
-        >
-          <div
-            style={{
-              backgroundColor: colors.bgModal,
-              borderRadius: '1rem',
-              padding: '1.5rem',
-              width: '400px',
-              maxWidth: '90%',
-              boxShadow: colors.shadowXl
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Warning Icon */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'center',
-              marginBottom: '1rem'
-            }}>
-              <div style={{
-                width: '64px',
-                height: '64px',
-                borderRadius: '50%',
-                backgroundColor: colors.statusErrorBg,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 9V13M12 17H12.01M10.29 3.86L1.82 18C1.64 18.3 1.55 18.64 1.55 19C1.55 19.36 1.64 19.7 1.82 20C2 20.3 2.26 20.56 2.56 20.74C2.86 20.92 3.21 21.01 3.56 21H20.44C20.79 21.01 21.14 20.92 21.44 20.74C21.74 20.56 22 20.3 22.18 20C22.36 19.7 22.45 19.36 22.45 19C22.45 18.64 22.36 18.3 22.18 18L13.71 3.86C13.53 3.56 13.27 3.32 12.97 3.15C12.67 2.98 12.34 2.89 12 2.89C11.66 2.89 11.33 2.98 11.03 3.15C10.73 3.32 10.47 3.56 10.29 3.86Z" stroke={colors.statusError} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
-            </div>
-
-            <h2 style={{
-              fontSize: '1.25rem',
-              fontWeight: '700',
-              color: colors.textPrimary,
-              margin: 0,
-              marginBottom: '0.75rem',
-              textAlign: 'center'
-            }}>Delete Payment Account</h2>
-
-            <p style={{
-              fontSize: '0.95rem',
-              color: colors.textSecondary,
-              margin: 0,
-              marginBottom: '0.5rem',
-              textAlign: 'center',
-              lineHeight: '1.5'
-            }}>
-              Are you sure you want to delete <strong style={{ color: colors.textPrimary }}>&quot;{selectedPayment.name}&quot;</strong>?
-            </p>
-            <p style={{
-              fontSize: '0.85rem',
-              color: colors.statusError,
-              margin: 0,
-              marginBottom: '1.5rem',
-              textAlign: 'center',
-              fontWeight: '500'
-            }}>
-              This action cannot be undone.
-            </p>
-
-            <div className="mobile-modal-footer" style={{ display: 'flex', gap: '0.75rem' }}>
-              <button
-                onClick={() => { setShowDeleteModal(false); setSelectedPayment(null); }}
-                style={{
-                  flex: 1,
-                  padding: '0.75rem 1rem',
-                  borderRadius: '0.5rem',
-                  border: `2px solid ${colors.borderSecondary}`,
-                  backgroundColor: 'transparent',
-                  color: colors.textPrimary,
-                  fontSize: '0.95rem',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeletePayment}
-                style={{
-                  flex: 1,
-                  padding: '0.75rem 1rem',
-                  borderRadius: '0.5rem',
-                  border: '2px solid #DC2626',
-                  backgroundColor: '#DC2626',
-                  color: 'white',
-                  fontSize: '0.95rem',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <TrashIcon />
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
+        />
       )}
 
       {/* Edit Payment Modal - simplified for demo */}
@@ -2885,7 +2985,9 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: colors.bgOverlay,
+            backgroundColor: 'rgba(0, 0, 0, 0.45)',
+            backdropFilter: 'blur(2px)',
+            WebkitBackdropFilter: 'blur(2px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -2896,61 +2998,76 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
         >
           <div
             style={{
-              backgroundColor: colors.bgModal,
-              borderRadius: '1rem',
-              padding: '1.5rem',
-              width: '400px',
-              maxWidth: '90%',
-              boxShadow: colors.shadowXl
+              position: 'relative',
+              backgroundColor: colors.bgCard,
+              borderRadius: 18,
+              padding: 0,
+              width: 440,
+              maxWidth: '95%',
+              boxShadow: '0 25px 60px -12px rgba(8, 58, 133, 0.30)',
+              border: `1px solid ${colors.borderPrimary}`,
+              overflow: 'hidden',
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
-                Edit Payment Account
-              </h2>
-              <button
-                onClick={() => { setShowEditPaymentModal(false); setSelectedPayment(null); }}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: '0.25rem',
-                  color: colors.textSecondary
-                }}
-              >
-                <CloseIcon />
-              </button>
-            </div>
-
-            <div style={{
-              padding: '1rem',
-              backgroundColor: colors.bgTertiary,
-              borderRadius: '0.5rem',
-              marginBottom: '1rem'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <span aria-hidden style={{
+              position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+              background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
+            }} />
+            <div style={{ padding: '1.6rem 1.5rem 1.4rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
                 <div style={{
-                  width: '48px',
-                  height: '48px',
-                  borderRadius: '0.5rem',
-                  overflow: 'hidden',
-                  flexShrink: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '2px'
+                  width: 60, height: 60, borderRadius: 18,
+                  background: 'linear-gradient(135deg, #083A85 0%, #0a4da8 100%)',
+                  boxShadow: '0 10px 24px rgba(8,58,133,0.30)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <i className="bi bi-shield-lock-fill" style={{ fontSize: 24, color: '#fff' }} />
+                </div>
+              </div>
+              <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+                <div style={{
+                  fontSize: '0.66rem', fontWeight: 700, color: '#F20C8F',
+                  letterSpacing: '0.08em', textTransform: 'uppercase',
+                  marginBottom: 4,
+                }}>Payment method</div>
+                <h2 style={{
+                  fontSize: '1.2rem', fontWeight: 800, color: colors.textPrimary,
+                  margin: 0, letterSpacing: '-0.01em',
+                }}>Edit Payment Account</h2>
+              </div>
+
+              <div style={{
+                padding: '0.85rem 1rem',
+                background: actualTheme === 'dark'
+                  ? 'linear-gradient(135deg, rgba(8,58,133,0.22) 0%, rgba(242,12,143,0.14) 100%)'
+                  : 'linear-gradient(135deg, rgba(8,58,133,0.06) 0%, rgba(242,12,143,0.04) 100%)',
+                border: `1px solid ${actualTheme === 'dark' ? 'rgba(8,58,133,0.32)' : 'rgba(8,58,133,0.14)'}`,
+                borderRadius: 12,
+                marginBottom: '1rem',
+                display: 'flex', alignItems: 'center', gap: '0.85rem',
+              }}>
+                <div style={{
+                  width: 44, height: 44, borderRadius: 10, overflow: 'hidden', flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: colors.bgCard,
+                  border: `1px solid ${colors.borderPrimary}`,
+                  padding: selectedPayment.type === 'bank' ? 0 : 4,
                 }}>
                   {selectedPayment.type === 'bank' ? (
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M3 21H21M3 10H21M5 6L12 3L19 6M4 10V21M20 10V21M8 14V17M12 14V17M16 14V17" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
+                    <div style={{
+                      width: '100%', height: '100%',
+                      background: 'linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(8,58,133,0.10) 100%)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <i className="bi bi-bank2" style={{ color: '#083A85', fontSize: 18 }} />
+                    </div>
                   ) : getPaymentImage(selectedPayment.type, selectedPayment.name) ? (
                     <Image
                       src={getPaymentImage(selectedPayment.type, selectedPayment.name)!}
                       alt={selectedPayment.name}
-                      width={48}
-                      height={48}
+                      width={44}
+                      height={44}
                       unoptimized
                       style={{ objectFit: 'cover', width: '100%', height: '100%' }}
                     />
@@ -2958,37 +3075,64 @@ const PreferencesPage = ({ userType = 'photographer' }: PreferencesPageProps) =>
                     <MobileIcon />
                   )}
                 </div>
-                <div>
-                  <p style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: '0.95rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.005em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {selectedPayment.name}
                   </p>
-                  <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0.125rem 0 0 0' }}>
+                  <p style={{ fontSize: '0.78rem', color: colors.textSecondary, margin: '0.15rem 0 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {selectedPayment.details}
                   </p>
                 </div>
               </div>
+
+              <div style={{
+                padding: '0.65rem 0.85rem',
+                background: actualTheme === 'dark' ? 'rgba(245,158,11,0.14)' : 'rgba(254,243,199,0.55)',
+                border: `1px solid ${actualTheme === 'dark' ? 'rgba(245,158,11,0.40)' : 'rgba(245,158,11,0.35)'}`,
+                borderRadius: 11,
+                marginBottom: '1.25rem',
+                position: 'relative',
+                overflow: 'hidden',
+                display: 'flex', alignItems: 'flex-start', gap: 7,
+              }}>
+                <span aria-hidden style={{
+                  position: 'absolute', top: 0, left: 0, bottom: 0, width: 3,
+                  background: 'linear-gradient(180deg, #F59E0B 0%, #D97706 100%)',
+                }} />
+                <i className="bi bi-info-circle-fill" style={{ fontSize: 13, color: actualTheme === 'dark' ? '#FCD34D' : '#B45309', flexShrink: 0, marginTop: 2, marginLeft: 4 }} />
+                <p style={{
+                  fontSize: '0.84rem',
+                  color: actualTheme === 'dark' ? '#FCD34D' : '#92400E',
+                  margin: 0, lineHeight: 1.5,
+                }}>
+                  For security reasons, you can only update this account by removing it and adding a new one.
+                </p>
+              </div>
+
+              <button
+                onClick={() => { setShowEditPaymentModal(false); setSelectedPayment(null); }}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  border: 'none',
+                  borderRadius: 11,
+                  background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                  color: 'white',
+                  fontSize: '0.92rem',
+                  fontWeight: 700,
+                  letterSpacing: '-0.005em',
+                  cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                  boxShadow: '0 8px 18px rgba(8,58,133,0.30)',
+                  transition: 'transform 0.15s, box-shadow 0.15s',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 12px 24px rgba(242,12,143,0.35)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 18px rgba(8,58,133,0.30)'; }}
+              >
+                <i className="bi bi-check2" style={{ fontSize: 13 }} />
+                Close
+              </button>
             </div>
-
-            <p style={{ fontSize: '0.9rem', color: colors.textSecondary, textAlign: 'center', margin: '0 0 1.5rem 0' }}>
-              For security reasons, you can only update the account by removing and adding a new one.
-            </p>
-
-            <button
-              onClick={() => { setShowEditPaymentModal(false); setSelectedPayment(null); }}
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                border: 'none',
-                borderRadius: '0.5rem',
-                backgroundColor: colors.brandPrimary,
-                color: 'white',
-                fontSize: '0.9rem',
-                fontWeight: '600',
-                cursor: 'pointer'
-              }}
-            >
-              Close
-            </button>
           </div>
         </div>
       )}

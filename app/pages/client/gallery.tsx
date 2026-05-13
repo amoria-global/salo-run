@@ -2,11 +2,13 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Sidebar from '../../components/sidebar';
+import EventConfirmModal from '../../components/EventConfirmModal';
 import Topbar from '../../components/topbar';
 import Image from 'next/image';
 import { useTheme } from '../../context/ThemeContext';
 import { dashboardAuthFetch } from '../../providers/AuthProvider';
 import { getApiUrl, normalizeImageUrl } from '@/lib/api';
+import SortDropdown from '../../components/SortDropdown';
 
 // Icons
 const CloseIcon = () => (
@@ -578,65 +580,57 @@ const ClientGallery = () => {
         {/* Main Content */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem' }}>
           {/* Header */}
-          <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <h1 style={{ fontSize: '1.8rem', lineHeight: '2rem', color: colors.textPrimary, fontWeight: '600', margin: 0 }}>My Gallery</h1>
+          <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap', margin: '8px 0 22px' }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase' }}>LIBRARY</div>
                 <span style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '0.375rem',
-                  padding: '0.25rem 0.625rem',
-                  backgroundColor: '#F0FDF4',
-                  border: '1px solid #BBF7D0',
-                  borderRadius: '9999px',
-                  fontSize: '0.75rem',
-                  fontWeight: '600',
-                  color: '#16A34A'
+                  gap: 4,
+                  padding: '3px 9px',
+                  background: actualTheme === 'dark' ? 'rgba(22,163,74,0.16)' : '#ECFDF5',
+                  border: `1px solid ${actualTheme === 'dark' ? 'rgba(22,163,74,0.35)' : '#BBF7D0'}`,
+                  borderRadius: 9999,
+                  fontSize: '0.66rem',
+                  fontWeight: 700,
+                  color: actualTheme === 'dark' ? '#4ADE80' : '#166534',
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase',
                 }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                  Completed Events
+                  <i className="bi bi-check-circle-fill" style={{ fontSize: 10 }} />
+                  Completed events
                 </span>
               </div>
-              <p style={{ fontSize: '0.95rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
-                Albums and photos from your completed events, shared by your photographers
+              <h1 style={{ margin: 0, fontSize: '1.85rem', fontWeight: 800, letterSpacing: '-0.02em', color: colors.textPrimary }}>My gallery</h1>
+              <p style={{ margin: '4px 0 0', fontSize: '0.92rem', color: colors.textSecondary }}>
+                Albums and photos from your completed events, shared by your photographers.
               </p>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <button
-                onClick={() => setViewMode('grid')}
-                style={{
-                  padding: '0.5rem',
-                  borderRadius: '0.5rem',
-                  border: viewMode === 'grid' ? `2px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}` : `2px solid ${colors.borderPrimary}`,
-                  backgroundColor: viewMode === 'grid' ? (actualTheme === 'dark' ? '#1E3A5F' : '#EBF5FF') : colors.bgCard,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <GridIcon active={viewMode === 'grid'} activeColor={actualTheme === 'dark' ? '#60A5FA' : '#083A85'} />
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                style={{
-                  padding: '0.5rem',
-                  borderRadius: '0.5rem',
-                  border: viewMode === 'list' ? `2px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}` : `2px solid ${colors.borderPrimary}`,
-                  backgroundColor: viewMode === 'list' ? (actualTheme === 'dark' ? '#1E3A5F' : '#EBF5FF') : colors.bgCard,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <ListIcon active={viewMode === 'list'} activeColor={actualTheme === 'dark' ? '#60A5FA' : '#083A85'} />
-              </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              {/* View mode toggle (ck-tabs style segmented pill) */}
+              <div className="ck-tabs">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('grid')}
+                  className={`ck-tab ${viewMode === 'grid' ? 'is-active' : ''}`}
+                  title="Grid view"
+                  style={{ padding: '7px 12px' }}
+                >
+                  <i className="bi bi-grid-fill" style={{ fontSize: 13 }} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('list')}
+                  className={`ck-tab ${viewMode === 'list' ? 'is-active' : ''}`}
+                  title="List view"
+                  style={{ padding: '7px 12px' }}
+                >
+                  <i className="bi bi-list-ul" style={{ fontSize: 14 }} />
+                </button>
+              </div>
 
-              {/* Photobook Buttons */}
+              {/* Create Photobook */}
               <button
                 onClick={() => {
                   if (photobook) {
@@ -645,129 +639,93 @@ const ClientGallery = () => {
                     setShowCreatePhotobookModal(true);
                   }
                 }}
-                style={{
-                  padding: '0.5rem 1rem',
-                  borderRadius: '0.5rem',
-                  border: `2px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}`,
-                  backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EBF5FF',
-                  color: actualTheme === 'dark' ? '#60A5FA' : '#083A85',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  fontSize: '0.875rem',
-                  fontWeight: '600'
-                }}
+                className="ck-btn ck-btn-primary"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
               >
-                <PlusIcon />
-                Create Photobook
+                <i className="bi bi-plus-lg" style={{ fontSize: 12 }} />
+                Create photobook
               </button>
 
               {photobook && (
                 <button
                   onClick={() => setViewingPhotobooks(!viewingPhotobooks)}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    borderRadius: '0.5rem',
-                    border: `2px solid ${actualTheme === 'dark' ? '#60A5FA' : '#083A85'}`,
-                    backgroundColor: viewingPhotobooks
-                      ? (actualTheme === 'dark' ? '#60A5FA' : '#083A85')
-                      : (actualTheme === 'dark' ? '#1E3A5F' : '#EBF5FF'),
-                    color: viewingPhotobooks ? 'white' : (actualTheme === 'dark' ? '#60A5FA' : '#083A85'),
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    fontSize: '0.875rem',
-                    fontWeight: '600'
-                  }}
+                  className={viewingPhotobooks ? 'ck-btn ck-btn-primary' : 'ck-btn ck-btn-soft'}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
                 >
-                  <BookIcon />
-                  {viewingPhotobooks ? 'View Sent Albums' : 'View Photobooks'}
+                  <i className="bi bi-book-half" style={{ fontSize: 13 }} />
+                  {viewingPhotobooks ? 'View sent albums' : 'View photobooks'}
                 </button>
               )}
             </div>
           </header>
 
           {/* Stats Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
-              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Albums</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{albums.length}</div>
-            </div>
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
-              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Photos</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{totalPhotos}</div>
-            </div>
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
-              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Downloaded</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>{totalDownloaded}</div>
-            </div>
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', border: `1px solid ${colors.borderPrimary}` }}>
-              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Favorites</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#DC2626' }}>{totalFavorites}</div>
-            </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.85rem', marginBottom: '1.5rem' }}>
+            {([
+              { label: 'Total albums', value: albums.length.toString(),  accent: '#083A85', tint: 'rgba(8,58,133,0.10)',  icon: 'bi-images' },
+              { label: 'Total photos', value: totalPhotos.toLocaleString(), accent: '#3B82F6', tint: 'rgba(59,130,246,0.12)', icon: 'bi-camera-fill' },
+              { label: 'Downloaded',   value: totalDownloaded.toString(), accent: '#16A34A', tint: 'rgba(22,163,74,0.12)', icon: 'bi-download' },
+              { label: 'Favorites',    value: totalFavorites.toString(),  accent: '#F20C8F', tint: 'rgba(242,12,143,0.12)', icon: 'bi-heart-fill' },
+            ] as const).map((stat) => (
+              <div
+                key={stat.label}
+                className="ck-card"
+                style={{ position: 'relative', overflow: 'hidden', padding: '14px 16px 16px' }}
+              >
+                <span aria-hidden style={{
+                  position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+                  background: `linear-gradient(90deg, ${stat.accent} 0%, #F20C8F 130%)`,
+                }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{
+                    width: 38, height: 38, borderRadius: 10,
+                    background: stat.tint,
+                    border: `1px solid ${stat.accent}33`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                  }}>
+                    <i className={`bi ${stat.icon}`} style={{ fontSize: 16, color: stat.accent }} />
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '0.78rem', color: colors.textSecondary, marginBottom: 2, fontWeight: 600 }}>{stat.label}</div>
+                    <div style={{ fontSize: '1.45rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.02em', lineHeight: 1.05 }}>{stat.value}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* Filters */}
-          <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', padding: '1rem', marginBottom: '1.5rem', border: `1px solid ${colors.borderPrimary}` }}>
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div className="ck-card" style={{ padding: '0.85rem 1rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
               {/* Search */}
-              <div style={{ flex: 1, minWidth: '200px' }}>
+              <div className="ck-search" style={{ flex: 1, minWidth: 220 }}>
+                <i className="bi bi-search" />
                 <input
-                  type="text"
-                  placeholder="Search albums or photographers..."
+                  type="search"
+                  placeholder="Search albums or photographers…"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '0.625rem 1rem',
-                    border: `2px solid ${colors.borderPrimary}`,
-                    borderRadius: '0.5rem',
-                    fontSize: '0.9rem',
-                    color: colors.textPrimary,
-                    outline: 'none'
-                  }}
                 />
               </div>
 
               {/* Category Filter */}
-              <select
+              <SortDropdown
                 value={filterCategory}
-                onChange={(e) => setFilterCategory(e.target.value)}
-                style={{
-                  padding: '0.625rem 1rem',
-                  border: `2px solid ${colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.9rem',
-                  color: colors.textPrimary,
-                  backgroundColor: colors.bgCard,
-                  cursor: 'pointer'
-                }}
-              >
-                {categories.map(cat => (
-                  <option key={cat} value={cat}>{cat === 'All' ? 'All Categories' : cat}</option>
-                ))}
-              </select>
+                onChange={setFilterCategory}
+                buttonIcon="bi-tag-fill"
+                options={categories.map(cat => ({ value: cat, label: cat === 'All' ? 'All categories' : cat, icon: cat === 'All' ? 'bi-grid-3x3-gap-fill' : 'bi-tag-fill' }))}
+                minWidth={170}
+              />
 
               {/* Photographer Filter */}
-              <select
+              <SortDropdown
                 value={filterPhotographer}
-                onChange={(e) => setFilterPhotographer(e.target.value)}
-                style={{
-                  padding: '0.625rem 1rem',
-                  border: `2px solid ${colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.9rem',
-                  color: colors.textPrimary,
-                  backgroundColor: colors.bgCard,
-                  cursor: 'pointer'
-                }}
-              >
-                {photographers.map(p => (
-                  <option key={p} value={p}>{p === 'All' ? 'All Photographers' : p}</option>
-                ))}
-              </select>
+                onChange={setFilterPhotographer}
+                buttonIcon="bi-camera-fill"
+                options={photographers.map(p => ({ value: p, label: p === 'All' ? 'All photographers' : p, icon: p === 'All' ? 'bi-people-fill' : 'bi-person-fill' }))}
+                minWidth={190}
+              />
             </div>
           </div>
 
@@ -954,19 +912,30 @@ const ClientGallery = () => {
               </button>
             </div>
           ) : albums.length === 0 ? (
-            <div style={{
-              padding: '3rem 1rem',
+            <div className="ck-empty ck-card" style={{
+              padding: '3.5rem 1.5rem',
               textAlign: 'center',
-              backgroundColor: colors.bgCard,
-              borderRadius: '0.75rem',
-              border: `1px solid ${colors.borderPrimary}`,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 12,
             }}>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: colors.textPrimary, margin: 0, marginBottom: '0.5rem' }}>
-                No albums yet
-              </h3>
-              <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: 0 }}>
-                Albums shared by your photographers after a completed event will appear here.
-              </p>
+              <div style={{
+                width: 64, height: 64, borderRadius: 18,
+                background: 'linear-gradient(135deg, rgba(8,58,133,0.10) 0%, rgba(242,12,143,0.10) 100%)',
+                border: '1px solid var(--ck-stroke)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <i className="bi bi-images" style={{ fontSize: 26, color: '#083A85' }} />
+              </div>
+              <div>
+                <div style={{ fontSize: '1.05rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.01em' }}>
+                  No albums yet
+                </div>
+                <p style={{ margin: '4px auto 0', fontSize: '0.9rem', color: colors.textSecondary, maxWidth: 460, lineHeight: 1.5 }}>
+                  Albums shared by your photographers after a completed event will appear here, ready for you to browse, download, and turn into a photobook.
+                </p>
+              </div>
             </div>
           ) : viewMode === 'grid' ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem' }}>
@@ -975,98 +944,128 @@ const ClientGallery = () => {
                   key={album.id}
                   style={{
                     backgroundColor: colors.bgCard,
-                    borderRadius: '0.75rem',
+                    borderRadius: 14,
                     overflow: 'hidden',
                     border: `1px solid ${colors.borderPrimary}`,
-                    transition: 'all 0.2s',
-                    cursor: 'pointer'
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                    transition: 'transform 0.18s, box-shadow 0.18s, border-color 0.18s',
+                    cursor: 'pointer',
                   }}
                   onClick={() => {
                     setSelectedAlbum(album);
                     setShowViewModal(true);
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 14px 28px -10px rgba(8,58,133,0.18)';
+                    e.currentTarget.style.transform = 'translateY(-3px)';
+                    e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.boxShadow = 'none';
+                    e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.04)';
                     e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.borderColor = colors.borderPrimary;
                   }}
                 >
                   {/* Album Thumbnail */}
-                  <div style={{ position: 'relative', height: '180px', overflow: 'hidden' }}>
+                  <div style={{ position: 'relative', height: 190, overflow: 'hidden' }}>
                     <Image
                       src={album.thumbnail}
                       alt={album.title}
                       fill
                       style={{ objectFit: 'cover' }}
                     />
+                    {/* Soft gradient overlay for badge legibility */}
+                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0) 65%, rgba(0,0,0,0.30) 100%)', pointerEvents: 'none' }} />
+                    {/* Photo count pill */}
                     <div style={{
                       position: 'absolute',
-                      top: '0.5rem',
-                      right: '0.5rem',
-                      backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                      color: 'white',
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '0.25rem',
-                      fontSize: '0.75rem',
-                      fontWeight: '500'
+                      top: 10,
+                      right: 10,
+                      background: 'rgba(0,0,0,0.55)',
+                      backdropFilter: 'blur(8px)',
+                      WebkitBackdropFilter: 'blur(8px)',
+                      color: '#fff',
+                      padding: '4px 10px',
+                      borderRadius: 9999,
+                      fontSize: '0.66rem',
+                      fontWeight: 700,
+                      letterSpacing: '0.05em',
+                      textTransform: 'uppercase',
+                      border: '1px solid rgba(255,255,255,0.20)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
                     }}>
+                      <i className="bi bi-images" style={{ fontSize: 10 }} />
                       {album.photoCount} photos
                     </div>
+                    {/* Category pill */}
                     <div style={{
                       position: 'absolute',
-                      bottom: '0.5rem',
-                      left: '0.5rem',
-                      backgroundColor: '#083A85',
-                      color: 'white',
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '0.25rem',
-                      fontSize: '0.7rem',
-                      fontWeight: '500'
+                      bottom: 10,
+                      left: 10,
+                      background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                      color: '#fff',
+                      padding: '4px 10px',
+                      borderRadius: 9999,
+                      fontSize: '0.66rem',
+                      fontWeight: 700,
+                      letterSpacing: '0.05em',
+                      textTransform: 'uppercase',
+                      border: '1px solid rgba(255,255,255,0.20)',
+                      boxShadow: '0 4px 10px rgba(8,58,133,0.30)',
+                      display: 'inline-flex', alignItems: 'center', gap: 5,
                     }}>
+                      <span style={{ width: 5, height: 5, borderRadius: 9999, background: '#fff', boxShadow: '0 0 0 2px rgba(255,255,255,0.30)' }} />
                       {album.category}
                     </div>
                   </div>
 
                   {/* Album Info */}
-                  <div style={{ padding: '1rem' }}>
-                    <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.textPrimary, margin: 0, marginBottom: '0.5rem' }}>
+                  <div style={{ padding: '0.95rem 1rem 1rem' }}>
+                    <h3 style={{ fontSize: '1.02rem', fontWeight: 800, color: colors.textPrimary, margin: 0, marginBottom: '0.5rem', letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {album.title}
                     </h3>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                      <div style={{ position: 'relative', width: '24px', height: '24px', borderRadius: '50%', overflow: 'hidden' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                      <div style={{
+                        position: 'relative', width: 22, height: 22, borderRadius: '50%',
+                        overflow: 'hidden', flexShrink: 0,
+                        border: '1.5px solid rgba(8,58,133,0.20)',
+                      }}>
                         <Image src={album.photographerAvatar} alt={album.photographer} fill style={{ objectFit: 'cover' }} />
                       </div>
-                      <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>{album.photographer}</span>
+                      <span style={{ fontSize: '0.84rem', fontWeight: 600, color: colors.textSecondary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{album.photographer}</span>
                     </div>
-                    <div style={{ fontSize: '0.8rem', color: '#9CA3AF', marginBottom: '0.75rem' }}>
-                      Received: {album.receivedDate}
+                    <div style={{ fontSize: '0.74rem', color: colors.textSecondary, marginBottom: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                      <i className="bi bi-calendar-event" style={{ fontSize: 11, color: '#F20C8F' }} />
+                      <span style={{ fontWeight: 500 }}>Received:</span>
+                      <span style={{ fontWeight: 600, color: colors.textPrimary }}>{album.receivedDate}</span>
                     </div>
 
                     {/* Action Buttons */}
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', gap: 6 }}>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           openMultiSelectView(album);
                         }}
                         style={{
-                          flex: 1,
-                          padding: '0.5rem',
-                          borderRadius: '0.375rem',
-                          border: '2px solid #062a63',
-                          backgroundColor: '#083A85',
-                          color: 'white',
-                          fontSize: '0.8rem',
-                          fontWeight: '600',
+                          flex: 1.5,
+                          padding: '0.55rem 0.8rem',
+                          borderRadius: 10,
+                          border: 'none',
+                          background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                          color: '#fff',
+                          fontSize: '0.82rem',
+                          fontWeight: 700,
                           cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '0.25rem'
+                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                          boxShadow: '0 4px 12px rgba(8,58,133,0.22)',
+                          letterSpacing: '-0.005em',
+                          transition: 'transform 0.15s, box-shadow 0.15s',
                         }}
+                        onMouseEnter={(e) => { e.stopPropagation(); e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
                       >
                         <EyeIcon />
                         Browse
@@ -1080,18 +1079,27 @@ const ClientGallery = () => {
                           }}
                           style={{
                             flex: 1,
-                            padding: '0.5rem',
-                            borderRadius: '0.375rem',
-                            border: '2px solid #9CA3AF',
-                            backgroundColor: colors.bgTertiary,
+                            padding: '0.55rem 0.8rem',
+                            borderRadius: 10,
+                            border: `1px solid ${colors.borderPrimary}`,
+                            background: colors.bgCard,
                             color: colors.textPrimary,
-                            fontSize: '0.8rem',
-                            fontWeight: '600',
+                            fontSize: '0.82rem',
+                            fontWeight: 600,
                             cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '0.25rem'
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                            transition: 'transform 0.15s, border-color 0.15s, background 0.15s',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.stopPropagation();
+                            e.currentTarget.style.borderColor = '#083A85';
+                            e.currentTarget.style.background = actualTheme === 'dark' ? 'rgba(8,58,133,0.10)' : 'rgba(8,58,133,0.04)';
+                            e.currentTarget.style.transform = 'translateY(-1px)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = colors.borderPrimary;
+                            e.currentTarget.style.background = colors.bgCard;
+                            e.currentTarget.style.transform = 'translateY(0)';
                           }}
                         >
                           <ShareIcon />
@@ -1104,24 +1112,35 @@ const ClientGallery = () => {
                           openDeleteModal(album);
                         }}
                         style={{
-                          width: '36px',
-                          height: '36px',
-                          padding: '0.5rem',
-                          borderRadius: '0.375rem',
-                          border: '2px solid #FCA5A5',
-                          backgroundColor: '#FEE2E2',
+                          width: 36, height: 36,
+                          padding: 0,
+                          borderRadius: 10,
+                          border: `1px solid ${actualTheme === 'dark' ? 'rgba(220,38,38,0.32)' : '#FCA5A5'}`,
+                          background: actualTheme === 'dark' ? 'rgba(220,38,38,0.12)' : '#FEF2F2',
                           color: '#DC2626',
-                          fontSize: '0.8rem',
-                          fontWeight: '600',
                           cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          transition: 'all 0.2s'
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          transition: 'all 0.15s',
+                          flexShrink: 0,
                         }}
-                        title="Delete Album"
+                        title="Delete album"
+                        onMouseEnter={(e) => {
+                          e.stopPropagation();
+                          e.currentTarget.style.background = 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)';
+                          e.currentTarget.style.color = '#fff';
+                          e.currentTarget.style.borderColor = '#DC2626';
+                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(220,38,38,0.30)';
+                          e.currentTarget.style.transform = 'translateY(-1px)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = actualTheme === 'dark' ? 'rgba(220,38,38,0.12)' : '#FEF2F2';
+                          e.currentTarget.style.color = '#DC2626';
+                          e.currentTarget.style.borderColor = actualTheme === 'dark' ? 'rgba(220,38,38,0.32)' : '#FCA5A5';
+                          e.currentTarget.style.boxShadow = 'none';
+                          e.currentTarget.style.transform = 'translateY(0)';
+                        }}
                       >
-                        <i className="bi bi-trash" style={{ fontSize: '0.9rem' }}></i>
+                        <i className="bi bi-trash3-fill" style={{ fontSize: 13 }} />
                       </button>
                     </div>
                   </div>
@@ -1130,18 +1149,28 @@ const ClientGallery = () => {
             </div>
           ) : (
             /* List View */
-            <div style={{ backgroundColor: colors.bgCard, borderRadius: '0.75rem', border: `1px solid ${colors.borderPrimary}`, overflow: 'hidden' }}>
+            <div style={{
+              backgroundColor: colors.bgCard,
+              borderRadius: 14,
+              border: `1px solid ${colors.borderPrimary}`,
+              overflow: 'hidden',
+              boxShadow: '0 4px 16px -6px rgba(8, 58, 133, 0.10)',
+            }}>
               {/* Table Header */}
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: '80px 1fr 150px 120px 100px 150px',
+                gridTemplateColumns: '90px 1fr 170px 110px 110px 170px',
                 gap: '1rem',
-                padding: '0.75rem 1rem',
-                backgroundColor: colors.bgTertiary,
+                padding: '0.7rem 1.1rem',
+                background: actualTheme === 'dark'
+                  ? 'linear-gradient(135deg, rgba(8,58,133,0.16) 0%, rgba(242,12,143,0.08) 100%)'
+                  : 'linear-gradient(135deg, rgba(8,58,133,0.04) 0%, rgba(242,12,143,0.03) 100%)',
                 borderBottom: `1px solid ${colors.borderPrimary}`,
-                fontSize: '0.8rem',
-                fontWeight: '600',
-                color: colors.textSecondary
+                fontSize: '0.62rem',
+                fontWeight: 700,
+                color: '#F20C8F',
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
               }}>
                 <div></div>
                 <div>Album</div>
@@ -1152,83 +1181,139 @@ const ClientGallery = () => {
               </div>
 
               {/* Table Rows */}
-              {filteredAlbums.map((album) => (
+              {filteredAlbums.map((album, idx) => (
                 <div
                   key={album.id}
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: '80px 1fr 150px 120px 100px 150px',
+                    gridTemplateColumns: '90px 1fr 170px 110px 110px 170px',
                     gap: '1rem',
-                    padding: '0.75rem 1rem',
-                    borderBottom: `1px solid ${colors.borderPrimary}`,
+                    padding: '0.85rem 1.1rem',
+                    borderBottom: idx < filteredAlbums.length - 1 ? `1px solid ${colors.borderPrimary}` : 'none',
                     alignItems: 'center',
                     cursor: 'pointer',
-                    transition: 'background-color 0.2s'
+                    transition: 'background-color 0.18s',
                   }}
                   onClick={() => {
                     setSelectedAlbum(album);
                     setShowViewModal(true);
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = colors.bgTertiary;
+                    e.currentTarget.style.backgroundColor = actualTheme === 'dark' ? 'rgba(8,58,133,0.10)' : 'rgba(8,58,133,0.04)';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = colors.bgCard;
+                    e.currentTarget.style.backgroundColor = 'transparent';
                   }}
                 >
                   {/* Thumbnail */}
-                  <div style={{ position: 'relative', width: '80px', height: '50px', borderRadius: '0.375rem', overflow: 'hidden' }}>
+                  <div style={{
+                    position: 'relative',
+                    width: 80, height: 54,
+                    borderRadius: 9,
+                    overflow: 'hidden',
+                    border: `1px solid ${colors.borderPrimary}`,
+                    boxShadow: '0 3px 8px rgba(8,58,133,0.12)',
+                  }}>
                     <Image src={album.thumbnail} alt={album.title} fill style={{ objectFit: 'cover' }} />
                   </div>
 
                   {/* Album Title */}
-                  <div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{album.title}</div>
-                    <div style={{ fontSize: '0.8rem', color: '#9CA3AF' }}>Received: {album.receivedDate}</div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{
+                      fontSize: '0.92rem', fontWeight: 800, color: colors.textPrimary,
+                      letterSpacing: '-0.005em',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>{album.title}</div>
+                    <div style={{
+                      fontSize: '0.74rem', color: colors.textSecondary,
+                      marginTop: 2,
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                    }}>
+                      <i className="bi bi-calendar3" style={{ fontSize: 10, color: '#F20C8F' }} />
+                      Received {album.receivedDate}
+                    </div>
                   </div>
 
                   {/* Photographer */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <div style={{ position: 'relative', width: '24px', height: '24px', borderRadius: '50%', overflow: 'hidden' }}>
-                      <Image src={album.photographerAvatar} alt={album.photographer} fill style={{ objectFit: 'cover' }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+                    <div style={{
+                      width: 26, height: 26, borderRadius: '50%',
+                      padding: 1.5,
+                      background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
+                      boxShadow: '0 3px 6px rgba(8,58,133,0.18)',
+                      flexShrink: 0,
+                    }}>
+                      <div style={{
+                        position: 'relative', width: '100%', height: '100%',
+                        borderRadius: '50%', overflow: 'hidden',
+                        background: colors.bgCard,
+                      }}>
+                        <Image src={album.photographerAvatar} alt={album.photographer} fill style={{ objectFit: 'cover' }} />
+                      </div>
                     </div>
-                    <span style={{ fontSize: '0.85rem', color: colors.textPrimary }}>{album.photographer}</span>
+                    <span style={{
+                      fontSize: '0.84rem', fontWeight: 700, color: colors.textPrimary,
+                      letterSpacing: '-0.005em',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>{album.photographer}</span>
                   </div>
 
                   {/* Photos Count */}
-                  <div style={{ fontSize: '0.9rem', color: colors.textPrimary }}>{album.photoCount} photos</div>
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    fontSize: '0.84rem',
+                    fontWeight: 700,
+                    color: colors.textPrimary,
+                    letterSpacing: '-0.005em',
+                  }}>
+                    <i className="bi bi-images" style={{ fontSize: 12, color: '#F20C8F' }} />
+                    {album.photoCount} <span style={{ color: colors.textSecondary, fontWeight: 600 }}>photos</span>
+                  </div>
 
                   {/* Category */}
                   <span style={{
-                    display: 'inline-block',
-                    padding: '0.25rem 0.5rem',
-                    backgroundColor: '#DBEAFE',
-                    color: '#1E40AF',
-                    borderRadius: '0.25rem',
-                    fontSize: '0.75rem',
-                    fontWeight: '500'
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    padding: '0.22rem 0.6rem',
+                    background: 'linear-gradient(135deg, rgba(8,58,133,0.10) 0%, rgba(242,12,143,0.08) 100%)',
+                    border: '1px solid rgba(8,58,133,0.18)',
+                    color: actualTheme === 'dark' ? '#BFDBFE' : '#083A85',
+                    borderRadius: 9999,
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    letterSpacing: '-0.005em',
+                    width: 'fit-content',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>
+                    <i className="bi bi-tag-fill" style={{ fontSize: 9, color: '#F20C8F' }} />
                     {album.category}
                   </span>
 
                   {/* Actions */}
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         openMultiSelectView(album);
                       }}
+                      title="Browse album"
                       style={{
-                        padding: '0.375rem 0.75rem',
-                        borderRadius: '0.375rem',
-                        border: '2px solid #062a63',
-                        backgroundColor: '#083A85',
+                        padding: '0.4rem 0.7rem',
+                        borderRadius: 9,
+                        border: 'none',
+                        background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
                         color: 'white',
-                        fontSize: '0.8rem',
-                        fontWeight: '500',
-                        cursor: 'pointer'
+                        fontSize: '0.76rem',
+                        fontWeight: 700,
+                        letterSpacing: '-0.005em',
+                        cursor: 'pointer',
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        boxShadow: '0 4px 10px rgba(8,58,133,0.28)',
+                        transition: 'transform 0.15s',
                       }}
+                      onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
                     >
+                      <i className="bi bi-eye-fill" style={{ fontSize: 11 }} />
                       Browse
                     </button>
                     {!photobook && (
@@ -1238,18 +1323,21 @@ const ClientGallery = () => {
                           setShareAlbum(album);
                           setShowShareModal(true);
                         }}
+                        title="Share album"
                         style={{
-                          padding: '0.375rem 0.75rem',
-                          borderRadius: '0.375rem',
-                          border: '2px solid #9CA3AF',
-                          backgroundColor: colors.bgTertiary,
+                          width: 32, height: 32,
+                          borderRadius: 9,
+                          border: `1px solid ${colors.borderPrimary}`,
+                          background: colors.bgTertiary,
                           color: colors.textPrimary,
-                          fontSize: '0.8rem',
-                          fontWeight: '500',
-                          cursor: 'pointer'
+                          cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          transition: 'border-color 0.15s, background-color 0.15s',
                         }}
+                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)'; e.currentTarget.style.backgroundColor = 'rgba(8,58,133,0.05)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.backgroundColor = colors.bgTertiary; }}
                       >
-                        Share
+                        <i className="bi bi-share-fill" style={{ fontSize: 11, color: '#F20C8F' }} />
                       </button>
                     )}
                     <button
@@ -1257,22 +1345,21 @@ const ClientGallery = () => {
                         e.stopPropagation();
                         openDeleteModal(album);
                       }}
+                      title="Delete album"
                       style={{
-                        padding: '0.375rem 0.75rem',
-                        borderRadius: '0.375rem',
-                        border: '2px solid #FCA5A5',
-                        backgroundColor: '#FEE2E2',
-                        color: '#DC2626',
-                        fontSize: '0.8rem',
-                        fontWeight: '500',
+                        width: 32, height: 32,
+                        borderRadius: 9,
+                        border: `1px solid ${actualTheme === 'dark' ? 'rgba(220,38,38,0.40)' : 'rgba(220,38,38,0.25)'}`,
+                        background: actualTheme === 'dark' ? 'rgba(220,38,38,0.14)' : 'rgba(254,242,242,0.85)',
+                        color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626',
                         cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        transition: 'all 0.15s',
                       }}
-                      title="Delete Album"
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'transparent'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = actualTheme === 'dark' ? 'rgba(220,38,38,0.14)' : 'rgba(254,242,242,0.85)'; e.currentTarget.style.color = actualTheme === 'dark' ? '#FCA5A5' : '#DC2626'; e.currentTarget.style.borderColor = actualTheme === 'dark' ? 'rgba(220,38,38,0.40)' : 'rgba(220,38,38,0.25)'; }}
                     >
-                      <i className="bi bi-trash" style={{ fontSize: '0.85rem' }}></i>
+                      <i className="bi bi-trash3-fill" style={{ fontSize: 11 }} />
                     </button>
                   </div>
                 </div>
@@ -1286,161 +1373,245 @@ const ClientGallery = () => {
       {showViewModal && selectedAlbum && (
         <div
           style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '1rem'
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.45)',
+            backdropFilter: 'blur(2px)',
+            WebkitBackdropFilter: 'blur(2px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 1000, padding: '1rem',
           }}
           onClick={() => setShowViewModal(false)}
         >
           <div
             style={{
+              position: 'relative',
               backgroundColor: colors.bgCard,
-              borderRadius: '0.75rem',
-              padding: '1.5rem',
-              maxWidth: '600px',
+              borderRadius: 18,
+              maxWidth: 580,
               width: '100%',
               maxHeight: '90vh',
-              overflowY: 'auto'
+              overflowY: 'auto',
+              boxShadow: '0 25px 60px -12px rgba(8, 58, 133, 0.30)',
+              border: `1px solid ${colors.borderPrimary}`,
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Modal Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Album Details</h2>
-              <button
-                onClick={() => setShowViewModal(false)}
-                style={{
-                  background: colors.bgTertiary,
-                  border: `2px solid ${colors.borderPrimary}`,
-                  cursor: 'pointer',
-                  padding: '0.5rem',
-                  borderRadius: '0.375rem',
-                  color: colors.textPrimary,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <CloseIcon />
-              </button>
-            </div>
-
-            {/* Album Preview */}
-            <div style={{ position: 'relative', height: '250px', borderRadius: '0.5rem', overflow: 'hidden', marginBottom: '1.25rem' }}>
-              <Image src={selectedAlbum.thumbnail} alt={selectedAlbum.title} fill style={{ objectFit: 'cover' }} />
-            </div>
-
-            {/* Album Info */}
-            <h3 style={{ fontSize: '1.15rem', fontWeight: '600', color: colors.textPrimary, margin: 0, marginBottom: '0.5rem' }}>
-              {selectedAlbum.title}
-            </h3>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              <div style={{ position: 'relative', width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden' }}>
-                <Image src={selectedAlbum.photographerAvatar} alt={selectedAlbum.photographer} fill style={{ objectFit: 'cover' }} />
-              </div>
-              <div>
-                <div style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>{selectedAlbum.photographer}</div>
-                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Photographer</div>
-              </div>
-            </div>
-
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '1rem',
-              padding: '1rem',
-              backgroundColor: colors.bgTertiary,
-              borderRadius: '0.5rem',
-              marginBottom: '1.25rem'
-            }}>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '1.25rem', fontWeight: '700', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{selectedAlbum.photoCount}</div>
-                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Photos</div>
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#16A34A' }}>{selectedAlbum.downloadedCount}</div>
-                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Downloaded</div>
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#DC2626' }}>{selectedAlbum.favoriteCount}</div>
-                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Favorites</div>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.25rem', fontSize: '0.85rem', color: colors.textSecondary }}>
-              <span>Category: <strong style={{ color: colors.textPrimary }}>{selectedAlbum.category}</strong></span>
-              <span>Received: <strong style={{ color: colors.textPrimary }}>{selectedAlbum.receivedDate}</strong></span>
-            </div>
-
-            {/* Action Buttons */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
+            {/* Brand top stripe */}
+            <span aria-hidden style={{
+              position: 'sticky', top: 0, left: 0, right: 0, height: 3, display: 'block',
+              background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
+              zIndex: 2,
+            }} />
+            <div style={{ padding: '1.4rem 1.5rem 1.5rem' }}>
+              {/* Modal Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: '1.1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, minWidth: 0 }}>
+                  <div style={{
+                    width: 40, height: 40, borderRadius: 11,
+                    background: 'rgba(8,58,133,0.10)',
+                    border: '1px solid rgba(8,58,133,0.25)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0, color: '#083A85',
+                  }}>
+                    <i className="bi bi-images" style={{ fontSize: 17 }} />
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2 }}>Album</div>
+                    <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>
+                      Album details
+                    </h2>
+                  </div>
+                </div>
                 <button
-                  onClick={() => {
-                    setShowViewModal(false);
-                    openMultiSelectView(selectedAlbum);
-                  }}
+                  onClick={() => setShowViewModal(false)}
+                  aria-label="Close"
                   style={{
-                    flex: 1,
-                    padding: '0.875rem',
-                    borderRadius: '0.5rem',
-                    border: '2px solid #062a63',
-                    backgroundColor: '#083A85',
-                    color: 'white',
-                    fontSize: '0.95rem',
-                    fontWeight: '600',
+                    background: 'transparent',
+                    border: `1px solid ${colors.borderPrimary}`,
                     cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.5rem'
+                    width: 32, height: 32, padding: 0,
+                    borderRadius: 9,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: colors.textSecondary,
+                    flexShrink: 0,
+                    transition: 'all 0.15s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(220,38,38,0.08)';
+                    e.currentTarget.style.borderColor = '#DC2626';
+                    e.currentTarget.style.color = '#DC2626';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.borderColor = colors.borderPrimary;
+                    e.currentTarget.style.color = colors.textSecondary;
                   }}
                 >
-                  <ImageIcon />
-                  Browse Photos
+                  <CloseIcon />
                 </button>
-                {!photobook && (
+              </div>
+
+              {/* Album Preview */}
+              <div style={{ position: 'relative', height: 240, borderRadius: 14, overflow: 'hidden', marginBottom: '1.1rem', boxShadow: '0 12px 24px -10px rgba(0,0,0,0.30)' }}>
+                <Image src={selectedAlbum.thumbnail} alt={selectedAlbum.title} fill style={{ objectFit: 'cover' }} />
+                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.20) 0%, rgba(0,0,0,0) 35%, rgba(0,0,0,0.45) 100%)', pointerEvents: 'none' }} />
+                {/* Category pill */}
+                <div style={{
+                  position: 'absolute', top: 10, left: 10,
+                  background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                  color: '#fff', padding: '4px 10px', borderRadius: 9999,
+                  fontSize: '0.66rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase',
+                  border: '1px solid rgba(255,255,255,0.20)',
+                  boxShadow: '0 4px 10px rgba(8,58,133,0.30)',
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                }}>
+                  <span style={{ width: 5, height: 5, borderRadius: 9999, background: '#fff', boxShadow: '0 0 0 2px rgba(255,255,255,0.30)' }} />
+                  {selectedAlbum.category}
+                </div>
+                {/* Title overlay at bottom */}
+                <div style={{ position: 'absolute', bottom: 10, left: 12, right: 12 }}>
+                  <h3 style={{
+                    fontSize: '1.05rem', fontWeight: 800, color: '#fff',
+                    margin: 0, letterSpacing: '-0.005em',
+                    textShadow: '0 2px 6px rgba(0,0,0,0.50)',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {selectedAlbum.title}
+                  </h3>
+                </div>
+              </div>
+
+              {/* Photographer */}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 12, marginBottom: '1rem',
+                padding: '0.7rem 0.85rem',
+                background: actualTheme === 'dark' ? 'rgba(8,58,133,0.10)' : '#F9FAFB',
+                border: `1px solid ${colors.borderPrimary}`,
+                borderRadius: 11,
+              }}>
+                <div style={{ position: 'relative', width: 40, height: 40, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, border: '1.5px solid rgba(8,58,133,0.25)' }}>
+                  <Image src={selectedAlbum.photographerAvatar} alt={selectedAlbum.photographer} fill style={{ objectFit: 'cover' }} />
+                </div>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: '0.92rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.005em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedAlbum.photographer}</div>
+                  <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Photographer</div>
+                </div>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Received</div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 600, color: colors.textPrimary, marginTop: 1 }}>{selectedAlbum.receivedDate}</div>
+                </div>
+              </div>
+
+              {/* Stats Cards */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: 8,
+                marginBottom: '1.25rem',
+              }}>
+                {([
+                  { label: 'Photos',     value: selectedAlbum.photoCount,      accent: '#083A85', tint: 'rgba(8,58,133,0.10)',   icon: 'bi-images' },
+                  { label: 'Downloaded', value: selectedAlbum.downloadedCount, accent: '#16A34A', tint: 'rgba(22,163,74,0.12)',  icon: 'bi-download' },
+                  { label: 'Favorites',  value: selectedAlbum.favoriteCount,   accent: '#F20C8F', tint: 'rgba(242,12,143,0.12)', icon: 'bi-heart-fill' },
+                ] as const).map((stat) => (
+                  <div key={stat.label} style={{
+                    position: 'relative', overflow: 'hidden',
+                    padding: '0.7rem 0.75rem',
+                    background: colors.bgCard,
+                    border: `1px solid ${colors.borderPrimary}`,
+                    borderRadius: 11,
+                    textAlign: 'center',
+                  }}>
+                    <span aria-hidden style={{
+                      position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+                      background: `linear-gradient(90deg, ${stat.accent} 0%, #F20C8F 130%)`,
+                    }} />
+                    <div style={{
+                      width: 26, height: 26, borderRadius: 8,
+                      background: stat.tint,
+                      border: `1px solid ${stat.accent}33`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      margin: '4px auto 6px',
+                    }}>
+                      <i className={`bi ${stat.icon}`} style={{ fontSize: 12, color: stat.accent }} />
+                    </div>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.02em', lineHeight: 1.05 }}>{stat.value}</div>
+                    <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: 2 }}>{stat.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{
+                display: 'flex', flexDirection: 'column', gap: '0.6rem',
+                paddingTop: '0.85rem',
+                borderTop: `1px solid ${colors.borderPrimary}`,
+              }}>
+                <div style={{ display: 'flex', gap: '0.6rem' }}>
                   <button
                     onClick={() => {
                       setShowViewModal(false);
-                      setShareAlbum(selectedAlbum);
-                      setShowShareModal(true);
+                      openMultiSelectView(selectedAlbum);
                     }}
                     style={{
-                      flex: 1,
-                      padding: '0.875rem',
-                      borderRadius: '0.5rem',
-                      border: '2px solid #9CA3AF',
-                      backgroundColor: colors.bgTertiary,
-                      color: colors.textPrimary,
-                      fontSize: '0.95rem',
-                      fontWeight: '600',
+                      flex: 1.5,
+                      padding: '0.7rem 1rem',
+                      borderRadius: 11,
+                      border: 'none',
+                      background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                      color: '#fff',
+                      fontSize: '0.92rem',
+                      fontWeight: 700,
                       cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.5rem'
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                      boxShadow: '0 6px 18px rgba(242,12,143,0.28)',
+                      letterSpacing: '-0.005em',
+                      transition: 'transform 0.15s, box-shadow 0.15s',
                     }}
+                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
                   >
-                    <ShareIcon />
-                    Share Album
+                    <i className="bi bi-grid-3x3-gap-fill" style={{ fontSize: 13 }} />
+                    Browse photos
                   </button>
+                  {!photobook && (
+                    <button
+                      onClick={() => {
+                        setShowViewModal(false);
+                        setShareAlbum(selectedAlbum);
+                        setShowShareModal(true);
+                      }}
+                      className="ck-btn ck-btn-soft"
+                      style={{
+                        flex: 1,
+                        padding: '0.7rem 1rem',
+                        fontSize: '0.92rem',
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                      }}
+                    >
+                      <ShareIcon />
+                      Share album
+                    </button>
+                  )}
+                </div>
+                {photobook && (
+                  <div style={{
+                    padding: '0.65rem 0.85rem',
+                    borderRadius: 10,
+                    background: actualTheme === 'dark'
+                      ? 'linear-gradient(135deg, rgba(8,58,133,0.18) 0%, rgba(242,12,143,0.10) 100%)'
+                      : 'linear-gradient(135deg, rgba(8,58,133,0.06) 0%, rgba(242,12,143,0.03) 100%)',
+                    border: `1px solid ${actualTheme === 'dark' ? 'rgba(99,162,255,0.30)' : 'rgba(8,58,133,0.18)'}`,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    fontSize: '0.82rem',
+                    color: actualTheme === 'dark' ? '#93C5FD' : '#083A85',
+                    fontWeight: 600,
+                  }}>
+                    <i className="bi bi-book-half" style={{ fontSize: 12 }} />
+                    Browse photos to select and add to &ldquo;{photobook.name}&rdquo;
+                  </div>
                 )}
               </div>
-              {photobook && (
-                <p style={{ fontSize: '0.8rem', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85', textAlign: 'center', margin: 0, fontWeight: '500' }}>
-                  Browse photos to select and add to &quot;{photobook.name}&quot;
-                </p>
-              )}
             </div>
           </div>
         </div>
@@ -1450,161 +1621,241 @@ const ClientGallery = () => {
       {showShareModal && shareAlbum && (
         <div
           style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 2500,
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.45)',
+            backdropFilter: 'blur(2px)',
+            WebkitBackdropFilter: 'blur(2px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 2500, padding: '1rem',
           }}
           onClick={() => setShowShareModal(false)}
         >
           <div
             style={{
+              position: 'relative',
               backgroundColor: colors.bgCard,
-              borderRadius: '0.75rem',
-              padding: '1.5rem',
-              maxWidth: '500px',
-              width: '90%',
+              borderRadius: 18,
+              maxWidth: 520,
+              width: '100%',
               maxHeight: '90vh',
               overflowY: 'auto',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+              boxShadow: '0 25px 60px -12px rgba(8, 58, 133, 0.30)',
+              border: `1px solid ${colors.borderPrimary}`,
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Share Album</h3>
-              <button
-                onClick={() => setShowShareModal(false)}
-                style={{
-                  background: colors.bgTertiary,
-                  border: `2px solid ${colors.borderPrimary}`,
-                  cursor: 'pointer',
-                  padding: '0.5rem',
-                  borderRadius: '0.375rem',
-                  color: colors.textPrimary,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <CloseIcon />
-              </button>
-            </div>
-
-            {/* Album Preview */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem', padding: '0.75rem', backgroundColor: colors.bgTertiary, borderRadius: '0.5rem' }}>
-              <div style={{ position: 'relative', width: '60px', height: '40px', borderRadius: '0.25rem', overflow: 'hidden' }}>
-                <Image src={shareAlbum.thumbnail} alt={shareAlbum.title} fill style={{ objectFit: 'cover' }} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: '600', color: colors.textPrimary, fontSize: '0.9rem' }}>{shareAlbum.title}</div>
-                <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{shareAlbum.photoCount} photos • {shareAlbum.photographer}</div>
-              </div>
-            </div>
-
-            {/* Social Media Share Buttons */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '1.25rem' }}>
-              {[
-                { name: 'WhatsApp', icon: <WhatsAppIcon />, color: '#25D366', getUrl: (link: string, title: string) => `https://wa.me/?text=${encodeURIComponent(`${title}: ${link}`)}` },
-                { name: 'Facebook', icon: <FacebookIcon />, color: '#1877F2', getUrl: (link: string) => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}` },
-                { name: 'Twitter', icon: <TwitterIcon />, color: '#1DA1F2', getUrl: (link: string, title: string) => `https://twitter.com/intent/tweet?url=${encodeURIComponent(link)}&text=${encodeURIComponent(title)}` },
-                { name: 'Email', icon: <EmailIcon />, color: '#EA4335', getUrl: (link: string, title: string) => `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(`Check out this album: ${link}`)}` },
-                { name: 'Copy Link', icon: <LinkIcon />, color: colors.textSecondary, getUrl: () => '' },
-                { name: 'QR Code', icon: <QRCodeIcon />, color: colors.textPrimary, getUrl: () => '' }
-              ].map((option) => (
+            {/* Brand top stripe */}
+            <span aria-hidden style={{
+              position: 'sticky', top: 0, left: 0, right: 0, height: 3, display: 'block',
+              background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
+              zIndex: 2,
+            }} />
+            <div style={{ padding: '1.4rem 1.5rem 1.5rem' }}>
+              {/* Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: '1.1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, minWidth: 0 }}>
+                  <div style={{
+                    width: 40, height: 40, borderRadius: 11,
+                    background: 'rgba(242,12,143,0.10)',
+                    border: '1px solid rgba(242,12,143,0.25)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0, color: '#F20C8F',
+                  }}>
+                    <ShareIcon />
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2 }}>Share</div>
+                    <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>
+                      Share album
+                    </h3>
+                    <p style={{ fontSize: '0.82rem', color: colors.textSecondary, margin: '3px 0 0 0', lineHeight: 1.45 }}>
+                      Send the album link to friends or share it on social media.
+                    </p>
+                  </div>
+                </div>
                 <button
-                  key={option.name}
-                  onClick={() => {
-                    const shareLink = getShareLink(shareAlbum);
-                    if (option.name === 'Copy Link') {
-                      handleCopyLink(shareLink);
-                    } else if (option.name === 'QR Code') {
-                      setNotificationModal({ show: true, title: 'Coming Soon', message: 'QR Code feature coming soon!', type: 'info' });
-                    } else {
-                      const url = option.getUrl(shareLink, shareAlbum.title);
-                      window.open(url, '_blank', 'noopener,noreferrer');
-                    }
-                  }}
+                  onClick={() => setShowShareModal(false)}
+                  aria-label="Close"
                   style={{
-                    padding: '1rem',
-                    border: option.name === 'Copy Link' && copiedLink ? '1px solid #10B981' : `1px solid ${colors.borderPrimary}`,
-                    borderRadius: '0.5rem',
-                    background: option.name === 'Copy Link' && copiedLink ? (actualTheme === 'dark' ? '#14532D' : '#ECFDF5') : colors.bgCard,
+                    background: 'transparent',
+                    border: `1px solid ${colors.borderPrimary}`,
                     cursor: 'pointer',
-                    fontSize: '0.85rem',
-                    fontWeight: '500',
-                    color: option.name === 'Copy Link' && copiedLink ? '#10B981' : colors.textPrimary,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    transition: 'all 0.2s'
+                    width: 32, height: 32, padding: 0,
+                    borderRadius: 9,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: colors.textSecondary,
+                    flexShrink: 0,
+                    transition: 'all 0.15s',
                   }}
                   onMouseEnter={(e) => {
-                    if (!(option.name === 'Copy Link' && copiedLink)) {
-                      e.currentTarget.style.borderColor = option.color;
-                      e.currentTarget.style.color = option.color;
-                    }
+                    e.currentTarget.style.background = 'rgba(220,38,38,0.08)';
+                    e.currentTarget.style.borderColor = '#DC2626';
+                    e.currentTarget.style.color = '#DC2626';
                   }}
                   onMouseLeave={(e) => {
-                    if (!(option.name === 'Copy Link' && copiedLink)) {
-                      e.currentTarget.style.borderColor = colors.borderPrimary;
-                      e.currentTarget.style.color = colors.textPrimary;
-                    }
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.borderColor = colors.borderPrimary;
+                    e.currentTarget.style.color = colors.textSecondary;
                   }}
                 >
-                  <span>{option.icon}</span>
-                  <span>{option.name === 'Copy Link' && copiedLink ? 'Copied!' : option.name}</span>
+                  <CloseIcon />
                 </button>
-              ))}
-            </div>
+              </div>
 
-            {/* Album Link Input */}
-            <div style={{ borderTop: `1px solid ${colors.borderPrimary}`, paddingTop: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                Album Link
-              </label>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <input
-                  type="text"
-                  value={getShareLink(shareAlbum)}
-                  readOnly
-                  style={{
-                    flex: 1,
-                    padding: '0.625rem 0.875rem',
-                    border: `2px solid ${colors.borderPrimary}`,
-                    borderRadius: '0.375rem',
-                    fontSize: '0.9rem',
-                    fontWeight: '500',
-                    color: colors.textPrimary,
-                    backgroundColor: colors.bgTertiary
-                  }}
-                />
-                <button
-                  onClick={() => handleCopyLink(getShareLink(shareAlbum))}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.375rem',
-                    padding: '0.625rem 1rem',
-                    border: copiedLink ? '2px solid #059669' : '2px solid #062a63',
-                    borderRadius: '0.375rem',
-                    background: copiedLink ? '#10B981' : '#083A85',
-                    color: 'white',
-                    fontSize: '0.9rem',
-                    fontWeight: '500',
-                    cursor: 'pointer',
-                    transition: 'background 0.2s'
-                  }}
-                >
-                  <CopyIcon />
-                  {copiedLink ? 'Copied!' : 'Copy'}
-                </button>
+              {/* Album Preview */}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                marginBottom: '1.25rem',
+                padding: '0.7rem 0.9rem',
+                background: actualTheme === 'dark'
+                  ? 'linear-gradient(135deg, rgba(8,58,133,0.20) 0%, rgba(242,12,143,0.10) 100%)'
+                  : 'linear-gradient(135deg, rgba(8,58,133,0.06) 0%, rgba(242,12,143,0.03) 100%)',
+                border: `1px solid ${actualTheme === 'dark' ? 'rgba(99,162,255,0.30)' : 'rgba(8,58,133,0.18)'}`,
+                borderRadius: 12,
+              }}>
+                <div style={{ position: 'relative', width: 56, height: 42, borderRadius: 8, overflow: 'hidden', flexShrink: 0 }}>
+                  <Image src={shareAlbum.thumbnail} alt={shareAlbum.title} fill style={{ objectFit: 'cover' }} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, color: colors.textPrimary, fontSize: '0.95rem', letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{shareAlbum.title}</div>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: '0.78rem', color: colors.textSecondary, marginTop: 2 }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <i className="bi bi-images" style={{ fontSize: 11 }} />
+                      {shareAlbum.photoCount} photos
+                    </span>
+                    <span style={{ opacity: 0.5 }}>·</span>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{shareAlbum.photographer}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* "Share via" eyebrow */}
+              <div style={{ fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.55rem' }}>Share via</div>
+
+              {/* Social Media Share Buttons */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.6rem', marginBottom: '1.25rem' }}>
+                {[
+                  { name: 'WhatsApp', icon: <WhatsAppIcon />, color: '#25D366', getUrl: (link: string, title: string) => `https://wa.me/?text=${encodeURIComponent(`${title}: ${link}`)}` },
+                  { name: 'Facebook', icon: <FacebookIcon />, color: '#1877F2', getUrl: (link: string) => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}` },
+                  { name: 'Twitter', icon: <TwitterIcon />, color: '#1DA1F2', getUrl: (link: string, title: string) => `https://twitter.com/intent/tweet?url=${encodeURIComponent(link)}&text=${encodeURIComponent(title)}` },
+                  { name: 'Email', icon: <EmailIcon />, color: '#EA4335', getUrl: (link: string, title: string) => `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(`Check out this album: ${link}`)}` },
+                  { name: 'Copy Link', icon: <LinkIcon />, color: '#083A85', getUrl: () => '' },
+                  { name: 'QR Code', icon: <QRCodeIcon />, color: '#F20C8F', getUrl: () => '' }
+                ].map((option) => {
+                  const isCopyActive = option.name === 'Copy Link' && copiedLink;
+                  return (
+                  <button
+                    key={option.name}
+                    onClick={() => {
+                      const shareLink = getShareLink(shareAlbum);
+                      if (option.name === 'Copy Link') {
+                        handleCopyLink(shareLink);
+                      } else if (option.name === 'QR Code') {
+                        setNotificationModal({ show: true, title: 'Coming Soon', message: 'QR Code feature coming soon!', type: 'info' });
+                      } else {
+                        const url = option.getUrl(shareLink, shareAlbum.title);
+                        window.open(url, '_blank', 'noopener,noreferrer');
+                      }
+                    }}
+                    style={{
+                      padding: '0.85rem 0.6rem',
+                      border: isCopyActive ? '1.5px solid #10B981' : `1px solid ${colors.borderPrimary}`,
+                      borderRadius: 12,
+                      background: isCopyActive
+                        ? (actualTheme === 'dark' ? 'rgba(16,185,129,0.14)' : '#ECFDF5')
+                        : colors.bgCard,
+                      cursor: 'pointer',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      color: isCopyActive ? '#10B981' : colors.textPrimary,
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+                      transition: 'transform 0.15s, border-color 0.18s, background 0.18s, box-shadow 0.18s',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (isCopyActive) return;
+                      e.currentTarget.style.borderColor = option.color;
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = `0 6px 14px ${option.color}25`;
+                    }}
+                    onMouseLeave={(e) => {
+                      if (isCopyActive) return;
+                      e.currentTarget.style.borderColor = colors.borderPrimary;
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.03)';
+                    }}
+                  >
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 10,
+                      background: isCopyActive ? '#10B981' : `${option.color}18`,
+                      border: `1px solid ${isCopyActive ? '#10B981' : `${option.color}38`}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: isCopyActive ? '#fff' : option.color,
+                    }}>{option.icon}</div>
+                    <span>{isCopyActive ? 'Copied!' : option.name}</span>
+                  </button>
+                );})}
+              </div>
+
+              {/* Album Link Input */}
+              <div style={{ borderTop: `1px solid ${colors.borderPrimary}`, paddingTop: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.45rem' }}>
+                  Album link
+                </label>
+                <div style={{
+                  display: 'flex', alignItems: 'stretch',
+                  border: `1.5px solid ${colors.borderPrimary}`,
+                  borderRadius: 11,
+                  background: colors.bgTertiary,
+                  overflow: 'hidden',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', padding: '0 0.7rem', color: colors.textSecondary, borderRight: `1px solid ${colors.borderPrimary}` }}>
+                    <i className="bi bi-link-45deg" style={{ fontSize: 16 }} />
+                  </div>
+                  <input
+                    type="text"
+                    value={getShareLink(shareAlbum)}
+                    readOnly
+                    onClick={(e) => (e.currentTarget as HTMLInputElement).select()}
+                    style={{
+                      flex: 1,
+                      padding: '0.65rem 0.85rem',
+                      border: 'none',
+                      fontSize: '0.84rem',
+                      backgroundColor: 'transparent',
+                      color: colors.textPrimary,
+                      outline: 'none',
+                      minWidth: 0,
+                      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+                    }}
+                  />
+                  <button
+                    onClick={() => handleCopyLink(getShareLink(shareAlbum))}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '0 1rem',
+                      border: 'none',
+                      borderLeft: `1px solid ${colors.borderPrimary}`,
+                      background: copiedLink
+                        ? 'linear-gradient(135deg, #10B981 0%, #16A34A 100%)'
+                        : 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                      color: '#fff',
+                      fontSize: '0.85rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'filter 0.15s',
+                      whiteSpace: 'nowrap',
+                      letterSpacing: '-0.005em',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.05)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.filter = 'brightness(1)'; }}
+                  >
+                    <i className={`bi ${copiedLink ? 'bi-check2' : 'bi-clipboard'}`} style={{ fontSize: 13 }} />
+                    {copiedLink ? 'Copied' : 'Copy'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -1620,10 +1871,12 @@ const ClientGallery = () => {
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.95)',
+            background: 'radial-gradient(circle at 50% 30%, rgba(20,24,40,0.97) 0%, rgba(0,0,0,0.99) 70%)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
             display: 'flex',
             flexDirection: 'column',
-            zIndex: 1001
+            zIndex: 1001,
           }}
           onClick={closeMultiSelectView}
         >
@@ -1631,29 +1884,65 @@ const ClientGallery = () => {
           <div
             className="mobile-multi-select-header"
             style={{
+              position: 'relative',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              padding: '1rem 1.5rem',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-              backgroundColor: 'rgba(0, 0, 0, 0.5)'
+              gap: 16,
+              padding: '0.9rem 1.5rem',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+              background: 'linear-gradient(180deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.25) 100%)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <h2 className="mobile-multi-select-title" style={{
-                fontSize: '1.25rem',
-                fontWeight: '700',
-                color: 'white',
-                margin: 0
-              }}>{multiSelectAlbum.title}</h2>
-              <span style={{
-                fontSize: '0.875rem',
-                color: 'rgba(255, 255, 255, 0.7)'
-              }}>({multiSelectAlbum.images.length} photos)</span>
+            {/* Brand top stripe */}
+            <span aria-hidden style={{
+              position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+              background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
+              opacity: 0.85,
+            }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: 10,
+                background: 'rgba(242,12,143,0.16)',
+                border: '1px solid rgba(242,12,143,0.35)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <i className="bi bi-images" style={{ fontSize: 15, color: '#F20C8F' }} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{
+                  fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F',
+                  letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 1,
+                }}>Viewing album</div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+                  <h2 className="mobile-multi-select-title" style={{
+                    fontSize: '1.05rem',
+                    fontWeight: 800,
+                    color: 'white',
+                    margin: 0,
+                    letterSpacing: '-0.01em',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    maxWidth: '50vw',
+                  }}>{multiSelectAlbum.title}</h2>
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    fontSize: '0.66rem', fontWeight: 700, color: 'rgba(255,255,255,0.85)',
+                    letterSpacing: '0.06em', textTransform: 'uppercase',
+                    padding: '2px 8px', borderRadius: 9999,
+                    background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.18)',
+                  }}>
+                    <i className="bi bi-camera-fill" style={{ fontSize: 9 }} />
+                    {multiSelectAlbum.images.length} photos
+                  </span>
+                </div>
+              </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {/* Select Mode Toggle - hidden when photobook exists (always in select mode) */}
               {!photobook && (
                 <button
@@ -1664,53 +1953,73 @@ const ClientGallery = () => {
                     }
                   }}
                   style={{
-                    padding: '0.5rem 1rem',
-                    borderRadius: '0.5rem',
-                    border: '2px solid',
-                    borderColor: isSelectMode ? '#16A34A' : 'rgba(255, 255, 255, 0.3)',
-                    backgroundColor: isSelectMode ? '#16A34A' : 'transparent',
+                    padding: '0.5rem 0.95rem',
+                    borderRadius: 10,
+                    border: '1px solid',
+                    borderColor: isSelectMode ? 'transparent' : 'rgba(255, 255, 255, 0.22)',
+                    background: isSelectMode
+                      ? 'linear-gradient(135deg, #10B981 0%, #16A34A 100%)'
+                      : 'rgba(255,255,255,0.08)',
                     color: 'white',
-                    fontSize: '0.875rem',
-                    fontWeight: '500',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
                     cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    transition: 'all 0.2s'
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    boxShadow: isSelectMode ? '0 4px 12px rgba(16,185,129,0.30)' : 'none',
+                    letterSpacing: '-0.005em',
+                    transition: 'all 0.18s',
+                    backdropFilter: isSelectMode ? 'none' : 'blur(6px)',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isSelectMode) e.currentTarget.style.background = 'rgba(255,255,255,0.16)';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isSelectMode) e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
                   }}
                 >
-                  <GridIcon active={false} />
-                  {isSelectMode ? 'Exit Select Mode' : 'Select Mode'}
+                  <i className={`bi ${isSelectMode ? 'bi-x-circle' : 'bi-check2-square'}`} style={{ fontSize: 13 }} />
+                  {isSelectMode ? 'Exit select' : 'Select mode'}
                 </button>
               )}
 
               {/* Max images info when photobook exists */}
               {photobook && (
-                <span style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.7)', padding: '0.5rem 0.75rem', backgroundColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '0.375rem' }}>
-                  Max: {MAX_PHOTOBOOK_IMAGES} images
+                <span style={{
+                  fontSize: '0.66rem', fontWeight: 700, color: 'rgba(255, 255, 255, 0.9)',
+                  letterSpacing: '0.06em', textTransform: 'uppercase',
+                  padding: '4px 10px', borderRadius: 9999,
+                  background: 'rgba(124,58,237,0.20)', border: '1px solid rgba(124,58,237,0.40)',
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                }}>
+                  <i className="bi bi-book-half" style={{ fontSize: 10, color: '#C4B5FD' }} />
+                  Max {MAX_PHOTOBOOK_IMAGES} images
                 </span>
               )}
 
               {/* Close Button */}
               <button
                 onClick={closeMultiSelectView}
+                aria-label="Close viewer"
                 style={{
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  border: '2px solid rgba(255, 255, 255, 0.3)',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(255, 255, 255, 0.22)',
                   cursor: 'pointer',
-                  padding: '0.5rem',
-                  borderRadius: '0.5rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  width: 36, height: 36, padding: 0,
+                  borderRadius: 10,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
                   color: 'white',
-                  transition: 'all 0.2s'
+                  backdropFilter: 'blur(6px)',
+                  transition: 'all 0.18s',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+                  e.currentTarget.style.background = 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)';
+                  e.currentTarget.style.borderColor = '#DC2626';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(220,38,38,0.30)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.22)';
+                  e.currentTarget.style.boxShadow = 'none';
                 }}
               >
                 <CloseIcon />
@@ -1726,47 +2035,58 @@ const ClientGallery = () => {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
+                gap: 12,
+                flexWrap: 'wrap',
                 padding: '0.75rem 1.5rem',
-                backgroundColor: 'rgba(22, 163, 74, 0.1)',
-                borderBottom: '1px solid rgba(22, 163, 74, 0.3)'
+                background: 'linear-gradient(180deg, rgba(22,163,74,0.18) 0%, rgba(22,163,74,0.06) 100%)',
+                borderBottom: '1px solid rgba(22, 163, 74, 0.30)',
+                backdropFilter: 'blur(6px)',
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                 <span style={{
-                  fontSize: '0.875rem',
-                  fontWeight: '600',
-                  color: '#16A34A'
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  fontSize: '0.82rem', fontWeight: 700, color: '#4ADE80',
+                  letterSpacing: '-0.005em',
                 }}>
-                  {selectedImages.length} of {photobook ? MAX_PHOTOBOOK_IMAGES : multiSelectAlbum.images.length} {photobook ? 'max' : ''} selected
+                  <i className="bi bi-check2-circle" style={{ fontSize: 14 }} />
+                  <span>
+                    <strong style={{ color: '#fff', fontWeight: 800 }}>{selectedImages.length}</strong>
+                    <span style={{ color: 'rgba(255,255,255,0.65)', fontWeight: 600 }}> of </span>
+                    <strong style={{ color: '#fff', fontWeight: 800 }}>{photobook ? MAX_PHOTOBOOK_IMAGES : multiSelectAlbum.images.length}</strong>
+                    {photobook ? ' max' : ''} selected
+                  </span>
                 </span>
                 <button
                   onClick={selectAllImages}
                   style={{
-                    padding: '0.375rem 0.75rem',
-                    borderRadius: '0.375rem',
-                    border: '1px solid #16A34A',
-                    backgroundColor: 'transparent',
-                    color: '#16A34A',
-                    fontSize: '0.8rem',
-                    fontWeight: '500',
+                    padding: '0.35rem 0.75rem',
+                    borderRadius: 9,
+                    border: '1px solid rgba(74,222,128,0.50)',
+                    background: 'rgba(74,222,128,0.10)',
+                    color: '#4ADE80',
+                    fontSize: '0.76rem',
+                    fontWeight: 700,
                     cursor: 'pointer',
-                    transition: 'all 0.2s'
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    transition: 'all 0.15s',
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'rgba(22, 163, 74, 0.2)';
+                    e.currentTarget.style.background = 'rgba(74,222,128,0.20)';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.background = 'rgba(74,222,128,0.10)';
                   }}
                 >
-                  {selectedImages.length === multiSelectAlbum.images.length ? 'Deselect All' : 'Select All'}
+                  <i className={`bi ${selectedImages.length === multiSelectAlbum.images.length ? 'bi-x-square' : 'bi-check2-all'}`} style={{ fontSize: 12 }} />
+                  {selectedImages.length === multiSelectAlbum.images.length ? 'Deselect all' : 'Select all'}
                 </button>
               </div>
 
               {/* Bulk Actions */}
               {selectedImages.length > 0 && (
-                <div className="mobile-bulk-actions" style={{ display: 'flex', gap: '0.75rem' }}>
+                <div className="mobile-bulk-actions" style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {photobook ? (
                     // When photobook exists: show "Add to Photobook" only
                     <button
@@ -1791,27 +2111,23 @@ const ClientGallery = () => {
                       }}
                       style={{
                         padding: '0.5rem 1rem',
-                        borderRadius: '0.5rem',
+                        borderRadius: 10,
                         border: 'none',
-                        backgroundColor: '#16A34A',
+                        background: 'linear-gradient(135deg, #7C3AED 0%, #F20C8F 100%)',
                         color: 'white',
-                        fontSize: '0.875rem',
-                        fontWeight: '600',
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
                         cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        transition: 'all 0.2s'
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        boxShadow: '0 4px 14px rgba(124,58,237,0.34)',
+                        letterSpacing: '-0.005em',
+                        transition: 'transform 0.15s',
                       }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = '#15803D';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = '#16A34A';
-                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
                     >
                       <BookIcon />
-                      Add to Photobook ({selectedImages.length})
+                      Add to photobook ({selectedImages.length})
                     </button>
                   ) : (
                     // Original actions when no photobook: download, share, delete
@@ -1820,24 +2136,20 @@ const ClientGallery = () => {
                         onClick={handleBulkDownload}
                         style={{
                           padding: '0.5rem 1rem',
-                          borderRadius: '0.5rem',
+                          borderRadius: 10,
                           border: 'none',
-                          backgroundColor: '#083A85',
+                          background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
                           color: 'white',
-                          fontSize: '0.875rem',
-                          fontWeight: '500',
+                          fontSize: '0.82rem',
+                          fontWeight: 700,
                           cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.5rem',
-                          transition: 'all 0.2s'
+                          display: 'inline-flex', alignItems: 'center', gap: 6,
+                          boxShadow: '0 4px 14px rgba(8,58,133,0.34)',
+                          letterSpacing: '-0.005em',
+                          transition: 'transform 0.15s',
                         }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = '#062D6B';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = '#083A85';
-                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
                       >
                         <DownloadIcon />
                         Download ({selectedImages.length})
@@ -1849,24 +2161,20 @@ const ClientGallery = () => {
                         }}
                         style={{
                           padding: '0.5rem 1rem',
-                          borderRadius: '0.5rem',
+                          borderRadius: 10,
                           border: 'none',
-                          backgroundColor: '#16A34A',
+                          background: 'linear-gradient(135deg, #10B981 0%, #16A34A 100%)',
                           color: 'white',
-                          fontSize: '0.875rem',
-                          fontWeight: '500',
+                          fontSize: '0.82rem',
+                          fontWeight: 700,
                           cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.5rem',
-                          transition: 'all 0.2s'
+                          display: 'inline-flex', alignItems: 'center', gap: 6,
+                          boxShadow: '0 4px 14px rgba(16,185,129,0.34)',
+                          letterSpacing: '-0.005em',
+                          transition: 'transform 0.15s',
                         }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = '#15803D';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = '#16A34A';
-                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
                       >
                         <ShareIcon />
                         Share ({selectedImages.length})
@@ -1875,24 +2183,20 @@ const ClientGallery = () => {
                         onClick={handleBulkDelete}
                         style={{
                           padding: '0.5rem 1rem',
-                          borderRadius: '0.5rem',
+                          borderRadius: 10,
                           border: 'none',
-                          backgroundColor: '#DC2626',
+                          background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
                           color: 'white',
-                          fontSize: '0.875rem',
-                          fontWeight: '500',
+                          fontSize: '0.82rem',
+                          fontWeight: 700,
                           cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.5rem',
-                          transition: 'all 0.2s'
+                          display: 'inline-flex', alignItems: 'center', gap: 6,
+                          boxShadow: '0 4px 14px rgba(220,38,38,0.34)',
+                          letterSpacing: '-0.005em',
+                          transition: 'transform 0.15s',
                         }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = '#B91C1C';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = '#DC2626';
-                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
                       >
                         <TrashIcon />
                         Delete ({selectedImages.length})
@@ -1910,7 +2214,7 @@ const ClientGallery = () => {
             style={{
               flex: 1,
               overflowY: 'auto',
-              padding: '1.5rem'
+              padding: '1.5rem',
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -1922,22 +2226,38 @@ const ClientGallery = () => {
               {multiSelectAlbum.images.map((image, index) => {
                 const isMaxReached = photobook && selectedImages.length >= MAX_PHOTOBOOK_IMAGES;
                 const isDisabled = isMaxReached && !selectedImages.includes(image);
+                const isSelected = selectedImages.includes(image);
                 return (
                 <div
                   key={index}
                   style={{
                     position: 'relative',
                     aspectRatio: '1',
-                    borderRadius: '0.75rem',
+                    borderRadius: 14,
                     overflow: 'hidden',
-                    cursor: isDisabled ? 'not-allowed' : (isSelectMode ? 'pointer' : 'default'),
-                    border: selectedImages.includes(image)
-                      ? '3px solid #16A34A'
-                      : '3px solid transparent',
-                    transition: 'all 0.2s',
-                    transform: selectedImages.includes(image) ? 'scale(0.98)' : 'scale(1)',
+                    cursor: isDisabled ? 'not-allowed' : (isSelectMode ? 'pointer' : 'zoom-in'),
+                    border: isSelected
+                      ? '2px solid #16A34A'
+                      : '1px solid rgba(255,255,255,0.08)',
+                    transition: 'transform 0.18s, box-shadow 0.18s, border-color 0.18s',
+                    transform: isSelected ? 'scale(0.98)' : 'scale(1)',
                     opacity: isDisabled ? 0.4 : 1,
-                    pointerEvents: isDisabled ? 'none' : 'auto'
+                    pointerEvents: isDisabled ? 'none' : 'auto',
+                    boxShadow: isSelected
+                      ? '0 8px 22px rgba(22,163,74,0.40)'
+                      : '0 4px 12px rgba(0,0,0,0.40)',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (isDisabled || isSelected) return;
+                    e.currentTarget.style.transform = 'scale(1.02)';
+                    e.currentTarget.style.boxShadow = '0 12px 28px rgba(0,0,0,0.55)';
+                    e.currentTarget.style.borderColor = 'rgba(242,12,143,0.50)';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (isDisabled || isSelected) return;
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.40)';
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
                   }}
                   onClick={() => {
                     if (isDisabled) return;
@@ -1955,40 +2275,43 @@ const ClientGallery = () => {
                     style={{ objectFit: 'cover' }}
                   />
 
+                  {/* Bottom gradient for badge legibility */}
+                  <div aria-hidden style={{
+                    position: 'absolute', inset: 0,
+                    background: isSelected
+                      ? 'linear-gradient(to bottom, rgba(22,163,74,0.30) 0%, rgba(22,163,74,0) 30%, rgba(22,163,74,0) 60%, rgba(22,163,74,0.45) 100%)'
+                      : 'linear-gradient(to bottom, rgba(0,0,0,0.30) 0%, rgba(0,0,0,0) 25%, rgba(0,0,0,0) 70%, rgba(0,0,0,0.55) 100%)',
+                    pointerEvents: 'none',
+                    transition: 'background 0.2s',
+                  }} />
+
                   {/* Selection Overlay */}
                   {isSelectMode && (
                     <div style={{
                       position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      backgroundColor: selectedImages.includes(image)
-                        ? 'rgba(22, 163, 74, 0.3)'
-                        : 'rgba(0, 0, 0, 0.2)',
+                      top: 0, left: 0, right: 0, bottom: 0,
                       display: 'flex',
                       alignItems: 'flex-start',
                       justifyContent: 'flex-start',
                       padding: '0.75rem',
-                      transition: 'all 0.2s'
+                      transition: 'all 0.2s',
+                      pointerEvents: 'none',
                     }}>
                       <div style={{
-                        width: '28px',
-                        height: '28px',
+                        width: 30, height: 30,
                         borderRadius: '50%',
-                        border: selectedImages.includes(image)
-                          ? 'none'
-                          : '2px solid rgba(255, 255, 255, 0.8)',
-                        backgroundColor: selectedImages.includes(image)
-                          ? '#16A34A'
-                          : 'rgba(0, 0, 0, 0.3)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'white'
+                        border: isSelected ? 'none' : '1.5px solid rgba(255, 255, 255, 0.85)',
+                        background: isSelected
+                          ? 'linear-gradient(135deg, #10B981 0%, #16A34A 100%)'
+                          : 'rgba(0, 0, 0, 0.30)',
+                        backdropFilter: isSelected ? 'none' : 'blur(6px)',
+                        boxShadow: isSelected ? '0 4px 12px rgba(22,163,74,0.45)' : 'none',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: 'white',
+                        transition: 'all 0.18s',
                       }}>
-                        {selectedImages.includes(image) && (
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                        {isSelected && (
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                             <polyline points="20 6 9 17 4 12"></polyline>
                           </svg>
                         )}
@@ -2000,14 +2323,19 @@ const ClientGallery = () => {
                   {!isSelectMode && (
                     <div style={{
                       position: 'absolute',
-                      top: '0.5rem',
-                      right: '0.5rem',
-                      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                      top: 8, right: 8,
+                      background: 'rgba(0, 0, 0, 0.55)',
+                      backdropFilter: 'blur(8px)',
+                      WebkitBackdropFilter: 'blur(8px)',
                       color: 'white',
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '0.25rem',
-                      fontSize: '0.75rem',
-                      fontWeight: '500'
+                      padding: '3px 8px',
+                      borderRadius: 9999,
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      letterSpacing: '0.02em',
+                      border: '1px solid rgba(255,255,255,0.18)',
+                      minWidth: 22,
+                      textAlign: 'center',
                     }}>
                       {index + 1}
                     </div>
@@ -2020,90 +2348,102 @@ const ClientGallery = () => {
         </div>
       )}
 
-      {/* Image Viewer Modal */}
+      {/* Image Viewer Modal — full-screen cinematic lightbox */}
       {showImageViewer && viewerAlbum && (
         <div
           style={{
             position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.95)',
+            top: 0, left: 0, right: 0, bottom: 0,
+            background: 'radial-gradient(circle at 50% 35%, rgba(20,24,40,0.97) 0%, rgba(0,0,0,1) 80%)',
             display: 'flex',
             flexDirection: 'column',
-            zIndex: 2000
+            zIndex: 2000,
           }}
           onKeyDown={(e) => handleKeyDown(e as unknown as KeyboardEvent)}
           tabIndex={0}
         >
           {/* Header */}
           <div style={{
+            position: 'relative',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            padding: '1rem 1.5rem',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+            gap: 12,
+            padding: '0.85rem 1.5rem',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+            background: 'linear-gradient(180deg, rgba(0,0,0,0.70) 0%, rgba(0,0,0,0.25) 100%)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '0.5rem',
-                  overflow: 'hidden',
-                  position: 'relative'
+            <span aria-hidden style={{
+              position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+              background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
+              opacity: 0.85,
+            }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 10,
+                overflow: 'hidden', position: 'relative', flexShrink: 0,
+                border: '1px solid rgba(255,255,255,0.18)',
+                boxShadow: '0 4px 10px rgba(0,0,0,0.40)',
+              }}>
+                <Image src={viewerAlbum.thumbnail} alt={viewerAlbum.title} fill style={{ objectFit: 'cover' }} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <h3 style={{
+                  fontSize: '0.98rem', fontWeight: 800, color: 'white',
+                  margin: 0, letterSpacing: '-0.01em',
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  maxWidth: '40vw',
+                }}>{viewerAlbum.title}</h3>
+                <p style={{
+                  fontSize: '0.78rem', color: 'rgba(255, 255, 255, 0.65)',
+                  margin: '2px 0 0', display: 'inline-flex', alignItems: 'center', gap: 5,
                 }}>
-                  <Image src={viewerAlbum.thumbnail} alt={viewerAlbum.title} fill style={{ objectFit: 'cover' }} />
-                </div>
-                <div>
-                  <h3 style={{
-                    fontSize: '1rem',
-                    fontWeight: '600',
-                    color: 'white',
-                    margin: 0
-                  }}>{viewerAlbum.title}</h3>
-                  <p style={{
-                    fontSize: '0.8rem',
-                    color: 'rgba(255, 255, 255, 0.6)',
-                    margin: 0
-                  }}>{viewerAlbum.photographer}</p>
-                </div>
+                  <i className="bi bi-camera" style={{ fontSize: 10 }} />
+                  {viewerAlbum.photographer}
+                </p>
               </div>
               <span style={{
-                backgroundColor: 'rgba(8, 58, 133, 0.8)',
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
                 color: 'white',
-                padding: '0.375rem 0.75rem',
-                borderRadius: '9999px',
-                fontSize: '0.8rem',
-                fontWeight: '500'
+                padding: '4px 11px',
+                borderRadius: 9999,
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                letterSpacing: '0.03em',
+                border: '1px solid rgba(255,255,255,0.18)',
+                boxShadow: '0 4px 12px rgba(242,12,143,0.30)',
               }}>
-                {currentImageIndex + 1} of {viewerAlbum.images.length}
+                <i className="bi bi-image" style={{ fontSize: 10 }} />
+                {currentImageIndex + 1} <span style={{ opacity: 0.6 }}>/</span> {viewerAlbum.images.length}
               </span>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <button
                 onClick={handleDownloadCurrentImage}
                 style={{
-                  padding: '0.625rem',
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  borderRadius: '0.5rem',
+                  width: 36, height: 36, padding: 0,
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(255, 255, 255, 0.22)',
+                  borderRadius: 10,
                   color: 'white',
                   cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'all 0.2s'
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  backdropFilter: 'blur(6px)',
+                  transition: 'all 0.18s',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(8, 58, 133, 0.8)';
-                  e.currentTarget.style.borderColor = '#083A85';
+                  e.currentTarget.style.background = 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)';
+                  e.currentTarget.style.borderColor = 'transparent';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(242,12,143,0.30)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.22)';
+                  e.currentTarget.style.boxShadow = 'none';
                 }}
                 title="Download image"
               >
@@ -2112,23 +2452,27 @@ const ClientGallery = () => {
               <button
                 onClick={closeImageViewer}
                 style={{
-                  padding: '0.625rem',
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  borderRadius: '0.5rem',
+                  width: 36, height: 36, padding: 0,
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(255, 255, 255, 0.22)',
+                  borderRadius: 10,
                   color: 'white',
                   cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'all 0.2s'
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  backdropFilter: 'blur(6px)',
+                  transition: 'all 0.18s',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+                  e.currentTarget.style.background = 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)';
+                  e.currentTarget.style.borderColor = '#DC2626';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(220,38,38,0.30)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.22)';
+                  e.currentTarget.style.boxShadow = 'none';
                 }}
+                title="Close (Esc)"
               >
                 <CloseIcon />
               </button>
@@ -2143,39 +2487,44 @@ const ClientGallery = () => {
             justifyContent: 'center',
             position: 'relative',
             padding: '2rem',
-            minHeight: 0
+            minHeight: 0,
           }}>
             {/* Previous Button */}
             <button
               onClick={() => currentImageIndex > 0 && setCurrentImageIndex(currentImageIndex - 1)}
+              disabled={currentImageIndex === 0}
+              aria-label="Previous photo"
               style={{
                 position: 'absolute',
                 left: '1.5rem',
                 top: '50%',
                 transform: 'translateY(-50%)',
-                width: '56px',
-                height: '56px',
+                width: 52, height: 52,
                 borderRadius: '50%',
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                border: '2px solid rgba(255, 255, 255, 0.3)',
+                background: 'rgba(0,0,0,0.45)',
+                border: '1px solid rgba(255,255,255,0.20)',
                 color: 'white',
                 cursor: currentImageIndex > 0 ? 'pointer' : 'not-allowed',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.2s',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.18s',
                 zIndex: 10,
-                opacity: currentImageIndex > 0 ? 1 : 0.3
+                opacity: currentImageIndex > 0 ? 1 : 0.25,
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
               }}
               onMouseEnter={(e) => {
                 if (currentImageIndex > 0) {
-                  e.currentTarget.style.backgroundColor = 'rgba(8, 58, 133, 0.8)';
-                  e.currentTarget.style.borderColor = '#083A85';
+                  e.currentTarget.style.background = 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)';
+                  e.currentTarget.style.borderColor = 'transparent';
+                  e.currentTarget.style.transform = 'translateY(-50%) scale(1.08)';
+                  e.currentTarget.style.boxShadow = '0 6px 16px rgba(242,12,143,0.34)';
                 }
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                e.currentTarget.style.background = 'rgba(0,0,0,0.45)';
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.20)';
+                e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+                e.currentTarget.style.boxShadow = 'none';
               }}
             >
               <ChevronLeftIcon />
@@ -2189,23 +2538,21 @@ const ClientGallery = () => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              padding: '0 100px'
+              padding: '0 100px',
             }}>
               <div style={{
-                width: 'min(calc(100vh - 160px), calc(100vw - 250px))',
-                height: 'min(calc(100vh - 160px), calc(100vw - 250px))',
+                width: 'min(calc(100vh - 200px), calc(100vw - 280px))',
+                height: 'min(calc(100vh - 200px), calc(100vw - 280px))',
                 position: 'relative',
-                borderRadius: '0.5rem',
+                borderRadius: 14,
                 overflow: 'hidden',
-                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+                boxShadow: '0 30px 80px -20px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255,255,255,0.06)',
               }}>
                 <Image
                   src={viewerAlbum.images[currentImageIndex]}
                   alt={`${viewerAlbum.title} - Image ${currentImageIndex + 1}`}
                   fill
-                  style={{
-                    objectFit: 'cover',
-                  }}
+                  style={{ objectFit: 'cover' }}
                 />
               </div>
             </div>
@@ -2213,34 +2560,39 @@ const ClientGallery = () => {
             {/* Next Button */}
             <button
               onClick={() => currentImageIndex < viewerAlbum.images.length - 1 && setCurrentImageIndex(currentImageIndex + 1)}
+              disabled={currentImageIndex === viewerAlbum.images.length - 1}
+              aria-label="Next photo"
               style={{
                 position: 'absolute',
                 right: '1.5rem',
                 top: '50%',
                 transform: 'translateY(-50%)',
-                width: '56px',
-                height: '56px',
+                width: 52, height: 52,
                 borderRadius: '50%',
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                border: '2px solid rgba(255, 255, 255, 0.3)',
+                background: 'rgba(0,0,0,0.45)',
+                border: '1px solid rgba(255,255,255,0.20)',
                 color: 'white',
                 cursor: currentImageIndex < viewerAlbum.images.length - 1 ? 'pointer' : 'not-allowed',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.2s',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.18s',
                 zIndex: 10,
-                opacity: currentImageIndex < viewerAlbum.images.length - 1 ? 1 : 0.3
+                opacity: currentImageIndex < viewerAlbum.images.length - 1 ? 1 : 0.25,
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
               }}
               onMouseEnter={(e) => {
                 if (currentImageIndex < viewerAlbum.images.length - 1) {
-                  e.currentTarget.style.backgroundColor = 'rgba(8, 58, 133, 0.8)';
-                  e.currentTarget.style.borderColor = '#083A85';
+                  e.currentTarget.style.background = 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)';
+                  e.currentTarget.style.borderColor = 'transparent';
+                  e.currentTarget.style.transform = 'translateY(-50%) scale(1.08)';
+                  e.currentTarget.style.boxShadow = '0 6px 16px rgba(242,12,143,0.34)';
                 }
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                e.currentTarget.style.background = 'rgba(0,0,0,0.45)';
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.20)';
+                e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+                e.currentTarget.style.boxShadow = 'none';
               }}
             >
               <ChevronRightIcon />
@@ -2249,62 +2601,76 @@ const ClientGallery = () => {
 
           {/* Thumbnail Strip */}
           <div style={{
-            padding: '1rem 1.5rem 1.5rem',
-            borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-            backgroundColor: 'rgba(0, 0, 0, 0.3)'
+            padding: '0.85rem 1.5rem 1.25rem',
+            borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+            background: 'linear-gradient(0deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.25) 100%)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
           }}>
             <div style={{
               display: 'flex',
-              gap: '0.75rem',
+              gap: 8,
               overflowX: 'auto',
-              paddingBottom: '0.5rem',
-              justifyContent: 'center'
+              paddingBottom: '0.35rem',
+              justifyContent: 'center',
+              scrollbarWidth: 'thin',
             }}>
-              {viewerAlbum.images.map((image, index) => (
+              {viewerAlbum.images.map((image, index) => {
+                const isActive = currentImageIndex === index;
+                return (
                 <button
                   key={index}
                   onClick={() => setCurrentImageIndex(index)}
+                  aria-label={`Go to photo ${index + 1}`}
                   style={{
                     position: 'relative',
-                    width: '80px',
-                    height: '60px',
-                    borderRadius: '0.5rem',
+                    width: 78, height: 58,
+                    borderRadius: 9,
                     overflow: 'hidden',
-                    border: currentImageIndex === index
-                      ? '3px solid #083A85'
-                      : '3px solid transparent',
+                    border: isActive ? '2px solid #F20C8F' : '1px solid rgba(255,255,255,0.10)',
                     cursor: 'pointer',
                     flexShrink: 0,
-                    transition: 'all 0.2s',
-                    opacity: currentImageIndex === index ? 1 : 0.6,
-                    transform: currentImageIndex === index ? 'scale(1.05)' : 'scale(1)'
+                    transition: 'all 0.18s',
+                    opacity: isActive ? 1 : 0.55,
+                    transform: isActive ? 'scale(1.08)' : 'scale(1)',
+                    boxShadow: isActive ? '0 6px 16px rgba(242,12,143,0.34)' : 'none',
+                    padding: 0,
+                    background: 'transparent',
                   }}
                   onMouseEnter={(e) => {
-                    if (currentImageIndex !== index) {
-                      e.currentTarget.style.opacity = '0.9';
-                      e.currentTarget.style.borderColor = 'rgba(8, 58, 133, 0.5)';
+                    if (!isActive) {
+                      e.currentTarget.style.opacity = '0.95';
+                      e.currentTarget.style.borderColor = 'rgba(242,12,143,0.45)';
+                      e.currentTarget.style.transform = 'scale(1.04)';
                     }
                   }}
                   onMouseLeave={(e) => {
-                    if (currentImageIndex !== index) {
-                      e.currentTarget.style.opacity = '0.6';
-                      e.currentTarget.style.borderColor = 'transparent';
+                    if (!isActive) {
+                      e.currentTarget.style.opacity = '0.55';
+                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)';
+                      e.currentTarget.style.transform = 'scale(1)';
                     }
                   }}
                 >
                   <Image src={image} alt={`Thumbnail ${index + 1}`} fill style={{ objectFit: 'cover' }} />
-                  {currentImageIndex === index && (
-                    <div style={{
-                      position: 'absolute',
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      height: '3px',
-                      backgroundColor: '#083A85'
-                    }} />
+                  {isActive && (
+                    <>
+                      {/* Active indicator dot */}
+                      <span style={{
+                        position: 'absolute', top: 4, right: 4,
+                        width: 8, height: 8, borderRadius: 9999,
+                        background: '#F20C8F',
+                        boxShadow: '0 0 0 2px rgba(255,255,255,0.55)',
+                      }} />
+                      {/* Bottom accent bar */}
+                      <div style={{
+                        position: 'absolute', bottom: 0, left: 0, right: 0, height: 3,
+                        background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
+                      }} />
+                    </>
                   )}
                 </button>
-              ))}
+              );})}
             </div>
           </div>
         </div>
@@ -2312,131 +2678,25 @@ const ClientGallery = () => {
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && albumToDelete && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1100,
-            padding: '1rem'
+        <EventConfirmModal
+          tone="danger"
+          icon="bi-trash3-fill"
+          eyebrow="Permanent action"
+          title="Delete album?"
+          highlight={albumToDelete.title}
+          intro={<>Are you sure you want to delete <strong style={{ color: colors.textPrimary }}>&ldquo;{albumToDelete.title}&rdquo;</strong>?</>}
+          detail={`This action cannot be undone. All ${albumToDelete.photoCount} photos will be permanently removed.`}
+          colors={colors}
+          actualTheme={actualTheme}
+          onClose={cancelDeleteAlbum}
+          closeLabel="Cancel"
+          primary={{
+            label: 'Delete album',
+            icon: 'bi-trash3-fill',
+            tone: 'danger',
+            onClick: confirmDeleteAlbum,
           }}
-          onClick={cancelDeleteAlbum}
-        >
-          <div
-            style={{
-              backgroundColor: colors.bgCard,
-              borderRadius: '1rem',
-              padding: '1.5rem',
-              width: '400px',
-              maxWidth: '90%',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Warning Icon */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'center',
-              marginBottom: '1rem'
-            }}>
-              <div style={{
-                width: '64px',
-                height: '64px',
-                borderRadius: '50%',
-                backgroundColor: '#FEE2E2',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <i className="bi bi-exclamation-triangle-fill" style={{ fontSize: '2rem', color: '#DC2626' }}></i>
-              </div>
-            </div>
-
-            {/* Modal Header */}
-            <h2 style={{
-              fontSize: '1.25rem',
-              fontWeight: '700',
-              color: colors.textPrimary,
-              margin: 0,
-              marginBottom: '0.75rem',
-              textAlign: 'center'
-            }}>Delete Album</h2>
-
-            {/* Modal Content */}
-            <p style={{
-              fontSize: '0.95rem',
-              color: colors.textSecondary,
-              margin: 0,
-              marginBottom: '0.5rem',
-              textAlign: 'center',
-              lineHeight: '1.5'
-            }}>
-              Are you sure you want to delete <strong style={{ color: colors.textPrimary }}>&quot;{albumToDelete.title}&quot;</strong>?
-            </p>
-            <p style={{
-              fontSize: '0.85rem',
-              color: '#DC2626',
-              margin: 0,
-              marginBottom: '1.5rem',
-              textAlign: 'center',
-              fontWeight: '500'
-            }}>
-              This action cannot be undone. All {albumToDelete.photoCount} photos will be permanently removed.
-            </p>
-
-            {/* Action Buttons */}
-            <div style={{
-              display: 'flex',
-              gap: '0.75rem'
-            }}>
-              <button
-                onClick={cancelDeleteAlbum}
-                style={{
-                  flex: 1,
-                  padding: '0.75rem 1rem',
-                  borderRadius: '0.5rem',
-                  border: `2px solid ${colors.borderPrimary}`,
-                  backgroundColor: colors.bgCard,
-                  color: colors.textPrimary,
-                  fontSize: '0.95rem',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmDeleteAlbum}
-                style={{
-                  flex: 1,
-                  padding: '0.75rem 1rem',
-                  borderRadius: '0.5rem',
-                  border: '2px solid #DC2626',
-                  backgroundColor: '#DC2626',
-                  color: 'white',
-                  fontSize: '0.95rem',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <i className="bi bi-trash" style={{ fontSize: '1rem' }}></i>
-                Delete Album
-              </button>
-            </div>
-          </div>
-        </div>
+        />
       )}
 
       {/* Create Photobook Modal */}
@@ -2448,183 +2708,294 @@ const ClientGallery = () => {
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            backgroundColor: 'rgba(0, 0, 0, 0.45)',
+            backdropFilter: 'blur(2px)',
+            WebkitBackdropFilter: 'blur(2px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 1100,
-            padding: '1rem'
+            padding: '1rem',
           }}
           onClick={() => setShowCreatePhotobookModal(false)}
         >
+          <style>{`
+            .photobook-modal input:focus,
+            .photobook-modal textarea:focus {
+              border-color: #083A85 !important;
+              box-shadow: 0 0 0 3px rgba(8,58,133,0.14) !important;
+            }
+          `}</style>
           <div
+            className="photobook-modal"
             style={{
+              position: 'relative',
               backgroundColor: colors.bgCard,
-              borderRadius: '1rem',
-              padding: '1.5rem',
-              width: '500px',
+              borderRadius: 18,
+              width: 540,
               maxWidth: '95%',
               maxHeight: '90vh',
-              overflowY: 'auto'
+              overflowY: 'auto',
+              boxShadow: '0 25px 60px -12px rgba(8, 58, 133, 0.30)',
+              border: `1px solid ${colors.borderPrimary}`,
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Modal Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>Create Photobook</h2>
-              <button
-                onClick={() => setShowCreatePhotobookModal(false)}
-                style={{
-                  background: colors.bgTertiary,
-                  border: `2px solid ${colors.borderPrimary}`,
-                  cursor: 'pointer',
-                  padding: '0.5rem',
-                  borderRadius: '0.375rem',
-                  color: colors.textPrimary,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <CloseIcon />
-              </button>
-            </div>
+            {/* Brand top stripe */}
+            <span aria-hidden style={{
+              position: 'sticky', top: 0, left: 0, right: 0, height: 3, display: 'block',
+              background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
+              zIndex: 2,
+            }} />
 
-            {/* Photobook Name */}
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                Photobook Name *
-              </label>
-              <input
-                type="text"
-                value={photobookName}
-                onChange={(e) => setPhotobookName(e.target.value)}
-                placeholder="Enter photobook name"
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 1rem',
-                  border: `2px solid ${colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.9rem',
-                  color: colors.textPrimary,
-                  backgroundColor: colors.bgCard,
-                  outline: 'none'
-                }}
-              />
-            </div>
-
-            {/* Photobook Description */}
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                Description
-              </label>
-              <textarea
-                value={photobookDescription}
-                onChange={(e) => setPhotobookDescription(e.target.value)}
-                placeholder="Enter a description for your photobook"
-                rows={3}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 1rem',
-                  border: `2px solid ${colors.borderPrimary}`,
-                  borderRadius: '0.5rem',
-                  fontSize: '0.9rem',
-                  color: colors.textPrimary,
-                  backgroundColor: colors.bgCard,
-                  resize: 'vertical',
-                  outline: 'none'
-                }}
-              />
-            </div>
-
-            {/* Thumbnail Selection from Albums */}
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                Select Thumbnail (Optional)
-              </label>
-              <p style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.75rem' }}>
-                Choose a cover image from your sent albums
-              </p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', maxHeight: '200px', overflowY: 'auto' }}>
-                {albums.map((album) => (
-                  <div
-                    key={album.id}
-                    onClick={() => setPhotobookThumbnailUrl(album.thumbnail)}
-                    style={{
-                      position: 'relative',
-                      aspectRatio: '1',
-                      borderRadius: '0.5rem',
-                      overflow: 'hidden',
-                      cursor: 'pointer',
-                      border: photobookThumbnailUrl === album.thumbnail ? '3px solid #083A85' : '2px solid transparent'
-                    }}
-                  >
-                    <Image src={album.thumbnail} alt={album.title} fill style={{ objectFit: 'cover' }} />
-                    {photobookThumbnailUrl === album.thumbnail && (
-                      <div style={{ position: 'absolute', top: '4px', right: '4px', color: 'white', backgroundColor: '#083A85', borderRadius: '50%', padding: '2px' }}>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                          <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                      </div>
-                    )}
+            <div style={{ padding: '1.4rem 1.5rem 1.5rem' }}>
+              {/* Modal Header */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                gap: 12,
+                marginBottom: '1.25rem'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, minWidth: 0 }}>
+                  <div style={{
+                    width: 40, height: 40, borderRadius: 11,
+                    background: 'rgba(242,12,143,0.10)',
+                    border: '1px solid rgba(242,12,143,0.25)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                  }}>
+                    <i className="bi bi-book-half" style={{ fontSize: 16, color: '#F20C8F' }} />
                   </div>
-                ))}
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2 }}>
+                      Curate
+                    </div>
+                    <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>
+                      Create photobook
+                    </h2>
+                    <p style={{ fontSize: '0.82rem', color: colors.textSecondary, margin: '3px 0 0 0', lineHeight: 1.45 }}>
+                      Bundle your favorite shots into a shareable photobook.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowCreatePhotobookModal(false)}
+                  aria-label="Close"
+                  style={{
+                    background: 'transparent',
+                    border: `1px solid ${colors.borderPrimary}`,
+                    cursor: 'pointer',
+                    width: 32, height: 32, padding: 0,
+                    borderRadius: 9,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: colors.textSecondary,
+                    flexShrink: 0,
+                    transition: 'all 0.15s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(220,38,38,0.08)';
+                    e.currentTarget.style.borderColor = '#DC2626';
+                    e.currentTarget.style.color = '#DC2626';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.borderColor = colors.borderPrimary;
+                    e.currentTarget.style.color = colors.textSecondary;
+                  }}
+                >
+                  <CloseIcon />
+                </button>
               </div>
-            </div>
 
-            {/* Action Buttons */}
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
-              <button
-                onClick={() => setShowCreatePhotobookModal(false)}
-                style={{
-                  flex: 1,
-                  padding: '0.75rem 1rem',
-                  borderRadius: '0.5rem',
-                  border: `2px solid ${colors.borderPrimary}`,
-                  backgroundColor: colors.bgCard,
-                  color: colors.textPrimary,
-                  fontSize: '0.95rem',
-                  fontWeight: '600',
-                  cursor: 'pointer'
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  if (!photobookName.trim()) {
-                    setNotificationModal({ show: true, title: 'Required Field', message: 'Please enter a photobook name.', type: 'warning' });
-                    return;
-                  }
-                  const newPhotobook: Photobook = {
-                    id: Date.now().toString(),
-                    name: photobookName,
-                    description: photobookDescription,
-                    thumbnail: photobookThumbnailUrl,
-                    createdAt: new Date().toISOString(),
-                    images: [],
-                    maxImages: 100 // Placeholder
-                  };
-                  setPhotobook(newPhotobook);
-                  setShowCreatePhotobookModal(false);
-                  setPhotobookName('');
-                  setPhotobookDescription('');
-                  setPhotobookThumbnailUrl(null);
-                }}
-                style={{
-                  flex: 1,
-                  padding: '0.75rem 1rem',
-                  borderRadius: '0.5rem',
-                  border: '2px solid #062a63',
-                  backgroundColor: '#083A85',
-                  color: 'white',
-                  fontSize: '0.95rem',
-                  fontWeight: '600',
-                  cursor: 'pointer'
-                }}
-              >
-                Create Photobook
-              </button>
+              {/* Photobook Name */}
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+                  Photobook name *
+                </label>
+                <input
+                  type="text"
+                  value={photobookName}
+                  onChange={(e) => setPhotobookName(e.target.value)}
+                  placeholder="e.g., Wedding highlights 2026"
+                  style={{
+                    width: '100%',
+                    padding: '0.7rem 0.95rem',
+                    border: `1.5px solid ${colors.borderPrimary}`,
+                    borderRadius: 11,
+                    fontSize: '0.9rem',
+                    color: colors.textPrimary,
+                    backgroundColor: colors.bgCard,
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                    transition: 'border-color 0.18s, box-shadow 0.18s',
+                  }}
+                />
+              </div>
+
+              {/* Photobook Description */}
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+                  Description
+                </label>
+                <textarea
+                  value={photobookDescription}
+                  onChange={(e) => setPhotobookDescription(e.target.value)}
+                  placeholder="Add a short description for your photobook…"
+                  rows={3}
+                  style={{
+                    width: '100%',
+                    padding: '0.7rem 0.95rem',
+                    border: `1.5px solid ${colors.borderPrimary}`,
+                    borderRadius: 11,
+                    fontSize: '0.9rem',
+                    color: colors.textPrimary,
+                    backgroundColor: colors.bgCard,
+                    resize: 'vertical',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                    transition: 'border-color 0.18s, box-shadow 0.18s',
+                  }}
+                />
+              </div>
+
+              {/* Thumbnail Selection from Albums */}
+              <div style={{ marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginBottom: '0.4rem' }}>
+                  <label style={{ fontSize: '0.7rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                    Cover thumbnail
+                  </label>
+                  <span style={{
+                    fontSize: '0.62rem', fontWeight: 700, color: colors.textSecondary,
+                    letterSpacing: '0.04em', textTransform: 'uppercase',
+                    padding: '2px 7px', borderRadius: 9999,
+                    background: colors.bgTertiary, border: `1px solid ${colors.borderPrimary}`,
+                  }}>Optional</span>
+                </div>
+                <p style={{ fontSize: '0.78rem', color: colors.textSecondary, marginBottom: '0.65rem', lineHeight: 1.45 }}>
+                  Pick a cover image from your sent albums. You can change it later.
+                </p>
+                {albums.length === 0 ? (
+                  <div style={{
+                    padding: '1.25rem 1rem',
+                    textAlign: 'center',
+                    background: actualTheme === 'dark'
+                      ? 'linear-gradient(135deg, rgba(8,58,133,0.10) 0%, rgba(242,12,143,0.06) 100%)'
+                      : 'linear-gradient(135deg, rgba(8,58,133,0.04) 0%, rgba(242,12,143,0.03) 100%)',
+                    border: `1.5px dashed ${actualTheme === 'dark' ? 'rgba(99,162,255,0.35)' : 'rgba(8,58,133,0.28)'}`,
+                    borderRadius: 12,
+                    color: colors.textSecondary,
+                    fontSize: '0.82rem',
+                  }}>
+                    No albums yet. Covers will appear here once your photographers share albums.
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', maxHeight: 220, overflowY: 'auto', padding: 2 }}>
+                    {albums.map((album) => {
+                      const isSelected = photobookThumbnailUrl === album.thumbnail;
+                      return (
+                        <div
+                          key={album.id}
+                          onClick={() => setPhotobookThumbnailUrl(album.thumbnail)}
+                          title={album.title}
+                          style={{
+                            position: 'relative',
+                            aspectRatio: '1',
+                            borderRadius: 10,
+                            overflow: 'hidden',
+                            cursor: 'pointer',
+                            border: `2px solid ${isSelected ? '#F20C8F' : 'transparent'}`,
+                            boxShadow: isSelected
+                              ? '0 6px 14px rgba(242,12,143,0.30)'
+                              : '0 1px 2px rgba(0,0,0,0.06)',
+                            transition: 'transform 0.18s, box-shadow 0.18s, border-color 0.18s',
+                          }}
+                          onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+                        >
+                          <Image src={album.thumbnail} alt={album.title} fill style={{ objectFit: 'cover' }} />
+                          {isSelected && (
+                            <>
+                              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(242,12,143,0) 50%, rgba(242,12,143,0.45) 100%)', pointerEvents: 'none' }} />
+                              <div style={{
+                                position: 'absolute', top: 6, right: 6,
+                                color: '#fff', background: '#F20C8F',
+                                borderRadius: 9999, width: 20, height: 20,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                boxShadow: '0 4px 10px rgba(242,12,143,0.40)',
+                              }}>
+                                <i className="bi bi-check" style={{ fontSize: 14, lineHeight: 1 }} />
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{
+                display: 'flex',
+                gap: '0.6rem',
+                paddingTop: '1rem',
+                borderTop: `1px solid ${colors.borderPrimary}`,
+              }}>
+                <button
+                  onClick={() => setShowCreatePhotobookModal(false)}
+                  className="ck-btn ck-btn-soft"
+                  style={{ flex: 1, padding: '0.65rem 1rem', fontSize: '0.9rem' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    if (!photobookName.trim()) {
+                      setNotificationModal({ show: true, title: 'Required Field', message: 'Please enter a photobook name.', type: 'warning' });
+                      return;
+                    }
+                    const newPhotobook: Photobook = {
+                      id: Date.now().toString(),
+                      name: photobookName,
+                      description: photobookDescription,
+                      thumbnail: photobookThumbnailUrl,
+                      createdAt: new Date().toISOString(),
+                      images: [],
+                      maxImages: 100 // Placeholder
+                    };
+                    setPhotobook(newPhotobook);
+                    setShowCreatePhotobookModal(false);
+                    setPhotobookName('');
+                    setPhotobookDescription('');
+                    setPhotobookThumbnailUrl(null);
+                  }}
+                  disabled={!photobookName.trim()}
+                  style={{
+                    flex: 2,
+                    padding: '0.65rem 1.1rem',
+                    borderRadius: 11,
+                    border: 'none',
+                    background: !photobookName.trim()
+                      ? colors.bgTertiary
+                      : 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                    color: !photobookName.trim() ? colors.textSecondary : '#fff',
+                    fontSize: '0.9rem',
+                    fontWeight: 700,
+                    cursor: !photobookName.trim() ? 'not-allowed' : 'pointer',
+                    opacity: !photobookName.trim() ? 0.7 : 1,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    boxShadow: !photobookName.trim() ? 'none' : '0 6px 18px rgba(242,12,143,0.28)',
+                    letterSpacing: '-0.005em',
+                    transition: 'transform 0.15s, box-shadow 0.15s, opacity 0.15s',
+                  }}
+                  onMouseEnter={(e) => { if (photobookName.trim()) e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+                >
+                  <i className="bi bi-book-half" style={{ fontSize: 13 }} />
+                  Create photobook
+                </button>
+              </div>
             </div>
           </div>
         </div>

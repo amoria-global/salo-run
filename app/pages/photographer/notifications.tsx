@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import Sidebar from '../../components/sidebar';
+import { platformAlert } from '../../components/PlatformAlert';
 import Topbar from '../../components/topbar';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrency } from '@/app/context/CurrencyContext';
@@ -275,12 +276,12 @@ const Notifications = () => {
       const data = await res.json().catch(() => ({}));
       console.log('DELETE notification response:', { status: res.status, ok: res.ok, data });
       if (!res.ok) {
-        alert(data.message || 'Failed to delete notification. The server did not process the request.');
+        platformAlert(data.message || 'Failed to delete notification. The server did not process the request.');
         fetchNotifications();
       }
     } catch (err) {
       console.error('DELETE notification error:', err);
-      alert('Failed to delete notification. The feature may not be available yet.');
+      platformAlert('Failed to delete notification. The feature may not be available yet.');
       fetchNotifications();
     }
   };
@@ -292,11 +293,11 @@ const Notifications = () => {
       const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/notifications/delete-read`, { method: 'DELETE' });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        alert(data.message || 'Failed to clear read notifications. The server did not process the request.');
+        platformAlert(data.message || 'Failed to clear read notifications. The server did not process the request.');
         fetchNotifications();
       }
     } catch {
-      alert('Failed to clear read notifications. The feature may not be available yet.');
+      platformAlert('Failed to clear read notifications. The feature may not be available yet.');
       fetchNotifications();
     }
   };
@@ -310,11 +311,11 @@ const Notifications = () => {
       const res = await dashboardAuthFetch(`${apiUrl}/api/remote/photographer/notifications/all`, { method: 'DELETE' });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        alert(data.message || 'Failed to delete all notifications.');
+        platformAlert(data.message || 'Failed to delete all notifications.');
         setNotifications(backup);
       }
     } catch {
-      alert('Failed to delete all notifications.');
+      platformAlert('Failed to delete all notifications.');
       setNotifications(backup);
     }
   };
@@ -518,37 +519,34 @@ const Notifications = () => {
 
           <div className="notifications-main">
           {/* Header */}
-          <div className="notifications-header">
-            <div>
+          <div className="notifications-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap', margin: '8px 0 22px' }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{
+                fontSize: '0.78rem', fontWeight: 700, color: '#F20C8F',
+                letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6,
+              }}>Inbox</div>
               <h1 style={{
-                fontSize: '1.8rem',
-                fontWeight: '700',
-                color: colors.textPrimary,
-                margin: 0,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem'
+                margin: 0, fontSize: '1.85rem', fontWeight: 800,
+                letterSpacing: '-0.02em', color: colors.textPrimary,
+                display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
               }}>
                 Notifications
                 {unreadCount > 0 && (
                   <span style={{
-                    backgroundColor: '#EF4444',
-                    color: 'white',
-                    fontSize: '0.875rem',
-                    fontWeight: '600',
-                    padding: '0.25rem 0.75rem',
-                    borderRadius: '9999px'
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    padding: '4px 12px', borderRadius: 9999,
+                    background: 'rgba(242,12,143,0.10)', color: '#F20C8F',
+                    fontSize: '0.78rem', fontWeight: 700,
                   }}>
-                    {unreadCount} new
+                    <span style={{ width: 6, height: 6, borderRadius: 9999, background: '#F20C8F', boxShadow: '0 0 0 3px rgba(242,12,143,0.25)' }} />
+                    {unreadCount} unread
                   </span>
                 )}
               </h1>
               <p style={{
-                fontSize: '0.95rem',
-                color: colors.textSecondary,
-                marginTop: '0.25rem'
+                margin: '4px 0 0', fontSize: '0.92rem', color: colors.textSecondary,
               }}>
-                Stay updated with your payments, tips, bonuses, and account activity
+                Stay updated with your payments, tips, bonuses, and account activity.
               </p>
             </div>
 
@@ -580,46 +578,37 @@ const Notifications = () => {
 
           {/* Stats Cards */}
           <div className="stats-grid">
-            <div className="stat-card" style={{ borderLeft: '4px solid #083A85' }}>
-              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Total Notifications</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: colors.brandPrimary }}>{notifications.length}</div>
-            </div>
-            <div className="stat-card" style={{ borderLeft: '4px solid #EF4444' }}>
-              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Unread</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#EF4444' }}>{unreadCount}</div>
-            </div>
-            <div className="stat-card" style={{ borderLeft: '4px solid #16A34A' }}>
-              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Payments</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#16A34A' }}>
-                {notifications.filter(n => n.type === 'payment').length}
+            {([
+              { label: 'Total notifications', value: notifications.length, icon: 'bi-bell-fill', tint: 'rgba(8,58,133,0.10)', color: '#083A85' },
+              { label: 'Unread', value: unreadCount, icon: 'bi-circle-fill', tint: 'rgba(242,12,143,0.10)', color: '#F20C8F' },
+              { label: 'Payments', value: notifications.filter(n => n.type === 'payment').length, icon: 'bi-cash-coin', tint: 'rgba(16,185,129,0.10)', color: '#10B981' },
+              { label: 'Tips & bonuses', value: notifications.filter(n => n.type === 'tip' || n.type === 'bonus').length, icon: 'bi-gift-fill', tint: 'rgba(245,158,11,0.12)', color: '#F59E0B' },
+            ] as const).map((s) => (
+              <div key={s.label} className="ck-card ck-card-hover" style={{ padding: 18, borderTop: `3px solid ${s.color}` }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{
+                    width: 40, height: 40, borderRadius: 10, background: s.tint,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  }}>
+                    <i className={`bi ${s.icon}`} style={{ color: s.color, fontSize: 16 }} />
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--ck-text-soft)' }}>{s.label}</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.02em', color: s.color, lineHeight: 1.1, marginTop: 2 }}>{s.value}</div>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="stat-card" style={{ borderLeft: '4px solid #F59E0B' }}>
-              <div style={{ fontSize: '0.85rem', color: colors.textSecondary, marginBottom: '0.25rem' }}>Tips & Bonuses</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#F59E0B' }}>
-                {notifications.filter(n => n.type === 'tip' || n.type === 'bonus').length}
-              </div>
-            </div>
+            ))}
           </div>
 
           {/* Filters */}
           <div className="filters-section">
-            <div className="filter-buttons">
+            <div className="filter-buttons ck-tabs">
               {filterOptions.map(option => (
                 <button
                   key={option.value}
                   onClick={() => setActiveFilter(option.value)}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    border: activeFilter === option.value ? 'none' : `2px solid ${colors.borderPrimary}`,
-                    backgroundColor: activeFilter === option.value ? '#083A85' : colors.bgCard,
-                    color: activeFilter === option.value ? 'white' : colors.textSecondary,
-                    borderRadius: '0.5rem',
-                    fontSize: '0.875rem',
-                    fontWeight: '500',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
+                  className={`ck-tab ${activeFilter === option.value ? 'active' : ''}`}
                 >
                   {option.label}
                 </button>

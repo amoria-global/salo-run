@@ -8,6 +8,7 @@ import { platformAlert } from '../../components/PlatformAlert';
 import Topbar from '../../components/topbar';
 import CountrySelect, { eastAfricanCountries } from '../../components/CountrySelect';
 import ApprovalPendingModal from '../../components/ApprovalPendingModal';
+import EventConfirmModal from '../../components/EventConfirmModal';
 import KycBadge from '../../components/KycBadge';
 import KycVerificationModal from '../../components/KycVerificationModal';
 import { useTheme } from '../../context/ThemeContext';
@@ -233,10 +234,32 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   // Diamond  (tier 3): "Unlimited photos & videos" locked and always included
   const PACKAGE_TIER: Record<string, number> = { Silver: 1, Gold: 2, Diamond: 3 };
   const TIER_LABELS: Record<string, string> = { Silver: 'Silver', Gold: 'Gold', Diamond: 'Diamond' };
-  const TIER_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-    Silver:  { bg: actualTheme === 'dark' ? '#1C3238' : '#ECFDF5', text: actualTheme === 'dark' ? '#34D399' : '#065F46', border: '#10B981' },
-    Gold:    { bg: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF', text: actualTheme === 'dark' ? '#60A5FA' : '#083A85', border: '#3B82F6' },
-    Diamond: { bg: actualTheme === 'dark' ? '#2D1B69' : '#F5F3FF', text: actualTheme === 'dark' ? '#A78BFA' : '#4C1D95', border: '#8B5CF6' },
+  // Tier palette synced with the connekyt-landing booking wizard so the
+  // photographer's package cards match what clients see when they pick a
+  // package on the landing site. Each tier gets a metallic gradient + a
+  // matching soft tint for chips/badges.
+  const TIER_COLORS: Record<string, { bg: string; text: string; border: string; gradient: string; glow: string }> = {
+    Silver: {
+      bg: actualTheme === 'dark' ? 'rgba(148,163,184,0.18)' : 'rgba(203,213,225,0.45)',
+      text: actualTheme === 'dark' ? '#CBD5E1' : '#475569',
+      border: '#94A3B8',
+      gradient: 'linear-gradient(135deg, #94A3B8 0%, #CBD5E1 45%, #64748B 100%)',
+      glow: 'rgba(100,116,139,0.32)',
+    },
+    Gold: {
+      bg: actualTheme === 'dark' ? 'rgba(245,158,11,0.18)' : 'rgba(254,243,199,0.55)',
+      text: actualTheme === 'dark' ? '#FCD34D' : '#92400E',
+      border: '#F59E0B',
+      gradient: 'linear-gradient(135deg, #F59E0B 0%, #FBBF24 50%, #D97706 100%)',
+      glow: 'rgba(217,119,6,0.32)',
+    },
+    Diamond: {
+      bg: actualTheme === 'dark' ? 'rgba(59,130,246,0.18)' : 'rgba(219,234,254,0.55)',
+      text: actualTheme === 'dark' ? '#93C5FD' : '#1E40AF',
+      border: '#3B82F6',
+      gradient: 'linear-gradient(135deg, #06B6D4 0%, #A78BFA 55%, #3B82F6 100%)',
+      glow: 'rgba(59,130,246,0.32)',
+    },
   };
 
   // Features selectable by photographer (excludes "Unlimited photos & videos" for Silver/Gold)
@@ -342,6 +365,7 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
   const [packages, setPackages] = useState<DeliveryPackage[]>([]);
   const [savingPackageId, setSavingPackageId] = useState<string | null>(null);
   const [expandedPackageId, setExpandedPackageId] = useState<string | null>(null);
+  const [packageToRemove, setPackageToRemove] = useState<DeliveryPackage | null>(null);
   const [currencies, setCurrencies] = useState<{ id: string; code: string; name: string }[]>([]);
   const [openCurrencyPkgId, setOpenCurrencyPkgId] = useState<string | null>(null);
   const currencyDropdownRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -3554,24 +3578,30 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       style={{ display: 'none' }}
                     />
 
-                    <div className="mobile-form-grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
+                    <div className="mobile-form-grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.85rem' }}>
                       {portfolioData.projects.map((project) => (
                         <div key={project.id} style={{
-                          backgroundColor: colors.bgTertiary,
-                          borderRadius: '0.75rem',
+                          background: colors.bgCard,
+                          borderRadius: 14,
                           overflow: 'hidden',
-                          border: `2px solid ${colors.borderPrimary}`
-                        }}>
-                          {/* Project Image */}
+                          border: `1px solid ${colors.borderPrimary}`,
+                          boxShadow: '0 4px 12px -4px rgba(8, 58, 133, 0.10)',
+                          transition: 'border-color 0.18s, box-shadow 0.18s',
+                          position: 'relative',
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(8,58,133,0.25)'; e.currentTarget.style.boxShadow = '0 10px 22px -10px rgba(8,58,133,0.20)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.boxShadow = '0 4px 12px -4px rgba(8, 58, 133, 0.10)'; }}
+                        >
+                          {/* Project Image — compact cover */}
                           <div
                             onClick={() => {
                               setEditingProjectId(project.id);
                               projectImageInputRef.current?.click();
                             }}
                             style={{
-                              height: '160px',
+                              height: 110,
                               position: 'relative',
-                              backgroundColor: project.image ? 'transparent' : (actualTheme === 'dark' ? '#374151' : '#E5E7EB'),
+                              backgroundColor: project.image ? 'transparent' : (actualTheme === 'dark' ? 'rgba(8,58,133,0.10)' : 'rgba(8,58,133,0.04)'),
                               backgroundImage: project.image ? `url(${project.image})` : 'none',
                               backgroundSize: 'cover',
                               backgroundPosition: 'center',
@@ -3579,145 +3609,157 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                               alignItems: 'center',
                               justifyContent: 'center',
                               cursor: 'pointer',
-                              transition: 'opacity 0.2s',
-                              border: project.image ? 'none' : `2px dashed ${actualTheme === 'dark' ? '#6B7280' : '#9CA3AF'}`,
-                              margin: project.image ? '0' : '0.5rem',
-                              borderRadius: project.image ? '0' : '0.5rem',
-                              overflow: 'hidden'
+                              borderBottom: `1px solid ${colors.borderPrimary}`,
+                              overflow: 'hidden',
                             }}
+                            title={project.image ? 'Click to change image' : 'Click to upload image'}
                           >
                             {!project.image && (
                               <div style={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                color: colors.textTertiary
+                                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                                color: '#F20C8F',
                               }}>
-                                <ImageIcon />
-                                <span style={{ fontSize: '0.85rem' }}>Click to upload image</span>
+                                <div style={{
+                                  width: 32, height: 32, borderRadius: 9,
+                                  background: 'linear-gradient(135deg, rgba(8,58,133,0.12) 0%, rgba(242,12,143,0.10) 100%)',
+                                  border: '1px solid rgba(8,58,133,0.20)',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                }}>
+                                  <i className="bi bi-camera-fill" style={{ fontSize: 14, color: '#083A85' }} />
+                                </div>
+                                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: colors.textSecondary, letterSpacing: '-0.005em' }}>Click to upload</span>
                               </div>
                             )}
                             {project.image && (
                               <div
                                 className="project-image-overlay"
                                 style={{
-                                  position: 'absolute',
-                                  top: 0,
-                                  left: 0,
-                                  right: 0,
-                                  bottom: 0,
-                                  backgroundColor: 'rgba(0,0,0,0.5)',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
+                                  position: 'absolute', inset: 0,
+                                  background: 'linear-gradient(135deg, rgba(8,58,133,0.55) 0%, rgba(242,12,143,0.50) 100%)',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                                   opacity: 0,
-                                  transition: 'opacity 0.2s'
+                                  transition: 'opacity 0.18s',
+                                  color: '#fff',
                                 }}
                                 onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
                                 onMouseLeave={(e) => e.currentTarget.style.opacity = '0'}
                               >
-                                <span style={{ color: 'white', fontSize: '0.85rem' }}>Change image</span>
+                                <i className="bi bi-camera-fill" style={{ fontSize: 14 }} />
+                                <span style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Change image</span>
                               </div>
                             )}
                           </div>
 
                           {/* Project Details */}
-                          <div style={{ padding: '1rem' }}>
-                            <div style={{ marginBottom: '0.75rem' }}>
-                              <label style={{ ...labelStyle, fontSize: '0.8rem' }}>Project Title</label>
+                          <div style={{ padding: '0.7rem 0.85rem 0.75rem', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            <div>
+                              <label style={{ ...labelStyle, fontSize: '0.62rem', marginBottom: 3 }}>Project Title</label>
                               <input
                                 type="text"
                                 value={project.title}
                                 onChange={(e) => updateProject(project.id, 'title', e.target.value)}
-                                placeholder="e.g., Wedding at Serena Hotel"
-                                style={{ ...inputStyle, fontSize: '0.9rem', padding: '0.5rem 0.75rem' }}
+                                placeholder="e.g. Wedding at Serena"
+                                style={{
+                                  ...inputStyle,
+                                  fontSize: '0.84rem',
+                                  fontWeight: 600,
+                                  padding: '0.42rem 0.6rem',
+                                  letterSpacing: '-0.005em',
+                                }}
                               />
                             </div>
-                            <div style={{ marginBottom: '0.75rem' }}>
-                              <label style={{ ...labelStyle, fontSize: '0.8rem' }}>Year</label>
-                              <select
-                                value={project.year}
-                                onChange={(e) => updateProject(project.id, 'year', e.target.value)}
-                                style={{ ...inputStyle, fontSize: '0.9rem', padding: '0.5rem 0.75rem' }}
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              <div style={{ width: 96, flexShrink: 0 }}>
+                                <label style={{ ...labelStyle, fontSize: '0.62rem', marginBottom: 3 }}>Year</label>
+                                <select
+                                  value={project.year}
+                                  onChange={(e) => updateProject(project.id, 'year', e.target.value)}
+                                  style={{
+                                    ...inputStyle,
+                                    fontSize: '0.78rem',
+                                    padding: '0.42rem 0.5rem',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  <option value="">Year</option>
+                                  {yearOptions.map((year) => (
+                                    <option key={year} value={year}>{year}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <label style={{ ...labelStyle, fontSize: '0.62rem', marginBottom: 3 }}>Description</label>
+                                <input
+                                  type="text"
+                                  value={project.description}
+                                  onChange={(e) => updateProject(project.id, 'description', e.target.value)}
+                                  placeholder="Short description"
+                                  style={{
+                                    ...inputStyle,
+                                    fontSize: '0.78rem',
+                                    padding: '0.42rem 0.6rem',
+                                  }}
+                                />
+                              </div>
+                            </div>
+                            {/* Action buttons — single row */}
+                            <div style={{ display: 'flex', gap: 6, marginTop: 2 }}>
+                              <button
+                                onClick={async () => {
+                                  const success = await addProjectToAPI(project);
+                                  showToast(success ? 'success' : 'error',
+                                    success ? 'Project saved successfully' : 'Failed to save project');
+                                }}
+                                disabled={savingProject === project.id || !project.title}
+                                style={{
+                                  flex: 1,
+                                  padding: '0.45rem 0.75rem',
+                                  background: (savingProject === project.id || !project.title)
+                                    ? (actualTheme === 'dark' ? '#4B5563' : '#9CA3AF')
+                                    : 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                                  color: '#FFFFFF',
+                                  border: 'none',
+                                  borderRadius: 9,
+                                  cursor: (savingProject === project.id || !project.title) ? 'not-allowed' : 'pointer',
+                                  fontSize: '0.78rem',
+                                  fontWeight: 700,
+                                  letterSpacing: '-0.005em',
+                                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                                  boxShadow: (savingProject === project.id || !project.title) ? 'none' : '0 4px 10px rgba(8,58,133,0.28)',
+                                  opacity: !project.title ? 0.6 : 1,
+                                  transition: 'transform 0.15s, box-shadow 0.15s',
+                                }}
+                                onMouseEnter={(e) => { if (savingProject !== project.id && project.title) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 14px rgba(242,12,143,0.32)'; } }}
+                                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = (savingProject === project.id || !project.title) ? 'none' : '0 4px 10px rgba(8,58,133,0.28)'; }}
                               >
-                                <option value="">Select Year</option>
-                                {yearOptions.map((year) => (
-                                  <option key={year} value={year}>{year}</option>
-                                ))}
-                              </select>
+                                {savingProject === project.id ? (
+                                  <><i className="bi bi-arrow-clockwise" style={{ fontSize: 11, animation: 'spin 0.9s linear infinite' }} /> Saving</>
+                                ) : (
+                                  <><i className="bi bi-check2" style={{ fontSize: 13 }} /> Save Project</>
+                                )}
+                              </button>
+                              <button
+                                onClick={() => removeProject(project.id)}
+                                title="Remove project"
+                                aria-label="Remove project"
+                                style={{
+                                  width: 34,
+                                  padding: '0.45rem 0',
+                                  background: actualTheme === 'dark' ? 'rgba(220,38,38,0.14)' : 'rgba(254,242,242,0.85)',
+                                  border: `1px solid ${actualTheme === 'dark' ? 'rgba(220,38,38,0.40)' : 'rgba(220,38,38,0.25)'}`,
+                                  borderRadius: 9,
+                                  cursor: 'pointer',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626',
+                                  transition: 'all 0.15s',
+                                  flexShrink: 0,
+                                }}
+                                onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'transparent'; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.background = actualTheme === 'dark' ? 'rgba(220,38,38,0.14)' : 'rgba(254,242,242,0.85)'; e.currentTarget.style.color = actualTheme === 'dark' ? '#FCA5A5' : '#DC2626'; e.currentTarget.style.borderColor = actualTheme === 'dark' ? 'rgba(220,38,38,0.40)' : 'rgba(220,38,38,0.25)'; }}
+                              >
+                                <i className="bi bi-trash3-fill" style={{ fontSize: 12 }} />
+                              </button>
                             </div>
-                            <div>
-                              <label style={{ ...labelStyle, fontSize: '0.8rem' }}>Description</label>
-                              <textarea
-                                value={project.description}
-                                onChange={(e) => updateProject(project.id, 'description', e.target.value)}
-                                placeholder="Brief description of the project..."
-                                rows={2}
-                                style={{ ...inputStyle, fontSize: '0.9rem', padding: '0.5rem 0.75rem', resize: 'vertical' }}
-                              />
-                            </div>
-                            {/* Delete Button */}
-                            <button
-                              onClick={() => removeProject(project.id)}
-                              style={{
-                                width: '100%',
-                                marginTop: '1rem',
-                                padding: '0.5rem',
-                                backgroundColor: 'transparent',
-                                border: `2px solid ${colors.borderPrimary}`,
-                                borderRadius: '0.375rem',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: '0.5rem',
-                                color: colors.textTertiary,
-                                fontSize: '0.85rem',
-                                transition: 'all 0.2s'
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor = '#FEE2E2';
-                                e.currentTarget.style.borderColor = '#EF4444';
-                                e.currentTarget.style.color = '#EF4444';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor = 'transparent';
-                                e.currentTarget.style.borderColor = colors.borderPrimary;
-                                e.currentTarget.style.color = colors.textTertiary;
-                              }}
-                              title="Remove project"
-                            >
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M3 6H5H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                              </svg>
-                              Remove Project
-                            </button>
-                            {/* Save Button */}
-                            <button
-                              onClick={async () => {
-                                const success = await addProjectToAPI(project);
-                                showToast(success ? 'success' : 'error',
-                                  success ? 'Project saved successfully' : 'Failed to save project');
-                              }}
-                              disabled={savingProject === project.id || !project.title}
-                              style={{
-                                width: '100%',
-                                marginTop: '0.5rem',
-                                padding: '0.5rem',
-                                backgroundColor: savingProject === project.id ? '#9CA3AF' : '#083A85',
-                                color: '#FFFFFF',
-                                border: 'none',
-                                borderRadius: '0.375rem',
-                                cursor: savingProject === project.id || !project.title ? 'not-allowed' : 'pointer',
-                                fontSize: '0.85rem',
-                                fontWeight: '500',
-                                opacity: !project.title ? 0.5 : 1,
-                              }}
-                            >
-                              {savingProject === project.id ? 'Saving...' : 'Save Project'}
-                            </button>
                           </div>
                         </div>
                       ))}
@@ -3728,36 +3770,61 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                         const imgUrl = change.imageData ? `https://backend.connekyt.com/uploads/photographer/projects/images/${change.imageData}` : '';
                         return (
                           <div key={change.id} style={{
-                            backgroundColor: colors.bgTertiary,
-                            borderRadius: '0.75rem',
+                            background: colors.bgCard,
+                            borderRadius: 14,
                             overflow: 'hidden',
-                            border: `2px solid ${actualTheme === 'dark' ? '#92400E' : '#FDE68A'}`,
-                            opacity: 0.85,
+                            border: `1px solid ${actualTheme === 'dark' ? 'rgba(245,158,11,0.40)' : 'rgba(245,158,11,0.32)'}`,
+                            boxShadow: '0 4px 12px -4px rgba(245,158,11,0.16)',
                             position: 'relative',
                           }}>
                             <div style={{
-                              height: '160px',
-                              backgroundColor: imgUrl ? 'transparent' : (actualTheme === 'dark' ? '#374151' : '#E5E7EB'),
+                              height: 110,
+                              backgroundColor: imgUrl ? 'transparent' : (actualTheme === 'dark' ? 'rgba(245,158,11,0.10)' : 'rgba(254,243,199,0.55)'),
                               backgroundImage: imgUrl ? `url(${imgUrl})` : 'none',
                               backgroundSize: 'cover',
                               backgroundPosition: 'center',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              borderBottom: `1px solid ${actualTheme === 'dark' ? 'rgba(245,158,11,0.30)' : 'rgba(245,158,11,0.22)'}`,
+                              color: '#D97706',
+                              position: 'relative',
                             }}>
-                              {!imgUrl && <ImageIcon />}
+                              {!imgUrl && <i className="bi bi-camera-fill" style={{ fontSize: 22 }} />}
+                              <span style={{
+                                position: 'absolute', top: 8, right: 8,
+                                display: 'inline-flex', alignItems: 'center', gap: 3,
+                                fontSize: '0.58rem', fontWeight: 800,
+                                padding: '0.18rem 0.55rem',
+                                borderRadius: 9999,
+                                background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                                color: 'white',
+                                letterSpacing: '0.06em', textTransform: 'uppercase',
+                                whiteSpace: 'nowrap',
+                                boxShadow: '0 3px 8px rgba(245,158,11,0.32)',
+                                border: '1px solid rgba(255,255,255,0.25)',
+                              }}>
+                                <i className="bi bi-hourglass-split" style={{ fontSize: 8 }} />
+                                Pending
+                              </span>
                             </div>
-                            <div style={{ padding: '0.75rem' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                                <h4 style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary, margin: 0, flex: 1 }}>{data.title || 'Untitled'}</h4>
-                                <span style={{
-                                  fontSize: '0.65rem', fontWeight: '700', padding: '0.15rem 0.5rem',
-                                  borderRadius: '9999px', backgroundColor: '#e68a00', color: 'white',
-                                  whiteSpace: 'nowrap',
-                                }}>Pending</span>
+                            <div style={{ padding: '0.7rem 0.85rem 0.8rem' }}>
+                              <h4 style={{
+                                fontSize: '0.92rem', fontWeight: 800, color: colors.textPrimary,
+                                margin: 0, letterSpacing: '-0.005em',
+                                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                              }}>{data.title || 'Untitled'}</h4>
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 3, fontSize: '0.72rem', color: colors.textSecondary }}>
+                                {data.year && (
+                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: '#F20C8F', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                                    <i className="bi bi-calendar3" style={{ fontSize: 9 }} />
+                                    {data.year}
+                                  </span>
+                                )}
                               </div>
-                              {data.year && <p style={{ fontSize: '0.75rem', color: colors.textSecondary, margin: '0 0 0.25rem' }}>{data.year}</p>}
-                              {data.description && <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: 0, lineHeight: '1.4' }}>{data.description.length > 80 ? data.description.slice(0, 80) + '...' : data.description}</p>}
+                              {data.description && (
+                                <p style={{ fontSize: '0.78rem', color: colors.textSecondary, margin: '5px 0 0', lineHeight: 1.45, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const }}>
+                                  {data.description}
+                                </p>
+                              )}
                             </div>
                           </div>
                         );
@@ -3768,36 +3835,52 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                         <div style={{
                           gridColumn: 'span 2',
                           textAlign: 'center',
-                          padding: '3rem',
-                          backgroundColor: colors.bgTertiary,
-                          borderRadius: '0.75rem',
-                          border: '2px dashed #E5E7EB'
+                          padding: '2.5rem 1.5rem',
+                          background: actualTheme === 'dark'
+                            ? 'linear-gradient(135deg, rgba(8,58,133,0.10) 0%, rgba(242,12,143,0.06) 100%)'
+                            : 'linear-gradient(135deg, rgba(8,58,133,0.04) 0%, rgba(242,12,143,0.03) 100%)',
+                          borderRadius: 14,
+                          border: `2px dashed ${actualTheme === 'dark' ? 'rgba(242,12,143,0.30)' : 'rgba(242,12,143,0.35)'}`,
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
                         }}>
-                          <div style={{ color: '#9CA3AF', marginBottom: '1rem' }}>
-                            <ImageIcon />
+                          <div style={{
+                            width: 52, height: 52, borderRadius: 14,
+                            background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            boxShadow: '0 8px 20px rgba(8,58,133,0.28)',
+                          }}>
+                            <i className="bi bi-images" style={{ fontSize: 22, color: '#fff' }} />
                           </div>
-                          <p style={{ color: colors.textSecondary, marginBottom: '1rem' }}>
-                            No projects added yet. Showcase your best work!
-                          </p>
+                          <div>
+                            <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#F20C8F', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>Portfolio</div>
+                            <h4 style={{ fontSize: '1rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.005em' }}>No projects added yet</h4>
+                            <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '4px 0 0', lineHeight: 1.45 }}>
+                              Showcase your best work to attract more clients.
+                            </p>
+                          </div>
                           <button
                             onClick={addProject}
                             disabled={!isEditEnabled}
                             style={{
-                              backgroundColor: isEditEnabled ? '#083A85' : colors.bgTertiary,
+                              background: isEditEnabled ? 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)' : colors.bgTertiary,
                               color: isEditEnabled ? 'white' : colors.textSecondary,
-                              border: isEditEnabled ? 'none' : `2px solid ${colors.borderPrimary}`,
-                              borderRadius: '0.5rem',
-                              padding: '0.75rem 1.5rem',
-                              fontSize: '0.9rem',
-                              fontWeight: '500',
+                              border: isEditEnabled ? 'none' : `1px solid ${colors.borderPrimary}`,
+                              borderRadius: 11,
+                              padding: '0.6rem 1.2rem',
+                              fontSize: '0.85rem',
+                              fontWeight: 700,
+                              letterSpacing: '-0.005em',
                               cursor: isEditEnabled ? 'pointer' : 'not-allowed',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '0.5rem',
-                              opacity: isEditEnabled ? 1 : 0.6
+                              display: 'inline-flex', alignItems: 'center', gap: 6,
+                              opacity: isEditEnabled ? 1 : 0.6,
+                              boxShadow: isEditEnabled ? '0 8px 18px rgba(8,58,133,0.30)' : 'none',
+                              transition: 'transform 0.15s, box-shadow 0.15s',
                             }}
+                            onMouseEnter={(e) => { if (isEditEnabled) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 12px 24px rgba(242,12,143,0.35)'; } }}
+                            onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = isEditEnabled ? '0 8px 18px rgba(8,58,133,0.30)' : 'none'; }}
                           >
-                            <PlusIcon /> Add Your First Project
+                            <i className="bi bi-plus-circle-fill" style={{ fontSize: 13 }} />
+                            Add Your First Project
                           </button>
                         </div>
                       )}
@@ -4086,13 +4169,15 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                       Create and customize your delivery packages with pricing, duration, and features
                     </p>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                      {packages.map((pkg) => (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                      {packages.map((pkg) => {
+                        const rowTier = pkg.packageName && TIER_COLORS[pkg.packageName];
+                        return (
                         <div key={pkg.id} style={{
                           backgroundColor: colors.bgTertiary,
-                          padding: '1.5rem',
-                          borderRadius: '0.75rem',
-                          border: `2px solid ${colors.borderPrimary}`,
+                          padding: '0.9rem 1.1rem',
+                          borderRadius: 12,
+                          border: `1px solid ${colors.borderPrimary}`,
                           position: 'relative',
                           ...(newlyAddedId === pkg.id ? newItemAnimation : {})
                         }}>
@@ -4104,57 +4189,124 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                               alignItems: 'center',
                               justifyContent: 'space-between',
                               cursor: 'pointer',
+                              gap: 8,
                             }}
                           >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
                               <div style={{
-                                width: '40px',
-                                height: '40px',
-                                borderRadius: '0.5rem',
-                                backgroundColor: actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF',
+                                width: 38, height: 38,
+                                borderRadius: 10,
+                                background: rowTier
+                                  ? rowTier.gradient
+                                  : (actualTheme === 'dark' ? '#1E3A5F' : '#EFF6FF'),
                                 display: 'flex',
                                 alignItems: 'center',
-                                justifyContent: 'center'
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                                boxShadow: rowTier ? `0 4px 10px ${rowTier.glow}` : 'none',
+                                border: rowTier ? '1px solid rgba(255,255,255,0.20)' : 'none',
                               }}>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                  <path d="M20 7L12 3L4 7M20 7L12 11M20 7V17L12 21M12 11L4 7M12 11V21M4 7V17L12 21" stroke={actualTheme === 'dark' ? '#60A5FA' : '#083A85'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M20 7L12 3L4 7M20 7L12 11M20 7V17L12 21M12 11L4 7M12 11V21M4 7V17L12 21" stroke={rowTier ? '#fff' : (actualTheme === 'dark' ? '#60A5FA' : '#083A85')} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                 </svg>
                               </div>
-                              <div>
-                                <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
-                                  {pkg.packageName || 'New Package'}
-                                </h3>
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>
+                                    {pkg.packageName || 'New Package'}
+                                  </h3>
+                                  {rowTier && (
+                                    <span style={{
+                                      display: 'inline-flex', alignItems: 'center',
+                                      fontSize: '0.58rem', fontWeight: 800,
+                                      padding: '0.15rem 0.5rem',
+                                      borderRadius: 9999,
+                                      letterSpacing: '0.08em', textTransform: 'uppercase' as const,
+                                      background: rowTier.gradient,
+                                      color: '#fff',
+                                      border: '1px solid rgba(255,255,255,0.25)',
+                                      boxShadow: `0 2px 6px ${rowTier.glow}`,
+                                      textShadow: '0 1px 2px rgba(0,0,0,0.18)',
+                                    }}>
+                                      {TIER_LABELS[pkg.packageName]}
+                                    </span>
+                                  )}
+                                </div>
                                 {pkg.price && (
-                                  <span style={{ fontSize: '0.85rem', color: colors.textSecondary }}>
-                                    {parseFloat(pkg.price).toLocaleString()} {currencies.find(c => c.id === pkg.currencyId || c.code === pkg.currencyId)?.code || pkg.currencyId} · {pkg.priceUnit}
-                                  </span>
+                                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 1, fontSize: '0.78rem', color: colors.textSecondary, fontWeight: 600 }}>
+                                    <span style={{
+                                      background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
+                                      WebkitBackgroundClip: 'text',
+                                      WebkitTextFillColor: 'transparent',
+                                      backgroundClip: 'text',
+                                      fontWeight: 800,
+                                      letterSpacing: '-0.005em',
+                                    }}>
+                                      {parseFloat(pkg.price).toLocaleString()} {currencies.find(c => c.id === pkg.currencyId || c.code === pkg.currencyId)?.code || pkg.currencyId}
+                                    </span>
+                                    <span style={{ opacity: 0.5 }}>·</span>
+                                    <span>{pkg.priceUnit}</span>
+                                  </div>
                                 )}
                               </div>
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                              <div style={{
-                                width: '8px', height: '8px', borderRadius: '50%',
-                                backgroundColor: pkg.isActive ? '#10B981' : '#EF4444'
-                              }} />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                              <span style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 4,
+                                fontSize: '0.58rem', fontWeight: 800,
+                                padding: '0.18rem 0.5rem',
+                                borderRadius: 9999,
+                                letterSpacing: '0.06em', textTransform: 'uppercase' as const,
+                                background: pkg.isActive
+                                  ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)'
+                                  : 'linear-gradient(135deg, #9CA3AF 0%, #6B7280 100%)',
+                                color: '#fff',
+                                boxShadow: pkg.isActive ? '0 3px 7px rgba(16,185,129,0.28)' : 'none',
+                              }}>
+                                {pkg.isActive && <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#fff', boxShadow: '0 0 5px #fff' }} />}
+                                {pkg.isActive ? 'Active' : 'Inactive'}
+                              </span>
                               {isPackageEditEnabled && (
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); removePackage(pkg.id); }}
+                                  onClick={(e) => { e.stopPropagation(); setPackageToRemove(pkg); }}
+                                  title="Remove package"
                                   style={{
-                                    padding: '0.35rem', backgroundColor: 'transparent',
-                                    border: `1.5px solid ${colors.borderPrimary}`, borderRadius: '0.3rem',
-                                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    color: colors.textTertiary, transition: 'all 0.2s',
+                                    width: 28, height: 28,
+                                    padding: 0,
+                                    background: actualTheme === 'dark' ? 'rgba(220,38,38,0.14)' : 'rgba(254,242,242,0.85)',
+                                    border: `1px solid ${actualTheme === 'dark' ? 'rgba(220,38,38,0.40)' : 'rgba(220,38,38,0.25)'}`,
+                                    borderRadius: 8,
+                                    cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626',
+                                    transition: 'all 0.15s',
                                   }}
-                                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#FEE2E2'; e.currentTarget.style.borderColor = '#EF4444'; e.currentTarget.style.color = '#EF4444'; }}
-                                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.color = colors.textTertiary; }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'transparent'; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.background = actualTheme === 'dark' ? 'rgba(220,38,38,0.14)' : 'rgba(254,242,242,0.85)'; e.currentTarget.style.color = actualTheme === 'dark' ? '#FCA5A5' : '#DC2626'; e.currentTarget.style.borderColor = actualTheme === 'dark' ? 'rgba(220,38,38,0.40)' : 'rgba(220,38,38,0.25)'; }}
                                 >
-                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                  <i className="bi bi-trash3-fill" style={{ fontSize: 11 }} />
                                 </button>
                               )}
-                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
-                                style={{ transform: expandedPackageId === pkg.id ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
-                                <path d="M6 9L12 15L18 9" stroke={colors.textSecondary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                              </svg>
+                              <button style={{
+                                width: 28, height: 28,
+                                padding: 0,
+                                background: 'transparent',
+                                border: `1px solid ${colors.borderPrimary}`,
+                                borderRadius: 8,
+                                cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                color: colors.textSecondary,
+                                transition: 'transform 0.2s, border-color 0.15s',
+                              }}
+                              aria-label="Toggle details"
+                              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)'; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; }}
+                              >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+                                  style={{ transform: expandedPackageId === pkg.id ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
+                                  <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                              </button>
                             </div>
                           </div>
 
@@ -4516,7 +4668,8 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                             </div>
                           )}
                         </div>
-                      ))}
+                        );
+                      })}
 
                       {packages.length === 0 && (
                         <div style={{
@@ -4576,22 +4729,27 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                             onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 8px 24px -4px rgba(0,0,0,0.12)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
                             onMouseLeave={(e) => { e.currentTarget.style.boxShadow = '0 2px 8px -2px rgba(0,0,0,0.08)'; e.currentTarget.style.transform = 'translateY(0)'; }}
                             >
-                              {/* Top accent bar */}
-                              <div style={{ height: '4px', background: `linear-gradient(90deg, ${tierColor.border}, ${tierColor.border}80)` }} />
+                              {/* Top metallic gradient bar — matches landing booking wizard tier colors */}
+                              <div style={{ height: 3, background: tierColor.gradient }} />
 
-                              <div style={{ padding: '1.25rem 1.25rem 1rem' }}>
+                              <div style={{ padding: '0.9rem 1rem 0.75rem' }}>
                                 {/* Header: name + tier badge */}
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                                  <h4 style={{ fontSize: '1.1rem', fontWeight: '700', color: colors.textPrimary, margin: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.65rem' }}>
+                                  <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>
                                     {pkg.packageName}
                                   </h4>
                                   {pkg.packageName && TIER_LABELS[pkg.packageName] && (
                                     <span style={{
-                                      fontSize: '0.65rem', fontWeight: '700', padding: '0.2rem 0.5rem',
-                                      borderRadius: '1rem', letterSpacing: '0.04em', textTransform: 'uppercase' as const,
-                                      backgroundColor: tierColor.bg,
-                                      color: tierColor.text,
-                                      border: `1px solid ${tierColor.border}30`,
+                                      display: 'inline-flex', alignItems: 'center',
+                                      fontSize: '0.62rem', fontWeight: 800,
+                                      padding: '0.22rem 0.6rem',
+                                      borderRadius: 9999,
+                                      letterSpacing: '0.08em', textTransform: 'uppercase' as const,
+                                      background: tierColor.gradient,
+                                      color: '#fff',
+                                      border: '1px solid rgba(255,255,255,0.25)',
+                                      boxShadow: `0 3px 8px ${tierColor.glow}`,
+                                      textShadow: '0 1px 2px rgba(0,0,0,0.20)',
                                     }}>
                                       {TIER_LABELS[pkg.packageName]}
                                     </span>
@@ -4600,30 +4758,57 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
                                 {/* Price */}
                                 {pkg.price && (
-                                  <div style={{ marginBottom: '0.75rem' }}>
-                                    <span style={{ fontSize: '2rem', fontWeight: '800', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85', letterSpacing: '-0.02em' }}>
+                                  <div style={{ marginBottom: '0.55rem' }}>
+                                    <span style={{
+                                      fontSize: '1.6rem', fontWeight: 800,
+                                      letterSpacing: '-0.02em',
+                                      background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
+                                      WebkitBackgroundClip: 'text',
+                                      WebkitTextFillColor: 'transparent',
+                                      backgroundClip: 'text',
+                                    }}>
                                       {parseFloat(pkg.price).toLocaleString()}
                                     </span>
-                                    <span style={{ fontSize: '0.85rem', fontWeight: '500', color: colors.textSecondary, marginLeft: '0.35rem' }}>{currencyCode}</span>
+                                    <span style={{ fontSize: '0.78rem', fontWeight: 600, color: colors.textSecondary, marginLeft: '0.35rem' }}>{currencyCode}</span>
                                   </div>
                                 )}
 
-                                {/* Duration */}
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem', color: colors.textSecondary, backgroundColor: actualTheme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', padding: '0.25rem 0.6rem', borderRadius: '1rem' }}>
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/><path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                                {/* Duration + delivery chips */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+                                  <span style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                                    fontSize: '0.74rem', color: colors.textPrimary, fontWeight: 600,
+                                    backgroundColor: colors.bgTertiary,
+                                    border: `1px solid ${colors.borderPrimary}`,
+                                    padding: '0.18rem 0.55rem',
+                                    borderRadius: 9999,
+                                  }}>
+                                    <i className="bi bi-clock-fill" style={{ fontSize: 10, color: '#F20C8F' }} />
                                     {pkg.durationHours || '0'} hours
                                   </span>
                                   {pkg.deliveryDays && parseInt(pkg.deliveryDays) > 0 && (
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem', color: colors.textSecondary, backgroundColor: actualTheme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', padding: '0.25rem 0.6rem', borderRadius: '1rem' }}>
-                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                    <span style={{
+                                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                                      fontSize: '0.74rem', color: colors.textPrimary, fontWeight: 600,
+                                      backgroundColor: colors.bgTertiary,
+                                      border: `1px solid ${colors.borderPrimary}`,
+                                      padding: '0.18rem 0.55rem',
+                                      borderRadius: 9999,
+                                    }}>
+                                      <i className="bi bi-calendar-event-fill" style={{ fontSize: 10, color: '#F20C8F' }} />
                                       {pkg.deliveryDays}-day delivery
                                     </span>
                                   )}
                                 </div>
 
                                 {/* Media coverage */}
-                                <p style={{ fontSize: '0.8rem', fontWeight: '600', color: pkg.packageName === 'Diamond' ? (actualTheme === 'dark' ? '#A78BFA' : '#7C3AED') : colors.textSecondary, marginBottom: '0.25rem' }}>
+                                <p style={{
+                                  fontSize: '0.75rem', fontWeight: 700,
+                                  color: pkg.packageName === 'Diamond' ? '#3B82F6' : colors.textSecondary,
+                                  margin: 0,
+                                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                                }}>
+                                  <i className="bi bi-images" style={{ fontSize: 10, color: '#F20C8F' }} />
                                   {[pkg.includedPhotos ? `${pkg.includedPhotos} photos` : '', pkg.includedVideos ? `${pkg.includedVideos} videos` : ''].filter(Boolean).join(' · ') || 'Set photo/video count'}
                                 </p>
                               </div>
@@ -4631,17 +4816,18 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
                               {/* Features */}
                               {includedFeatures.length > 0 && (
                                 <div style={{
-                                  borderTop: `1px solid ${actualTheme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
-                                  padding: '0.75rem 1.25rem',
-                                  display: 'flex', flexDirection: 'column', gap: '0.4rem', flex: 1,
+                                  borderTop: `1px solid ${colors.borderPrimary}`,
+                                  padding: '0.6rem 1rem',
+                                  display: 'flex', flexDirection: 'column', gap: 4, flex: 1,
                                   backgroundColor: actualTheme === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.015)',
                                 }}>
                                   {includedFeatures.map((f, idx) => (
                                     <div key={`${pkg.id}-feat-${idx}`} style={{
-                                      display: 'flex', alignItems: 'center', gap: '0.5rem',
-                                      fontSize: '0.8rem', color: colors.textPrimary,
+                                      display: 'flex', alignItems: 'center', gap: 5,
+                                      fontSize: '0.78rem', color: colors.textPrimary,
+                                      lineHeight: 1.35,
                                     }}>
-                                      <CheckIcon />
+                                      <i className="bi bi-check-circle-fill" style={{ fontSize: 11, color: '#10B981', flexShrink: 0 }} />
                                       {f.featureName}
                                     </div>
                                   ))}
@@ -4650,27 +4836,38 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
 
                               {/* Footer: status + live stream badge */}
                               <div style={{
-                                padding: '0.75rem 1.25rem',
-                                borderTop: `1px solid ${actualTheme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
+                                padding: '0.55rem 1rem',
+                                borderTop: `1px solid ${colors.borderPrimary}`,
                                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                gap: 6,
                               }}>
                                 <span style={{
-                                  fontSize: '0.7rem', fontWeight: '600', padding: '0.2rem 0.6rem',
-                                  borderRadius: '1rem',
-                                  backgroundColor: pkg.isActive ? (actualTheme === 'dark' ? '#065F4620' : '#D1FAE5') : (actualTheme === 'dark' ? '#7F1D1D20' : '#FEE2E2'),
-                                  color: pkg.isActive ? (actualTheme === 'dark' ? '#6EE7B7' : '#065F46') : (actualTheme === 'dark' ? '#FCA5A5' : '#991B1B'),
+                                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                                  fontSize: '0.62rem', fontWeight: 800,
+                                  padding: '0.18rem 0.55rem',
+                                  borderRadius: 9999,
+                                  letterSpacing: '0.06em', textTransform: 'uppercase' as const,
+                                  background: pkg.isActive
+                                    ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)'
+                                    : 'linear-gradient(135deg, #9CA3AF 0%, #6B7280 100%)',
+                                  color: '#fff',
+                                  boxShadow: pkg.isActive ? '0 3px 8px rgba(16,185,129,0.28)' : 'none',
                                 }}>
+                                  {pkg.isActive && <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#fff', boxShadow: '0 0 6px #fff' }} />}
                                   {pkg.isActive ? 'Active' : 'Inactive'}
                                 </span>
                                 {pkg.hasLiveStream && (
                                   <span style={{
-                                    fontSize: '0.7rem', fontWeight: '600', padding: '0.2rem 0.6rem',
-                                    borderRadius: '1rem',
-                                    backgroundColor: actualTheme === 'dark' ? '#4C1D9520' : '#F5F3FF',
-                                    color: actualTheme === 'dark' ? '#A78BFA' : '#7C3AED',
-                                    display: 'flex', alignItems: 'center', gap: '0.3rem',
+                                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                                    fontSize: '0.62rem', fontWeight: 800,
+                                    padding: '0.18rem 0.55rem',
+                                    borderRadius: 9999,
+                                    letterSpacing: '0.06em', textTransform: 'uppercase' as const,
+                                    background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
+                                    color: '#fff',
+                                    boxShadow: '0 3px 8px rgba(139,92,246,0.30)',
                                   }}>
-                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="4"/><path d="M4.93 4.93a10 10 0 0 1 14.14 0" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/><path d="M7.76 7.76a6 6 0 0 1 8.48 0" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/></svg>
+                                    <i className="bi bi-broadcast-pin" style={{ fontSize: 9 }} />
                                     Live Stream
                                   </span>
                                 )}
@@ -4745,6 +4942,31 @@ const PhotographerProfilePage = ({ userType = 'photographer' }: PhotographerProf
         colors={colors}
         actualTheme={actualTheme}
       />
+
+      {/* Remove Package Confirmation */}
+      {packageToRemove && (
+        <EventConfirmModal
+          tone="danger"
+          icon="bi-trash3-fill"
+          eyebrow="Remove package"
+          title="Remove this package?"
+          intro={<>You&apos;re about to remove your <strong style={{ color: colors.textPrimary }}>{packageToRemove.packageName || 'package'}</strong> tier from your portfolio. Clients won&apos;t see it on your profile or in the booking wizard anymore.</>}
+          detail="If you haven't saved yet, the change is local only. Saved packages are removed from your profile when you confirm."
+          colors={{ bgCard: colors.bgCard, borderPrimary: colors.borderPrimary, textPrimary: colors.textPrimary, textSecondary: colors.textSecondary }}
+          actualTheme={actualTheme}
+          onClose={() => setPackageToRemove(null)}
+          closeLabel="Cancel"
+          primary={{
+            label: 'Remove',
+            icon: 'bi-trash3-fill',
+            onClick: () => {
+              removePackage(packageToRemove.id);
+              setPackageToRemove(null);
+            },
+            tone: 'danger',
+          }}
+        />
+      )}
     </div>
   );
 };

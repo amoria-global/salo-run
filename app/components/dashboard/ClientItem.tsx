@@ -8,107 +8,36 @@ interface ClientItemProps {
   onMenuClick?: () => void;
 }
 
-export const ClientItem: React.FC<ClientItemProps> = ({
-  name,
-  event,
-  status,
-  avatar,
-  onMenuClick
-}) => {
-  const getStatusClass = () => {
-    switch (status) {
-      case 'In Progress':
-        return 'bg-pink-50 text-pink-600';
-      case 'Completed':
-        return 'bg-green-50 text-green-600';
-      case 'Pending':
-        return 'bg-amber-50 text-amber-600';
-      default:
-        return '';
-    }
-  };
+const statusStyle = (status: string): { background: string; color: string } => {
+  switch (status) {
+    case 'In Progress': return { background: 'rgba(242,12,143,0.10)', color: '#F20C8F' };
+    case 'Completed':   return { background: '#ECFDF5', color: '#065F46' };
+    case 'Pending':     return { background: '#FFFBEB', color: '#92400E' };
+    default:            return { background: 'var(--ck-surface-muted)', color: 'var(--ck-text-soft)' };
+  }
+};
 
-  const getStatusStyle = () => {
-    switch (status) {
-      case 'In Progress':
-        return { backgroundColor: '#FCE7F3', color: '#DB2777' };
-      case 'Completed':
-        return { backgroundColor: '#D1FAE5', color: '#059669' };
-      case 'Pending':
-        return { backgroundColor: '#FEF3C7', color: '#D97706' };
-      default:
-        return {};
-    }
-  };
-
+export const ClientItem: React.FC<ClientItemProps> = ({ name, event, status, avatar, onMenuClick }) => {
+  const ss = statusStyle(status);
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.625rem',
-        padding: '0.5rem',
-        borderRadius: '0.375rem',
-        transition: 'background-color 0.3s'
-      }}
-      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F9FAFB'}
-      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-    >
-      <img
-        src={avatar}
-        alt={name}
-        style={{
-          width: '2.25rem',
-          height: '2.25rem',
-          borderRadius: '9999px',
-          objectFit: 'cover'
-        }}
-      />
-      <div style={{
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.125rem'
-      }}>
-        <span style={{
-          fontSize: '1rem',
-          lineHeight: '1.25rem',
-          fontWeight: '700',
-          color: '#111827'
-        }}>{name}</span>
-        <span style={{
-          fontSize: '0.85rem',
-          lineHeight: '1rem',
-          color: '#6B7280'
-        }}>{event}</span>
+    <div className="ck-row" style={{ gap: 12 }}>
+      <img src={avatar} alt={name}
+        style={{ width: 36, height: 36, borderRadius: 9999, objectFit: 'cover', flexShrink: 0 }} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: '0.92rem', fontWeight: 600, color: 'var(--ck-text)' }}>{name}</div>
+        <div style={{ fontSize: '0.78rem', color: 'var(--ck-text-soft)', marginTop: 1 }}>{event}</div>
       </div>
-      <span style={{
-        paddingLeft: '0.625rem',
-        paddingRight: '0.625rem',
-        paddingTop: '0.25rem',
-        paddingBottom: '0.25rem',
-        borderRadius: '0.25rem',
-        fontSize: '0.85rem',
-        lineHeight: '1rem',
-        fontWeight: '600',
-        ...getStatusStyle()
-      }}>{status}</span>
-      <button
+      <span className="ck-pill" style={{ background: ss.background, color: ss.color, padding: '3px 9px' }}>{status}</span>
+      <button onClick={onMenuClick} aria-label="More"
         style={{
-          padding: '0.25rem',
-          color: '#9CA3AF',
-          fontSize: '1.25rem',
-          lineHeight: '1.75rem',
-          border: 'none',
-          background: 'none',
-          cursor: 'pointer',
-          transition: 'color 0.3s'
+          width: 28, height: 28, borderRadius: 9999,
+          border: 'none', background: 'transparent', cursor: 'pointer',
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          color: 'var(--ck-text-muted)',
         }}
-        onClick={onMenuClick}
-        onMouseEnter={(e) => e.currentTarget.style.color = '#4B5563'}
-        onMouseLeave={(e) => e.currentTarget.style.color = '#9CA3AF'}
-      >
-        <span>⋮</span>
+        onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--ck-surface-muted)'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
+        <i className="bi bi-three-dots" />
       </button>
     </div>
   );

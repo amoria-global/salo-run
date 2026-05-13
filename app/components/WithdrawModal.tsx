@@ -400,76 +400,171 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
   return (
     <div style={{
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+      backgroundColor: 'rgba(0, 0, 0, 0.45)', backdropFilter: 'blur(2px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      zIndex: 9999, padding: 16,
+      animation: 'ck-fade-in 180ms ease both',
     }} onClick={onClose}>
       <div className="mobile-modal" style={{
-        backgroundColor: colors.bgCard, borderRadius: '1rem', width: '520px', maxWidth: '95vw',
-        maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+        backgroundColor: 'var(--ck-surface)',
+        borderRadius: 20, width: 560, maxWidth: '100%',
+        maxHeight: 'calc(100vh - 32px)', overflowY: 'auto',
+        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.18)',
+        animation: 'ck-modal-pop 320ms cubic-bezier(0.32, 0.72, 0, 1) both',
       }} onClick={e => e.stopPropagation()}>
 
         {/* Header */}
         <div className="mobile-modal-header" style={{
-          padding: '1.5rem 1.5rem 0 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative'
+          padding: '18px 22px 16px', display: 'flex',
+          justifyContent: 'space-between', alignItems: 'flex-start',
+          gap: 12, borderBottom: '1px solid var(--ck-stroke)',
         }}>
-          <div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: colors.textPrimary, margin: 0 }}>
-              {step === 'verification' ? getVerificationTitle() : 'Withdraw Funds'}
+          <div style={{ minWidth: 0 }}>
+            <h3 style={{
+              fontSize: '1.2rem', fontWeight: 800, letterSpacing: '-0.01em',
+              color: 'var(--ck-text)', margin: 0,
+            }}>
+              {step === 'verification' ? getVerificationTitle() : 'Withdraw funds'}
             </h3>
-            <p style={{ fontSize: '0.85rem', color: colors.textSecondary, margin: '0.25rem 0 0 0' }}>
-              {step === 'verification' ? getVerificationDescription() : 'Transfer earnings to your account'}
+            <p style={{
+              fontSize: '0.88rem', color: 'var(--ck-text-soft)', margin: '4px 0 0',
+            }}>
+              {step === 'verification' ? getVerificationDescription() : 'Transfer earnings to your account.'}
             </p>
           </div>
-          <button onClick={onClose} style={{
-            background: colors.bgTertiary, border: `2px solid ${colors.borderPrimary}`, cursor: 'pointer',
-            padding: '0.5rem', borderRadius: '0.375rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: colors.textPrimary, transition: 'background 0.2s'
-          }}>
-            <CloseIcon />
+          <button onClick={onClose} aria-label="Close" style={{
+            width: 32, height: 32, borderRadius: 9999,
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            color: 'var(--ck-text)', transition: 'background 180ms', flexShrink: 0,
+          }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--ck-surface-muted)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
+            <i className="bi bi-x-lg" style={{ fontSize: 16 }} />
           </button>
         </div>
 
-        <div className="mobile-modal-content" style={{ padding: '1.5rem' }}>
+        <div className="mobile-modal-content" style={{ padding: '22px' }}>
 
           {/* Success State */}
           {step === 'success' && (
-            <div style={{ textAlign: 'center', padding: '2rem 0' }}>
-              <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: '#16A34A', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem', boxShadow: '0 4px 14px rgba(22,163,74,0.3)' }}>
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+            <div style={{ textAlign: 'center', padding: '2rem 0 0.5rem' }}>
+              <div style={{ width: 72, height: 72, borderRadius: 20, background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.1rem', boxShadow: '0 12px 28px rgba(16,185,129,0.40)' }}>
+                <i className="bi bi-check2" style={{ fontSize: 32, color: '#fff' }} />
               </div>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: colors.textPrimary, marginBottom: '0.5rem' }}>Withdrawal Submitted!</h3>
-              <p style={{ fontSize: '0.85rem', color: colors.textSecondary, lineHeight: '1.5', marginBottom: '1.5rem' }}>Your withdrawal is being processed. You will be notified when it completes.</p>
+              <div style={{ fontSize: '0.66rem', fontWeight: 700, color: '#10B981', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>Withdrawal submitted</div>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: colors.textPrimary, marginBottom: '0.5rem', letterSpacing: '-0.01em' }}>You&apos;re all set!</h3>
+              <p style={{ fontSize: '0.9rem', color: colors.textSecondary, lineHeight: 1.55, marginBottom: '1.4rem', maxWidth: 360, margin: '0 auto 1.4rem' }}>Your withdrawal is being processed. You will be notified when it completes.</p>
               <button onClick={onClose} style={{
-                flex: 1, padding: '0.875rem 2rem', border: '2px solid #062a63', borderRadius: '0.75rem',
-                background: '#083A85', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: '0 auto',
-              }}>Done</button>
+                padding: '0.75rem 2rem',
+                border: 'none',
+                borderRadius: 11,
+                background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                color: 'white',
+                fontSize: '0.92rem',
+                fontWeight: 700,
+                letterSpacing: '-0.005em',
+                cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', gap: 7,
+                boxShadow: '0 8px 18px rgba(16,185,129,0.32)',
+                transition: 'transform 0.15s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+              >
+                <i className="bi bi-check2" style={{ fontSize: 13 }} />
+                Done
+              </button>
             </div>
           )}
 
           {/* Failed State */}
           {step === 'failed' && (
-            <div style={{ textAlign: 'center', padding: '2rem 0' }}>
-              <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: isKycRequired ? '#F59E0B' : '#DC2626', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem', boxShadow: isKycRequired ? '0 4px 14px rgba(245,158,11,0.3)' : '0 4px 14px rgba(220,38,38,0.3)' }}>
-                {isKycRequired ? (
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22C12 22 20 18 20 12V5L12 2L4 5V12C4 18 12 22 12 22Z"/><path d="M12 8V12M12 16H12.01"/></svg>
-                ) : (
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                )}
+            <div style={{ textAlign: 'center', padding: '2rem 0 0.5rem' }}>
+              <div style={{
+                width: 72, height: 72, borderRadius: 20,
+                background: isKycRequired
+                  ? 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)'
+                  : 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                margin: '0 auto 1.1rem',
+                boxShadow: isKycRequired ? '0 12px 28px rgba(245,158,11,0.40)' : '0 12px 28px rgba(220,38,38,0.40)',
+              }}>
+                <i className={`bi ${isKycRequired ? 'bi-shield-exclamation' : 'bi-x-octagon-fill'}`} style={{ fontSize: 28, color: '#fff' }} />
               </div>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: colors.textPrimary, marginBottom: '0.5rem' }}>
-                {isKycRequired ? 'KYC Verification Required' : 'Withdrawal Failed'}
+              <div style={{ fontSize: '0.66rem', fontWeight: 700, color: isKycRequired ? '#D97706' : '#DC2626', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>
+                {isKycRequired ? 'Verification required' : 'Withdrawal failed'}
+              </div>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: colors.textPrimary, marginBottom: '0.5rem', letterSpacing: '-0.01em' }}>
+                {isKycRequired ? 'KYC Verification Required' : 'We couldn\'t process this withdrawal'}
               </h3>
-              <p style={{ fontSize: '0.85rem', color: isKycRequired ? '#92400E' : '#DC2626', marginBottom: '1.5rem', lineHeight: '1.5' }}>{error}</p>
-              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+              <p style={{ fontSize: '0.9rem', color: isKycRequired ? (actualTheme === 'dark' ? '#FCD34D' : '#92400E') : (actualTheme === 'dark' ? '#FCA5A5' : '#B91C1C'), marginBottom: '1.4rem', lineHeight: 1.55, maxWidth: 380, margin: '0 auto 1.4rem' }}>{error}</p>
+              <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'center' }}>
+                <button
+                  onClick={onClose}
+                  style={{
+                    padding: '0.75rem 1.4rem',
+                    border: `1px solid ${colors.borderPrimary}`,
+                    borderRadius: 11,
+                    background: colors.bgTertiary,
+                    color: colors.textPrimary,
+                    fontSize: '0.9rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'border-color 0.15s',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; }}
+                >
+                  Close
+                </button>
                 {isKycRequired ? (
-                  <button onClick={() => { setShowKycModal(true); }} style={{ padding: '0.875rem 1.5rem', border: '2px solid #062a63', borderRadius: '0.75rem', background: '#083A85', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22C12 22 20 18 20 12V5L12 2L4 5V12C4 18 12 22 12 22Z"/><path d="M9 12L11 14L15 10"/></svg>
+                  <button
+                    onClick={() => { setShowKycModal(true); }}
+                    style={{
+                      padding: '0.75rem 1.4rem',
+                      border: 'none',
+                      borderRadius: 11,
+                      background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                      color: 'white',
+                      fontSize: '0.92rem',
+                      fontWeight: 700,
+                      letterSpacing: '-0.005em',
+                      cursor: 'pointer',
+                      display: 'inline-flex', alignItems: 'center', gap: 7,
+                      boxShadow: '0 8px 18px rgba(245,158,11,0.32)',
+                      transition: 'transform 0.15s',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+                  >
+                    <i className="bi bi-shield-check" style={{ fontSize: 13 }} />
                     Complete KYC Verification
                   </button>
                 ) : (
-                  <button onClick={() => setStep('form')} style={{ padding: '0.875rem 1.5rem', border: '2px solid #062a63', borderRadius: '0.75rem', background: '#083A85', color: 'white', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Try Again</button>
+                  <button
+                    onClick={() => setStep('form')}
+                    style={{
+                      padding: '0.75rem 1.4rem',
+                      border: 'none',
+                      borderRadius: 11,
+                      background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                      color: 'white',
+                      fontSize: '0.92rem',
+                      fontWeight: 700,
+                      letterSpacing: '-0.005em',
+                      cursor: 'pointer',
+                      display: 'inline-flex', alignItems: 'center', gap: 7,
+                      boxShadow: '0 8px 18px rgba(8,58,133,0.30)',
+                      transition: 'transform 0.15s',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+                  >
+                    <i className="bi bi-arrow-clockwise" style={{ fontSize: 13 }} />
+                    Try Again
+                  </button>
                 )}
-                <button onClick={onClose} style={{ padding: '0.875rem 1.5rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.75rem', background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>Close</button>
               </div>
             </div>
           )}
@@ -654,33 +749,47 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
               )}
 
               {/* Verify + Cancel Buttons */}
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', gap: '0.6rem' }}>
                 <button onClick={() => setStep('form')} disabled={isVerifying}
                   style={{
-                    flex: 1, padding: '0.875rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.75rem',
-                    background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600',
+                    flex: 1, padding: '0.75rem 1rem',
+                    border: `1px solid ${colors.borderPrimary}`,
+                    borderRadius: 11,
+                    background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: 700,
                     cursor: isVerifying ? 'not-allowed' : 'pointer', opacity: isVerifying ? 0.6 : 1,
-                  }}>
+                    transition: 'border-color 0.15s',
+                  }}
+                  onMouseEnter={(e) => { if (!isVerifying) e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; }}
+                >
                   Back
                 </button>
                 <button onClick={handleVerify} disabled={isVerifying}
                   style={{
-                    flex: 1, padding: '0.875rem 1rem', border: '2px solid #062a63', borderRadius: '0.75rem',
-                    background: isVerifying ? '#9CA3AF' : '#083A85', color: 'white', fontSize: '0.9rem', fontWeight: '600',
+                    flex: 1.4, padding: '0.75rem 1rem',
+                    border: 'none',
+                    borderRadius: 11,
+                    background: isVerifying
+                      ? (actualTheme === 'dark' ? '#4B5563' : '#9CA3AF')
+                      : 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                    color: 'white', fontSize: '0.92rem', fontWeight: 700,
+                    letterSpacing: '-0.005em',
                     cursor: isVerifying ? 'not-allowed' : 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                  }}>
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                    boxShadow: isVerifying ? 'none' : '0 8px 18px rgba(8,58,133,0.30)',
+                    transition: 'transform 0.15s, box-shadow 0.15s',
+                  }}
+                  onMouseEnter={(e) => { if (!isVerifying) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 12px 24px rgba(242,12,143,0.35)'; } }}
+                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = isVerifying ? 'none' : '0 8px 18px rgba(8,58,133,0.30)'; }}
+                >
                   {isVerifying ? (
                     <>
-                      <div style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                      <i className="bi bi-arrow-clockwise" style={{ fontSize: 13, animation: 'spin 0.9s linear infinite' }} />
                       Verifying...
                     </>
                   ) : (
                     <>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 22C12 22 20 18 20 12V5L12 2L4 5V12C4 18 12 22 12 22Z"/>
-                        <path d="M9 12L11 14L15 10"/>
-                      </svg>
+                      <i className="bi bi-shield-check" style={{ fontSize: 13 }} />
                       Verify & Withdraw
                     </>
                   )}
@@ -692,19 +801,42 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
           {/* Form */}
           {step === 'form' && (
             <>
-              {/* Available Balance Card */}
+              {/* Available Balance Card — Connekyt brand gradient */}
               <div className="mobile-balance-display" style={{
-                background: 'linear-gradient(135deg, #083A85 0%, #1E40AF 100%)',
-                borderRadius: '0.875rem', padding: '1.25rem', marginBottom: '1rem',
-                position: 'relative', overflow: 'hidden',
+                background: 'linear-gradient(135deg, #083A85 0%, #0a4da8 60%, #1654b8 100%)',
+                borderRadius: 16, padding: '22px 24px', marginBottom: 14,
+                position: 'relative', overflow: 'hidden', color: '#ffffff',
               }}>
-                <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '100px', height: '100px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
-                <div style={{ position: 'absolute', bottom: '-30px', right: '40px', width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
+                <div style={{
+                  position: 'absolute', top: -60, right: -60,
+                  width: 200, height: 200, borderRadius: '50%',
+                  background: 'radial-gradient(closest-side, rgba(242,12,143,0.30), rgba(242,12,143,0))',
+                  pointerEvents: 'none',
+                }} />
+                <div style={{
+                  position: 'absolute', bottom: -80, left: -40,
+                  width: 180, height: 180, borderRadius: '50%',
+                  background: 'radial-gradient(closest-side, rgba(255,255,255,0.10), rgba(255,255,255,0))',
+                  pointerEvents: 'none',
+                }} />
                 <div style={{ position: 'relative', zIndex: 1 }}>
-                  <div className="mobile-balance-display-text" style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.8)', marginBottom: '0.5rem', fontWeight: '500' }}>
-                    Available Balance ({displayCurrency})
-                  </div>
-                  <div className="mobile-balance-display-amount" style={{ fontSize: '2rem', fontWeight: '700', color: 'white', letterSpacing: '-0.02em' }}>
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    padding: '4px 12px', borderRadius: 9999,
+                    background: 'rgba(255,255,255,0.14)',
+                    border: '1px solid rgba(255,255,255,0.18)',
+                    fontSize: '0.66rem', fontWeight: 700,
+                    letterSpacing: '0.10em', textTransform: 'uppercase',
+                    color: '#fff', backdropFilter: 'blur(8px)', marginBottom: 10,
+                  }}>
+                    <i className="bi bi-wallet2" style={{ fontSize: 11 }} />
+                    Available · {displayCurrency}
+                  </span>
+                  <div className="mobile-balance-display-amount" style={{
+                    fontSize: '2.1rem', fontWeight: 800, color: 'white',
+                    letterSpacing: '-0.025em', lineHeight: 1.05,
+                    textShadow: '0 4px 30px rgba(0,0,0,0.18)',
+                  }}>
                     {fmtFromRwf(totalBalanceRwf)}
                   </div>
                 </div>
@@ -847,28 +979,11 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
                           onClose();
                           window.location.href = `${prefsPath}&action=add-method`;
                         }}
-                        style={{
-                          padding: '0.75rem 1.5rem',
-                          backgroundColor: '#7c3aed',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '0.5rem',
-                          fontSize: '0.875rem',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
-                          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = '#6d28d9';
-                          e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.15)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = '#7c3aed';
-                          e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
-                        }}
+                        className="ck-btn ck-btn-primary"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
                       >
-                        + Add Withdrawal Method
+                        <i className="bi bi-plus-lg" style={{ fontSize: 12 }} />
+                        Add withdrawal method
                       </button>
                     </div>
                   ) : null}
@@ -932,21 +1047,53 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
 
               {/* Donation Section */}
               <div style={{
-                marginBottom: '1.25rem', padding: '1rem', borderRadius: '0.75rem',
-                border: `2px solid ${donationSkipped ? colors.borderPrimary : (donationDisplayValue > 0 ? '#F20C8F' : 'rgba(242, 12, 143, 0.3)')}`,
+                position: 'relative',
+                overflow: 'hidden',
+                marginBottom: '1.25rem',
+                padding: '1.1rem 1.1rem 1rem',
+                borderRadius: 16,
+                border: `1px solid ${donationSkipped ? 'var(--ck-stroke)' : 'rgba(242, 12, 143, 0.28)'}`,
                 background: actualTheme === 'dark'
-                  ? 'linear-gradient(135deg, rgba(242, 12, 143, 0.08) 0%, rgba(255, 107, 157, 0.03) 100%)'
-                  : 'linear-gradient(135deg, rgba(242, 12, 143, 0.05) 0%, rgba(255, 107, 157, 0.02) 100%)',
+                  ? 'linear-gradient(135deg, rgba(242, 12, 143, 0.10) 0%, rgba(8, 58, 133, 0.06) 100%)'
+                  : 'linear-gradient(135deg, rgba(242, 12, 143, 0.07) 0%, rgba(8, 58, 133, 0.03) 100%)',
+                boxShadow: donationSkipped ? 'none' : '0 8px 20px rgba(242, 12, 143, 0.10)',
                 transition: 'all 0.2s',
               }}>
-                <div style={{ marginBottom: '0.75rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <HeartIcon />
-                    <span style={{ fontSize: '0.9rem', fontWeight: '600', color: colors.textPrimary }}>Support a Cause</span>
-                    <span style={{ fontSize: '0.81rem', color: colors.textSecondary, marginLeft: 'auto' }}>Optional</span>
+                {/* gradient accent stripe */}
+                <span aria-hidden style={{
+                  position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+                  background: 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
+                }} />
+
+                <div style={{ marginBottom: '0.85rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{
+                      width: 32, height: 32, borderRadius: 9,
+                      background: 'rgba(242, 12, 143, 0.12)',
+                      border: '1px solid rgba(242, 12, 143, 0.25)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0,
+                    }}>
+                      <i className="bi bi-heart-fill" style={{ fontSize: 14, color: '#F20C8F' }} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        fontSize: '0.66rem', fontWeight: 700, color: '#F20C8F',
+                        letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 1,
+                      }}>Give back</div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.01em' }}>
+                        Support a cause
+                      </div>
+                    </div>
+                    <span style={{
+                      fontSize: '0.66rem', fontWeight: 700, color: colors.textSecondary,
+                      letterSpacing: '0.06em', textTransform: 'uppercase',
+                      padding: '3px 8px', borderRadius: 999,
+                      background: 'var(--ck-surface-soft)', border: '1px solid var(--ck-stroke)',
+                    }}>Optional</span>
                   </div>
-                  <p style={{ fontSize: '0.84rem', color: colors.textSecondary, margin: '0.35rem 0 0 0', lineHeight: '1.4' }}>
-                    Add a small donation to help fund community projects and initiatives
+                  <p style={{ fontSize: '0.84rem', color: colors.textSecondary, margin: '8px 0 0', lineHeight: 1.5 }}>
+                    Add a small donation to help fund community projects and initiatives.
                   </p>
                 </div>
 
@@ -964,12 +1111,15 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
                         return (
                           <button key={rwfPreset} onClick={() => handleSelectDonation(dispStr)}
                             style={{
-                              padding: '0.4rem 0.75rem',
-                              border: selected ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`,
-                              borderRadius: '0.5rem',
-                              background: selected ? (actualTheme === 'dark' ? 'rgba(242, 12, 143, 0.15)' : 'rgba(242, 12, 143, 0.08)') : colors.bgCard,
-                              color: selected ? '#F20C8F' : colors.textSecondary,
-                              fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', flex: '1', minWidth: '0',
+                              padding: '0.5rem 0.75rem',
+                              border: selected ? '1.5px solid #F20C8F' : `1px solid var(--ck-stroke)`,
+                              borderRadius: 10,
+                              background: selected
+                                ? (actualTheme === 'dark' ? 'rgba(242, 12, 143, 0.22)' : 'rgba(242, 12, 143, 0.10)')
+                                : 'var(--ck-surface)',
+                              color: selected ? '#F20C8F' : colors.textPrimary,
+                              fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.18s', flex: '1', minWidth: 0,
+                              boxShadow: selected ? '0 4px 10px rgba(242, 12, 143, 0.18)' : 'none',
                             }}>
                             {fmtFromRwf(rwfPreset)}
                           </button>
@@ -977,12 +1127,15 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
                       })}
                       <button onClick={() => handleSelectDonation('custom')}
                         style={{
-                          padding: '0.4rem 0.75rem',
-                          border: donationAmount === 'custom' ? '2px solid #F20C8F' : `2px solid ${colors.borderPrimary}`,
-                          borderRadius: '0.5rem',
-                          background: donationAmount === 'custom' ? (actualTheme === 'dark' ? 'rgba(242, 12, 143, 0.15)' : 'rgba(242, 12, 143, 0.08)') : colors.bgCard,
-                          color: donationAmount === 'custom' ? '#F20C8F' : colors.textSecondary,
-                          fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', flex: '1', minWidth: '0',
+                          padding: '0.5rem 0.75rem',
+                          border: donationAmount === 'custom' ? '1.5px solid #F20C8F' : `1px solid var(--ck-stroke)`,
+                          borderRadius: 10,
+                          background: donationAmount === 'custom'
+                            ? (actualTheme === 'dark' ? 'rgba(242, 12, 143, 0.22)' : 'rgba(242, 12, 143, 0.10)')
+                            : 'var(--ck-surface)',
+                          color: donationAmount === 'custom' ? '#F20C8F' : colors.textPrimary,
+                          fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.18s', flex: '1', minWidth: 0,
+                          boxShadow: donationAmount === 'custom' ? '0 4px 10px rgba(242, 12, 143, 0.18)' : 'none',
                         }}>
                         Custom
                       </button>
@@ -990,17 +1143,17 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
 
                     {showCustomInput && (
                       <div style={{ position: 'relative', marginBottom: '0.75rem' }}>
-                        <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontSize: '0.9rem', fontWeight: '600', color: colors.textSecondary }}>$</span>
+                        <span style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', fontSize: '0.9rem', fontWeight: 700, color: colors.textSecondary }}>$</span>
                         <input type="number" placeholder="Enter amount" value={customDonation}
                           onChange={e => setCustomDonation(e.target.value)}
                           style={{
-                            width: '100%', padding: '0.6rem 0.75rem 0.6rem 1.75rem',
-                            border: `2px solid ${customDonation ? '#F20C8F' : colors.borderPrimary}`,
-                            borderRadius: '0.5rem', fontSize: '0.85rem', color: colors.textPrimary,
-                            backgroundColor: colors.bgCard, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s',
+                            width: '100%', padding: '0.65rem 0.85rem 0.65rem 1.85rem',
+                            border: `1.5px solid ${customDonation ? '#F20C8F' : 'var(--ck-stroke)'}`,
+                            borderRadius: 10, fontSize: '0.88rem', color: colors.textPrimary,
+                            backgroundColor: 'var(--ck-surface)', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s, box-shadow 0.2s',
                           }}
-                          onFocus={e => { e.currentTarget.style.borderColor = '#F20C8F'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(242, 12, 143, 0.1)'; }}
-                          onBlur={e => { e.currentTarget.style.borderColor = customDonation ? '#F20C8F' : colors.borderPrimary; e.currentTarget.style.boxShadow = 'none'; }}
+                          onFocus={e => { e.currentTarget.style.borderColor = '#F20C8F'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(242, 12, 143, 0.14)'; }}
+                          onBlur={e => { e.currentTarget.style.borderColor = customDonation ? '#F20C8F' : 'var(--ck-stroke)'; e.currentTarget.style.boxShadow = 'none'; }}
                         />
                       </div>
                     )}
@@ -1009,19 +1162,19 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
 
                 <button onClick={handleSkipDonation}
                   style={{
-                    width: '100%', padding: '0.5rem 1rem', borderRadius: '9999px',
-                    border: donationSkipped ? '2px solid #F20C8F' : '2px solid #6B7280',
-                    background: donationSkipped ? '#F20C8F' : colors.bgTertiary,
-                    color: donationSkipped ? 'white' : '#374151',
-                    fontSize: '0.875rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center',
+                    width: '100%', padding: '0.55rem 1rem', borderRadius: 9999,
+                    border: donationSkipped ? '1.5px solid #F20C8F' : '1px solid var(--ck-stroke)',
+                    background: donationSkipped ? '#F20C8F' : 'var(--ck-surface)',
+                    color: donationSkipped ? '#fff' : colors.textSecondary,
+                    fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.18s', textAlign: 'center',
                   }}>
                   {donationSkipped ? '✓ Donation skipped' : 'No thanks, skip donation'}
                 </button>
 
-                <div style={{ marginTop: '0.5rem' }}>
+                <div style={{ marginTop: '0.65rem', textAlign: 'left' }}>
                   <a href="#" onClick={e => e.preventDefault()}
-                    style={{ fontSize: '0.81rem', color: '#F20C8F', textDecoration: 'none', fontWeight: '500' }}>
-                    Learn more about our donation program →
+                    style={{ fontSize: '0.78rem', color: '#F20C8F', textDecoration: 'none', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    Learn more about our donation program <i className="bi bi-arrow-right" style={{ fontSize: 11 }} />
                   </a>
                 </div>
               </div>
@@ -1034,28 +1187,33 @@ export default function WithdrawModal({ isOpen, onClose, role, colors, actualThe
               )}
 
               {/* Actions */}
-              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+              <div style={{
+                display: 'flex', gap: 10, alignItems: 'center',
+                padding: '14px 0 4px', marginTop: 8,
+                borderTop: '1px solid var(--ck-stroke)', paddingTop: 16,
+              }}>
                 <button onClick={onClose} disabled={isWithdrawing}
-                  style={{
-                    flex: 1, padding: '0.875rem 1rem', border: `2px solid ${colors.borderPrimary}`, borderRadius: '0.75rem',
-                    background: colors.bgTertiary, color: colors.textPrimary, fontSize: '0.9rem', fontWeight: '600',
-                    cursor: isWithdrawing ? 'not-allowed' : 'pointer', opacity: isWithdrawing ? 0.6 : 1, transition: 'all 0.2s',
-                  }}
-                  onMouseEnter={e => { if (!isWithdrawing) e.currentTarget.style.background = colors.borderPrimary; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = colors.bgTertiary; }}>
+                  className="ck-btn ck-btn-ghost"
+                  style={{ flex: 1, padding: '11px 16px' }}>
                   Cancel
                 </button>
                 <button onClick={handleWithdraw} disabled={!isValid || isWithdrawing}
+                  className="ck-btn ck-btn-primary"
                   style={{
-                    flex: 1, padding: '0.875rem 1rem',
-                    border: !isValid || isWithdrawing ? '2px solid #9CA3AF' : '2px solid #062a63',
-                    borderRadius: '0.75rem', background: !isValid || isWithdrawing ? '#9CA3AF' : '#083A85',
-                    color: 'white', fontSize: '0.9rem', fontWeight: '600',
+                    flex: 1.4, padding: '11px 16px',
+                    opacity: !isValid || isWithdrawing ? 0.55 : 1,
                     cursor: !isValid || isWithdrawing ? 'not-allowed' : 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', transition: 'all 0.2s',
                   }}>
-                  <WithdrawIcon />
-                  {isWithdrawing ? 'Processing...' : 'Withdraw Funds'}
+                  {isWithdrawing ? (
+                    <>
+                      <span className="ck-spinner" style={{ width: 14, height: 14, borderColor: 'rgba(255,255,255,0.4)', borderTopColor: '#fff' }} />
+                      Processing…
+                    </>
+                  ) : (
+                    <>
+                      <i className="bi bi-bank" /> Withdraw funds
+                    </>
+                  )}
                 </button>
               </div>
             </>

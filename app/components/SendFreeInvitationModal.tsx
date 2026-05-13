@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useTheme } from '../context/ThemeContext';
 
 interface SendFreeInvitationModalProps {
   albumTitle: string;
@@ -17,6 +18,7 @@ const SendFreeInvitationModal: React.FC<SendFreeInvitationModalProps> = ({
   onClose,
   onSend,
 }) => {
+  const { colors, actualTheme } = useTheme();
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -43,7 +45,9 @@ const SendFreeInvitationModal: React.FC<SendFreeInvitationModalProps> = ({
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0, 0, 0, 0.5)',
+        backgroundColor: 'rgba(0, 0, 0, 0.45)',
+        backdropFilter: 'blur(2px)',
+        WebkitBackdropFilter: 'blur(2px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -54,217 +58,260 @@ const SendFreeInvitationModal: React.FC<SendFreeInvitationModalProps> = ({
     >
       <div
         style={{
-          background: '#ffffff',
-          borderRadius: '0.75rem',
-          maxWidth: '500px',
+          position: 'relative',
+          background: colors.bgCard,
+          borderRadius: 18,
+          maxWidth: 500,
           width: '100%',
-          padding: '1.5rem',
-          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+          padding: 0,
+          boxShadow: '0 25px 60px -12px rgba(8, 58, 133, 0.30)',
+          border: `1px solid ${colors.borderPrimary}`,
+          overflow: 'hidden',
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'start', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-          <div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1f2937', margin: 0 }}>
-              Send Album Invitation
-            </h3>
-            <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: '0.25rem 0 0' }}>
-              Email invitation to recipient
-            </p>
-          </div>
+        <span aria-hidden style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+          background: success
+            ? 'linear-gradient(90deg, #10B981 0%, #16A34A 100%)'
+            : 'linear-gradient(90deg, #083A85 0%, #F20C8F 100%)',
+        }} />
+        <div style={{ padding: '1.5rem 1.5rem 1.4rem', position: 'relative' }}>
+          {/* Close button */}
           <button
             onClick={onClose}
             disabled={isSending}
+            aria-label="Close"
             style={{
-              background: 'none',
-              border: 'none',
+              position: 'absolute', top: 14, right: 14,
+              background: colors.bgTertiary,
+              border: `1px solid ${colors.borderPrimary}`,
+              borderRadius: 9,
               cursor: isSending ? 'not-allowed' : 'pointer',
-              color: '#9ca3af',
-              padding: '0.25rem',
+              width: 30, height: 30,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: colors.textSecondary,
+              opacity: isSending ? 0.5 : 1,
+              transition: 'border-color 0.15s, color 0.15s',
             }}
+            onMouseEnter={(e) => { if (!isSending) { e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)'; e.currentTarget.style.color = colors.textPrimary; } }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.color = colors.textSecondary; }}
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path
-                d="M18 6L6 18M6 6L18 18"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <i className="bi bi-x-lg" style={{ fontSize: 12 }} />
           </button>
-        </div>
 
-        {success ? (
-          /* Success State */
-          <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
-            <div
-              style={{
-                width: '4rem',
-                height: '4rem',
-                borderRadius: '50%',
-                background: 'rgba(16, 185, 129, 0.1)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 1rem',
-              }}
-            >
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-                <path d="M5 13l4 4L19 7" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+          {success ? (
+            /* Success State */
+            <div style={{ textAlign: 'center', padding: '1rem 0 0.5rem' }}>
+              <div style={{
+                width: 60, height: 60, margin: '0 auto 1rem',
+                borderRadius: 18,
+                background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 10px 24px rgba(16,185,129,0.32)',
+              }}>
+                <i className="bi bi-check2" style={{ color: '#fff', fontSize: 26 }} />
+              </div>
+              <div style={{
+                fontSize: '0.66rem', fontWeight: 700, color: '#10B981',
+                letterSpacing: '0.08em', textTransform: 'uppercase',
+                marginBottom: 4,
+              }}>Email delivered</div>
+              <h4 style={{ fontSize: '1.2rem', fontWeight: 800, color: colors.textPrimary, margin: '0 0 0.5rem', letterSpacing: '-0.01em' }}>
+                Invitation Sent!
+              </h4>
+              <p style={{ fontSize: '0.9rem', color: colors.textSecondary, margin: 0, lineHeight: 1.5 }}>
+                Email has been sent to <strong style={{ color: colors.textPrimary }}>{recipientEmail}</strong>.
+              </p>
             </div>
-            <h4 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#10b981', margin: '0 0 0.5rem' }}>
-              Invitation Sent!
-            </h4>
-            <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0 }}>
-              Email has been sent to {recipientEmail}
-            </p>
-          </div>
-        ) : (
-          <>
-            {/* Album Details */}
-            <div
-              style={{
-                background: '#f9fafb',
-                border: '1px solid #e5e7eb',
-                borderRadius: '0.5rem',
-                padding: '1rem',
-                marginBottom: '1rem',
-              }}
-            >
-              <div style={{ marginBottom: '0.75rem' }}>
-                <div style={{ fontSize: '0.7rem', color: '#6b7280', marginBottom: '0.25rem' }}>Album Title</div>
-                <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#1f2937' }}>{albumTitle}</div>
-              </div>
-              <div style={{ marginBottom: '0.75rem' }}>
-                <div style={{ fontSize: '0.7rem', color: '#6b7280', marginBottom: '0.25rem' }}>Recipient Email</div>
-                <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#1f2937' }}>{recipientEmail}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: '0.7rem', color: '#6b7280', marginBottom: '0.25rem' }}>Access Code</div>
-                <div
-                  style={{
-                    fontSize: '1.25rem',
-                    fontWeight: 700,
-                    color: '#3b82f6',
-                    letterSpacing: '0.15em',
-                  }}
-                >
-                  {accessCode}
+          ) : (
+            <>
+              {/* Header */}
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.9rem' }}>
+                <div style={{
+                  width: 60, height: 60, borderRadius: 18,
+                  background: 'linear-gradient(135deg, #083A85 0%, #0a4da8 100%)',
+                  boxShadow: '0 10px 24px rgba(8,58,133,0.30)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <i className="bi bi-envelope-paper-fill" style={{ fontSize: 24, color: '#fff' }} />
                 </div>
               </div>
-            </div>
+              <div style={{ textAlign: 'center', marginBottom: '1.1rem' }}>
+                <div style={{
+                  fontSize: '0.66rem', fontWeight: 700, color: '#F20C8F',
+                  letterSpacing: '0.08em', textTransform: 'uppercase',
+                  marginBottom: 4,
+                }}>Email invitation</div>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: colors.textPrimary, margin: 0, letterSpacing: '-0.01em' }}>
+                  Send Album Invitation
+                </h3>
+              </div>
 
-            {/* Information */}
-            <div
-              style={{
-                background: 'rgba(59, 130, 246, 0.05)',
-                border: '1px solid rgba(59, 130, 246, 0.15)',
-                borderRadius: '0.5rem',
-                padding: '0.875rem',
-                marginBottom: '1.5rem',
-              }}
-            >
-              <div style={{ fontSize: '0.75rem', color: '#1e40af', lineHeight: 1.6 }}>
-                <strong>📧 What will be sent:</strong>
-                <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.25rem' }}>
+              {/* Album Details */}
+              <div style={{
+                background: actualTheme === 'dark'
+                  ? 'linear-gradient(135deg, rgba(8,58,133,0.18) 0%, rgba(242,12,143,0.10) 100%)'
+                  : 'linear-gradient(135deg, rgba(8,58,133,0.05) 0%, rgba(242,12,143,0.04) 100%)',
+                border: `1px solid ${actualTheme === 'dark' ? 'rgba(8,58,133,0.32)' : 'rgba(8,58,133,0.14)'}`,
+                borderRadius: 12,
+                padding: '0.9rem 1rem',
+                marginBottom: '0.9rem',
+              }}>
+                <div style={{ marginBottom: '0.65rem' }}>
+                  <div style={{
+                    fontSize: '0.6rem', fontWeight: 700, color: '#F20C8F',
+                    textTransform: 'uppercase', letterSpacing: '0.08em',
+                    marginBottom: 2,
+                  }}>Album Title</div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.005em' }}>{albumTitle}</div>
+                </div>
+                <div style={{ marginBottom: '0.65rem' }}>
+                  <div style={{
+                    fontSize: '0.6rem', fontWeight: 700, color: '#F20C8F',
+                    textTransform: 'uppercase', letterSpacing: '0.08em',
+                    marginBottom: 2,
+                  }}>Recipient Email</div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.005em', wordBreak: 'break-all' }}>{recipientEmail}</div>
+                </div>
+                <div>
+                  <div style={{
+                    fontSize: '0.6rem', fontWeight: 700, color: '#F20C8F',
+                    textTransform: 'uppercase', letterSpacing: '0.08em',
+                    marginBottom: 4,
+                  }}>Access Code</div>
+                  <div style={{
+                    fontSize: '1.45rem',
+                    fontWeight: 800,
+                    letterSpacing: '0.15em',
+                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                    background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                  }}>
+                    {accessCode}
+                  </div>
+                </div>
+              </div>
+
+              {/* Information */}
+              <div style={{
+                background: actualTheme === 'dark' ? 'rgba(59,130,246,0.10)' : 'rgba(239,246,255,0.7)',
+                border: `1px solid ${actualTheme === 'dark' ? 'rgba(59,130,246,0.30)' : 'rgba(59,130,246,0.20)'}`,
+                borderRadius: 11,
+                padding: '0.85rem 0.95rem',
+                marginBottom: '1.25rem',
+                position: 'relative',
+                overflow: 'hidden',
+              }}>
+                <span aria-hidden style={{
+                  position: 'absolute', top: 0, left: 0, bottom: 0, width: 3,
+                  background: 'linear-gradient(180deg, #083A85 0%, #0a4da8 100%)',
+                }} />
+                <div style={{
+                  fontSize: '0.62rem', fontWeight: 700,
+                  color: actualTheme === 'dark' ? '#93C5FD' : '#1E40AF',
+                  textTransform: 'uppercase', letterSpacing: '0.08em',
+                  marginBottom: 6,
+                  paddingLeft: 6,
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                }}>
+                  <i className="bi bi-envelope-fill" style={{ fontSize: 11 }} />
+                  What will be sent
+                </div>
+                <ul style={{
+                  margin: 0,
+                  paddingLeft: '1.6rem',
+                  fontSize: '0.82rem',
+                  color: actualTheme === 'dark' ? '#BFDBFE' : '#1E40AF',
+                  lineHeight: 1.55,
+                }}>
                   <li>Welcome email with album access link</li>
                   <li>6-digit access code for verification</li>
                   <li>Instructions to view and download photos</li>
                   <li>60-day access period information</li>
                 </ul>
               </div>
-            </div>
 
-            {/* Error Message */}
-            {error && (
-              <div
-                style={{
-                  background: 'rgba(239, 68, 68, 0.1)',
-                  border: '1px solid rgba(239, 68, 68, 0.3)',
-                  borderRadius: '0.5rem',
-                  padding: '0.75rem',
-                  marginBottom: '1rem',
-                }}
-              >
-                <div style={{ fontSize: '0.8rem', color: '#dc2626' }}>{error}</div>
+              {/* Error Message */}
+              {error && (
+                <div style={{
+                  fontSize: '0.85rem',
+                  color: actualTheme === 'dark' ? '#FCA5A5' : '#B91C1C',
+                  margin: '0 0 0.95rem',
+                  padding: '0.6rem 0.85rem',
+                  background: actualTheme === 'dark' ? 'rgba(220,38,38,0.18)' : 'rgba(254,242,242,0.85)',
+                  border: `1px solid ${actualTheme === 'dark' ? 'rgba(220,38,38,0.40)' : 'rgba(220,38,38,0.25)'}`,
+                  borderRadius: 10,
+                  display: 'flex', alignItems: 'center', gap: 6,
+                }}>
+                  <i className="bi bi-exclamation-triangle-fill" style={{ fontSize: 13 }} />
+                  {error}
+                </div>
+              )}
+
+              {/* Actions */}
+              <div style={{ display: 'flex', gap: '0.65rem', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={onClose}
+                  disabled={isSending}
+                  style={{
+                    padding: '0.7rem 1.2rem',
+                    fontSize: '0.9rem',
+                    fontWeight: 700,
+                    letterSpacing: '-0.005em',
+                    border: `1px solid ${colors.borderPrimary}`,
+                    borderRadius: 11,
+                    background: colors.bgTertiary,
+                    color: colors.textPrimary,
+                    cursor: isSending ? 'not-allowed' : 'pointer',
+                    opacity: isSending ? 0.5 : 1,
+                    transition: 'border-color 0.15s',
+                  }}
+                  onMouseEnter={(e) => { if (!isSending) e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSend}
+                  disabled={isSending}
+                  style={{
+                    padding: '0.7rem 1.4rem',
+                    fontSize: '0.92rem',
+                    fontWeight: 700,
+                    letterSpacing: '-0.005em',
+                    border: 'none',
+                    borderRadius: 11,
+                    background: isSending
+                      ? (actualTheme === 'dark' ? '#4B5563' : '#9CA3AF')
+                      : 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                    color: '#fff',
+                    cursor: isSending ? 'not-allowed' : 'pointer',
+                    display: 'inline-flex', alignItems: 'center', gap: 7,
+                    boxShadow: isSending ? 'none' : '0 8px 18px rgba(8,58,133,0.30)',
+                    transition: 'transform 0.15s, box-shadow 0.15s',
+                  }}
+                  onMouseEnter={(e) => { if (!isSending) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 12px 24px rgba(242,12,143,0.35)'; } }}
+                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = isSending ? 'none' : '0 8px 18px rgba(8,58,133,0.30)'; }}
+                >
+                  {isSending ? (
+                    <>
+                      <i className="bi bi-arrow-clockwise" style={{ fontSize: 13, animation: 'spin 0.9s linear infinite' }} />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <i className="bi bi-send-fill" style={{ fontSize: 13 }} />
+                      Send Invitation
+                    </>
+                  )}
+                </button>
               </div>
-            )}
-
-            {/* Actions */}
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-              <button
-                onClick={onClose}
-                disabled={isSending}
-                style={{
-                  padding: '0.625rem 1.25rem',
-                  fontSize: '0.875rem',
-                  fontWeight: 600,
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '0.5rem',
-                  background: '#ffffff',
-                  color: '#6b7280',
-                  cursor: isSending ? 'not-allowed' : 'pointer',
-                  opacity: isSending ? 0.5 : 1,
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSend}
-                disabled={isSending}
-                style={{
-                  padding: '0.625rem 1.5rem',
-                  fontSize: '0.875rem',
-                  fontWeight: 600,
-                  border: 'none',
-                  borderRadius: '0.5rem',
-                  background: isSending ? '#9ca3af' : '#3b82f6',
-                  color: '#ffffff',
-                  cursor: isSending ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                }}
-              >
-                {isSending ? (
-                  <>
-                    <svg
-                      style={{ animation: 'spin 1s linear infinite' }}
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                    >
-                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25" />
-                      <path
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        opacity="0.75"
-                      />
-                    </svg>
-                    Sending...
-                  </>
-                ) : (
-                  <>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                      <path
-                        d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    Send Invitation
-                  </>
-                )}
-              </button>
-            </div>
-          </>
-        )}
+            </>
+          )}
+        </div>
       </div>
 
       <style>{`

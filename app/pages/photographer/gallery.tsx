@@ -1466,141 +1466,185 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
             /* List View */
             <div className="mobile-list-view" style={{
               backgroundColor: colors.bgCard,
-              borderRadius: '1rem',
+              borderRadius: 14,
               overflow: 'hidden',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-              border: '1px solid rgba(0, 0, 0, 0.1)'
+              boxShadow: '0 4px 16px -6px rgba(8, 58, 133, 0.10)',
+              border: `1px solid ${colors.borderPrimary}`,
             }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr style={{ borderBottom: '2px solid #E5E7EB', backgroundColor: colors.bgTertiary }}>
-                    <th style={{ textAlign: 'left', padding: '1rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase' }}>Album</th>
-                    <th style={{ textAlign: 'left', padding: '1rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase' }}>Client</th>
-                    <th style={{ textAlign: 'center', padding: '1rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase' }}>Photos</th>
-                    <th style={{ textAlign: 'center', padding: '1rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase' }}>Status</th>
-                    <th style={{ textAlign: 'center', padding: '1rem', fontSize: '0.8rem', fontWeight: '600', color: colors.textSecondary, textTransform: 'uppercase' }}>Actions</th>
+                  <tr style={{
+                    borderBottom: `1px solid ${colors.borderPrimary}`,
+                    background: actualTheme === 'dark'
+                      ? 'linear-gradient(135deg, rgba(8,58,133,0.16) 0%, rgba(242,12,143,0.08) 100%)'
+                      : 'linear-gradient(135deg, rgba(8,58,133,0.04) 0%, rgba(242,12,143,0.03) 100%)',
+                  }}>
+                    <th style={{ textAlign: 'left', padding: '0.7rem 1.1rem', fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Album</th>
+                    <th style={{ textAlign: 'left', padding: '0.7rem 1.1rem', fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Client</th>
+                    <th style={{ textAlign: 'center', padding: '0.7rem 1.1rem', fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Photos</th>
+                    <th style={{ textAlign: 'center', padding: '0.7rem 1.1rem', fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Status</th>
+                    <th style={{ textAlign: 'center', padding: '0.7rem 1.1rem', fontSize: '0.62rem', fontWeight: 700, color: '#F20C8F', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredPhotos.map((photo) => (
+                  {filteredPhotos.map((photo, idx) => (
                     <tr
                       key={photo.id}
                       style={{
-                        borderBottom: `1px solid ${colors.borderPrimary}`,
+                        borderBottom: idx < filteredPhotos.length - 1 ? `1px solid ${colors.borderPrimary}` : 'none',
                         cursor: 'pointer',
-                        transition: 'all 0.2s'
+                        transition: 'background-color 0.18s',
                       }}
                       onClick={() => {
                         setSelectedPhoto(photo);
                         setShowViewModal(true);
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = colors.bgTertiary;
+                        e.currentTarget.style.backgroundColor = actualTheme === 'dark' ? 'rgba(8,58,133,0.10)' : 'rgba(8,58,133,0.04)';
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = colors.bgCard;
+                        e.currentTarget.style.backgroundColor = 'transparent';
                       }}
                     >
-                      <td style={{ padding: '1rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                          <div style={{ position: 'relative', width: '80px', height: '60px', borderRadius: '0.5rem', overflow: 'hidden', flexShrink: 0 }}>
-                            <Image
-                              src={photo.thumbnail}
-                              alt={photo.title}
-                              fill
-                              style={{ objectFit: 'cover' }}
-                            />
+                      <td style={{ padding: '0.9rem 1.1rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <div style={{
+                            position: 'relative',
+                            width: 84, height: 60,
+                            borderRadius: 9,
+                            overflow: 'hidden',
+                            flexShrink: 0,
+                            border: `1px solid ${colors.borderPrimary}`,
+                            boxShadow: '0 3px 8px rgba(8,58,133,0.12)',
+                          }}>
+                            <Image src={photo.thumbnail} alt={photo.title} fill style={{ objectFit: 'cover' }} />
                           </div>
-                          <div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                              <h3 style={{ fontSize: '0.95rem', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>{photo.title}</h3>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                              <h3 style={{
+                                fontSize: '0.95rem', fontWeight: 800, color: colors.textPrimary,
+                                margin: 0, letterSpacing: '-0.005em',
+                              }}>{photo.title}</h3>
                               {photo.featured && (
                                 <span style={{
-                                  backgroundColor: '#FEF3C7',
-                                  color: '#92400E',
-                                  padding: '0.125rem 0.375rem',
-                                  borderRadius: '0.25rem',
-                                  fontSize: '0.65rem',
-                                  fontWeight: '600'
-                                }}>Featured</span>
+                                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                                  background: 'linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%)',
+                                  color: 'white',
+                                  padding: '0.18rem 0.5rem',
+                                  borderRadius: 9999,
+                                  fontSize: '0.6rem',
+                                  fontWeight: 800,
+                                  letterSpacing: '0.06em',
+                                  textTransform: 'uppercase',
+                                  boxShadow: '0 3px 8px rgba(245,158,11,0.30)',
+                                }}>
+                                  <i className="bi bi-star-fill" style={{ fontSize: 9 }} />
+                                  Featured
+                                </span>
                               )}
                             </div>
                             <span style={{
-                              display: 'inline-block',
-                              padding: '0.125rem 0.5rem',
-                              backgroundColor: '#DBEAFE',
-                              color: '#1E40AF',
-                              borderRadius: '0.25rem',
-                              fontSize: '0.7rem',
-                              fontWeight: '500',
-                              marginTop: '0.25rem'
-                            }}>{photo.category}</span>
+                              display: 'inline-flex', alignItems: 'center', gap: 4,
+                              padding: '0.18rem 0.55rem',
+                              background: 'linear-gradient(135deg, rgba(8,58,133,0.10) 0%, rgba(242,12,143,0.08) 100%)',
+                              border: '1px solid rgba(8,58,133,0.18)',
+                              color: actualTheme === 'dark' ? '#BFDBFE' : '#083A85',
+                              borderRadius: 9999,
+                              fontSize: '0.66rem',
+                              fontWeight: 700,
+                              letterSpacing: '-0.005em',
+                              marginTop: 4,
+                            }}>
+                              <i className="bi bi-tag-fill" style={{ fontSize: 9, color: '#F20C8F' }} />
+                              {photo.category}
+                            </span>
                           </div>
                         </div>
                       </td>
-                      <td style={{ padding: '1rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
-                            <Image
-                              src={photo.clientAvatar}
-                              alt={photo.client}
-                              width={32}
-                              height={32}
-                              style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                            />
+                      <td style={{ padding: '0.9rem 1.1rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{
+                            width: 34, height: 34, borderRadius: '50%',
+                            padding: 1.5,
+                            background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 100%)',
+                            boxShadow: '0 3px 6px rgba(8,58,133,0.18)',
+                            flexShrink: 0,
+                          }}>
+                            <div style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', background: colors.bgCard }}>
+                              <Image src={photo.clientAvatar} alt={photo.client} width={32} height={32} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                            </div>
                           </div>
-                          <div>
-                            <div style={{ fontSize: '0.9rem', fontWeight: '500', color: colors.textPrimary }}>{photo.client}</div>
-                            <div style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>{photo.date}</div>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: '0.88rem', fontWeight: 700, color: colors.textPrimary, letterSpacing: '-0.005em' }}>{photo.client}</div>
+                            <div style={{ fontSize: '0.74rem', color: colors.textSecondary, marginTop: 1, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                              <i className="bi bi-calendar3" style={{ fontSize: 10, color: '#F20C8F' }} />
+                              {photo.date}
+                            </div>
                           </div>
                         </div>
                       </td>
-                      <td style={{ padding: '1rem', textAlign: 'center' }}>
-                        <span style={{ fontSize: '0.95rem', fontWeight: '600', color: actualTheme === 'dark' ? '#60A5FA' : '#083A85' }}>{photo.photoCount}</span>
+                      <td style={{ padding: '0.9rem 1.1rem', textAlign: 'center' }}>
+                        <span style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 5,
+                          padding: '0.28rem 0.7rem',
+                          background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
+                          color: 'white',
+                          borderRadius: 9999,
+                          fontSize: '0.78rem',
+                          fontWeight: 800,
+                          letterSpacing: '-0.005em',
+                          boxShadow: '0 4px 10px rgba(8,58,133,0.28)',
+                        }}>
+                          <i className="bi bi-images" style={{ fontSize: 11 }} />
+                          {photo.photoCount}
+                        </span>
                       </td>
-                      <td style={{ padding: '1rem', textAlign: 'center' }}>
+                      <td style={{ padding: '0.9rem 1.1rem', textAlign: 'center' }}>
                         <div style={{
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '0.375rem',
-                          backgroundColor: photo.sharedWithClient
-                            ? (actualTheme === 'dark' ? '#064E3B' : '#D1FAE5')
-                            : (actualTheme === 'dark' ? '#78350F' : '#FEF3C7'),
-                          padding: '0.375rem 0.75rem',
-                          borderRadius: '9999px',
-                          fontSize: '0.8rem',
-                          fontWeight: '500',
-                          color: photo.sharedWithClient
-                            ? (actualTheme === 'dark' ? '#6EE7B7' : '#065F46')
-                            : (actualTheme === 'dark' ? '#FCD34D' : '#92400E')
+                          gap: 5,
+                          background: photo.sharedWithClient
+                            ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)'
+                            : 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                          padding: '0.28rem 0.7rem',
+                          borderRadius: 9999,
+                          fontSize: '0.62rem',
+                          fontWeight: 800,
+                          letterSpacing: '0.06em',
+                          textTransform: 'uppercase',
+                          color: '#fff',
+                          boxShadow: photo.sharedWithClient
+                            ? '0 4px 10px rgba(16,185,129,0.28)'
+                            : '0 4px 10px rgba(245,158,11,0.28)',
                         }}>
-                          <i className={`bi ${photo.sharedWithClient ? 'bi-check-circle-fill' : 'bi-lock-fill'}`} style={{ fontSize: '0.75rem' }}></i>
+                          <i className={`bi ${photo.sharedWithClient ? 'bi-check2-circle' : 'bi-lock-fill'}`} style={{ fontSize: 10 }} />
                           {photo.sharedWithClient ? 'Shared' : 'Private'}
                         </div>
                       </td>
-                      <td style={{ padding: '1rem', textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                      <td style={{ padding: '0.9rem 1.1rem', textAlign: 'center' }}>
+                        <div style={{ display: 'flex', gap: 5, justifyContent: 'center' }}>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               openMultiSelectView(photo);
                             }}
+                            title="Browse photos"
                             style={{
-                              width: '36px',
-                              height: '36px',
-                              borderRadius: '0.5rem',
-                              border: '2px solid #062a63',
-                              backgroundColor: '#083A85',
+                              width: 34, height: 34,
+                              borderRadius: 9,
+                              border: 'none',
+                              background: 'linear-gradient(135deg, #083A85 0%, #F20C8F 130%)',
                               color: 'white',
                               cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              transition: 'all 0.2s'
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              boxShadow: '0 4px 10px rgba(8,58,133,0.28)',
+                              transition: 'transform 0.15s',
                             }}
-                            title="Browse Photos"
+                            onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
                           >
-                            <ImageIcon />
+                            <i className="bi bi-eye-fill" style={{ fontSize: 12 }} />
                           </button>
                           <button
                             onClick={(e) => {
@@ -1608,22 +1652,22 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                               setSharePhoto(photo);
                               setShowShareModal(true);
                             }}
+                            title="Send to client"
                             style={{
-                              width: '36px',
-                              height: '36px',
-                              borderRadius: '0.5rem',
-                              border: `2px solid ${actualTheme === 'dark' ? '#34D399' : '#16A34A'}`,
-                              backgroundColor: actualTheme === 'dark' ? '#064E3B' : '#F0FDF4',
-                              color: actualTheme === 'dark' ? '#6EE7B7' : '#16A34A',
+                              width: 34, height: 34,
+                              borderRadius: 9,
+                              border: 'none',
+                              background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                              color: 'white',
                               cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              transition: 'all 0.2s'
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              boxShadow: '0 4px 10px rgba(16,185,129,0.28)',
+                              transition: 'transform 0.15s',
                             }}
-                            title="Send to Client"
+                            onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
                           >
-                            <SendIcon />
+                            <i className="bi bi-send-fill" style={{ fontSize: 12 }} />
                           </button>
                           <button
                             onClick={(e) => {
@@ -1631,44 +1675,42 @@ const Gallery = ({ userType = 'photographer' }: GalleryProps) => {
                               setSelectedPhoto(photo);
                               setShowEditModal(true);
                             }}
+                            title="Edit"
                             style={{
-                              width: '36px',
-                              height: '36px',
-                              borderRadius: '0.5rem',
-                              border: `2px solid ${colors.borderSecondary}`,
-                              backgroundColor: colors.bgTertiary,
+                              width: 34, height: 34,
+                              borderRadius: 9,
+                              border: `1px solid ${colors.borderPrimary}`,
+                              background: colors.bgTertiary,
                               color: colors.textPrimary,
                               cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              transition: 'all 0.2s'
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              transition: 'border-color 0.15s, background-color 0.15s',
                             }}
-                            title="Edit"
+                            onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(8,58,133,0.30)'; e.currentTarget.style.backgroundColor = 'rgba(8,58,133,0.05)'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.borderColor = colors.borderPrimary; e.currentTarget.style.backgroundColor = colors.bgTertiary; }}
                           >
-                            <i className="bi bi-pencil" style={{ fontSize: '0.9rem' }}></i>
+                            <i className="bi bi-pencil-fill" style={{ fontSize: 11, color: '#F20C8F' }} />
                           </button>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               openDeleteModal(photo);
                             }}
+                            title="Delete"
                             style={{
-                              width: '36px',
-                              height: '36px',
-                              borderRadius: '0.5rem',
-                              border: `2px solid ${actualTheme === 'dark' ? '#F87171' : '#FCA5A5'}`,
-                              backgroundColor: actualTheme === 'dark' ? '#7F1D1D' : '#FEE2E2',
+                              width: 34, height: 34,
+                              borderRadius: 9,
+                              border: `1px solid ${actualTheme === 'dark' ? 'rgba(220,38,38,0.40)' : 'rgba(220,38,38,0.25)'}`,
+                              background: actualTheme === 'dark' ? 'rgba(220,38,38,0.14)' : 'rgba(254,242,242,0.85)',
                               color: actualTheme === 'dark' ? '#FCA5A5' : '#DC2626',
                               cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              transition: 'all 0.2s'
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              transition: 'all 0.15s',
                             }}
-                            title="Delete"
+                            onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'transparent'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = actualTheme === 'dark' ? 'rgba(220,38,38,0.14)' : 'rgba(254,242,242,0.85)'; e.currentTarget.style.color = actualTheme === 'dark' ? '#FCA5A5' : '#DC2626'; e.currentTarget.style.borderColor = actualTheme === 'dark' ? 'rgba(220,38,38,0.40)' : 'rgba(220,38,38,0.25)'; }}
                           >
-                            <i className="bi bi-trash" style={{ fontSize: '0.9rem' }}></i>
+                            <i className="bi bi-trash3-fill" style={{ fontSize: 11 }} />
                           </button>
                         </div>
                       </td>
